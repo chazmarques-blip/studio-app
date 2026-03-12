@@ -97,7 +97,7 @@ export default function SettingsPage() {
       )}
 
       <div className="mb-4 space-y-1">
-        {menuItems.map((item, i) => (
+        {menuItems.filter(item => !(showAccount && item.label === t('settings.account'))).map((item, i) => (
           <button key={i} data-testid={`settings-${item.label.toLowerCase().replace(/\s/g, '-')}`}
             onClick={() => item.action ? item.action() : item.path && navigate(item.path)}
             className="glass-card flex w-full items-center gap-3 p-4 text-left transition-all hover:border-[rgba(201,168,76,0.3)]">
