@@ -39,6 +39,8 @@ class AgentCreate(BaseModel):
     follow_up_config: Optional[dict] = {}
     knowledge_instructions: Optional[str] = ""
     marketplace_template_id: Optional[str] = None
+    language_mode: Optional[str] = "auto_detect"
+    fixed_language: Optional[str] = "pt"
 
 
 class AgentUpdate(BaseModel):
@@ -71,12 +73,11 @@ class FollowUpRuleCreate(BaseModel):
 
 
 class DeployAgentRequest(BaseModel):
-    name: Optional[str] = None
-    system_prompt: Optional[str] = None
-    personality: Optional[dict] = None
-    tone: Optional[str] = None
-    emoji_level: Optional[str] = None
-    verbosity_level: Optional[str] = None
+    template_name: str
+    custom_name: Optional[str] = None
+    tone: Optional[str] = "professional"
+    emoji_level: Optional[str] = "low"
+    verbosity_level: Optional[str] = "balanced"
 
 
 class ChannelCreate(BaseModel):
@@ -89,6 +90,7 @@ class ConversationCreate(BaseModel):
     agent_id: Optional[str] = None
     contact_name: str
     contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
     channel_type: Optional[str] = "whatsapp"
 
 
