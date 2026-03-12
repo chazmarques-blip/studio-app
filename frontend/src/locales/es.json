@@ -4,7 +4,8 @@
     "agents": "Agentes",
     "crm": "CRM",
     "analytics": "Analisis",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "dashboard": "Inicio"
   },
   "landing": {
     "hero_title_1": "Despliega Agentes de IA",
@@ -289,6 +290,15 @@
     "loading": "Cargando...",
     "days": "d",
     "hours": "h",
-    "minutes": "m"
+    "minutes": "m",
+    "coming_soon": "Proximamente"
+  },
+  "profile": {
+    "edit": "Editar Perfil",
+    "billing": "Plan y Facturacion",
+    "name": "Nombre Completo",
+    "company": "Empresa",
+    "saved": "Perfil actualizado!",
+    "save_error": "Error al guardar perfil"
   }
 }

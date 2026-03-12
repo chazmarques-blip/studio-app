@@ -1,4 +1,4 @@
-import { MessageSquare, Bot, Target, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Bot, Target, BarChart3, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,7 @@ export function BottomNav() {
   const { t } = useTranslation();
 
   const tabs = [
+    { path: '/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
     { path: '/chat', icon: MessageSquare, label: t('nav.chat') },
     { path: '/agents', icon: Bot, label: t('nav.agents') },
     { path: '/crm', icon: Target, label: t('nav.crm') },

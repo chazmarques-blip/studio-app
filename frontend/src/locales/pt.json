@@ -4,7 +4,8 @@
     "agents": "Agentes",
     "crm": "CRM",
     "analytics": "Analise",
-    "settings": "Config"
+    "settings": "Config",
+    "dashboard": "Inicio"
   },
   "landing": {
     "hero_title_1": "Crie Agentes de IA",
@@ -289,6 +290,15 @@
     "loading": "Carregando...",
     "days": "d",
     "hours": "h",
-    "minutes": "m"
+    "minutes": "m",
+    "coming_soon": "Em breve"
+  },
+  "profile": {
+    "edit": "Editar Perfil",
+    "billing": "Plano e Pagamento",
+    "name": "Nome Completo",
+    "company": "Empresa",
+    "saved": "Perfil atualizado!",
+    "save_error": "Erro ao salvar perfil"
   }
 }

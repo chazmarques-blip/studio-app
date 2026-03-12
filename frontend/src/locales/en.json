@@ -4,7 +4,8 @@
     "agents": "Agents",
     "crm": "CRM",
     "analytics": "Analytics",
-    "settings": "Settings"
+    "settings": "Settings",
+    "dashboard": "Home"
   },
   "landing": {
     "hero_title_1": "Deploy AI Agents",
@@ -289,6 +290,15 @@
     "loading": "Loading...",
     "days": "d",
     "hours": "h",
-    "minutes": "m"
+    "minutes": "m",
+    "coming_soon": "Coming soon"
+  },
+  "profile": {
+    "edit": "Edit Profile",
+    "billing": "Billing & Plan",
+    "name": "Full Name",
+    "company": "Company",
+    "saved": "Profile updated!",
+    "save_error": "Error saving profile"
   }
 }

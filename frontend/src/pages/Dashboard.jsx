@@ -1,19 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Users, Target, DollarSign, TrendingUp, Bot } from 'lucide-react';
+import { MessageSquare, Target, DollarSign, TrendingUp, Bot, CreditCard, LogOut, UserCog } from 'lucide-react';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [agents, setAgents] = useState([]);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     axios.get(`${API}/dashboard/stats`).then(r => setStats(r.data)).catch(() => {});
@@ -38,7 +49,33 @@ export default function Dashboard() {
           <p className="text-xs text-[#666666]">{t('dashboard.welcome')}</p>
           <h1 data-testid="dashboard-greeting" className="text-xl font-bold text-white">{displayName}</h1>
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2A2A2A]"><Users size={16} className="text-[#A0A0A0]" /></div>
+        <div className="relative" ref={profileRef}>
+          <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] transition-all hover:shadow-lg hover:shadow-[#C9A84C]/20">
+            <span className="text-sm font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
+          </button>
+          {profileOpen && (
+            <div data-testid="profile-dropdown" className="absolute right-0 top-12 z-50 w-56 rounded-xl border border-[#2A2A2A] bg-[#141414] p-1.5 shadow-2xl shadow-black/50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="mb-1.5 border-b border-[#2A2A2A] px-3 py-2.5">
+                <p className="text-sm font-semibold text-white">{user?.full_name || 'User'}</p>
+                <p className="text-xs text-[#666]">{user?.email}</p>
+              </div>
+              <button data-testid="profile-edit-btn" onClick={() => { setProfileOpen(false); navigate('/settings', { state: { openAccount: true } }); }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[#A0A0A0] transition hover:bg-[#1E1E1E] hover:text-white">
+                <UserCog size={15} /> {t('profile.edit')}
+              </button>
+              <button data-testid="profile-billing-btn" onClick={() => { setProfileOpen(false); navigate('/pricing'); }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[#A0A0A0] transition hover:bg-[#1E1E1E] hover:text-white">
+                <CreditCard size={15} /> {t('profile.billing')}
+              </button>
+              <div className="my-1 border-t border-[#2A2A2A]" />
+              <button data-testid="profile-logout-btn" onClick={async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10">
+                <LogOut size={15} /> {t('settings.sign_out')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <div className="mb-6 grid grid-cols-2 gap-3">
         {statCards.map((s, i) => (
