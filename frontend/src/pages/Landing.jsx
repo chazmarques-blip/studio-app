@@ -106,6 +106,7 @@ export default function Landing() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || 'en';
   const [activeAgent, setActiveAgent] = useState(0);
+  const [billingAnnual, setBillingAnnual] = useState(true);
 
   const agents = [
     { name: 'Sofia', role: 'Sales', desc: lang === 'pt' ? 'Vendas e-commerce' : 'E-commerce sales' },
@@ -296,38 +297,69 @@ export default function Landing() {
       </section>
 
       {/* ===== PRICING ===== */}
-      <section className="mx-auto max-w-5xl px-6 py-16 border-t border-[#141414]">
-        <div className="text-center mb-10">
+      <section className="mx-auto max-w-6xl px-6 py-16 border-t border-[#141414]">
+        <div className="text-center mb-8">
           <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">Pricing</p>
           <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{t('landing.pricing_title')}</h2>
-          <p className="text-sm text-[#666]">{t('landing.pricing_subtitle')}</p>
+          <p className="text-sm text-[#666] mb-5">{t('landing.pricing_subtitle')}</p>
+          {/* Billing toggle */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#1E1E1E] bg-[#0D0D0D] p-1">
+            <button data-testid="billing-annual" onClick={() => setBillingAnnual(true)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666] hover:text-white'}`}>
+              {t('landing.billing_annual')} <span className="ml-1 text-[9px] opacity-80">{t('landing.billing_save')}</span>
+            </button>
+            <button data-testid="billing-monthly" onClick={() => setBillingAnnual(false)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666] hover:text-white'}`}>
+              {t('landing.billing_monthly')}
+            </button>
+          </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* FREE */}
           <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-5 hover:border-[#1E1E1E] transition">
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_free')}</h3>
-            <p className="mb-3 text-[12px] text-[#555]">{t('landing.plan_free_desc')}</p>
-            <div className="mb-5"><span className="text-2xl font-bold text-white">{t('landing.plan_free_price')}</span><span className="text-sm text-[#555]">{t('landing.plan_free_period')}</span></div>
-            <ul className="mb-6 flex-1 space-y-2.5 text-[13px] text-[#777]">
-              {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={13} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_free_${k}`)}</li>)}
+            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_free_desc')}</p>
+            <div className="mb-4"><span className="text-2xl font-bold text-white">{t('landing.plan_free_price')}</span><span className="text-xs text-[#555]">{t('landing.plan_free_period')}</span></div>
+            <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
+              {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_free_${k}`)}</li>)}
             </ul>
             <button onClick={() => navigate('/login?tab=signup')} className="w-full rounded-lg border border-[#1E1E1E] py-2 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_free_cta')}</button>
           </div>
+          {/* STARTER */}
           <div className="rounded-xl border border-[#C9A84C]/25 bg-[#0C0C0C] relative flex flex-col p-5 shadow-lg shadow-[#C9A84C]/3">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#C9A84C] px-3 py-0.5 text-[10px] font-semibold text-[#0A0A0A]">{t('landing.plan_starter_badge')}</div>
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_starter')}</h3>
-            <p className="mb-3 text-[12px] text-[#555]">{t('landing.plan_starter_desc')}</p>
-            <div className="mb-5"><span className="text-2xl font-bold text-[#C9A84C]">{t('landing.plan_starter_price')}</span><span className="text-sm text-[#555]">{t('landing.plan_starter_period')}</span></div>
-            <ul className="mb-6 flex-1 space-y-2.5 text-[13px] text-[#777]">
-              {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={13} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_starter_${k}`)}</li>)}
+            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_starter_desc')}</p>
+            <div className="mb-4"><span className="text-2xl font-bold text-[#C9A84C]">{t('landing.plan_starter_price')}</span><span className="text-xs text-[#555]">{t('landing.plan_starter_period')}</span></div>
+            <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
+              {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_starter_${k}`)}</li>)}
             </ul>
             <button className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_starter_cta')}</button>
           </div>
+          {/* PRO */}
+          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] relative flex flex-col p-5 hover:border-[#1E1E1E] transition">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-[#C9A84C]/30 bg-[#0D0D0D] px-3 py-0.5 text-[10px] font-medium text-[#C9A84C]">{t('landing.plan_pro_badge')}</div>
+            <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_pro')}</h3>
+            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_pro_desc')}</p>
+            <div className="mb-4">
+              <span className="text-2xl font-bold text-white">{billingAnnual ? t('landing.plan_pro_price_annual') : t('landing.plan_pro_price_monthly')}</span>
+              <span className="text-xs text-[#555]">{billingAnnual ? t('landing.plan_pro_period_annual') : t('landing.plan_pro_period_monthly')}</span>
+            </div>
+            <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
+              {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_pro_${k}`)}</li>)}
+            </ul>
+            <button className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_pro_cta')}</button>
+          </div>
+          {/* ENTERPRISE */}
           <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-5 hover:border-[#1E1E1E] transition">
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_enterprise')}</h3>
-            <p className="mb-3 text-[12px] text-[#555]">{t('landing.plan_enterprise_desc')}</p>
-            <div className="mb-5"><span className="text-2xl font-bold text-white">{t('landing.plan_enterprise_price')}</span></div>
-            <ul className="mb-6 flex-1 space-y-2.5 text-[13px] text-[#777]">
-              {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={13} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
+            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_enterprise_desc')}</p>
+            <div className="mb-4">
+              <span className="text-2xl font-bold text-white">{billingAnnual ? t('landing.plan_enterprise_price_annual') : t('landing.plan_enterprise_price_monthly')}</span>
+              <span className="text-xs text-[#555]">{billingAnnual ? t('landing.plan_enterprise_period_annual') : t('landing.plan_enterprise_period_monthly')}</span>
+            </div>
+            <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
+              {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
             </ul>
             <button className="w-full rounded-lg border border-[#1E1E1E] py-2 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_enterprise_cta')}</button>
           </div>
