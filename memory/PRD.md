@@ -85,7 +85,9 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow". T
 - No functional code developed yet (only boilerplate)
 - Waiting for user approval of mockups and updated plan to start Phase 0
 
-## Mockup URLs (Dark Luxury Theme v2)
+## Mockup URLs (Dark Luxury Theme v2 - 18 Screens)
+
+### Core Screens (8)
 1. Landing Page: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/b5e73ae160804f6c5d1a0f6d8597d80b4a227f2de04997edb2b64f599a29ab81.png
 2. Login/Onboarding: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/54c9be7375014a6752f65b823a070f68b80e211b77c5f895facb272851a83cca.png
 3. Dashboard: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/8342fbffd825a36c7704c78242b6f66c4d6caf8929256e6d8e961eb9a92cb52a.png
@@ -94,6 +96,18 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow". T
 6. Marketplace: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/dfef02a96b9bd6e9d248ec50d19b0dff02fb12f632d1990ea500c2b42f246150.png
 7. Pricing: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/595c2d153efa15171101b208f8352dd4851b2e5d6272b44a69152e517188f5ab.png
 8. Settings/Agent Editor: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/dc9a843dbccb56a4821512959dc7544611629fb269bda8e39d65610924e309d7.png
+
+### Additional Screens (10)
+9. Onboarding - Agent Language Config: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/5284de4ca33b5bdb134e01a1b3f844cb43d403b721bfc53f15512b3e33f47f94.png
+10. Agent Builder Wizard: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/68e1693ee7d101a724e7c2e20686e5315fa7b6e8c819b5173b72f5695212d891.png
+11. Lead Detail View: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/f782348d341999fb404d1773757fff8210d2de4a913c6178657b8f62fdbcab5e.png
+12. Campaign Builder: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/f0172d8e53c338ec92a72806a9b95d9b28984916e068e5d0a008e7a0562701e4.png
+13. Analytics Detailed: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/9718c505de96e65013178c8484b9a6fb85121706a7acc2c7e141112c1eeeaf7e.png
+14. Handoff to Human: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/b7cdc4821d10795cfe1fdf67eed1fd6fe2dfa735d27241f44c1c598f199f0792.png
+15. Channel Connection: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/5d72ceef4d76d8a2f365c8761f66e9c628e8acfa2c4276770e9b5777043a56e3.png
+16. Upsell/Upgrade Screen: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/c499936cc94d725f69593836285f59c521014412206bc1480616fc36c4dcce2b.png
+17. Agent Sandbox/Test: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/72130d79efa635585b81f36dd869a452a2a74985b3d2772f860921562abcc019.png
+18. Mobile Navigation: https://static.prod-images.emergentagent.com/jobs/a2a47944-581c-44db-bd6c-71f836ad88fa/images/bd8325726b982efd8b896369be9d1e029581d5235ec0517ccbb6961cf3edc43f.png
 
 ## Prioritized Backlog
 - P0: User approval of design + start Phase 0
