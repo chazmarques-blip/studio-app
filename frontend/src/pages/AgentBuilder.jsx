@@ -3,23 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Bot, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
-const agentTypes = [
-  { value: 'sales', label: 'Sales', color: '#C9A84C' },
-  { value: 'support', label: 'Support', color: '#2196F3' },
-  { value: 'scheduling', label: 'Scheduling', color: '#4CAF50' },
-  { value: 'sac', label: 'SAC', color: '#FF9800' },
-  { value: 'onboarding', label: 'Onboarding', color: '#9C27B0' },
-  { value: 'custom', label: 'Custom', color: '#666666' },
-];
-
 const channels = [
   { id: 'whatsapp', name: 'WhatsApp', color: '#25D366' },
   { id: 'instagram', name: 'Instagram', color: '#E4405F' },
   { id: 'facebook', name: 'Facebook', color: '#1877F2' },
   { id: 'telegram', name: 'Telegram', color: '#0088CC' },
 ];
-
-const steps = ['Identity', 'Personality', 'Knowledge', 'Deploy'];
 
 export default function AgentBuilder() {
   const [step, setStep] = useState(0);
@@ -33,6 +22,16 @@ export default function AgentBuilder() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const agentTypes = [
+    { value: 'sales', label: t('agents.type_sales'), color: '#C9A84C' },
+    { value: 'support', label: t('agents.type_support'), color: '#2196F3' },
+    { value: 'scheduling', label: t('agents.type_scheduling'), color: '#4CAF50' },
+    { value: 'sac', label: t('agents.type_sac'), color: '#FF9800' },
+    { value: 'onboarding', label: t('agents.type_onboarding'), color: '#9C27B0' },
+    { value: 'custom', label: t('agents.type_custom'), color: '#666666' },
+  ];
+
+  const steps = [t('agents.step_identity'), t('agents.step_personality'), t('agents.step_knowledge'), t('agents.step_deploy')];
   const toggleChannel = (id) => setSelectedChannels(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
 
   return (
@@ -41,7 +40,6 @@ export default function AgentBuilder() {
         <button onClick={() => navigate('/agents')} className="text-[#A0A0A0] hover:text-white"><ArrowLeft size={20} /></button>
         <h1 className="text-xl font-bold text-white">{t('agents.builder_title')}</h1>
       </div>
-      {/* Step indicator */}
       <div className="mb-8 flex items-center justify-center gap-1">
         {steps.map((s, i) => (
           <div key={s} className="flex items-center">
@@ -68,10 +66,10 @@ export default function AgentBuilder() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-[#A0A0A0]">{t('agents.description')}</label>
-            <textarea data-testid="builder-desc" value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Describe what this agent does..." className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none resize-none focus:border-[#C9A84C]" />
+            <textarea data-testid="builder-desc" value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder={t('agents.desc_placeholder')} className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none resize-none focus:border-[#C9A84C]" />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-[#A0A0A0]">Channels</label>
+            <label className="mb-1.5 block text-xs font-medium text-[#A0A0A0]">{t('agents.channels')}</label>
             <div className="grid grid-cols-2 gap-2">
               {channels.map(ch => (
                 <button key={ch.id} onClick={() => toggleChannel(ch.id)} className={`glass-card flex items-center gap-2 p-3 text-sm ${selectedChannels.includes(ch.id) ? 'border-[#C9A84C]' : ''}`}>
@@ -87,32 +85,32 @@ export default function AgentBuilder() {
       {step === 1 && (
         <div className="space-y-6">
           <div>
-            <div className="mb-2 flex items-center justify-between"><label className="text-xs font-medium text-[#A0A0A0]">Tone (Formal → Casual)</label><span className="text-xs text-[#C9A84C]">{Math.round(tone * 100)}%</span></div>
+            <div className="mb-2 flex items-center justify-between"><label className="text-xs font-medium text-[#A0A0A0]">{t('agents.tone_label')}</label><span className="text-xs text-[#C9A84C]">{Math.round(tone * 100)}%</span></div>
             <input type="range" min="0" max="1" step="0.1" value={tone} onChange={e => setTone(parseFloat(e.target.value))} className="w-full accent-[#C9A84C]" />
           </div>
           <div>
-            <div className="mb-2 flex items-center justify-between"><label className="text-xs font-medium text-[#A0A0A0]">Verbosity (Concise → Detailed)</label><span className="text-xs text-[#C9A84C]">{Math.round(verbosity * 100)}%</span></div>
+            <div className="mb-2 flex items-center justify-between"><label className="text-xs font-medium text-[#A0A0A0]">{t('agents.verbosity_label')}</label><span className="text-xs text-[#C9A84C]">{Math.round(verbosity * 100)}%</span></div>
             <input type="range" min="0" max="1" step="0.1" value={verbosity} onChange={e => setVerbosity(parseFloat(e.target.value))} className="w-full accent-[#C9A84C]" />
           </div>
           <div className="glass-card p-4">
-            <p className="text-xs text-[#666666] mb-2">Preview</p>
-            <p className="text-sm text-[#A0A0A0]">{tone > 0.5 ? 'Hey there! How can I help you today? 😊' : 'Good day. How may I assist you?'}</p>
+            <p className="text-xs text-[#666666] mb-2">{t('agents.preview')}</p>
+            <p className="text-sm text-[#A0A0A0]">{tone > 0.5 ? 'Hey there! How can I help you today?' : 'Good day. How may I assist you?'}</p>
           </div>
         </div>
       )}
       {step === 2 && (
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#A0A0A0]">System Prompt</label>
+          <label className="mb-1.5 block text-xs font-medium text-[#A0A0A0]">{t('agents.system_prompt')}</label>
           <textarea data-testid="builder-prompt" value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={10}
-            placeholder="You are a helpful assistant that..." className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-3 text-sm text-white placeholder-[#666666] outline-none resize-none focus:border-[#C9A84C] font-mono" />
+            placeholder={t('agents.system_prompt_placeholder')} className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-3 text-sm text-white placeholder-[#666666] outline-none resize-none focus:border-[#C9A84C] font-mono" />
         </div>
       )}
       {step === 3 && (
         <div className="glass-card p-6 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#C9A84C]/10"><Bot size={32} className="text-[#C9A84C]" /></div>
           <h3 className="mb-1 text-lg font-bold text-white">{name || 'Your Agent'}</h3>
-          <p className="mb-2 text-xs capitalize text-[#A0A0A0]">{type}</p>
-          <p className="mb-4 text-sm text-[#666666]">{description || 'No description'}</p>
+          <p className="mb-2 text-xs capitalize text-[#A0A0A0]">{agentTypes.find(a => a.value === type)?.label || type}</p>
+          <p className="mb-4 text-sm text-[#666666]">{description || t('agents.desc_placeholder')}</p>
           <div className="flex flex-wrap justify-center gap-2 mb-4">
             {selectedChannels.map(ch => {
               const c = channels.find(x => x.id === ch);

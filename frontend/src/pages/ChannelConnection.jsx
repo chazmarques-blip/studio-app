@@ -41,7 +41,7 @@ export default function ChannelConnection() {
                 <div className="mx-auto mb-3 flex h-32 w-32 items-center justify-center rounded-xl bg-white/5 border border-dashed border-[#2A2A2A]">
                   <QrCode size={48} className="text-[#2A2A2A]" />
                 </div>
-                <p className="text-xs text-[#666666]">QR Code will appear here after connecting</p>
+                <p className="text-xs text-[#666666]">{t('agents.qr_hint')}</p>
                 <button className="btn-gold mt-3 rounded-lg px-6 py-2 text-xs">{t('settings.connect')}</button>
               </div>
             )}

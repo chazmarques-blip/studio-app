@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -10,6 +11,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('agentflow_token'));
   const [loading, setLoading] = useState(true);
+  const { i18n } = useTranslation();
+
+  const applyLanguage = useCallback((lang) => {
+    if (lang && lang !== i18n.language) {
+      i18n.changeLanguage(lang);
+      localStorage.setItem('agentflow_lang', lang);
+    }
+  }, [i18n]);
 
   const setAuthHeader = useCallback((t) => {
     if (t) {
@@ -24,6 +33,7 @@ export function AuthProvider({ children }) {
       setAuthHeader(token);
       axios.get(`${API}/auth/me`).then(res => {
         setUser(res.data);
+        applyLanguage(res.data.ui_language);
         setLoading(false);
       }).catch(() => {
         localStorage.removeItem('agentflow_token');
@@ -34,7 +44,7 @@ export function AuthProvider({ children }) {
     } else {
       setLoading(false);
     }
-  }, [token, setAuthHeader]);
+  }, [token, setAuthHeader, applyLanguage]);
 
   const signUp = async (email, password, fullName) => {
     const { data } = await axios.post(`${API}/auth/signup`, { email, password, full_name: fullName });
@@ -51,19 +61,25 @@ export function AuthProvider({ children }) {
     setToken(data.access_token);
     setAuthHeader(data.access_token);
     setUser(data.user);
+    applyLanguage(data.user.ui_language);
     return { data, error: null };
   };
 
   const signOut = async () => {
     localStorage.removeItem('agentflow_token');
+    localStorage.removeItem('agentflow_lang');
     setToken(null);
     setUser(null);
     setAuthHeader(null);
+    i18n.changeLanguage('en');
   };
 
   const updateProfile = async (updates) => {
     const { data } = await axios.put(`${API}/auth/profile`, updates);
     setUser(prev => ({ ...prev, ...updates }));
+    if (updates.ui_language) {
+      applyLanguage(updates.ui_language);
+    }
     return data;
   };
 

@@ -121,6 +121,12 @@
     "search": "Search agents...",
     "deploy": "Deploy Agent",
     "all": "All",
+    "count": "{{count}} agents",
+    "type_sales": "Sales",
+    "type_support": "Support",
+    "type_scheduling": "Scheduling",
+    "type_sac": "SAC",
+    "type_onboarding": "Onboarding",
     "builder_title": "Create New Agent",
     "step_identity": "Identity",
     "step_personality": "Personality",
@@ -140,7 +146,17 @@
     "tokens_used": "Tokens Used",
     "language_detected": "Language Detected",
     "publish": "Publish Agent",
-    "edit": "Edit Agent"
+    "edit": "Edit Agent",
+    "model": "Model",
+    "channels": "Channels",
+    "tone_label": "Tone (Formal to Casual)",
+    "verbosity_label": "Verbosity (Concise to Detailed)",
+    "preview": "Preview",
+    "system_prompt": "System Prompt",
+    "system_prompt_placeholder": "You are a helpful assistant that...",
+    "desc_placeholder": "Describe what this agent does...",
+    "qr_hint": "QR Code will appear here after connecting",
+    "type_custom": "Custom"
   },
   "crm": {
     "pipeline": "CRM Pipeline",
@@ -170,7 +186,8 @@
     "messages_over_time": "Messages Over Time",
     "no_data": "Start receiving messages to see analytics",
     "agent_performance": "Agent Performance",
-    "no_agent_data": "No agent data yet"
+    "no_agent_data": "No agent data yet",
+    "last_7_days": "Last 7 Days"
   },
   "settings": {
     "title": "Settings",

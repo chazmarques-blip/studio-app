@@ -121,6 +121,12 @@
     "search": "Buscar agentes...",
     "deploy": "Publicar Agente",
     "all": "Todos",
+    "count": "{{count}} agentes",
+    "type_sales": "Vendas",
+    "type_support": "Suporte",
+    "type_scheduling": "Agenda",
+    "type_sac": "SAC",
+    "type_onboarding": "Onboarding",
     "builder_title": "Criar Novo Agente",
     "step_identity": "Identidade",
     "step_personality": "Personalidade",
@@ -140,7 +146,17 @@
     "tokens_used": "Tokens Usados",
     "language_detected": "Idioma Detectado",
     "publish": "Publicar Agente",
-    "edit": "Editar Agente"
+    "edit": "Editar Agente",
+    "model": "Modelo",
+    "channels": "Canais",
+    "tone_label": "Tom (Formal a Casual)",
+    "verbosity_label": "Verbosidade (Conciso a Detalhado)",
+    "preview": "Preview",
+    "system_prompt": "Prompt do Sistema",
+    "system_prompt_placeholder": "Voce e um assistente util que...",
+    "desc_placeholder": "Descreva o que este agente faz...",
+    "qr_hint": "O QR Code aparecera aqui apos conectar",
+    "type_custom": "Personalizado"
   },
   "crm": {
     "pipeline": "Pipeline CRM",
@@ -170,7 +186,8 @@
     "messages_over_time": "Mensagens ao Longo do Tempo",
     "no_data": "Comece a receber mensagens para ver as analises",
     "agent_performance": "Performance dos Agentes",
-    "no_agent_data": "Nenhum dado de agente ainda"
+    "no_agent_data": "Nenhum dado de agente ainda",
+    "last_7_days": "Ultimos 7 Dias"
   },
   "settings": {
     "title": "Configuracoes",

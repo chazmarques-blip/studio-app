@@ -70,7 +70,7 @@ export default function AgentSandbox() {
             </div>
             <div className="glass-card p-3 flex items-center gap-3">
               <Zap size={14} className="text-[#FF9800]" />
-              <div><p className="text-[10px] text-[#666666]">Model</p><p className="text-sm font-semibold text-white">Claude Sonnet</p></div>
+              <div><p className="text-[10px] text-[#666666]">{t('agents.model')}</p><p className="text-sm font-semibold text-white">Claude Sonnet</p></div>
             </div>
           </div>
           <div className="mt-4 space-y-2">
