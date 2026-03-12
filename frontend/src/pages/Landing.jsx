@@ -361,7 +361,7 @@ export default function Landing() {
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
               {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
             </ul>
-            <button className="w-full rounded-lg border border-[#1E1E1E] py-2 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_enterprise_cta')}</button>
+            <button className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_enterprise_cta')}</button>
           </div>
         </div>
       </section>
