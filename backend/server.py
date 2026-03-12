@@ -15,6 +15,7 @@ import jwt as pyjwt
 from passlib.context import CryptContext
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 from emergentintegrations.llm.openai import OpenAISpeechToText
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -559,6 +560,27 @@ async def send_message(convo_id: str, data: MessageCreate, user=Depends(get_curr
     usage["messages_sent_this_period"] = usage.get("messages_sent_this_period", 0) + 1
     supabase.table("tenants").update({"usage": usage}).eq("id", tenant["id"]).execute()
 
+    # Send outbound message via WhatsApp if conversation is WhatsApp channel
+    convo_data = convo.data[0]
+    if convo_data.get("channel_type") == "whatsapp" and convo_data.get("contact_phone"):
+        try:
+            wa_channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").eq("status", "connected").execute()
+            if wa_channel.data:
+                wa_config = wa_channel.data[0].get("config", {})
+                api_url = wa_config.get("api_url")
+                api_key = wa_config.get("api_key")
+                instance = wa_config.get("instance_name")
+                if api_url and api_key and instance:
+                    number = convo_data["contact_phone"].replace("+", "").replace(" ", "")
+                    async with httpx.AsyncClient(timeout=15.0) as client:
+                        await client.post(
+                            f"{api_url.rstrip('/')}/message/sendText/{instance}",
+                            headers={"apikey": api_key, "Content-Type": "application/json"},
+                            json={"number": number, "text": data.content},
+                        )
+        except Exception as e:
+            logger.warning(f"WhatsApp outbound send failed: {e}")
+
     return result.data[0]
 
 
@@ -631,7 +653,7 @@ def check_escalation(content: str, agent: dict) -> bool:
 @api_router.post("/webhook/whatsapp")
 async def whatsapp_webhook(payload: dict):
     """Receive incoming WhatsApp messages and auto-reply with AI agent"""
-    logger.info(f"WhatsApp webhook received")
+    logger.info("WhatsApp webhook received")
     try:
         event = payload.get("event", "")
         instance = payload.get("instance", "")
@@ -744,6 +766,22 @@ async def whatsapp_webhook(payload: dict):
                         "metadata": {"model": "claude-sonnet-4-5", "agent_name": agent["name"], "auto_reply": True},
                     }
                     supabase.table("messages").insert(ai_msg).execute()
+
+                    # Send AI response back via WhatsApp
+                    try:
+                        wa_config = channel.get("config", {})
+                        api_url = wa_config.get("api_url")
+                        api_key = wa_config.get("api_key")
+                        instance_name = wa_config.get("instance_name")
+                        if api_url and api_key and instance_name:
+                            async with httpx.AsyncClient(timeout=15.0) as http_client:
+                                await http_client.post(
+                                    f"{api_url.rstrip('/')}/message/sendText/{instance_name}",
+                                    headers={"apikey": api_key, "Content-Type": "application/json"},
+                                    json={"number": from_number, "text": ai_response},
+                                )
+                    except Exception as send_err:
+                        logger.warning(f"Failed to send WhatsApp reply: {send_err}")
 
                     # Update stats
                     stats = agent.get("stats", {})
@@ -1245,7 +1283,7 @@ async def route_to_best_agent(convo_id: str, user=Depends(get_current_user)):
     # Update conversation with new agent
     supabase.table("conversations").update({"agent_id": selected["id"]}).eq("id", convo_id).execute()
 
-    return {"agent_id": selected["id"], "agent_name": selected["name"], "reason": f"Routed based on conversation context"}
+    return {"agent_id": selected["id"], "agent_name": selected["name"], "reason": "Routed based on conversation context"}
 
 
 # --- Conversation with image/audio support ---
@@ -1307,6 +1345,270 @@ async def send_multimedia_message(
     supabase.table("conversations").update({"last_message_at": datetime.now(timezone.utc).isoformat()}).eq("id", convo_id).execute()
 
     return result.data[0]
+
+
+# --- Evolution API WhatsApp Integration ---
+
+class WhatsAppInstanceCreate(BaseModel):
+    api_url: str  # e.g., https://evo.yourserver.com
+    api_key: str
+    instance_name: str
+
+
+async def evo_request(method: str, api_url: str, api_key: str, path: str, json_data: dict = None):
+    """Make a request to Evolution API"""
+    url = f"{api_url.rstrip('/')}/{path.lstrip('/')}"
+    headers = {"apikey": api_key, "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        if method == "GET":
+            resp = await client.get(url, headers=headers)
+        elif method == "POST":
+            resp = await client.post(url, headers=headers, json=json_data or {})
+        elif method == "DELETE":
+            resp = await client.delete(url, headers=headers)
+        else:
+            resp = await client.get(url, headers=headers)
+        return resp
+
+
+@api_router.post("/whatsapp/create-instance")
+async def whatsapp_create_instance(data: WhatsAppInstanceCreate, user=Depends(get_current_user)):
+    """Create a WhatsApp instance on Evolution API and save channel config"""
+    tenant = await get_tenant(user)
+    try:
+        # Step 1: Create instance on Evolution API
+        resp = await evo_request("POST", data.api_url, data.api_key, "/instance/create", {
+            "instanceName": data.instance_name,
+            "qrcode": True,
+            "integration": "WHATSAPP-BAILEYS",
+        })
+
+        if resp.status_code >= 400:
+            error_detail = resp.text
+            try:
+                error_detail = resp.json().get("message", resp.text)
+            except Exception:
+                pass
+            raise HTTPException(status_code=resp.status_code, detail=f"Evolution API: {error_detail}")
+
+        evo_data = resp.json()
+
+        # Step 2: Save/update channel in Supabase
+        config = {
+            "api_url": data.api_url,
+            "api_key": data.api_key,
+            "instance_name": data.instance_name,
+        }
+
+        existing = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
+        if existing.data:
+            channel_id = existing.data[0]["id"]
+            supabase.table("channels").update({
+                "config": config,
+                "status": "waiting_qr",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", channel_id).execute()
+        else:
+            result = supabase.table("channels").insert({
+                "tenant_id": tenant["id"],
+                "type": "whatsapp",
+                "status": "waiting_qr",
+                "config": config,
+            }).execute()
+            channel_id = result.data[0]["id"]
+
+        # Step 3: Set webhook on Evolution API
+        webhook_base = os.environ.get("WEBHOOK_BASE_URL", "")
+        if webhook_base:
+            await evo_request("POST", data.api_url, data.api_key, f"/webhook/set/{data.instance_name}", {
+                "webhook": {
+                    "enabled": True,
+                    "url": f"{webhook_base}/api/webhook/whatsapp",
+                    "webhookByEvents": False,
+                    "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+                },
+            })
+
+        # Extract QR code from response
+        qr_code = None
+        if isinstance(evo_data, dict):
+            qr_code = evo_data.get("qrcode", {}).get("base64", None) if isinstance(evo_data.get("qrcode"), dict) else evo_data.get("qrcode")
+
+        return {
+            "status": "ok",
+            "channel_id": channel_id,
+            "instance_name": data.instance_name,
+            "qr_code": qr_code,
+            "evolution_response": evo_data,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"WhatsApp create instance error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/whatsapp/qr/{instance_name}")
+async def whatsapp_get_qr(instance_name: str, user=Depends(get_current_user)):
+    """Get QR code for a WhatsApp instance"""
+    tenant = await get_tenant(user)
+    channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
+    if not channel.data:
+        raise HTTPException(status_code=404, detail="WhatsApp channel not found")
+
+    config = channel.data[0].get("config", {})
+    api_url = config.get("api_url")
+    api_key = config.get("api_key")
+
+    if not api_url or not api_key:
+        raise HTTPException(status_code=400, detail="Channel not configured")
+
+    try:
+        resp = await evo_request("GET", api_url, api_key, f"/instance/connect/{instance_name}")
+        if resp.status_code >= 400:
+            return {"qr_code": None, "status": "error", "detail": resp.text}
+        data = resp.json()
+        qr_code = None
+        if isinstance(data, dict):
+            qr_code = data.get("base64", None) or data.get("qrcode", None)
+            if isinstance(qr_code, dict):
+                qr_code = qr_code.get("base64", None)
+        return {"qr_code": qr_code, "raw": data}
+    except Exception as e:
+        logger.error(f"QR fetch error: {e}")
+        return {"qr_code": None, "status": "error", "detail": str(e)}
+
+
+@api_router.get("/whatsapp/status/{instance_name}")
+async def whatsapp_get_status(instance_name: str, user=Depends(get_current_user)):
+    """Check connection status of a WhatsApp instance"""
+    tenant = await get_tenant(user)
+    channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
+    if not channel.data:
+        raise HTTPException(status_code=404, detail="WhatsApp channel not found")
+
+    config = channel.data[0].get("config", {})
+    api_url = config.get("api_url")
+    api_key = config.get("api_key")
+
+    if not api_url or not api_key:
+        return {"connected": False, "state": "unconfigured"}
+
+    try:
+        resp = await evo_request("GET", api_url, api_key, f"/instance/connectionState/{instance_name}")
+        if resp.status_code >= 400:
+            return {"connected": False, "state": "error", "detail": resp.text}
+        data = resp.json()
+        state = data.get("state", data.get("instance", {}).get("state", "unknown"))
+        is_connected = state in ("open", "connected")
+
+        # Update channel status in DB
+        new_status = "connected" if is_connected else "waiting_qr"
+        supabase.table("channels").update({
+            "status": new_status,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", channel.data[0]["id"]).execute()
+
+        return {"connected": is_connected, "state": state, "raw": data}
+    except Exception as e:
+        logger.error(f"Status check error: {e}")
+        return {"connected": False, "state": "error", "detail": str(e)}
+
+
+class WhatsAppSendMessage(BaseModel):
+    phone_number: str
+    message: str
+    instance_name: Optional[str] = None
+
+
+@api_router.post("/whatsapp/send")
+async def whatsapp_send_message(data: WhatsAppSendMessage, user=Depends(get_current_user)):
+    """Send a WhatsApp message via Evolution API"""
+    tenant = await get_tenant(user)
+    channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
+    if not channel.data:
+        raise HTTPException(status_code=404, detail="WhatsApp channel not found")
+
+    config = channel.data[0].get("config", {})
+    api_url = config.get("api_url")
+    api_key = config.get("api_key")
+    instance = data.instance_name or config.get("instance_name")
+
+    if not api_url or not api_key or not instance:
+        raise HTTPException(status_code=400, detail="WhatsApp not configured")
+
+    try:
+        # Format number: ensure no + and append @s.whatsapp.net
+        number = data.phone_number.replace("+", "").replace(" ", "").replace("-", "")
+
+        resp = await evo_request("POST", api_url, api_key, f"/message/sendText/{instance}", {
+            "number": number,
+            "text": data.message,
+        })
+
+        if resp.status_code >= 400:
+            raise HTTPException(status_code=resp.status_code, detail=f"Send failed: {resp.text}")
+
+        return {"status": "sent", "response": resp.json()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"WhatsApp send error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/whatsapp/set-webhook")
+async def whatsapp_set_webhook(user=Depends(get_current_user)):
+    """Register webhook URL with Evolution API"""
+    tenant = await get_tenant(user)
+    channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
+    if not channel.data:
+        raise HTTPException(status_code=404, detail="WhatsApp channel not found")
+
+    config = channel.data[0].get("config", {})
+    api_url = config.get("api_url")
+    api_key = config.get("api_key")
+    instance = config.get("instance_name")
+    webhook_base = os.environ.get("WEBHOOK_BASE_URL", "")
+
+    if not webhook_base:
+        raise HTTPException(status_code=400, detail="WEBHOOK_BASE_URL not configured")
+
+    try:
+        resp = await evo_request("POST", api_url, api_key, f"/webhook/set/{instance}", {
+            "webhook": {
+                "enabled": True,
+                "url": f"{webhook_base}/api/webhook/whatsapp",
+                "webhookByEvents": False,
+                "events": ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+            },
+        })
+        return {"status": "ok", "response": resp.json()}
+    except Exception as e:
+        logger.error(f"Webhook set error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.delete("/whatsapp/instance/{instance_name}")
+async def whatsapp_delete_instance(instance_name: str, user=Depends(get_current_user)):
+    """Delete a WhatsApp instance from Evolution API and remove channel"""
+    tenant = await get_tenant(user)
+    channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
+    if not channel.data:
+        raise HTTPException(status_code=404, detail="WhatsApp channel not found")
+
+    config = channel.data[0].get("config", {})
+    api_url = config.get("api_url")
+    api_key = config.get("api_key")
+
+    try:
+        await evo_request("DELETE", api_url, api_key, f"/instance/delete/{instance_name}")
+    except Exception as e:
+        logger.warning(f"Evolution API delete error (continuing): {e}")
+
+    supabase.table("channels").delete().eq("id", channel.data[0]["id"]).execute()
+    return {"status": "ok"}
 
 
 # --- Include router ---
