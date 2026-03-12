@@ -323,8 +323,8 @@ export default function Landing() {
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
               {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_free_${k}`)}</li>)}
             </ul>
+            <p className="mb-2 text-center text-[10px] text-[#555]">{t('landing.plan_free_no_card')}</p>
             <button data-testid="plan-free-btn" onClick={() => navigate('/login?tab=signup')} className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_free_cta')}</button>
-            <p className="mt-2 text-center text-[10px] text-[#555]">{t('landing.plan_free_no_card')}</p>
           </div>
           {/* STARTER */}
           <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] relative flex flex-col p-5 hover:border-[#1E1E1E] transition">
