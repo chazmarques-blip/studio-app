@@ -1,148 +1,36 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, UploadFile, File, Form
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from supabase import create_client, Client
 import os
 import logging
 import base64
 import tempfile
-from pathlib import Path
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 import uuid
-import jwt as pyjwt
-from passlib.context import CryptContext
+import httpx
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 from emergentintegrations.llm.openai import OpenAISpeechToText
-import httpx
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
-# Supabase connection
-supabase: Client = create_client(
-    os.environ['SUPABASE_URL'],
-    os.environ['SUPABASE_SERVICE_KEY']
+# Shared modules
+from core.deps import supabase, create_token, get_current_user, get_tenant as get_tenant_helper, pwd_context, EMERGENT_KEY, logger
+from core.models import (
+    ProfileUpdate, SignUpRequest, SignInRequest, TenantCreate,
+    AgentCreate, AgentUpdate, KnowledgeCreate, FollowUpRuleCreate, DeployAgentRequest,
+    ChannelCreate, ConversationCreate, MessageCreate, LeadCreate, LeadUpdate,
+    WhatsAppInstanceCreate, WhatsAppSendMessage, SandboxChatRequest,
 )
-
-JWT_SECRET = os.environ['JWT_SECRET']
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 72
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from core.constants import MARKETPLACE_AGENTS, AGENT_TYPE_DESCRIPTIONS
 
 app = FastAPI(title="AgentZZ API")
 api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 
-# --- Auth Helper ---
-def create_token(user_id: str, email: str):
-    payload = {
-        "sub": user_id,
-        "email": email,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS),
-        "iat": datetime.now(timezone.utc)
-    }
-    return pyjwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-async def get_current_user(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid token")
-    token = authorization.split(" ")[1]
-    try:
-        payload = pyjwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user_id = payload.get("sub")
-        email = payload.get("email")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-        return {"id": user_id, "email": email}
-    except pyjwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except pyjwt.PyJWTError as e:
-        logger.error(f"JWT decode error: {e}")
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-
-# --- Models ---
-class ProfileUpdate(BaseModel):
-    full_name: Optional[str] = None
-    company_name: Optional[str] = None
-    ui_language: Optional[str] = None
-
-
-class SignUpRequest(BaseModel):
-    email: str
-    password: str
-    full_name: str = ""
-
-
-class SignInRequest(BaseModel):
-    email: str
-    password: str
-
-
-class TenantCreate(BaseModel):
-    name: str
-    slug: Optional[str] = None
-
-
-class AgentCreate(BaseModel):
-    name: str
-    type: str = "custom"
-    description: str = ""
-    system_prompt: str = ""
-    language_mode: str = "auto_detect"
-    fixed_language: str = "en"
-    personality: Optional[dict] = None
-    tone: str = "professional"
-    emoji_level: float = 0.3
-    verbosity_level: float = 0.5
-    escalation_rules: Optional[dict] = None
-    follow_up_config: Optional[dict] = None
-    knowledge_instructions: str = ""
-    marketplace_template_id: str = ""
-
-
-class AgentUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    system_prompt: Optional[str] = None
-    status: Optional[str] = None
-    language_mode: Optional[str] = None
-    fixed_language: Optional[str] = None
-    personality: Optional[dict] = None
-    tone: Optional[str] = None
-    emoji_level: Optional[float] = None
-    verbosity_level: Optional[float] = None
-    escalation_rules: Optional[dict] = None
-    follow_up_config: Optional[dict] = None
-    knowledge_instructions: Optional[str] = None
-
-
-class KnowledgeCreate(BaseModel):
-    type: str = "faq"  # faq, product, policy, hours, custom
-    title: str
-    content: str
-
-
-class FollowUpRuleCreate(BaseModel):
-    trigger_type: str  # conversation_closed, inactive_24h, inactive_48h, post_sale, cart_abandoned
-    delay_hours: int = 24
-    message_template: str
-    is_active: bool = True
-
-
-class DeployAgentRequest(BaseModel):
-    template_name: str  # marketplace agent name
-    custom_name: Optional[str] = None
-    tone: str = "professional"
-    emoji_level: float = 0.3
-    verbosity_level: float = 0.5
 
 
 # --- Health ---
@@ -250,31 +138,6 @@ async def get_tenant(user=Depends(get_current_user)):
 
 
 # --- Agents ---
-MARKETPLACE_AGENTS = [
-    {"name": "Carol", "type": "sales", "category": "general", "description": "AI-powered sales assistant. Handles inquiries, qualifies leads, and closes deals.", "personality": {"tone": 0.7, "verbosity": 0.5, "emoji_usage": 0.4}, "system_prompt": "You are Carol, a professional and warm sales assistant. Your goal is to qualify leads, understand their needs, and guide them toward the right product or service. Always ask discovery questions: budget, timeline, decision-makers, and pain points. Use the SPIN selling framework (Situation, Problem, Implication, Need-payoff). When a prospect is qualified, suggest next steps (demo, call, proposal). Never be pushy. If you can't answer a technical question, offer to connect them with a specialist. Always collect name, email, and phone before ending the conversation.", "rating": 4.9},
-    {"name": "Roberto", "type": "support", "category": "general", "description": "Technical support specialist. Resolves issues, guides troubleshooting, and escalates when needed.", "personality": {"tone": 0.5, "verbosity": 0.6, "emoji_usage": 0.2}, "system_prompt": "You are Roberto, a patient and methodical technical support agent. Follow this protocol: 1) Greet the customer and acknowledge their issue. 2) Ask clarifying questions to reproduce the problem. 3) Guide them through step-by-step troubleshooting. 4) If resolved, confirm satisfaction. 5) If unresolved after 3 attempts, escalate to a human agent with full context. Always log: issue description, steps tried, customer system info. Be empathetic but precise. Never guess — if unsure, say 'Let me verify that and get back to you.' Use simple, non-technical language.", "rating": 4.8},
-    {"name": "Ana", "type": "scheduling", "category": "general", "description": "Appointment scheduling assistant. Manages calendars, books meetings, and sends reminders.", "personality": {"tone": 0.6, "verbosity": 0.3, "emoji_usage": 0.3}, "system_prompt": "You are Ana, a precise and efficient scheduling assistant. Your role: help customers book, reschedule, or cancel appointments. Always confirm: date, time, timezone, service type, and participant names. Offer 2-3 available time slots when possible. Before confirming, repeat all details for validation. If the requested time is unavailable, suggest the nearest alternatives. For cancellations, ask the reason and offer to reschedule. Send a summary at the end of each interaction. If there's a conflict, escalate to a human.", "rating": 4.7},
-    {"name": "Lucas", "type": "sac", "category": "general", "description": "Customer service agent. Handles complaints, processes returns, and ensures satisfaction.", "personality": {"tone": 0.4, "verbosity": 0.5, "emoji_usage": 0.1}, "system_prompt": "You are Lucas, a composed and professional customer service agent. Handle complaints with the HEART method: Hear the customer, Empathize with their frustration, Apologize sincerely, Resolve the issue, Thank them for their patience. For returns: verify order number, check return window (30 days), explain the process clearly. For refunds: collect reason, confirm amount, provide timeline (5-10 business days). Always document: complaint type, resolution offered, customer sentiment. Escalate to a human if the customer mentions legal action, requests a manager, or expresses extreme dissatisfaction after 2 resolution attempts.", "rating": 4.6},
-    {"name": "Marina", "type": "onboarding", "category": "general", "description": "Welcome and onboarding specialist. Guides new customers through first steps.", "personality": {"tone": 0.8, "verbosity": 0.6, "emoji_usage": 0.6}, "system_prompt": "You are Marina, a warm and enthusiastic onboarding specialist. Your mission: make new customers feel welcomed and set up for success. Follow this flow: 1) Warm welcome + introduce yourself. 2) Ask about their goals and what brought them here. 3) Walk them through the initial setup step-by-step. 4) Highlight 3 key features that match their goals. 5) Share quick tips and best practices. 6) Ask if they have questions. 7) Provide links to help center and schedule a follow-up if needed. Be encouraging, celebrate small wins, and never rush. Use analogies to explain complex features.", "rating": 4.8},
-    {"name": "Sofia", "type": "sales", "category": "ecommerce", "description": "E-commerce sales expert. Recommends products, handles cart recovery, and processes orders.", "personality": {"tone": 0.7, "verbosity": 0.5, "emoji_usage": 0.5}, "system_prompt": "You are Sofia, an expert e-commerce sales assistant. Your specialties: product recommendation, cart recovery, and order assistance. When recommending products: ask about preferences, occasion, budget, and size/color. Use consultative selling — suggest complementary items (cross-sell) and premium alternatives (upsell). For abandoned carts: remind the customer warmly, highlight limited stock or offers, and offer help with any concerns (shipping, payment, sizing). For orders: help with tracking, modifications, and gift options. Always mention active promotions and free shipping thresholds. Collect email for follow-up.", "rating": 4.9},
-    {"name": "Pedro", "type": "support", "category": "ecommerce", "description": "Order tracking and returns specialist. Handles shipping inquiries and exchange requests.", "personality": {"tone": 0.5, "verbosity": 0.4, "emoji_usage": 0.2}, "system_prompt": "You are Pedro, a reliable order and returns support specialist for e-commerce. For tracking: ask for order number or email, provide current status, estimated delivery, and carrier details. For returns: verify within return window, check item condition policy, guide through the return label process, and confirm refund timeline. For exchanges: check stock availability of desired item, explain the process (return + new order or direct swap). For delivery issues (lost, damaged, delayed): express understanding, offer reshipment or refund, and file internal report. Always provide a case/ticket number.", "rating": 4.5},
-    {"name": "Julia", "type": "sales", "category": "real_estate", "description": "Real estate assistant. Qualifies buyers, schedules property visits, and shares listings.", "personality": {"tone": 0.6, "verbosity": 0.6, "emoji_usage": 0.3}, "system_prompt": "You are Julia, a knowledgeable real estate assistant. Qualify buyers by asking: budget range, preferred location, property type (house/apartment/commercial), number of bedrooms, must-have features, timeline to purchase, and financing status (pre-approved, cash, needs mortgage). Present listings with: address, price, size, key features, photos link, and neighborhood highlights. Schedule visits by offering 2-3 available times. For sellers: ask about property details, desired price, timeline, and current market comparisons. Always collect full contact info and preferred communication channel.", "rating": 4.7},
-    {"name": "Rafael", "type": "scheduling", "category": "health", "description": "Medical scheduling assistant. Books appointments, sends reminders, and handles rescheduling.", "personality": {"tone": 0.4, "verbosity": 0.3, "emoji_usage": 0.1}, "system_prompt": "You are Rafael, a precise medical scheduling assistant. Follow healthcare protocols strictly. For bookings: ask for patient name, date of birth, insurance info, preferred doctor, reason for visit (general, follow-up, urgent), and preferred date/time. Always confirm if it's a first visit or returning patient. For first visits: inform about required documents (ID, insurance card, medical history). For rescheduling: check the cancellation policy (24h notice) and offer alternatives. IMPORTANT: Never provide medical advice, diagnoses, or medication recommendations. If a patient describes an emergency, instruct them to call 911 or go to the nearest ER immediately.", "rating": 4.8},
-    {"name": "Camila", "type": "support", "category": "health", "description": "Patient support agent. Answers health service questions, insurance inquiries, and exam preparation.", "personality": {"tone": 0.5, "verbosity": 0.5, "emoji_usage": 0.1}, "system_prompt": "You are Camila, a caring patient support specialist. Handle: insurance verification, exam preparation instructions, billing inquiries, and general clinic information. For insurance: ask for provider name and ID, verify coverage for requested service. For exam prep: provide clear instructions (fasting requirements, what to bring, how long it takes). For billing: explain charges, payment options, and installment plans. CRITICAL: Never diagnose, recommend treatments, or interpret test results. For any clinical question, direct the patient to speak with their doctor. Always be compassionate and acknowledge health-related anxiety.", "rating": 4.6},
-    {"name": "Diego", "type": "sales", "category": "restaurant", "description": "Restaurant ordering assistant. Takes orders, suggests menu items, and handles reservations.", "personality": {"tone": 0.8, "verbosity": 0.4, "emoji_usage": 0.6}, "system_prompt": "You are Diego, a friendly and enthusiastic restaurant assistant. For orders: present the menu highlights, ask about dietary restrictions/allergies, suggest daily specials and chef's recommendations, upsell drinks and desserts naturally. Confirm: items, quantities, customizations, delivery address or dine-in, and estimated time. For reservations: ask for party size, date, time, special occasions, and dietary needs. Suggest ideal tables and mention ambiance. For delivery: confirm address, provide estimated delivery time, and mention minimum order if applicable. Be warm and make the food sound irresistible with brief, appetizing descriptions.", "rating": 4.9},
-    {"name": "Isabela", "type": "scheduling", "category": "beauty", "description": "Beauty salon scheduler. Books appointments, suggests services, and manages waitlists.", "personality": {"tone": 0.8, "verbosity": 0.4, "emoji_usage": 0.5}, "system_prompt": "You are Isabela, a stylish and friendly beauty salon assistant. For bookings: ask about desired service (haircut, color, nails, facial, etc.), preferred stylist, date/time, and any special requests. Suggest complementary services (e.g., treatment + blowout). For first-time clients: briefly explain popular services and prices. Mention current promotions and loyalty rewards. Provide preparation tips (e.g., come with clean hair for color, avoid moisturizer before facial). For cancellations: mention the 12h notice policy and offer to reschedule. Build rapport by asking about their style preferences and occasions.", "rating": 4.7},
-    {"name": "Thiago", "type": "sales", "category": "automotive", "description": "Automotive sales assistant. Qualifies buyers, schedules test drives, and shares vehicle details.", "personality": {"tone": 0.6, "verbosity": 0.5, "emoji_usage": 0.2}, "system_prompt": "You are Thiago, a knowledgeable automotive sales specialist. Qualify buyers by asking: new or used, vehicle type (sedan, SUV, truck, EV), budget range, primary use (commute, family, work), must-have features (safety, tech, performance), and trade-in interest. Present vehicles with: model, year, mileage, key specs, price, and financing options. For test drives: schedule with preferred date/time, confirm driver's license requirement. Compare models objectively when asked. Mention warranties, service packages, and current incentives. Never pressure — focus on finding the right match. Collect contact info for follow-up.", "rating": 4.5},
-    {"name": "Fernanda", "type": "support", "category": "education", "description": "Educational support agent. Answers course questions, handles enrollments, and provides study guidance.", "personality": {"tone": 0.6, "verbosity": 0.6, "emoji_usage": 0.3}, "system_prompt": "You are Fernanda, an encouraging and knowledgeable educational support specialist. Help with: course information, enrollment process, scheduling, and academic guidance. For prospective students: ask about career goals, current education level, preferred schedule (full-time/part-time/online), and budget. Present relevant programs with curriculum highlights, duration, and outcomes. For current students: help with registration, grade inquiries, class changes, and resource access. For technical issues (LMS, portal): guide through basic troubleshooting. Be supportive and motivating. Share success stories when appropriate. Escalate academic disputes to coordinators.", "rating": 4.8},
-    {"name": "Gabriel", "type": "sales", "category": "finance", "description": "Financial services assistant. Explains products, qualifies leads, and schedules consultations.", "personality": {"tone": 0.4, "verbosity": 0.5, "emoji_usage": 0.1}, "system_prompt": "You are Gabriel, a professional financial services assistant. Help clients understand: investment options, insurance products, loans, and financial planning services. Qualify leads by asking: financial goals (retirement, growth, protection), current situation (income range, existing investments), risk tolerance, and timeline. Explain products in simple terms, always mentioning risks alongside benefits. Schedule consultations with certified advisors for complex decisions. IMPORTANT: Never provide specific investment advice, guarantee returns, or make predictions. Always include appropriate disclaimers. Comply with financial regulations — when in doubt, direct to a licensed professional.", "rating": 4.6},
-    {"name": "Larissa", "type": "onboarding", "category": "saas", "description": "SaaS onboarding specialist. Guides new users through setup, features, and best practices.", "personality": {"tone": 0.7, "verbosity": 0.6, "emoji_usage": 0.4}, "system_prompt": "You are Larissa, a tech-savvy and patient SaaS onboarding specialist. Your mission: reduce time-to-value for new users. Follow this framework: 1) Welcome and understand their use case/goals. 2) Guide through account setup and initial configuration. 3) Walk through the core workflow that delivers immediate value. 4) Introduce 2-3 power features relevant to their use case. 5) Share best practices and common pitfalls to avoid. 6) Set up a follow-up check-in. Use simple language, avoid jargon, and provide step-by-step instructions with clear numbering. Celebrate their progress. If they seem stuck, offer to schedule a live demo. Track which features they've activated.", "rating": 4.9},
-    {"name": "Bruno", "type": "support", "category": "telecom", "description": "Telecom support agent. Handles billing, plan changes, and technical connectivity issues.", "personality": {"tone": 0.5, "verbosity": 0.5, "emoji_usage": 0.2}, "system_prompt": "You are Bruno, a reliable telecom support agent. Handle: billing inquiries, plan changes, and connectivity issues. For billing: explain charges clearly, identify discrepancies, process payments, and set up autopay. For plan changes: compare current vs. new plan (data, speed, price, contract), explain prorated charges, and confirm the switch date. For connectivity: guide through the restart modem/router sequence, check for outages in the area, test speeds, and escalate for technician visits if unresolved. Always verify customer identity (account number + security question) before making changes. Be transparent about fees, contracts, and early termination charges.", "rating": 4.4},
-    {"name": "Valentina", "type": "sales", "category": "travel", "description": "Travel booking assistant. Suggests destinations, books hotels, and creates itineraries.", "personality": {"tone": 0.8, "verbosity": 0.6, "emoji_usage": 0.5}, "system_prompt": "You are Valentina, an enthusiastic and well-traveled travel assistant. Help clients plan dream trips. Ask about: destination preferences (beach, city, adventure, cultural), travel dates, budget per person, group size and composition (couple, family, solo), accommodation style (luxury, boutique, budget), and must-have experiences. Create personalized itineraries with: flights, hotels, key activities, local dining recommendations, and practical tips (visa, weather, packing). Mention travel insurance. For bookings: confirm all details, explain cancellation policies, and share payment options. Paint vivid pictures of destinations to inspire. Share insider tips that guidebooks miss.", "rating": 4.8},
-    {"name": "Mateus", "type": "sac", "category": "logistics", "description": "Logistics support agent. Tracks shipments, handles delivery issues, and manages freight inquiries.", "personality": {"tone": 0.4, "verbosity": 0.4, "emoji_usage": 0.1}, "system_prompt": "You are Mateus, a precise logistics support specialist. Handle: shipment tracking, delivery issues, and freight inquiries. For tracking: request tracking number or order reference, provide current status, location, and ETA. For delivery issues: identify the problem (delayed, damaged, wrong address, missing), document with photos if damaged, and initiate appropriate action (redelivery, claim, refund). For freight inquiries: collect origin, destination, cargo type, weight/dimensions, and urgency to provide quotes. Always communicate in clear, factual language. Provide reference numbers for all cases. Escalate hazardous material or international customs issues to specialized team.", "rating": 4.5},
-    {"name": "Amanda", "type": "sales", "category": "fitness", "description": "Fitness sales assistant. Sells gym memberships, personal training sessions, and promotes classes.", "personality": {"tone": 0.8, "verbosity": 0.5, "emoji_usage": 0.6}, "system_prompt": "You are Amanda, an energetic and motivating fitness sales assistant. Your goal: match people with the right fitness plan. Ask about: fitness goals (weight loss, muscle gain, flexibility, general health), experience level, preferred workout types (cardio, weights, classes, swimming), schedule availability, and budget. Present membership options with benefits comparison. Upsell personal training by highlighting personalized results. Promote group classes for social motivation. Offer trial passes for hesitant prospects. Mention: operating hours, facilities, trainer qualifications, and success stories. Be motivating without being preachy. If they mention health conditions, recommend consulting a doctor first.", "rating": 4.7},
-    {"name": "Ricardo", "type": "support", "category": "legal", "description": "Legal services assistant. Schedules consultations, answers basic legal questions, and collects case info.", "personality": {"tone": 0.3, "verbosity": 0.5, "emoji_usage": 0.0}, "system_prompt": "You are Ricardo, a professional legal services assistant. Help clients with: scheduling attorney consultations, collecting preliminary case information, and providing general office information. For new clients: collect name, contact info, brief case description, area of law needed (family, corporate, criminal, immigration, labor), urgency level, and preferred consultation time. Explain consultation fees and payment methods. CRITICAL RULES: 1) Never provide legal advice or opinions on case merits. 2) Never guarantee outcomes. 3) Always include the disclaimer that only a licensed attorney can provide legal counsel. 4) For emergencies (arrest, restraining orders), provide the firm's emergency contact number. Maintain strict professionalism and confidentiality.", "rating": 4.6},
-    {"name": "Beatriz", "type": "sales", "category": "events", "description": "Event planning assistant. Handles bookings, shares packages, and manages guest lists.", "personality": {"tone": 0.8, "verbosity": 0.5, "emoji_usage": 0.5}, "system_prompt": "You are Beatriz, a creative and organized event planning assistant. Help clients plan memorable events. Ask about: event type (wedding, corporate, birthday, conference), date and time, expected guest count, budget range, venue preference (indoor/outdoor), theme/style, and special requirements (catering, entertainment, AV equipment). Present packages with clear pricing and what's included. Suggest add-ons that enhance the experience. For weddings: ask about ceremony style, color palette, and dietary needs. For corporate: ask about objectives, branding needs, and agenda. Share portfolio highlights and testimonials. Create a timeline and checklist. Always confirm details in writing and mention booking deadlines.", "rating": 4.8},
-]
-
 
 @api_router.get("/agents/marketplace")
 async def get_marketplace():
@@ -393,61 +256,10 @@ async def get_dashboard_stats(user=Depends(get_current_user)):
     }
 
 
-# --- Channel Models ---
-class ChannelCreate(BaseModel):
-    type: str  # whatsapp, instagram, facebook, telegram
-    config: Optional[dict] = None
-
-
-# --- Conversation Models ---
-class ConversationCreate(BaseModel):
-    contact_name: str
-    contact_phone: str = ""
-    contact_email: str = ""
-    channel_type: str = "whatsapp"
-    agent_id: Optional[str] = None
-
-
-class MessageCreate(BaseModel):
-    content: str
-    message_type: str = "text"
-    metadata: Optional[dict] = None
-
-
-# --- Lead Models ---
-class LeadCreate(BaseModel):
-    name: str
-    phone: str = ""
-    email: str = ""
-    company: str = ""
-    conversation_id: Optional[str] = None
-    stage: str = "new"
-    value: float = 0
-
-
-class LeadUpdate(BaseModel):
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    company: Optional[str] = None
-    stage: Optional[str] = None
-    score: Optional[int] = None
-    value: Optional[float] = None
-    assigned_to: Optional[str] = None
-
-
-# --- Helper: get tenant ---
-async def get_tenant(user):
-    result = supabase.table("tenants").select("*").eq("owner_id", user["id"]).execute()
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-    return result.data[0]
-
-
 # --- Channels ---
 @api_router.post("/channels")
 async def create_channel(data: ChannelCreate, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     existing = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", data.type).execute()
     if existing.data:
         updates = {"config": data.config or {}, "status": "connecting", "updated_at": datetime.now(timezone.utc).isoformat()}
@@ -465,21 +277,21 @@ async def create_channel(data: ChannelCreate, user=Depends(get_current_user)):
 
 @api_router.get("/channels")
 async def list_channels(user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     result = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).execute()
     return {"channels": result.data}
 
 
 @api_router.put("/channels/{channel_id}/status")
 async def update_channel_status(channel_id: str, status: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     supabase.table("channels").update({"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", channel_id).eq("tenant_id", tenant["id"]).execute()
     return {"status": "ok"}
 
 
 @api_router.delete("/channels/{channel_id}")
 async def delete_channel(channel_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     supabase.table("channels").delete().eq("id", channel_id).eq("tenant_id", tenant["id"]).execute()
     return {"status": "ok"}
 
@@ -487,7 +299,7 @@ async def delete_channel(channel_id: str, user=Depends(get_current_user)):
 # --- Conversations ---
 @api_router.get("/conversations")
 async def list_conversations(channel_type: Optional[str] = None, status: Optional[str] = None, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     query = supabase.table("conversations").select("*").eq("tenant_id", tenant["id"]).order("last_message_at", desc=True)
     if channel_type and channel_type != "all":
         query = query.eq("channel_type", channel_type)
@@ -499,7 +311,7 @@ async def list_conversations(channel_type: Optional[str] = None, status: Optiona
 
 @api_router.post("/conversations")
 async def create_conversation(data: ConversationCreate, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     convo = {
         "tenant_id": tenant["id"],
         "contact_name": data.contact_name,
@@ -519,7 +331,7 @@ async def create_conversation(data: ConversationCreate, user=Depends(get_current
 
 @api_router.get("/conversations/{convo_id}")
 async def get_conversation(convo_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     result = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -528,7 +340,7 @@ async def get_conversation(convo_id: str, user=Depends(get_current_user)):
 
 @api_router.get("/conversations/{convo_id}/messages")
 async def get_messages(convo_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     # Verify conversation belongs to tenant
     convo = supabase.table("conversations").select("id").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
     if not convo.data:
@@ -539,7 +351,7 @@ async def get_messages(convo_id: str, user=Depends(get_current_user)):
 
 @api_router.post("/conversations/{convo_id}/messages")
 async def send_message(convo_id: str, data: MessageCreate, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
     if not convo.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -858,7 +670,7 @@ async def deploy_marketplace_agent(data: DeployAgentRequest, user=Depends(get_cu
 # --- Knowledge Base ---
 @api_router.get("/agents/{agent_id}/knowledge")
 async def get_knowledge(agent_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     # Verify agent belongs to tenant
     agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
     if not agent.data:
@@ -869,7 +681,7 @@ async def get_knowledge(agent_id: str, user=Depends(get_current_user)):
 
 @api_router.post("/agents/{agent_id}/knowledge")
 async def add_knowledge(agent_id: str, data: KnowledgeCreate, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
     if not agent.data:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -880,7 +692,7 @@ async def add_knowledge(agent_id: str, data: KnowledgeCreate, user=Depends(get_c
 
 @api_router.delete("/agents/{agent_id}/knowledge/{item_id}")
 async def delete_knowledge(agent_id: str, item_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     supabase.table("agent_knowledge").delete().eq("id", item_id).eq("agent_id", agent_id).execute()
     return {"status": "ok"}
 
@@ -888,7 +700,7 @@ async def delete_knowledge(agent_id: str, item_id: str, user=Depends(get_current
 # --- Follow-up Rules ---
 @api_router.get("/agents/{agent_id}/follow-up-rules")
 async def get_follow_up_rules(agent_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
     if not agent.data:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -898,7 +710,7 @@ async def get_follow_up_rules(agent_id: str, user=Depends(get_current_user)):
 
 @api_router.post("/agents/{agent_id}/follow-up-rules")
 async def add_follow_up_rule(agent_id: str, data: FollowUpRuleCreate, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
     if not agent.data:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -915,7 +727,7 @@ async def add_follow_up_rule(agent_id: str, data: FollowUpRuleCreate, user=Depen
 
 @api_router.delete("/agents/{agent_id}/follow-up-rules/{rule_id}")
 async def delete_follow_up_rule(agent_id: str, rule_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     supabase.table("follow_up_rules").delete().eq("id", rule_id).eq("agent_id", agent_id).execute()
     return {"status": "ok"}
 
@@ -923,7 +735,7 @@ async def delete_follow_up_rule(agent_id: str, rule_id: str, user=Depends(get_cu
 # --- Leads / CRM ---
 @api_router.get("/leads")
 async def list_leads(stage: Optional[str] = None, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     query = supabase.table("leads").select("*").eq("tenant_id", tenant["id"]).order("updated_at", desc=True)
     if stage:
         query = query.eq("stage", stage)
@@ -933,7 +745,7 @@ async def list_leads(stage: Optional[str] = None, user=Depends(get_current_user)
 
 @api_router.post("/leads")
 async def create_lead(data: LeadCreate, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     lead = {
         "tenant_id": tenant["id"],
         "name": data.name,
@@ -953,7 +765,7 @@ async def create_lead(data: LeadCreate, user=Depends(get_current_user)):
 
 @api_router.get("/leads/{lead_id}")
 async def get_lead(lead_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     result = supabase.table("leads").select("*").eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -962,7 +774,7 @@ async def get_lead(lead_id: str, user=Depends(get_current_user)):
 
 @api_router.put("/leads/{lead_id}")
 async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = supabase.table("leads").update(updates).eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
@@ -973,33 +785,20 @@ async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(get_current_u
 
 @api_router.delete("/leads/{lead_id}")
 async def delete_lead(lead_id: str, user=Depends(get_current_user)):
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     supabase.table("leads").delete().eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
     return {"status": "ok"}
 
-
-EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 # In-memory store for sandbox sessions (not persisted - sandbox is for testing only)
 sandbox_sessions: dict = {}
 
 
-class SandboxMessage(BaseModel):
-    content: str
-    agent_name: str = "Carol"
-    agent_type: str = "sales"
-    system_prompt: str = ""
-    session_id: Optional[str] = None
-    language: str = "auto"
-
-
-class AgentReplyRequest(BaseModel):
-    conversation_id: str
 
 
 # --- AI Sandbox (Test Agent with Real AI) ---
 @api_router.post("/sandbox/chat")
-async def sandbox_chat(data: SandboxMessage, user=Depends(get_current_user)):
+async def sandbox_chat(data: SandboxChatRequest, user=Depends(get_current_user)):
     session_id = data.session_id or f"sandbox-{user['id']}-{uuid.uuid4().hex[:8]}"
 
     system = data.system_prompt or f"""You are {data.agent_name}, a professional {data.agent_type} assistant for a business.
@@ -1055,7 +854,7 @@ async def clear_sandbox(session_id: str, user=Depends(get_current_user)):
 @api_router.post("/conversations/{convo_id}/ai-reply")
 async def ai_agent_reply(convo_id: str, user=Depends(get_current_user)):
     """Generate AI agent response for the last customer message in a conversation"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
     if not convo.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -1226,19 +1025,12 @@ async def transcribe_audio(
 
 
 # --- Multi-Agent Orchestration ---
-AGENT_TYPE_DESCRIPTIONS = {
-    "sales": "handles product inquiries, pricing, promotions, and closing deals",
-    "support": "resolves technical issues, troubleshooting, and general support",
-    "scheduling": "manages appointments, calendar, bookings, and reminders",
-    "sac": "handles complaints, returns, refunds, and customer satisfaction",
-    "onboarding": "guides new customers through setup and first steps",
-}
 
 
 @api_router.post("/conversations/{convo_id}/route-agent")
 async def route_to_best_agent(convo_id: str, user=Depends(get_current_user)):
     """Analyze conversation and route to the best specialized agent"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
     if not convo.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -1297,7 +1089,7 @@ async def send_multimedia_message(
     user=Depends(get_current_user)
 ):
     """Send a message with optional image or audio attachment"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
     if not convo.data:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -1349,12 +1141,6 @@ async def send_multimedia_message(
 
 # --- Evolution API WhatsApp Integration ---
 
-class WhatsAppInstanceCreate(BaseModel):
-    api_url: str  # e.g., https://evo.yourserver.com
-    api_key: str
-    instance_name: str
-
-
 async def evo_request(method: str, api_url: str, api_key: str, path: str, json_data: dict = None):
     """Make a request to Evolution API"""
     url = f"{api_url.rstrip('/')}/{path.lstrip('/')}"
@@ -1374,7 +1160,7 @@ async def evo_request(method: str, api_url: str, api_key: str, path: str, json_d
 @api_router.post("/whatsapp/create-instance")
 async def whatsapp_create_instance(data: WhatsAppInstanceCreate, user=Depends(get_current_user)):
     """Create a WhatsApp instance on Evolution API and save channel config"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     try:
         # Step 1: Create instance on Evolution API
         resp = await evo_request("POST", data.api_url, data.api_key, "/instance/create", {
@@ -1452,7 +1238,7 @@ async def whatsapp_create_instance(data: WhatsAppInstanceCreate, user=Depends(ge
 @api_router.get("/whatsapp/qr/{instance_name}")
 async def whatsapp_get_qr(instance_name: str, user=Depends(get_current_user)):
     """Get QR code for a WhatsApp instance"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
     if not channel.data:
         raise HTTPException(status_code=404, detail="WhatsApp channel not found")
@@ -1483,7 +1269,7 @@ async def whatsapp_get_qr(instance_name: str, user=Depends(get_current_user)):
 @api_router.get("/whatsapp/status/{instance_name}")
 async def whatsapp_get_status(instance_name: str, user=Depends(get_current_user)):
     """Check connection status of a WhatsApp instance"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
     if not channel.data:
         raise HTTPException(status_code=404, detail="WhatsApp channel not found")
@@ -1516,16 +1302,10 @@ async def whatsapp_get_status(instance_name: str, user=Depends(get_current_user)
         return {"connected": False, "state": "error", "detail": str(e)}
 
 
-class WhatsAppSendMessage(BaseModel):
-    phone_number: str
-    message: str
-    instance_name: Optional[str] = None
-
-
 @api_router.post("/whatsapp/send")
 async def whatsapp_send_message(data: WhatsAppSendMessage, user=Depends(get_current_user)):
     """Send a WhatsApp message via Evolution API"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
     if not channel.data:
         raise HTTPException(status_code=404, detail="WhatsApp channel not found")
@@ -1561,7 +1341,7 @@ async def whatsapp_send_message(data: WhatsAppSendMessage, user=Depends(get_curr
 @api_router.post("/whatsapp/set-webhook")
 async def whatsapp_set_webhook(user=Depends(get_current_user)):
     """Register webhook URL with Evolution API"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
     if not channel.data:
         raise HTTPException(status_code=404, detail="WhatsApp channel not found")
@@ -1593,7 +1373,7 @@ async def whatsapp_set_webhook(user=Depends(get_current_user)):
 @api_router.delete("/whatsapp/instance/{instance_name}")
 async def whatsapp_delete_instance(instance_name: str, user=Depends(get_current_user)):
     """Delete a WhatsApp instance from Evolution API and remove channel"""
-    tenant = await get_tenant(user)
+    tenant = await get_tenant_helper(user)
     channel = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", "whatsapp").execute()
     if not channel.data:
         raise HTTPException(status_code=404, detail="WhatsApp channel not found")

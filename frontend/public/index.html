@@ -23,6 +23,13 @@
         -->
         <link rel="icon" href="%PUBLIC_URL%/logo-agentzz.png" />
         <title>AgentZZ | AI Agents Platform</title>
+        <style>
+        #emergent-badge, a[href*="emergent.sh"][style*="fixed"] { 
+            display: none !important; visibility: hidden !important; opacity: 0 !important; 
+            width: 0 !important; height: 0 !important; overflow: hidden !important;
+            position: absolute !important; left: -99999px !important; top: -99999px !important;
+        }
+        </style>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>

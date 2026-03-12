@@ -22,6 +22,8 @@ import HandoffHuman from './pages/HandoffHuman';
 import UpsellScreen from './pages/UpsellScreen';
 import Pricing from './pages/Pricing';
 
+import { useEffect } from 'react';
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
@@ -50,6 +52,17 @@ function PublicRoute({ children }) {
 }
 
 function App() {
+  useEffect(() => {
+    const removeBadge = () => {
+      const el = document.getElementById('emergent-badge');
+      if (el) el.remove();
+      document.querySelectorAll('a[href*="emergent.sh"]').forEach(a => a.remove());
+    };
+    removeBadge();
+    const interval = setInterval(removeBadge, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthProvider>
