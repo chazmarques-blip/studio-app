@@ -1,9 +1,11 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, UploadFile, File, Form
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 import os
 import logging
+import base64
+import tempfile
 from pathlib import Path
 from pydantic import BaseModel
 from typing import Optional, List
@@ -11,7 +13,8 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import jwt as pyjwt
 from passlib.context import CryptContext
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+from emergentintegrations.llm.openai import OpenAISpeechToText
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1084,6 +1087,226 @@ Keep responses under 3 sentences unless more detail is needed."""
         "message": result.data[0],
         "response": response,
     }
+
+
+# --- Image Analysis (Claude Vision) ---
+@api_router.post("/ai/analyze-image")
+async def analyze_image(
+    image: UploadFile = File(None),
+    image_base64: str = Form(None),
+    prompt: str = Form("Describe this image in detail. If it contains text, transcribe it. If it's a product, describe features and condition."),
+    language: str = Form("auto"),
+    user=Depends(get_current_user)
+):
+    """Analyze an image using Claude Vision"""
+    try:
+        if image:
+            content = await image.read()
+            b64 = base64.b64encode(content).decode('utf-8')
+        elif image_base64:
+            b64 = image_base64
+        else:
+            raise HTTPException(status_code=400, detail="Provide image file or image_base64")
+
+        img_content = ImageContent(image_base64=b64)
+
+        lang_instruction = ""
+        if language and language != "auto":
+            lang_map = {"pt": "Portuguese", "es": "Spanish", "en": "English"}
+            lang_instruction = f" Respond in {lang_map.get(language, language)}."
+
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"vision-{uuid.uuid4().hex[:8]}",
+            system_message=f"You are an image analysis assistant.{lang_instruction}"
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+        msg = UserMessage(text=prompt, file_contents=[img_content])
+        import time
+        start = time.time()
+        response = await chat.send_message(msg)
+        elapsed = round((time.time() - start) * 1000)
+
+        return {
+            "analysis": response,
+            "debug": {"response_time_ms": elapsed, "model": "claude-sonnet-4-5-vision"},
+        }
+    except Exception as e:
+        logger.error(f"Vision error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Audio Transcription (Whisper) ---
+@api_router.post("/ai/transcribe")
+async def transcribe_audio(
+    audio: UploadFile = File(None),
+    audio_base64: str = Form(None),
+    language: str = Form(None),
+    user=Depends(get_current_user)
+):
+    """Transcribe audio using OpenAI Whisper"""
+    try:
+        stt = OpenAISpeechToText(api_key=EMERGENT_KEY)
+
+        if audio:
+            content = await audio.read()
+            suffix = Path(audio.filename).suffix if audio.filename else '.mp3'
+        elif audio_base64:
+            content = base64.b64decode(audio_base64)
+            suffix = '.mp3'
+        else:
+            raise HTTPException(status_code=400, detail="Provide audio file or audio_base64")
+
+        # Write to temp file
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            import time
+            start = time.time()
+            with open(tmp_path, "rb") as f:
+                result = await stt.transcribe(
+                    file=f,
+                    model="whisper-1",
+                    response_format="verbose_json",
+                    language=language,
+                )
+            elapsed = round((time.time() - start) * 1000)
+
+            return {
+                "text": result.text,
+                "language": getattr(result, 'language', language or 'unknown'),
+                "duration": getattr(result, 'duration', None),
+                "debug": {"response_time_ms": elapsed, "model": "whisper-1"},
+            }
+        finally:
+            os.unlink(tmp_path)
+    except Exception as e:
+        logger.error(f"Transcription error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Multi-Agent Orchestration ---
+AGENT_TYPE_DESCRIPTIONS = {
+    "sales": "handles product inquiries, pricing, promotions, and closing deals",
+    "support": "resolves technical issues, troubleshooting, and general support",
+    "scheduling": "manages appointments, calendar, bookings, and reminders",
+    "sac": "handles complaints, returns, refunds, and customer satisfaction",
+    "onboarding": "guides new customers through setup and first steps",
+}
+
+
+@api_router.post("/conversations/{convo_id}/route-agent")
+async def route_to_best_agent(convo_id: str, user=Depends(get_current_user)):
+    """Analyze conversation and route to the best specialized agent"""
+    tenant = await get_tenant(user)
+    convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
+    if not convo.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Get recent messages
+    msgs = supabase.table("messages").select("*").eq("conversation_id", convo_id).order("created_at", desc=False).limit(10).execute()
+    if not msgs.data:
+        raise HTTPException(status_code=400, detail="No messages in conversation")
+
+    # Get all deployed agents
+    agents = supabase.table("agents").select("*").eq("tenant_id", tenant["id"]).eq("is_deployed", True).execute()
+    if not agents.data:
+        raise HTTPException(status_code=400, detail="No deployed agents")
+
+    if len(agents.data) == 1:
+        return {"agent_id": agents.data[0]["id"], "agent_name": agents.data[0]["name"], "reason": "Only one agent deployed"}
+
+    # Build context from last messages
+    context = "\n".join([f"{m['sender']}: {m['content']}" for m in msgs.data[-5:]])
+
+    # Ask AI to classify
+    agent_list = "\n".join([f"- {a['name']} ({a['type']}): {AGENT_TYPE_DESCRIPTIONS.get(a['type'], a['type'])}" for a in agents.data])
+
+    chat = LlmChat(
+        api_key=EMERGENT_KEY,
+        session_id=f"router-{uuid.uuid4().hex[:8]}",
+        system_message="You are a conversation router. Given a conversation context and available agents, respond with ONLY the agent name that best handles this conversation. No explanation."
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+    prompt = f"Available agents:\n{agent_list}\n\nConversation:\n{context}\n\nWhich agent name should handle this?"
+    best_name = (await chat.send_message(UserMessage(text=prompt))).strip()
+
+    # Find matching agent
+    selected = None
+    for a in agents.data:
+        if a["name"].lower() in best_name.lower():
+            selected = a
+            break
+    if not selected:
+        selected = agents.data[0]
+
+    # Update conversation with new agent
+    supabase.table("conversations").update({"agent_id": selected["id"]}).eq("id", convo_id).execute()
+
+    return {"agent_id": selected["id"], "agent_name": selected["name"], "reason": f"Routed based on conversation context"}
+
+
+# --- Conversation with image/audio support ---
+@api_router.post("/conversations/{convo_id}/messages/multimedia")
+async def send_multimedia_message(
+    convo_id: str,
+    content: str = Form(""),
+    message_type: str = Form("text"),
+    image: UploadFile = File(None),
+    audio: UploadFile = File(None),
+    user=Depends(get_current_user)
+):
+    """Send a message with optional image or audio attachment"""
+    tenant = await get_tenant(user)
+    convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
+    if not convo.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    final_content = content
+    metadata = {}
+
+    # Process audio -> transcribe
+    if audio:
+        audio_content = await audio.read()
+        suffix = Path(audio.filename).suffix if audio.filename else '.mp3'
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(audio_content)
+            tmp_path = tmp.name
+        try:
+            stt = OpenAISpeechToText(api_key=EMERGENT_KEY)
+            with open(tmp_path, "rb") as f:
+                result = await stt.transcribe(file=f, model="whisper-1", response_format="json")
+            final_content = result.text
+            message_type = "audio"
+            metadata["transcription"] = result.text
+            metadata["original_type"] = "audio"
+        finally:
+            os.unlink(tmp_path)
+
+    # Process image -> analyze
+    if image:
+        img_content = await image.read()
+        b64 = base64.b64encode(img_content).decode('utf-8')
+        metadata["image_base64_preview"] = b64[:100]  # Store preview only
+        metadata["has_image"] = True
+        message_type = "image"
+        if not content:
+            final_content = "[Image sent]"
+
+    # Store message
+    msg = {
+        "conversation_id": convo_id,
+        "sender": "customer",
+        "content": final_content,
+        "message_type": message_type,
+        "metadata": metadata,
+    }
+    result = supabase.table("messages").insert(msg).execute()
+    supabase.table("conversations").update({"last_message_at": datetime.now(timezone.utc).isoformat()}).eq("id", convo_id).execute()
+
+    return result.data[0]
 
 
 # --- Include router ---

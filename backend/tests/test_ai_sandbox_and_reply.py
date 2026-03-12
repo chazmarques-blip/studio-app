@@ -13,7 +13,7 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://agent-flow-test-2.preview.emergentagent.com"
+    BASE_URL = "https://agentflow-phase2.preview.emergentagent.com"
 
 TEST_USER_EMAIL = "test@agentflow.com"
 TEST_USER_PASSWORD = "password123"

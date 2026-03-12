@@ -1,165 +1,184 @@
 <analysis>**original_problem_statement:**
-The user wants to build a comprehensive, mobile-first, no-code SaaS platform called AgentFlow. The platform allows users (small and medium business owners) to easily deploy and configure pre-built AI agents on various social media channels (WhatsApp, Instagram, Facebook, Telegram).
+The user wants to build a comprehensive, mobile-first, no-code SaaS platform called AgentFlow. The platform allows users (small and medium business owners) to easily deploy and configure pre-built AI agents on various social media channels (WhatsApp, Instagram, Facebook, Telegram, and now SMS).
 
 **PRODUCT REQUIREMENTS:**
 1.  **Core Functionality:** A platform for managing AI-powered chatbot agents.
-2.  **Omnichannel:** Unified inbox for WhatsApp, Instagram, Facebook Messenger, and Telegram.
+2.  **Omnichannel:** Unified inbox for WhatsApp, Instagram, Facebook Messenger, Telegram, and SMS.
 3.  **AI Capabilities (Multimodal):**
     *   **Text:** Advanced conversational AI (Claude 3.5 Sonnet).
     *   **Voice:** Voice note transcription (OpenAI Whisper).
     *   **Images:** Image analysis (Claude Vision).
 4.  **Multi-Agent Orchestration:** Intelligently switch between specialized agents within a conversation.
-5.  **Multi-Language Support:** The system's base language should be English. Users should be able to select their preferred UI language during onboarding. They should also be able to set a default language for their agent or enable automatic language detection.
+5.  **Multi-Language Support:** UI support for English, Portuguese, and Spanish. Agents can have a fixed language or auto-detect.
 6.  **Agent Marketplace:** A library of 20+ pre-built, editable agents.
-7.  **Real-Time Agent Editing:** Hot reload for agent name, personality, and system prompt.
+7.  **Advanced Agent Configuration:** Users must be able to configure agent personality (tone, verbosity, emoji usage), knowledge base (text, documents, URLs), and post-conversation rules (follow-ups, re-engagement).
 8.  **Real-Time Sync:** Google Calendar and Google Sheets integration.
 9.  **Lead Nurturing:** Automated follow-up campaigns.
-10. **Integrated CRM:** A built-in CRM with a visual Kanban board, with leads automatically created and managed by the AI based on conversation context.
-11. **Design & UX:** A premium, sophisticated UI with a dark luxury theme (blacks, grays, and golds).
-12. **Pricing Model:** Include a **Freemium Plan** where users can create one agent with a limited number of messages per week, with an upsell prompt upon reaching the limit.
-13. **User's Directive:** The user has explicitly rejected an MVP approach and wants the full application planned and designed before development begins.
+10. **Integrated CRM:** A built-in CRM with a visual Kanban board, with leads automatically created and managed by the AI.
+11. **Design & UX:** A premium, sophisticated UI with a dark luxury theme.
+12. **Pricing Model:** A Freemium Plan with an upsell prompt upon reaching message limits.
 
-**User's preferred language**:
-Português (Portuguese). The next agent MUST respond in Portuguese.
+**User's preferred language**: Português (Portuguese). The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-The project is in the pre-development/design phase. No functional code exists. The agent has created extensive planning documents and a first round of UI mockups. The user has reviewed these and requested significant changes to the UI theme and business model.
+The application is a full-stack React/FastAPI app using Supabase for the database and authentication. The initial setup and core features are complete.
+- **Backend:** Fully migrated to Supabase. It serves a marketplace of 22 agents and provides APIs for authentication, conversations, messages, leads, and advanced agent configuration (personality, knowledge base, follow-ups). It also includes working backend endpoints for AI-powered image analysis (Claude Vision) and audio transcription (OpenAI Whisper). A webhook with intelligent auto-reply logic using Claude Sonnet is in place.
+- **Frontend:** A Dark Luxury themed UI with 18 pages. Internationalization (i18n) is fully functional for English, Portuguese, and Spanish. Key pages like the Chat Inbox, CRM, and Dashboard are connected to live backend data. A detailed Agent Configuration page allows users to customize their deployed agents.
 
 **Last working item**:
--   **Last item agent was working:** The agent was about to start creating a new set of visual UI mockups based on the user's latest feedback for a premium dark luxury theme (blacks, grays, golds). The agent also needs to update the project plan to reflect a new Freemium tier and enhanced multi-language support.
--   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** NA
--   **User Testing Done:** N
+- **Last item agent was working:** The agent was in the middle of implementing Phase 2 (Multimodal AI). It had successfully implemented and tested the backend APIs for image analysis (Claude Vision) and audio transcription (Whisper). The agent was about to start updating the frontend  page to include a new layout for the planned WhatsApp (Evolution API) and SMS (Twilio) integrations, before adding file/audio upload capabilities to the chat UIs.
+- **Status:** IN PROGRESS
+- **Agent Testing Done:** Y (for backend multimodal APIs)
+- **Which testing method agent to use?** both
+- **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Final Project Approval (P0 - HIGHEST)**
-    -   **Description:** The user needs to review and approve the updated UI mockups and the revised project plan before development can begin.
-    -   **Status:** BLOCKED (waiting for agent to create the new assets for user review).
+There are no outstanding bugs. The primary pending item is the completion of the current development phase.
 
 **In progress Task List**:
--   **Task 1: Generate New UI Mockups (P0 - HIGHEST)**
-    -   **Description:** Create a new set of visual mockups for the main application screens, implementing the user's requested dark luxury theme with blacks, grays, and gold accents.
-    -   **Where to resume:** Use the  to create the new mockups, starting with the main screens (Landing Page, Login, Dashboard, CRM).
-    -   **What will be achieved with this?** Provide the user with a visual representation of the new premium design for approval.
-    -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** NA
-
--   **Task 2: Update Project Plan (P1)**
-    -   **Description:** Update the master planning document () to incorporate the two new requirements from the user.
-    -   **Where to resume:**
-        1.  Edit the pricing/monetization section to include the new Freemium Plan (1 agent, limited weekly messages).
-        2.  Edit the multi-language support section to specify: the system's base language is English, the user selects their UI language at onboarding, and they can configure the agent's language (fixed or auto-detect).
-    -   **What will be achieved with this?** The project plan will be aligned with the user's latest requirements.
-    -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** NA
+- **Task 1: Complete Phase 2 - Multimodal AI & Agent Orchestration (P0 - HIGHEST)**
+    - **Description:** The backend APIs for Vision and Whisper are complete. The remaining work for this phase involves:
+        1.  **Frontend UI for Multimodal:** Update the  page layout to include UI for WhatsApp (Evolution API) and SMS (Twilio). Then, update the chat components (, ) to handle image and audio file uploads, sending them to the new backend endpoints.
+        2.  **Multi-Agent Orchestration:** Implement the backend logic that allows an agent to decide whether to handle a query itself or pass it to another specialized agent based on the conversation context. This was planned for Phase 2 but has not been started.
+    - **Where to resume:** Start by modifying  to update the layout as planned.
+    - **What will be achieved with this?** The application will support multimodal inputs (text, image, audio) and have more advanced AI routing capabilities, completing a core product requirement.
+    - **Status:** IN PROGRESS
+    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on something:** None
 
 **Upcoming and Future Tasks**
-The entire 75-day development plan, as defined in , is pending approval.
-*   **Phase 0: Foundation & Setup (5 days)**
-*   **Phase 1: WhatsApp & Multi-language (8 days)**
-*   **Phase 2: IA Multimodal & Multi-agent (15 days)**
-*   **Phase 3: Omnichannel (15 days)**
-*   **Phase 4: CRM Kanban with IA (12 days)**
-*   **Phase 5: Dashboard & Analytics (8 days)**
-*   **Phase 6: Real-time Sync (5 days)**
-*   **Phase 7: Lead Nurturing (5 days)**
-*   **Phase 8: Final Testing & Adjustments (2 days)**
+- **Upcoming Tasks (Phase 2 Remainder & Phase 3 Prep):**
+    - **P0: WhatsApp Integration (Evolution API):** Connect the frontend UI and backend webhook to a live Evolution API instance for end-to-end WhatsApp messaging.
+    - **P1: SMS Integration (Twilio):** Implement the full Twilio integration for sending and receiving SMS messages, as requested by the user. This will involve using the  for the Twilio playbook.
+- **Future Tasks (Project Roadmap):**
+    - **Phase 3: Omnichannel (Instagram, Facebook, Telegram)**
+    - **Phase 4: CRM Kanban with AI**
+    - **Phase 5: Dashboard & Analytics**
+    - **Phase 6: Real-time Sync (Google Calendar/Sheets)**
+    - **Phase 7: Lead Nurturing**
+    - **Phase 8: Final Testing & Adjustments**
 
 **Completed work in this session**
--   Generated initial ASCII art mockups ().
--   Generated a first set of visual mockups (now superseded by the new dark luxury theme request).
--   Held several rounds of conversation to clarify and refine user requirements, leading to the latest design and business model changes.
+- **Supabase Migration:** Successfully migrated the entire backend from a temporary MongoDB/JWT setup to Supabase (PostgreSQL + Auth), resolving the persistent container DNS issue by using the Supabase REST API client.
+- **Internationalization (i18n) Completion:** Added Spanish as a third language, fixed all persistence bugs, and translated all remaining hardcoded text across the application.
+- **Phase 1 - Messaging & Agent Infrastructure:**
+  - Built backend APIs and frontend UI for live conversations, messages, CRM leads, and a data-driven dashboard.
+  - Implemented a complete agent configuration flow: users can deploy marketplace agents and customize their personality (tone, emoji use), knowledge base, and post-conversation follow-up rules.
+- **AI Integration (Text):** Integrated Claude 3.5 Sonnet to power a multi-turn Agent Sandbox and an AI Reply feature in the main chat.
+- **AI Integration (Multimodal Backend):** Implemented and tested backend endpoints for image analysis (Claude Vision) and audio transcription (OpenAI Whisper).
+- **Intelligent Webhook:** Enhanced the primary message-receiving webhook to trigger automatic, context-aware AI replies based on the agent's configuration.
 
 **Earlier issues found/mentioned but not fixed**
-None.
+None. All previously identified issues (Supabase connection, i18n bugs) have been resolved.
 
 **Known issue recurrence from previous fork**
-None.
+- **Issue:** Supabase DNS Resolution Failure.
+- **Recurrence count:** 2+
+- **Status:** RESOLVED. The issue was permanently fixed by bypassing direct DB connection from the container and instead using the  client which communicates over the Supabase REST API.
 
 **Code Architecture**
-The planned architecture (no code yet):
 
 
 **Key Technical Concepts**
--   **Frontend:** React, Tailwind CSS, shadcn-ui, Lucide Icons
--   **Backend:** FastAPI (Python)
--   **Database:** MongoDB (main data store), Redis (task queue)
--   **Authentication & Realtime:** Supabase
--   **AI:** Anthropic Claude 3.5 Sonnet, OpenAI Whisper, Claude Vision, FastText
--   **Infrastructure:** Railway (Backend, Evolution API, Redis), Vercel (Frontend)
+- **Frontend:** React, Tailwind CSS, shadcn-ui, Lucide Icons, i18next (en, pt, es)
+- **Backend:** FastAPI (Python)
+- **Database & Auth:** Supabase (PostgreSQL, Supabase Auth) via  client.
+- **AI (via Emergent LLM Key):**
+    - **Text:** Anthropic Claude 3.5 Sonnet
+    - **Image:** Anthropic Claude Vision
+    - **Voice:** OpenAI Whisper
 
 **key DB schema**
-Planned MongoDB Collections: , , , , , , .
+- **users:** (from Supabase Auth)
+- **agents:** { id, name, description, ..., , , ,  }
+- **conversations:** { id, user_id, contact_name, channel }
+- **messages:** { id, conversation_id, content, sender_type, message_type }
+- **channels:** { id, user_id, type, details, is_connected }
+- **leads:** { id, user_id, name, stage, value }
+- **knowledge_base_items:** { id, agent_id, type, content }
+- **agent_follow_up_rules:** { id, agent_id, trigger, delay_hours, message_template }
 
 **changes in tech stack**
--   **Frontend:** React (CRA) instead of the initially discussed Next.js.
--   **Database:** MongoDB as the primary DB instead of Supabase's Postgres.
--   **Supabase:** Retained specifically for Auth and Realtime functionalities.
+- The project has successfully and permanently transitioned from a temporary MongoDB/JWT architecture to the user-requested Supabase backend for both database and authentication.
 
 **All files of reference**
--   : The definitive technical plan (needs updating).
--   : Original ASCII mockups.
--   All other  files containing detailed planning.
+- : The primary source of truth for product requirements.
+- : The monolithic backend file containing all API logic.
+- : Contains all Pydantic and SQLAlchemy models.
+- : The UI for advanced agent customization.
+- : The main user-facing chat interface.
+- : The AI testing environment.
+- : The next file to be modified for multimodal UI.
+- : Manages authentication state and i18n language persistence.
+
+**Areas that need refactoring**:
+- The  file has grown to over 500 lines and contains logic for auth, agents, messaging, AI, and more. It should be refactored into a more scalable structure using FastAPI's  to separate concerns into different files (e.g., , ).
+
+**key api endpoints**
+- 
+- 
+- 
+- 
+- 
+- 
+-  (Handles incoming messages and triggers AI auto-reply)
+- CRUD endpoints for , , , .
 
 **Critical Info for New Agent**
-1.  **LANGUAGE:** The user's language is **Portuguese**. All communication must be in Portuguese.
-2.  **IMMEDIATE NEXT STEPS:** Your immediate priority is to address the user's latest request.
-    *   **First:** Generate new visual mockups with the dark luxury theme (black, gray, gold).
-    *   **Second:** Update the  file to include the new Freemium plan and the specified multi-language functionality.
-3.  **APPROVAL IS PENDING:** Do NOT start any coding. The entire project is blocked until the user approves the new mockups and the updated plan. Your first  should be to present these new assets for approval.
-4.  **NO MVP:** The user wants the complete application. Do not suggest shortcuts.
+1.  **LANGUAGE:** You MUST communicate with the user in **Portuguese**.
+2.  **IMMEDIATE TASK:** Continue with Phase 2. The backend for Vision/Whisper is done. Your first step is to modify  to add UI layouts for WhatsApp and SMS. Then, implement file upload functionality in the chat UIs (, ).
+3.  **AGENT ORCHESTRATION:** Do not forget to implement the multi-agent orchestration logic on the backend as part of Phase 2. This is a key unstarted feature.
+4.  **SMS INTEGRATION:** The user has confirmed that SMS (via Twilio) is a required integration. It has been added to the plan and should be tackled after the initial WhatsApp connection is finalized.
+5.  **BACKEND REFACTORING:** The  is becoming unmanageable. Plan to propose a refactoring of the backend into a modular structure (using ) after completing Phase 2.
 
 **documents and test reports created in this job**
--   /app/AGENTFLOW_PLAN.md
--   /app/AGENTFLOW_PRODUCT_VISION.md
--   /app/AGENTFLOW_EXPANDED_SCOPE.md
--   /app/AGENTFLOW_CRM_FEATURE.md
--   /app/AGENTFLOW_MASTER_COMPLETE.md
--   /app/AGENTFLOW_MOCKUPS_COMPLETOS.md
+-  (Updated)
+-  (Supabase migration test)
+-  (Phase 1 messaging infrastructure test)
+-  (Agent Sandbox & AI Reply test)
+-  (Advanced agent configuration test)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks to see the mockups the previous agent mentioned.
-2.  **Agent:** Shows the ASCII/text-based mockups.
-3.  **User:** Asks where the mockups are.
-4.  **Agent:** Explains they are text-based wireframes.
-5.  **User:** Explicitly states they want to see complete images with fonts, icons, etc., not text.
-6.  **Agent:** Acknowledges and starts generating the first set of visual mockups.
-7.  **Agent:** Presents all 14 generated screens in a summary table.
-8.  **User:** Provides critical feedback:
-    *   The images lack detail.
-    *   Requests a more sophisticated, premium theme with blacks, grays, and golds.
-    *   Suggests a new **Freemium plan** (1 agent, limited messages) to let users try before they buy.
-    *   Specifies that the system's base language must be **English**, with options for the user to choose their UI language and agent language (or set to auto-detect).
-    *   Asks the agent to show the adjusted layout and update the plan.
-9.  **Agent:** Confirms understanding of all three points (Premium theme, Free plan, English-first system) and states it will generate the new mockups and update the plan. (This is where the session ended).
+1.  **User:** Requests to add human-like automation and detailed user context for agents, including access to sheets, images, and APIs.
+2.  **Agent:** Proposes a plan to implement this.
+3.  **User:** Adds requirement for post-conversation follow-up and re-engagement configuration.
+4.  **Agent:** Confirms and starts implementation.
+5.  **User:**  (confirms SQL execution).
+6.  **Agent:** Completes implementation and testing of advanced agent config.
+7.  **User:** Asks for login credentials.
+8.  **Agent:** Provides  / .
+9.  **User:** lets continue, but we need to include SMS integration in the planning as well, the main market is American, what is the complexity of this?"
+10. **User:** "just include sms in the planning and in the integrations and layouts we dont need to do it now lets go in the planned sequence but including sms"
+11. **User:** "where is the whatsapp integration?"
+12. **User:** "lets start phase 2
 
 **Project Health Check:**
--   **Broken:** None
--   **Mocked:** All UI/UX is currently conceptual. The next step is to create new visual mockups based on user feedback.
+- **Running:** Yes, the full stack is running on the new Supabase architecture.
+- **Broken:** No broken features.
+- **Mocked:** The channel connection page () contains UI placeholders for WhatsApp, Instagram, Facebook, Telegram, and SMS. These are pending their respective integration work.
 
 **3rd Party Integrations**
-(As per )
-1.  Anthropic Claude API
-2.  OpenAI Whisper API
-3.  Meta Graph API (Instagram & Facebook)
-4.  Telegram Bot API
-5.  Evolution API (WhatsApp)
-6.  Supabase (Auth & Realtime)
-7.  Google Calendar API
-8.  Google Sheets API
-9.  FastText (Language Detection)
-10. MongoDB Atlas
-11. Railway / Vercel (Hosting)
+- **Implemented:**
+    - Supabase (Database & Auth)
+    - Anthropic Claude 3.5 Sonnet (Text Gen) — uses Emergent LLM Key
+    - Anthropic Claude Vision (Image Analysis) — uses Emergent LLM Key
+    - OpenAI Whisper (Audio Transcription) — uses Emergent LLM Key
+- **Planned:**
+    - Evolution API (WhatsApp)
+    - Twilio (SMS)
+    - Meta (Instagram/Facebook)
+    - Telegram
+    - Google Calendar / Google Sheets
 
 **Testing status**
--   **Testing agent used after significant changes:** NO
--   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None
--   **Known regressions:** None
+- **Testing agent used after significant changes:** YES, multiple times with 100% success rates on backend tests and >95% on frontend flows.
+- **Troubleshoot agent used after agent stuck in loop:** NO
+- **Test files created:** Multiple  files exist.
+- **Known regressions:** None.
 
 **Credentials to test flow:**
-Not applicable yet.
+- **Email:** 
+- **Password:** 
 
 **What agent forgot to execute**
-Nothing. The agent was actively working on the user's latest request when the session forked. The next agent must continue this work.</analysis>
+The agent has not forgotten any user requests, but it has not yet started the multi-agent orchestration part of Phase 2. This needs to be prioritized after the multimodal frontend UI is completed.</analysis>
