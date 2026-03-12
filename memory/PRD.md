@@ -20,24 +20,26 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - Agent Personality, Knowledge Base CRUD, Follow-up/Reactivation rules
 - Escalation detection, CRM leads, Chat/Inbox
 
-### Phase 2: Multimodal AI & WhatsApp Integration (COMPLETE) - March 2026
+### Phase 2: Multimodal AI & WhatsApp + Agent Prompts (COMPLETE) - March 2026
 - **WhatsApp (Evolution API)**: 6 backend endpoints, QR code flow, outbound messaging, auto-reply
 - **Multimodal UI**: Image upload + Audio recording/upload in Chat.jsx and AgentSandbox.jsx
-- **Vision**: Claude Vision analysis (image → text) integrated in both Chat and Sandbox
-- **Whisper**: Audio transcription integrated in both Chat and Sandbox
+- **Vision**: Claude Vision analysis integrated in Chat and Sandbox
+- **Whisper**: Audio transcription integrated in Chat and Sandbox
+- **Multi-Agent Orchestration**: Route button in Chat header + AI-powered agent routing
+- **22 Agent Prompts**: Professional system prompts (500-770 chars each) with specific protocols, methodologies, escalation rules per category
 - **Rebranding**: AgentFlow → AgentZZ with custom logo
+- **Social Media Icons**: Official SVG icons in gold on Landing page
 
 ### Testing (ALL 100%)
 - iteration_2-5: Supabase, Messaging, AI, Agent Config
 - iteration_6: WhatsApp Integration 8/8
 - iteration_7: Multimodal UI + Rebranding 7/7
+- iteration_8: Agent Prompts + Orchestration + Icons 7/7
 
-## Upcoming Phases (Priority Order)
-1. **Agent Prompts**: Create system prompts for all 22 marketplace agents
-2. **Multi-Agent Orchestration**: Frontend integration of route-agent endpoint
-3. **SMS Integration (Twilio)**: Full send/receive SMS
-4. **Backend Refactoring**: Split server.py into APIRouter modules
-5. **WhatsApp Real Connection**: When domain is available
+## Upcoming Tasks (Priority Order)
+1. **SMS Integration (Twilio)**: Full send/receive SMS via Twilio
+2. **Backend Refactoring**: Split server.py (1600+ lines) into APIRouter modules
+3. **WhatsApp Real Connection**: When domain is available
 
 ## Future Phases (Backlog)
 - Phase 3: Omnichannel (Instagram, Facebook, Telegram)
