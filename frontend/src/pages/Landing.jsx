@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Zap, Shield, BarChart3, Globe, MessageSquare, Users, ChevronRight, Check, Sparkles } from 'lucide-react';
+import { ArrowRight, Zap, Shield, BarChart3, Globe, MessageSquare, Users, Check, Sparkles } from 'lucide-react';
 
 const gold = '#C9A84C';
 
@@ -53,69 +53,49 @@ function LiveChatDemo() {
   }, [msgs, typing]);
 
   return (
-    <div className="relative">
-      {/* Glow behind chat */}
-      <div className="absolute -inset-6 rounded-3xl bg-[#C9A84C]/5 blur-2xl" />
-      <div className="relative rounded-2xl border border-[#1E1E1E] bg-[#0D0D0D]/90 backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/40">
-        {/* Chat header */}
-        <div className="flex items-center gap-3 border-b border-[#1A1A1A] px-5 py-3.5 bg-[#0A0A0A]">
-          <div className="relative">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] flex items-center justify-center">
-              <span className="text-sm font-bold text-[#0A0A0A]">S</span>
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#25D366] border-2 border-[#0A0A0A]" />
+    <div className="relative rounded-2xl border border-[#1E1E1E] bg-[#0D0D0D]/90 backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/40">
+      <div className="flex items-center gap-3 border-b border-[#1A1A1A] px-4 py-3 bg-[#0A0A0A]">
+        <div className="relative">
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] flex items-center justify-center">
+            <span className="text-xs font-bold text-[#0A0A0A]">S</span>
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-white">Sofia</p>
-            <p className="text-[10px] text-[#25D366] flex items-center gap-1"><span className="inline-block h-1 w-1 rounded-full bg-[#25D366]" /> Online via WhatsApp</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-[#C9A84C]" />
-            <span className="text-[10px] text-[#C9A84C] font-medium">AI</span>
-          </div>
+          <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#C9A84C] border-2 border-[#0A0A0A]" />
         </div>
-        {/* Messages */}
-        <div ref={chatRef} className="h-[280px] overflow-y-auto px-4 py-4 space-y-3" style={{scrollbarWidth:'none'}}>
-          {msgs.map((m, i) => (
-            <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`} style={{animation: 'slideUp 0.3s ease'}}>
-              <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 ${
-                m.from === 'user' ? 'bg-[#C9A84C]/12 border border-[#C9A84C]/15' : 'bg-[#141414] border border-[#1E1E1E]'
-              }`}>
-                {m.from === 'agent' && <p className="text-[9px] text-[#C9A84C]/60 mb-0.5 font-medium">Sofia</p>}
-                <p className="text-[13px] leading-relaxed text-[#E0E0E0]">{m.text}</p>
-              </div>
-            </div>
-          ))}
-          {typing && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl bg-[#141414] border border-[#1E1E1E] px-5 py-3">
-                <div className="flex gap-1.5">{[0,150,300].map(d=><div key={d} className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#C9A84C]/50" style={{animationDelay:`${d}ms`}}/>)}</div>
-              </div>
-            </div>
-          )}
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-white">Sofia</p>
+          <p className="text-[10px] text-[#C9A84C]/70 flex items-center gap-1"><span className="inline-block h-1 w-1 rounded-full bg-[#C9A84C]" /> Online</p>
         </div>
-        {/* Input bar */}
-        <div className="border-t border-[#1A1A1A] bg-[#0A0A0A] px-4 py-3 flex items-center gap-2">
-          <div className="flex-1 h-9 rounded-full bg-[#141414] border border-[#1E1E1E] flex items-center px-4">
-            <span className="text-xs text-[#444]">Type a message...</span>
-          </div>
-          <div className="h-9 w-9 rounded-full bg-[#C9A84C] flex items-center justify-center flex-shrink-0">
-            <ArrowRight size={14} className="text-[#0A0A0A]" />
-          </div>
+        <div className="flex items-center gap-1.5">
+          <Sparkles size={12} className="text-[#C9A84C]" />
+          <span className="text-[10px] text-[#C9A84C] font-medium">AI</span>
         </div>
       </div>
-      {/* Floating channel pills around chat */}
-      <div className="absolute -top-3 -left-6 flex items-center gap-1.5 rounded-full bg-[#111]/90 backdrop-blur border border-[#1E1E1E] px-3 py-1.5 shadow-lg" style={{animation:'float 5s ease-in-out infinite'}}>
-        <WaIcon size={14} color="#25D366" /><span className="text-[10px] text-[#888]">WhatsApp</span>
+      <div ref={chatRef} className="h-[240px] overflow-y-auto px-4 py-3 space-y-2.5" style={{scrollbarWidth:'none'}}>
+        {msgs.map((m, i) => (
+          <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`} style={{animation: 'slideUp 0.3s ease'}}>
+            <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 ${
+              m.from === 'user' ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/15' : 'bg-[#141414] border border-[#1E1E1E]'
+            }`}>
+              {m.from === 'agent' && <p className="text-[9px] text-[#C9A84C]/50 mb-0.5 font-medium">Sofia</p>}
+              <p className="text-[12px] leading-relaxed text-[#E0E0E0]">{m.text}</p>
+            </div>
+          </div>
+        ))}
+        {typing && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl bg-[#141414] border border-[#1E1E1E] px-5 py-3">
+              <div className="flex gap-1.5">{[0,150,300].map(d=><div key={d} className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#C9A84C]/50" style={{animationDelay:`${d}ms`}}/>)}</div>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="absolute top-12 -right-8 flex items-center gap-1.5 rounded-full bg-[#111]/90 backdrop-blur border border-[#1E1E1E] px-3 py-1.5 shadow-lg" style={{animation:'float 4s ease-in-out infinite 0.5s'}}>
-        <IgIcon size={14} color="#E4405F" /><span className="text-[10px] text-[#888]">Instagram</span>
-      </div>
-      <div className="absolute bottom-16 -left-10 flex items-center gap-1.5 rounded-full bg-[#111]/90 backdrop-blur border border-[#1E1E1E] px-3 py-1.5 shadow-lg" style={{animation:'float 6s ease-in-out infinite 1s'}}>
-        <TgIcon size={14} color="#0088CC" /><span className="text-[10px] text-[#888]">Telegram</span>
-      </div>
-      <div className="absolute -bottom-2 right-4 flex items-center gap-1.5 rounded-full bg-[#111]/90 backdrop-blur border border-[#1E1E1E] px-3 py-1.5 shadow-lg" style={{animation:'float 5s ease-in-out infinite 1.5s'}}>
-        <FbIcon size={14} color="#1877F2" /><span className="text-[10px] text-[#888]">Messenger</span>
+      <div className="border-t border-[#1A1A1A] bg-[#0A0A0A] px-3 py-2.5 flex items-center gap-2">
+        <div className="flex-1 h-8 rounded-full bg-[#141414] border border-[#1E1E1E] flex items-center px-4">
+          <span className="text-[11px] text-[#444]">Type a message...</span>
+        </div>
+        <div className="h-8 w-8 rounded-full bg-[#C9A84C] flex items-center justify-center flex-shrink-0">
+          <ArrowRight size={12} className="text-[#0A0A0A]" />
+        </div>
       </div>
     </div>
   );
@@ -128,10 +108,10 @@ export default function Landing() {
   const [activeAgent, setActiveAgent] = useState(0);
 
   const agents = [
-    { name: 'Sofia', role: 'Sales', color: '#C9A84C', desc: lang === 'pt' ? 'Vendas e-commerce' : 'E-commerce sales', cat: 'ecommerce' },
-    { name: 'Roberto', role: 'Support', color: '#2196F3', desc: lang === 'pt' ? 'Suporte tecnico' : 'Tech support', cat: 'general' },
-    { name: 'Ana', role: 'Scheduling', color: '#25D366', desc: lang === 'pt' ? 'Agendamentos' : 'Scheduling', cat: 'general' },
-    { name: 'Marina', role: 'Onboarding', color: '#E4405F', desc: lang === 'pt' ? 'Boas-vindas' : 'Onboarding', cat: 'general' },
+    { name: 'Sofia', role: 'Sales', desc: lang === 'pt' ? 'Vendas e-commerce' : 'E-commerce sales' },
+    { name: 'Roberto', role: 'Support', desc: lang === 'pt' ? 'Suporte tecnico' : 'Tech support' },
+    { name: 'Ana', role: 'Scheduling', desc: lang === 'pt' ? 'Agendamentos' : 'Scheduling' },
+    { name: 'Marina', role: 'Onboarding', desc: lang === 'pt' ? 'Boas-vindas' : 'Onboarding' },
   ];
 
   useEffect(() => {
@@ -155,16 +135,20 @@ export default function Landing() {
     { value: '24/7', label: lang === 'pt' ? 'Disponivel' : 'Available' },
   ];
 
+  const channels = [
+    { Icon: WaIcon, name: 'WhatsApp', desc: 'Business API' },
+    { Icon: IgIcon, name: 'Instagram', desc: 'Direct Messages' },
+    { Icon: FbIcon, name: 'Messenger', desc: 'Facebook Pages' },
+    { Icon: TgIcon, name: 'Telegram', desc: 'Smart Bots' },
+    { Icon: SmsIcon, name: 'SMS', desc: 'Via Twilio' },
+  ];
+
   return (
     <div className="min-h-screen bg-[#070707] overflow-x-hidden">
       <style>{`
         @keyframes slideUp { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
-        @keyframes float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
-        @keyframes gridPulse { 0%,100% { opacity:0.02 } 50% { opacity:0.05 } }
+        @keyframes float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-5px) } }
       `}</style>
-
-      {/* Grid background texture */}
-      <div className="fixed inset-0 pointer-events-none z-0" style={{backgroundImage:'linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px)', backgroundSize:'60px 60px'}} />
 
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#1A1A1A]/60 bg-[#070707]/70 backdrop-blur-2xl">
@@ -178,137 +162,108 @@ export default function Landing() {
       </header>
 
       {/* ===== HERO ===== */}
-      <section className="relative px-6 pt-28 pb-20 overflow-hidden">
-        {/* Background glow orbs */}
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 h-[400px] w-[600px] rounded-full bg-[#C9A84C]/4 blur-[150px]" />
+      <section className="relative px-6 pt-24 pb-16 overflow-hidden">
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 h-[350px] w-[500px] rounded-full bg-[#C9A84C]/4 blur-[150px]" />
 
         <div className="relative z-10 mx-auto max-w-5xl w-full">
-          {/* Top content - centered and compact */}
-          <div className="text-center mb-12">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/15 bg-[#C9A84C]/5 px-4 py-1.5">
-              <Zap size={13} className="text-[#C9A84C]" />
-              <span className="text-[11px] font-medium text-[#C9A84C]/80">{t('landing.badge')}</span>
+          {/* Content centered compact */}
+          <div className="text-center mb-8">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/15 bg-[#C9A84C]/5 px-3.5 py-1">
+              <Zap size={12} className="text-[#C9A84C]" />
+              <span className="text-[10px] font-medium text-[#C9A84C]/80">{t('landing.badge')}</span>
             </div>
 
-            <h1 className="mb-4 text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.25rem]">
+            <h1 className="mb-3 text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-5xl">
               {t('landing.hero_title_1')}{' '}
               <span className="bg-gradient-to-r from-[#C9A84C] via-[#D9BD6A] to-[#C9A84C] bg-clip-text text-transparent">{t('landing.hero_title_2')}</span>
             </h1>
 
-            <p className="mb-6 text-base text-[#666] leading-relaxed max-w-lg mx-auto">{t('landing.hero_subtitle')}</p>
+            <p className="mb-5 text-sm text-[#666] leading-relaxed max-w-md mx-auto sm:text-base">{t('landing.hero_subtitle')}</p>
 
-            <div className="flex flex-col gap-3 sm:flex-row justify-center mb-8">
-              <button data-testid="hero-start-free-btn" onClick={() => navigate('/login?tab=signup')} className="btn-gold flex items-center justify-center gap-2 rounded-xl px-8 py-3 text-sm font-semibold group">
-                {t('landing.hero_cta')} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            <div className="flex flex-col gap-2.5 sm:flex-row justify-center mb-6">
+              <button data-testid="hero-start-free-btn" onClick={() => navigate('/login?tab=signup')} className="btn-gold flex items-center justify-center gap-2 rounded-xl px-7 py-2.5 text-sm font-semibold group">
+                {t('landing.hero_cta')} <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="rounded-xl border border-[#1E1E1E] bg-[#0D0D0D] px-8 py-3 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition-all">{t('landing.watch_demo')}</button>
+              <button className="rounded-xl border border-[#1E1E1E] bg-[#0D0D0D] px-7 py-2.5 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition-all">{t('landing.watch_demo')}</button>
             </div>
 
-            {/* Stats row - centered */}
-            <div className="flex justify-center gap-8 sm:gap-12">
+            {/* Stats inline */}
+            <div className="flex justify-center gap-6 sm:gap-10">
               {stats.map((s, i) => (
                 <div key={i} className="relative">
-                  <p className="text-xl font-bold text-white sm:text-2xl">{s.value}</p>
-                  <p className="text-[10px] text-[#555] mt-0.5 sm:text-[11px]">{s.label}</p>
-                  {i < stats.length - 1 && <div className="absolute top-0.5 -right-4 sm:-right-6 h-8 w-px bg-[#1E1E1E]" />}
+                  <p className="text-lg font-bold text-white sm:text-xl">{s.value}</p>
+                  <p className="text-[10px] text-[#555]">{s.label}</p>
+                  {i < stats.length - 1 && <div className="absolute top-0 -right-3 sm:-right-5 h-7 w-px bg-[#1E1E1E]" />}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Chat Demo - centered below content */}
-          <div className="mx-auto max-w-md sm:max-w-lg">
-            <LiveChatDemo />
+          {/* Hero visual: Image + Chat side by side */}
+          <div className="grid md:grid-cols-2 gap-6 items-center max-w-4xl mx-auto">
+            {/* Hero image */}
+            <div className="relative rounded-2xl overflow-hidden border border-[#1E1E1E]">
+              <img src="/hero-person-robot.png" alt="AI Assistant" className="w-full h-auto object-cover" style={{maxHeight:'340px'}} />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#070707] via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4">
+                <div className="flex items-center gap-2 bg-[#0A0A0A]/80 backdrop-blur rounded-xl px-3 py-2 border border-[#1E1E1E]">
+                  <Sparkles size={14} className="text-[#C9A84C]" />
+                  <span className="text-[11px] text-[#999]">{lang === 'pt' ? 'IA que conversa como humano' : 'AI that talks like a human'}</span>
+                </div>
+              </div>
+            </div>
+            {/* Chat demo */}
+            <div>
+              <LiveChatDemo />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ===== CHANNELS ===== */}
-      <section className="py-24 px-6 border-t border-[#141414]">
-        <div className="mx-auto max-w-6xl grid lg:grid-cols-2 gap-20 items-center">
-          <div>
-            <p className="text-[11px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-4">Omnichannel</p>
-            <h2 className="mb-4 text-3xl font-bold text-white leading-tight">
-              {lang === 'pt' ? 'Todos os canais.' : 'Every channel.'}<br/>
-              <span className="text-[#C9A84C]">{lang === 'pt' ? 'Um unico painel.' : 'One dashboard.'}</span>
+      {/* ===== CHANNELS - Compact horizontal grid ===== */}
+      <section className="py-16 px-6 border-t border-[#141414]">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-8">
+            <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">Omnichannel</p>
+            <h2 className="mb-2 text-2xl font-bold text-white leading-tight sm:text-3xl">
+              {lang === 'pt' ? 'Todos os canais. ' : 'Every channel. '}
+              <span className="text-[#C9A84C]">{lang === 'pt' ? 'Um painel.' : 'One dashboard.'}</span>
             </h2>
-            <p className="mb-10 text-base text-[#777] leading-relaxed max-w-md">{lang === 'pt' ? 'Conecte WhatsApp, Instagram, Facebook, Telegram e SMS. Gerencie todas as conversas em um unico lugar.' : 'Connect WhatsApp, Instagram, Facebook, Telegram, and SMS. Manage all conversations in one place.'}</p>
-            <div className="space-y-2.5">
-              {[
-                { Icon: WaIcon, name: 'WhatsApp Business', desc: 'Evolution API', c: '#25D366' },
-                { Icon: IgIcon, name: 'Instagram DM', desc: 'Direct Messages', c: '#E4405F' },
-                { Icon: FbIcon, name: 'Messenger', desc: 'Facebook Pages', c: '#1877F2' },
-                { Icon: TgIcon, name: 'Telegram Bot', desc: 'Smart Bots', c: '#0088CC' },
-                { Icon: SmsIcon, name: 'SMS', desc: 'Via Twilio', c: '#F22F46' },
-              ].map((ch, i) => (
-                <div key={i} className="flex items-center gap-4 rounded-xl border border-[#141414] bg-[#0C0C0C] p-3.5 hover:border-[#C9A84C]/20 hover:bg-[#0E0E0E] transition-all group cursor-default">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${ch.c}08` }}><ch.Icon size={20} color={ch.c} /></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{ch.name}</p>
-                    <p className="text-[11px] text-[#444]">{ch.desc}</p>
-                  </div>
-                  <ChevronRight size={14} className="text-[#222] group-hover:text-[#C9A84C]/50 transition" />
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-[#666] max-w-md mx-auto">{lang === 'pt' ? 'Conecte todos os seus canais e gerencie tudo em um unico lugar.' : 'Connect all your channels and manage everything in one place.'}</p>
           </div>
-          {/* Right - visual */}
-          <div className="hidden lg:flex justify-center">
-            <div className="relative w-80 h-80">
-              {/* Center logo */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 rounded-2xl bg-[#0D0D0D] border border-[#1E1E1E] flex items-center justify-center z-10 shadow-xl shadow-black/30">
-                <img src="/logo-agentzz.png" alt="" className="h-12" />
+          {/* Channel cards - horizontal grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {channels.map((ch, i) => (
+              <div key={i} className="rounded-xl border border-[#141414] bg-[#0C0C0C] p-4 text-center hover:border-[#C9A84C]/20 hover:bg-[#0E0E0E] transition-all group cursor-default">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#C9A84C]/8 mx-auto mb-3 group-hover:bg-[#C9A84C]/12 transition">
+                  <ch.Icon size={20} color={gold} />
+                </div>
+                <p className="text-sm font-medium text-white mb-0.5">{ch.name}</p>
+                <p className="text-[10px] text-[#555]">{ch.desc}</p>
               </div>
-              {/* Orbit ring */}
-              <div className="absolute inset-8 rounded-full border border-[#1A1A1A]" />
-              <div className="absolute inset-4 rounded-full border border-[#141414]" />
-              {/* Channel nodes */}
-              {[
-                { Icon: WaIcon, c: '#25D366', angle: -90 },
-                { Icon: IgIcon, c: '#E4405F', angle: -18 },
-                { Icon: FbIcon, c: '#1877F2', angle: 54 },
-                { Icon: TgIcon, c: '#0088CC', angle: 126 },
-                { Icon: SmsIcon, c: '#F22F46', angle: 198 },
-              ].map((ch, i) => {
-                const r = 130;
-                const rad = (ch.angle * Math.PI) / 180;
-                return (
-                  <div key={i} className="absolute h-12 w-12 rounded-xl bg-[#0C0C0C] border border-[#1E1E1E] flex items-center justify-center hover:scale-110 hover:border-opacity-50 transition-all duration-300"
-                    style={{ left: `${160 + r * Math.cos(rad) - 24}px`, top: `${160 + r * Math.sin(rad) - 24}px`, borderColor: `${ch.c}20`, animation: `float ${4 + i * 0.5}s ease-in-out infinite ${i * 0.3}s` }}>
-                    <ch.Icon size={20} color={ch.c} />
-                  </div>
-                );
-              })}
-              {/* Connection lines */}
-              <svg className="absolute inset-0 w-full h-full" style={{zIndex:0}}>
-                {[{a:-90,c:'#25D366'},{a:-18,c:'#E4405F'},{a:54,c:'#1877F2'},{a:126,c:'#0088CC'},{a:198,c:'#F22F46'}].map((ch,i)=>{
-                  const r=130;const rad=(ch.a*Math.PI)/180;
-                  return <line key={i} x1="160" y1="160" x2={160+r*Math.cos(rad)} y2={160+r*Math.sin(rad)} stroke={ch.c} strokeWidth="0.5" strokeOpacity="0.15" strokeDasharray="4 4"/>;
-                })}
-              </svg>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ===== AGENTS ===== */}
-      <section className="py-24 px-6 border-t border-[#141414] bg-[#0A0A0A]">
-        <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-14">
-            <p className="text-[11px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-4">{lang === 'pt' ? 'Marketplace' : 'Marketplace'}</p>
-            <h2 className="mb-3 text-3xl font-bold text-white">{lang === 'pt' ? '22 agentes especializados' : '22 specialized agents'}</h2>
-            <p className="text-base text-[#777] max-w-lg mx-auto">{lang === 'pt' ? 'Cada agente tem personalidade, protocolo e conhecimento unicos para o seu setor' : 'Each agent has unique personality, protocol, and knowledge for your industry'}</p>
+      <section className="py-16 px-6 border-t border-[#141414] bg-[#0A0A0A]">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-10">
+            <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">Marketplace</p>
+            <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{lang === 'pt' ? '22 agentes especializados' : '22 specialized agents'}</h2>
+            <p className="text-sm text-[#666] max-w-lg mx-auto">{lang === 'pt' ? 'Cada agente tem personalidade e conhecimento unicos para o seu setor' : 'Each agent has unique personality and knowledge for your industry'}</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {agents.map((a, i) => (
               <button key={i} onClick={() => setActiveAgent(i)}
-                className={`rounded-xl border p-5 text-left transition-all duration-300 ${
+                className={`rounded-xl border p-4 text-left transition-all duration-300 ${
                   activeAgent === i ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5' : 'border-[#141414] bg-[#0C0C0C] hover:border-[#1E1E1E]'
                 }`}>
-                <div className="h-11 w-11 rounded-xl flex items-center justify-center text-sm font-bold mb-3" style={{ backgroundColor: `${a.color}12`, color: a.color }}>{a.name[0]}</div>
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold mb-2 bg-[#C9A84C]/10 text-[#C9A84C]">{a.name[0]}</div>
                 <p className="text-sm font-semibold text-white mb-0.5">{a.name}</p>
-                <p className="text-[11px] text-[#555]">{a.role} &middot; {a.desc}</p>
-                {activeAgent === i && <div className="mt-3 h-0.5 rounded-full bg-gradient-to-r from-[#C9A84C] to-transparent" />}
+                <p className="text-[10px] text-[#555]">{a.role} · {a.desc}</p>
+                {activeAgent === i && <div className="mt-2 h-0.5 rounded-full bg-gradient-to-r from-[#C9A84C] to-transparent" />}
               </button>
             ))}
           </div>
@@ -321,84 +276,84 @@ export default function Landing() {
       </section>
 
       {/* ===== FEATURES ===== */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <div className="text-center mb-14">
-          <p className="text-[11px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-4">{lang === 'pt' ? 'Funcionalidades' : 'Features'}</p>
-          <h2 className="mb-3 text-3xl font-bold text-white">{t('landing.features_title')}</h2>
-          <p className="text-base text-[#777]">{t('landing.features_subtitle')}</p>
+      <section className="mx-auto max-w-5xl px-6 py-16">
+        <div className="text-center mb-10">
+          <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">{lang === 'pt' ? 'Funcionalidades' : 'Features'}</p>
+          <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{t('landing.features_title')}</h2>
+          <p className="text-sm text-[#666]">{t('landing.features_subtitle')}</p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f, i) => (
-            <div key={i} className="group rounded-xl border border-[#141414] bg-[#0C0C0C] p-6 transition-all duration-300 hover:border-[#C9A84C]/20 hover:bg-[#0E0E0E]">
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#C9A84C]/8 group-hover:bg-[#C9A84C]/12 transition">
-                <f.icon size={20} className="text-[#C9A84C]" />
+            <div key={i} className="group rounded-xl border border-[#141414] bg-[#0C0C0C] p-5 transition-all duration-300 hover:border-[#C9A84C]/20 hover:bg-[#0E0E0E]">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#C9A84C]/8 group-hover:bg-[#C9A84C]/12 transition">
+                <f.icon size={18} className="text-[#C9A84C]" />
               </div>
-              <h3 className="mb-2 text-sm font-semibold text-white">{f.title}</h3>
-              <p className="text-[13px] leading-relaxed text-[#666]">{f.desc}</p>
+              <h3 className="mb-1.5 text-sm font-semibold text-white">{f.title}</h3>
+              <p className="text-[12px] leading-relaxed text-[#666]">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ===== PRICING ===== */}
-      <section className="mx-auto max-w-5xl px-6 py-24 border-t border-[#141414]">
-        <div className="text-center mb-14">
-          <p className="text-[11px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-4">Pricing</p>
-          <h2 className="mb-3 text-3xl font-bold text-white">{t('landing.pricing_title')}</h2>
-          <p className="text-base text-[#777]">{t('landing.pricing_subtitle')}</p>
+      <section className="mx-auto max-w-5xl px-6 py-16 border-t border-[#141414]">
+        <div className="text-center mb-10">
+          <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">Pricing</p>
+          <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{t('landing.pricing_title')}</h2>
+          <p className="text-sm text-[#666]">{t('landing.pricing_subtitle')}</p>
         </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-6 hover:border-[#1E1E1E] transition">
-            <h3 className="mb-1 text-lg font-bold text-white">{t('landing.plan_free')}</h3>
-            <p className="mb-4 text-sm text-[#555]">{t('landing.plan_free_desc')}</p>
-            <div className="mb-6"><span className="text-3xl font-bold text-white">{t('landing.plan_free_price')}</span><span className="text-sm text-[#555]">{t('landing.plan_free_period')}</span></div>
-            <ul className="mb-8 flex-1 space-y-3 text-sm text-[#777]">
-              {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2.5"><Check size={14} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_free_${k}`)}</li>)}
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-5 hover:border-[#1E1E1E] transition">
+            <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_free')}</h3>
+            <p className="mb-3 text-[12px] text-[#555]">{t('landing.plan_free_desc')}</p>
+            <div className="mb-5"><span className="text-2xl font-bold text-white">{t('landing.plan_free_price')}</span><span className="text-sm text-[#555]">{t('landing.plan_free_period')}</span></div>
+            <ul className="mb-6 flex-1 space-y-2.5 text-[13px] text-[#777]">
+              {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={13} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_free_${k}`)}</li>)}
             </ul>
-            <button onClick={() => navigate('/login?tab=signup')} className="w-full rounded-lg border border-[#1E1E1E] py-2.5 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_free_cta')}</button>
+            <button onClick={() => navigate('/login?tab=signup')} className="w-full rounded-lg border border-[#1E1E1E] py-2 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_free_cta')}</button>
           </div>
-          <div className="rounded-xl border border-[#C9A84C]/25 bg-[#0C0C0C] relative flex flex-col p-6 shadow-lg shadow-[#C9A84C]/3">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#C9A84C] px-4 py-1 text-[11px] font-semibold text-[#0A0A0A]">{t('landing.plan_starter_badge')}</div>
-            <h3 className="mb-1 text-lg font-bold text-white">{t('landing.plan_starter')}</h3>
-            <p className="mb-4 text-sm text-[#555]">{t('landing.plan_starter_desc')}</p>
-            <div className="mb-6"><span className="text-3xl font-bold text-[#C9A84C]">{t('landing.plan_starter_price')}</span><span className="text-sm text-[#555]">{t('landing.plan_starter_period')}</span></div>
-            <ul className="mb-8 flex-1 space-y-3 text-sm text-[#777]">
-              {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2.5"><Check size={14} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_starter_${k}`)}</li>)}
+          <div className="rounded-xl border border-[#C9A84C]/25 bg-[#0C0C0C] relative flex flex-col p-5 shadow-lg shadow-[#C9A84C]/3">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#C9A84C] px-3 py-0.5 text-[10px] font-semibold text-[#0A0A0A]">{t('landing.plan_starter_badge')}</div>
+            <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_starter')}</h3>
+            <p className="mb-3 text-[12px] text-[#555]">{t('landing.plan_starter_desc')}</p>
+            <div className="mb-5"><span className="text-2xl font-bold text-[#C9A84C]">{t('landing.plan_starter_price')}</span><span className="text-sm text-[#555]">{t('landing.plan_starter_period')}</span></div>
+            <ul className="mb-6 flex-1 space-y-2.5 text-[13px] text-[#777]">
+              {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={13} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_starter_${k}`)}</li>)}
             </ul>
-            <button className="btn-gold w-full rounded-lg py-2.5 text-sm font-semibold">{t('landing.plan_starter_cta')}</button>
+            <button className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_starter_cta')}</button>
           </div>
-          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-6 hover:border-[#1E1E1E] transition">
-            <h3 className="mb-1 text-lg font-bold text-white">{t('landing.plan_enterprise')}</h3>
-            <p className="mb-4 text-sm text-[#555]">{t('landing.plan_enterprise_desc')}</p>
-            <div className="mb-6"><span className="text-3xl font-bold text-white">{t('landing.plan_enterprise_price')}</span></div>
-            <ul className="mb-8 flex-1 space-y-3 text-sm text-[#777]">
-              {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2.5"><Check size={14} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
+          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-5 hover:border-[#1E1E1E] transition">
+            <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_enterprise')}</h3>
+            <p className="mb-3 text-[12px] text-[#555]">{t('landing.plan_enterprise_desc')}</p>
+            <div className="mb-5"><span className="text-2xl font-bold text-white">{t('landing.plan_enterprise_price')}</span></div>
+            <ul className="mb-6 flex-1 space-y-2.5 text-[13px] text-[#777]">
+              {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={13} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
             </ul>
-            <button className="w-full rounded-lg border border-[#1E1E1E] py-2.5 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_enterprise_cta')}</button>
+            <button className="w-full rounded-lg border border-[#1E1E1E] py-2 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_enterprise_cta')}</button>
           </div>
         </div>
       </section>
 
       {/* ===== CTA ===== */}
-      <section className="py-24 px-6 border-t border-[#141414] relative">
-        <div className="absolute inset-0 overflow-hidden"><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[500px] rounded-full bg-[#C9A84C]/3 blur-[100px]" /></div>
+      <section className="py-16 px-6 border-t border-[#141414] relative">
+        <div className="absolute inset-0 overflow-hidden"><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[200px] w-[400px] rounded-full bg-[#C9A84C]/3 blur-[100px]" /></div>
         <div className="relative z-10 mx-auto max-w-2xl text-center">
-          <h2 className="mb-4 text-3xl font-bold text-white">{lang === 'pt' ? 'Pronto para automatizar?' : 'Ready to automate?'}</h2>
-          <p className="mb-8 text-base text-[#777]">{lang === 'pt' ? 'Comece gratis. Sem cartao de credito.' : 'Start free. No credit card required.'}</p>
-          <button onClick={() => navigate('/login?tab=signup')} className="btn-gold rounded-xl px-10 py-4 text-base font-semibold group inline-flex items-center gap-2">
-            {t('landing.hero_cta')} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          <h2 className="mb-3 text-2xl font-bold text-white sm:text-3xl">{lang === 'pt' ? 'Pronto para automatizar?' : 'Ready to automate?'}</h2>
+          <p className="mb-6 text-sm text-[#666]">{lang === 'pt' ? 'Comece gratis. Sem cartao de credito.' : 'Start free. No credit card required.'}</p>
+          <button onClick={() => navigate('/login?tab=signup')} className="btn-gold rounded-xl px-8 py-3 text-sm font-semibold group inline-flex items-center gap-2">
+            {t('landing.hero_cta')} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#141414] px-6 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-7" />
-          <div className="flex items-center gap-5">
-            <WaIcon size={15} color="#444" /><IgIcon size={15} color="#444" /><FbIcon size={15} color="#444" /><TgIcon size={15} color="#444" />
+      <footer className="border-t border-[#141414] px-6 py-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
+          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-6" />
+          <div className="flex items-center gap-4">
+            <WaIcon size={14} color="#666" /><IgIcon size={14} color="#666" /><FbIcon size={14} color="#666" /><TgIcon size={14} color="#666" />
           </div>
-          <p className="text-[11px] text-[#444]">2026 AgentZZ</p>
+          <p className="text-[10px] text-[#444]">2026 AgentZZ</p>
         </div>
       </footer>
     </div>
