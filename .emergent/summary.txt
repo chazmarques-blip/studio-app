@@ -1,80 +1,75 @@
 <analysis>**original_problem_statement:**
-The user wants to build a comprehensive, mobile-first, no-code SaaS platform called AgentFlow. The platform allows users (small and medium business owners) to easily deploy and configure pre-built AI agents on various social media channels.
+The user wants to build a comprehensive, mobile-first, no-code SaaS platform called AgentFlow. The platform allows users (small and medium business owners) to easily deploy and configure pre-built AI agents on various social media channels (WhatsApp, Instagram, Facebook, Telegram).
 
-**PRODUCT REQUIREMENTS (Consolidated from the entire conversation):**
-1.  **Core Functionality:** A platform for managing AI-powered chatbot agents for WhatsApp.
-2.  **Omnichannel:** Support for WhatsApp, Instagram Direct Messages, Facebook Messenger, and Telegram, all managed from a unified inbox.
+**PRODUCT REQUIREMENTS:**
+1.  **Core Functionality:** A platform for managing AI-powered chatbot agents.
+2.  **Omnichannel:** Unified inbox for WhatsApp, Instagram, Facebook Messenger, and Telegram.
 3.  **AI Capabilities (Multimodal):**
-    *   **Text:** Advanced conversational AI using Claude 3.5 Sonnet.
-    *   **Voice:** Transcribe user voice notes using OpenAI Whisper and allow the agent to respond.
-    *   **Images:** Analyze images sent by users using Claude Vision (e.g., a customer sends a photo of a product).
-4.  **Multi-Agent Orchestration:** The ability to use multiple specialized agents (e.g., SAC, Sales, Support) in a single conversation, with the system intelligently switching between them while preserving context.
-5.  **Multi-Language Support:** Automatically detect the user's language (or allow manual selection) and have the agent respond in that language.
-6.  **Agent Marketplace:** A library of 20+ pre-built, editable agents for various industries (e.g., eCommerce, Dental Clinic, Restaurant, Real Estate).
-7.  **Real-Time Agent Editing:** The ability to edit an agent's name, personality, and system prompt, with changes taking effect immediately (hot reload).
-8.  **Real-Time Sync:** Integrate with Google Calendar for scheduling and Google Sheets for real-time product/inventory lookups.
-9.  **Lead Nurturing:** Create automated follow-up campaigns for lead recovery, abandoned carts, etc.
-10. **Integrated CRM:** A built-in CRM with a visual Kanban board. The AI agent should be able to automatically create new leads from conversations and move them through the pipeline stages based on the conversation's progress. The user can also manage the Kanban board manually.
-11. **Design & UX:** A minimalist, clean, mobile-first UI with thin lines, Lucide icons, and a bottom navigation bar. The entire onboarding process should be extremely simple, including connecting a WhatsApp account via QR code.
-12. **User's Directive:** The user has explicitly rejected an MVP (Minimum Viable Product) approach and wants the **full, complete application** planned and designed before any development begins.
+    *   **Text:** Advanced conversational AI (Claude 3.5 Sonnet).
+    *   **Voice:** Voice note transcription (OpenAI Whisper).
+    *   **Images:** Image analysis (Claude Vision).
+4.  **Multi-Agent Orchestration:** Intelligently switch between specialized agents within a conversation.
+5.  **Multi-Language Support:** The system's base language should be English. Users should be able to select their preferred UI language during onboarding. They should also be able to set a default language for their agent or enable automatic language detection.
+6.  **Agent Marketplace:** A library of 20+ pre-built, editable agents.
+7.  **Real-Time Agent Editing:** Hot reload for agent name, personality, and system prompt.
+8.  **Real-Time Sync:** Google Calendar and Google Sheets integration.
+9.  **Lead Nurturing:** Automated follow-up campaigns.
+10. **Integrated CRM:** A built-in CRM with a visual Kanban board, with leads automatically created and managed by the AI based on conversation context.
+11. **Design & UX:** A premium, sophisticated UI with a dark luxury theme (blacks, grays, and golds).
+12. **Pricing Model:** Include a **Freemium Plan** where users can create one agent with a limited number of messages per week, with an upsell prompt upon reaching the limit.
+13. **User's Directive:** The user has explicitly rejected an MVP approach and wants the full application planned and designed before development begins.
 
 **User's preferred language**:
 Português (Portuguese). The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-The project is in the pre-development phase. No functional code has been written. The existing codebase is a standard boilerplate for a React frontend and FastAPI backend. All work performed in this session has been dedicated to extensive product and technical planning, resulting in several detailed specification documents.
+The project is in the pre-development/design phase. No functional code exists. The agent has created extensive planning documents and a first round of UI mockups. The user has reviewed these and requested significant changes to the UI theme and business model.
 
 **Last working item**:
--   **Last item agent was working:** The agent created a comprehensive document with 14 detailed UI/UX mockups () as requested by the user. This was done to provide a visual preview of the application's layout and design before starting development.
--   **Status:** USER VERIFICATION PENDING
+-   **Last item agent was working:** The agent was about to start creating a new set of visual UI mockups based on the user's latest feedback for a premium dark luxury theme (blacks, grays, golds). The agent also needs to update the project plan to reflect a new Freemium tier and enhanced multi-language support.
+-   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
 -   **Which testing method agent to use?** NA
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-There are no bugs or technical issues. The entire project is pending the user's final approval on the planning and design documents.
-
--   **Issue 1:** **Final Project Approval (P0 - HIGHEST)**
-    -   **Description:** The user needs to review the final set of planning documents, especially the UI mockups in , and give the final go-ahead to start development.
-    -   **Status:** BLOCKED (waiting on user feedback)
+-   **Issue 1: Final Project Approval (P0 - HIGHEST)**
+    -   **Description:** The user needs to review and approve the updated UI mockups and the revised project plan before development can begin.
+    -   **Status:** BLOCKED (waiting for agent to create the new assets for user review).
 
 **In progress Task List**:
--   **Task 1:** **Project Scoping and Design (P0 - HIGHEST)**
-    -   **Description:** The agent has completed a series of detailed planning and design documents based on the user's evolving requirements.
-    -   **Where to resume:** Await user's review and approval of the mockups presented in .
-    -   **What will be achieved with this?** Finalize the project scope and design, unblocking the start of the development phases.
-    -   **Status:** USER VERIFICATION PENDING
+-   **Task 1: Generate New UI Mockups (P0 - HIGHEST)**
+    -   **Description:** Create a new set of visual mockups for the main application screens, implementing the user's requested dark luxury theme with blacks, grays, and gold accents.
+    -   **Where to resume:** Use the  to create the new mockups, starting with the main screens (Landing Page, Login, Dashboard, CRM).
+    -   **What will be achieved with this?** Provide the user with a visual representation of the new premium design for approval.
+    -   **Status:** NOT STARTED
+    -   **Should Test frontend/backend/both after fix?** NA
+
+-   **Task 2: Update Project Plan (P1)**
+    -   **Description:** Update the master planning document () to incorporate the two new requirements from the user.
+    -   **Where to resume:**
+        1.  Edit the pricing/monetization section to include the new Freemium Plan (1 agent, limited weekly messages).
+        2.  Edit the multi-language support section to specify: the system's base language is English, the user selects their UI language at onboarding, and they can configure the agent's language (fixed or auto-detect).
+    -   **What will be achieved with this?** The project plan will be aligned with the user's latest requirements.
+    -   **Status:** NOT STARTED
+    -   **Should Test frontend/backend/both after fix?** NA
 
 **Upcoming and Future Tasks**
-The entire 75-day development plan is the upcoming task list. It is broken down into phases as defined in .
-
+The entire 75-day development plan, as defined in , is pending approval.
 *   **Phase 0: Foundation & Setup (5 days)**
-    *   Setup monorepo, configure environments, set up Supabase for Auth, deploy initial boilerplate to Vercel/Railway.
 *   **Phase 1: WhatsApp & Multi-language (8 days)**
-    *   Integrate Evolution API for WhatsApp messaging. Implement FastText for language detection.
 *   **Phase 2: IA Multimodal & Multi-agent (15 days)**
-    *   Integrate Claude 3.5 Sonnet, OpenAI Whisper (voice), and Claude Vision (image). Implement the multi-agent orchestration logic.
 *   **Phase 3: Omnichannel (15 days)**
-    *   Integrate Meta Graph API for Instagram/Facebook and Telegram Bot API. Create the unified inbox.
 *   **Phase 4: CRM Kanban with IA (12 days)**
-    *   Build the backend and frontend for the CRM, including the AI logic for automated lead creation and pipeline management.
 *   **Phase 5: Dashboard & Analytics (8 days)**
-    *   Develop the main UI screens: Dashboard, Analytics, Agent Management, etc.
 *   **Phase 6: Real-time Sync (5 days)**
-    *   Integrate Google Calendar and Google Sheets APIs.
 *   **Phase 7: Lead Nurturing (5 days)**
-    *   Build the campaign manager for automated follow-ups.
 *   **Phase 8: Final Testing & Adjustments (2 days)**
-    *   End-to-end testing and bug fixing before launch.
 
 **Completed work in this session**
--   **Extensive Project Planning and Documentation:** The agent created a series of detailed markdown documents that define the entire project from product vision to technical implementation.
-    -   : Initial technical plan (largely superseded).
-    -   : Deep dive into product features, personas, and market positioning.
-    -   : Technical analysis of advanced features requested by the user.
-    -   : Detailed plan for the AI-powered CRM feature.
-    -   : The definitive master plan, including architecture, full tech stack, API list, costs, and a 75-day cronograma.
-    -   : Detailed ASCII art mockups for 14 application screens, defining the UI/UX.
+-   Generated initial ASCII art mockups ().
+-   Generated a first set of visual mockups (now superseded by the new dark luxury theme request).
+-   Held several rounds of conversation to clarify and refine user requirements, leading to the latest design and business model changes.
 
 **Earlier issues found/mentioned but not fixed**
 None.
@@ -83,7 +78,7 @@ None.
 None.
 
 **Code Architecture**
-The project has not been built yet. The planned architecture is:
+The planned architecture (no code yet):
 
 
 **Key Technical Concepts**
@@ -91,35 +86,29 @@ The project has not been built yet. The planned architecture is:
 -   **Backend:** FastAPI (Python)
 -   **Database:** MongoDB (main data store), Redis (task queue)
 -   **Authentication & Realtime:** Supabase
--   **AI:** Anthropic Claude 3.5 Sonnet (text), OpenAI Whisper (voice), Claude Vision (image), FastText (language detection)
+-   **AI:** Anthropic Claude 3.5 Sonnet, OpenAI Whisper, Claude Vision, FastText
 -   **Infrastructure:** Railway (Backend, Evolution API, Redis), Vercel (Frontend)
--   **Architecture:** Decoupled frontend/backend, event-driven processing via Redis queue for incoming messages.
 
 **key DB schema**
-Planned MongoDB Collections:
--   : Stores information about each client company.
--   : Configuration for each AI agent (prompt, personality, tools).
--   : A unified log of all conversations across all channels.
--   : Individual messages, including multimodal content (text, image URLs, audio transcriptions).
--   : Records for the CRM Kanban board.
--   : Defines the columns for each tenant's Kanban board.
--   : Configuration for lead nurturing sequences.
+Planned MongoDB Collections: , , , , , , .
 
 **changes in tech stack**
-The user's initial prompt mentioned Next.js and a full Supabase (Postgres) stack. The agreed-upon plan uses:
--   **React (CRA)** instead of Next.js for the frontend.
--   **MongoDB** as the primary database instead of Supabase's Postgres.
--   **Supabase** is retained but specifically for its **Auth and Realtime** functionalities.
+-   **Frontend:** React (CRA) instead of the initially discussed Next.js.
+-   **Database:** MongoDB as the primary DB instead of Supabase's Postgres.
+-   **Supabase:** Retained specifically for Auth and Realtime functionalities.
 
 **All files of reference**
--   : The definitive technical plan for the entire project.
--   : The complete UI/UX mockups for all application screens.
+-   : The definitive technical plan (needs updating).
+-   : Original ASCII mockups.
+-   All other  files containing detailed planning.
 
 **Critical Info for New Agent**
-1.  **NO MVP:** The user has explicitly rejected an MVP approach. You must follow the full 75-day plan to build the complete product. Do not suggest shortcuts or phased rollouts.
-2.  **APPROVAL IS PENDING:** Do NOT start any coding or development. The immediate next step is to wait for the user to review and approve the mockups in . Your first action should be to ask for this approval.
-3.  **PLANNING IS DONE:** All product, design, and technical decisions have been made and documented. Refer to  for technical details and  for UI/UX. Do not re-open planning discussions.
-4.  **LANGUAGE:** The user's language is **Portuguese**. All communication must be in Portuguese.
+1.  **LANGUAGE:** The user's language is **Portuguese**. All communication must be in Portuguese.
+2.  **IMMEDIATE NEXT STEPS:** Your immediate priority is to address the user's latest request.
+    *   **First:** Generate new visual mockups with the dark luxury theme (black, gray, gold).
+    *   **Second:** Update the  file to include the new Freemium plan and the specified multi-language functionality.
+3.  **APPROVAL IS PENDING:** Do NOT start any coding. The entire project is blocked until the user approves the new mockups and the updated plan. Your first  should be to present these new assets for approval.
+4.  **NO MVP:** The user wants the complete application. Do not suggest shortcuts.
 
 **documents and test reports created in this job**
 -   /app/AGENTFLOW_PLAN.md
@@ -130,34 +119,38 @@ The user's initial prompt mentioned Next.js and a full Supabase (Postgres) stack
 -   /app/AGENTFLOW_MOCKUPS_COMPLETOS.md
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks to see the mockups document.
-2.  **Agent:** Opens the mockups document.
-3.  **User:** Asks about using GitHub for credentials and reiterates the need to see the layout before programming.
-4.  **Agent:** Confirms which services accept GitHub login and creates the full mockups.
-5.  **User:** Asks to see the master plan document.
-6.  **Agent:** Opens the master plan document and explains its structure.
-7.  **User:** Asks to see the complete plan including all necessary APIs and systems.
-8.  **Agent:** Confirms it will create the master document.
-9.  **User:** Rejects the MVP approach, demands the complete application plan, and requests to see UI/UX layouts with a minimalist design before any coding starts.
-10. **Agent:** Acknowledges the request for a complete CRM analysis.
+1.  **User:** Asks to see the mockups the previous agent mentioned.
+2.  **Agent:** Shows the ASCII/text-based mockups.
+3.  **User:** Asks where the mockups are.
+4.  **Agent:** Explains they are text-based wireframes.
+5.  **User:** Explicitly states they want to see complete images with fonts, icons, etc., not text.
+6.  **Agent:** Acknowledges and starts generating the first set of visual mockups.
+7.  **Agent:** Presents all 14 generated screens in a summary table.
+8.  **User:** Provides critical feedback:
+    *   The images lack detail.
+    *   Requests a more sophisticated, premium theme with blacks, grays, and golds.
+    *   Suggests a new **Freemium plan** (1 agent, limited messages) to let users try before they buy.
+    *   Specifies that the system's base language must be **English**, with options for the user to choose their UI language and agent language (or set to auto-detect).
+    *   Asks the agent to show the adjusted layout and update the plan.
+9.  **Agent:** Confirms understanding of all three points (Premium theme, Free plan, English-first system) and states it will generate the new mockups and update the plan. (This is where the session ended).
 
 **Project Health Check:**
 -   **Broken:** None
--   **Mocked:** All UI/UX is currently mocked in ASCII art within .
+-   **Mocked:** All UI/UX is currently conceptual. The next step is to create new visual mockups based on user feedback.
 
 **3rd Party Integrations**
-A total of 11 external services are required, as detailed in :
-1.  **Anthropic Claude API:** For conversational AI.
-2.  **OpenAI Whisper API:** For voice-to-text transcription.
-3.  **Meta Graph API:** For Instagram & Facebook Messenger.
-4.  **Telegram Bot API:** For Telegram.
-5.  **Evolution API:** For WhatsApp (to be self-hosted on Railway).
-6.  **Supabase:** For Authentication and Realtime subscriptions.
-7.  **Google Calendar API:** For appointment scheduling.
-8.  **Google Sheets API:** For data lookups (e.g., products, inventory).
-9.  **FastText:** Open-source library for language detection.
-10. **MongoDB Atlas:** Cloud database hosting.
-11. **Railway / Vercel:** For backend and frontend hosting.
+(As per )
+1.  Anthropic Claude API
+2.  OpenAI Whisper API
+3.  Meta Graph API (Instagram & Facebook)
+4.  Telegram Bot API
+5.  Evolution API (WhatsApp)
+6.  Supabase (Auth & Realtime)
+7.  Google Calendar API
+8.  Google Sheets API
+9.  FastText (Language Detection)
+10. MongoDB Atlas
+11. Railway / Vercel (Hosting)
 
 **Testing status**
 -   **Testing agent used after significant changes:** NO
@@ -166,7 +159,7 @@ A total of 11 external services are required, as detailed in :
 -   **Known regressions:** None
 
 **Credentials to test flow:**
-Not applicable yet. The agent needs to collect a long list of credentials from the user once development starts, as detailed in .
+Not applicable yet.
 
 **What agent forgot to execute**
-Nothing. The agent has been highly responsive and is currently blocked, awaiting the user's final approval to proceed with the meticulously crafted plan.</analysis>
+Nothing. The agent was actively working on the user's latest request when the session forked. The next agent must continue this work.</analysis>
