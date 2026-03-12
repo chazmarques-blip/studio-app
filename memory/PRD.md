@@ -7,19 +7,8 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - **Frontend**: React, TailwindCSS, shadcn/ui, Lucide Icons, i18next (EN/PT/ES)
 - **Backend**: FastAPI (Python)
 - **Database**: Supabase (PostgreSQL via REST API) - 9 tables
-- **AI**: Claude Sonnet 4.5 via Emergent LLM Key + OpenAI Whisper + Claude Vision
+- **AI**: Claude Sonnet 4.5 + Claude Vision + OpenAI Whisper (via Emergent LLM Key)
 - **Authentication**: Custom JWT + Supabase storage
-
-## Database Schema (Supabase) - 9 tables
-- **users**: id, email, password_hash, full_name, ui_language, company_name, onboarding_completed
-- **tenants**: id, owner_id, name, slug, plan, limits, usage
-- **agents**: id, tenant_id, name, type, description, system_prompt, personality, ai_config, tone, emoji_level, verbosity_level, escalation_rules, follow_up_config, knowledge_instructions, is_deployed, marketplace_template_id
-- **agent_knowledge**: id, agent_id, type, title, content
-- **follow_up_rules**: id, agent_id, trigger_type, delay_hours, message_template, is_active
-- **channels**: id, tenant_id, type, status, config
-- **conversations**: id, tenant_id, channel_id, agent_id, contact_name, contact_phone, channel_type, status, is_handoff, language, last_message_at
-- **messages**: id, conversation_id, sender, content, message_type, metadata
-- **leads**: id, tenant_id, conversation_id, name, phone, email, company, stage, score, value, ai_analysis
 
 ## What's Been Implemented
 
@@ -29,36 +18,26 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 ### Phase 1: Messaging, AI & Agent Config (COMPLETE)
 - i18n (EN, PT, ES), AI Sandbox (Claude), AI Auto-Reply webhook, Agent Deployment
 - Agent Personality, Knowledge Base CRUD, Follow-up/Reactivation rules
-- Escalation detection, CRM leads in 5-stage Kanban, Chat/Inbox
+- Escalation detection, CRM leads, Chat/Inbox
 
-### Phase 2: WhatsApp Integration via Evolution API (COMPLETE) - March 2026
-- 6 new backend endpoints: create-instance, QR code, status, messaging, webhook, delete
-- Frontend WhatsApp Setup: Config form → QR Code → Auto-polling → Connected state
-- Outbound messaging: operator replies auto-sent via WhatsApp
-- AI Auto-Reply via WhatsApp: incoming → AI responds → sends back via Evolution API
-- Multimodal Backend: Claude Vision + Whisper endpoints ready
-
-### Rebranding: AgentFlow → AgentZZ (COMPLETE) - March 2026
-- Updated all references across frontend (Landing, Login, locales), backend (API service name), and localStorage keys
-- Integrated user's custom logo with transparent background crop
-- Added SMS as 5th channel badge on Landing page
+### Phase 2: Multimodal AI & WhatsApp Integration (COMPLETE) - March 2026
+- **WhatsApp (Evolution API)**: 6 backend endpoints, QR code flow, outbound messaging, auto-reply
+- **Multimodal UI**: Image upload + Audio recording/upload in Chat.jsx and AgentSandbox.jsx
+- **Vision**: Claude Vision analysis (image → text) integrated in both Chat and Sandbox
+- **Whisper**: Audio transcription integrated in both Chat and Sandbox
+- **Rebranding**: AgentFlow → AgentZZ with custom logo
 
 ### Testing (ALL 100%)
-- iteration_2: Supabase 17/17
-- iteration_3: Messaging 16/16
-- iteration_4: AI Sandbox 8/8
-- iteration_5: Agent Config 15/15
-- iteration_6: WhatsApp Integration 8/8 + frontend 100%
-
-## 19 Pages
-Landing, Login, Onboarding, OnboardingAgentLang, Dashboard, Chat, Agents, AgentBuilder, AgentSandbox, AgentConfig, CRM, LeadDetail, CampaignBuilder, Analytics, Settings, ChannelConnection, HandoffHuman, UpsellScreen, Pricing
+- iteration_2-5: Supabase, Messaging, AI, Agent Config
+- iteration_6: WhatsApp Integration 8/8
+- iteration_7: Multimodal UI + Rebranding 7/7
 
 ## Upcoming Phases (Priority Order)
-1. **Multimodal UI in Chat/Sandbox** — Image/audio upload buttons connected to Vision/Whisper endpoints
-2. **Multi-Agent Orchestration** — Frontend integration of route-agent endpoint
-3. **SMS Integration (Twilio)** — Full send/receive SMS integration
-4. **Backend Refactoring** — Split server.py into APIRouter modules
-5. **WhatsApp Real Connection** — When domain is available, connect to Evolution API
+1. **Agent Prompts**: Create system prompts for all 22 marketplace agents
+2. **Multi-Agent Orchestration**: Frontend integration of route-agent endpoint
+3. **SMS Integration (Twilio)**: Full send/receive SMS
+4. **Backend Refactoring**: Split server.py into APIRouter modules
+5. **WhatsApp Real Connection**: When domain is available
 
 ## Future Phases (Backlog)
 - Phase 3: Omnichannel (Instagram, Facebook, Telegram)
