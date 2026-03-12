@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Bot, Save, Plus, Trash2, BookOpen, Clock, Sliders, Brain, MessageCircle, Link2, Radio, AlertTriangle, Zap, ChevronDown, ChevronUp, Calendar, Table2, HardDrive, Globe, Webhook, Send, MessageSquare, Instagram, Facebook, Smartphone, Monitor, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Bot, Save, Plus, Trash2, BookOpen, Clock, Sliders, Brain, MessageCircle, Link2, Radio, AlertTriangle, Zap, ChevronDown, ChevronUp, Calendar, Table2, HardDrive, Globe, Webhook, Send, MessageSquare, Instagram, Facebook, Smartphone, Monitor, RotateCcw, Pencil } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -178,8 +178,11 @@ export default function AgentConfig() {
           <button onClick={() => navigate('/agents')} className="text-[#666] hover:text-white transition"><ArrowLeft size={18} /></button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10 shrink-0"><Bot size={16} className="text-[#C9A84C]" /></div>
           <div className="flex-1 min-w-0">
-            <input data-testid="agent-config-name" value={agent.name} onChange={e => setAgent(p => ({ ...p, name: e.target.value }))}
-              className="bg-transparent text-sm font-semibold text-white outline-none border-b border-transparent focus:border-[#C9A84C] w-full" />
+            <div className="flex items-center gap-1.5">
+              <input data-testid="agent-config-name" value={agent.name} onChange={e => setAgent(p => ({ ...p, name: e.target.value }))}
+                className="bg-transparent text-sm font-semibold text-white outline-none border-b border-transparent focus:border-[#C9A84C] w-full" />
+              <Pencil size={11} className="text-[#555] shrink-0" />
+            </div>
             <p className="text-[9px] capitalize text-[#555]">{agent.type} · {agent.tone}</p>
           </div>
           <div className="flex items-center gap-1.5">
