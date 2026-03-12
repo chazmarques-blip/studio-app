@@ -148,7 +148,11 @@
     "view_crm": "View CRM",
     "upgrade": "Upgrade",
     "messages_usage": "Messages",
-    "agents_usage": "Agents"
+    "agents_usage": "Agents",
+    "ai_insights": "AI Insights",
+    "insight_1": "You have {{count}} qualified leads waiting for follow-up in the last 3 days",
+    "insight_2": "{{count}} active agent(s) — consider adding a support agent to increase resolution rate",
+    "insight_3": "Tip: Connect WhatsApp to capture 3x more leads automatically"
   },
   "chat": {
     "inbox": "Inbox",
