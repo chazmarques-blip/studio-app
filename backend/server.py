@@ -11,6 +11,7 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import jwt as pyjwt
 from passlib.context import CryptContext
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -643,6 +644,155 @@ async def delete_lead(lead_id: str, user=Depends(get_current_user)):
     tenant = await get_tenant(user)
     supabase.table("leads").delete().eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
     return {"status": "ok"}
+
+
+EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+
+# In-memory store for sandbox sessions (not persisted - sandbox is for testing only)
+sandbox_sessions: dict = {}
+
+
+class SandboxMessage(BaseModel):
+    content: str
+    agent_name: str = "Carol"
+    agent_type: str = "sales"
+    system_prompt: str = ""
+    session_id: Optional[str] = None
+    language: str = "auto"
+
+
+class AgentReplyRequest(BaseModel):
+    conversation_id: str
+
+
+# --- AI Sandbox (Test Agent with Real AI) ---
+@api_router.post("/sandbox/chat")
+async def sandbox_chat(data: SandboxMessage, user=Depends(get_current_user)):
+    session_id = data.session_id or f"sandbox-{user['id']}-{uuid.uuid4().hex[:8]}"
+
+    system = data.system_prompt or f"""You are {data.agent_name}, a professional {data.agent_type} assistant for a business.
+You are friendly, helpful and concise. You respond in the same language the customer writes to you.
+If the customer writes in Portuguese, respond in Portuguese. If in English, respond in English. If in Spanish, respond in Spanish.
+Keep responses under 3 sentences unless more detail is needed."""
+
+    if session_id not in sandbox_sessions:
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=session_id,
+            system_message=system
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        sandbox_sessions[session_id] = chat
+    else:
+        chat = sandbox_sessions[session_id]
+
+    msg = UserMessage(text=data.content)
+    import time
+    start = time.time()
+    response = await chat.send_message(msg)
+    elapsed = round((time.time() - start) * 1000)
+
+    # Simple language detection from response
+    detected_lang = "en"
+    pt_words = {"olá", "oi", "obrigado", "não", "sim", "como", "está", "bem", "bom", "você"}
+    es_words = {"hola", "gracias", "no", "sí", "cómo", "está", "bien", "bueno", "usted"}
+    words = set(response.lower().split()[:20])
+    if words & pt_words:
+        detected_lang = "pt"
+    elif words & es_words:
+        detected_lang = "es"
+
+    return {
+        "response": response,
+        "session_id": session_id,
+        "debug": {
+            "response_time_ms": elapsed,
+            "model": "claude-sonnet-4-5",
+            "language_detected": detected_lang,
+            "tokens_estimate": len(response.split()),
+        }
+    }
+
+
+@api_router.delete("/sandbox/{session_id}")
+async def clear_sandbox(session_id: str, user=Depends(get_current_user)):
+    sandbox_sessions.pop(session_id, None)
+    return {"status": "ok"}
+
+
+# --- AI Agent Auto-Reply (for conversations) ---
+@api_router.post("/conversations/{convo_id}/ai-reply")
+async def ai_agent_reply(convo_id: str, user=Depends(get_current_user)):
+    """Generate AI agent response for the last customer message in a conversation"""
+    tenant = await get_tenant(user)
+    convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
+    if not convo.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    convo = convo.data[0]
+
+    # Get the agent assigned to this conversation
+    agent = None
+    if convo.get("agent_id"):
+        agent_result = supabase.table("agents").select("*").eq("id", convo["agent_id"]).execute()
+        if agent_result.data:
+            agent = agent_result.data[0]
+
+    agent_name = agent["name"] if agent else "Assistant"
+    agent_type = agent["type"] if agent else "support"
+    system_prompt = agent.get("system_prompt", "") if agent else ""
+
+    if not system_prompt:
+        system_prompt = f"""You are {agent_name}, a professional {agent_type} assistant.
+You are friendly, helpful and concise. Respond in the same language the customer writes.
+Keep responses under 3 sentences unless more detail is needed."""
+
+    # Get recent messages for context
+    msgs = supabase.table("messages").select("*").eq("conversation_id", convo_id).order("created_at", desc=False).limit(20).execute()
+
+    # Build conversation context
+    session_id = f"convo-{convo_id}"
+    chat = LlmChat(
+        api_key=EMERGENT_KEY,
+        session_id=session_id,
+        system_message=system_prompt
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+    # Replay recent messages to build context
+    for m in msgs.data[:-1]:  # All except last
+        if m["sender"] == "customer":
+            await chat.send_message(UserMessage(text=m["content"]))
+
+    # Send the last customer message to get AI response
+    last_customer_msg = None
+    for m in reversed(msgs.data):
+        if m["sender"] == "customer":
+            last_customer_msg = m["content"]
+            break
+
+    if not last_customer_msg:
+        raise HTTPException(status_code=400, detail="No customer message to reply to")
+
+    response = await chat.send_message(UserMessage(text=last_customer_msg))
+
+    # Store AI response as message
+    ai_msg = {
+        "conversation_id": convo_id,
+        "sender": "agent",
+        "content": response,
+        "message_type": "text",
+        "metadata": {"model": "claude-sonnet-4-5", "agent_name": agent_name},
+    }
+    result = supabase.table("messages").insert(ai_msg).execute()
+    supabase.table("conversations").update({"last_message_at": datetime.now(timezone.utc).isoformat()}).eq("id", convo_id).execute()
+
+    # Update tenant usage
+    usage = tenant.get("usage", {})
+    usage["messages_sent_this_period"] = usage.get("messages_sent_this_period", 0) + 1
+    supabase.table("tenants").update({"usage": usage}).eq("id", tenant["id"]).execute()
+
+    return {
+        "message": result.data[0],
+        "response": response,
+    }
 
 
 # --- Include router ---

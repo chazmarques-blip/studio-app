@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Search, Send, ArrowLeft, Phone, UserCheck, Bot } from 'lucide-react';
+import { MessageSquare, Search, Send, ArrowLeft, Phone, UserCheck, Bot, Sparkles } from 'lucide-react';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -15,6 +15,7 @@ export default function Chat() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -73,6 +74,20 @@ export default function Chat() {
     !search || c.contact_name?.toLowerCase().includes(search.toLowerCase()) || c.contact_phone?.includes(search)
   );
 
+  const triggerAiReply = async () => {
+    if (!selectedConvo || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/conversations/${selectedConvo.id}/ai-reply`);
+      setMessages(prev => [...prev, { id: Date.now(), sender: 'agent', content: data.response, message_type: 'text', created_at: new Date().toISOString(), metadata: { model: 'claude-sonnet-4-5' } }]);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    } catch (err) {
+      console.error('AI reply failed', err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // Mobile: show list or detail
   if (selectedConvo) {
     return (
@@ -117,6 +132,10 @@ export default function Chat() {
 
         {/* Input */}
         <div className="border-t border-[#2A2A2A] px-4 py-3 flex gap-2">
+          <button data-testid="chat-ai-reply-btn" onClick={triggerAiReply} disabled={aiLoading} title="AI Reply"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#C9A84C] disabled:opacity-50 transition">
+            {aiLoading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /> : <Sparkles size={16} className="text-[#C9A84C]" />}
+          </button>
           <input data-testid="chat-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()}
             placeholder={t('handoff.send_as_operator')} className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none focus:border-[#C9A84C]" />
           <button data-testid="chat-send-btn" onClick={sendMessage} className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#C9A84C]"><Send size={16} className="text-[#0A0A0A]" /></button>
