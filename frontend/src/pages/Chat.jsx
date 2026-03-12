@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Search, Send, ArrowLeft, Phone, UserCheck, Bot, Sparkles, Image, Mic, MicOff, FileAudio, X, Eye } from 'lucide-react';
+import { MessageSquare, Search, Send, ArrowLeft, Phone, UserCheck, Bot, Sparkles, Image, Mic, MicOff, FileAudio, X, Eye, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -21,6 +21,7 @@ export default function Chat() {
   const [mediaLoading, setMediaLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [routingAgent, setRoutingAgent] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -78,6 +79,26 @@ export default function Chat() {
       console.error('AI reply failed', err);
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const routeAgent = async () => {
+    if (!selectedConvo || routingAgent) return;
+    setRoutingAgent(true);
+    try {
+      const { data } = await axios.post(`${API}/conversations/${selectedConvo.id}/route-agent`);
+      setMessages(prev => [...prev, {
+        id: Date.now(), sender: 'system',
+        content: `${lang === 'pt' ? 'Agente roteado para' : 'Agent routed to'}: **${data.agent_name}** — ${data.reason}`,
+        message_type: 'text', created_at: new Date().toISOString(), metadata: { type: 'routing' },
+      }]);
+      toast.success(`${lang === 'pt' ? 'Roteado para' : 'Routed to'} ${data.agent_name}`);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Routing failed';
+      toast.error(detail);
+    } finally {
+      setRoutingAgent(false);
     }
   };
 
@@ -186,6 +207,17 @@ export default function Chat() {
   const renderMessage = (msg) => {
     const isVision = msg.metadata?.type === 'vision';
     const isTranscription = msg.metadata?.type === 'transcription';
+    const isRouting = msg.metadata?.type === 'routing' || msg.sender === 'system';
+    if (isRouting) {
+      return (
+        <div key={msg.id} className="flex justify-center">
+          <div className="rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/20 px-4 py-1.5 flex items-center gap-2">
+            <RefreshCw size={12} className="text-[#C9A84C]" />
+            <span className="text-[11px] text-[#C9A84C]">{msg.content}</span>
+          </div>
+        </div>
+      );
+    }
     return (
       <div key={msg.id} className={`flex ${msg.sender === 'customer' ? 'justify-start' : 'justify-end'}`}>
         <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
@@ -228,6 +260,10 @@ export default function Chat() {
                 {selectedConvo.is_handoff && <span className="ml-1 rounded bg-[#C9A84C]/15 px-1.5 py-0.5 text-[9px] text-[#C9A84C]">Handoff</span>}
               </div>
             </div>
+            <button data-testid="chat-route-btn" onClick={routeAgent} disabled={routingAgent} title={lang === 'pt' ? 'Rotear para melhor agente' : 'Route to best agent'}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] hover:border-[#C9A84C] disabled:opacity-50 transition">
+              {routingAgent ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /> : <RefreshCw size={14} className="text-[#C9A84C]" />}
+            </button>
             <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1A1A1A] border border-[#2A2A2A]"><Phone size={14} className="text-[#A0A0A0]" /></button>
           </div>
         </div>
