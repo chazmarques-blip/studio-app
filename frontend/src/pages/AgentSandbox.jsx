@@ -157,7 +157,7 @@ export default function AgentSandbox() {
       )}
 
       {/* Input */}
-      <div className="border-t border-[#2A2A2A] px-4 py-3 flex gap-2">
+      <div className="border-t border-[#2A2A2A] px-4 py-3 pb-5 flex gap-2">
         <input data-testid="sandbox-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder={t('agents.type_message')} disabled={loading}
           className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none focus:border-[#C9A84C] disabled:opacity-50" />
