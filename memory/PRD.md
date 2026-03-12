@@ -1,82 +1,86 @@
-# AgentFlow - PRD (Product Requirements Document)
+# AgentFlow - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow". The platform allows small and medium business owners to easily deploy and configure pre-built AI agents on various social media channels (WhatsApp, Instagram, Facebook, Telegram).
-
-## User Persona
-- Small and medium business owners
-- Non-technical users (no-code platform)
-- Need AI chatbot automation across social channels
-- Language: System base in English, UI multilingual (Portuguese priority)
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow" that allows small and medium business owners to easily deploy and configure pre-built AI agents on various social media channels (WhatsApp, Instagram, Facebook, Telegram).
 
 ## Core Requirements
-1. **Omnichannel AI Agents** - Deploy AI chatbots on WhatsApp, Instagram, Facebook Messenger, Telegram
-2. **AI Capabilities** - Text (Claude), Voice (Whisper), Images (Claude Vision)
-3. **Multi-Agent Orchestration** - Switch between specialized agents mid-conversation
-4. **Multi-Language Support** - Auto-detect or fixed language per agent
-5. **Freemium Model** - FREE (1 agent, 50 msgs/week) / STARTER ($49/mo) / ENTERPRISE
-6. **Integrated CRM** - Kanban board, AI-powered lead scoring
-7. **Real-Time Sync** - Google Calendar & Sheets
-8. **Lead Nurturing** - Automated follow-up campaigns
-9. **Design** - Dark Luxury theme (blacks, grays, gold)
+1. **Omnichannel Inbox**: Unified inbox for WhatsApp, Instagram, Facebook Messenger, Telegram
+2. **AI Capabilities**: Text (Claude Sonnet), Voice (OpenAI Whisper), Images (Claude Vision)
+3. **Multi-Agent Orchestration**: Switch between specialized agents in conversation
+4. **Multi-Language**: UI language selection + agent auto-detect language
+5. **Agent Marketplace**: 22+ pre-built agents (DONE)
+6. **Real-Time Agent Editing**: Hot reload for agent config
+7. **Real-Time Sync**: Google Calendar, Google Sheets
+8. **Lead Nurturing**: Automated follow-up campaigns
+9. **Integrated CRM**: Kanban board, AI-managed leads
+10. **Design**: Dark luxury theme (blacks, grays, golds) (DONE)
+11. **Pricing**: Freemium (1 agent, 50 msgs/week) + Starter ($49/mo) + Enterprise
 
 ## Tech Stack
-- Frontend: React, Tailwind CSS, shadcn/ui, Lucide Icons
-- Backend: FastAPI (Python), Motor (MongoDB async)
-- Database: MongoDB
-- Auth: JWT-based custom auth (Supabase planned for future when DNS resolves)
-- AI: Claude Sonnet + OpenAI Whisper (via Emergent LLM Key - pending)
+- **Frontend**: React, TailwindCSS, shadcn/ui, Lucide Icons, i18next
+- **Backend**: FastAPI (Python)
+- **Database**: Supabase (PostgreSQL via REST API)
+- **Authentication**: Custom JWT + Supabase storage
+- **User Language**: Portuguese (primary user)
+
+## Architecture
+```
+Frontend (React:3000) -> /api prefix -> Backend (FastAPI:8001) -> Supabase REST API
+```
+
+## Database Schema (Supabase)
+- **users**: id (UUID), email, password_hash, full_name, ui_language, company_name, onboarding_completed
+- **tenants**: id (UUID), owner_id (FK), name, slug, plan, limits (JSONB), usage (JSONB)
+- **agents**: id (UUID), tenant_id (FK), name, type, description, system_prompt, personality (JSONB), ai_config (JSONB)
+
+## API Endpoints
+- `POST /api/auth/signup` - Register user
+- `POST /api/auth/login` - Login, returns JWT
+- `GET /api/auth/me` - Get current user profile
+- `PUT /api/auth/profile` - Update profile
+- `POST /api/tenants` - Create tenant
+- `GET /api/tenants` - Get user's tenant
+- `GET /api/agents/marketplace` - Get 22 marketplace agents
+- `POST /api/agents` - Create agent
+- `GET /api/agents` - List user's agents
+- `GET /api/agents/{id}` - Get specific agent
+- `PUT /api/agents/{id}` - Update agent
+- `DELETE /api/agents/{id}` - Delete agent
+- `GET /api/dashboard/stats` - Dashboard statistics
 
 ## What's Been Implemented
 
-### Phase 0: Foundation & Setup - COMPLETED [2026-03-12]
-**Backend:**
-- FastAPI server with full REST API
-- JWT authentication (signup, login, me, profile update)
-- Tenant management (create, get) with free plan limits
-- Agent CRUD (create, read, update, delete) with plan limit enforcement
-- Agent Marketplace (5 pre-built agents: Carol, Roberto, Ana, Lucas, Marina)
-- Dashboard stats endpoint
-- MongoDB integration for all data
+### Phase 0: Foundation (COMPLETE) - March 2026
+- Full project scaffolding (React + FastAPI)
+- Dark luxury UI theme across all pages
+- 18 placeholder pages with routing
+- 22 pre-built marketplace agents
+- i18next framework with EN/PT translations
+- Custom JWT authentication
+- **Supabase migration COMPLETE** (was MongoDB, now Supabase REST API)
 
-**Frontend:**
-- Dark Luxury theme implemented (CSS variables, gold accents, glass-morphism)
-- Landing page (hero, features grid, pricing, channel badges, footer)
-- Login/Signup page (email/password auth)
-- Onboarding page (language selection - 6 languages)
-- Dashboard (stats cards, quick actions, empty agent state, plan status)
-- Chat inbox page (channel filters, empty state)
-- Agents marketplace page (loads 5 agents from API)
-- CRM Kanban page (5 stage columns)
-- Analytics page (placeholder stats/charts)
-- Settings page (profile, channels, menu items, logout)
-- Bottom navigation (5 tabs: Chat, Agents, CRM, Analytics, Settings)
-- Protected/Public route guards
+### Testing Status
+- Backend: 17/17 tests pass (100%)
+- Frontend: All flows working (100%)
+- Test report: /app/test_reports/iteration_2.json
 
-**Testing:**
-- All 17 backend tests passed (100%)
-- All frontend UI tests passed (100%)
-- Test credentials: demo@agentflow.com / Demo123!
+## Pending Issues
+- **i18n incomplete**: Only Dashboard fully translated to Portuguese; other pages still show English text
+- Bottom navigation labels in English
 
-### Visual Mockups - COMPLETED [2026-03-12]
-18 screens generated with Dark Luxury theme (see CHANGELOG.md for URLs)
+## Upcoming Phases
+- **Phase 1**: WhatsApp Integration & Advanced Multi-language (8 days)
+- **Phase 2**: Multimodal AI & Multi-agent Orchestration (15 days)
+- **Phase 3**: Omnichannel (Instagram, Facebook, Telegram) (15 days)
+- **Phase 4**: CRM Kanban with AI (12 days)
+- **Phase 5**: Dashboard & Analytics (8 days)
+- **Phase 6**: Real-time Sync (Google Calendar/Sheets) (5 days)
+- **Phase 7**: Lead Nurturing (5 days)
+- **Phase 8**: Final Testing & Adjustments (2 days)
 
-## Current Status
-- Phase 0: COMPLETED
-- Phase 1: NOT STARTED
+## Test Credentials
+- Email: test@agentflow.com
+- Password: password123
 
-## Prioritized Backlog
-- **P0**: Phase 1 - WhatsApp Integration + Multi-language (i18n)
-- **P1**: Phase 2 - AI Multimodal + Multi-agent (Claude, Whisper)
-- **P2**: Phase 3 - Omnichannel (Instagram, Facebook, Telegram)
-- **P3**: Phase 4 - CRM Kanban with AI
-- **P4**: Phase 5 - Dashboard + Analytics
-- **P5**: Phase 6 - Real-time Sync (Google Calendar + Sheets)
-- **P6**: Phase 7 - Lead Nurturing
-- **P7**: Phase 8 - Final Testing
-
-## Known Limitations
-- Supabase project DNS doesn't resolve from container (using JWT + MongoDB instead)
-- Supabase credentials are stored in .env but not actively used
-- AI integration not yet implemented (Claude, Whisper)
-- Channel integrations not yet functional (WhatsApp, Instagram, etc.)
+## 18 Pages
+1. Landing, 2. Login, 3. Onboarding, 4. OnboardingAgentLang, 5. Dashboard, 6. Chat, 7. Agents, 8. AgentBuilder, 9. AgentSandbox, 10. CRM, 11. LeadDetail, 12. CampaignBuilder, 13. Analytics, 14. Settings, 15. ChannelConnection, 16. HandoffHuman, 17. UpsellScreen, 18. Pricing

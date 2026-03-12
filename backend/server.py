@@ -67,7 +67,6 @@ class ProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     company_name: Optional[str] = None
     ui_language: Optional[str] = None
-    timezone: Optional[str] = None
 
 
 class SignUpRequest(BaseModel):
