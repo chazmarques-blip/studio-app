@@ -4,7 +4,7 @@ import en from '../locales/en.json';
 import pt from '../locales/pt.json';
 import es from '../locales/es.json';
 
-const savedLang = localStorage.getItem('agentflow_lang') || 'en';
+const savedLang = localStorage.getItem('agentzz_lang') || 'en';
 
 i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, pt: { translation: pt }, es: { translation: es } },

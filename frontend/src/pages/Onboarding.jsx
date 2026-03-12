@@ -25,7 +25,7 @@ export default function Onboarding() {
     setLoading(true);
     try {
       i18n.changeLanguage(selectedLang);
-      localStorage.setItem('agentflow_lang', selectedLang);
+      localStorage.setItem('agentzz_lang', selectedLang);
       await updateProfile({ ui_language: selectedLang, onboarding_completed: true });
       toast.success(selectedLang === 'pt' ? 'Idioma salvo!' : 'Language saved!');
       navigate('/dashboard');

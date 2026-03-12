@@ -9,14 +9,14 @@ export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('agentflow_token'));
+  const [token, setToken] = useState(() => localStorage.getItem('agentzz_token'));
   const [loading, setLoading] = useState(true);
   const { i18n } = useTranslation();
 
   const applyLanguage = useCallback((lang) => {
     if (lang) {
       i18n.changeLanguage(lang);
-      localStorage.setItem('agentflow_lang', lang);
+      localStorage.setItem('agentzz_lang', lang);
     }
   }, [i18n]);
 
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
         applyLanguage(res.data.ui_language);
         setLoading(false);
       }).catch(() => {
-        localStorage.removeItem('agentflow_token');
+        localStorage.removeItem('agentzz_token');
         setToken(null);
         setUser(null);
         setLoading(false);
@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password, fullName) => {
     const { data } = await axios.post(`${API}/auth/signup`, { email, password, full_name: fullName });
-    localStorage.setItem('agentflow_token', data.access_token);
+    localStorage.setItem('agentzz_token', data.access_token);
     setToken(data.access_token);
     setAuthHeader(data.access_token);
     setUser(data.user);
@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
 
   const signIn = async (email, password) => {
     const { data } = await axios.post(`${API}/auth/login`, { email, password });
-    localStorage.setItem('agentflow_token', data.access_token);
+    localStorage.setItem('agentzz_token', data.access_token);
     setToken(data.access_token);
     setAuthHeader(data.access_token);
     setUser(data.user);
@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
-    localStorage.removeItem('agentflow_token');
+    localStorage.removeItem('agentzz_token');
     setToken(null);
     setUser(null);
     setAuthHeader(null);

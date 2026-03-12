@@ -1,13 +1,13 @@
-# AgentFlow - Product Requirements Document
+# AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow" that allows SMB owners to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS).
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows SMB owners to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS).
 
 ## Tech Stack
 - **Frontend**: React, TailwindCSS, shadcn/ui, Lucide Icons, i18next (EN/PT/ES)
 - **Backend**: FastAPI (Python)
 - **Database**: Supabase (PostgreSQL via REST API) - 9 tables
-- **AI**: Claude Sonnet 4.5 via Emergent LLM Key
+- **AI**: Claude Sonnet 4.5 via Emergent LLM Key + OpenAI Whisper + Claude Vision
 - **Authentication**: Custom JWT + Supabase storage
 
 ## Database Schema (Supabase) - 9 tables
@@ -21,66 +21,52 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow" th
 - **messages**: id, conversation_id, sender, content, message_type, metadata
 - **leads**: id, tenant_id, conversation_id, name, phone, email, company, stage, score, value, ai_analysis
 
-## API Endpoints (35+ working)
-### Auth: POST signup, POST login, GET me, PUT profile
-### Tenants: POST create, GET get
-### Agents: GET marketplace (22), POST deploy, POST create, GET list, GET/PUT/DELETE by id
-### Agent Knowledge: GET/POST/DELETE /agents/{id}/knowledge
-### Follow-up Rules: GET/POST/DELETE /agents/{id}/follow-up-rules
-### AI: POST /sandbox/chat, DELETE /sandbox/{id}, POST /conversations/{id}/ai-reply
-### AI Multimodal: POST /ai/analyze-image (Claude Vision), POST /ai/transcribe (Whisper)
-### Multi-Agent: POST /conversations/{id}/route-agent
-### Multimedia Messages: POST /conversations/{id}/messages/multimedia
-### Conversations: GET/POST, GET detail, GET/POST messages
-### Channels: GET/POST, PUT status, DELETE
-### Leads/CRM: GET/POST, GET/PUT/DELETE by id
-### Webhook: POST /webhook/whatsapp (auto-reply + escalation + outbound via Evolution API)
-### WhatsApp Evolution API: POST create-instance, GET qr/{instance}, GET status/{instance}, POST send, POST set-webhook, DELETE instance/{instance}
-### Dashboard: GET /dashboard/stats
-
 ## What's Been Implemented
 
 ### Phase 0: Foundation (COMPLETE)
-- Scaffolding, dark luxury theme, 19 pages, 22 agents, JWT auth, Supabase migration
+- Dark luxury theme, 19 pages, 22 marketplace agents, JWT auth, Supabase migration
 
-### Phase 1: Messaging, AI & Agent Config (COMPLETE) - March 2026
-- **i18n**: EN, PT, ES with auto sync on login
-- **AI Sandbox**: Real Claude Sonnet conversation, multi-turn, debug panel
-- **AI Auto-Reply**: Webhook receives message → knowledge base lookup → AI responds → escalation detection
-- **Agent Deployment**: Deploy from marketplace → auto-configure → start responding
-- **Agent Personality**: 5 tones (Professional, Friendly, Empathetic, Direct, Consultive), emoji/verbosity sliders
-- **Knowledge Base**: CRUD for FAQs, products, policies, hours, custom
-- **Follow-up/Reactivation**: Post-service automation rules (after close, inactive 24h/48h, post-sale, cart abandoned)
-- **Escalation**: Keyword detection → handoff to human → operator takes over
-- **CRM**: Real leads in 5-stage Kanban
-- **Chat/Inbox**: Real conversations with AI Reply button
+### Phase 1: Messaging, AI & Agent Config (COMPLETE)
+- i18n (EN, PT, ES), AI Sandbox (Claude), AI Auto-Reply webhook, Agent Deployment
+- Agent Personality, Knowledge Base CRUD, Follow-up/Reactivation rules
+- Escalation detection, CRM leads in 5-stage Kanban, Chat/Inbox
 
 ### Phase 2: WhatsApp Integration via Evolution API (COMPLETE) - March 2026
-- **Backend Evolution API Proxy**: 6 new endpoints for instance management, QR code, status, messaging, webhook registration
-- **Frontend WhatsApp Setup**: Full flow - Config form → QR Code display → Auto-polling → Connected state
-- **Outbound Messaging**: Operator replies in Chat.jsx automatically sent via WhatsApp Evolution API
-- **AI Auto-Reply via WhatsApp**: Webhook receives message → AI responds → sends reply back via Evolution API
-- **Multimodal Backend**: Claude Vision (image analysis) + Whisper (audio transcription) endpoints ready
-- **Multi-Agent Orchestration**: Backend route-agent endpoint for intelligent agent switching
+- 6 new backend endpoints: create-instance, QR code, status, messaging, webhook, delete
+- Frontend WhatsApp Setup: Config form → QR Code → Auto-polling → Connected state
+- Outbound messaging: operator replies auto-sent via WhatsApp
+- AI Auto-Reply via WhatsApp: incoming → AI responds → sends back via Evolution API
+- Multimodal Backend: Claude Vision + Whisper endpoints ready
+
+### Rebranding: AgentFlow → AgentZZ (COMPLETE) - March 2026
+- Updated all references across frontend (Landing, Login, locales), backend (API service name), and localStorage keys
+- Integrated user's custom logo with transparent background crop
+- Added SMS as 5th channel badge on Landing page
 
 ### Testing (ALL 100%)
 - iteration_2: Supabase 17/17
 - iteration_3: Messaging 16/16
 - iteration_4: AI Sandbox 8/8
 - iteration_5: Agent Config 15/15
-- iteration_6: WhatsApp Integration 8/8 backend + 100% frontend
+- iteration_6: WhatsApp Integration 8/8 + frontend 100%
 
 ## 19 Pages
 Landing, Login, Onboarding, OnboardingAgentLang, Dashboard, Chat, Agents, AgentBuilder, AgentSandbox, AgentConfig, CRM, LeadDetail, CampaignBuilder, Analytics, Settings, ChannelConnection, HandoffHuman, UpsellScreen, Pricing
 
-## Upcoming Phases
-- **Phase 2 Remaining**: Multimodal UI in Chat/Sandbox (image/audio upload buttons)
-- **Phase 3**: Omnichannel (Instagram, Facebook, Telegram, SMS/Twilio)
-- **Phase 4**: CRM with AI (auto-classify leads, AI analysis)
-- **Phase 5**: Dashboard & Analytics (charts, reports)
-- **Phase 6**: Google Calendar/Sheets integration
-- **Phase 7**: Lead Nurturing campaigns
-- **Phase 8**: Final Testing
+## Upcoming Phases (Priority Order)
+1. **Multimodal UI in Chat/Sandbox** — Image/audio upload buttons connected to Vision/Whisper endpoints
+2. **Multi-Agent Orchestration** — Frontend integration of route-agent endpoint
+3. **SMS Integration (Twilio)** — Full send/receive SMS integration
+4. **Backend Refactoring** — Split server.py into APIRouter modules
+5. **WhatsApp Real Connection** — When domain is available, connect to Evolution API
+
+## Future Phases (Backlog)
+- Phase 3: Omnichannel (Instagram, Facebook, Telegram)
+- Phase 4: CRM Kanban with AI
+- Phase 5: Dashboard & Analytics
+- Phase 6: Google Calendar/Sheets
+- Phase 7: Lead Nurturing
+- Phase 8: Final Testing
 
 ## Test Credentials
 - Email: test@agentflow.com / Password: password123

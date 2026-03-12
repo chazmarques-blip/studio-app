@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Bot, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Login() {
@@ -41,8 +41,7 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-md">
         <button data-testid="back-to-landing" onClick={() => navigate('/')} className="mb-8 flex items-center gap-2 text-sm text-[#A0A0A0] transition hover:text-white"><ArrowLeft size={16} /> {t('auth.back')}</button>
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#A88B3D]"><Bot size={22} className="text-[#0A0A0A]" /></div>
-          <span className="text-xl font-bold text-white">AgentFlow</span>
+          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-14" />
         </div>
         <div className="glass-card p-8">
           <h2 data-testid="auth-title" className="mb-2 text-xl font-bold text-white">{isSignUp ? t('auth.create_title') : t('auth.login_title')}</h2>

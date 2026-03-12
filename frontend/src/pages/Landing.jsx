@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Bot, MessageSquare, Zap, Globe, ArrowRight, Shield, BarChart3 } from 'lucide-react';
+import { MessageSquare, Zap, Globe, ArrowRight, Shield, BarChart3, Bot } from 'lucide-react';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ export default function Landing() {
     { name: 'Instagram', color: '#E4405F' },
     { name: 'Facebook', color: '#1877F2' },
     { name: 'Telegram', color: '#0088CC' },
+    { name: 'SMS', color: '#F22F46' },
   ];
 
   return (
@@ -27,10 +28,7 @@ export default function Landing() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#2A2A2A]/50 bg-[#0A0A0A]/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#C9A84C] to-[#A88B3D]">
-              <Bot size={18} className="text-[#0A0A0A]" />
-            </div>
-            <span className="text-lg font-bold text-white">AgentFlow</span>
+            <img src="/logo-agentzz.png" alt="AgentZZ" className="h-10" />
           </div>
           <div className="flex items-center gap-3">
             <button data-testid="landing-login-btn" onClick={() => navigate('/login')} className="btn-gold-outline rounded-lg px-4 py-2 text-sm">{t('landing.signin')}</button>
@@ -128,10 +126,9 @@ export default function Landing() {
       <footer className="border-t border-[#2A2A2A] bg-[#0A0A0A] px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-[#C9A84C] to-[#A88B3D]"><Bot size={14} className="text-[#0A0A0A]" /></div>
-            <span className="text-sm font-semibold text-white">AgentFlow</span>
+            <img src="/logo-agentzz.png" alt="AgentZZ" className="h-8" />
           </div>
-          <p className="text-xs text-[#666666]">2025 AgentFlow. All rights reserved.</p>
+          <p className="text-xs text-[#666666]">2026 AgentZZ. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -32,7 +32,7 @@ JWT_EXPIRATION_HOURS = 72
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-app = FastAPI(title="AgentFlow API")
+app = FastAPI(title="AgentZZ API")
 api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -148,7 +148,7 @@ class DeployAgentRequest(BaseModel):
 # --- Health ---
 @api_router.get("/health")
 async def health():
-    return {"status": "ok", "service": "agentflow-api", "version": "0.2.0", "database": "supabase"}
+    return {"status": "ok", "service": "agentzz-api", "version": "0.3.0", "database": "supabase"}
 
 
 # --- Auth Routes ---
@@ -801,7 +801,7 @@ async def whatsapp_webhook(payload: dict):
 
 @api_router.get("/webhook/whatsapp")
 async def whatsapp_webhook_verify():
-    return {"status": "ok", "service": "agentflow-whatsapp-webhook"}
+    return {"status": "ok", "service": "agentzz-whatsapp-webhook"}
 
 
 # --- Deploy Agent from Marketplace ---
