@@ -80,6 +80,7 @@ export default function AgentConfig() {
   const [showAddRule, setShowAddRule] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [editingName, setEditingName] = useState(false);
 
   useEffect(() => {
     if (agentId) {
@@ -179,9 +180,16 @@ export default function AgentConfig() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10 shrink-0"><Bot size={16} className="text-[#C9A84C]" /></div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <input data-testid="agent-config-name" value={agent.name} onChange={e => setAgent(p => ({ ...p, name: e.target.value }))}
-                className="bg-transparent text-sm font-semibold text-white outline-none border-b border-transparent focus:border-[#C9A84C] w-full" />
-              <Pencil size={11} className="text-[#555] shrink-0" />
+              {editingName ? (
+                <input data-testid="agent-config-name" autoFocus value={agent.name} onChange={e => setAgent(p => ({ ...p, name: e.target.value }))}
+                  onBlur={() => setEditingName(false)} onKeyDown={e => e.key === 'Enter' && setEditingName(false)}
+                  className="bg-transparent text-sm font-semibold text-white outline-none border-b border-[#C9A84C] w-full" />
+              ) : (
+                <span className="text-sm font-semibold text-white truncate">{agent.name}</span>
+              )}
+              <button data-testid="edit-name-btn" onClick={() => setEditingName(true)} className="text-[#555] hover:text-[#C9A84C] transition shrink-0">
+                <Pencil size={11} />
+              </button>
             </div>
             <p className="text-[9px] capitalize text-[#555]">{agent.type} · {agent.tone}</p>
           </div>
