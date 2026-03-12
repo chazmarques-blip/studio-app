@@ -2222,17 +2222,278 @@ curl https://api.telegram.org/bot123456:ABC-DEF.../getWebhookInfo
 
 ---
 
-## 🎉 CONCLUSÃO
+---
 
-Você agora tem:
-- ✅ Planejamento completo (75 dias)
-- ✅ Todas as APIs e serviços mapeados
-- ✅ Credenciais necessárias listadas
-- ✅ Arquitetura detalhada
-- ✅ Schemas de banco definidos
-- ✅ Guia de setup passo a passo
-- ✅ Custos estimados
+## MODELO DE MONETIZACAO - PLANO FREEMIUM
 
-**Próximo passo:** Obter todas as credenciais e começar FASE 0! 🚀
+### Estrategia de Conversao
 
-**Tem alguma dúvida sobre alguma API ou serviço?**
+O modelo de monetizacao segue a estrategia **"Experimente antes de comprar"**. O objetivo e que o usuario:
+1. Entre na plataforma sem barreiras (cadastro gratuito)
+2. Conheca o produto criando e configurando seu primeiro agente
+3. Conecte seu canal (WhatsApp, Instagram, etc.)
+4. Use o agente e veja resultados reais
+5. Ao atingir o limite semanal, receba convite para assinar
+
+### Planos de Preco
+
+| Recurso | FREE | STARTER ($49/mes) | ENTERPRISE (Custom) |
+|---------|------|-------------------|---------------------|
+| Agentes | 1 | 5 | Ilimitado |
+| Mensagens | 50/semana | 10.000/mes | Ilimitado |
+| Canais | 1 canal | Todos (4 canais) | Todos + Custom |
+| CRM Kanban | Basico (view only) | Completo | Completo + API |
+| Analytics | Basico (7 dias) | Completo (90 dias) | Completo + Export |
+| Marketplace | 5 templates | 20+ templates | Custom templates |
+| Multi-idioma | 1 idioma fixo | Auto-detect + todos | Auto-detect + todos |
+| Integracao Google | Nao | Calendar + Sheets | Tudo + API custom |
+| Campanhas de Leads | Nao | 3 campanhas ativas | Ilimitado |
+| Suporte | Comunidade | Prioritario (email) | Dedicado (Slack) |
+| Handoff Humano | Nao | Sim | Sim + Equipe |
+
+### Logica de Limite de Mensagens (FREE)
+
+```python
+# Verificacao semanal de limite
+async def check_message_limit(tenant_id: str) -> dict:
+    tenant = await db.tenants.find_one({"id": tenant_id})
+    plan = tenant["subscription"]["plan"]
+    
+    if plan == "free":
+        weekly_limit = 50
+        # Conta mensagens da semana atual (segunda a domingo)
+        week_start = get_current_week_start()
+        messages_used = await db.messages.count_documents({
+            "tenant_id": tenant_id,
+            "direction": "outbound",
+            "timestamp": {"$gte": week_start}
+        })
+        
+        remaining = max(0, weekly_limit - messages_used)
+        
+        return {
+            "can_send": remaining > 0,
+            "messages_used": messages_used,
+            "messages_limit": weekly_limit,
+            "messages_remaining": remaining,
+            "reset_date": get_next_week_start(),
+            "show_upgrade_prompt": remaining <= 10  # Mostra quando faltam 10
+        }
+    
+    return {"can_send": True, "messages_remaining": -1}  # Ilimitado
+```
+
+### Fluxo de Upsell
+
+1. **Quando faltam 10 mensagens:** Banner discreto no topo "Voce tem 10 mensagens restantes esta semana"
+2. **Quando faltam 5 mensagens:** Modal suave com beneficios do plano Starter
+3. **Quando atingir 0:** Tela de bloqueio elegante com:
+   - "Suas mensagens da semana acabaram"
+   - Contador regressivo ate o reset (proxima segunda)
+   - Comparacao visual FREE vs STARTER
+   - Botao dourado "Fazer Upgrade - $49/mes"
+   - Opcao "Continuar no plano gratuito" (esperar reset)
+
+### Schema de Subscription Atualizado
+
+```javascript
+// Collection: tenants - campo subscription
+subscription: {
+    plan: "free" | "starter" | "enterprise",
+    status: "active" | "trial" | "canceled" | "past_due",
+    
+    // Limites por plano
+    limits: {
+        agents: 1,              // free=1, starter=5, enterprise=-1
+        messages_period: "week", // free=week, starter/enterprise=month
+        messages_limit: 50,     // free=50/week, starter=10000/month
+        channels: 1,            // free=1, starter=4, enterprise=-1
+        campaigns: 0,           // free=0, starter=3, enterprise=-1
+    },
+    
+    // Uso atual
+    usage: {
+        agents_created: 1,
+        messages_sent_this_period: 34,
+        period_start: ISODate("2025-03-10"),  // Inicio da semana/mes
+        period_end: ISODate("2025-03-16"),    // Fim da semana/mes
+    },
+    
+    // Pagamento (starter/enterprise)
+    stripe_customer_id: null | "cus_...",
+    stripe_subscription_id: null | "sub_...",
+    current_period_start: null | ISODate("..."),
+    current_period_end: null | ISODate("..."),
+}
+```
+
+---
+
+## SISTEMA MULTI-IDIOMA
+
+### Principios
+
+1. **Idioma base do sistema:** Ingles (todas as strings de codigo, variaveis, API responses)
+2. **Idioma da UI:** Escolhido pelo usuario no onboarding (pode alterar depois em Settings)
+3. **Idioma do agente:** Configuravel por agente (fixo ou auto-detect)
+
+### Fluxo de Onboarding de Idioma
+
+```
+Passo 1: Cadastro (email + senha)
+    |
+Passo 2: "Choose your preferred language" (tela com bandeiras)
+    |  -> Portugues, English, Espanol, Francais, Deutsch, Italiano, etc.
+    |  -> Salva em: tenant.settings.ui_language
+    |
+Passo 3: "Configure your agent's language"
+    |  -> Opcao A: "Fixed language" (dropdown com idiomas)
+    |  -> Opcao B: "Auto-detect" (agente responde no idioma do cliente)
+    |  -> Salva em: agent.language_config
+    |
+Passo 4: Dashboard (no idioma escolhido)
+```
+
+### Arquitetura de Internacionalizacao (i18n)
+
+```yaml
+Frontend:
+  Biblioteca: react-i18next
+  Arquivos de traducao: /frontend/src/locales/
+    - en.json (base - completo)
+    - pt.json (portugues)
+    - es.json (espanhol)
+    - fr.json (frances)
+    - de.json (alemao)
+    - it.json (italiano)
+  
+  Deteccao automatica: navigator.language (fallback: en)
+  Persistencia: localStorage + tenant.settings.ui_language
+
+Backend:
+  Deteccao de idioma: FastText (lid.176.bin - 176 idiomas)
+  Fallback: langdetect
+  Resposta do agente: No idioma configurado ou auto-detectado
+```
+
+### Configuracao de Idioma do Agente
+
+```javascript
+// Collection: agents - campo language_config
+language_config: {
+    mode: "fixed" | "auto_detect",
+    
+    // Se mode = "fixed"
+    fixed_language: "pt",  // Codigo ISO 639-1
+    fixed_language_name: "Portugues",
+    
+    // Se mode = "auto_detect"
+    auto_detect_enabled: true,
+    fallback_language: "en",  // Se nao conseguir detectar
+    supported_languages: ["pt", "en", "es", "fr"],  // Limitar opcoes
+    
+    // Instrucao adicionada ao system prompt automaticamente
+    // Se fixed: "ALWAYS respond in Portuguese (pt)."
+    // Se auto: "Detect the customer's language and respond in the same language."
+}
+```
+
+### Idiomas Suportados na UI (Fase 1)
+
+| Codigo | Idioma | Bandeira | Prioridade |
+|--------|--------|----------|------------|
+| en | English | US/GB | P0 (base) |
+| pt | Portugues | BR/PT | P0 |
+| es | Espanol | ES/MX | P1 |
+| fr | Francais | FR | P1 |
+| de | Deutsch | DE | P2 |
+| it | Italiano | IT | P2 |
+
+*Mais idiomas podem ser adicionados sob demanda.*
+
+---
+
+## DESIGN SYSTEM - DARK LUXURY THEME
+
+### Paleta de Cores
+
+```css
+:root {
+  /* Backgrounds */
+  --bg-primary: #0A0A0A;        /* Fundo principal - preto profundo */
+  --bg-secondary: #111111;       /* Fundo cards secundarios */
+  --bg-card: #1A1A1A;            /* Fundo de cards */
+  --bg-card-hover: #222222;      /* Card hover */
+  --bg-input: #1E1E1E;           /* Fundo de inputs */
+  
+  /* Gold Accents */
+  --gold-primary: #C9A84C;       /* Dourado principal */
+  --gold-light: #D4B85A;         /* Dourado claro (hover) */
+  --gold-dark: #A88B3D;          /* Dourado escuro */
+  --gold-muted: rgba(201, 168, 76, 0.15); /* Dourado sutil (backgrounds) */
+  
+  /* Text */
+  --text-primary: #FFFFFF;       /* Texto principal - branco */
+  --text-secondary: #A0A0A0;     /* Texto secundario - cinza claro */
+  --text-muted: #666666;         /* Texto desativado */
+  
+  /* Borders */
+  --border-default: #2A2A2A;     /* Borda padrao */
+  --border-gold: rgba(201, 168, 76, 0.3); /* Borda dourada sutil */
+  
+  /* Status Colors */
+  --status-success: #4CAF50;     /* Verde */
+  --status-warning: #FF9800;     /* Laranja */
+  --status-error: #F44336;       /* Vermelho */
+  --status-info: #2196F3;        /* Azul */
+  
+  /* Channel Colors */
+  --whatsapp: #25D366;
+  --instagram: #E4405F;
+  --facebook: #1877F2;
+  --telegram: #0088CC;
+}
+```
+
+### Tipografia
+
+```css
+/* Font: Inter (principal) + JetBrains Mono (codigo) */
+--font-heading: 'Inter', sans-serif;
+--font-body: 'Inter', sans-serif;
+--font-mono: 'JetBrains Mono', monospace;
+
+/* Tamanhos */
+--text-h1: 2.25rem;   /* 36px - Titulos de pagina */
+--text-h2: 1.5rem;    /* 24px - Subtitulos */
+--text-h3: 1.125rem;  /* 18px - Section headers */
+--text-body: 0.875rem; /* 14px - Texto padrao */
+--text-small: 0.75rem; /* 12px - Labels, captions */
+```
+
+### Componentes de UI
+
+- **Cards:** Fundo #1A1A1A, borda sutil #2A2A2A, border-radius 12px, glass-morphism com backdrop-blur
+- **Botoes primarios:** Background dourado (#C9A84C), texto preto, hover #D4B85A, border-radius 8px
+- **Botoes secundarios:** Background transparente, borda dourada, texto dourado
+- **Inputs:** Fundo #1E1E1E, borda #2A2A2A, focus borda dourada com glow sutil
+- **Navigation:** Bottom tab bar com fundo #111111, icone ativo em dourado, inativo em cinza
+- **Badges:** Fundo dourado muted, texto dourado, border-radius full
+
+---
+
+## CONCLUSAO
+
+Voce agora tem:
+- Planejamento completo (75 dias)
+- Todas as APIs e servicos mapeados
+- Credenciais necessarias listadas
+- Arquitetura detalhada
+- Schemas de banco definidos
+- Guia de setup passo a passo
+- Custos estimados
+- **NOVO: Modelo Freemium com logica de upsell**
+- **NOVO: Sistema multi-idioma completo**
+- **NOVO: Design System Dark Luxury definido**
+
+**Proximo passo:** Aprovacao do design e inicio da Fase 0!
