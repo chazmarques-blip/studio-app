@@ -33,8 +33,8 @@ class AgentCreate(BaseModel):
     personality: Optional[dict] = {}
     ai_config: Optional[dict] = {}
     tone: Optional[str] = "professional"
-    emoji_level: Optional[str] = "low"
-    verbosity_level: Optional[str] = "balanced"
+    emoji_level: Optional[float] = 0.4
+    verbosity_level: Optional[float] = 0.5
     escalation_rules: Optional[dict] = {}
     follow_up_config: Optional[dict] = {}
     knowledge_instructions: Optional[str] = ""
@@ -80,8 +80,8 @@ class DeployAgentRequest(BaseModel):
     template_name: str
     custom_name: Optional[str] = None
     tone: Optional[str] = "professional"
-    emoji_level: Optional[str] = "low"
-    verbosity_level: Optional[str] = "balanced"
+    emoji_level: Optional[float] = 0.4
+    verbosity_level: Optional[float] = 0.5
 
 
 class ChannelCreate(BaseModel):

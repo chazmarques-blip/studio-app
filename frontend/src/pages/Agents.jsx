@@ -57,7 +57,9 @@ export default function Agents() {
       setSelectedAgent(null);
       navigate(`/agents/${data.id}/config`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Error deploying agent');
+      const detail = err.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(d => d.msg || '').join(', ') : 'Error deploying agent');
+      toast.error(msg);
     } finally {
       setDeploying(null);
     }

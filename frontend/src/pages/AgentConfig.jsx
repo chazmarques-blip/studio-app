@@ -112,7 +112,9 @@ export default function AgentConfig() {
       });
       toast.success(lang === 'pt' ? 'Salvo!' : 'Saved!');
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Error saving');
+      const detail = e.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map(d => d.msg || '').join(', ') : 'Error saving');
+      toast.error(msg);
     } finally { setSaving(false); }
   };
 
