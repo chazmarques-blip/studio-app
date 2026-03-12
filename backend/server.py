@@ -6,8 +6,9 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timezone, timedelta
+import uuid
 import jwt as pyjwt
 from passlib.context import CryptContext
 
@@ -343,6 +344,305 @@ async def get_dashboard_stats(user=Depends(get_current_user)):
         "agents_count": agent_count,
         "agents_limit": tenant.get("limits", {}).get("agents", 1),
     }
+
+
+# --- Channel Models ---
+class ChannelCreate(BaseModel):
+    type: str  # whatsapp, instagram, facebook, telegram
+    config: Optional[dict] = None
+
+
+# --- Conversation Models ---
+class ConversationCreate(BaseModel):
+    contact_name: str
+    contact_phone: str = ""
+    contact_email: str = ""
+    channel_type: str = "whatsapp"
+    agent_id: Optional[str] = None
+
+
+class MessageCreate(BaseModel):
+    content: str
+    message_type: str = "text"
+    metadata: Optional[dict] = None
+
+
+# --- Lead Models ---
+class LeadCreate(BaseModel):
+    name: str
+    phone: str = ""
+    email: str = ""
+    company: str = ""
+    conversation_id: Optional[str] = None
+    stage: str = "new"
+    value: float = 0
+
+
+class LeadUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    company: Optional[str] = None
+    stage: Optional[str] = None
+    score: Optional[int] = None
+    value: Optional[float] = None
+    assigned_to: Optional[str] = None
+
+
+# --- Helper: get tenant ---
+async def get_tenant(user):
+    result = supabase.table("tenants").select("*").eq("owner_id", user["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return result.data[0]
+
+
+# --- Channels ---
+@api_router.post("/channels")
+async def create_channel(data: ChannelCreate, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    existing = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).eq("type", data.type).execute()
+    if existing.data:
+        updates = {"config": data.config or {}, "status": "connecting", "updated_at": datetime.now(timezone.utc).isoformat()}
+        supabase.table("channels").update(updates).eq("id", existing.data[0]["id"]).execute()
+        return {**existing.data[0], **updates}
+    channel = {
+        "tenant_id": tenant["id"],
+        "type": data.type,
+        "status": "connecting",
+        "config": data.config or {},
+    }
+    result = supabase.table("channels").insert(channel).execute()
+    return result.data[0]
+
+
+@api_router.get("/channels")
+async def list_channels(user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    result = supabase.table("channels").select("*").eq("tenant_id", tenant["id"]).execute()
+    return {"channels": result.data}
+
+
+@api_router.put("/channels/{channel_id}/status")
+async def update_channel_status(channel_id: str, status: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    supabase.table("channels").update({"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", channel_id).eq("tenant_id", tenant["id"]).execute()
+    return {"status": "ok"}
+
+
+@api_router.delete("/channels/{channel_id}")
+async def delete_channel(channel_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    supabase.table("channels").delete().eq("id", channel_id).eq("tenant_id", tenant["id"]).execute()
+    return {"status": "ok"}
+
+
+# --- Conversations ---
+@api_router.get("/conversations")
+async def list_conversations(channel_type: Optional[str] = None, status: Optional[str] = None, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    query = supabase.table("conversations").select("*").eq("tenant_id", tenant["id"]).order("last_message_at", desc=True)
+    if channel_type and channel_type != "all":
+        query = query.eq("channel_type", channel_type)
+    if status:
+        query = query.eq("status", status)
+    result = query.limit(50).execute()
+    return {"conversations": result.data}
+
+
+@api_router.post("/conversations")
+async def create_conversation(data: ConversationCreate, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    convo = {
+        "tenant_id": tenant["id"],
+        "contact_name": data.contact_name,
+        "contact_phone": data.contact_phone,
+        "contact_email": data.contact_email,
+        "channel_type": data.channel_type,
+        "agent_id": data.agent_id,
+        "status": "active",
+        "is_handoff": False,
+        "language": "",
+        "metadata": {},
+        "last_message_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = supabase.table("conversations").insert(convo).execute()
+    return result.data[0]
+
+
+@api_router.get("/conversations/{convo_id}")
+async def get_conversation(convo_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    result = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return result.data[0]
+
+
+@api_router.get("/conversations/{convo_id}/messages")
+async def get_messages(convo_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    # Verify conversation belongs to tenant
+    convo = supabase.table("conversations").select("id").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
+    if not convo.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    msgs = supabase.table("messages").select("*").eq("conversation_id", convo_id).order("created_at", desc=False).execute()
+    return {"messages": msgs.data}
+
+
+@api_router.post("/conversations/{convo_id}/messages")
+async def send_message(convo_id: str, data: MessageCreate, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    convo = supabase.table("conversations").select("*").eq("id", convo_id).eq("tenant_id", tenant["id"]).execute()
+    if not convo.data:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    msg = {
+        "conversation_id": convo_id,
+        "sender": "operator",
+        "content": data.content,
+        "message_type": data.message_type,
+        "metadata": data.metadata or {},
+    }
+    result = supabase.table("messages").insert(msg).execute()
+    # Update last_message_at
+    supabase.table("conversations").update({"last_message_at": datetime.now(timezone.utc).isoformat()}).eq("id", convo_id).execute()
+
+    # Update tenant message usage
+    usage = tenant.get("usage", {})
+    usage["messages_sent_this_period"] = usage.get("messages_sent_this_period", 0) + 1
+    supabase.table("tenants").update({"usage": usage}).eq("id", tenant["id"]).execute()
+
+    return result.data[0]
+
+
+# --- Webhook for incoming messages (WhatsApp/Evolution API) ---
+@api_router.post("/webhook/whatsapp")
+async def whatsapp_webhook(payload: dict):
+    """Receive incoming WhatsApp messages from Evolution API"""
+    logger.info(f"WhatsApp webhook received: {payload}")
+    try:
+        event = payload.get("event", "")
+        instance = payload.get("instance", "")
+        data = payload.get("data", {})
+
+        if event == "messages.upsert":
+            message_data = data.get("message", {})
+            from_number = data.get("key", {}).get("remoteJid", "").replace("@s.whatsapp.net", "")
+            content = message_data.get("conversation", "") or message_data.get("extendedTextMessage", {}).get("text", "")
+            is_from_me = data.get("key", {}).get("fromMe", False)
+
+            if is_from_me or not content:
+                return {"status": "ignored"}
+
+            # Find tenant by instance name
+            channels = supabase.table("channels").select("*, tenants!inner(id)").eq("type", "whatsapp").eq("config->>instance_name", instance).execute()
+            if not channels.data:
+                logger.warning(f"No channel found for instance: {instance}")
+                return {"status": "no_channel"}
+
+            channel = channels.data[0]
+            tenant_id = channel["tenant_id"]
+
+            # Find or create conversation
+            existing = supabase.table("conversations").select("*").eq("tenant_id", tenant_id).eq("contact_phone", from_number).eq("status", "active").execute()
+            if existing.data:
+                convo_id = existing.data[0]["id"]
+            else:
+                new_convo = {
+                    "tenant_id": tenant_id,
+                    "channel_id": channel["id"],
+                    "contact_name": from_number,
+                    "contact_phone": from_number,
+                    "channel_type": "whatsapp",
+                    "status": "active",
+                    "last_message_at": datetime.now(timezone.utc).isoformat(),
+                }
+                convo_result = supabase.table("conversations").insert(new_convo).execute()
+                convo_id = convo_result.data[0]["id"]
+
+            # Store message
+            msg = {
+                "conversation_id": convo_id,
+                "sender": "customer",
+                "content": content,
+                "message_type": "text",
+                "metadata": {"from": from_number, "raw": data},
+            }
+            supabase.table("messages").insert(msg).execute()
+            supabase.table("conversations").update({"last_message_at": datetime.now(timezone.utc).isoformat()}).eq("id", convo_id).execute()
+
+            return {"status": "ok", "conversation_id": convo_id}
+
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return {"status": "error", "detail": str(e)}
+
+    return {"status": "ok"}
+
+
+@api_router.get("/webhook/whatsapp")
+async def whatsapp_webhook_verify():
+    """Verify webhook endpoint"""
+    return {"status": "ok", "service": "agentflow-whatsapp-webhook"}
+
+
+# --- Leads / CRM ---
+@api_router.get("/leads")
+async def list_leads(stage: Optional[str] = None, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    query = supabase.table("leads").select("*").eq("tenant_id", tenant["id"]).order("updated_at", desc=True)
+    if stage:
+        query = query.eq("stage", stage)
+    result = query.execute()
+    return {"leads": result.data}
+
+
+@api_router.post("/leads")
+async def create_lead(data: LeadCreate, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    lead = {
+        "tenant_id": tenant["id"],
+        "name": data.name,
+        "phone": data.phone,
+        "email": data.email,
+        "company": data.company,
+        "conversation_id": data.conversation_id,
+        "stage": data.stage,
+        "value": float(data.value),
+        "score": 0,
+        "ai_analysis": {},
+        "metadata": {},
+    }
+    result = supabase.table("leads").insert(lead).execute()
+    return result.data[0]
+
+
+@api_router.get("/leads/{lead_id}")
+async def get_lead(lead_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    result = supabase.table("leads").select("*").eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return result.data[0]
+
+
+@api_router.put("/leads/{lead_id}")
+async def update_lead(lead_id: str, data: LeadUpdate, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = supabase.table("leads").update(updates).eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return result.data[0]
+
+
+@api_router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    supabase.table("leads").delete().eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
+    return {"status": "ok"}
 
 
 # --- Include router ---
