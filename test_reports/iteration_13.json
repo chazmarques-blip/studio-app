@@ -1,0 +1,85 @@
+{
+  "summary": "Iteration 13 - Dashboard Rebuild Testing. Tested the completely new dynamic dashboard with Recharts charts, KPIs, CRM pipeline, conversations, agents, and navigation. All 14 backend tests passed (100%). All frontend tests passed - dashboard loads correctly with all sections.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard",
+        "issues": ["Console warning: Recharts shows dimension warnings during page load/transitions - 'The width(-1) and height(-1) of chart should be greater than 0'. This is a minor cosmetic issue that doesn't affect functionality."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dashboard_stats.py",
+    "/app/test_reports/pytest/pytest_results_iteration13.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: Recharts ResponsiveContainer may need explicit minHeight/minWidth to prevent console warnings during render"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_dashboard_stats.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all UI elements and navigations working)"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "None - used existing real Supabase data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 13 verified the new dynamic dashboard. All features working: (1) Dashboard greeting shows user name, (2) Credit counter '188/200' clickable->pricing, (3) 4 KPI cards (Messages Today:15, Resolution Rate:0%, Active Leads:5/6, Revenue:$7500), (4) Messages area chart shows 7 days with proper labels (Fri-Thu), (5) CRM Pipeline shows colored bars (New:2, Qualified:2, Proposal:1, Won:1), (6) Recent Conversations shows 5 items with channel icons, status badges, time ago, (7) Agent Performance shows 'Test Agent Updated' with 0 chats/0 resolved, (8) Quick Actions 3 buttons work: Create Agent->agents, View Inbox->chat, View CRM->crm, (9) Plan & Usage shows Free plan, Messages 12/200, Agents 1/1, Upgrade button, (10) Bottom nav 6 tabs all work. Test-ids verified: dashboard-greeting, credit-counter, profile-menu-btn, profile-dropdown, profile-edit-btn, profile-billing-btn, profile-logout-btn, stat-0 to stat-3, quick-action-0 to quick-action-2, bottom-nav, nav-dashboard, nav-chat, nav-agents, nav-crm, nav-analytics, nav-settings.",
+  "verified_features": {
+    "backend_api": {
+      "endpoint": "GET /api/dashboard/stats",
+      "fields_verified": [
+        "messages_today",
+        "resolution_rate",
+        "active_leads",
+        "total_leads",
+        "revenue",
+        "plan",
+        "messages_used",
+        "messages_limit",
+        "agents_count",
+        "agents_limit",
+        "messages_by_day (7 days with date, label, count)",
+        "recent_conversations (id, contact_name, channel_type, status, last_message_at)",
+        "agents (id, name, type, conversations, resolved)",
+        "crm_pipeline (new, qualified, proposal, won, lost)",
+        "channel_stats (channel, count)"
+      ]
+    },
+    "dashboard_sections": {
+      "header": "Greeting + Credit counter (188/200) + Profile button",
+      "kpi_cards": "4 cards: Messages Today, Resolution Rate, Active Leads, Revenue",
+      "messages_chart": "Recharts AreaChart showing last 7 days with proper tooltips",
+      "crm_pipeline": "Colored bars for New, Qualified, Proposal, Won stages",
+      "recent_conversations": "5 recent items with channel icon, name, status badge, time ago",
+      "agent_performance": "Agent list with chat count and resolved count",
+      "quick_actions": "3 buttons: Create Agent, View Inbox, View CRM",
+      "plan_usage": "Free plan, messages bar 12/200, agents bar 1/1, Upgrade button",
+      "bottom_nav": "6 tabs: Home, Chat, Agents, CRM, Analytics, Settings"
+    },
+    "navigation_tests": {
+      "credit_counter": "/pricing - PASSED",
+      "quick_action_0": "/agents - PASSED",
+      "quick_action_1": "/chat - PASSED",
+      "quick_action_2": "/crm - PASSED",
+      "nav_dashboard": "/dashboard - PASSED",
+      "nav_chat": "/chat - PASSED",
+      "nav_agents": "/agents - PASSED",
+      "nav_crm": "/crm - PASSED",
+      "nav_analytics": "/analytics - PASSED",
+      "nav_settings": "/settings - PASSED"
+    }
+  }
+}

@@ -134,7 +134,21 @@
     "no_agents_desc": "Crea tu primer agente de IA para empezar",
     "create_first": "Crea Tu Primer Agente",
     "current_plan": "Plan Actual",
-    "messages_week": "Mensajes esta semana"
+    "messages_week": "Mensajes",
+    "greeting_morning": "Buenos dias",
+    "greeting_afternoon": "Buenas tardes",
+    "greeting_evening": "Buenas noches",
+    "last_7_days": "Ultimos 7 dias",
+    "crm_pipeline": "Pipeline CRM",
+    "recent_chats": "Conversaciones Recientes",
+    "agent_performance": "Rendimiento de Agentes",
+    "no_conversations": "Sin conversaciones aun",
+    "resolved": "resueltos",
+    "view_all": "Ver todos",
+    "view_crm": "Ver CRM",
+    "upgrade": "Upgrade",
+    "messages_usage": "Mensajes",
+    "agents_usage": "Agentes"
   },
   "chat": {
     "inbox": "Inbox",
