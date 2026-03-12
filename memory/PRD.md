@@ -14,7 +14,8 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 /app/backend/
 ├── server.py          (entry point + dashboard/billing routes)
 ├── core/
-│   ├── constants.py, deps.py, models.py, utils.py
+│   ├── constants.py   (MARKETPLACE_AGENTS + PERSONAL_AGENTS + types)
+│   ├── deps.py, models.py, utils.py
 ├── routers/
 │   ├── auth.py, agents.py, conversations.py, leads.py
 │   ├── ai.py, whatsapp.py, channels.py, telegram.py
@@ -31,34 +32,43 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 ### Pricing & Billing In-App Page - Mar 2026
 
 ### P0 Navigation Bug Fixes - Mar 12 2026
-- Added Dashboard/Home as first tab in bottom navigation
-- Fixed profile button with dropdown (Edit Profile, Billing, Sign Out)
-- Fixed Account in Settings with inline profile editing
-- All 15 tests passed (iteration_12: 100%)
+- Dashboard/Home in bottom nav, profile dropdown, Account in Settings
 
-### Phase 5: Dynamic Dashboard - Mar 12 2026
-- **KPI Cards**: Messages Today, Resolution Rate, Active Leads (with total), Revenue
-- **Messages Chart**: Recharts AreaChart showing last 7 days volume
-- **CRM Pipeline**: Colored bar visualization (New, Qualified, Proposal, Won)
-- **Recent Conversations**: Last 5 with channel icons, status badges, time ago
-- **Agent Performance**: Per-agent metrics (conversations, resolved)
-- **Credit Counter**: Dynamic counter in header showing remaining credits (clickable → /pricing)
-- **Quick Actions**: 3-button grid (Create Agent, View Inbox, View CRM)
-- **Plan & Usage**: Dual progress bars (messages + agents) with upgrade button
-- **Greeting**: Time-based (Bom dia/Boa tarde/Boa noite)
-- **Backend**: Enriched /api/dashboard/stats with messages_by_day, recent_conversations, agents, crm_pipeline, channel_stats
-- All 14 backend + all frontend tests passed (iteration_13: 100%)
+### Phase 5: Dynamic Dashboard v2 - Mar 12 2026
+- KPIs, Recharts area chart, CRM Pipeline, Recent Conversations with channel SVGs
+- AI Insights widget placeholder, Credit Counter, Quick Actions
+- Full gold/black/gray/white color palette (no colored elements)
 
-## Testing (ALL 100%)
-- Iterations 2-13: All passed
+### Personal Agent Feature - Mar 12 2026
+- 3 personal agents: Alex (productivity), Luna (wellness), Max (finance)
+- Plan restriction: only Pro+ plans can deploy personal agents
+- Backend: 403 error on deploy attempt for free/starter plans
+- Frontend: Lock icon, "Upgrade to Pro" button, PRO+ badge, Crown filter
+- Marketplace returns 25 agents (22 business + 3 personal)
+- iteration_14: 100% backend (14/14) + 100% frontend
+
+### Chat Gold Palette - Mar 12 2026
+- Channel SVG icons (WhatsApp, Instagram, Telegram, Facebook, SMS) in gold
+- All colored elements replaced with gold/gray tones
+
+## Testing
+- Iterations 2-14: All passed (100%)
+
+## Plan Configuration
+- Free: 1 agent, 200 msgs/mo, 1 channel, NO personal agent
+- Starter: 3 agents, 1500 msgs/mo, 5 channels, NO personal agent
+- Pro: 5 agents, 5000 msgs/mo, 5 channels, YES personal agent
+- Enterprise: 10 agents, 10000 msgs/mo, 5 channels, YES personal agent
 
 ## Upcoming Tasks
-1. **Agente Pessoal** — Agent type "personal" for daily tasks
-2. **Phase 6: Google Calendar/Sheets** — Real-time sync
-3. **Phase 7: Lead Nurturing** — Automated follow-up campaigns
+1. **Phase 6: Google Calendar/Sheets** — Real-time sync integration
+2. **Phase 7: Lead Nurturing** — Automated follow-up campaigns
+3. **Phase 8: Integrações Omnichannel** — WhatsApp live, SMS Twilio, Instagram, Facebook, Telegram
+4. **Avatar Customizável** — Foto/logo da empresa no perfil
 
 ## Later/Backlog
-- Phase 8: Omnichannel Integrations (WhatsApp live, SMS Twilio, Instagram, Facebook, Telegram)
+- AI Insights dinâmicos (Claude analysis)
+- Analytics page with detailed charts
 - Final Testing & Adjustments
 
 ## Test Credentials
