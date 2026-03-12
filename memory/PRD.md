@@ -1,7 +1,7 @@
 # AgentFlow - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow" that allows SMB owners to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram).
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow" that allows SMB owners to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS).
 
 ## Tech Stack
 - **Frontend**: React, TailwindCSS, shadcn/ui, Lucide Icons, i18next (EN/PT/ES)
@@ -21,17 +21,21 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow" th
 - **messages**: id, conversation_id, sender, content, message_type, metadata
 - **leads**: id, tenant_id, conversation_id, name, phone, email, company, stage, score, value, ai_analysis
 
-## API Endpoints (30+ working)
+## API Endpoints (35+ working)
 ### Auth: POST signup, POST login, GET me, PUT profile
 ### Tenants: POST create, GET get
 ### Agents: GET marketplace (22), POST deploy, POST create, GET list, GET/PUT/DELETE by id
 ### Agent Knowledge: GET/POST/DELETE /agents/{id}/knowledge
 ### Follow-up Rules: GET/POST/DELETE /agents/{id}/follow-up-rules
 ### AI: POST /sandbox/chat, DELETE /sandbox/{id}, POST /conversations/{id}/ai-reply
+### AI Multimodal: POST /ai/analyze-image (Claude Vision), POST /ai/transcribe (Whisper)
+### Multi-Agent: POST /conversations/{id}/route-agent
+### Multimedia Messages: POST /conversations/{id}/messages/multimedia
 ### Conversations: GET/POST, GET detail, GET/POST messages
 ### Channels: GET/POST, PUT status, DELETE
 ### Leads/CRM: GET/POST, GET/PUT/DELETE by id
-### Webhook: POST /webhook/whatsapp (auto-reply + escalation)
+### Webhook: POST /webhook/whatsapp (auto-reply + escalation + outbound via Evolution API)
+### WhatsApp Evolution API: POST create-instance, GET qr/{instance}, GET status/{instance}, POST send, POST set-webhook, DELETE instance/{instance}
 ### Dashboard: GET /dashboard/stats
 
 ## What's Been Implemented
@@ -51,18 +55,27 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentFlow" th
 - **CRM**: Real leads in 5-stage Kanban
 - **Chat/Inbox**: Real conversations with AI Reply button
 
+### Phase 2: WhatsApp Integration via Evolution API (COMPLETE) - March 2026
+- **Backend Evolution API Proxy**: 6 new endpoints for instance management, QR code, status, messaging, webhook registration
+- **Frontend WhatsApp Setup**: Full flow - Config form → QR Code display → Auto-polling → Connected state
+- **Outbound Messaging**: Operator replies in Chat.jsx automatically sent via WhatsApp Evolution API
+- **AI Auto-Reply via WhatsApp**: Webhook receives message → AI responds → sends reply back via Evolution API
+- **Multimodal Backend**: Claude Vision (image analysis) + Whisper (audio transcription) endpoints ready
+- **Multi-Agent Orchestration**: Backend route-agent endpoint for intelligent agent switching
+
 ### Testing (ALL 100%)
 - iteration_2: Supabase 17/17
 - iteration_3: Messaging 16/16
 - iteration_4: AI Sandbox 8/8
 - iteration_5: Agent Config 15/15
+- iteration_6: WhatsApp Integration 8/8 backend + 100% frontend
 
 ## 19 Pages
 Landing, Login, Onboarding, OnboardingAgentLang, Dashboard, Chat, Agents, AgentBuilder, AgentSandbox, AgentConfig, CRM, LeadDetail, CampaignBuilder, Analytics, Settings, ChannelConnection, HandoffHuman, UpsellScreen, Pricing
 
 ## Upcoming Phases
-- **Phase 2**: Multimodal AI (Claude Vision for images, Whisper for voice)
-- **Phase 3**: Omnichannel (Instagram, Facebook, Telegram)
+- **Phase 2 Remaining**: Multimodal UI in Chat/Sandbox (image/audio upload buttons)
+- **Phase 3**: Omnichannel (Instagram, Facebook, Telegram, SMS/Twilio)
 - **Phase 4**: CRM with AI (auto-classify leads, AI analysis)
 - **Phase 5**: Dashboard & Analytics (charts, reports)
 - **Phase 6**: Google Calendar/Sheets integration
