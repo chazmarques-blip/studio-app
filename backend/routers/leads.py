@@ -1,8 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 from datetime import datetime, timezone
+import uuid
 
-from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, EMERGENT_KEY, logger
 from core.models import LeadCreate, LeadUpdate
 
 router = APIRouter(prefix="/api", tags=["leads"])
@@ -63,3 +66,80 @@ async def delete_lead(lead_id: str, user=Depends(get_current_user)):
     tenant = await get_tenant_helper(user)
     supabase.table("leads").delete().eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
     return {"status": "ok"}
+
+
+@router.post("/leads/{lead_id}/ai-score")
+async def ai_score_lead(lead_id: str, user=Depends(get_current_user)):
+    """Use AI to analyze and score a lead based on their data and conversation history"""
+    tenant = await get_tenant_helper(user)
+    lead_result = supabase.table("leads").select("*").eq("id", lead_id).eq("tenant_id", tenant["id"]).execute()
+    if not lead_result.data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    lead = lead_result.data[0]
+
+    # Gather conversation context if available
+    convo_context = ""
+    if lead.get("conversation_id"):
+        msgs = supabase.table("messages").select("sender, content").eq("conversation_id", lead["conversation_id"]).order("created_at", desc=False).limit(15).execute()
+        if msgs.data:
+            convo_context = "\n".join([f"{m['sender']}: {m['content']}" for m in msgs.data])
+
+    prompt = f"""Analyze this lead and provide a JSON response with:
+- "score": integer 0-100 (likelihood of conversion)
+- "stage_suggestion": one of "new", "qualified", "proposal", "won", "lost"
+- "reason": brief explanation (1-2 sentences)
+- "next_action": recommended next step (1 sentence)
+
+Lead data:
+- Name: {lead.get('name', 'Unknown')}
+- Company: {lead.get('company', 'N/A')}
+- Phone: {lead.get('phone', 'N/A')}
+- Email: {lead.get('email', 'N/A')}
+- Current stage: {lead.get('stage', 'new')}
+- Value: ${lead.get('value', 0)}
+"""
+    if convo_context:
+        prompt += f"\nConversation history:\n{convo_context}"
+    else:
+        prompt += "\nNo conversation history available."
+
+    prompt += "\n\nRespond ONLY with valid JSON, no extra text."
+
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"score-{uuid.uuid4().hex[:8]}",
+            system_message="You are a sales lead scoring AI. Analyze leads and return JSON with score, stage_suggestion, reason, and next_action."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+        response = await chat.send_message(UserMessage(text=prompt))
+
+        import json
+        # Try to parse JSON from response
+        clean = response.strip()
+        if clean.startswith("```"):
+            clean = clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        analysis = json.loads(clean)
+
+        score = max(0, min(100, int(analysis.get("score", 50))))
+        ai_data = {
+            "score": score,
+            "stage_suggestion": analysis.get("stage_suggestion", lead.get("stage", "new")),
+            "reason": analysis.get("reason", ""),
+            "next_action": analysis.get("next_action", ""),
+            "scored_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        supabase.table("leads").update({
+            "score": score,
+            "ai_analysis": ai_data,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", lead_id).execute()
+
+        return ai_data
+
+    except Exception as e:
+        logger.error(f"AI scoring error: {e}")
+        fallback = {"score": 50, "stage_suggestion": lead.get("stage", "new"), "reason": "Unable to analyze automatically", "next_action": "Manual review recommended"}
+        supabase.table("leads").update({"score": 50, "ai_analysis": fallback, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", lead_id).execute()
+        return fallback
