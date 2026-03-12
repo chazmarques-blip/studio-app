@@ -61,13 +61,25 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - Mark as Won/Lost quick actions, Delete lead
 - All tests passed (iteration_10: 100%)
 
+### Enhanced Agent Configuration - Mar 2026
+- 6-tab configuration page: Personality, Knowledge, Integrations, Channels, Escalation, Automations
+- Personality: 5 tone options, 5 intensity sliders (Emoji, Verbosity, Proactivity, Creativity, Formality), 5 behavior flags
+- Knowledge: CRUD items with type badges, additional instructions
+- Integrations: Google Calendar/Sheets/Drive, Custom API, Webhooks (UI toggles)
+- Channels: Telegram, WhatsApp, Instagram, Messenger, SMS, Web Chat with enable/disable
+- Telegram Bot: token input, connect flow, webhook handling, auto-reply via Claude
+- Escalation: keywords, frustration threshold slider, notify toggle, system prompt
+- Automations: Follow-up toggle, rules with triggers and templates
+- All tests passed (iteration_11: 100%)
+
 ### Testing (ALL 100%)
 - iterations 2-9: All passed
 
 ## Upcoming Tasks
 1. **Phase 5: Dashboard & Analytics** — Data visualization, metrics, charts
-2. **Phase 6: Google Calendar/Sheets** — Real-time sync
-3. **Phase 7: Lead Nurturing** — Automated follow-up campaigns
+2. **Agente Pessoal** — Agent type "personal" for daily tasks (separate from business agents)
+3. **Phase 6: Google Calendar/Sheets** — Real-time sync (connect integration toggles)
+4. **Phase 7: Lead Nurturing** — Automated follow-up campaigns
 
 ## Later (End)
 - Phase 8: Omnichannel Integrations (WhatsApp live, SMS Twilio, Instagram, Facebook, Telegram)
