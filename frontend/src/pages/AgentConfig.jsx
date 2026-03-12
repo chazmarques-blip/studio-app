@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Bot, Save, Plus, Trash2, BookOpen, Clock, Sliders, Brain, MessageCircle, Link2, Radio, AlertTriangle, Zap, ChevronDown, ChevronUp, Calendar, Table2, HardDrive, Globe, Webhook, Send, MessageSquare, Instagram, Facebook, Smartphone, Monitor } from 'lucide-react';
+import { ArrowLeft, Bot, Save, Plus, Trash2, BookOpen, Clock, Sliders, Brain, MessageCircle, Link2, Radio, AlertTriangle, Zap, ChevronDown, ChevronUp, Calendar, Table2, HardDrive, Globe, Webhook, Send, MessageSquare, Instagram, Facebook, Smartphone, Monitor, RotateCcw } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -79,6 +79,7 @@ export default function AgentConfig() {
   const [showAddKb, setShowAddKb] = useState(false);
   const [showAddRule, setShowAddRule] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (agentId) {
@@ -130,6 +131,19 @@ export default function AgentConfig() {
 
   const deleteRule = async (id) => { await axios.delete(`${API}/agents/${agentId}/follow-up-rules/${id}`); setRules(prev => prev.filter(r => r.id !== id)); };
 
+  const resetAgent = async () => {
+    if (!window.confirm(lang === 'pt' ? 'Restaurar agente para a versao original? Suas alteracoes serao perdidas.' : 'Reset agent to original version? Your changes will be lost.')) return;
+    setResetting(true);
+    try {
+      const { data } = await axios.post(`${API}/agents/${agentId}/reset`);
+      setAgent(data);
+      toast.success(lang === 'pt' ? 'Agente restaurado!' : 'Agent restored!');
+    } catch (e) {
+      const detail = e.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : 'Error resetting');
+    } finally { setResetting(false); }
+  };
+
   if (!agent) return <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /></div>;
 
   const tabs = [
@@ -168,10 +182,18 @@ export default function AgentConfig() {
               className="bg-transparent text-sm font-semibold text-white outline-none border-b border-transparent focus:border-[#C9A84C] w-full" />
             <p className="text-[9px] capitalize text-[#555]">{agent.type} · {agent.tone}</p>
           </div>
-          <button data-testid="agent-save-btn" onClick={saveAgent} disabled={saving}
-            className="btn-gold flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] disabled:opacity-50">
-            <Save size={12} /> {saving ? '...' : (lang === 'pt' ? 'Salvar' : 'Save')}
-          </button>
+          <div className="flex items-center gap-1.5">
+            {agent.has_original && (
+              <button data-testid="agent-reset-btn" onClick={resetAgent} disabled={resetting}
+                className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] px-2.5 py-1.5 text-[10px] text-[#888] transition hover:border-[#C9A84C]/30 hover:text-white disabled:opacity-50">
+                <RotateCcw size={11} className={resetting ? 'animate-spin' : ''} /> Reset
+              </button>
+            )}
+            <button data-testid="agent-save-btn" onClick={saveAgent} disabled={saving}
+              className="btn-gold flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] disabled:opacity-50">
+              <Save size={12} /> {saving ? '...' : (lang === 'pt' ? 'Salvar' : 'Save')}
+            </button>
+          </div>
         </div>
       </div>
 

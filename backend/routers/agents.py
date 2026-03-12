@@ -86,6 +86,7 @@ async def get_agent(agent_id: str, user=Depends(get_current_user)):
     agent["personality_config"] = personality.get("config", {})
     agent["integrations_config"] = ai_config.get("integrations", {})
     agent["channel_config"] = ai_config.get("channels", {})
+    agent["has_original"] = bool(personality.get("_original") or agent.get("marketplace_template_id"))
     return agent
 
 
@@ -185,7 +186,18 @@ async def deploy_marketplace_agent(data: DeployAgentRequest, user=Depends(get_cu
         "status": "active",
         "language_mode": "auto_detect",
         "fixed_language": "pt",
-        "personality": template.get("personality", {}),
+        "personality": {
+            **template.get("personality", {}),
+            "_original": {
+                "name": template["name"],
+                "system_prompt": template["system_prompt"],
+                "description": template["description"],
+                "personality": template.get("personality", {}),
+                "tone": data.tone,
+                "emoji_level": data.emoji_level,
+                "verbosity_level": data.verbosity_level,
+            }
+        },
         "ai_config": {"model": "claude-sonnet", "temperature": 0.7, "max_tokens": 500},
         "stats": {"total_conversations": 0, "total_messages": 0, "resolution_rate": 0},
         "tone": data.tone,
@@ -203,6 +215,62 @@ async def deploy_marketplace_agent(data: DeployAgentRequest, user=Depends(get_cu
     current_usage["agents_created"] = current_usage.get("agents_created", 0) + 1
     supabase.table("tenants").update({"usage": current_usage}).eq("id", tenant["id"]).execute()
     return result.data[0]
+
+
+
+# --- Reset Agent to Original ---
+@router.post("/agents/{agent_id}/reset")
+async def reset_agent(agent_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant_helper(user)
+    result = supabase.table("agents").select("*").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    agent = result.data[0]
+    personality = agent.get("personality") or {}
+    original = personality.get("_original")
+
+    if not original:
+        # Try to find original from marketplace templates
+        template_name = agent.get("marketplace_template_id")
+        if template_name:
+            from core.constants import MARKETPLACE_AGENTS, PERSONAL_AGENTS
+            all_agents = MARKETPLACE_AGENTS + PERSONAL_AGENTS
+            for t in all_agents:
+                if t["name"].lower() == template_name.lower():
+                    original = {
+                        "name": t["name"],
+                        "system_prompt": t["system_prompt"],
+                        "description": t["description"],
+                        "personality": t.get("personality", {}),
+                        "tone": agent.get("tone", "professional"),
+                        "emoji_level": float(t.get("personality", {}).get("emoji_usage", 0.3)),
+                        "verbosity_level": float(t.get("personality", {}).get("verbosity", 0.5)),
+                    }
+                    break
+        if not original:
+            raise HTTPException(status_code=400, detail="No original version found for this agent")
+
+    # Reset to original values
+    new_personality = {**original.get("personality", {}), "_original": original}
+    updates = {
+        "name": original["name"],
+        "system_prompt": original["system_prompt"],
+        "description": original["description"],
+        "personality": new_personality,
+        "tone": original.get("tone", "professional"),
+        "emoji_level": float(original.get("emoji_level", 0.4)),
+        "verbosity_level": float(original.get("verbosity_level", 0.5)),
+    }
+    supabase.table("agents").update(updates).eq("id", agent_id).execute()
+    # Return updated agent
+    updated = supabase.table("agents").select("*").eq("id", agent_id).execute()
+    agent_data = updated.data[0]
+    p = agent_data.get("personality") or {}
+    ac = agent_data.get("ai_config") or {}
+    agent_data["personality_config"] = p.get("config", {})
+    agent_data["integrations_config"] = ac.get("integrations", {})
+    agent_data["channel_config"] = ac.get("channels", {})
+    return agent_data
 
 
 # --- Knowledge Base ---
