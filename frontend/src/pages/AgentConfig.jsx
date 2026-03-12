@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Bot, Save, Plus, Trash2, BookOpen, Clock, Sliders, Brain, MessageCircle, Link2, Radio, AlertTriangle, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Bot, Save, Plus, Trash2, BookOpen, Clock, Sliders, Brain, MessageCircle, Link2, Radio, AlertTriangle, Zap, ChevronDown, ChevronUp, Calendar, Table2, HardDrive, Globe, Webhook, Send, MessageSquare, Instagram, Facebook, Smartphone, Monitor } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -303,18 +303,18 @@ export default function AgentConfig() {
         {tab === 'integrations' && (
           <div className="space-y-2">
             {[
-              { key: 'google_calendar', name: 'Google Calendar', desc: lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events' },
-              { key: 'google_sheets', name: 'Google Sheets', desc: lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets' },
-              { key: 'google_drive', name: 'Google Drive', desc: lang === 'pt' ? 'Documentos como base de conhecimento' : 'Docs as knowledge base' },
-              { key: 'custom_api', name: 'Custom API', desc: lang === 'pt' ? 'Conectar a qualquer API REST' : 'Connect to any REST API' },
-              { key: 'webhook', name: 'Webhooks', desc: lang === 'pt' ? 'Disparar webhooks em eventos' : 'Trigger webhooks on events' },
+              { key: 'google_calendar', name: 'Google Calendar', desc: lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events', icon: Calendar },
+              { key: 'google_sheets', name: 'Google Sheets', desc: lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets', icon: Table2 },
+              { key: 'google_drive', name: 'Google Drive', desc: lang === 'pt' ? 'Documentos como base de conhecimento' : 'Docs as knowledge base', icon: HardDrive },
+              { key: 'custom_api', name: 'Custom API', desc: lang === 'pt' ? 'Conectar a qualquer API REST' : 'Connect to any REST API', icon: Globe },
+              { key: 'webhook', name: 'Webhooks', desc: lang === 'pt' ? 'Disparar webhooks em eventos' : 'Trigger webhooks on events', icon: Webhook },
             ].map(integ => {
               const cfg = agent.integrations_config || {};
               const connected = cfg[integ.key]?.enabled;
               return (
                 <div key={integ.key} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Link2 size={14} className="text-[#C9A84C]" /></div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><integ.icon size={14} className="text-[#C9A84C]" /></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-medium text-white">{integ.name}</p>
                       <p className="text-[9px] text-[#555]">{integ.desc}</p>
@@ -349,19 +349,19 @@ export default function AgentConfig() {
         {tab === 'channels' && (
           <div className="space-y-2">
             {[
-              { key: 'telegram', name: 'Telegram Bot', desc: lang === 'pt' ? 'Via @BotFather' : 'Via @BotFather' },
-              { key: 'whatsapp', name: 'WhatsApp', desc: 'Evolution API' },
-              { key: 'instagram', name: 'Instagram DM', desc: 'Meta Business' },
-              { key: 'messenger', name: 'Facebook Messenger', desc: 'Meta Pages' },
-              { key: 'sms', name: 'SMS', desc: 'Twilio' },
-              { key: 'webchat', name: 'Web Chat', desc: lang === 'pt' ? 'Widget no seu site' : 'Site widget' },
+              { key: 'telegram', name: 'Telegram Bot', desc: lang === 'pt' ? 'Via @BotFather' : 'Via @BotFather', icon: Send },
+              { key: 'whatsapp', name: 'WhatsApp', desc: 'Evolution API', icon: MessageCircle },
+              { key: 'instagram', name: 'Instagram DM', desc: 'Meta Business', icon: Instagram },
+              { key: 'messenger', name: 'Facebook Messenger', desc: 'Meta Pages', icon: Facebook },
+              { key: 'sms', name: 'SMS', desc: 'Twilio', icon: Smartphone },
+              { key: 'webchat', name: 'Web Chat', desc: lang === 'pt' ? 'Widget no seu site' : 'Site widget', icon: Monitor },
             ].map(ch => {
               const chCfg = agent.channel_config || {};
               const enabled = chCfg[ch.key]?.enabled;
               return (
                 <div key={ch.key} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Radio size={14} className="text-[#C9A84C]" /></div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><ch.icon size={14} className="text-[#C9A84C]" /></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-medium text-white">{ch.name}</p>
                       <p className="text-[9px] text-[#555]">{ch.desc}</p>
