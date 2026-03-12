@@ -95,6 +95,13 @@ class AgentCreate(BaseModel):
     language_mode: str = "auto_detect"
     fixed_language: str = "en"
     personality: Optional[dict] = None
+    tone: str = "professional"
+    emoji_level: float = 0.3
+    verbosity_level: float = 0.5
+    escalation_rules: Optional[dict] = None
+    follow_up_config: Optional[dict] = None
+    knowledge_instructions: str = ""
+    marketplace_template_id: str = ""
 
 
 class AgentUpdate(BaseModel):
@@ -105,6 +112,33 @@ class AgentUpdate(BaseModel):
     language_mode: Optional[str] = None
     fixed_language: Optional[str] = None
     personality: Optional[dict] = None
+    tone: Optional[str] = None
+    emoji_level: Optional[float] = None
+    verbosity_level: Optional[float] = None
+    escalation_rules: Optional[dict] = None
+    follow_up_config: Optional[dict] = None
+    knowledge_instructions: Optional[str] = None
+
+
+class KnowledgeCreate(BaseModel):
+    type: str = "faq"  # faq, product, policy, hours, custom
+    title: str
+    content: str
+
+
+class FollowUpRuleCreate(BaseModel):
+    trigger_type: str  # conversation_closed, inactive_24h, inactive_48h, post_sale, cart_abandoned
+    delay_hours: int = 24
+    message_template: str
+    is_active: bool = True
+
+
+class DeployAgentRequest(BaseModel):
+    template_name: str  # marketplace agent name
+    custom_name: Optional[str] = None
+    tone: str = "professional"
+    emoji_level: float = 0.3
+    verbosity_level: float = 0.5
 
 
 # --- Health ---
@@ -266,6 +300,14 @@ async def create_agent(data: AgentCreate, user=Depends(get_current_user)):
         "personality": data.personality or {"tone": 0.6, "verbosity": 0.4, "emoji_usage": 0.3},
         "ai_config": {"model": "claude-sonnet", "temperature": 0.7, "max_tokens": 500},
         "stats": {"total_conversations": 0, "total_messages": 0, "resolution_rate": 0},
+        "tone": data.tone,
+        "emoji_level": data.emoji_level,
+        "verbosity_level": data.verbosity_level,
+        "escalation_rules": data.escalation_rules or {"keywords": ["atendente", "humano", "gerente", "reclamação"], "sentiment_threshold": 0.3},
+        "follow_up_config": data.follow_up_config or {"enabled": False, "delay_hours": 24, "max_follow_ups": 3, "cool_down_days": 7},
+        "knowledge_instructions": data.knowledge_instructions,
+        "is_deployed": True,
+        "marketplace_template_id": data.marketplace_template_id,
     }
     result = supabase.table("agents").insert(agent).execute()
     # Update usage
@@ -517,11 +559,76 @@ async def send_message(convo_id: str, data: MessageCreate, user=Depends(get_curr
     return result.data[0]
 
 
+# --- Intelligent system prompt builder ---
+def build_agent_system_prompt(agent: dict, knowledge_items: list = None) -> str:
+    """Build a rich system prompt based on agent config, tone, and knowledge base"""
+    name = agent.get("name", "Assistant")
+    agent_type = agent.get("type", "support")
+    tone = agent.get("tone", "professional")
+    emoji_level = agent.get("emoji_level", 0.3)
+    verbosity = agent.get("verbosity_level", 0.5)
+    custom_prompt = agent.get("system_prompt", "")
+    knowledge_text = agent.get("knowledge_instructions", "")
+    escalation = agent.get("escalation_rules", {})
+
+    tone_map = {
+        "professional": "formal, respectful, and business-oriented",
+        "friendly": "warm, approachable, and conversational",
+        "empathetic": "understanding, caring, and emotionally supportive",
+        "direct": "clear, concise, and straight to the point",
+        "consultive": "advisory, asking questions to understand needs before suggesting solutions",
+    }
+    tone_desc = tone_map.get(tone, tone_map["professional"])
+
+    emoji_desc = "Never use emojis." if emoji_level < 0.2 else "Use emojis sparingly." if emoji_level < 0.5 else "Use emojis frequently to be expressive."
+    verbosity_desc = "Keep responses very short (1-2 sentences)." if verbosity < 0.3 else "Give moderate detail (2-3 sentences)." if verbosity < 0.7 else "Provide detailed, comprehensive responses."
+
+    escalation_keywords = escalation.get("keywords", ["atendente", "humano", "gerente"])
+
+    prompt = f"""You are {name}, a specialized {agent_type} assistant.
+
+PERSONALITY & TONE:
+- Your communication style is {tone_desc}
+- {emoji_desc}
+- {verbosity_desc}
+
+LANGUAGE:
+- ALWAYS respond in the same language the customer writes to you
+- If Portuguese, respond in Portuguese. If English, respond in English. If Spanish, respond in Spanish.
+
+ESCALATION RULES:
+- If the customer mentions any of these words: {', '.join(escalation_keywords)}, or expresses strong frustration/anger, respond that you will transfer them to a human agent
+- When escalating, be empathetic and assure them a human will help shortly
+"""
+
+    if custom_prompt:
+        prompt += f"\nCUSTOM INSTRUCTIONS:\n{custom_prompt}\n"
+
+    if knowledge_text:
+        prompt += f"\nKNOWLEDGE BASE INSTRUCTIONS:\n{knowledge_text}\n"
+
+    if knowledge_items:
+        prompt += "\nKNOWLEDGE BASE (use this information to answer customer questions):\n"
+        for item in knowledge_items:
+            prompt += f"\n## {item.get('title', '')}\n{item.get('content', '')}\n"
+
+    prompt += "\nIMPORTANT: Be natural and human-like. Never reveal you are an AI unless directly asked."
+    return prompt
+
+
+def check_escalation(content: str, agent: dict) -> bool:
+    """Check if message should trigger escalation to human"""
+    rules = agent.get("escalation_rules", {})
+    keywords = rules.get("keywords", ["atendente", "humano", "gerente", "reclamação"])
+    content_lower = content.lower()
+    return any(kw.lower() in content_lower for kw in keywords)
+
+
 # --- Webhook for incoming messages (WhatsApp/Evolution API) ---
 @api_router.post("/webhook/whatsapp")
 async def whatsapp_webhook(payload: dict):
-    """Receive incoming WhatsApp messages from Evolution API"""
-    logger.info(f"WhatsApp webhook received: {payload}")
+    """Receive incoming WhatsApp messages and auto-reply with AI agent"""
+    logger.info(f"WhatsApp webhook received")
     try:
         event = payload.get("event", "")
         instance = payload.get("instance", "")
@@ -536,23 +643,32 @@ async def whatsapp_webhook(payload: dict):
             if is_from_me or not content:
                 return {"status": "ignored"}
 
-            # Find tenant by instance name
-            channels = supabase.table("channels").select("*, tenants!inner(id)").eq("type", "whatsapp").eq("config->>instance_name", instance).execute()
-            if not channels.data:
-                logger.warning(f"No channel found for instance: {instance}")
+            # Find channel/tenant
+            channels = supabase.table("channels").select("*").eq("type", "whatsapp").eq("status", "connected").execute()
+            channel = None
+            for ch in channels.data:
+                if ch.get("config", {}).get("instance_name") == instance:
+                    channel = ch
+                    break
+            if not channel:
                 return {"status": "no_channel"}
 
-            channel = channels.data[0]
             tenant_id = channel["tenant_id"]
 
             # Find or create conversation
             existing = supabase.table("conversations").select("*").eq("tenant_id", tenant_id).eq("contact_phone", from_number).eq("status", "active").execute()
             if existing.data:
-                convo_id = existing.data[0]["id"]
+                convo = existing.data[0]
+                convo_id = convo["id"]
             else:
+                # Find a deployed agent for this tenant
+                deployed = supabase.table("agents").select("id").eq("tenant_id", tenant_id).eq("is_deployed", True).eq("status", "active").limit(1).execute()
+                agent_id = deployed.data[0]["id"] if deployed.data else None
+
                 new_convo = {
                     "tenant_id": tenant_id,
                     "channel_id": channel["id"],
+                    "agent_id": agent_id,
                     "contact_name": from_number,
                     "contact_phone": from_number,
                     "channel_type": "whatsapp",
@@ -560,18 +676,78 @@ async def whatsapp_webhook(payload: dict):
                     "last_message_at": datetime.now(timezone.utc).isoformat(),
                 }
                 convo_result = supabase.table("conversations").insert(new_convo).execute()
-                convo_id = convo_result.data[0]["id"]
+                convo = convo_result.data[0]
+                convo_id = convo["id"]
 
-            # Store message
+            # Store incoming message
             msg = {
                 "conversation_id": convo_id,
                 "sender": "customer",
                 "content": content,
                 "message_type": "text",
-                "metadata": {"from": from_number, "raw": data},
+                "metadata": {"from": from_number},
             }
             supabase.table("messages").insert(msg).execute()
             supabase.table("conversations").update({"last_message_at": datetime.now(timezone.utc).isoformat()}).eq("id", convo_id).execute()
+
+            # --- AUTO-REPLY with AI if conversation has an agent and is not in handoff mode ---
+            if convo.get("agent_id") and not convo.get("is_handoff"):
+                agent_result = supabase.table("agents").select("*").eq("id", convo["agent_id"]).execute()
+                if agent_result.data:
+                    agent = agent_result.data[0]
+
+                    # Check escalation
+                    if check_escalation(content, agent):
+                        supabase.table("conversations").update({"is_handoff": True}).eq("id", convo_id).execute()
+                        escalation_msg = {
+                            "conversation_id": convo_id,
+                            "sender": "agent",
+                            "content": "Entendo, vou transferir você para um atendente humano. Um momento, por favor.",
+                            "message_type": "text",
+                            "metadata": {"escalated": True, "agent_name": agent["name"]},
+                        }
+                        supabase.table("messages").insert(escalation_msg).execute()
+                        return {"status": "escalated", "conversation_id": convo_id}
+
+                    # Get knowledge base for agent
+                    kb = supabase.table("agent_knowledge").select("*").eq("agent_id", agent["id"]).execute()
+                    system_prompt = build_agent_system_prompt(agent, kb.data)
+
+                    # Get recent messages for context
+                    recent = supabase.table("messages").select("*").eq("conversation_id", convo_id).order("created_at", desc=False).limit(20).execute()
+
+                    # Build AI conversation
+                    session_id = f"auto-{convo_id}"
+                    chat = LlmChat(
+                        api_key=EMERGENT_KEY,
+                        session_id=session_id,
+                        system_message=system_prompt
+                    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+                    # Replay context
+                    for m in recent.data[:-1]:
+                        if m["sender"] == "customer":
+                            await chat.send_message(UserMessage(text=m["content"]))
+
+                    # Generate response
+                    ai_response = await chat.send_message(UserMessage(text=content))
+
+                    # Store AI response
+                    ai_msg = {
+                        "conversation_id": convo_id,
+                        "sender": "agent",
+                        "content": ai_response,
+                        "message_type": "text",
+                        "metadata": {"model": "claude-sonnet-4-5", "agent_name": agent["name"], "auto_reply": True},
+                    }
+                    supabase.table("messages").insert(ai_msg).execute()
+
+                    # Update stats
+                    stats = agent.get("stats", {})
+                    stats["total_messages"] = stats.get("total_messages", 0) + 1
+                    supabase.table("agents").update({"stats": stats}).eq("id", agent["id"]).execute()
+
+                    return {"status": "auto_replied", "conversation_id": convo_id, "response": ai_response}
 
             return {"status": "ok", "conversation_id": convo_id}
 
@@ -584,8 +760,123 @@ async def whatsapp_webhook(payload: dict):
 
 @api_router.get("/webhook/whatsapp")
 async def whatsapp_webhook_verify():
-    """Verify webhook endpoint"""
     return {"status": "ok", "service": "agentflow-whatsapp-webhook"}
+
+
+# --- Deploy Agent from Marketplace ---
+@api_router.post("/agents/deploy")
+async def deploy_marketplace_agent(data: DeployAgentRequest, user=Depends(get_current_user)):
+    """Deploy a pre-built agent from marketplace to tenant"""
+    tenant_result = supabase.table("tenants").select("*").eq("owner_id", user["id"]).execute()
+    if not tenant_result.data:
+        raise HTTPException(status_code=400, detail="Create a tenant first")
+    tenant = tenant_result.data[0]
+
+    agent_count = len(supabase.table("agents").select("id").eq("tenant_id", tenant["id"]).execute().data)
+    if tenant["plan"] == "free" and agent_count >= 1:
+        raise HTTPException(status_code=403, detail="Free plan allows only 1 agent. Upgrade to create more.")
+
+    # Find marketplace template
+    template = None
+    for a in MARKETPLACE_AGENTS:
+        if a["name"].lower() == data.template_name.lower():
+            template = a
+            break
+    if not template:
+        raise HTTPException(status_code=404, detail=f"Marketplace agent '{data.template_name}' not found")
+
+    agent = {
+        "tenant_id": tenant["id"],
+        "name": data.custom_name or template["name"],
+        "type": template["type"],
+        "description": template["description"],
+        "system_prompt": template["system_prompt"],
+        "status": "active",
+        "language_mode": "auto_detect",
+        "fixed_language": "pt",
+        "personality": template.get("personality", {}),
+        "ai_config": {"model": "claude-sonnet", "temperature": 0.7, "max_tokens": 500},
+        "stats": {"total_conversations": 0, "total_messages": 0, "resolution_rate": 0},
+        "tone": data.tone,
+        "emoji_level": data.emoji_level,
+        "verbosity_level": data.verbosity_level,
+        "escalation_rules": {"keywords": ["atendente", "humano", "gerente", "reclamação"], "sentiment_threshold": 0.3},
+        "follow_up_config": {"enabled": False, "delay_hours": 24, "max_follow_ups": 3, "cool_down_days": 7},
+        "knowledge_instructions": "",
+        "is_deployed": True,
+        "marketplace_template_id": template["name"],
+    }
+    result = supabase.table("agents").insert(agent).execute()
+
+    current_usage = tenant.get("usage", {})
+    current_usage["agents_created"] = current_usage.get("agents_created", 0) + 1
+    supabase.table("tenants").update({"usage": current_usage}).eq("id", tenant["id"]).execute()
+    return result.data[0]
+
+
+# --- Knowledge Base ---
+@api_router.get("/agents/{agent_id}/knowledge")
+async def get_knowledge(agent_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    # Verify agent belongs to tenant
+    agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
+    if not agent.data:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    result = supabase.table("agent_knowledge").select("*").eq("agent_id", agent_id).order("created_at", desc=False).execute()
+    return {"items": result.data}
+
+
+@api_router.post("/agents/{agent_id}/knowledge")
+async def add_knowledge(agent_id: str, data: KnowledgeCreate, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
+    if not agent.data:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    item = {"agent_id": agent_id, "type": data.type, "title": data.title, "content": data.content}
+    result = supabase.table("agent_knowledge").insert(item).execute()
+    return result.data[0]
+
+
+@api_router.delete("/agents/{agent_id}/knowledge/{item_id}")
+async def delete_knowledge(agent_id: str, item_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    supabase.table("agent_knowledge").delete().eq("id", item_id).eq("agent_id", agent_id).execute()
+    return {"status": "ok"}
+
+
+# --- Follow-up Rules ---
+@api_router.get("/agents/{agent_id}/follow-up-rules")
+async def get_follow_up_rules(agent_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
+    if not agent.data:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    result = supabase.table("follow_up_rules").select("*").eq("agent_id", agent_id).execute()
+    return {"rules": result.data}
+
+
+@api_router.post("/agents/{agent_id}/follow-up-rules")
+async def add_follow_up_rule(agent_id: str, data: FollowUpRuleCreate, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    agent = supabase.table("agents").select("id").eq("id", agent_id).eq("tenant_id", tenant["id"]).execute()
+    if not agent.data:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    rule = {
+        "agent_id": agent_id,
+        "trigger_type": data.trigger_type,
+        "delay_hours": data.delay_hours,
+        "message_template": data.message_template,
+        "is_active": data.is_active,
+    }
+    result = supabase.table("follow_up_rules").insert(rule).execute()
+    return result.data[0]
+
+
+@api_router.delete("/agents/{agent_id}/follow-up-rules/{rule_id}")
+async def delete_follow_up_rule(agent_id: str, rule_id: str, user=Depends(get_current_user)):
+    tenant = await get_tenant(user)
+    supabase.table("follow_up_rules").delete().eq("id", rule_id).eq("agent_id", agent_id).execute()
+    return {"status": "ok"}
 
 
 # --- Leads / CRM ---

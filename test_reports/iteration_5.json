@@ -1,0 +1,80 @@
+{
+  "summary": "Phase 3 testing complete: Agent Deployment, Knowledge Base CRUD, Follow-up Rules CRUD, Agent Personality Config (tone, emoji_level, verbosity_level, escalation_rules), WhatsApp webhook escalation. 15/15 backend tests pass, all frontend features verified in AgentConfig page with 4 tabs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_agents_deployment_knowledge_followup.py",
+    "/app/test_reports/pytest/pytest_results_agents_deploy.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_agents_deployment_knowledge_followup.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "test_user": "test@agentflow.com / password123",
+    "language": "pt (Portuguese)"
+  },
+  "seed_data_creation": "Test knowledge items and follow-up rules created and cleaned up during tests. Existing agent: Carol Vendas (003330f0-4eaf-452c-9aea-aaf28a0f5c94)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All Phase 3 agent features working. User has 1 deployed agent (Carol Vendas). Free plan limits tested (1 agent max, deploy returns 403). Knowledge base has 3 items (Horario FAQ, Plano Starter PRODUCT, Politica de Reembolso POLICY). AgentConfig page has 4 tabs: Personality, Knowledge, Follow-up, Advanced. Webhook escalation detection works on keywords like 'atendente', 'humano', 'gerente', 'reclamação'.",
+  "verified_features": {
+    "backend_apis": [
+      "GET /api/agents/marketplace - returns 22 marketplace agents with name, type, category, rating",
+      "GET /api/agents - returns deployed agents with tone, emoji_level, verbosity_level, escalation_rules, follow_up_config",
+      "GET /api/agents/{id} - returns single agent with all config fields",
+      "PUT /api/agents/{id} - updates tone, emoji_level, verbosity_level, escalation_rules (verified with GET)",
+      "POST /api/agents/deploy - blocked by free plan limit (403), validates template exists (404)",
+      "POST /api/agents/{id}/knowledge - creates knowledge item (faq, product, policy, hours, custom)",
+      "GET /api/agents/{id}/knowledge - lists knowledge items with type, title, content",
+      "DELETE /api/agents/{id}/knowledge/{item_id} - deletes knowledge item (verified removal)",
+      "POST /api/agents/{id}/follow-up-rules - creates rule (trigger_type, delay_hours, message_template)",
+      "GET /api/agents/{id}/follow-up-rules - lists follow-up rules",
+      "DELETE /api/agents/{id}/follow-up-rules/{rule_id} - deletes rule (verified removal)",
+      "GET /api/webhook/whatsapp - returns status ok",
+      "POST /api/webhook/whatsapp - processes messages, escalation keyword detection works"
+    ],
+    "frontend_pages": [
+      "Agents page (/agents) - loads with dark luxury theme in Portuguese",
+      "Agents - Marketplace/My Agents toggle visible (22 marketplace, 1 deployed)",
+      "Agents - Marketplace shows agent cards with name, type, rating, 'Publicar Agente' button",
+      "Agents - Type filters: Todos, Vendas, Suporte, Agenda, SAC, Onboarding",
+      "Agents - Search input works",
+      "Agents - My Agents tab shows deployed agents with 'Configurar' button",
+      "AgentConfig page (/agents/{id}/config) - loads with agent name 'Carol Vendas'",
+      "AgentConfig - Header: agent name (editable), type, tone, Save button",
+      "AgentConfig - 4 tabs: Personalidade, Conhecimento, Pos-atendimento, Avancado",
+      "AgentConfig - Personality tab: 5 tone options (Profissional, Amigavel, Empatico, Direto, Consultivo)",
+      "AgentConfig - Personality tab: Emoji slider (0-100%), Verbosity slider (0-100%)",
+      "AgentConfig - Personality tab: Preview shows sample message with selected tone/emoji",
+      "AgentConfig - Knowledge tab: Shows existing items (FAQ Horario, PRODUCT Plano Starter, POLICY Politica)",
+      "AgentConfig - Knowledge tab: Add button opens form with type dropdown, title, content",
+      "AgentConfig - Knowledge tab: Delete buttons on each item",
+      "AgentConfig - Knowledge tab: 'Instrucoes adicionais' textarea",
+      "AgentConfig - Follow-up tab: Toggle for 'Pos-Atendimento Automatico'",
+      "AgentConfig - Follow-up tab: Max follow-ups and Cooldown config inputs",
+      "AgentConfig - Follow-up tab: Add rule button and rules list",
+      "AgentConfig - Advanced tab: System prompt textarea (editable)",
+      "AgentConfig - Advanced tab: Escalation keywords input (comma-separated)",
+      "AgentConfig - Advanced tab: 'Testar Agente no Sandbox' button"
+    ]
+  },
+  "mocked_apis_note": "WhatsApp webhook auto-reply pipeline built but no real Evolution API integration. Escalation detection works on keywords.",
+  "ai_integration_notes": {
+    "model": "Claude Sonnet 4.5 via Emergent LLM Key",
+    "mocked": false,
+    "webhook_auto_reply": "MOCKED - no real WhatsApp/Evolution API"
+  }
+}

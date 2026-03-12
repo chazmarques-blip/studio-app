@@ -11,6 +11,7 @@ import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 import AgentBuilder from './pages/AgentBuilder';
 import AgentSandbox from './pages/AgentSandbox';
+import AgentConfig from './pages/AgentConfig';
 import CRM from './pages/CRM';
 import LeadDetail from './pages/LeadDetail';
 import CampaignBuilder from './pages/CampaignBuilder';
@@ -73,6 +74,7 @@ function App() {
           {/* Full-screen pages (no bottom nav) */}
           <Route path="/agents/builder" element={<ProtectedRoute><AgentBuilder /></ProtectedRoute>} />
           <Route path="/agents/sandbox" element={<ProtectedRoute><AgentSandbox /></ProtectedRoute>} />
+          <Route path="/agents/:agentId/config" element={<ProtectedRoute><AgentConfig /></ProtectedRoute>} />
           <Route path="/crm/lead/:id" element={<ProtectedRoute><LeadDetail /></ProtectedRoute>} />
           <Route path="/campaigns/new" element={<ProtectedRoute><CampaignBuilder /></ProtectedRoute>} />
           <Route path="/chat/handoff/:id" element={<ProtectedRoute><HandoffHuman /></ProtectedRoute>} />
