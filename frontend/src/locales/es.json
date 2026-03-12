@@ -200,7 +200,9 @@
     "language_detected": "Idioma Detectado",
     "publish": "Publicar Agente",
     "edit": "Editar Agente",
-    "model": "Modelo"
+    "model": "Modelo",
+    "type_personal": "Personal",
+    "personal_section": "Agentes Personales"
   },
   "crm": {
     "pipeline": "Pipeline CRM",

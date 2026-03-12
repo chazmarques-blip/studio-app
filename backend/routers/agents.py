@@ -3,14 +3,22 @@ from datetime import datetime, timezone
 
 from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper
 from core.models import AgentCreate, AgentUpdate, KnowledgeCreate, FollowUpRuleCreate, DeployAgentRequest
-from core.constants import MARKETPLACE_AGENTS
+from core.constants import MARKETPLACE_AGENTS, PERSONAL_AGENTS
 
 router = APIRouter(prefix="/api", tags=["agents"])
 
 
 @router.get("/agents/marketplace")
-async def get_marketplace():
-    return {"agents": MARKETPLACE_AGENTS}
+async def get_marketplace(user=Depends(get_current_user)):
+    tenant_result = supabase.table("tenants").select("plan").eq("owner_id", user["id"]).execute()
+    plan = tenant_result.data[0]["plan"] if tenant_result.data else "free"
+    # Include personal agents with lock info based on plan
+    personal_with_lock = []
+    for pa in PERSONAL_AGENTS:
+        agent = {**pa}
+        agent["locked"] = plan not in ("pro", "enterprise")
+        personal_with_lock.append(agent)
+    return {"agents": MARKETPLACE_AGENTS + personal_with_lock, "plan": plan}
 
 
 @router.post("/agents")
@@ -156,12 +164,17 @@ async def deploy_marketplace_agent(data: DeployAgentRequest, user=Depends(get_cu
         raise HTTPException(status_code=403, detail="Free plan allows only 1 agent. Upgrade to create more.")
 
     template = None
-    for a in MARKETPLACE_AGENTS:
+    all_agents = MARKETPLACE_AGENTS + PERSONAL_AGENTS
+    for a in all_agents:
         if a["name"].lower() == data.template_name.lower():
             template = a
             break
     if not template:
         raise HTTPException(status_code=404, detail=f"Marketplace agent '{data.template_name}' not found")
+
+    # Check plan restriction for personal agents
+    if template.get("is_personal") and tenant["plan"] not in ("pro", "enterprise"):
+        raise HTTPException(status_code=403, detail="Personal agents are available from the Pro plan. Upgrade to access.")
 
     agent = {
         "tenant_id": tenant["id"],

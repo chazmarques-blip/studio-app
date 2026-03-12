@@ -116,10 +116,10 @@ async def get_dashboard_stats(user=Depends(get_current_user)):
 
 
 PLAN_CONFIG = {
-    "free": {"agents": 1, "messages_limit": 200, "messages_period": "month", "channels": 1},
-    "starter": {"agents": 3, "messages_limit": 1500, "messages_period": "month", "channels": 5},
-    "pro": {"agents": 5, "messages_limit": 5000, "messages_period": "month", "channels": 5},
-    "enterprise": {"agents": 10, "messages_limit": 10000, "messages_period": "month", "channels": 5},
+    "free": {"agents": 1, "messages_limit": 200, "messages_period": "month", "channels": 1, "personal_agent": False},
+    "starter": {"agents": 3, "messages_limit": 1500, "messages_period": "month", "channels": 5, "personal_agent": False},
+    "pro": {"agents": 5, "messages_limit": 5000, "messages_period": "month", "channels": 5, "personal_agent": True},
+    "enterprise": {"agents": 10, "messages_limit": 10000, "messages_period": "month", "channels": 5, "personal_agent": True},
 }
 
 

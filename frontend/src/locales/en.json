@@ -200,7 +200,9 @@
     "system_prompt_placeholder": "You are a helpful assistant that...",
     "desc_placeholder": "Describe what this agent does...",
     "qr_hint": "QR Code will appear here after connecting",
-    "type_custom": "Custom"
+    "type_custom": "Custom",
+    "type_personal": "Personal",
+    "personal_section": "Personal Agents"
   },
   "crm": {
     "pipeline": "CRM Pipeline",

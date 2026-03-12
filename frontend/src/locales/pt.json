@@ -200,7 +200,9 @@
     "system_prompt_placeholder": "Voce e um assistente util que...",
     "desc_placeholder": "Descreva o que este agente faz...",
     "qr_hint": "O QR Code aparecera aqui apos conectar",
-    "type_custom": "Personalizado"
+    "type_custom": "Personalizado",
+    "type_personal": "Pessoal",
+    "personal_section": "Agentes Pessoais"
   },
   "crm": {
     "pipeline": "Pipeline CRM",
