@@ -5,12 +5,21 @@ import { AppLayout } from './components/layout/AppLayout';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
+import OnboardingAgentLang from './pages/OnboardingAgentLang';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
+import AgentBuilder from './pages/AgentBuilder';
+import AgentSandbox from './pages/AgentSandbox';
 import CRM from './pages/CRM';
+import LeadDetail from './pages/LeadDetail';
+import CampaignBuilder from './pages/CampaignBuilder';
 import Analytics from './pages/Analytics';
 import SettingsPage from './pages/Settings';
+import ChannelConnection from './pages/ChannelConnection';
+import HandoffHuman from './pages/HandoffHuman';
+import UpsellScreen from './pages/UpsellScreen';
+import Pricing from './pages/Pricing';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -43,21 +52,15 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: {
-              background: '#1A1A1A',
-              border: '1px solid #2A2A2A',
-              color: '#FFFFFF',
-              fontSize: '13px',
-            },
-          }}
-        />
+        <Toaster position="top-center" toastOptions={{ style: { background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#FFFFFF', fontSize: '13px' } }} />
         <Routes>
+          {/* Public */}
           <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          {/* Onboarding */}
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+          <Route path="/onboarding/agent-lang" element={<ProtectedRoute><OnboardingAgentLang /></ProtectedRoute>} />
+          {/* App with bottom nav */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/chat" element={<Chat />} />
@@ -65,7 +68,17 @@ function App() {
             <Route path="/crm" element={<CRM />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/pricing" element={<Pricing />} />
           </Route>
+          {/* Full-screen pages (no bottom nav) */}
+          <Route path="/agents/builder" element={<ProtectedRoute><AgentBuilder /></ProtectedRoute>} />
+          <Route path="/agents/sandbox" element={<ProtectedRoute><AgentSandbox /></ProtectedRoute>} />
+          <Route path="/crm/lead/:id" element={<ProtectedRoute><LeadDetail /></ProtectedRoute>} />
+          <Route path="/campaigns/new" element={<ProtectedRoute><CampaignBuilder /></ProtectedRoute>} />
+          <Route path="/chat/handoff/:id" element={<ProtectedRoute><HandoffHuman /></ProtectedRoute>} />
+          <Route path="/settings/channels" element={<ProtectedRoute><ChannelConnection /></ProtectedRoute>} />
+          <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />
+          {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
