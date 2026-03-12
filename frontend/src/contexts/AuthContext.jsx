@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
   const { i18n } = useTranslation();
 
   const applyLanguage = useCallback((lang) => {
-    if (lang && lang !== i18n.language) {
+    if (lang) {
       i18n.changeLanguage(lang);
       localStorage.setItem('agentflow_lang', lang);
     }
@@ -67,11 +67,9 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     localStorage.removeItem('agentflow_token');
-    localStorage.removeItem('agentflow_lang');
     setToken(null);
     setUser(null);
     setAuthHeader(null);
-    i18n.changeLanguage('en');
   };
 
   const updateProfile = async (updates) => {
