@@ -323,11 +323,12 @@ export default function Landing() {
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
               {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_free_${k}`)}</li>)}
             </ul>
-            <button onClick={() => navigate('/login?tab=signup')} className="w-full rounded-lg border border-[#1E1E1E] py-2 text-sm text-[#888] hover:border-[#C9A84C]/30 hover:text-white transition">{t('landing.plan_free_cta')}</button>
+            <button data-testid="plan-free-btn" onClick={() => navigate('/login?tab=signup')} className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_free_cta')}</button>
+            <p className="mt-2 text-center text-[10px] text-[#555]">{t('landing.plan_free_no_card')}</p>
           </div>
           {/* STARTER */}
-          <div className="rounded-xl border border-[#C9A84C]/25 bg-[#0C0C0C] relative flex flex-col p-5 shadow-lg shadow-[#C9A84C]/3">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#C9A84C] px-3 py-0.5 text-[10px] font-semibold text-[#0A0A0A]">{t('landing.plan_starter_badge')}</div>
+          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] relative flex flex-col p-5 hover:border-[#1E1E1E] transition">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-[#C9A84C]/30 bg-[#0D0D0D] px-3 py-0.5 text-[10px] font-medium text-[#C9A84C]">{t('landing.plan_starter_badge')}</div>
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_starter')}</h3>
             <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_starter_desc')}</p>
             <div className="mb-4"><span className="text-2xl font-bold text-[#C9A84C]">{t('landing.plan_starter_price')}</span><span className="text-xs text-[#555]">{t('landing.plan_starter_period')}</span></div>
@@ -336,9 +337,9 @@ export default function Landing() {
             </ul>
             <button className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_starter_cta')}</button>
           </div>
-          {/* PRO */}
-          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] relative flex flex-col p-5 hover:border-[#1E1E1E] transition">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-[#C9A84C]/30 bg-[#0D0D0D] px-3 py-0.5 text-[10px] font-medium text-[#C9A84C]">{t('landing.plan_pro_badge')}</div>
+          {/* PRO - Most Popular */}
+          <div className="rounded-xl border border-[#C9A84C]/25 bg-[#0C0C0C] relative flex flex-col p-5 shadow-lg shadow-[#C9A84C]/3">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#C9A84C] px-3 py-0.5 text-[10px] font-semibold text-[#0A0A0A]">{t('landing.plan_pro_badge')}</div>
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_pro')}</h3>
             <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_pro_desc')}</p>
             <div className="mb-4">
@@ -351,7 +352,8 @@ export default function Landing() {
             <button className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_pro_cta')}</button>
           </div>
           {/* ENTERPRISE */}
-          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-5 hover:border-[#1E1E1E] transition">
+          <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] relative flex flex-col p-5 hover:border-[#1E1E1E] transition">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-[#C9A84C]/30 bg-[#0D0D0D] px-3 py-0.5 text-[10px] font-medium text-[#C9A84C]">{t('landing.plan_enterprise_badge')}</div>
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_enterprise')}</h3>
             <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_enterprise_desc')}</p>
             <div className="mb-4">
@@ -359,7 +361,7 @@ export default function Landing() {
               <span className="text-xs text-[#555]">{billingAnnual ? t('landing.plan_enterprise_period_annual') : t('landing.plan_enterprise_period_monthly')}</span>
             </div>
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
-              {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
+              {['f1','f2','f3','f4','f5','f6','f7','f8'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
             </ul>
             <button className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_enterprise_cta')}</button>
           </div>
