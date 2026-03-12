@@ -50,11 +50,15 @@ class AgentUpdate(BaseModel):
     personality: Optional[dict] = None
     ai_config: Optional[dict] = None
     tone: Optional[str] = None
-    emoji_level: Optional[str] = None
-    verbosity_level: Optional[str] = None
+    emoji_level: Optional[float] = None
+    verbosity_level: Optional[float] = None
     escalation_rules: Optional[dict] = None
     follow_up_config: Optional[dict] = None
     knowledge_instructions: Optional[str] = None
+    personality_config: Optional[dict] = None
+    integrations_config: Optional[dict] = None
+    channel_config: Optional[dict] = None
+    status: Optional[str] = None
 
 
 class KnowledgeCreate(BaseModel):
@@ -140,3 +144,9 @@ class SandboxChatRequest(BaseModel):
     agent_type: Optional[str] = "sales"
     system_prompt: Optional[str] = None
     session_id: Optional[str] = None
+
+
+
+class TelegramSetupRequest(BaseModel):
+    agent_id: str
+    bot_token: str

@@ -1,0 +1,73 @@
+{
+  "summary": "Iteration 11 - Enhanced Agent Configuration with 6 Tabs. All 19 backend tests passed (100%). All frontend features verified including 6-tab navigation, Personality config (tone/sliders/flags), Knowledge CRUD, Integrations cards, Channels cards with Telegram bot token input, Escalation settings, and Automations with follow-up rules.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/agents/{id}/knowledge POST",
+        "issue": "Model requires agent_id in body even though it comes from URL path (works but redundant)"
+      },
+      {
+        "endpoint": "/api/agents/{id}/follow-up-rules POST",
+        "issue": "Model requires agent_id in body even though it comes from URL path (works but redundant)"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration11_agent_config.py",
+    "/app/test_reports/pytest/pytest_results_iteration11.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "KnowledgeCreate and FollowUpRuleCreate models have agent_id as required field but the router uses path parameter and overwrites it. Consider making agent_id optional in these models since it comes from URL."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration11_agent_config.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "test_user": "test@agentflow.com / password123",
+    "test_agent_id": "003330f0-4eaf-452c-9aea-aaf28a0f5c94"
+  },
+  "seed_data_creation": "Created and cleaned up test knowledge items and follow-up rules during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 11 verified: Enhanced Agent Configuration Page with 6 tabs is fully functional. Features tested: (1) Personality tab - 5 tone buttons, 5 sliders (Emoji, Verbosity, Proactivity, Creativity, Formality), 5 behavior flags. (2) Knowledge tab - add/delete knowledge items, additional instructions textarea. (3) Integrations tab - 5 cards (Google Calendar/Sheets/Drive, Custom API, Webhooks) with connect buttons. (4) Channels tab - 6 cards (Telegram/WhatsApp/Instagram/Messenger/SMS/WebChat), Telegram shows bot token input and Connect Bot button when enabled. (5) Escalation tab - keywords input, frustration threshold slider, notify toggle, system prompt textarea, Test Agent button. (6) Automations tab - follow-up toggle, max/cooldown config, add/delete rules with trigger type selector. Save button persists all configs via PUT /api/agents/{id}. Backend stores personality_config in personality.config, integrations_config/channel_config in ai_config.integrations/channels.",
+  "verified_features": {
+    "backend_apis": [
+      "GET /api/health - returns status ok",
+      "POST /api/auth/login - returns access_token",
+      "GET /api/agents/{id} - returns personality_config, integrations_config, channel_config (extracted from JSON columns)",
+      "PUT /api/agents/{id} - stores personality_config, integrations_config, channel_config, tone, emoji_level, verbosity_level, escalation_rules, follow_up_config",
+      "POST /api/telegram/setup - validates bot token format (returns 400 for invalid)",
+      "GET /api/webhook/telegram/{agent_id} - returns status ok",
+      "GET /api/agents/{id}/knowledge - returns items list",
+      "POST /api/agents/{id}/knowledge - creates knowledge item",
+      "DELETE /api/agents/{id}/knowledge/{item_id} - deletes knowledge item",
+      "GET /api/agents/{id}/follow-up-rules - returns rules list",
+      "POST /api/agents/{id}/follow-up-rules - creates follow-up rule",
+      "DELETE /api/agents/{id}/follow-up-rules/{rule_id} - deletes follow-up rule"
+    ],
+    "frontend_agent_config_page": {
+      "url_pattern": "/agents/{agentId}/config",
+      "tabs": [
+        "Personality - Tone buttons (Professional/Friendly/Empathetic/Direct/Consultive), Fine Tuning sliders (Emoji/Verbosity/Proactivity/Creativity/Formality), Behaviors toggles (Auto multilingual/Remember context/Auto escalate/Suggest products/Collect data), Preview section",
+        "Knowledge - Add button, knowledge items with type badges and delete buttons, Additional instructions textarea",
+        "Integrations - 5 cards (Google Calendar/Sheets/Drive, Custom API, Webhooks) with Connect/Connected toggle buttons",
+        "Channels - 6 cards (Telegram Bot/WhatsApp/Instagram DM/Facebook Messenger/SMS/Web Chat) with Enable/Active toggle. Telegram shows bot token input and Connect Bot button when enabled",
+        "Escalation - Escalation keywords input, Frustration threshold slider (0-100%), Notify operator toggle, System Prompt textarea, Test Agent in Sandbox button",
+        "Automations - Auto Follow-up toggle. When enabled: Max Follow-ups input, Cooldown (days) input, Reactivation Rules section with Add button and existing rules list"
+      ],
+      "header": "Agent name input, agent type/tone display, Save button"
+    }
+  },
+  "mocked_apis_note": "Telegram Bot API connection requires real bot token from @BotFather (returns 400 with fake token - expected). Google integrations are UI toggles only (not connected to real Google APIs)."
+}

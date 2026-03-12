@@ -71,7 +71,14 @@ async def get_agent(agent_id: str, user=Depends(get_current_user)):
     result = supabase.table("agents").select("*").eq("id", agent_id).eq("tenant_id", tenant_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return result.data[0]
+    agent = result.data[0]
+    # Extract nested configs from existing JSON columns
+    personality = agent.get("personality") or {}
+    ai_config = agent.get("ai_config") or {}
+    agent["personality_config"] = personality.get("config", {})
+    agent["integrations_config"] = ai_config.get("integrations", {})
+    agent["channel_config"] = ai_config.get("channels", {})
+    return agent
 
 
 @router.put("/agents/{agent_id}")
@@ -80,12 +87,45 @@ async def update_agent(agent_id: str, data: AgentUpdate, user=Depends(get_curren
     if not tenant_result.data:
         raise HTTPException(status_code=404, detail="Tenant not found")
     tenant_id = tenant_result.data[0]["id"]
-    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+
+    # Get current agent to merge JSON fields
+    current = supabase.table("agents").select("personality, ai_config").eq("id", agent_id).eq("tenant_id", tenant_id).execute()
+    if not current.data:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    updates = {}
+    raw = data.model_dump()
+
+    # Store personality_config, integrations_config, channel_config inside existing JSON columns
+    personality_config = raw.pop("personality_config", None)
+    integrations_config = raw.pop("integrations_config", None)
+    channel_config = raw.pop("channel_config", None)
+
+    # Merge standard fields
+    for k, v in raw.items():
+        if v is not None:
+            updates[k] = v
+
+    # Merge personality_config into 'personality' column
+    if personality_config is not None:
+        existing_personality = current.data[0].get("personality") or {}
+        existing_personality["config"] = personality_config
+        updates["personality"] = existing_personality
+
+    # Merge integrations_config and channel_config into 'ai_config' column
+    if integrations_config is not None or channel_config is not None:
+        existing_ai_config = current.data[0].get("ai_config") or {}
+        if integrations_config is not None:
+            existing_ai_config["integrations"] = integrations_config
+        if channel_config is not None:
+            existing_ai_config["channels"] = channel_config
+        updates["ai_config"] = existing_ai_config
+
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = supabase.table("agents").update(updates).eq("id", agent_id).eq("tenant_id", tenant_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return {"status": "ok", "updated": updates}
+    return {"status": "ok", "updated": list(updates.keys())}
 
 
 @router.delete("/agents/{agent_id}")
