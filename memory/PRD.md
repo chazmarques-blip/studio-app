@@ -1,55 +1,78 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows SMB owners to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS).
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows small and medium business owners to easily deploy and configure pre-built AI agents on various social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS).
+
+## Core Requirements
+1. **Omnichannel Inbox** - Unified inbox for WhatsApp, Instagram, Facebook Messenger, Telegram, SMS
+2. **AI Capabilities** - Claude 3.5 Sonnet (text), OpenAI Whisper (voice), Claude Vision (images)
+3. **Multi-Agent Orchestration** - Switch between specialized agents within conversations
+4. **Multi-Language** - UI in English, Portuguese, Spanish
+5. **Agent Marketplace** - 20+ pre-built, editable agents
+6. **Advanced Agent Config** - Personality, knowledge base, post-conversation rules
+7. **Real-Time Sync** - Google Calendar & Sheets integration
+8. **Lead Nurturing & AI Campaigns** - Automated follow-ups + AI campaign generator (Enterprise)
+9. **Integrated CRM** - Visual Kanban board
+10. **Dark Luxury Theme** - Monochrome gold, black, white, gray
+11. **Freemium Pricing** - Plan-gated features
+12. **Admin Dashboard** - Full administrative backend
 
 ## Tech Stack
-- **Frontend**: React, TailwindCSS, shadcn/ui, Lucide Icons, i18next (EN/PT/ES), Framer Motion, Recharts
-- **Backend**: FastAPI (Python), google-api-python-client, google-auth-oauthlib
-- **Database**: Supabase (PostgreSQL via REST API)
-- **AI**: Claude 3.5 Sonnet + Claude Vision + OpenAI Whisper (Emergent LLM Key)
-- **Google**: Calendar API, Sheets API, Drive API (OAuth2)
+- **Frontend:** React, Tailwind CSS, shadcn-ui, Lucide Icons, Framer Motion, recharts
+- **Backend:** FastAPI (Python)
+- **Database:** Supabase (PostgreSQL) for all data
+- **3rd Party:** Google API, Anthropic Claude, OpenAI Whisper (via Emergent LLM Key)
 
-## Completed Phases
-- Phase 0-2: Foundation, Messaging, AI & Multimodal
-- Landing Page, Backend Refactoring, CRM Kanban, Agent Config, Pricing/Billing
-- P0 Navigation Fixes, Dashboard v2 (dynamic), Personal Agents (Pro+)
-- Chat gold palette, Agent detail modal, Name edit + Reset
+## What's Been Implemented
 
-### Phase 6: Google Integration — Mar 13 2026
-- OAuth2 flow (connect/disconnect/status)
-- Google Calendar: list calendars, list events, create event, delete event
-- Google Sheets: read, write, append, list spreadsheets
-- Export Leads to Google Sheets (auto-creates spreadsheet)
-- Google Drive: list files (readonly)
-- Frontend: /settings/google page with connection management, Calendar/Sheets tabs
-- Settings updated with Google menu item
-- **AgentConfig Integrations Tab (COMPLETED Mar 13 2026):**
-  - Dynamic Google connection status check via /api/google/status
-  - Dropdown selector for Google Calendar (fetches from /api/google/calendar/list)
-  - Dropdown selector for Google Sheets (fetches from /api/google/sheets/list)
-  - Refresh buttons for reloading calendar/sheets lists
-  - Google Drive toggle
-  - Custom API and Webhooks integration toggles
-  - integrations_config saves to agent's ai_config JSONB column
-- iteration_16: 100% backend (22/22) + 100% frontend
+### Phase 1-5: Core Platform (COMPLETE)
+- Auth system (JWT + Supabase)
+- Onboarding flow
+- Dashboard with recharts
+- Agent Marketplace (20+ agents + personal agents)
+- Agent Configuration (name, prompt, personality, knowledge base, follow-up rules)
+- Omnichannel Chat (mocked channels)
+- CRM with Kanban board
+- Lead Management with AI scoring
+- Analytics page
+- Settings & Profile
+- Pricing & Plan management
+- Multi-language support (EN/PT/ES)
 
-## Plan Configuration
-- Free: 1 agent, 200 msgs/mo, NO personal agent
-- Starter: 3 agents, 1500 msgs/mo, NO personal agent
-- Pro: 5 agents, 5000 msgs/mo, YES personal agent
-- Enterprise: 10 agents, 10000 msgs/mo, YES personal + Marketing AI Studio
+### Phase 6: Google Integration (COMPLETE)
+- Google OAuth connection
+- Calendar selection per agent
+- Sheets selection per agent
+- Dynamic connection status display
 
-## Upcoming Tasks
-1. **Phase 7.1**: Lead Nurturing Engine (Pro+) — drip campaigns, segmentation, templates
-2. **Phase 7.2**: Marketing AI Studio (Enterprise) — 4 AI agents (Copywriter, Designer, Reviewer, Publisher)
-3. **Phase 8**: Integracoes Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram)
-4. **Phase 9**: Gateway de Pagamento (Stripe)
-5. **Phase 10**: Painel Administrativo
-6. **Phase 11**: Multi-tenancy & Escalabilidade
-7. **Phase 12**: Compliance & App Store (Termos, LGPD, GDPR, Apple/Google requirements)
-8. **Phase 13**: IA Avancada (AI Insights dinamicos, analise sentimento, auto-treinamento)
-9. **Phase 14**: Melhorias UX (avatar, onboarding wizard, analytics page, PWA)
+### Phase 7: AI Marketing Studio (COMPLETE - Feb 2026)
+- **Marketing Campaign Hub** (`/marketing`): Full CRUD for campaigns, stats dashboard, templates, filters
+- **AI Marketing Studio** (`/marketing/studio`): 4 specialized AI agents (Sofia Copywriter, Lucas Designer, Ana Reviewer, Pedro Publisher) powered by Claude AI
+- **Enterprise Plan Gating**: Studio restricted to Enterprise plan users
+- **Creatives Library**: Save/manage AI-generated content
+- **Seed Data**: Demo campaigns for AgentZZ company
+- **Database**: All stored in Supabase (campaigns + creatives tables with JSONB metrics)
 
-## Test Credentials
+## Database Schema
+- **users** - Auth & profile data
+- **tenants** - Multi-tenant with plan, limits, usage
+- **agents** - AI agent configurations with JSONB personality/ai_config
+- **agent_knowledge** - Knowledge base items per agent
+- **follow_up_rules** - Post-conversation rules
+- **conversations** - Chat conversations
+- **messages** - Chat messages
+- **leads** - CRM leads with AI scoring
+- **channels** - Communication channels
+- **campaigns** - Marketing campaigns (JSONB metrics for stats/messages/schedule)
+- **creatives** - AI-generated marketing content
+
+## Credentials
 - Email: test@agentflow.com / Password: password123
+- Plan: Enterprise (upgraded)
+
+## Backlog (P1/P2)
+- **Phase 8**: Omnichannel Integrations (WhatsApp Evolution API, Twilio SMS, Instagram, Facebook, Telegram)
+- **Admin Dashboard**: Platform management system
+- **Payment Gateway**: Stripe/payment integration
+- **Legal**: Terms of Use, Privacy Policy
+- **Scalability**: Architecture optimization for high-volume
