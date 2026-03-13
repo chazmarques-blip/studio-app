@@ -202,24 +202,6 @@ export default function MarketingStudio() {
     </div>
   );
 
-  if (!isEnterprise) return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4">
-      <div className="max-w-sm text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#C9A84C]/10 mx-auto mb-4">
-          <Lock size={28} className="text-[#C9A84C]" />
-        </div>
-        <h1 className="text-lg font-bold text-white mb-2">Marketing AI Studio</h1>
-        <p className="text-[12px] text-[#888] mb-4">{lang === 'pt' ? 'Este recurso exclusivo esta disponivel apenas no plano Enterprise. Faca upgrade para desbloquear 4 agentes IA de marketing.' : 'This exclusive feature is available on the Enterprise plan only. Upgrade to unlock 4 AI marketing agents.'}</p>
-        <button data-testid="studio-upgrade-btn" onClick={() => navigate('/upgrade')} className="btn-gold rounded-xl px-6 py-2.5 text-[12px]">
-          {lang === 'pt' ? 'Upgrade para Enterprise' : 'Upgrade to Enterprise'}
-        </button>
-        <button onClick={() => navigate('/marketing')} className="block mx-auto mt-3 text-[10px] text-[#555] hover:text-white">
-          {lang === 'pt' ? 'Voltar' : 'Go back'}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
       {/* Header */}

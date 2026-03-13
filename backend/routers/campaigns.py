@@ -352,7 +352,6 @@ studio_sessions = {}
 @router.post("/studio/generate")
 async def studio_generate(data: StudioRequest, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    _check_enterprise(tenant["plan"])
 
     agent_cfg = STUDIO_AGENTS.get(data.agent_type)
     if not agent_cfg:

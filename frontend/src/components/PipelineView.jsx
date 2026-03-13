@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -33,12 +34,14 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
     ((step === 'ana_review_copy' && !data?.user_selection) ||
      (step === 'ana_review_design' && !data?.user_selections));
   const isFailed = status === 'failed';
+  const requiresUpgrade = status === 'requires_upgrade';
 
   return (
     <div data-testid={`step-card-${step}`} className={`rounded-xl border transition-all duration-300 ${
       isActive ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
       needsApproval ? 'border-amber-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(245,158,11,0.08)]' :
       isFailed ? 'border-red-500/30 bg-[#0D0D0D]' :
+      requiresUpgrade ? 'border-[#C9A84C]/40 bg-[#0D0D0D]' :
       status === 'completed' ? 'border-green-500/20 bg-[#0D0D0D]' :
       'border-[#1A1A1A] bg-[#0A0A0A]'
     }`}>
@@ -56,6 +59,8 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
             <Check size={16} className="text-green-400" />
           ) : isFailed ? (
             <AlertTriangle size={16} className="text-red-400" />
+          ) : requiresUpgrade ? (
+            <Lock size={16} className="text-[#C9A84C]" />
           ) : (
             <Icon size={16} style={{ color: `${meta.color}55` }} />
           )}
@@ -84,14 +89,19 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
             {isFailed && (
               <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Falhou</span>
             )}
+            {requiresUpgrade && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]">
+                <Crown size={8} /> Upgrade Necessario
+              </span>
+            )}
           </div>
         </div>
         {data?.elapsed_ms && <span className="text-[8px] text-[#444] shrink-0 bg-[#111] px-1.5 py-0.5 rounded">{(data.elapsed_ms / 1000).toFixed(1)}s</span>}
-        {(data?.output || isFailed) && (expanded ? <ChevronUp size={14} className="text-[#444]" /> : <ChevronDown size={14} className="text-[#444]" />)}
+        {(data?.output || isFailed || requiresUpgrade) && (expanded ? <ChevronUp size={14} className="text-[#444]" /> : <ChevronDown size={14} className="text-[#444]" />)}
       </button>
 
       {/* Expanded Content */}
-      {expanded && (data?.output || isFailed) && (
+      {expanded && (data?.output || isFailed || requiresUpgrade) && (
         <div className="px-3 pb-3 border-t border-[#151515]">
           {data?.output && (
             <div className="mt-2 rounded-lg bg-[#111] p-3 max-h-[300px] overflow-y-auto">
@@ -202,6 +212,7 @@ function DesignApproval({ data, onApprove }) {
 }
 
 export default function PipelineView({ context }) {
+  const navigate = useNavigate();
   const { i18n } = useTranslation();
   const lang = i18n.language || 'en';
   const [pipelines, setPipelines] = useState([]);
@@ -237,6 +248,11 @@ export default function PipelineView({ context }) {
       }
       // Auto-expand: failed step
       if (st.status === 'failed' && !newExpanded[s]) {
+        newExpanded[s] = true;
+        changed = true;
+      }
+      // Auto-expand: requires_upgrade step
+      if (st.status === 'requires_upgrade' && !newExpanded[s]) {
         newExpanded[s] = true;
         changed = true;
       }
@@ -283,7 +299,7 @@ export default function PipelineView({ context }) {
     try {
       const { data } = await axios.get(`${API}/campaigns/pipeline/${id}`);
       setActivePipeline(data);
-      if (['completed', 'failed', 'waiting_approval'].includes(data.status)) {
+      if (['completed', 'failed', 'waiting_approval', 'requires_upgrade'].includes(data.status)) {
         if (pollRef.current) clearInterval(pollRef.current);
       }
     } catch {}
@@ -478,6 +494,21 @@ export default function PipelineView({ context }) {
               <button onClick={retryPipeline}
                 className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5">
                 <RefreshCw size={12} /> Tentar Novamente
+              </button>
+            </div>
+          </div>
+        )}
+        {activePipeline.status === 'requires_upgrade' && (
+          <div className="px-3 py-3 border-t border-[#111] bg-[#C9A84C]/5">
+            <div className="flex items-center gap-2">
+              <Crown size={18} className="text-[#C9A84C]" />
+              <div className="flex-1">
+                <p className="text-xs font-bold text-[#C9A84C]">Upgrade para Enterprise</p>
+                <p className="text-[9px] text-[#888]">Sua campanha esta pronta! Faca upgrade para publicar.</p>
+              </div>
+              <button onClick={() => navigate('/upgrade')}
+                className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(201,168,76,0.2)]">
+                <Crown size={12} /> Fazer Upgrade
               </button>
             </div>
           </div>

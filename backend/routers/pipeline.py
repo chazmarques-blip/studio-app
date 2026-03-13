@@ -218,6 +218,19 @@ async def _execute_step(pipeline_id, step):
     pipeline = pipeline[0]
     steps = pipeline.get("steps") or {}
 
+    # Enterprise check only for the publish step
+    if step == "pedro_publish":
+        tenant = supabase.table("tenants").select("plan").eq("id", pipeline["tenant_id"]).execute()
+        if tenant.data and tenant.data[0].get("plan") != "enterprise":
+            steps[step] = steps.get(step, {})
+            steps[step]["status"] = "requires_upgrade"
+            steps[step]["error"] = "O plano Enterprise e necessario para publicar campanhas. Faca upgrade para desbloquear."
+            supabase.table("pipelines").update({
+                "steps": steps, "status": "requires_upgrade", "current_step": step,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", pipeline_id).execute()
+            return
+
     # Mark step as running
     steps[step] = steps.get(step, {})
     steps[step]["status"] = "running"
@@ -330,8 +343,6 @@ async def list_pipelines(user=Depends(get_current_user)):
 @router.post("")
 async def create_pipeline(data: PipelineCreate, bg: BackgroundTasks, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    if tenant["plan"] != "enterprise":
-        raise HTTPException(status_code=403, detail="Pipeline requires Enterprise plan")
 
     init_steps = {}
     for s in STEP_ORDER:
