@@ -1,0 +1,135 @@
+{
+  "summary": "Iteration 21 - FinalPreview Feature Testing Complete. All 12 features verified successfully: FinalPreview component with channel mockups (WhatsApp, Instagram, Facebook), channel selector switching, image selector, Publicar Campanha button, Voltar ao Pipeline navigation, and Marketing campaigns page with enhanced cards showing dates and channel badges.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard charts",
+        "issues": ["Console warning about chart width/height being -1 - minor Recharts sizing issue (existing issue from previous iterations)"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_21.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% - All 12 features verified"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123",
+    "plan": "enterprise"
+  },
+  "seed_data_creation": "Used existing completed pipeline from previous test data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "FinalPreview feature fully tested. Key data-testids: 'open-final-preview' (Ver Preview Final button), 'final-preview' (FinalPreview container), 'preview-channel-whatsapp/instagram/facebook' (channel selector buttons), 'mockup-whatsapp/instagram/facebook' (mockup containers), 'publish-campaign-btn' (Publicar Campanha button). Pipeline tab accessed via 'mode-pipeline-tab'. Marketing page at /marketing shows campaign cards with dates and channel badges.",
+  "verified_features": {
+    "login_and_navigate": {
+      "status": "PASSED",
+      "notes": "Login with test@agentflow.com works, enterprise plan confirmed"
+    },
+    "pipeline_tab_with_completed_pipeline": {
+      "status": "PASSED",
+      "notes": "Pipeline tab (data-testid='mode-pipeline-tab') shows completed pipeline with 100% progress and 'Ver Preview Final' button"
+    },
+    "ver_preview_final_button": {
+      "status": "PASSED",
+      "data_testid": "open-final-preview",
+      "notes": "Button visible at bottom of pipeline view, clicking opens FinalPreview component"
+    },
+    "final_preview_component": {
+      "status": "PASSED",
+      "data_testid": "final-preview",
+      "notes": "Component displays with header 'Preview Final da Campanha'"
+    },
+    "channel_selector_tabs": {
+      "status": "PASSED",
+      "data_testids": {
+        "whatsapp": "preview-channel-whatsapp",
+        "instagram": "preview-channel-instagram",
+        "facebook": "preview-channel-facebook"
+      },
+      "notes": "All three channel buttons present and clickable"
+    },
+    "whatsapp_mockup": {
+      "status": "PASSED",
+      "data_testid": "mockup-whatsapp",
+      "features_verified": [
+        "Green header (#075E54)",
+        "AgentZZ profile with 'online' status",
+        "Chat bubble with green background (#005C4B)",
+        "Image displayed in message",
+        "Campaign text with hashtags",
+        "Timestamp '10:32 AM'"
+      ]
+    },
+    "instagram_mockup": {
+      "status": "PASSED",
+      "data_testid": "mockup-instagram",
+      "features_verified": [
+        "Profile header with gradient border (Instagram colors)",
+        "Username 'agentzz' with 'Patrocinado' badge",
+        "Square image post",
+        "Like/Comment/Share/Save icons",
+        "1,247 curtidas",
+        "Caption text with '... mais' truncation"
+      ]
+    },
+    "facebook_mockup": {
+      "status": "PASSED",
+      "data_testid": "mockup-facebook",
+      "features_verified": [
+        "Profile with blue circle (Facebook color #1877F2)",
+        "AgentZZ with 'Patrocinado' badge and globe icon",
+        "Post text and image",
+        "328 reactions with ThumbsUp icon",
+        "42 comentarios",
+        "Curtir/Comentar/Compartilhar buttons"
+      ]
+    },
+    "channel_switching": {
+      "status": "PASSED",
+      "notes": "Clicking channel buttons correctly changes the displayed mockup. WhatsApp->Instagram->Facebook all work"
+    },
+    "image_selector": {
+      "status": "PASSED",
+      "notes": "Three image thumbnails shown at bottom of mockup area (labeled 'IMAGEM:'). Clicking switches the image in the mockup"
+    },
+    "publicar_campanha_button": {
+      "status": "PASSED",
+      "data_testid": "publish-campaign-btn",
+      "notes": "Gold gradient button at bottom with checkmark icon, text 'Publicar Campanha'"
+    },
+    "voltar_ao_pipeline_button": {
+      "status": "PASSED",
+      "notes": "Button text 'Voltar ao Pipeline' visible, clicking returns to pipeline steps view"
+    },
+    "marketing_campaigns_page": {
+      "status": "PASSED",
+      "url": "/marketing",
+      "features_verified": {
+        "campaign_cards": "5 campaign cards displayed",
+        "dates_shown": "Cards show dates like '19 de mar', '27 de abr - 30 de abr'",
+        "channel_badges": "WhatsApp, Instagram, Email badges with correct colors",
+        "cpl_values": "CPL values shown (R$ 3.78/lead, R$ 0.86/lead, R$ 2.01/lead)",
+        "type_badges": "DRIP, NURTURE, PROMO badges",
+        "status_badges": "RASCUNHO, ATIVA, PAUSADA badges",
+        "ai_studio_button": "AI Studio button present for enterprise users"
+      }
+    }
+  },
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["WhatsApp", "Telegram", "SMS", "Instagram", "Facebook", "Campaign analytics (CPL values simulated)"]
+  }
+}

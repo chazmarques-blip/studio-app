@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Sparkles, Send, PenTool, Palette, CheckCircle, CalendarClock, Save, RotateCcw, Copy, Loader2, Lock, Workflow } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send, PenTool, Palette, CheckCircle, CalendarClock, Save, RotateCcw, Copy, Loader2, Lock, Workflow, Clock, Zap, Eye, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import PipelineView from '../components/PipelineView';

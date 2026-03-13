@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import FinalPreview from './FinalPreview';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -665,6 +666,7 @@ export default function PipelineView({ context }) {
   const [contactInfo, setContactInfo] = useState({ phone: '', website: '', email: '' });
   const [showContact, setShowContact] = useState(false);
   const [uploadedAssets, setUploadedAssets] = useState([]);
+  const [showFinalPreview, setShowFinalPreview] = useState(false);
   const pollRef = useRef(null);
 
   useEffect(() => {
@@ -773,13 +775,28 @@ export default function PipelineView({ context }) {
 
   const toggleStep = (step) => setExpandedSteps(prev => ({ ...prev, [step]: !prev[step] }));
   const togglePlatform = (pid) => setPlatforms(prev => prev.includes(pid) ? prev.filter(p => p !== pid) : [...prev, pid]);
-  const resetView = () => { setActivePipeline(null); setExpandedSteps({}); loadPipelines(); };
+  const resetView = () => { setActivePipeline(null); setExpandedSteps({}); setShowFinalPreview(false); loadPipelines(); };
+
+  // ── Final Preview Mode ──
+  if (activePipeline && showFinalPreview) {
+    return (
+      <FinalPreview
+        pipeline={activePipeline}
+        onClose={() => setShowFinalPreview(false)}
+        onPublish={() => {
+          toast.success('Campanha publicada com sucesso!');
+          resetView();
+        }}
+      />
+    );
+  }
 
   // ── Active Pipeline View ──
   if (activePipeline) {
     const steps = activePipeline.steps || {};
     const completedCount = STEP_ORDER.filter(s => steps[s]?.status === 'completed').length;
     const progressPct = Math.round((completedCount / STEP_ORDER.length) * 100);
+    const allStepsComplete = completedCount === STEP_ORDER.length;
     const statusConfig = {
       running: { label: 'Executando', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
       waiting_approval: { label: 'Aguardando Aprovacao', color: 'text-amber-400', bg: 'bg-amber-400' },
@@ -858,7 +875,7 @@ export default function PipelineView({ context }) {
         </div>
 
         {/* Completed Summary */}
-        {activePipeline.status === 'completed' && <CompletedSummary pipeline={activePipeline} />}
+        {(activePipeline.status === 'completed' || allStepsComplete) && <CompletedSummary pipeline={activePipeline} />}
 
         {/* Steps */}
         <div className="flex-1 overflow-y-auto px-3 py-1 space-y-2">
@@ -871,15 +888,21 @@ export default function PipelineView({ context }) {
           ))}
         </div>
 
-        {/* Bottom actions */}
-        {activePipeline.status === 'completed' && (
+        {/* Bottom actions - Show preview when all steps are done */}
+        {(activePipeline.status === 'completed' || allStepsComplete) && (
           <div className="px-3 py-3 border-t border-[#111] bg-green-500/5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               <Check size={18} className="text-green-400" />
-              <p className="text-xs font-bold text-green-400 flex-1">Pipeline concluido com sucesso!</p>
+              <p className="text-xs font-bold text-green-400 flex-1">Pipeline concluido!</p>
+            </div>
+            <div className="flex gap-2">
               <button onClick={resetView}
-                className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition">
+                className="flex-1 rounded-lg border border-[#1E1E1E] py-2.5 text-[11px] text-[#888] hover:text-white transition">
                 Novo Pipeline
+              </button>
+              <button data-testid="open-final-preview" onClick={() => setShowFinalPreview(true)}
+                className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
+                <Eye size={14} /> Ver Preview Final
               </button>
             </div>
           </div>
