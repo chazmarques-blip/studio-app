@@ -88,6 +88,31 @@ Format as a structured schedule with dates and times.""",
 }
 
 
+def _clean_copy_text(raw):
+    """Clean AI-generated text, removing labels and markdown"""
+    if not raw:
+        return ''
+    text = raw
+    # Extract variation if markers present
+    var_match = re.search(r'===VARIA(?:TION|CAO|ÇÃO)\s*\d+===([\s\S]*?)(?====|$)', text, re.IGNORECASE)
+    if var_match:
+        text = var_match.group(1)
+    # Strip markdown bold/italic
+    text = re.sub(r'\*\*\*([^*]+)\*\*\*', r'\1', text)
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)
+    text = re.sub(r'#{1,3}\s+', '', text)
+    # Remove label prefixes
+    labels = r'Title|Titulo|Título|Copy|Texto|Headline|Body|CTA|Caption|Legenda|Subject|Assunto|Chamada|Subtítulo|Subtitle|Hashtags|Visual|Conceito|Concept|Plataforma|Platform|Dimensões|Dimensions|Adaptações|Call\.to\.Action'
+    text = re.sub(rf'^\s*(?:{labels})\s*[:：]\s*', '', text, flags=re.IGNORECASE | re.MULTILINE)
+    text = re.sub(rf'^\s*(?:{labels})\s*$', '', text, flags=re.IGNORECASE | re.MULTILINE)
+    # Remove variation markers and separators
+    text = re.sub(r'={3,}.*?={3,}', '', text)
+    text = re.sub(r'^-{3,}\s*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n{3,}', '\n\n', text).strip()
+    return text
+
+
 # ── Models ──
 
 class PipelineCreate(BaseModel):
@@ -472,6 +497,7 @@ async def _execute_step(pipeline_id, step):
             # Save as campaign in campaigns table
             try:
                 approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
+                clean_copy = _clean_copy_text(approved_copy)
                 image_urls = steps.get("lucas_design", {}).get("image_urls", [])
                 schedule_text = steps.get("pedro_publish", {}).get("output", "")
                 ctx = pipeline.get("result", {}).get("context", {})
@@ -485,7 +511,7 @@ async def _execute_step(pipeline_id, step):
                     "metrics": {
                         "type": "ai_pipeline",
                         "target_segment": {"platforms": pipeline.get("platforms", [])},
-                        "messages": [{"step": 1, "channel": "multi", "content": approved_copy, "delay_hours": 0}],
+                        "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
                         "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
                         "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
                         "created_by": pipeline.get("tenant_id"),
@@ -827,6 +853,7 @@ async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_u
         # Campaign wasn't created yet - create it now
         steps = pipeline.get("steps") or {}
         approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
+        clean_copy = _clean_copy_text(approved_copy)
         image_urls = steps.get("lucas_design", {}).get("image_urls", [])
         schedule_text = steps.get("pedro_publish", {}).get("output", "")
         user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
@@ -841,7 +868,7 @@ async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_u
             "metrics": {
                 "type": "ai_pipeline",
                 "target_segment": {"platforms": pipeline.get("platforms", [])},
-                "messages": [{"step": 1, "channel": "multi", "content": approved_copy, "delay_hours": 0}],
+                "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
                 "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
                 "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
             },

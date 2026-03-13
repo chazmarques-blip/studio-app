@@ -28,6 +28,25 @@ const CHANNEL_COLORS = {
   telegram: '#26A5E4', email: '#C9A84C', sms: '#FF9800', multi: '#888',
 };
 
+/* ── Text Cleaner ── */
+function cleanCampaignText(raw) {
+  if (!raw) return '';
+  let text = raw;
+  const varMatch = text.match(/===VARIA(?:TION|CAO|ÇÃO)\s*\d+===([\s\S]*?)(?=={3}|$)/i);
+  if (varMatch) text = varMatch[1];
+  text = text.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+  text = text.replace(/\*([^*]+)\*/g, '$1');
+  text = text.replace(/#{1,3}\s+/g, '');
+  const labels = 'Title|Titulo|Título|Copy|Texto|Headline|Body|CTA|Caption|Legenda|Subject|Assunto|Chamada|Subtítulo|Subtitle|Hashtags|Visual|Conceito|Concept|Plataforma|Platform|Dimensões|Dimensions|Adaptações|Call.to.Action';
+  text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*[:：]\\s*`, 'gim'), '');
+  text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*$`, 'gim'), '');
+  text = text.replace(/={3,}.*?={3,}/g, '');
+  text = text.replace(/^-{3,}\s*$/gm, '');
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+  return text;
+}
+
 function StatCard({ icon: Icon, value, label, trend }) {
   return (
     <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
@@ -81,7 +100,7 @@ function PreviewModal({ campaign, onClose }) {
           {mainText && (
             <div>
               <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Texto da Campanha</p>
-              <pre className="text-[11px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{mainText}</pre>
+              <pre className="text-[11px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{cleanCampaignText(mainText)}</pre>
             </div>
           )}
           {images.length === 0 && !mainText && (
@@ -249,7 +268,7 @@ function CampaignDetail({ campaign, onClose }) {
                             <span className="text-[9px] font-medium capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>{m.channel}</span>
                             <span className="text-[8px] text-[#444]">{m.delay_hours === 0 ? 'Imediato' : `+${m.delay_hours}h`}</span>
                           </div>
-                          <p className="text-[10px] text-[#999] mt-0.5 line-clamp-2">{m.content}</p>
+                          <p className="text-[10px] text-[#999] mt-0.5 line-clamp-2">{cleanCampaignText(m.content)}</p>
                         </div>
                       </div>
                     ))}
@@ -298,7 +317,7 @@ function CampaignDetail({ campaign, onClose }) {
                         <Copy size={8} /> Copiar
                       </button>
                     </div>
-                    <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{m.content}</pre>
+                    <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{cleanCampaignText(m.content)}</pre>
                   </div>
                 ))}
                 {messages.length === 0 && <p className="text-[10px] text-[#444] text-center py-4">Sem mensagens</p>}
