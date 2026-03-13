@@ -1,9 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timezone
-from pymongo import MongoClient
-import os
 import uuid
 import time
 
@@ -12,17 +10,6 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
 router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
-
-# MongoDB
-_mongo = MongoClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
-campaigns_col = _db["campaigns"]
-creatives_col = _db["creatives"]
-
-# Indexes
-campaigns_col.create_index("tenant_id")
-creatives_col.create_index("tenant_id")
-creatives_col.create_index("campaign_id")
 
 
 # ── Models ──
@@ -43,7 +30,7 @@ class CampaignUpdate(BaseModel):
     schedule: Optional[dict] = None
 
 class StudioRequest(BaseModel):
-    agent_type: str  # copywriter, designer, reviewer, publisher
+    agent_type: str
     prompt: str
     context: Optional[dict] = {}
     session_id: Optional[str] = None
@@ -52,7 +39,7 @@ class CreativeCreate(BaseModel):
     campaign_id: Optional[str] = None
     type: str = "copy"
     title: str
-    content: dict = {}
+    content: Optional[dict] = {}
 
 
 # ── Helpers ──
@@ -65,15 +52,26 @@ async def _get_tenant(user):
 
 
 def _check_enterprise(plan: str):
-    if plan not in ("enterprise",):
+    if plan != "enterprise":
         raise HTTPException(status_code=403, detail="Marketing AI Studio requires Enterprise plan. Upgrade to unlock.")
 
 
-def _doc(d):
-    """Remove MongoDB _id from document"""
-    if d and "_id" in d:
-        del d["_id"]
-    return d
+def _row_to_campaign(row):
+    """Convert Supabase row to campaign response format"""
+    metrics = row.get("metrics") or {}
+    return {
+        "id": row["id"],
+        "tenant_id": row.get("tenant_id"),
+        "name": row["name"],
+        "type": metrics.get("type", "nurture"),
+        "status": row.get("status", "draft"),
+        "target_segment": metrics.get("target_segment", {}),
+        "messages": metrics.get("messages", []),
+        "schedule": metrics.get("schedule", {}),
+        "stats": metrics.get("stats", {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0}),
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+    }
 
 
 # ── Campaign CRUD ──
@@ -81,73 +79,89 @@ def _doc(d):
 @router.get("")
 async def list_campaigns(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    docs = list(campaigns_col.find({"tenant_id": tenant["id"]}).sort("created_at", -1))
-    return {"campaigns": [_doc(d) for d in docs]}
+    result = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).order("created_at", desc=True).execute()
+    return {"campaigns": [_row_to_campaign(r) for r in (result.data or [])]}
 
 
 @router.post("")
 async def create_campaign(data: CampaignCreate, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
+    now = datetime.now(timezone.utc).isoformat()
     campaign = {
-        "id": str(uuid.uuid4()),
         "tenant_id": tenant["id"],
         "name": data.name,
-        "type": data.type,
         "status": "draft",
-        "target_segment": data.target_segment or {},
-        "messages": data.messages or [],
-        "schedule": data.schedule or {},
-        "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0},
-        "created_by": user["id"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "goal": data.type,
+        "metrics": {
+            "type": data.type,
+            "target_segment": data.target_segment or {},
+            "messages": data.messages or [],
+            "schedule": data.schedule or {},
+            "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0},
+            "created_by": user["id"],
+        },
     }
-    campaigns_col.insert_one(campaign)
-    return _doc(campaign)
+    result = supabase.table("campaigns").insert(campaign).execute()
+    return _row_to_campaign(result.data[0])
 
 
 @router.get("/{campaign_id}")
 async def get_campaign(campaign_id: str, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    doc = campaigns_col.find_one({"id": campaign_id, "tenant_id": tenant["id"]})
-    if not doc:
+    result = supabase.table("campaigns").select("*").eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    return _doc(doc)
+    return _row_to_campaign(result.data[0])
 
 
 @router.put("/{campaign_id}")
 async def update_campaign(campaign_id: str, data: CampaignUpdate, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    updates = {k: v for k, v in data.model_dump().items() if v is not None}
-    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
-    result = campaigns_col.update_one(
-        {"id": campaign_id, "tenant_id": tenant["id"]},
-        {"$set": updates}
-    )
-    if result.matched_count == 0:
+    current = supabase.table("campaigns").select("*").eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not current.data:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    doc = campaigns_col.find_one({"id": campaign_id})
-    return _doc(doc)
+
+    existing_metrics = current.data[0].get("metrics") or {}
+    updates = {"updated_at": datetime.now(timezone.utc).isoformat()}
+
+    if data.name is not None:
+        updates["name"] = data.name
+    if data.status is not None:
+        updates["status"] = data.status
+    if data.type is not None:
+        existing_metrics["type"] = data.type
+        updates["goal"] = data.type
+    if data.target_segment is not None:
+        existing_metrics["target_segment"] = data.target_segment
+    if data.messages is not None:
+        existing_metrics["messages"] = data.messages
+    if data.schedule is not None:
+        existing_metrics["schedule"] = data.schedule
+
+    updates["metrics"] = existing_metrics
+    result = supabase.table("campaigns").update(updates).eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return _row_to_campaign(result.data[0])
 
 
 @router.delete("/{campaign_id}")
 async def delete_campaign(campaign_id: str, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    result = campaigns_col.delete_one({"id": campaign_id, "tenant_id": tenant["id"]})
-    if result.deleted_count == 0:
+    supabase.table("creatives").delete().eq("campaign_id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    result = supabase.table("campaigns").delete().eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    creatives_col.delete_many({"campaign_id": campaign_id})
     return {"status": "deleted"}
 
 
 @router.post("/{campaign_id}/activate")
 async def activate_campaign(campaign_id: str, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    result = campaigns_col.update_one(
-        {"id": campaign_id, "tenant_id": tenant["id"]},
-        {"$set": {"status": "active", "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    if result.matched_count == 0:
+    result = supabase.table("campaigns").update({
+        "status": "active", "updated_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Campaign not found")
     return {"status": "activated"}
 
@@ -155,11 +169,10 @@ async def activate_campaign(campaign_id: str, user=Depends(get_current_user)):
 @router.post("/{campaign_id}/pause")
 async def pause_campaign(campaign_id: str, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    result = campaigns_col.update_one(
-        {"id": campaign_id, "tenant_id": tenant["id"]},
-        {"$set": {"status": "paused", "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    if result.matched_count == 0:
+    result = supabase.table("campaigns").update({
+        "status": "paused", "updated_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Campaign not found")
     return {"status": "paused"}
 
@@ -179,7 +192,6 @@ CAMPAIGN_TEMPLATES = [
             {"step": 2, "delay_hours": 24, "channel": "whatsapp", "content": "Oi {{name}}, viu nossos recursos principais? Posso te ajudar a conhecer melhor!"},
             {"step": 3, "delay_hours": 72, "channel": "whatsapp", "content": "{{name}}, como esta sua experiencia? Estou aqui para qualquer duvida!"},
         ],
-        "target_segment": {"stages": ["new"]},
     },
     {
         "id": "reengagement",
@@ -192,7 +204,6 @@ CAMPAIGN_TEMPLATES = [
             {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "Oi {{name}}, sentimos sua falta! Temos novidades que podem te interessar."},
             {"step": 2, "delay_hours": 48, "channel": "whatsapp", "content": "{{name}}, preparamos uma oferta especial para voce. Quer saber mais?"},
         ],
-        "target_segment": {"stages": ["qualified"], "temperatures": ["cold"]},
     },
     {
         "id": "post_sale",
@@ -205,7 +216,6 @@ CAMPAIGN_TEMPLATES = [
             {"step": 1, "delay_hours": 24, "channel": "whatsapp", "content": "Ola {{name}}! Obrigado pela confianca. Como foi sua experiencia?"},
             {"step": 2, "delay_hours": 168, "channel": "whatsapp", "content": "{{name}}, tudo bem com seu produto/servico? Lembre-se que estamos aqui para ajudar!"},
         ],
-        "target_segment": {"stages": ["won"]},
     },
     {
         "id": "seasonal_promo",
@@ -217,7 +227,6 @@ CAMPAIGN_TEMPLATES = [
         "messages": [
             {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "{{name}}, preparamos algo especial para voce! Aproveite nossa promocao exclusiva."},
         ],
-        "target_segment": {"stages": ["new", "qualified"]},
     },
 ]
 
@@ -232,37 +241,34 @@ async def list_templates(user=Depends(get_current_user)):
 @router.get("/creatives/list")
 async def list_creatives(campaign_id: Optional[str] = None, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    query = {"tenant_id": tenant["id"]}
+    query = supabase.table("creatives").select("*").eq("tenant_id", tenant["id"])
     if campaign_id:
-        query["campaign_id"] = campaign_id
-    docs = list(creatives_col.find(query).sort("created_at", -1).limit(50))
-    return {"creatives": [_doc(d) for d in docs]}
+        query = query.eq("campaign_id", campaign_id)
+    result = query.order("created_at", desc=True).limit(50).execute()
+    return {"creatives": result.data or []}
 
 
 @router.post("/creatives/save")
 async def save_creative(data: CreativeCreate, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
     creative = {
-        "id": str(uuid.uuid4()),
         "tenant_id": tenant["id"],
         "campaign_id": data.campaign_id,
         "type": data.type,
         "title": data.title,
-        "content": data.content,
-        "ai_metadata": {},
+        "content": str(data.content) if data.content else "",
+        "metadata": {"ai_metadata": {}, "content_data": data.content or {}},
         "status": "draft",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    creatives_col.insert_one(creative)
-    return _doc(creative)
+    result = supabase.table("creatives").insert(creative).execute()
+    return result.data[0]
 
 
 @router.delete("/creatives/{creative_id}")
 async def delete_creative(creative_id: str, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    result = creatives_col.delete_one({"id": creative_id, "tenant_id": tenant["id"]})
-    if result.deleted_count == 0:
+    result = supabase.table("creatives").delete().eq("id", creative_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Creative not found")
     return {"status": "deleted"}
 
@@ -411,123 +417,128 @@ async def seed_test_campaigns(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
     tid = tenant["id"]
 
-    existing = campaigns_col.count_documents({"tenant_id": tid})
-    if existing > 0:
-        return {"status": "already_seeded", "count": existing}
+    existing = supabase.table("campaigns").select("id").eq("tenant_id", tid).execute()
+    if existing.data and len(existing.data) > 0:
+        return {"status": "already_seeded", "count": len(existing.data)}
 
     now = datetime.now(timezone.utc).isoformat()
     test_campaigns = [
         {
-            "id": str(uuid.uuid4()),
             "tenant_id": tid,
             "name": "Boas-vindas AgentZZ",
-            "type": "drip",
             "status": "active",
-            "target_segment": {"stages": ["new"], "temperatures": ["warm", "hot"]},
-            "messages": [
-                {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "Ola {{name}}! Bem-vindo ao AgentZZ. Estamos prontos para revolucionar seu atendimento com IA!"},
-                {"step": 2, "delay_hours": 24, "channel": "whatsapp", "content": "{{name}}, voce sabia que nossos agentes IA podem atender em 5 canais simultaneamente? Quer ver como funciona?"},
-                {"step": 3, "delay_hours": 72, "channel": "email", "content": "{{name}}, preparamos um guia exclusivo para voce tirar o maximo do AgentZZ. Confira!"},
-            ],
-            "schedule": {"send_time": "09:00", "timezone": "America/Sao_Paulo"},
-            "stats": {"sent": 342, "delivered": 338, "opened": 215, "clicked": 89, "converted": 23},
-            "created_by": user["id"],
-            "created_at": now,
-            "updated_at": now,
+            "goal": "drip",
+            "metrics": {
+                "type": "drip",
+                "target_segment": {"stages": ["new"], "temperatures": ["warm", "hot"]},
+                "messages": [
+                    {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "Ola {{name}}! Bem-vindo ao AgentZZ. Estamos prontos para revolucionar seu atendimento com IA!"},
+                    {"step": 2, "delay_hours": 24, "channel": "whatsapp", "content": "{{name}}, voce sabia que nossos agentes IA podem atender em 5 canais simultaneamente? Quer ver como funciona?"},
+                    {"step": 3, "delay_hours": 72, "channel": "email", "content": "{{name}}, preparamos um guia exclusivo para voce tirar o maximo do AgentZZ. Confira!"},
+                ],
+                "schedule": {"send_time": "09:00", "timezone": "America/Sao_Paulo"},
+                "stats": {"sent": 342, "delivered": 338, "opened": 215, "clicked": 89, "converted": 23},
+                "created_by": user["id"],
+            },
         },
         {
-            "id": str(uuid.uuid4()),
             "tenant_id": tid,
             "name": "Reativacao - Leads Frios",
-            "type": "nurture",
             "status": "active",
-            "target_segment": {"stages": ["qualified"], "temperatures": ["cold"]},
-            "messages": [
-                {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "Oi {{name}}, sentimos sua falta! O AgentZZ evoluiu muito desde sua ultima visita."},
-                {"step": 2, "delay_hours": 48, "channel": "whatsapp", "content": "{{name}}, temos uma oferta exclusiva para voce voltar: 30 dias gratis no plano Pro!"},
-            ],
-            "schedule": {"send_time": "14:00", "timezone": "America/Sao_Paulo"},
-            "stats": {"sent": 156, "delivered": 152, "opened": 98, "clicked": 45, "converted": 12},
-            "created_by": user["id"],
-            "created_at": now,
-            "updated_at": now,
+            "goal": "nurture",
+            "metrics": {
+                "type": "nurture",
+                "target_segment": {"stages": ["qualified"], "temperatures": ["cold"]},
+                "messages": [
+                    {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "Oi {{name}}, sentimos sua falta! O AgentZZ evoluiu muito desde sua ultima visita."},
+                    {"step": 2, "delay_hours": 48, "channel": "whatsapp", "content": "{{name}}, temos uma oferta exclusiva para voce voltar: 30 dias gratis no plano Pro!"},
+                ],
+                "schedule": {"send_time": "14:00", "timezone": "America/Sao_Paulo"},
+                "stats": {"sent": 156, "delivered": 152, "opened": 98, "clicked": 45, "converted": 12},
+                "created_by": user["id"],
+            },
         },
         {
-            "id": str(uuid.uuid4()),
             "tenant_id": tid,
             "name": "Lancamento - Marketing AI Studio",
-            "type": "promotional",
             "status": "draft",
-            "target_segment": {"stages": ["new", "qualified", "proposal"]},
-            "messages": [
-                {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "{{name}}, o futuro do marketing chegou! Apresentamos o Marketing AI Studio do AgentZZ."},
-                {"step": 2, "delay_hours": 24, "channel": "instagram", "content": "4 agentes IA trabalhando 24h para criar suas campanhas. Descubra o Marketing AI Studio!"},
-                {"step": 3, "delay_hours": 48, "channel": "email", "content": "{{name}}, veja como empresas estao triplicando resultados com o Marketing AI Studio do AgentZZ."},
-            ],
-            "schedule": {"start_date": "2026-04-01", "end_date": "2026-04-30", "send_time": "10:00", "timezone": "America/Sao_Paulo"},
-            "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0},
-            "created_by": user["id"],
-            "created_at": now,
-            "updated_at": now,
+            "goal": "promotional",
+            "metrics": {
+                "type": "promotional",
+                "target_segment": {"stages": ["new", "qualified", "proposal"]},
+                "messages": [
+                    {"step": 1, "delay_hours": 0, "channel": "whatsapp", "content": "{{name}}, o futuro do marketing chegou! Apresentamos o Marketing AI Studio do AgentZZ."},
+                    {"step": 2, "delay_hours": 24, "channel": "instagram", "content": "4 agentes IA trabalhando 24h para criar suas campanhas. Descubra o Marketing AI Studio!"},
+                    {"step": 3, "delay_hours": 48, "channel": "email", "content": "{{name}}, veja como empresas estao triplicando resultados com o Marketing AI Studio do AgentZZ."},
+                ],
+                "schedule": {"start_date": "2026-04-01", "end_date": "2026-04-30", "send_time": "10:00", "timezone": "America/Sao_Paulo"},
+                "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0},
+                "created_by": user["id"],
+            },
         },
         {
-            "id": str(uuid.uuid4()),
             "tenant_id": tid,
             "name": "Pos-Venda Premium",
-            "type": "nurture",
             "status": "paused",
-            "target_segment": {"stages": ["won"]},
-            "messages": [
-                {"step": 1, "delay_hours": 24, "channel": "whatsapp", "content": "Obrigado por escolher o AgentZZ, {{name}}! Como posso ajudar na configuracao?"},
-                {"step": 2, "delay_hours": 168, "channel": "whatsapp", "content": "{{name}}, como esta indo com o AgentZZ? Tem alguma duvida? Estou aqui!"},
-            ],
-            "schedule": {"send_time": "11:00", "timezone": "America/Sao_Paulo"},
-            "stats": {"sent": 89, "delivered": 87, "opened": 72, "clicked": 34, "converted": 8},
-            "created_by": user["id"],
-            "created_at": now,
-            "updated_at": now,
+            "goal": "nurture",
+            "metrics": {
+                "type": "nurture",
+                "target_segment": {"stages": ["won"]},
+                "messages": [
+                    {"step": 1, "delay_hours": 24, "channel": "whatsapp", "content": "Obrigado por escolher o AgentZZ, {{name}}! Como posso ajudar na configuracao?"},
+                    {"step": 2, "delay_hours": 168, "channel": "whatsapp", "content": "{{name}}, como esta indo com o AgentZZ? Tem alguma duvida? Estou aqui!"},
+                ],
+                "schedule": {"send_time": "11:00", "timezone": "America/Sao_Paulo"},
+                "stats": {"sent": 89, "delivered": 87, "opened": 72, "clicked": 34, "converted": 8},
+                "created_by": user["id"],
+            },
         },
     ]
 
+    campaign_ids = []
+    for c in test_campaigns:
+        result = supabase.table("campaigns").insert(c).execute()
+        campaign_ids.append(result.data[0]["id"])
+
+    # Creatives for the promotional campaign
+    promo_id = campaign_ids[2]
     test_creatives = [
         {
-            "id": str(uuid.uuid4()),
             "tenant_id": tid,
-            "campaign_id": test_campaigns[2]["id"],
+            "campaign_id": promo_id,
             "type": "social_post",
             "title": "Post Instagram - AI Studio Launch",
-            "content": {
-                "body": "Seus agentes de marketing agora trabalham 24/7. Apresentamos o Marketing AI Studio: Copywriter, Designer, Reviewer e Publisher, todos potencializados por IA.",
-                "cta": "Experimente gratis por 14 dias",
-                "platform": "instagram",
-                "hashtags": "#MarketingIA #AgentZZ #AutomacaoMarketing"
+            "content": "Seus agentes de marketing agora trabalham 24/7. Apresentamos o Marketing AI Studio: Copywriter, Designer, Reviewer e Publisher, todos potencializados por IA.",
+            "metadata": {
+                "content_data": {
+                    "body": "Seus agentes de marketing agora trabalham 24/7.",
+                    "cta": "Experimente gratis por 14 dias",
+                    "platform": "instagram",
+                    "hashtags": "#MarketingIA #AgentZZ #AutomacaoMarketing"
+                },
+                "ai_metadata": {"model": "claude-sonnet-4-5", "tokens_estimate": 85}
             },
-            "ai_metadata": {"model": "claude-sonnet-4-5", "tokens_estimate": 85},
             "status": "approved",
-            "created_at": now,
-            "updated_at": now,
         },
         {
-            "id": str(uuid.uuid4()),
             "tenant_id": tid,
-            "campaign_id": test_campaigns[2]["id"],
+            "campaign_id": promo_id,
             "type": "copy",
             "title": "Email Copy - AI Studio Benefits",
-            "content": {
-                "subject": "Seus concorrentes ja estao usando IA para marketing. E voce?",
-                "body": "O Marketing AI Studio do AgentZZ reune 4 agentes especializados que criam, revisam e publicam conteudo automaticamente. Resultados reais: 3x mais engajamento, 60% menos tempo de producao.",
-                "cta": "Comecar agora"
+            "content": "O Marketing AI Studio do AgentZZ reune 4 agentes especializados que criam, revisam e publicam conteudo automaticamente.",
+            "metadata": {
+                "content_data": {
+                    "subject": "Seus concorrentes ja estao usando IA para marketing. E voce?",
+                    "body": "O Marketing AI Studio do AgentZZ reune 4 agentes especializados.",
+                    "cta": "Comecar agora"
+                },
+                "ai_metadata": {"model": "claude-sonnet-4-5", "tokens_estimate": 120}
             },
-            "ai_metadata": {"model": "claude-sonnet-4-5", "tokens_estimate": 120},
             "status": "draft",
-            "created_at": now,
-            "updated_at": now,
         },
     ]
 
-    for c in test_campaigns:
-        campaigns_col.insert_one(c.copy())
     for cr in test_creatives:
-        creatives_col.insert_one(cr.copy())
+        supabase.table("creatives").insert(cr).execute()
 
     return {"status": "seeded", "campaigns": len(test_campaigns), "creatives": len(test_creatives)}

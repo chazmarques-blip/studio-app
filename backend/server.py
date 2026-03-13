@@ -14,6 +14,7 @@ from routers.whatsapp import router as whatsapp_router
 from routers.channels import router as channels_router
 from routers.telegram import router as telegram_router
 from routers.google import router as google_router
+from routers.campaigns import router as campaigns_router
 
 app = FastAPI(title="AgentZZ API")
 api_router = APIRouter(prefix="/api")
@@ -164,6 +165,7 @@ app.include_router(whatsapp_router)
 app.include_router(channels_router)
 app.include_router(telegram_router)
 app.include_router(google_router)
+app.include_router(campaigns_router)
 app.include_router(api_router)
 
 app.add_middleware(

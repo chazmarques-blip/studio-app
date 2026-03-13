@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Target, DollarSign, TrendingUp, Bot, CreditCard, LogOut, UserCog, Zap, Lightbulb, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { MessageSquare, Target, DollarSign, TrendingUp, Bot, CreditCard, LogOut, UserCog, Zap, Lightbulb, ChevronRight, ArrowUpRight, Megaphone } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -302,11 +302,12 @@ export default function Dashboard() {
       </div>
 
       {/* ── Quick Actions ── */}
-      <div className="mb-3 grid grid-cols-3 gap-2">
+      <div className="mb-3 grid grid-cols-4 gap-2">
         {[
           { icon: Bot, label: t('dashboard.create_agent'), path: '/agents' },
           { icon: MessageSquare, label: t('dashboard.view_inbox'), path: '/chat' },
           { icon: Target, label: t('dashboard.view_crm'), path: '/crm' },
+          { icon: Megaphone, label: 'Marketing', path: '/marketing' },
         ].map((a, i) => (
           <button key={i} data-testid={`quick-action-${i}`} onClick={() => navigate(a.path)}
             className="glass-card flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/20">
