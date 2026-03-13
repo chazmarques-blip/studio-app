@@ -82,6 +82,10 @@ export default function AgentConfig() {
   const [resetting, setResetting] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [googleStatus, setGoogleStatus] = useState({ connected: false });
+  const [calendars, setCalendars] = useState([]);
+  const [sheets, setSheets] = useState([]);
+  const [loadingCalendars, setLoadingCalendars] = useState(false);
+  const [loadingSheets, setLoadingSheets] = useState(false);
 
   useEffect(() => {
     if (agentId) {
@@ -91,6 +95,24 @@ export default function AgentConfig() {
       axios.get(`${API}/google/status`).then(r => setGoogleStatus(r.data)).catch(() => {});
     }
   }, [agentId, navigate]);
+
+  const fetchCalendars = async () => {
+    setLoadingCalendars(true);
+    try {
+      const { data } = await axios.get(`${API}/google/calendar/list`);
+      setCalendars(data.calendars || []);
+    } catch { setCalendars([]); }
+    finally { setLoadingCalendars(false); }
+  };
+
+  const fetchSheets = async () => {
+    setLoadingSheets(true);
+    try {
+      const { data } = await axios.get(`${API}/google/sheets/list`);
+      setSheets(data.sheets || []);
+    } catch { setSheets([]); }
+    finally { setLoadingSheets(false); }
+  };
 
   const pc = agent?.personality_config || {};
   const setPC = (key, val) => setAgent(p => ({ ...p, personality_config: { ...p.personality_config, [key]: val } }));
@@ -372,17 +394,32 @@ export default function AgentConfig() {
                           <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events'}</p>
                         </div>
                         <button data-testid="integ-google_calendar"
-                          onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_calendar: { ...p.integrations_config?.google_calendar, enabled: !calEnabled } } }))}
+                          onClick={() => {
+                            const newEnabled = !calEnabled;
+                            setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_calendar: { ...p.integrations_config?.google_calendar, enabled: newEnabled } } }));
+                            if (newEnabled && calendars.length === 0) fetchCalendars();
+                          }}
                           className={`h-5 w-9 rounded-full flex-shrink-0 transition ${calEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
                           <div className={`h-4 w-4 rounded-full bg-white transition ${calEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
                       {calEnabled && (
-                        <div className="mt-2 pt-2 border-t border-[#111]">
-                          <p className="text-[9px] text-[#555] mb-1">{lang === 'pt' ? 'O agente podera: criar eventos, listar agenda, confirmar horarios' : 'Agent can: create events, list schedule, confirm times'}</p>
-                          <input value={cfg.google_calendar?.calendar_id || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_calendar: { ...p.integrations_config?.google_calendar, calendar_id: e.target.value } } }))}
-                            placeholder={lang === 'pt' ? 'ID do calendario (padrao: primario)' : 'Calendar ID (default: primary)'}
-                            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                        <div className="mt-2 pt-2 border-t border-[#111] space-y-1.5">
+                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'O agente podera: criar eventos, listar agenda, confirmar horarios' : 'Agent can: create events, list schedule, confirm times'}</p>
+                          <div className="flex items-center gap-1.5">
+                            <select data-testid="calendar-select"
+                              value={cfg.google_calendar?.calendar_id || ''}
+                              onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_calendar: { ...p.integrations_config?.google_calendar, calendar_id: e.target.value } } }))}
+                              className="flex-1 rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white outline-none appearance-none cursor-pointer">
+                              <option value="">{lang === 'pt' ? 'Calendario primario' : 'Primary calendar'}</option>
+                              {calendars.map(c => <option key={c.id} value={c.id}>{c.name}{c.primary ? ' (primary)' : ''}</option>)}
+                            </select>
+                            <button data-testid="refresh-calendars-btn" onClick={fetchCalendars} disabled={loadingCalendars}
+                              className="text-[#555] hover:text-[#C9A84C] transition p-1 shrink-0">
+                              <RotateCcw size={11} className={loadingCalendars ? 'animate-spin' : ''} />
+                            </button>
+                          </div>
+                          {loadingCalendars && <p className="text-[9px] text-[#C9A84C]">{lang === 'pt' ? 'Carregando calendarios...' : 'Loading calendars...'}</p>}
                         </div>
                       )}
                     </div>
@@ -398,20 +435,44 @@ export default function AgentConfig() {
                           <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets'}</p>
                         </div>
                         <button data-testid="integ-google_sheets"
-                          onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, enabled: !shEnabled } } }))}
+                          onClick={() => {
+                            const newEnabled = !shEnabled;
+                            setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, enabled: newEnabled } } }));
+                            if (newEnabled && sheets.length === 0) fetchSheets();
+                          }}
                           className={`h-5 w-9 rounded-full flex-shrink-0 transition ${shEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
                           <div className={`h-4 w-4 rounded-full bg-white transition ${shEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
                       {shEnabled && (
                         <div className="mt-2 pt-2 border-t border-[#111] space-y-1.5">
-                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Cole o link ou ID da planilha que o agente deve acessar' : 'Paste the link or ID of the spreadsheet the agent should access'}</p>
-                          <input value={cfg.google_sheets?.spreadsheet_id || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, spreadsheet_id: e.target.value } } }))}
-                            placeholder={lang === 'pt' ? 'Link ou ID da planilha' : 'Spreadsheet link or ID'}
-                            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
-                          <input value={cfg.google_sheets?.range || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, range: e.target.value } } }))}
+                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Selecione a planilha que o agente deve acessar' : 'Select the spreadsheet the agent should access'}</p>
+                          <div className="flex items-center gap-1.5">
+                            <select data-testid="sheets-select"
+                              value={cfg.google_sheets?.spreadsheet_id || ''}
+                              onChange={e => {
+                                const selected = sheets.find(s => s.id === e.target.value);
+                                setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, spreadsheet_id: e.target.value, spreadsheet_name: selected?.name || '' } } }));
+                              }}
+                              className="flex-1 rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white outline-none appearance-none cursor-pointer">
+                              <option value="">{lang === 'pt' ? 'Selecionar planilha...' : 'Select spreadsheet...'}</option>
+                              {sheets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                            <button data-testid="refresh-sheets-btn" onClick={fetchSheets} disabled={loadingSheets}
+                              className="text-[#555] hover:text-[#C9A84C] transition p-1 shrink-0">
+                              <RotateCcw size={11} className={loadingSheets ? 'animate-spin' : ''} />
+                            </button>
+                          </div>
+                          {loadingSheets && <p className="text-[9px] text-[#C9A84C]">{lang === 'pt' ? 'Carregando planilhas...' : 'Loading sheets...'}</p>}
+                          <input data-testid="sheets-range" value={cfg.google_sheets?.range || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, range: e.target.value } } }))}
                             placeholder={lang === 'pt' ? 'Intervalo (ex: Sheet1!A1:D100)' : 'Range (e.g. Sheet1!A1:D100)'}
                             className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                          {cfg.google_sheets?.spreadsheet_id && (
+                            <a href={`https://docs.google.com/spreadsheets/d/${cfg.google_sheets.spreadsheet_id}`} target="_blank" rel="noreferrer"
+                              className="text-[9px] text-[#C9A84C] hover:underline inline-flex items-center gap-1">
+                              <Link2 size={9} /> {lang === 'pt' ? 'Abrir planilha' : 'Open spreadsheet'}
+                            </a>
+                          )}
                         </div>
                       )}
                     </div>

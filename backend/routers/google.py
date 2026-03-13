@@ -144,6 +144,21 @@ async def get_google_creds(user_id: str):
 
 # ── Calendar Endpoints ──
 
+@router.get("/calendar/list")
+async def list_calendars(user=Depends(get_current_user)):
+    """List user's Google Calendars"""
+    creds = await get_google_creds(user["id"])
+    service = build("calendar", "v3", credentials=creds)
+    result = service.calendarList().list().execute()
+    calendars = result.get("items", [])
+    return {"calendars": [{
+        "id": c["id"],
+        "name": c.get("summary", ""),
+        "primary": c.get("primary", False),
+        "color": c.get("backgroundColor", ""),
+    } for c in calendars]}
+
+
 class CalendarEventCreate(BaseModel):
     summary: str
     start: str  # ISO datetime
@@ -288,11 +303,11 @@ async def export_leads_to_sheet(user=Depends(get_current_user)):
     # Headers + data
     headers = ["Name", "Email", "Phone", "Stage", "Value", "Temperature", "Source", "Created At"]
     rows = [headers]
-    for l in leads:
+    for lead in leads:
         rows.append([
-            l.get("name", ""), l.get("email", ""), l.get("phone", ""),
-            l.get("stage", ""), str(l.get("value", 0)), l.get("temperature", ""),
-            l.get("source", ""), l.get("created_at", ""),
+            lead.get("name", ""), lead.get("email", ""), lead.get("phone", ""),
+            lead.get("stage", ""), str(lead.get("value", 0)), lead.get("temperature", ""),
+            lead.get("source", ""), lead.get("created_at", ""),
         ])
 
     sheets_service.spreadsheets().values().update(
