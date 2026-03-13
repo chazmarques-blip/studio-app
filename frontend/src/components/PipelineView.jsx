@@ -1,18 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const STEP_META = {
-  sofia_copy: { agent: 'Sofia', role: 'Copywriter', icon: PenTool, color: '#C9A84C' },
-  ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50' },
-  lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8' },
-  ana_review_design: { agent: 'Ana', role: 'Revisora de Design', icon: CheckCircle, color: '#4CAF50' },
-  pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C' },
+  sofia_copy: { agent: 'Sofia', role: 'Copywriter', icon: PenTool, color: '#C9A84C', estimatedSec: 30 },
+  ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
+  lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
+  ana_review_design: { agent: 'Ana', role: 'Revisora de Design', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
+  pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
 };
 
 const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'ana_review_design', 'pedro_publish'];
@@ -26,7 +26,107 @@ const PLATFORMS = [
   { id: 'sms', label: 'SMS' },
 ];
 
-function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, onToggle }) {
+/* ── Progress Timer ── */
+function ProgressTimer({ startedAt, estimatedSec, color }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!startedAt) return;
+    const start = new Date(startedAt).getTime();
+    const tick = () => setElapsed(Math.floor((Date.now() - start) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+  const pct = Math.min((elapsed / estimatedSec) * 100, 95);
+  const remaining = Math.max(estimatedSec - elapsed, 0);
+  const fmt = remaining > 60 ? `~${Math.ceil(remaining / 60)}min` : `~${remaining}s`;
+  return (
+    <div className="mt-1.5 px-1">
+      <div className="flex items-center justify-between mb-0.5">
+        <span className="text-[8px] text-[#555]">{elapsed}s decorridos</span>
+        <span className="text-[8px] text-[#555]">{fmt} restante</span>
+      </div>
+      <div className="h-1 rounded-full bg-[#1A1A1A] overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-1000 ease-linear" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Image Lightbox ── */
+function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate }) {
+  const [index, setIndex] = useState(initialIndex || 0);
+  const [showAdjust, setShowAdjust] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const url = images[index];
+  if (!url) return null;
+
+  const requestAdjust = async () => {
+    if (!feedback.trim()) return;
+    setSubmitting(true);
+    try {
+      await axios.post(`${API}/campaigns/pipeline/${pipelineId}/regenerate-design`, {
+        design_index: index, feedback: feedback.trim()
+      });
+      toast.success('Ajuste solicitado! Gerando nova imagem...');
+      setShowAdjust(false);
+      setFeedback('');
+      if (onRegenerate) onRegenerate();
+      onClose();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao solicitar ajuste');
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div data-testid="image-lightbox" className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute -top-3 -right-3 z-10 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] transition">
+          <X size={16} className="text-white" />
+        </button>
+        <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${index + 1}`}
+          className="w-full rounded-xl border border-[#333] shadow-2xl" />
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex gap-2">
+            {images.map((u, i) => u && (
+              <button key={i} onClick={() => setIndex(i)}
+                className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${i === index ? 'border-[#C9A84C]' : 'border-[#333] opacity-60 hover:opacity-100'}`}>
+                <img src={`${process.env.REACT_APP_BACKEND_URL}${u}`} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <a href={`${process.env.REACT_APP_BACKEND_URL}${url}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
+              <Download size={12} /> Baixar
+            </a>
+            <button onClick={() => setShowAdjust(!showAdjust)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[11px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+              <MessageSquare size={12} /> Pedir Ajuste
+            </button>
+          </div>
+        </div>
+        {showAdjust && (
+          <div className="mt-3 p-3 rounded-xl bg-[#111] border border-[#C9A84C]/20">
+            <p className="text-[10px] text-[#888] mb-1.5">Descreva o ajuste que deseja no Design {index + 1}:</p>
+            <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2}
+              placeholder="Ex: Aumentar o logo, mudar a cor de fundo para azul, adicionar o telefone..."
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30" />
+            <button onClick={requestAdjust} disabled={submitting || !feedback.trim()}
+              className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] text-[11px] font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
+              {submitting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+              {submitting ? 'Gerando...' : 'Enviar Ajuste'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, onToggle, pipelineId, onRefresh }) {
   const meta = STEP_META[step];
   const Icon = meta.icon;
   const status = data?.status || 'pending';
@@ -80,37 +180,61 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
         {(data?.output || isFailed || requiresUpgrade) && (expanded ? <ChevronUp size={14} className="text-[#444]" /> : <ChevronDown size={14} className="text-[#444]" />)}
       </button>
 
+      {/* Progress Timer for running steps */}
+      {(status === 'running' || isGeneratingImages) && data?.started_at && (
+        <ProgressTimer startedAt={data.started_at} estimatedSec={isGeneratingImages ? 90 : meta.estimatedSec} color={meta.color} />
+      )}
+
       {expanded && (data?.output || isFailed || requiresUpgrade) && (
-        <div className="px-3 pb-3 border-t border-[#151515]">
-          {data?.output && (
-            <div className="mt-2 rounded-lg bg-[#111] p-3 max-h-[300px] overflow-y-auto">
-              <pre className="text-[10px] text-[#aaa] whitespace-pre-wrap leading-relaxed font-sans">{data.output}</pre>
-            </div>
-          )}
-          {hasImages && (
-            <div className="mt-2">
-              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Imagens Geradas</p>
-              <div className="grid grid-cols-3 gap-2">
-                {data.image_urls.map((url, i) => url && (
-                  <div key={i} className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group relative">
-                    <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
-                      <span className="text-[8px] text-white font-semibold">Design {i + 1}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {isFailed && data?.error && (
-            <div className="mt-2 rounded-lg bg-red-500/5 border border-red-500/20 p-3">
-              <p className="text-[10px] text-red-400">{data.error}</p>
-            </div>
-          )}
-          {needsApproval && step === 'ana_review_copy' && <CopyApproval data={data} onApprove={onApprove} />}
-          {needsApproval && step === 'ana_review_design' && <DesignApproval data={data} onApprove={onApprove} />}
+        <StepContent step={step} data={data} hasImages={hasImages} isFailed={isFailed}
+          needsApproval={needsApproval} requiresUpgrade={requiresUpgrade}
+          onApprove={onApprove} pipelineId={pipelineId} onRefresh={onRefresh} />
+      )}
+    </div>
+  );
+}
+
+function StepContent({ step, data, hasImages, isFailed, needsApproval, requiresUpgrade, onApprove, pipelineId, onRefresh }) {
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+  const images = (data?.image_urls || []).filter(u => u);
+
+  return (
+    <div className="px-3 pb-3 border-t border-[#151515]">
+      {data?.output && (
+        <div className="mt-2 rounded-lg bg-[#111] p-3 max-h-[300px] overflow-y-auto">
+          <pre className="text-[10px] text-[#aaa] whitespace-pre-wrap leading-relaxed font-sans">{data.output}</pre>
         </div>
       )}
+      {hasImages && (
+        <div className="mt-2">
+          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Imagens Geradas — clique para ver em tamanho completo</p>
+          <div className="grid grid-cols-3 gap-2">
+            {data.image_urls.map((url, i) => url && (
+              <button key={i} onClick={() => setLightboxIndex(i)}
+                className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group relative text-left hover:border-[#C9A84C]/30 transition">
+                <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  <Maximize2 size={18} className="text-white" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
+                  <span className="text-[8px] text-white font-semibold">Design {i + 1}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+          {lightboxIndex !== null && (
+            <ImageLightbox images={images} initialIndex={lightboxIndex}
+              onClose={() => setLightboxIndex(null)} pipelineId={pipelineId} onRegenerate={onRefresh} />
+          )}
+        </div>
+      )}
+      {isFailed && data?.error && (
+        <div className="mt-2 rounded-lg bg-red-500/5 border border-red-500/20 p-3">
+          <p className="text-[10px] text-red-400">{data.error}</p>
+        </div>
+      )}
+      {needsApproval && step === 'ana_review_copy' && <CopyApproval data={data} onApprove={onApprove} />}
+      {needsApproval && step === 'ana_review_design' && <DesignApproval data={data} onApprove={onApprove} images={images} pipelineId={pipelineId} onRefresh={onRefresh} />}
     </div>
   );
 }
@@ -141,15 +265,40 @@ function CopyApproval({ data, onApprove }) {
   );
 }
 
-function DesignApproval({ data, onApprove }) {
+function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
   const autoSels = data?.auto_selections || {};
   const [selections, setSelections] = useState(autoSels);
   const [submitting, setSubmitting] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState(null);
   const platforms = Object.keys(autoSels);
   const handleApprove = async () => { setSubmitting(true); await onApprove({ selections: Object.keys(selections).length > 0 ? selections : { default: 1 } }); setSubmitting(false); };
   return (
     <div data-testid="design-approval" className="mt-3 space-y-2.5 bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
-      <p className="text-[11px] text-amber-200 font-semibold">Escolha o design por plataforma:</p>
+      <p className="text-[11px] text-amber-200 font-semibold">Revise os designs e escolha por plataforma:</p>
+
+      {/* Image preview thumbnails with click to enlarge */}
+      {images && images.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {images.map((url, i) => (
+            <button key={i} onClick={() => setLightboxIdx(i)}
+              className="rounded-lg overflow-hidden border-2 border-[#222] hover:border-[#C9A84C]/50 transition relative group">
+              <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <Maximize2 size={16} className="text-white" />
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 bg-black/80 px-2 py-1 text-center">
+                <span className="text-[9px] text-white font-bold">Design {i + 1}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {lightboxIdx !== null && (
+        <ImageLightbox images={images} initialIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)} pipelineId={pipelineId} onRegenerate={onRefresh} />
+      )}
+
       {platforms.length > 0 ? platforms.map(p => (
         <div key={p} className="flex items-center gap-2">
           <span className="text-[11px] text-white font-medium capitalize w-24">{p}</span>
@@ -180,7 +329,8 @@ function CompletedSummary({ pipeline }) {
   const approvedCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
   const images = steps.lucas_design?.image_urls?.filter(u => u) || [];
   const schedule = steps.pedro_publish?.output || '';
-  const [activeTab, setActiveTab] = useState('copy');
+  const [activeTab, setActiveTab] = useState('preview');
+  const [lightboxIdx, setLightboxIdx] = useState(null);
 
   const copyToClipboard = (text) => {
     try {
@@ -204,6 +354,7 @@ function CompletedSummary({ pipeline }) {
         </div>
         <div className="flex gap-1">
           {[
+            { id: 'preview', label: 'Preview Completo', icon: Eye },
             { id: 'copy', label: 'Copy Final', icon: FileText },
             { id: 'images', label: `Imagens (${images.length})`, icon: Image },
             { id: 'schedule', label: 'Cronograma', icon: CalendarClock },
@@ -218,7 +369,42 @@ function CompletedSummary({ pipeline }) {
         </div>
       </div>
 
-      <div className="p-3 max-h-[350px] overflow-y-auto">
+      <div className="p-3 max-h-[450px] overflow-y-auto">
+        {activeTab === 'preview' && (
+          <div className="space-y-3">
+            {/* Preview: Copy + Images side by side */}
+            <div>
+              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Texto da Campanha</p>
+              <div className="rounded-lg bg-[#111] p-3 border border-[#1A1A1A]">
+                <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{approvedCopy}</pre>
+              </div>
+            </div>
+            {images.length > 0 && (
+              <div>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Imagens da Campanha</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {images.map((url, i) => (
+                    <button key={i} onClick={() => setLightboxIdx(i)}
+                      className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#C9A84C]/30 transition">
+                      <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <Maximize2 size={18} className="text-white" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {schedule && (
+              <div>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Cronograma</p>
+                <div className="rounded-lg bg-[#111] p-2 border border-[#1A1A1A]">
+                  <pre className="text-[9px] text-[#999] whitespace-pre-wrap leading-relaxed font-sans line-clamp-6">{schedule}</pre>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {activeTab === 'copy' && (
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -230,22 +416,24 @@ function CompletedSummary({ pipeline }) {
         )}
         {activeTab === 'images' && (
           <div>
-            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Imagens da Campanha</p>
+            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Clique para ver em tamanho completo</p>
             {images.length > 0 ? (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((url, i) => (
-                  <div key={i} className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group">
+                  <button key={i} onClick={() => setLightboxIdx(i)}
+                    className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#C9A84C]/30 transition">
                     <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                      <Maximize2 size={16} className="text-white" />
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex items-center justify-between">
+                      <span className="text-[8px] text-white font-semibold">Design {i + 1}</span>
                       <a href={`${process.env.REACT_APP_BACKEND_URL}${url}`} target="_blank" rel="noopener noreferrer"
-                        className="h-7 w-7 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
-                        <Download size={12} className="text-white" />
+                        onClick={e => e.stopPropagation()} className="text-white/70 hover:text-white">
+                        <Download size={10} />
                       </a>
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
-                      <span className="text-[8px] text-white font-semibold">Design {i + 1}</span>
-                    </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -263,6 +451,11 @@ function CompletedSummary({ pipeline }) {
           </div>
         )}
       </div>
+
+      {lightboxIdx !== null && (
+        <ImageLightbox images={images} initialIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)} pipelineId={pipeline.id} />
+      )}
     </div>
   );
 }
@@ -673,7 +866,8 @@ export default function PipelineView({ context }) {
             <StepCard key={s} step={s} data={steps[s]}
               isActive={s === activePipeline.current_step && activePipeline.status === 'running'}
               pipelineStatus={activePipeline.status} onApprove={approveStep}
-              expanded={!!expandedSteps[s]} onToggle={() => toggleStep(s)} />
+              expanded={!!expandedSteps[s]} onToggle={() => toggleStep(s)}
+              pipelineId={activePipeline.id} onRefresh={() => pollPipeline(activePipeline.id)} />
           ))}
         </div>
 

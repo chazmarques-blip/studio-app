@@ -146,6 +146,31 @@ async def _generate_image(prompt_text, pipeline_id, index):
 
 async def _generate_design_images(pipeline_id, concepts_text, platforms):
     """Parse Lucas's concepts and generate images for each"""
+    # Get pipeline data for brand info
+    pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
+    brand_context = ""
+    if pipeline_data:
+        p = pipeline_data[0]
+        result_data = p.get("result", {})
+        ctx = result_data.get("context", {})
+        assets = result_data.get("uploaded_assets", [])
+        contact = result_data.get("contact_info", {})
+
+        brand_parts = []
+        if ctx.get("company"):
+            brand_parts.append(f"The brand name is '{ctx['company']}'. Include the text '{ctx['company']}' prominently in the design.")
+        if contact.get("website"):
+            brand_parts.append(f"Include the website '{contact['website']}' in the design.")
+        if assets:
+            logo_assets = [a for a in assets if a.get("type") == "logo"]
+            if logo_assets:
+                brand_parts.append("The brand has a professional logo. Use a cohesive brand identity with consistent colors and style that matches a premium brand.")
+            ref_assets = [a for a in assets if a.get("type") == "reference"]
+            if ref_assets:
+                brand_parts.append(f"Use visual style inspired by {len(ref_assets)} reference image(s) provided: modern, professional aesthetic.")
+        if brand_parts:
+            brand_context = "\nBRAND REQUIREMENTS (MANDATORY): " + " ".join(brand_parts)
+
     # First, use Claude to extract image prompts from Lucas's descriptions
     try:
         chat = LlmChat(
@@ -154,15 +179,16 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
             system_message="You extract image generation prompts from design concept descriptions. Return ONLY the prompts, one per line, numbered. Each prompt should be a detailed, visual description suitable for AI image generation. No explanations."
         ).with_model("anthropic", "claude-sonnet-4-5-20250929")
 
-        extract_prompt = f"""Extract exactly 3 image generation prompts from these design concepts. Each prompt should describe the visual in detail (colors, composition, style, mood). Keep prompts under 200 words each.
+        extract_prompt = f"""Extract exactly 3 image generation prompts from these design concepts. Each prompt should describe the visual in detail (colors, composition, style, mood, text overlays). Keep prompts under 200 words each.
+{brand_context}
 
 Design concepts:
 {concepts_text}
 
 Format:
-1. [detailed image prompt]
-2. [detailed image prompt]
-3. [detailed image prompt]"""
+1. [detailed image prompt including any brand name text]
+2. [detailed image prompt including any brand name text]
+3. [detailed image prompt including any brand name text]"""
 
         response = await chat.send_message(UserMessage(text=extract_prompt))
         prompts = re.findall(r'\d+\.\s*(.+?)(?=\n\d+\.|$)', response, re.DOTALL)
@@ -442,6 +468,26 @@ async def _execute_step(pipeline_id, step):
 
         if not nxt:
             new_status = "completed"
+            # Save as campaign in campaigns table
+            try:
+                approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
+                image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+                schedule_text = steps.get("pedro_publish", {}).get("output", "")
+                ctx = pipeline.get("result", {}).get("context", {})
+                campaign_name = ctx.get("company", "") or pipeline.get("briefing", "")[:50]
+                supabase.table("campaigns").insert({
+                    "tenant_id": pipeline["tenant_id"],
+                    "name": f"[Pipeline] {campaign_name}",
+                    "type": "ai_pipeline",
+                    "status": "draft",
+                    "target_segment": {"platforms": pipeline.get("platforms", [])},
+                    "messages": [{"step": 1, "channel": "multi", "content": approved_copy, "delay_hours": 0}],
+                    "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
+                    "stats": {"images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
+                }).execute()
+                logger.info(f"Campaign created from pipeline {pipeline_id}")
+            except Exception as camp_err:
+                logger.warning(f"Failed to create campaign from pipeline: {camp_err}")
         elif mode == "auto":
             new_status = "running"
         elif step in PAUSE_AFTER:
@@ -660,6 +706,86 @@ async def retry_failed_step(pipeline_id: str, user=Depends(get_current_user)):
 
     _start_step_bg(pipeline_id, retry_step)
     return {"status": "retrying", "step": retry_step}
+
+
+class RegenerateDesignRequest(BaseModel):
+    design_index: int = 0
+    feedback: str = ""
+
+
+@router.post("/{pipeline_id}/regenerate-design")
+async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, user=Depends(get_current_user)):
+    """Regenerate a specific design image with user feedback"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline = result.data[0]
+    steps = pipeline.get("steps") or {}
+    lucas = steps.get("lucas_design", {})
+
+    if lucas.get("status") != "completed":
+        raise HTTPException(status_code=400, detail="Design step not completed")
+
+    old_prompts = lucas.get("image_prompts", [])
+    old_urls = lucas.get("image_urls", [])
+    idx = data.design_index
+
+    if idx < 0 or idx >= len(old_prompts):
+        raise HTTPException(status_code=400, detail="Invalid design index")
+
+    # Build enhanced prompt with feedback
+    original_prompt = old_prompts[idx]
+    enhanced_prompt = f"{original_prompt}. ADJUSTMENTS REQUESTED: {data.feedback}" if data.feedback else original_prompt
+
+    # Mark as regenerating
+    lucas["status"] = "generating_images"
+    steps["lucas_design"] = lucas
+    supabase.table("pipelines").update({
+        "steps": steps, "status": "running",
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", pipeline_id).execute()
+
+    # Regenerate in background thread
+    def _regen():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            new_url = loop.run_until_complete(_generate_image(enhanced_prompt, pipeline_id, idx + 10))
+            fresh = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data[0]
+            s = fresh.get("steps", {})
+            urls = s.get("lucas_design", {}).get("image_urls", list(old_urls))
+            prompts = s.get("lucas_design", {}).get("image_prompts", list(old_prompts))
+            if new_url:
+                urls[idx] = new_url
+                prompts[idx] = enhanced_prompt
+            s["lucas_design"]["image_urls"] = urls
+            s["lucas_design"]["image_prompts"] = prompts
+            s["lucas_design"]["status"] = "completed"
+            prev_status = fresh.get("status")
+            new_status = "waiting_approval" if prev_status == "running" else prev_status
+            if fresh.get("current_step") in ("ana_review_design", "lucas_design"):
+                new_status = "waiting_approval"
+            supabase.table("pipelines").update({
+                "steps": s, "status": new_status,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", pipeline_id).execute()
+        except Exception as e:
+            logger.error(f"Regenerate design failed: {e}")
+            fresh = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data[0]
+            s = fresh.get("steps", {})
+            s["lucas_design"]["status"] = "completed"
+            supabase.table("pipelines").update({
+                "steps": s, "status": "waiting_approval",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", pipeline_id).execute()
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=_regen, daemon=True)
+    t.start()
+    return {"status": "regenerating", "design_index": idx}
 
 
 @router.get("/{pipeline_id}/labels")
