@@ -179,8 +179,19 @@ export default function MarketingStudio() {
   };
 
   const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success(lang === 'pt' ? 'Copiado!' : 'Copied!');
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast.success(lang === 'pt' ? 'Copiado!' : 'Copied!');
+    } catch {
+      toast.error(lang === 'pt' ? 'Erro ao copiar' : 'Copy failed');
+    }
   };
 
   if (loading) return (
