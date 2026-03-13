@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save } from 'lucide-react';
+import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 const channelStatus = [
-  { name: 'WhatsApp', color: '#25D366', connected: false },
-  { name: 'Instagram', color: '#E4405F', connected: false },
-  { name: 'Facebook', color: '#1877F2', connected: false },
-  { name: 'Telegram', color: '#0088CC', connected: false },
+  { name: 'WhatsApp', connected: false },
+  { name: 'Instagram', connected: false },
+  { name: 'Facebook', connected: false },
+  { name: 'Telegram', connected: false },
 ];
 
 export default function SettingsPage() {
@@ -47,6 +47,7 @@ export default function SettingsPage() {
     { icon: User, label: t('settings.account'), desc: t('settings.account_desc'), action: () => setShowAccount(true) },
     { icon: Globe, label: t('settings.language'), desc: t('settings.language_desc'), path: '/onboarding' },
     { icon: CreditCard, label: t('settings.billing'), desc: t('settings.billing_desc'), path: '/pricing' },
+    { icon: Calendar, label: 'Google', desc: 'Calendar, Sheets, Drive', path: '/settings/google' },
     { icon: Wifi, label: t('channels.title'), desc: t('settings.integrations_desc'), path: '/settings/channels' },
     { icon: Link2, label: t('settings.integrations'), desc: t('settings.integrations_desc'), action: () => toast.info(t('common.coming_soon') || 'Coming soon') },
   ];
@@ -113,7 +114,7 @@ export default function SettingsPage() {
         <div className="space-y-1">
           {channelStatus.map(ch => (
             <div key={ch.name} data-testid={`channel-${ch.name.toLowerCase()}`} className="glass-card flex items-center gap-3 p-3">
-              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ch.color }} />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#C9A84C]" />
               <span className="flex-1 text-sm text-white">{ch.name}</span>
               <span className={`text-xs ${ch.connected ? 'text-[#4CAF50]' : 'text-[#666666]'}`}>{ch.connected ? t('settings.connected') : t('settings.not_connected')}</span>
             </div>

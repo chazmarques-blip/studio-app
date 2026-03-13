@@ -21,6 +21,7 @@ import ChannelConnection from './pages/ChannelConnection';
 import HandoffHuman from './pages/HandoffHuman';
 import UpsellScreen from './pages/UpsellScreen';
 import Pricing from './pages/Pricing';
+import GoogleIntegration from './pages/GoogleIntegration';
 
 import { useEffect } from 'react';
 
@@ -92,6 +93,7 @@ function App() {
           <Route path="/campaigns/new" element={<ProtectedRoute><CampaignBuilder /></ProtectedRoute>} />
           <Route path="/chat/handoff/:id" element={<ProtectedRoute><HandoffHuman /></ProtectedRoute>} />
           <Route path="/settings/channels" element={<ProtectedRoute><ChannelConnection /></ProtectedRoute>} />
+          <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
           <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
