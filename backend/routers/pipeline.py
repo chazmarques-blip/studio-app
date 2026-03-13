@@ -827,6 +827,18 @@ async def get_step_labels(pipeline_id: str, user=Depends(get_current_user)):
 
 
 
+@router.post("/{pipeline_id}/archive")
+async def archive_pipeline(pipeline_id: str, user=Depends(get_current_user)):
+    """Archive/dismiss a pipeline so the user can create a new one"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("id, tenant_id, status").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    supabase.table("pipelines").update({"status": "archived"}).eq("id", pipeline_id).execute()
+    return {"status": "archived", "pipeline_id": pipeline_id}
+
+
+
 @router.post("/{pipeline_id}/publish")
 async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_user)):
     """Publish a campaign created from a completed pipeline"""
@@ -880,5 +892,8 @@ async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_u
             "status": "active",
             "updated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", campaign_id).execute()
+
+    # Mark pipeline as completed/published
+    supabase.table("pipelines").update({"status": "completed"}).eq("id", pipeline_id).execute()
 
     return {"status": "published", "campaign_id": campaign_id}

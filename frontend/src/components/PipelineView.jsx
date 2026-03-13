@@ -798,7 +798,18 @@ export default function PipelineView({ context }) {
 
   const toggleStep = (step) => setExpandedSteps(prev => ({ ...prev, [step]: !prev[step] }));
   const togglePlatform = (pid) => setPlatforms(prev => prev.includes(pid) ? prev.filter(p => p !== pid) : [...prev, pid]);
-  const resetView = () => { setActivePipeline(null); setExpandedSteps({}); setShowFinalPreview(false); loadPipelines(); };
+  const resetView = () => { setActivePipeline(null); setExpandedSteps({}); setShowFinalPreview(false); };
+
+  const archivePipeline = async (pid) => {
+    try {
+      await axios.post(`${API}/campaigns/pipeline/${pid}/archive`);
+      setActivePipeline(null);
+      setExpandedSteps({});
+      setShowFinalPreview(false);
+      loadPipelines();
+      toast.success('Pipeline arquivado');
+    } catch { toast.error('Erro ao arquivar pipeline'); }
+  };
 
   // ── Final Preview Mode ──
   if (activePipeline && showFinalPreview) {
@@ -857,8 +868,8 @@ export default function PipelineView({ context }) {
             <span className="text-[10px] font-bold text-white">{progressPct}%</span>
             <span className="text-[8px] text-[#555] ml-1">completo</span>
           </div>
-          <button onClick={resetView} className="text-[#444] hover:text-white p-1.5 rounded-lg hover:bg-[#111] transition" title="Novo">
-            <RotateCcw size={14} />
+          <button onClick={() => archivePipeline(activePipeline.id)} className="text-[#666] hover:text-red-400 p-1.5 rounded-lg hover:bg-[#111] transition" title="Arquivar e criar novo">
+            <X size={14} />
           </button>
         </div>
 
@@ -924,7 +935,7 @@ export default function PipelineView({ context }) {
               <p className="text-xs font-bold text-green-400 flex-1">Pipeline concluido!</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={resetView}
+              <button onClick={() => archivePipeline(activePipeline.id)}
                 className="flex-1 rounded-lg border border-[#1E1E1E] py-2.5 text-[11px] text-[#888] hover:text-white transition">
                 Novo Pipeline
               </button>
