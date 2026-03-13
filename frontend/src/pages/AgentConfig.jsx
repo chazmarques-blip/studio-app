@@ -81,12 +81,14 @@ export default function AgentConfig() {
   const [promptOpen, setPromptOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [googleStatus, setGoogleStatus] = useState({ connected: false });
 
   useEffect(() => {
     if (agentId) {
       axios.get(`${API}/agents/${agentId}`).then(r => setAgent(r.data)).catch(() => navigate('/agents'));
       axios.get(`${API}/agents/${agentId}/knowledge`).then(r => setKnowledge(r.data.items)).catch(() => {});
       axios.get(`${API}/agents/${agentId}/follow-up-rules`).then(r => setRules(r.data.rules)).catch(() => {});
+      axios.get(`${API}/google/status`).then(r => setGoogleStatus(r.data)).catch(() => {});
     }
   }, [agentId, navigate]);
 
@@ -334,47 +336,156 @@ export default function AgentConfig() {
 
         {/* ══════ INTEGRATIONS ══════ */}
         {tab === 'integrations' && (
-          <div className="space-y-2">
-            {[
-              { key: 'google_calendar', name: 'Google Calendar', desc: lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events', icon: Calendar },
-              { key: 'google_sheets', name: 'Google Sheets', desc: lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets', icon: Table2 },
-              { key: 'google_drive', name: 'Google Drive', desc: lang === 'pt' ? 'Documentos como base de conhecimento' : 'Docs as knowledge base', icon: HardDrive },
-              { key: 'custom_api', name: 'Custom API', desc: lang === 'pt' ? 'Conectar a qualquer API REST' : 'Connect to any REST API', icon: Globe },
-              { key: 'webhook', name: 'Webhooks', desc: lang === 'pt' ? 'Disparar webhooks em eventos' : 'Trigger webhooks on events', icon: Webhook },
-            ].map(integ => {
-              const cfg = agent.integrations_config || {};
-              const connected = cfg[integ.key]?.enabled;
-              return (
-                <div key={integ.key} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><integ.icon size={14} className="text-[#C9A84C]" /></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-medium text-white">{integ.name}</p>
-                      <p className="text-[9px] text-[#555]">{integ.desc}</p>
+          <div className="space-y-3">
+            {/* Google Section */}
+            <div>
+              <h3 className="mb-2 text-[10px] font-semibold text-[#888] uppercase tracking-wider">Google</h3>
+              {!googleStatus.connected ? (
+                <div className="rounded-xl border border-[#C9A84C]/15 bg-[#C9A84C]/3 p-4">
+                  <div className="flex items-start gap-3">
+                    <Link2 size={16} className="text-[#C9A84C] mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-[11px] font-medium text-white mb-0.5">{lang === 'pt' ? 'Conecte sua conta Google' : 'Connect your Google account'}</p>
+                      <p className="text-[9px] text-[#888] mb-2.5">{lang === 'pt' ? 'Necessario para Calendar, Sheets e Drive. A conexao e feita uma vez e vale para todos os agentes.' : 'Required for Calendar, Sheets and Drive. Connect once, works for all agents.'}</p>
+                      <button data-testid="integ-google-connect" onClick={() => navigate('/settings/google')}
+                        className="btn-gold flex items-center gap-1.5 rounded-lg px-4 py-2 text-[10px]">
+                        <Link2 size={12} /> {lang === 'pt' ? 'Conectar Google' : 'Connect Google'}
+                      </button>
                     </div>
-                    <button data-testid={`integ-${integ.key}`}
-                      onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, [integ.key]: { ...p.integrations_config?.[integ.key], enabled: !connected } } }))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${connected ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/20' : 'bg-[#1A1A1A] text-[#666] border border-[#1E1E1E]'}`}>
-                      {connected ? (lang === 'pt' ? 'Conectado' : 'Connected') : (lang === 'pt' ? 'Conectar' : 'Connect')}
-                    </button>
                   </div>
-                  {connected && integ.key === 'custom_api' && (
-                    <div className="mt-2 space-y-1.5 pt-2 border-t border-[#111]">
-                      <input value={cfg.custom_api?.url || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, custom_api: { ...p.integrations_config?.custom_api, url: e.target.value } } }))}
-                        placeholder="API URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
-                      <input value={cfg.custom_api?.api_key || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, custom_api: { ...p.integrations_config?.custom_api, api_key: e.target.value } } }))}
-                        placeholder="API Key" type="password" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
-                    </div>
-                  )}
-                  {connected && integ.key === 'webhook' && (
-                    <div className="mt-2 pt-2 border-t border-[#111]">
-                      <input value={cfg.webhook?.url || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, webhook: { ...p.integrations_config?.webhook, url: e.target.value } } }))}
-                        placeholder="Webhook URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
-                    </div>
-                  )}
                 </div>
-              );
-            })}
+              ) : (
+                <div className="space-y-2">
+                  {/* Connected status */}
+                  <div className="flex items-center gap-2 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/10 px-3 py-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-[#C9A84C]" />
+                    <p className="text-[10px] text-[#C9A84C] flex-1">{lang === 'pt' ? 'Google conectado' : 'Google connected'}: <span className="text-white">{googleStatus.email}</span></p>
+                  </div>
+
+                  {/* Calendar */}
+                  {(() => { const cfg = agent.integrations_config || {}; const calEnabled = cfg.google_calendar?.enabled; return (
+                    <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Calendar size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium text-white">Google Calendar</p>
+                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events'}</p>
+                        </div>
+                        <button data-testid="integ-google_calendar"
+                          onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_calendar: { ...p.integrations_config?.google_calendar, enabled: !calEnabled } } }))}
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${calEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          <div className={`h-4 w-4 rounded-full bg-white transition ${calEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                      {calEnabled && (
+                        <div className="mt-2 pt-2 border-t border-[#111]">
+                          <p className="text-[9px] text-[#555] mb-1">{lang === 'pt' ? 'O agente podera: criar eventos, listar agenda, confirmar horarios' : 'Agent can: create events, list schedule, confirm times'}</p>
+                          <input value={cfg.google_calendar?.calendar_id || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_calendar: { ...p.integrations_config?.google_calendar, calendar_id: e.target.value } } }))}
+                            placeholder={lang === 'pt' ? 'ID do calendario (padrao: primario)' : 'Calendar ID (default: primary)'}
+                            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                        </div>
+                      )}
+                    </div>
+                  ); })()}
+
+                  {/* Sheets */}
+                  {(() => { const cfg = agent.integrations_config || {}; const shEnabled = cfg.google_sheets?.enabled; return (
+                    <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Table2 size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium text-white">Google Sheets</p>
+                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets'}</p>
+                        </div>
+                        <button data-testid="integ-google_sheets"
+                          onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, enabled: !shEnabled } } }))}
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${shEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          <div className={`h-4 w-4 rounded-full bg-white transition ${shEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                      {shEnabled && (
+                        <div className="mt-2 pt-2 border-t border-[#111] space-y-1.5">
+                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Cole o link ou ID da planilha que o agente deve acessar' : 'Paste the link or ID of the spreadsheet the agent should access'}</p>
+                          <input value={cfg.google_sheets?.spreadsheet_id || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, spreadsheet_id: e.target.value } } }))}
+                            placeholder={lang === 'pt' ? 'Link ou ID da planilha' : 'Spreadsheet link or ID'}
+                            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                          <input value={cfg.google_sheets?.range || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, range: e.target.value } } }))}
+                            placeholder={lang === 'pt' ? 'Intervalo (ex: Sheet1!A1:D100)' : 'Range (e.g. Sheet1!A1:D100)'}
+                            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                        </div>
+                      )}
+                    </div>
+                  ); })()}
+
+                  {/* Drive */}
+                  {(() => { const cfg = agent.integrations_config || {}; const drEnabled = cfg.google_drive?.enabled; return (
+                    <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><HardDrive size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium text-white">Google Drive</p>
+                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Documentos como base de conhecimento' : 'Docs as knowledge base'}</p>
+                        </div>
+                        <button data-testid="integ-google_drive"
+                          onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_drive: { ...p.integrations_config?.google_drive, enabled: !drEnabled } } }))}
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${drEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          <div className={`h-4 w-4 rounded-full bg-white transition ${drEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                      {drEnabled && (
+                        <div className="mt-2 pt-2 border-t border-[#111]">
+                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'O agente usara documentos do Drive como base de conhecimento' : 'Agent will use Drive documents as knowledge base'}</p>
+                        </div>
+                      )}
+                    </div>
+                  ); })()}
+                </div>
+              )}
+            </div>
+
+            {/* APIs Section */}
+            <div>
+              <h3 className="mb-2 text-[10px] font-semibold text-[#888] uppercase tracking-wider">APIs</h3>
+              <div className="space-y-2">
+                {[
+                  { key: 'custom_api', name: 'Custom API', desc: lang === 'pt' ? 'Conectar a qualquer API REST' : 'Connect to any REST API', icon: Globe },
+                  { key: 'webhook', name: 'Webhooks', desc: lang === 'pt' ? 'Disparar webhooks em eventos' : 'Trigger webhooks on events', icon: Webhook },
+                ].map(integ => {
+                  const cfg = agent.integrations_config || {};
+                  const enabled = cfg[integ.key]?.enabled;
+                  return (
+                    <div key={integ.key} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><integ.icon size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium text-white">{integ.name}</p>
+                          <p className="text-[9px] text-[#555]">{integ.desc}</p>
+                        </div>
+                        <button data-testid={`integ-${integ.key}`}
+                          onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, [integ.key]: { ...p.integrations_config?.[integ.key], enabled: !enabled } } }))}
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${enabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          <div className={`h-4 w-4 rounded-full bg-white transition ${enabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                      {enabled && integ.key === 'custom_api' && (
+                        <div className="mt-2 space-y-1.5 pt-2 border-t border-[#111]">
+                          <input value={cfg.custom_api?.url || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, custom_api: { ...p.integrations_config?.custom_api, url: e.target.value } } }))}
+                            placeholder="API URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                          <input value={cfg.custom_api?.api_key || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, custom_api: { ...p.integrations_config?.custom_api, api_key: e.target.value } } }))}
+                            placeholder="API Key" type="password" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                        </div>
+                      )}
+                      {enabled && integ.key === 'webhook' && (
+                        <div className="mt-2 pt-2 border-t border-[#111]">
+                          <input value={cfg.webhook?.url || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, webhook: { ...p.integrations_config?.webhook, url: e.target.value } } }))}
+                            placeholder="Webhook URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 

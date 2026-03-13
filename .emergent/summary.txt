@@ -11,43 +11,46 @@ The user wants to build a comprehensive, mobile-first, no-code SaaS platform cal
 4.  **Multi-Agent Orchestration:** Intelligently switch between specialized agents within a conversation.
 5.  **Multi-Language Support:** UI support for English, Portuguese, and Spanish. Agents can have a fixed language or auto-detect.
 6.  **Agent Marketplace:** A library of 20+ pre-built, editable agents.
-7.  **Advanced Agent Configuration:** Users must be able to configure agent personality (tone, verbosity, emoji usage), knowledge base (text, documents, URLs), and post-conversation rules (follow-ups, re-engagement).
+7.  **Advanced Agent Configuration:** Users must be able to configure agent personality, knowledge base (text, documents, URLs), and post-conversation rules.
 8.  **Real-Time Sync:** Google Calendar and Google Sheets integration.
-9.  **Lead Nurturing:** Automated follow-up campaigns.
+9.  **Lead Nurturing & AI-Powered Campaigns:** Automated follow-up campaigns and an AI-powered campaign generator for text and images (Enterprise plan).
 10. **Integrated CRM:** A built-in CRM with a visual Kanban board, with leads automatically created and managed by the AI.
-11. **Design & UX:** A premium, sophisticated UI with a dark luxury theme.
-12. **Pricing Model:** A Freemium Plan with an upsell prompt upon reaching message limits, and a dedicated in-app page for plan management.
+11. **Design & UX:** A premium, sophisticated UI with a dark luxury theme (monochrome gold, black, white, gray).
+12. **Pricing Model:** A Freemium Plan with plan-gated features (e.g., Personal Agents, AI Campaigns).
+13. **Admin Management System:** A full administrative backend for platform management.
 
 **User's preferred language**: Português (Portuguese). The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-The application is a full-stack React/FastAPI app. The backend has been fully refactored from a monolithic  into a modular structure with FastAPI . The frontend features a Dark Luxury theme and has several key pages implemented:
--   A multi-revision, user-approved  page with a detailed, 4-tier pricing section.
--   A fully functional  page with a drag-and-drop Kanban board for lead management and an AI-powered lead scoring endpoint.
--   A highly detailed  page with multi-tab navigation, sliders, and toggles for fine-tuning agent behavior.
--   A new in-app  page that serves as a billing and plan management dashboard, showing the user's current plan and real-time usage metrics.
+The application is a full-stack React/FastAPI app using Supabase for the database. The UI follows a strict dark luxury monochrome theme (gold, black, gray, white).
 
-However, recent rapid development has introduced several critical UI/UX and navigation bugs that need immediate attention.
+**Key Implemented Features:**
+*   **Core UI/UX:** The main navigation bugs have been fixed. A dynamic, data-rich Dashboard has been implemented using  for graphs. The Chat/Inbox UI now uses channel-specific SVG icons instead of colored avatars, adhering to the monochrome theme.
+*   **Agent Management:** A comprehensive  page allows for detailed agent customization. Key features include an editable agent name, a Reset to original button, a visible system prompt, and a compact layout. The Agent Marketplace () now features a Details modal for viewing agent capabilities before deployment.
+*   **Feature Gating:** Personal Agents are implemented and correctly locked for users on plans below Pro, with an Upgrade button shown instead of Deploy.
+*   **Google Integration (Phase 6 Foundation):** The full backend OAuth2 flow for Google authentication is complete, including credential storage (, ). The frontend has dedicated pages for connecting to Google () and handling the callback.
 
 **Last working item**:
--   **Last item agent was working:** The agent acknowledged a user report detailing several critical UI/UX bugs and was about to begin fixing them. The user pointed out that there's no navigation link back to the dashboard, the profile dropdown menu is broken, and several buttons/links in the settings area are not functional.
+-   **Last item agent was working:** The agent was updating the **Integrations tab** within the  page to make the Google Calendar and Sheets connections fully functional. The goal was to dynamically show the real connection status and allow the user to select specific calendars/sheets for the agent to use, rather than just showing a static Connected button. The agent had just replaced the old static UI with a new dynamic structure.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** frontend testing agent (This affects core navigation and usability across multiple components like the Sidebar, Header/Profile dropdown, and Settings page).
+-   **Which testing method agent to use?** frontend testing agent (This requires verifying API calls for status and complex conditional UI rendering in React).
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Fix Critical UI/UX & Navigation Bugs (P0 - HIGHEST)**
-    -   **Description:** The user is unable to navigate the app properly due to several broken UI elements.
-    -   **Attempted fixes:** None yet. The agent just acknowledged the problem.
+-   **Issue 1: Complete Google Integration Logic in Agent Config (P0 - HIGHEST)**
+    -   **Description:** The Integrations tab in  is currently a UI shell. It needs to be wired to the backend to become fully interactive.
+    -   **Attempted fixes:** The UI component was replaced with a new structure.
     -   **Next debug checklist:**
-        1.  **Dashboard Link:** Add a Dashboard or Home link to the main navigation sidebar () so users can return to the main app view from pages like Billing.
-        2.  **Profile Dropdown:** Fix the profile/user button in the header. It should trigger a dropdown menu with options for Edit Profile, Billing/Plan, and Logout.
-        3.  **Settings Page Links:** Ensure all navigation items within the  page, particularly the Account link, are correctly wired and functional.
-    -   **Why fix this issue and what will be achieved with the fix?** To restore core application usability and provide a coherent user experience, allowing users to navigate between key sections, manage their profile, and log out.
+        1.  Ensure the UI correctly reflects the actual Google connection status by calling the  endpoint.
+        2.  Implement backend endpoints to list the user's available Google Calendars and Sheets.
+        3.  Implement frontend dropdowns in the  Integrations tab to display these lists.
+        4.  Implement the logic to save the selected  and  to the agent's configuration in the database.
+        5.  Verify the Connect Google button correctly redirects to the  page if the user is not yet connected.
+    -   **Why fix this issue and what will be achieved with the fix?** To make the Google Calendar/Sheets integration actually usable, allowing agents to read from and write to specific user-selected resources.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Should Test frontend/backend/both after fix?** Both
     -   **Blocked on other issue:** None.
 
 **In progress Task List**:
@@ -55,27 +58,27 @@ None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P1: Phase 5 - Dashboard & Analytics:** Build the data visualization components for the  page to display key metrics like message volume, agent performance, and lead conversion rates, using the existing  endpoint.
+    -   **P1: Phase 7 (Enhanced) - AI-Powered Lead Nurturing & Campaign Generation (Enterprise Plan):**
+        -   Build AI agents for generating campaign ideas, ad copy (text/images), and scheduling publications on social networks.
+        -   Develop a library for created ads and performance analytics.
+        -   This feature must be restricted to the Enterprise plan.
 -   **Future Tasks:**
-    -   **Phase 6: Real-time Sync:** Implement Google Calendar and Google Sheets integration (via the Integrations tab in Agent Config).
-    -   **Phase 7: Lead Nurturing:** Build the automated follow-up campaign feature (via the Automations tab in Agent Config).
-    -   **Phase 8: Omnichannel Integrations (User-Postponed):**
-        -   Configure live WhatsApp (Evolution API) connection.
-        -   Implement SMS Integration (Twilio).
-        -   Implement Instagram Integration.
-        -   Implement Facebook Messenger Integration.
-        -   Implement Telegram Integration (Webhook is ready, requires bot token connection).
-    -   **Final Testing & Adjustments.**
+    -   **Phase 8: Omnichannel Integrations:** Activate the live connections for WhatsApp (Evolution API), SMS (Twilio), Instagram, Facebook, and Telegram.
+    -   **Admin Management System:** Build a separate, comprehensive admin dashboard for platform management (users, billing, system health), complete with its own AI assistants.
+    -   **Payment Gateway Integration:** Implement a full, functional payment gateway integration.
+    -   **Legal & Publication:** Draft and integrate Terms of Use and Privacy Policy pages. Prepare the application for submission to the Apple App Store and Google Play Store.
+    -   **Scalability Hardening:** Prepare the system architecture for multiple users and high scalability.
 
 **Completed work in this session**
--   **Landing Page Overhaul:** Iteratively redesigned the entire  page based on multiple rounds of user feedback, including layout, color palette, iconography, and content.
--   **Backend Refactoring (Complete):** Fully refactored the monolithic  into a clean, modular structure using FastAPI's . Modules include , , , , , and .
--   **Phase 4 - CRM Kanban with AI:** Implemented a full-featured CRM page with a drag-and-drop Kanban board, dynamic lead detail view, and a backend endpoint for AI-based lead scoring.
--   **Advanced Agent Configuration:** Created a comprehensive agent configuration UI with 6 tabs, sliders for fine-tuning (e.g., verbosity, creativity), and toggles for behavioral flags. The backend was updated to support this complex configuration.
--   **Pricing & Billing System:**
-    -   Added a detailed 4-tier pricing section to the landing page with an annual/monthly toggle.
-    -   Implemented a dedicated in-app billing/plan management page () showing current plan, real-time usage bars for messages and agents, and upgrade options.
--   **Personal Agent/Telegram Foundation:** Created the backend infrastructure (models and router) for a Telegram bot webhook to support a Personal Agent.
+-   **Navigation & UI Polish:** Fixed all critical navigation bugs (sidebar, profile dropdown). Refined the entire app UI to a consistent dark luxury monochrome theme (gold, black, white, gray).
+-   **Dynamic Dashboard:** Implemented a new  with  graphs, dynamic KPIs, a credit counter, and an AI Insights placeholder widget.
+-   **Agent Management Overhaul:**
+    -   Fixed a critical bug that prevented agent configurations from being saved ().
+    -   Implemented an editable agent name (with a clickable pencil icon) and a Reset to Original button in .
+    -   Made the system prompt visible and editable within a collapsible section.
+    -   Created a compact layout for all settings in .
+-   **Feature Gating:** Implemented Personal Agents visible in the marketplace but locked for plans below Pro.
+-   **Google Integration Foundation (Phase 6):** Built the complete backend OAuth2 flow and frontend pages to connect a user's Google account.
 
 **Earlier issues found/mentioned but not fixed**
 None.
@@ -83,94 +86,92 @@ None.
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** Supabase DNS Resolution Failure.
 -   **Recurrence count:** 2+
--   **Status:** RESOLVED. The issue was permanently fixed by using the  REST client.
+-   **Status:** RESOLVED.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend:** React, Tailwind CSS, shadcn-ui, Lucide Icons, i18next, Framer Motion, **react-beautiful-dnd**
+-   **Frontend:** React, Tailwind CSS, shadcn-ui, Lucide Icons, Framer Motion, **recharts**, **react-beautiful-dnd**
 -   **Backend:** FastAPI (Python), Modular  structure
--   **Database & Auth:** Supabase (PostgreSQL, Supabase Auth) via  client
--   **DB Schema Strategy:** Using JSON/JSONB columns (, , ) to store complex, nested configuration data without altering the main table schema.
--   **AI (via Emergent LLM Key):** Anthropic Claude 3.5 Sonnet, OpenAI Whisper
+-   **Database & Auth:** Supabase (PostgreSQL, Supabase Auth)
+-   **DB Schema Strategy:** Storing complex configurations (agent personality, original settings) in JSONB columns (, , ). User Google credentials are saved encrypted in the database.
+-   **3rd Party APIs:** Google API (, ), Anthropic Claude 3.5 Sonnet, OpenAI Whisper.
 
 **key DB schema**
--   **users:** (from Supabase Auth, includes a  JSONB column for ).
--   **agents:** { id, ...,  (JSONB for sliders/toggles),  (JSONB for integrations/channels) }.
--   **leads:** { id, user_id, name, stage, value, , , , ,  }.
--   Other tables (, , , etc.) remain as previously defined.
+-   **agents:** { id, ...,  (JSONB),  (JSONB),  (JSONB - new) }.
+-   **users:** Has a column to store encrypted Google credentials.
 
 **changes in tech stack**
--    and  were added for the CRM Kanban board.
+-   **Frontend:**  was added for data visualization on the dashboard.
+-   **Backend:**  and  were added for Google integration.
 
 **All files of reference**
--   **/app/frontend/src/components/layout/Sidebar.jsx**: Needs to be edited to add a Dashboard link.
--   **/app/frontend/src/pages/Settings.jsx**: Needs to be reviewed to fix broken links.
--   **/app/frontend/src/pages/Pricing.jsx**: The new in-app billing dashboard.
--   **/app/frontend/src/pages/CRM.jsx**: The new Kanban board page.
--   **/app/frontend/src/pages/AgentConfig.jsx**: The new agent configuration page.
--   **/app/backend/routers/**: The newly created directory for all backend logic.
--   **/app/backend/server.py**: The refactored, slim main server file.
--   **/app/backend/core/models.py**: Contains all Pydantic and SQLAlchemy models, updated extensively.
+-   **/app/frontend/src/pages/AgentConfig.jsx**: **(NEEDS WORK)** Heavily modified. The Integrations tab logic is the current focus.
+-   **/app/backend/routers/google.py**: New file containing all Google API logic (auth, status).
+-   **/app/backend/routers/agents.py**: Modified to handle agent reset and storing original configurations.
+-   **/app/frontend/src/pages/Dashboard.jsx**: New file, contains the main dashboard UI.
+-   **/app/frontend/src/pages/google/GoogleIntegrationPage.jsx**: New file for managing the Google connection.
+-   **/app/frontend/src/pages/google/GoogleCallbackPage.jsx**: New file for handling the OAuth callback.
+-   **/app/backend/core/models.py**: Updated with new request/response models for agent reset and Google integration.
 
 **Areas that need refactoring**:
--   The major backend refactoring is complete. No large-scale refactoring is immediately required.
+None. The codebase is currently in a good modular state.
 
 **key api endpoints**
--   : Retrieves current plan and usage stats.
--   : Upgrades the user's subscription plan.
--   : Endpoint for receiving Telegram bot updates.
--   : Triggers AI analysis and scoring for a lead.
--   : Updates the stage of a lead (used by drag-and-drop).
--   : Provides statistics for the main dashboard.
+-   ****: Resets an agent to its original marketplace configuration.
+-   ****: Initiates the Google OAuth flow.
+-   ****: Endpoint for Google to redirect to after user consent.
+-   ****: Checks if the current user has a valid Google connection.
+-   ****: Revokes Google tokens and disconnects the account.
 
 **Critical Info for New Agent**
 1.  **LANGUAGE:** You MUST communicate with the user in **Portuguese**.
-2.  **IMMEDIATE TASK:** The top priority is to fix the navigation bugs reported in the user's last message. The app is currently difficult to use. Focus on fixing the sidebar, profile dropdown, and settings links.
-3.  **DATABASE STRATEGY:** Remember that new complex settings (like agent personality sliders or billing cycle) are stored inside existing JSON/JSONB columns (, , ) in the Supabase tables, not by creating new dedicated SQL columns. This pattern must be followed.
+2.  **IMMEDIATE TASK:** Your top priority is to complete the Google integration logic on the  page as detailed in the Pending/In progress Issue list.
+3.  **DESIGN AESTHETIC:** Adhere strictly to the established dark luxury design: monochrome palette (gold, black, white, gray), Lucide icons, and compact layouts. No bright colors.
+4.  **USER-APPROVED PLAN:** The user has approved a long-term roadmap. Refer to the Upcoming and Future Tasks for the next major features, particularly the Phase 7 AI Campaign Generator.
 
 **documents and test reports created in this job**
+-    to  (covering navigation fixes, dashboard, agent features, and Google integration foundation).
 -    (Updated)
--    (Backend Refactoring Test)
--    (CRM Kanban Test)
--    (Agent Configuration UI Test)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.   (There's no way to go back to the dashboard... the profile button doesn't work... in settings the account button doesn't work) - **PENDING (This is the immediate next action)**.
-2.   (We need to have access within the logged-in profile for the client to be able to subscribe or upgrade the plan...) - **COMPLETED**.
-3.   (yes per message, this charge is for sent messages only, right?) - **COMPLETED**.
-4.   (you can implement) - **COMPLETED**.
-5.   (on start free, put no credit card required on top and start free below so all buttons are aligned) - **COMPLETED**.
-6.   (add to enterprise: All channels...) - **COMPLETED**.
-7.   (enterprise doesn't need to be contacted, they can subscribe directly like the others) - **COMPLETED**.
-8.   (let's adjust the plans: free is ok, starter...) - **COMPLETED**.
-9.   (you can implement) - **COMPLETED**.
-10.  (where in the configurations do the connections with google drive, sheets or apis go?) - **COMPLETED**.
+10.  - User approved implementing the smarter Google Integration tab. **(Current Task)**
+9.  - User asked for clarification on how the agent connects to specific calendars/sheets after the main Google connection is established.
+8.  - User approved adding  to the backend .env.
+7.  - User provided the Google Client ID and Secret.
+6.  - User asked for the URL to create a new Google Cloud project.
+5.  - User approved starting Phase 6 (Google Integration).
+4.  - User provided detailed requirements for an AI-powered campaign generator for the Enterprise plan.
+3.  - User requested a new, comprehensive plan including an admin system, legal pages, payment gateways, and app store publication readiness.
+2.  - User asked what was next on the plan.
+1.  - User requested the pencil icon for editing the agent name be clickable to start editing. **(Completed)**.
 
 **Project Health Check:**
--   **Running:** Yes, the full stack is running.
--   **Broken:** Core navigation is broken, preventing a fluid user experience.
--   **Mocked:** All external channel integrations (WhatsApp, Telegram, etc.) are coded on the backend but are not connected to live services.
+-   **Running:** Yes.
+-   **Broken:** The agent configuration for Google services is incomplete. The UI exists, but the logic to link an agent to a specific calendar or sheet is missing.
+-   **Mocked:** All external channel integrations (WhatsApp, Telegram, etc.) are still mocked. The AI Insights widget on the dashboard is a static placeholder.
 
 **3rd Party Integrations**
 -   **Implemented & In Use:**
     -   Supabase (Database & Auth)
     -   Anthropic Claude 3.5 Sonnet — uses Emergent LLM Key
     -   OpenAI Whisper — uses Emergent LLM Key
+    -   Google APIs (, ) — Foundation is built, needs full implementation in-app.
+    -    (Frontend chart library)
     -    (Frontend library for Kanban)
 -   **Planned / Coded (but not activated):**
-    -   Evolution API (WhatsApp), Twilio (SMS), Meta (Instagram/Facebook), Telegram, Google Calendar/Sheets
+    -   Evolution API (WhatsApp), Twilio (SMS), Meta (Instagram/Facebook), Telegram.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. Used successfully after the backend refactor, CRM implementation, and Agent Configuration UI.
+-   **Testing agent used after significant changes:** YES. Used extensively and successfully for all major feature completions and bug fixes in this session.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** , , .
--   **Known regressions:** Several UI/UX regressions related to navigation were introduced during the last few feature implementations.
+-   **Test files created:**  through .
+-   **Known regressions:** None currently. Previous navigation regressions were fixed.
 
 **Credentials to test flow:**
 -   **Email:** 
 -   **Password:** 
 
 **What agent forgot to execute**
-The agent didn't forget a specific task but overlooked the impact of adding new pages () on the overall application navigation, leading to the current set of critical UI bugs (missing navigation links, broken profile menu).</analysis>
+The agent did not forget anything; it was in the middle of implementing a user-approved feature (the dynamic Google Integration tab in Agent Config) when the session ended.</analysis>
