@@ -1007,18 +1007,16 @@ export default function PipelineView({ context }) {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {/* Pipeline Intro */}
-        <div className="text-center py-3">
-          <div className="flex items-center justify-center gap-1.5 mb-2">
+        <div className="text-center py-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15">
             {[PenTool, CheckCircle, Palette, CheckCircle, CalendarClock].map((Icon, i) => (
               <div key={i} className="flex items-center gap-1">
-                {i > 0 && <ArrowRight size={10} className="text-[#333]" />}
-                <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${Object.values(STEP_META)[i].color}15` }}>
-                  <Icon size={14} style={{ color: Object.values(STEP_META)[i].color }} />
-                </div>
+                {i > 0 && <ArrowRight size={8} className="text-[#333]" />}
+                <Icon size={12} style={{ color: Object.values(STEP_META)[i].color }} />
               </div>
             ))}
           </div>
-          <p className="text-xs text-[#888]">{"Sofia cria \u2192 Ana aprova \u2192 Lucas desenha \u2192 Ana aprova \u2192 Pedro publica"}</p>
+          <p className="text-[9px] text-[#555] mt-1.5">Sofia &rarr; Ana &rarr; Lucas &rarr; Ana &rarr; Pedro</p>
         </div>
 
         {/* Campaign Name */}
