@@ -118,6 +118,7 @@ def _clean_copy_text(raw):
 class PipelineCreate(BaseModel):
     briefing: str
     campaign_name: str = ""
+    campaign_language: str = ""
     mode: str = "semi_auto"
     platforms: list = ["whatsapp", "instagram"]
     context: Optional[dict] = {}
@@ -293,6 +294,13 @@ def _build_prompt(step, pipeline):
     ctx = pipeline.get("result", {}).get("context", {})
     contact = pipeline.get("result", {}).get("contact_info", {})
     assets = pipeline.get("result", {}).get("uploaded_assets", [])
+    campaign_lang = pipeline.get("result", {}).get("campaign_language", "")
+
+    LANG_NAMES = {"pt": "Portuguese (Brazilian)", "en": "English", "es": "Spanish", "fr": "French", "ht": "Haitian Creole"}
+    lang_instruction = ""
+    if campaign_lang:
+        lang_name = LANG_NAMES.get(campaign_lang, campaign_lang)
+        lang_instruction = f"\n\nIMPORTANT: ALL campaign text content MUST be written in {lang_name}. This is mandatory regardless of the briefing language."
 
     ctx_str = ""
     if ctx:
@@ -333,6 +341,7 @@ Briefing: {briefing}
 {f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
 {contact_str}
 {assets_str}
+{lang_instruction}
 
 Remember: Create EXACTLY 3 variations formatted with ===VARIATION 1===, ===VARIATION 2===, ===VARIATION 3==="""
 
@@ -394,6 +403,7 @@ Platform-specific design selections: {design_approvals}
 
 Original briefing: {briefing}
 {contact_str}
+{lang_instruction}
 
 Create a detailed schedule with:
 - Best posting times per platform
@@ -652,6 +662,7 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
             "contact_info": data.contact_info or {},
             "uploaded_assets": data.uploaded_assets or [],
             "campaign_name": data.campaign_name or "",
+            "campaign_language": data.campaign_language or "",
         },
     }
 

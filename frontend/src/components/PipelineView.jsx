@@ -675,7 +675,7 @@ function AssetUploader({ assets, onAssetsChange }) {
 /* ── Main PipelineView ── */
 export default function PipelineView({ context }) {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [pipelines, setPipelines] = useState([]);
   const [activePipeline, setActivePipeline] = useState(null);
   const [campaignName, setCampaignName] = useState('');
@@ -684,6 +684,7 @@ export default function PipelineView({ context }) {
   const [questionnaire, setQuestionnaire] = useState({
     product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: ''
   });
+  const [campaignLang, setCampaignLang] = useState('');
   const [mode, setMode] = useState('semi_auto');
   const [platforms, setPlatforms] = useState(['whatsapp', 'instagram', 'facebook']);
   const [creating, setCreating] = useState(false);
@@ -757,14 +758,14 @@ export default function PipelineView({ context }) {
   const compileBriefing = () => {
     const q = questionnaire;
     const parts = [];
-    if (q.product) parts.push(`Produto/Servico: ${q.product}`);
-    if (q.goal) parts.push(`Objetivo da campanha: ${q.goal}`);
-    if (q.audience) parts.push(`Publico-alvo: ${q.audience}`);
-    if (q.tone) parts.push(`Tom de voz: ${q.tone}`);
-    if (q.offer) parts.push(`Oferta/Proposta de valor: ${q.offer}`);
-    if (q.differentials) parts.push(`Diferenciais: ${q.differentials}`);
-    if (q.cta) parts.push(`Chamada para acao (CTA): ${q.cta}`);
-    if (q.urgency) parts.push(`Urgencia/Temporalidade: ${q.urgency}`);
+    if (q.product) parts.push(`${t('studio.q_product')} ${q.product}`);
+    if (q.goal) parts.push(`${t('studio.q_goal')} ${q.goal}`);
+    if (q.audience) parts.push(`${t('studio.q_audience')} ${q.audience}`);
+    if (q.tone) parts.push(`${t('studio.q_tone')} ${q.tone}`);
+    if (q.offer) parts.push(`${t('studio.q_offer')} ${q.offer}`);
+    if (q.differentials) parts.push(`${t('studio.q_differentials')} ${q.differentials}`);
+    if (q.cta) parts.push(`${t('studio.q_cta')} ${q.cta}`);
+    if (q.urgency) parts.push(`${t('studio.q_urgency')} ${q.urgency}`);
     return parts.join('\n');
   };
 
@@ -779,6 +780,7 @@ export default function PipelineView({ context }) {
       const assetPayload = uploadedAssets.map(a => ({ url: a.url, type: a.type, filename: a.filename }));
       const { data } = await axios.post(`${API}/campaigns/pipeline`, {
         briefing: effectiveBriefing.trim(), campaign_name: campaignName.trim(), mode, platforms,
+        campaign_language: campaignLang || '',
         context: context || {},
         contact_info: contactInfo,
         uploaded_assets: assetPayload,
@@ -786,6 +788,7 @@ export default function PipelineView({ context }) {
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
       setQuestionnaire({ product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: '' });
+      setCampaignLang('');
       toast.success('Pipeline iniciado!');
     } catch (e) { toast.error(e.response?.data?.detail || 'Erro ao criar pipeline'); }
     setCreating(false);
@@ -1020,118 +1023,142 @@ export default function PipelineView({ context }) {
 
         {/* Campaign Name */}
         <div>
-          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1">Nome da Campanha</label>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1">{t('studio.campaign_name')}</label>
           <input data-testid="pipeline-campaign-name" value={campaignName} onChange={e => setCampaignName(e.target.value)}
-            placeholder="Ex: Lancamento Black Friday, Captacao de Leads Q2..."
+            placeholder={t('studio.campaign_name_placeholder')}
             className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/30 transition" />
         </div>
 
         {/* Briefing */}
         <div>
-          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-2">Briefing da Campanha</label>
-          {/* Mode Toggle */}
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-2">{t('studio.briefing_label')}</label>
           <div className="flex gap-1 mb-3 p-0.5 bg-[#0A0A0A] rounded-lg border border-[#1A1A1A] w-fit">
             <button data-testid="briefing-mode-free" onClick={() => setBriefingMode('free')}
               className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'free' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] hover:text-white'}`}>
-              <FileText size={10} className="inline mr-1" />Briefing Livre
+              <FileText size={10} className="inline mr-1" />{t('studio.briefing_free')}
             </button>
             <button data-testid="briefing-mode-guided" onClick={() => setBriefingMode('guided')}
               className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'guided' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] hover:text-white'}`}>
-              <CheckCircle size={10} className="inline mr-1" />Questionario Guiado
+              <CheckCircle size={10} className="inline mr-1" />{t('studio.briefing_guided')}
             </button>
           </div>
 
           {briefingMode === 'free' ? (
             <textarea data-testid="pipeline-briefing" value={briefing} onChange={e => setBriefing(e.target.value)} rows={4}
-              placeholder="Descreva o que voce quer: tipo de campanha, objetivo, publico-alvo, tom de voz..."
+              placeholder={t('studio.briefing_placeholder')}
               className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
           ) : (
             <div className="space-y-3 bg-[#0A0A0A] rounded-xl border border-[#1A1A1A] p-3">
-              <p className="text-[9px] text-[#C9A84C] font-medium mb-1">Responda as perguntas abaixo para criar um briefing profissional automaticamente</p>
+              <p className="text-[9px] text-[#C9A84C] font-medium mb-1">{t('studio.guided_intro')}</p>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">1. Qual e o seu produto ou servico?</label>
+                <label className="text-[9px] text-[#777] block mb-1">1. {t('studio.q_product')}</label>
                 <input data-testid="q-product" value={questionnaire.product} onChange={e => setQuestionnaire(p => ({...p, product: e.target.value}))}
-                  placeholder="Ex: Plataforma de agentes de IA para atendimento ao cliente"
+                  placeholder={t('studio.q_product_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">2. Qual o objetivo principal da campanha?</label>
+                <label className="text-[9px] text-[#777] block mb-1">2. {t('studio.q_goal')}</label>
                 <div className="flex flex-wrap gap-1.5 mb-1.5">
-                  {['Gerar leads', 'Aumentar vendas', 'Reconhecimento de marca', 'Engajamento', 'Lancamento de produto', 'Promocao/Desconto'].map(opt => (
-                    <button key={opt} onClick={() => setQuestionnaire(p => ({...p, goal: p.goal === opt ? '' : opt}))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.goal === opt ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
-                      {opt}
+                  {[{k:'goal_leads'},{k:'goal_sales'},{k:'goal_awareness'},{k:'goal_engagement'},{k:'goal_launch'},{k:'goal_promo'}].map(({k}) => (
+                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, goal: p.goal === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.goal === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {t(`studio.${k}`)}
                     </button>
                   ))}
                 </div>
                 <input value={questionnaire.goal} onChange={e => setQuestionnaire(p => ({...p, goal: e.target.value}))}
-                  placeholder="Ou descreva seu objetivo..."
+                  placeholder={t('studio.q_goal_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">3. Quem e seu publico-alvo?</label>
+                <label className="text-[9px] text-[#777] block mb-1">3. {t('studio.q_audience')}</label>
                 <input data-testid="q-audience" value={questionnaire.audience} onChange={e => setQuestionnaire(p => ({...p, audience: e.target.value}))}
-                  placeholder="Ex: Donos de PMEs, 25-55 anos, que buscam automatizar atendimento"
+                  placeholder={t('studio.q_audience_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">4. Qual o tom de voz da comunicacao?</label>
+                <label className="text-[9px] text-[#777] block mb-1">4. {t('studio.q_tone')}</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {['Profissional', 'Casual e amigavel', 'Urgente e direto', 'Inspirador', 'Divertido', 'Sofisticado'].map(opt => (
-                    <button key={opt} onClick={() => setQuestionnaire(p => ({...p, tone: p.tone === opt ? '' : opt}))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.tone === opt ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
-                      {opt}
+                  {[{k:'tone_professional'},{k:'tone_casual'},{k:'tone_urgent'},{k:'tone_inspiring'},{k:'tone_fun'},{k:'tone_sophisticated'}].map(({k}) => (
+                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, tone: p.tone === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.tone === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {t(`studio.${k}`)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">5. Qual e a oferta ou proposta de valor principal?</label>
+                <label className="text-[9px] text-[#777] block mb-1">5. {t('studio.q_offer')}</label>
                 <input data-testid="q-offer" value={questionnaire.offer} onChange={e => setQuestionnaire(p => ({...p, offer: e.target.value}))}
-                  placeholder="Ex: Primeiro agente gratis por 12 meses, sem cartao de credito"
+                  placeholder={t('studio.q_offer_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">6. Quais sao seus diferenciais?</label>
+                <label className="text-[9px] text-[#777] block mb-1">6. {t('studio.q_differentials')}</label>
                 <input data-testid="q-differentials" value={questionnaire.differentials} onChange={e => setQuestionnaire(p => ({...p, differentials: e.target.value}))}
-                  placeholder="Ex: Suporte 24h, integracao com WhatsApp, setup em 5 minutos"
+                  placeholder={t('studio.q_differentials_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">7. Qual a acao que voce quer que o publico tome?</label>
-                <div className="flex flex-wrap gap-1.5 mb-1.5">
-                  {['Cadastrar-se gratis', 'Agendar demonstracao', 'Comprar agora', 'Saber mais', 'Baixar material', 'Falar no WhatsApp'].map(opt => (
-                    <button key={opt} onClick={() => setQuestionnaire(p => ({...p, cta: p.cta === opt ? '' : opt}))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.cta === opt ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
-                      {opt}
+                <label className="text-[9px] text-[#777] block mb-1">7. {t('studio.q_cta')}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[{k:'cta_signup'},{k:'cta_demo'},{k:'cta_buy'},{k:'cta_learn'},{k:'cta_download'},{k:'cta_whatsapp'}].map(({k}) => (
+                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, cta: p.cta === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.cta === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {t(`studio.${k}`)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">8. Tem alguma urgencia ou sazonalidade?</label>
+                <label className="text-[9px] text-[#777] block mb-1">8. {t('studio.q_urgency')}</label>
                 <input data-testid="q-urgency" value={questionnaire.urgency} onChange={e => setQuestionnaire(p => ({...p, urgency: e.target.value}))}
-                  placeholder="Ex: Oferta valida ate sexta-feira, vagas limitadas, lancamento em marco"
+                  placeholder={t('studio.q_urgency_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
-              {/* Preview of compiled briefing */}
               {compileBriefing().trim() && (
                 <div className="mt-2 p-2.5 rounded-lg bg-[#111] border border-[#1A1A1A]">
-                  <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">Preview do Briefing Gerado</p>
+                  <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">{t('studio.briefing_preview')}</p>
                   <pre className="text-[10px] text-[#999] whitespace-pre-wrap font-sans leading-relaxed">{compileBriefing()}</pre>
                 </div>
               )}
             </div>
           )}
+        </div>
+
+        {/* Campaign Language */}
+        <div>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1">{t('studio.campaign_language')}</label>
+          <p className="text-[8px] text-[#444] mb-1.5">{t('studio.campaign_language_desc')}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { code: '', label: 'Auto', flag: '🌐' },
+              { code: 'pt', label: 'Portugues', flag: '🇧🇷' },
+              { code: 'en', label: 'English', flag: '🇺🇸' },
+              { code: 'es', label: 'Espanol', flag: '🇪🇸' },
+              { code: 'fr', label: 'Francais', flag: '🇫🇷' },
+              { code: 'ht', label: 'Kreyol Ayisyen', flag: '🇭🇹' },
+            ].map(lang => (
+              <button key={lang.code} data-testid={`lang-${lang.code || 'auto'}`}
+                onClick={() => setCampaignLang(lang.code)}
+                className={`rounded-lg px-3 py-1.5 text-[10px] font-medium border transition flex items-center gap-1.5 ${campaignLang === lang.code ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                <span className="text-sm">{lang.flag}</span> {lang.label}
+              </button>
+            ))}
+            <input value={campaignLang && !['', 'pt', 'en', 'es', 'fr', 'ht'].includes(campaignLang) ? campaignLang : ''}
+              onChange={e => setCampaignLang(e.target.value)}
+              placeholder="Outro idioma..."
+              className="rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition w-32" />
+          </div>
         </div>
 
         {/* Asset Upload */}
@@ -1166,7 +1193,7 @@ export default function PipelineView({ context }) {
 
         {/* Platforms */}
         <div>
-          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Plataformas</label>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.platforms')}</label>
           <div className="flex flex-wrap gap-1.5">
             {PLATFORMS.map(p => (
               <button key={p.id} data-testid={`platform-${p.id}`} onClick={() => togglePlatform(p.id)}
@@ -1179,17 +1206,17 @@ export default function PipelineView({ context }) {
 
         {/* Mode */}
         <div>
-          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Modo de Execucao</label>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.execution_mode')}</label>
           <div className="grid grid-cols-2 gap-2">
             <button data-testid="mode-semi-auto" onClick={() => setMode('semi_auto')}
               className={`rounded-xl border p-3 text-left transition ${mode === 'semi_auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <p className="text-xs font-semibold text-white mb-0.5">Semi-Automatico</p>
-              <p className="text-[9px] text-[#555]">Pausa para voce aprovar cada etapa antes de continuar</p>
+              <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_semi')}</p>
+              <p className="text-[9px] text-[#555]">{t('studio.mode_semi_desc')}</p>
             </button>
             <button data-testid="mode-auto" onClick={() => setMode('auto')}
               className={`rounded-xl border p-3 text-left transition ${mode === 'auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <p className="text-xs font-semibold text-white mb-0.5">Automatico</p>
-              <p className="text-[9px] text-[#555]">Ana decide sozinha e o pipeline roda ate o final</p>
+              <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_auto')}</p>
+              <p className="text-[9px] text-[#555]">{t('studio.mode_auto_desc')}</p>
             </button>
           </div>
         </div>
@@ -1221,7 +1248,7 @@ export default function PipelineView({ context }) {
           disabled={creating || !campaignName.trim() || !(briefingMode === 'guided' ? compileBriefing().trim() : briefing.trim()) || platforms.length === 0}
           className="w-full rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-[13px] font-bold text-black transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
           {creating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-          {creating ? 'Iniciando Pipeline...' : `Iniciar Pipeline ${mode === 'auto' ? 'Automatico' : 'Semi-Automatico'}`}
+          {creating ? t('studio.starting') : `${mode === 'auto' ? t('studio.start_pipeline_auto') : t('studio.start_pipeline_semi')}`}
         </button>
       </div>
     </div>
