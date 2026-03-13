@@ -35,17 +35,22 @@ Build a mobile-first, no-code SaaS platform called "AgentZZ" for SMBs to deploy 
 - Per-channel CPL with progress bars, message flow timeline
 
 ### Phase 7.5: Final Preview & Channel Mockups (COMPLETE - Mar 2026)
-- **Channel Mockups**: WhatsApp (green chat bubble), Instagram (feed post), Facebook (sponsored post)
-- **Channel Selector**: Switch between mockup views per platform
-- **Image Selector**: Preview different generated images in each mockup
-- **Publish Flow**: "Publicar Campanha" button at the end of the complete flow
-- **Complete Pipeline Flow**: Briefing → Creation → Approval → Preview Final → Publish
-- Component: /app/frontend/src/components/FinalPreview.jsx
+- Channel Mockups: WhatsApp, Instagram, Facebook
+- Channel Selector, Image Selector per mockup
+- Complete Pipeline Flow: Briefing -> Creation -> Approval -> Preview Final -> Publish
+
+### Phase 7.6: Publish Campaign Fix (COMPLETE - Mar 2026)
+- **Bug Fix**: Campaign name field added as first step in pipeline creation
+- **Bug Fix**: Fixed campaign auto-creation using correct Supabase columns (goal + metrics JSONB)
+- **New Endpoint**: POST /api/campaigns/pipeline/{id}/publish - Creates or activates campaign
+- **Frontend**: Publish button calls backend, shows loading state, redirects to /marketing
+- **Campaign Name**: Displayed in pipeline header and FinalPreview title
+- Test report: /app/test_reports/iteration_22.json (100% pass rate)
 
 ## Key Files
-- /app/backend/routers/pipeline.py - Pipeline logic, upload, regenerate
-- /app/frontend/src/components/PipelineView.jsx - Pipeline UI
-- /app/frontend/src/components/FinalPreview.jsx - Channel mockups
+- /app/backend/routers/pipeline.py - Pipeline logic, upload, regenerate, publish
+- /app/frontend/src/components/PipelineView.jsx - Pipeline UI with campaign name
+- /app/frontend/src/components/FinalPreview.jsx - Channel mockups + publish
 - /app/frontend/src/pages/Marketing.jsx - Campaign dashboard
 - /app/frontend/src/pages/MarketingStudio.jsx - Studio page
 
@@ -53,10 +58,13 @@ Build a mobile-first, no-code SaaS platform called "AgentZZ" for SMBs to deploy 
 - Email: test@agentflow.com / Password: password123 / Plan: Enterprise
 
 ## Backlog
+- P1: Add TikTok channel (mockup + platform option)
+- P1: Video creator agent with Sora 2 integration
 - P1: Post-generation text editing, bulk download, duplicate pipeline
-- P2: Phase 8 Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram)
+- P2: Phase 8 Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram, TikTok)
 - P2: Admin Dashboard, Payment Gateway (Stripe), Legal pages
 - P3: Real analytics integration, A/B Testing automation
+- P3: Refactor PipelineView.jsx (1000+ lines) and pipeline.py (800+ lines) into smaller modules
 
 ## Notes
 - Campaign CPL values are simulated for demo
