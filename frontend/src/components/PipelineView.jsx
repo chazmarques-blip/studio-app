@@ -678,6 +678,7 @@ export default function PipelineView({ context }) {
   const { i18n } = useTranslation();
   const [pipelines, setPipelines] = useState([]);
   const [activePipeline, setActivePipeline] = useState(null);
+  const [campaignName, setCampaignName] = useState('');
   const [briefing, setBriefing] = useState('');
   const [mode, setMode] = useState('semi_auto');
   const [platforms, setPlatforms] = useState(['whatsapp', 'instagram', 'facebook']);
@@ -750,18 +751,19 @@ export default function PipelineView({ context }) {
   };
 
   const createPipeline = async () => {
+    if (!campaignName.trim()) { toast.error('Defina o nome da campanha'); return; }
     if (!briefing.trim() || platforms.length === 0) { toast.error('Preencha o briefing e selecione ao menos uma plataforma'); return; }
     setCreating(true);
     try {
       const assetPayload = uploadedAssets.map(a => ({ url: a.url, type: a.type, filename: a.filename }));
       const { data } = await axios.post(`${API}/campaigns/pipeline`, {
-        briefing: briefing.trim(), mode, platforms,
+        briefing: briefing.trim(), campaign_name: campaignName.trim(), mode, platforms,
         context: context || {},
         contact_info: contactInfo,
         uploaded_assets: assetPayload,
       });
       setActivePipeline(data);
-      setBriefing(''); setExpandedSteps({}); setUploadedAssets([]);
+      setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
       toast.success('Pipeline iniciado!');
     } catch (e) { toast.error(e.response?.data?.detail || 'Erro ao criar pipeline'); }
     setCreating(false);
@@ -804,9 +806,14 @@ export default function PipelineView({ context }) {
       <FinalPreview
         pipeline={activePipeline}
         onClose={() => setShowFinalPreview(false)}
-        onPublish={() => {
-          toast.success('Campanha publicada com sucesso!');
-          resetView();
+        onPublish={async () => {
+          try {
+            await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/publish`);
+            toast.success('Campanha publicada com sucesso!');
+            navigate('/marketing');
+          } catch (e) {
+            toast.error(e.response?.data?.detail || 'Erro ao publicar campanha');
+          }
         }}
       />
     );
@@ -833,7 +840,7 @@ export default function PipelineView({ context }) {
         <div className="border-b border-[#111] px-3 py-2.5 flex items-center gap-2">
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold text-white">Pipeline {activePipeline.mode === 'auto' ? 'Automatico' : 'Semi-Automatico'}</p>
+              <p className="text-xs font-semibold text-white">{activePipeline.result?.campaign_name || 'Pipeline'}</p>
               <span className={`inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full ${sc.color}`}
                 style={{ backgroundColor: `${sc.bg.replace('bg-', '')}10` }}>
                 {['running', 'pending'].includes(activePipeline.status) && <span className={`w-1.5 h-1.5 rounded-full ${sc.bg} animate-pulse`} />}
@@ -978,6 +985,14 @@ export default function PipelineView({ context }) {
           <p className="text-xs text-[#888]">{"Sofia cria \u2192 Ana aprova \u2192 Lucas desenha \u2192 Ana aprova \u2192 Pedro publica"}</p>
         </div>
 
+        {/* Campaign Name */}
+        <div>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1">Nome da Campanha</label>
+          <input data-testid="pipeline-campaign-name" value={campaignName} onChange={e => setCampaignName(e.target.value)}
+            placeholder="Ex: Lancamento Black Friday, Captacao de Leads Q2..."
+            className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/30 transition" />
+        </div>
+
         {/* Briefing */}
         <div>
           <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1">Briefing da Campanha</label>
@@ -1070,7 +1085,7 @@ export default function PipelineView({ context }) {
       {/* Start Button */}
       <div className="px-4 py-3 border-t border-[#1A1A1A]">
         <button data-testid="start-pipeline-btn" onClick={createPipeline}
-          disabled={creating || !briefing.trim() || platforms.length === 0}
+          disabled={creating || !campaignName.trim() || !briefing.trim() || platforms.length === 0}
           className="w-full rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-[13px] font-bold text-black transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
           {creating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
           {creating ? 'Iniciando Pipeline...' : `Iniciar Pipeline ${mode === 'auto' ? 'Automatico' : 'Semi-Automatico'}`}

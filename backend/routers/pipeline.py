@@ -92,6 +92,7 @@ Format as a structured schedule with dates and times.""",
 
 class PipelineCreate(BaseModel):
     briefing: str
+    campaign_name: str = ""
     mode: str = "semi_auto"
     platforms: list = ["whatsapp", "instagram"]
     context: Optional[dict] = {}
@@ -474,16 +475,21 @@ async def _execute_step(pipeline_id, step):
                 image_urls = steps.get("lucas_design", {}).get("image_urls", [])
                 schedule_text = steps.get("pedro_publish", {}).get("output", "")
                 ctx = pipeline.get("result", {}).get("context", {})
-                campaign_name = ctx.get("company", "") or pipeline.get("briefing", "")[:50]
+                user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
+                campaign_name = user_campaign_name or ctx.get("company", "") or pipeline.get("briefing", "")[:50]
                 supabase.table("campaigns").insert({
                     "tenant_id": pipeline["tenant_id"],
-                    "name": f"[Pipeline] {campaign_name}",
-                    "type": "ai_pipeline",
+                    "name": campaign_name,
                     "status": "draft",
-                    "target_segment": {"platforms": pipeline.get("platforms", [])},
-                    "messages": [{"step": 1, "channel": "multi", "content": approved_copy, "delay_hours": 0}],
-                    "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
-                    "stats": {"images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
+                    "goal": "ai_pipeline",
+                    "metrics": {
+                        "type": "ai_pipeline",
+                        "target_segment": {"platforms": pipeline.get("platforms", [])},
+                        "messages": [{"step": 1, "channel": "multi", "content": approved_copy, "delay_hours": 0}],
+                        "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
+                        "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
+                        "created_by": pipeline.get("tenant_id"),
+                    },
                 }).execute()
                 logger.info(f"Campaign created from pipeline {pipeline_id}")
             except Exception as camp_err:
@@ -591,6 +597,7 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
             "context": data.context or {},
             "contact_info": data.contact_info or {},
             "uploaded_assets": data.uploaded_assets or [],
+            "campaign_name": data.campaign_name or "",
         },
     }
 
@@ -791,3 +798,60 @@ async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, use
 @router.get("/{pipeline_id}/labels")
 async def get_step_labels(pipeline_id: str, user=Depends(get_current_user)):
     return {"labels": STEP_LABELS, "order": STEP_ORDER}
+
+
+
+@router.post("/{pipeline_id}/publish")
+async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_user)):
+    """Publish a campaign created from a completed pipeline"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline = result.data[0]
+    if pipeline.get("status") != "completed":
+        raise HTTPException(status_code=400, detail="Pipeline is not completed")
+
+    # Find the campaign created from this pipeline (by checking metrics->stats->pipeline_id)
+    campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+    campaign_id = None
+    for c in campaigns:
+        m = c.get("metrics") or {}
+        s = m.get("stats") or {}
+        if s.get("pipeline_id") == pipeline_id:
+            campaign_id = c["id"]
+            break
+
+    if not campaign_id:
+        # Campaign wasn't created yet - create it now
+        steps = pipeline.get("steps") or {}
+        approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
+        image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+        schedule_text = steps.get("pedro_publish", {}).get("output", "")
+        user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
+        ctx = pipeline.get("result", {}).get("context", {})
+        campaign_name = user_campaign_name or ctx.get("company", "") or pipeline.get("briefing", "")[:50]
+
+        insert_result = supabase.table("campaigns").insert({
+            "tenant_id": tenant["id"],
+            "name": campaign_name,
+            "status": "active",
+            "goal": "ai_pipeline",
+            "metrics": {
+                "type": "ai_pipeline",
+                "target_segment": {"platforms": pipeline.get("platforms", [])},
+                "messages": [{"step": 1, "channel": "multi", "content": approved_copy, "delay_hours": 0}],
+                "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
+                "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
+            },
+        }).execute()
+        campaign_id = insert_result.data[0]["id"]
+    else:
+        # Update existing campaign status to active
+        supabase.table("campaigns").update({
+            "status": "active",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", campaign_id).execute()
+
+    return {"status": "published", "campaign_id": campaign_id}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Download, Maximize2, Check, ChevronLeft, ThumbsUp, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Globe, Eye } from 'lucide-react';
+import { X, Download, Maximize2, Check, ChevronLeft, ThumbsUp, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Globe, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL;
@@ -144,6 +144,8 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
   const schedule = steps.pedro_publish?.output || '';
   const platforms = pipeline?.platforms || [];
   const contact = pipeline?.result?.contact_info || {};
+  const campaignName = pipeline?.result?.campaign_name || 'Campanha';
+  const [publishing, setPublishing] = useState(false);
 
   // Get Ana's design selections to determine the default image per channel
   const anaDesignSelections = steps.ana_review_design?.user_selections || steps.ana_review_design?.auto_selections || {};
@@ -183,7 +185,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
         <div className="flex items-center gap-2">
           <img src={LOGO_URL} alt="AgentZZ" className="h-8 w-8 rounded-lg object-contain bg-black border border-[#1A1A1A]" />
           <div className="flex-1">
-            <p className="text-xs font-bold text-white">Preview Final da Campanha</p>
+            <p className="text-xs font-bold text-white">{campaignName}</p>
             <p className="text-[9px] text-[#555]">Visualize como sua campanha aparece em cada canal</p>
           </div>
           {onClose && (
@@ -276,9 +278,17 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
             </button>
           )}
           <button data-testid="publish-campaign-btn"
-            onClick={() => { if (onPublish) onPublish(); else toast.success('Campanha publicada com sucesso!'); }}
-            className="flex-1 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
-            <Check size={14} /> Publicar Campanha
+            disabled={publishing}
+            onClick={async () => {
+              if (onPublish) {
+                setPublishing(true);
+                try { await onPublish(); } catch {}
+                setPublishing(false);
+              }
+            }}
+            className="flex-1 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)] disabled:opacity-50">
+            {publishing ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            {publishing ? 'Publicando...' : 'Publicar Campanha'}
           </button>
         </div>
       </div>
