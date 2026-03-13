@@ -680,6 +680,10 @@ export default function PipelineView({ context }) {
   const [activePipeline, setActivePipeline] = useState(null);
   const [campaignName, setCampaignName] = useState('');
   const [briefing, setBriefing] = useState('');
+  const [briefingMode, setBriefingMode] = useState('free'); // 'free' | 'guided'
+  const [questionnaire, setQuestionnaire] = useState({
+    product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: ''
+  });
   const [mode, setMode] = useState('semi_auto');
   const [platforms, setPlatforms] = useState(['whatsapp', 'instagram', 'facebook']);
   const [creating, setCreating] = useState(false);
@@ -750,20 +754,38 @@ export default function PipelineView({ context }) {
     } catch {}
   };
 
+  const compileBriefing = () => {
+    const q = questionnaire;
+    const parts = [];
+    if (q.product) parts.push(`Produto/Servico: ${q.product}`);
+    if (q.goal) parts.push(`Objetivo da campanha: ${q.goal}`);
+    if (q.audience) parts.push(`Publico-alvo: ${q.audience}`);
+    if (q.tone) parts.push(`Tom de voz: ${q.tone}`);
+    if (q.offer) parts.push(`Oferta/Proposta de valor: ${q.offer}`);
+    if (q.differentials) parts.push(`Diferenciais: ${q.differentials}`);
+    if (q.cta) parts.push(`Chamada para acao (CTA): ${q.cta}`);
+    if (q.urgency) parts.push(`Urgencia/Temporalidade: ${q.urgency}`);
+    return parts.join('\n');
+  };
+
+  const getEffectiveBriefing = () => briefingMode === 'guided' ? compileBriefing() : briefing;
+
   const createPipeline = async () => {
+    const effectiveBriefing = getEffectiveBriefing();
     if (!campaignName.trim()) { toast.error('Defina o nome da campanha'); return; }
-    if (!briefing.trim() || platforms.length === 0) { toast.error('Preencha o briefing e selecione ao menos uma plataforma'); return; }
+    if (!effectiveBriefing.trim() || platforms.length === 0) { toast.error('Preencha o briefing e selecione ao menos uma plataforma'); return; }
     setCreating(true);
     try {
       const assetPayload = uploadedAssets.map(a => ({ url: a.url, type: a.type, filename: a.filename }));
       const { data } = await axios.post(`${API}/campaigns/pipeline`, {
-        briefing: briefing.trim(), campaign_name: campaignName.trim(), mode, platforms,
+        briefing: effectiveBriefing.trim(), campaign_name: campaignName.trim(), mode, platforms,
         context: context || {},
         contact_info: contactInfo,
         uploaded_assets: assetPayload,
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
+      setQuestionnaire({ product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: '' });
       toast.success('Pipeline iniciado!');
     } catch (e) { toast.error(e.response?.data?.detail || 'Erro ao criar pipeline'); }
     setCreating(false);
@@ -1006,10 +1028,110 @@ export default function PipelineView({ context }) {
 
         {/* Briefing */}
         <div>
-          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1">Briefing da Campanha</label>
-          <textarea data-testid="pipeline-briefing" value={briefing} onChange={e => setBriefing(e.target.value)} rows={4}
-            placeholder="Descreva o que voce quer: tipo de campanha, objetivo, publico-alvo, tom de voz..."
-            className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-2">Briefing da Campanha</label>
+          {/* Mode Toggle */}
+          <div className="flex gap-1 mb-3 p-0.5 bg-[#0A0A0A] rounded-lg border border-[#1A1A1A] w-fit">
+            <button data-testid="briefing-mode-free" onClick={() => setBriefingMode('free')}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'free' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] hover:text-white'}`}>
+              <FileText size={10} className="inline mr-1" />Briefing Livre
+            </button>
+            <button data-testid="briefing-mode-guided" onClick={() => setBriefingMode('guided')}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'guided' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] hover:text-white'}`}>
+              <CheckCircle size={10} className="inline mr-1" />Questionario Guiado
+            </button>
+          </div>
+
+          {briefingMode === 'free' ? (
+            <textarea data-testid="pipeline-briefing" value={briefing} onChange={e => setBriefing(e.target.value)} rows={4}
+              placeholder="Descreva o que voce quer: tipo de campanha, objetivo, publico-alvo, tom de voz..."
+              className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
+          ) : (
+            <div className="space-y-3 bg-[#0A0A0A] rounded-xl border border-[#1A1A1A] p-3">
+              <p className="text-[9px] text-[#C9A84C] font-medium mb-1">Responda as perguntas abaixo para criar um briefing profissional automaticamente</p>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">1. Qual e o seu produto ou servico?</label>
+                <input data-testid="q-product" value={questionnaire.product} onChange={e => setQuestionnaire(p => ({...p, product: e.target.value}))}
+                  placeholder="Ex: Plataforma de agentes de IA para atendimento ao cliente"
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">2. Qual o objetivo principal da campanha?</label>
+                <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  {['Gerar leads', 'Aumentar vendas', 'Reconhecimento de marca', 'Engajamento', 'Lancamento de produto', 'Promocao/Desconto'].map(opt => (
+                    <button key={opt} onClick={() => setQuestionnaire(p => ({...p, goal: p.goal === opt ? '' : opt}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.goal === opt ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                <input value={questionnaire.goal} onChange={e => setQuestionnaire(p => ({...p, goal: e.target.value}))}
+                  placeholder="Ou descreva seu objetivo..."
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">3. Quem e seu publico-alvo?</label>
+                <input data-testid="q-audience" value={questionnaire.audience} onChange={e => setQuestionnaire(p => ({...p, audience: e.target.value}))}
+                  placeholder="Ex: Donos de PMEs, 25-55 anos, que buscam automatizar atendimento"
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">4. Qual o tom de voz da comunicacao?</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Profissional', 'Casual e amigavel', 'Urgente e direto', 'Inspirador', 'Divertido', 'Sofisticado'].map(opt => (
+                    <button key={opt} onClick={() => setQuestionnaire(p => ({...p, tone: p.tone === opt ? '' : opt}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.tone === opt ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">5. Qual e a oferta ou proposta de valor principal?</label>
+                <input data-testid="q-offer" value={questionnaire.offer} onChange={e => setQuestionnaire(p => ({...p, offer: e.target.value}))}
+                  placeholder="Ex: Primeiro agente gratis por 12 meses, sem cartao de credito"
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">6. Quais sao seus diferenciais?</label>
+                <input data-testid="q-differentials" value={questionnaire.differentials} onChange={e => setQuestionnaire(p => ({...p, differentials: e.target.value}))}
+                  placeholder="Ex: Suporte 24h, integracao com WhatsApp, setup em 5 minutos"
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">7. Qual a acao que voce quer que o publico tome?</label>
+                <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  {['Cadastrar-se gratis', 'Agendar demonstracao', 'Comprar agora', 'Saber mais', 'Baixar material', 'Falar no WhatsApp'].map(opt => (
+                    <button key={opt} onClick={() => setQuestionnaire(p => ({...p, cta: p.cta === opt ? '' : opt}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.cta === opt ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">8. Tem alguma urgencia ou sazonalidade?</label>
+                <input data-testid="q-urgency" value={questionnaire.urgency} onChange={e => setQuestionnaire(p => ({...p, urgency: e.target.value}))}
+                  placeholder="Ex: Oferta valida ate sexta-feira, vagas limitadas, lancamento em marco"
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              {/* Preview of compiled briefing */}
+              {compileBriefing().trim() && (
+                <div className="mt-2 p-2.5 rounded-lg bg-[#111] border border-[#1A1A1A]">
+                  <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">Preview do Briefing Gerado</p>
+                  <pre className="text-[10px] text-[#999] whitespace-pre-wrap font-sans leading-relaxed">{compileBriefing()}</pre>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Asset Upload */}
@@ -1096,7 +1218,7 @@ export default function PipelineView({ context }) {
       {/* Start Button */}
       <div className="px-4 py-3 border-t border-[#1A1A1A]">
         <button data-testid="start-pipeline-btn" onClick={createPipeline}
-          disabled={creating || !campaignName.trim() || !briefing.trim() || platforms.length === 0}
+          disabled={creating || !campaignName.trim() || !(briefingMode === 'guided' ? compileBriefing().trim() : briefing.trim()) || platforms.length === 0}
           className="w-full rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-[13px] font-bold text-black transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
           {creating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
           {creating ? 'Iniciando Pipeline...' : `Iniciar Pipeline ${mode === 'auto' ? 'Automatico' : 'Semi-Automatico'}`}
