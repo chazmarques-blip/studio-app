@@ -324,18 +324,19 @@ function AssetUploader({ assets, onAssetsChange }) {
     setUploading(true);
     const newAssets = [...assets];
     for (const file of files) {
-      if (!file.type.startsWith('image/')) { toast.error('Apenas imagens'); continue; }
+      if (!file.type.startsWith('image/')) { toast.error('Apenas imagens sao aceitas'); continue; }
       if (file.size > 10 * 1024 * 1024) { toast.error('Maximo 10MB por arquivo'); continue; }
       try {
         const form = new FormData();
         form.append('file', file);
         form.append('asset_type', type);
-        const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, form);
         newAssets.push({ url: data.url, filename: data.filename, type, name: file.name, preview: URL.createObjectURL(file) });
+        toast.success(`${file.name} enviado!`);
       } catch (e) {
-        toast.error('Erro no upload: ' + (e.response?.data?.detail || 'Tente novamente'));
+        console.error('Upload error:', e);
+        const msg = e.response?.data?.detail || e.message || 'Erro desconhecido';
+        toast.error(`Erro no upload de ${file.name}: ${msg}`);
       }
     }
     onAssetsChange(newAssets);
