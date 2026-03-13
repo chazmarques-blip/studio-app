@@ -164,7 +164,7 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
         if assets:
             logo_assets = [a for a in assets if a.get("type") == "logo"]
             if logo_assets:
-                brand_parts.append("The brand has a professional logo. Use a cohesive brand identity with consistent colors and style that matches a premium brand.")
+                brand_parts.append("CRITICAL: The brand has an official logo that must NOT be recreated, redrawn, or modified in ANY way. Do NOT generate or create a new logo. The official logo will be overlaid separately. Instead, leave a clear space or area in the design where the logo can be placed. Focus on the campaign visual, imagery, and text without attempting to recreate the logo.")
             ref_assets = [a for a in assets if a.get("type") == "reference"]
             if ref_assets:
                 brand_parts.append(f"Use visual style inspired by {len(ref_assets)} reference image(s) provided: modern, professional aesthetic.")

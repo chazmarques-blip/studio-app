@@ -8,6 +8,25 @@ import FinalPreview from './FinalPreview';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+/* ── Text Cleaner ── */
+function cleanDisplayText(raw) {
+  if (!raw) return '';
+  let text = raw;
+  const varMatch = text.match(/===VARIA(?:TION|CAO|ÇÃO)\s*\d+===([\s\S]*?)(?=={3}|$)/i);
+  if (varMatch) text = varMatch[1];
+  text = text.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+  text = text.replace(/\*([^*]+)\*/g, '$1');
+  text = text.replace(/#{1,3}\s+/g, '');
+  const labels = 'Title|Titulo|Título|Copy|Texto|Headline|Body|CTA|Caption|Legenda|Subject|Assunto|Chamada|Subtítulo|Subtitle|Hashtags|Visual|Conceito|Concept|Plataforma|Platform|Dimensões|Dimensions|Adaptações|Call.to.Action';
+  text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*[:：]\\s*`, 'gim'), '');
+  text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*$`, 'gim'), '');
+  text = text.replace(/={3,}.*?={3,}/g, '');
+  text = text.replace(/^-{3,}\s*$/gm, '');
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+  return text;
+}
+
 const STEP_META = {
   sofia_copy: { agent: 'Sofia', role: 'Copywriter', icon: PenTool, color: '#C9A84C', estimatedSec: 30 },
   ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
@@ -327,9 +346,11 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
 /* ── Completed Pipeline Summary ── */
 function CompletedSummary({ pipeline }) {
   const steps = pipeline.steps || {};
-  const approvedCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
+  const rawCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
+  const approvedCopy = cleanDisplayText(rawCopy);
   const images = steps.lucas_design?.image_urls?.filter(u => u) || [];
-  const schedule = steps.pedro_publish?.output || '';
+  const rawSchedule = steps.pedro_publish?.output || '';
+  const schedule = cleanDisplayText(rawSchedule);
   const [activeTab, setActiveTab] = useState('preview');
   const [lightboxIdx, setLightboxIdx] = useState(null);
 
