@@ -218,7 +218,7 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
             api_key=EMERGENT_KEY,
             session_id=f"prompt-extract-{pipeline_id}-{int(time.time())}",
             system_message="You extract image generation prompts from design concept descriptions. Return ONLY the prompts, one per line, numbered. Each prompt should be a detailed, visual description suitable for AI image generation. No explanations."
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        ).with_model("gemini", "gemini-2.0-flash")
 
         extract_prompt = f"""Extract exactly 3 image generation prompts from these design concepts. Each prompt should describe the visual in detail (colors, composition, style, mood, text overlays). Keep prompts under 200 words each.
 {brand_context}
@@ -443,7 +443,7 @@ async def _execute_step(pipeline_id, step):
         STEP_MODELS = {
             "sofia_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
             "ana_review_copy": ("gemini", "gemini-2.0-flash"),
-            "lucas_design": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "lucas_design": ("gemini", "gemini-2.0-flash"),
             "ana_review_design": ("gemini", "gemini-2.0-flash"),
             "pedro_publish": ("gemini", "gemini-2.0-flash"),
         }
