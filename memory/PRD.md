@@ -5,71 +5,43 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 
 ## Tech Stack
 - **Frontend**: React, TailwindCSS, shadcn/ui, Lucide Icons, i18next (EN/PT/ES), Framer Motion, Recharts
-- **Backend**: FastAPI (Python) — Modular: core/ + routers/ + server.py
+- **Backend**: FastAPI (Python), google-api-python-client, google-auth-oauthlib
 - **Database**: Supabase (PostgreSQL via REST API)
 - **AI**: Claude 3.5 Sonnet + Claude Vision + OpenAI Whisper (Emergent LLM Key)
-
-## Architecture
-```
-/app/backend/
-├── server.py          (entry point + dashboard/billing routes)
-├── core/
-│   ├── constants.py   (MARKETPLACE_AGENTS + PERSONAL_AGENTS + types)
-│   ├── deps.py, models.py, utils.py
-├── routers/
-│   ├── auth.py, agents.py, conversations.py, leads.py
-│   ├── ai.py, whatsapp.py, channels.py, telegram.py
-└── requirements.txt
-```
+- **Google**: Calendar API, Sheets API, Drive API (OAuth2)
 
 ## Completed Phases
+- Phase 0-2: Foundation, Messaging, AI & Multimodal
+- Landing Page, Backend Refactoring, CRM Kanban, Agent Config, Pricing/Billing
+- P0 Navigation Fixes, Dashboard v2 (dynamic), Personal Agents (Pro+)
+- Chat gold palette, Agent detail modal, Name edit + Reset
 
-### Phase 0-2: Foundation, Messaging, AI & Multimodal
-### Landing Page (Multiple Revisions) - Feb/Mar 2026
-### Backend Refactoring v0.4.0 - Feb 2026
-### Phase 4: CRM Kanban with AI - Mar 2026
-### Enhanced Agent Configuration - Mar 2026
-### Pricing & Billing In-App Page - Mar 2026
-
-### P0 Navigation Bug Fixes - Mar 12 2026
-- Dashboard/Home in bottom nav, profile dropdown, Account in Settings
-
-### Phase 5: Dynamic Dashboard v2 - Mar 12 2026
-- KPIs, Recharts area chart, CRM Pipeline, Recent Conversations with channel SVGs
-- AI Insights widget placeholder, Credit Counter, Quick Actions
-- Full gold/black/gray/white color palette (no colored elements)
-
-### Personal Agent Feature - Mar 12 2026
-- 3 personal agents: Alex (productivity), Luna (wellness), Max (finance)
-- Plan restriction: only Pro+ plans can deploy personal agents
-- Backend: 403 error on deploy attempt for free/starter plans
-- Frontend: Lock icon, "Upgrade to Pro" button, PRO+ badge, Crown filter
-- Marketplace returns 25 agents (22 business + 3 personal)
-- iteration_14: 100% backend (14/14) + 100% frontend
-
-### Chat Gold Palette - Mar 12 2026
-- Channel SVG icons (WhatsApp, Instagram, Telegram, Facebook, SMS) in gold
-- All colored elements replaced with gold/gray tones
-
-## Testing
-- Iterations 2-14: All passed (100%)
+### Phase 6: Google Integration — Mar 13 2026
+- OAuth2 flow (connect/disconnect/status)
+- Google Calendar: list events, create event, delete event
+- Google Sheets: read, write, append, list spreadsheets
+- Export Leads to Google Sheets (auto-creates spreadsheet)
+- Google Drive: list files (readonly)
+- Frontend: /settings/google page with connection management, Calendar/Sheets tabs
+- Settings updated with Google menu item
+- iteration_15: 100% backend (14/14) + 100% frontend
 
 ## Plan Configuration
-- Free: 1 agent, 200 msgs/mo, 1 channel, NO personal agent
-- Starter: 3 agents, 1500 msgs/mo, 5 channels, NO personal agent
-- Pro: 5 agents, 5000 msgs/mo, 5 channels, YES personal agent
-- Enterprise: 10 agents, 10000 msgs/mo, 5 channels, YES personal agent
+- Free: 1 agent, 200 msgs/mo, NO personal agent
+- Starter: 3 agents, 1500 msgs/mo, NO personal agent
+- Pro: 5 agents, 5000 msgs/mo, YES personal agent
+- Enterprise: 10 agents, 10000 msgs/mo, YES personal + Marketing AI Studio
 
 ## Upcoming Tasks
-1. **Phase 6: Google Calendar/Sheets** — Real-time sync integration
-2. **Phase 7: Lead Nurturing** — Automated follow-up campaigns
-3. **Phase 8: Integrações Omnichannel** — WhatsApp live, SMS Twilio, Instagram, Facebook, Telegram
-4. **Avatar Customizável** — Foto/logo da empresa no perfil
-
-## Later/Backlog
-- AI Insights dinâmicos (Claude analysis)
-- Analytics page with detailed charts
-- Final Testing & Adjustments
+1. **Phase 7.1**: Lead Nurturing Engine (Pro+) — drip campaigns, segmentation, templates
+2. **Phase 7.2**: Marketing AI Studio (Enterprise) — 4 AI agents (Copywriter, Designer, Reviewer, Publisher)
+3. **Phase 8**: Integrações Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram)
+4. **Phase 9**: Gateway de Pagamento (Stripe)
+5. **Phase 10**: Painel Administrativo
+6. **Phase 11**: Multi-tenancy & Escalabilidade
+7. **Phase 12**: Compliance & App Store (Termos, LGPD, GDPR, Apple/Google requirements)
+8. **Phase 13**: IA Avançada (AI Insights dinâmicos, análise sentimento, auto-treinamento)
+9. **Phase 14**: Melhorias UX (avatar, onboarding wizard, analytics page, PWA)
 
 ## Test Credentials
 - Email: test@agentflow.com / Password: password123
