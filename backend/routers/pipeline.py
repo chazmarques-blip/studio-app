@@ -8,9 +8,9 @@ import re
 import time
 import uuid
 import os
+import threading
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
@@ -115,22 +115,27 @@ def _next_step(current):
 
 
 async def _generate_image(prompt_text, pipeline_id, index):
-    """Generate a single image using GPT Image 1 and save to disk"""
+    """Generate a single image using Gemini Nano Banana and save to disk"""
     try:
-        image_gen = OpenAIImageGeneration(api_key=EMERGENT_KEY)
-        images = await image_gen.generate_images(
-            prompt=prompt_text,
-            model="gpt-image-1",
-            number_of_images=1
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"img-{pipeline_id}-{index}-{int(time.time())}",
+            system_message="You are a professional graphic designer. Generate high-quality marketing images."
         )
+        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+
+        msg = UserMessage(text=prompt_text)
+        text_resp, images = await chat.send_message_multimodal_response(msg)
+
         if images and len(images) > 0:
+            img_data = base64.b64decode(images[0]["data"])
             filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
             filepath = os.path.join(UPLOADS_DIR, filename)
             with open(filepath, "wb") as f:
-                f.write(images[0])
+                f.write(img_data)
             return f"/api/uploads/pipeline/{filename}"
     except Exception as e:
-        logger.warning(f"Image generation failed for index {index}: {e}")
+        logger.warning(f"Nano Banana image generation failed for index {index}: {e}")
     return None
 
 
@@ -320,6 +325,16 @@ async def _execute_step(pipeline_id, step):
         prompt = _build_prompt(step, pipeline)
         system = STEP_SYSTEMS.get(step, "")
 
+        # Use appropriate model per step - Gemini Flash for simpler steps
+        STEP_MODELS = {
+            "sofia_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "ana_review_copy": ("gemini", "gemini-2.0-flash"),
+            "lucas_design": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "ana_review_design": ("gemini", "gemini-2.0-flash"),
+            "pedro_publish": ("gemini", "gemini-2.0-flash"),
+        }
+        provider, model = STEP_MODELS.get(step, ("anthropic", "claude-sonnet-4-5-20250929"))
+
         # Retry up to 2 times on transient errors
         response = None
         last_error = None
@@ -329,7 +344,7 @@ async def _execute_step(pipeline_id, step):
                     api_key=EMERGENT_KEY,
                     session_id=f"pipe-{pipeline_id}-{step}-{int(time.time())}-{attempt}",
                     system_message=system
-                ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+                ).with_model(provider, model)
 
                 start = time.time()
                 response = await chat.send_message(UserMessage(text=prompt))
@@ -427,6 +442,23 @@ async def _execute_step(pipeline_id, step):
 
 # ── Endpoints ──
 
+def _run_step_in_thread(pipeline_id, step):
+    """Run pipeline step in a separate thread with its own event loop"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_execute_step(pipeline_id, step))
+    except Exception as e:
+        logger.error(f"Thread pipeline step {step} error: {e}")
+    finally:
+        loop.close()
+
+
+def _start_step_bg(pipeline_id, step):
+    """Start a pipeline step in a background thread"""
+    t = threading.Thread(target=_run_step_in_thread, args=(pipeline_id, step), daemon=True)
+    t.start()
+
 @router.get("/list")
 async def list_pipelines(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
@@ -435,7 +467,7 @@ async def list_pipelines(user=Depends(get_current_user)):
 
 
 @router.post("")
-async def create_pipeline(data: PipelineCreate, bg: BackgroundTasks, user=Depends(get_current_user)):
+async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
 
     init_steps = {}
@@ -456,7 +488,7 @@ async def create_pipeline(data: PipelineCreate, bg: BackgroundTasks, user=Depend
     result = supabase.table("pipelines").insert(pipeline).execute()
     pid = result.data[0]["id"]
 
-    bg.add_task(_execute_step, pid, "sofia_copy")
+    _start_step_bg(pid, "sofia_copy")
     return result.data[0]
 
 
@@ -470,7 +502,7 @@ async def get_pipeline(pipeline_id: str, user=Depends(get_current_user)):
 
 
 @router.post("/{pipeline_id}/approve")
-async def approve_step(pipeline_id: str, data: PipelineApprove, bg: BackgroundTasks, user=Depends(get_current_user)):
+async def approve_step(pipeline_id: str, data: PipelineApprove, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
     result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
     if not result.data:
@@ -523,7 +555,7 @@ async def approve_step(pipeline_id: str, data: PipelineApprove, bg: BackgroundTa
     # Run next step
     nxt = _next_step(approval_step)
     if nxt:
-        bg.add_task(_execute_step, pipeline_id, nxt)
+        _start_step_bg(pipeline_id, nxt)
         return {"status": "approved", "next_step": nxt}
     else:
         supabase.table("pipelines").update({"status": "completed"}).eq("id", pipeline_id).execute()
@@ -540,7 +572,7 @@ async def delete_pipeline(pipeline_id: str, user=Depends(get_current_user)):
 
 
 @router.post("/{pipeline_id}/retry")
-async def retry_failed_step(pipeline_id: str, bg: BackgroundTasks, user=Depends(get_current_user)):
+async def retry_failed_step(pipeline_id: str, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
     result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
     if not result.data:
@@ -567,7 +599,7 @@ async def retry_failed_step(pipeline_id: str, bg: BackgroundTasks, user=Depends(
         "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", pipeline_id).execute()
 
-    bg.add_task(_execute_step, pipeline_id, retry_step)
+    _start_step_bg(pipeline_id, retry_step)
     return {"status": "retrying", "step": retry_step}
 
 
