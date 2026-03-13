@@ -1,0 +1,106 @@
+{
+  "summary": "Iteration 18 - Pipeline Features Testing Complete. All 9 backend tests passed (100%). Frontend fully verified - all new pipeline features working correctly including file upload, contact info, asset uploader, history cards with thumbnails, and CompletedSummary with 3 tabs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration18_pipeline_v2.py",
+    "/app/test_reports/pytest/pytest_results_iteration18_v2.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration18_pipeline_v2.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all UI elements and integrations verified)"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123",
+    "plan": "enterprise"
+  },
+  "seed_data_creation": "Backend tests create and cleanup TEST_ prefixed pipelines. One completed pipeline exists for UI testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All Pipeline Phase 2 features verified successfully. Backend uses Supabase PostgreSQL. File upload stores to /app/backend/uploads/pipeline/assets/ and serves at /api/uploads/pipeline/assets/. Pipeline creation accepts contact_info and uploaded_assets in request body, stores in result field.",
+  "verified_features": {
+    "backend_api": {
+      "POST /api/campaigns/pipeline/upload": {
+        "status": "PASSED",
+        "tests": ["test_upload_logo_image", "test_upload_reference_image", "test_upload_rejects_non_image"],
+        "notes": "Uploads images to assets folder, returns {url, filename, type, size}. Validates image content-type."
+      },
+      "POST /api/campaigns/pipeline": {
+        "status": "PASSED",
+        "tests": ["test_create_pipeline_with_contact_info", "test_create_pipeline_with_uploaded_assets", "test_create_pipeline_with_both_contact_and_assets"],
+        "notes": "Accepts contact_info and uploaded_assets in request body. Stores in result field."
+      },
+      "GET /api/campaigns/pipeline/list": {
+        "status": "PASSED",
+        "tests": ["test_pipeline_list_has_metadata_for_cards"],
+        "notes": "Returns pipelines with all fields needed for HistoryCard (id, briefing, status, platforms, steps, created_at)"
+      },
+      "GET /api/campaigns/pipeline/{id}": {
+        "status": "PASSED",
+        "tests": ["test_completed_pipeline_has_summary_data"],
+        "notes": "Returns steps with data for CompletedSummary tabs (approved_content, image_urls, pedro_publish output)"
+      },
+      "POST /api/campaigns/pipeline/{id}/retry": {
+        "status": "PASSED",
+        "tests": ["test_retry_endpoint_exists"],
+        "notes": "Retry endpoint exists and rejects non-retryable states with 400"
+      }
+    },
+    "frontend_pipeline_view": {
+      "mode_tabs": {
+        "status": "PASSED",
+        "elements": ["mode-manual-tab", "mode-pipeline-tab"],
+        "notes": "Manual/Pipeline tabs toggle correctly between views"
+      },
+      "pipeline_form": {
+        "status": "PASSED",
+        "elements": ["pipeline-briefing", "asset-uploader", "platform-*", "mode-semi-auto", "mode-auto", "start-pipeline-btn"],
+        "notes": "All form elements visible and functional"
+      },
+      "asset_uploader": {
+        "status": "PASSED",
+        "sections": ["Logo da marca", "Imagens de referencia"],
+        "notes": "Upload buttons visible for logo and reference images"
+      },
+      "contact_info_section": {
+        "status": "PASSED",
+        "collapsible": true,
+        "fields": ["contact-phone", "contact-website", "contact-email"],
+        "notes": "Section expands on click, shows phone/website/email inputs"
+      },
+      "history_cards": {
+        "status": "PASSED",
+        "shows": ["thumbnail", "briefing", "status badge", "step count", "created_at", "platform badges"],
+        "notes": "History cards display with thumbnail from lucas_design.image_urls[0], all metadata visible"
+      },
+      "completed_summary": {
+        "status": "PASSED",
+        "tabs": ["Copy Final", "Imagens (3)", "Cronograma"],
+        "notes": "3 tabs switch correctly. Copy shows approved text with copy button. Images shows grid of 3 generated images. Schedule shows Pedro's publication plan."
+      },
+      "step_cards": {
+        "status": "PASSED",
+        "agents": ["Sofia - Copywriter", "Ana - Revisora de Copy", "Lucas - Designer", "Ana - Revisora de Design", "Pedro - Publisher"],
+        "notes": "All 5 agent steps shown with completion status badges and elapsed times"
+      }
+    },
+    "mocked_apis": {
+      "has_mocked_apis": true,
+      "mocked_apis_list": ["WhatsApp Evolution API", "Twilio SMS", "Meta Instagram/Facebook", "Telegram"],
+      "notes": "Channel integrations are mocked. Pipeline AI agents use real Emergent LLM integration."
+    }
+  }
+}

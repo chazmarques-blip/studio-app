@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile, File, Form
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timezone
 import asyncio
 import base64
@@ -9,6 +9,7 @@ import time
 import uuid
 import os
 import threading
+import shutil
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 
@@ -17,6 +18,8 @@ from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 router = APIRouter(prefix="/api/campaigns/pipeline", tags=["pipeline"])
 
 UPLOADS_DIR = "/app/backend/uploads/pipeline"
+ASSETS_DIR = "/app/backend/uploads/pipeline/assets"
+os.makedirs(ASSETS_DIR, exist_ok=True)
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 
 STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "ana_review_design", "pedro_publish"]
@@ -92,6 +95,8 @@ class PipelineCreate(BaseModel):
     mode: str = "semi_auto"
     platforms: list = ["whatsapp", "instagram"]
     context: Optional[dict] = {}
+    contact_info: Optional[dict] = {}
+    uploaded_assets: Optional[list] = []
 
 
 class PipelineApprove(BaseModel):
@@ -206,6 +211,9 @@ def _build_prompt(step, pipeline):
     platforms_str = ", ".join(platforms)
     steps = pipeline.get("steps") or {}
     ctx = pipeline.get("result", {}).get("context", {})
+    contact = pipeline.get("result", {}).get("contact_info", {})
+    assets = pipeline.get("result", {}).get("uploaded_assets", [])
+
     ctx_str = ""
     if ctx:
         parts = []
@@ -215,6 +223,27 @@ def _build_prompt(step, pipeline):
         if ctx.get("brand_voice"): parts.append(f"Brand voice: {ctx['brand_voice']}")
         ctx_str = "\n".join(parts)
 
+    contact_str = ""
+    if contact:
+        cparts = []
+        if contact.get("phone"): cparts.append(f"Phone: {contact['phone']}")
+        if contact.get("website"): cparts.append(f"Website: {contact['website']}")
+        if contact.get("email"): cparts.append(f"Email: {contact['email']}")
+        if cparts:
+            contact_str = "\nContact information to include in the campaign:\n" + "\n".join(cparts)
+
+    assets_str = ""
+    if assets:
+        logo_assets = [a for a in assets if a.get("type") == "logo"]
+        ref_assets = [a for a in assets if a.get("type") == "reference"]
+        aparts = []
+        if logo_assets:
+            aparts.append(f"Brand logo has been uploaded ({len(logo_assets)} file(s)). Use the brand identity from the logo in the campaign visuals.")
+        if ref_assets:
+            aparts.append(f"Reference images have been uploaded ({len(ref_assets)} file(s)). Use these as visual inspiration and style reference for the campaign designs.")
+        if aparts:
+            assets_str = "\nUploaded assets:\n" + "\n".join(aparts)
+
     if step == "sofia_copy":
         return f"""Create 3 campaign copy variations for the following briefing.
 Target platforms: {platforms_str}
@@ -222,6 +251,8 @@ Target platforms: {platforms_str}
 Briefing: {briefing}
 
 {f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
+{contact_str}
+{assets_str}
 
 Remember: Create EXACTLY 3 variations formatted with ===VARIATION 1===, ===VARIATION 2===, ===VARIATION 3==="""
 
@@ -252,6 +283,8 @@ Approved copy:
 Original briefing: {briefing}
 
 {f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
+{contact_str}
+{assets_str}
 
 Create EXACTLY 3 design concepts. For each, specify dimensions and adaptations for: {platforms_str}.
 Format with ===DESIGN 1===, ===DESIGN 2===, ===DESIGN 3==="""
@@ -280,6 +313,7 @@ Design review and approvals: {ana_design_output}
 Platform-specific design selections: {design_approvals}
 
 Original briefing: {briefing}
+{contact_str}
 
 Create a detailed schedule with:
 - Best posting times per platform
@@ -459,6 +493,31 @@ def _start_step_bg(pipeline_id, step):
     t = threading.Thread(target=_run_step_in_thread, args=(pipeline_id, step), daemon=True)
     t.start()
 
+@router.post("/upload")
+async def upload_pipeline_asset(
+    file: UploadFile = File(...),
+    asset_type: str = Form("reference"),
+    user=Depends(get_current_user)
+):
+    """Upload a brand logo or reference image for the pipeline"""
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files are accepted")
+
+    max_size = 10 * 1024 * 1024  # 10MB
+    content = await file.read()
+    if len(content) > max_size:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
+    ext = os.path.splitext(file.filename or "upload.png")[1] or ".png"
+    filename = f"{asset_type}_{uuid.uuid4().hex[:8]}{ext}"
+    filepath = os.path.join(ASSETS_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    url = f"/api/uploads/pipeline/assets/{filename}"
+    return {"url": url, "filename": filename, "type": asset_type, "size": len(content)}
+
+
 @router.get("/list")
 async def list_pipelines(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
@@ -482,7 +541,11 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
         "status": "running",
         "current_step": "sofia_copy",
         "steps": init_steps,
-        "result": {"context": data.context or {}},
+        "result": {
+            "context": data.context or {},
+            "contact_info": data.contact_info or {},
+            "uploaded_assets": data.uploaded_assets or [],
+        },
     }
 
     result = supabase.table("pipelines").insert(pipeline).execute()
@@ -513,12 +576,8 @@ async def approve_step(pipeline_id: str, data: PipelineApprove, user=Depends(get
         raise HTTPException(status_code=400, detail="Pipeline is not waiting for approval")
 
     steps = pipeline.get("steps") or {}
-    current = pipeline.get("current_step")
 
     # Find the step that just completed and needs approval
-    prev_step = STEP_ORDER[STEP_ORDER.index(current) - 1] if STEP_ORDER.index(current) > 0 else current
-    # Actually, current_step is set to the NEXT step when paused
-    # The step that needs approval is the one before current_step
     approval_step = None
     for s in reversed(STEP_ORDER):
         if steps.get(s, {}).get("status") == "completed" and s in PAUSE_AFTER:
