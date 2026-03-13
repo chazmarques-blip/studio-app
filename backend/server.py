@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, Depends
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
@@ -169,6 +170,10 @@ app.include_router(google_router)
 app.include_router(campaigns_router)
 app.include_router(pipeline_router)
 app.include_router(api_router)
+
+# Serve uploaded files (pipeline images, etc.)
+os.makedirs("/app/backend/uploads/pipeline", exist_ok=True)
+app.mount("/api/uploads", StaticFiles(directory="/app/backend/uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,

@@ -30,15 +30,17 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
   const meta = STEP_META[step];
   const Icon = meta.icon;
   const status = data?.status || 'pending';
-  const needsApproval = pipelineStatus === 'waiting_approval' && status === 'completed' &&
+  const isGeneratingImages = status === 'generating_images';
+  const needsApproval = pipelineStatus === 'waiting_approval' && (status === 'completed') &&
     ((step === 'ana_review_copy' && !data?.user_selection) ||
      (step === 'ana_review_design' && !data?.user_selections));
   const isFailed = status === 'failed';
   const requiresUpgrade = status === 'requires_upgrade';
+  const hasImages = data?.image_urls && data.image_urls.some(u => u);
 
   return (
     <div data-testid={`step-card-${step}`} className={`rounded-xl border transition-all duration-300 ${
-      isActive ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
+      isActive || isGeneratingImages ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
       needsApproval ? 'border-amber-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(245,158,11,0.08)]' :
       isFailed ? 'border-red-500/30 bg-[#0D0D0D]' :
       requiresUpgrade ? 'border-[#C9A84C]/40 bg-[#0D0D0D]' :
@@ -50,7 +52,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-all ${
           isActive ? 'animate-pulse' : ''
         }`} style={{ backgroundColor: `${meta.color}15` }}>
-          {status === 'running' ? (
+          {status === 'running' || isGeneratingImages ? (
             <div className="relative">
               <Loader2 size={16} className="animate-spin" style={{ color: meta.color }} />
               <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: meta.color }} />
@@ -72,6 +74,12 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
               <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
                 Processando...
+              </span>
+            )}
+            {isGeneratingImages && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400">
+                <Loader2 size={8} className="animate-spin" />
+                Gerando imagens...
               </span>
             )}
             {status === 'completed' && !needsApproval && (
@@ -106,6 +114,23 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
           {data?.output && (
             <div className="mt-2 rounded-lg bg-[#111] p-3 max-h-[300px] overflow-y-auto">
               <pre className="text-[10px] text-[#aaa] whitespace-pre-wrap leading-relaxed font-sans">{data.output}</pre>
+            </div>
+          )}
+          {/* Design Images */}
+          {hasImages && (
+            <div className="mt-2">
+              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Imagens Geradas</p>
+              <div className="grid grid-cols-3 gap-2">
+                {data.image_urls.map((url, i) => url && (
+                  <div key={i} className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group relative">
+                    <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`}
+                      className="w-full aspect-square object-cover" loading="lazy" />
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
+                      <span className="text-[8px] text-white font-semibold">Design {i + 1}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {isFailed && data?.error && (
@@ -438,7 +463,7 @@ export default function PipelineView({ context }) {
           <div className="flex items-center gap-0.5">
             {STEP_ORDER.map((s, i) => {
               const st = steps[s]?.status || 'pending';
-              const isRun = st === 'running';
+              const isRun = st === 'running' || st === 'generating_images';
               return (
                 <div key={s} className="flex items-center flex-1 gap-0.5">
                   <div className="relative h-2 rounded-full flex-1 bg-[#1A1A1A] overflow-hidden">

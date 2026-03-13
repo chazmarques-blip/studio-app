@@ -2,14 +2,22 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
+import asyncio
+import base64
 import re
 import time
+import uuid
+import os
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
 router = APIRouter(prefix="/api/campaigns/pipeline", tags=["pipeline"])
+
+UPLOADS_DIR = "/app/backend/uploads/pipeline"
+BACKEND_URL = os.environ.get("BACKEND_URL", "")
 
 STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "ana_review_design", "pedro_publish"]
 PAUSE_AFTER = {"ana_review_copy", "ana_review_design"}
@@ -104,6 +112,74 @@ async def _get_tenant(user):
 def _next_step(current):
     idx = STEP_ORDER.index(current)
     return STEP_ORDER[idx + 1] if idx + 1 < len(STEP_ORDER) else None
+
+
+async def _generate_image(prompt_text, pipeline_id, index):
+    """Generate a single image using GPT Image 1 and save to disk"""
+    try:
+        image_gen = OpenAIImageGeneration(api_key=EMERGENT_KEY)
+        images = await image_gen.generate_images(
+            prompt=prompt_text,
+            model="gpt-image-1",
+            number_of_images=1
+        )
+        if images and len(images) > 0:
+            filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
+            filepath = os.path.join(UPLOADS_DIR, filename)
+            with open(filepath, "wb") as f:
+                f.write(images[0])
+            return f"/api/uploads/pipeline/{filename}"
+    except Exception as e:
+        logger.warning(f"Image generation failed for index {index}: {e}")
+    return None
+
+
+async def _generate_design_images(pipeline_id, concepts_text, platforms):
+    """Parse Lucas's concepts and generate images for each"""
+    # First, use Claude to extract image prompts from Lucas's descriptions
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"prompt-extract-{pipeline_id}-{int(time.time())}",
+            system_message="You extract image generation prompts from design concept descriptions. Return ONLY the prompts, one per line, numbered. Each prompt should be a detailed, visual description suitable for AI image generation. No explanations."
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+        extract_prompt = f"""Extract exactly 3 image generation prompts from these design concepts. Each prompt should describe the visual in detail (colors, composition, style, mood). Keep prompts under 200 words each.
+
+Design concepts:
+{concepts_text}
+
+Format:
+1. [detailed image prompt]
+2. [detailed image prompt]
+3. [detailed image prompt]"""
+
+        response = await chat.send_message(UserMessage(text=extract_prompt))
+        prompts = re.findall(r'\d+\.\s*(.+?)(?=\n\d+\.|$)', response, re.DOTALL)
+        prompts = [p.strip() for p in prompts if p.strip()][:3]
+
+        if len(prompts) < 3:
+            # Fallback: use generic prompts from the concepts
+            prompts = [
+                f"Professional marketing banner design concept 1, modern clean style, {platforms[0] if platforms else 'social media'} format",
+                f"Professional marketing banner design concept 2, bold colors, {platforms[0] if platforms else 'social media'} format",
+                f"Professional marketing banner design concept 3, minimalist elegant, {platforms[0] if platforms else 'social media'} format",
+            ]
+    except Exception as e:
+        logger.warning(f"Prompt extraction failed: {e}")
+        prompts = [
+            "Professional marketing campaign banner, modern design, vibrant colors, social media format",
+            "Creative marketing visual, bold typography, gradient background, digital marketing",
+            "Elegant promotional graphic, minimalist style, premium feel, brand campaign",
+        ]
+
+    # Generate images sequentially to avoid overwhelming the API
+    image_urls = []
+    for i, prompt in enumerate(prompts):
+        url = await _generate_image(prompt, pipeline_id, i + 1)
+        image_urls.append(url)
+
+    return image_urls, prompts
 
 
 def _parse_ana_copy_selection(text):
@@ -293,6 +369,24 @@ async def _execute_step(pipeline_id, step):
             steps[step]["auto_selections"] = selections
             steps[step]["selections"] = selections
 
+        # Generate actual images for Lucas's design step
+        elif step == "lucas_design":
+            platforms = pipeline.get("platforms") or []
+            # Update DB to show we're generating images now
+            steps[step]["output"] = response
+            steps[step]["status"] = "generating_images"
+            supabase.table("pipelines").update({
+                "steps": steps,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", pipeline_id).execute()
+
+            image_urls, image_prompts = await _generate_design_images(
+                pipeline_id, response, platforms
+            )
+            steps[step]["image_urls"] = image_urls
+            steps[step]["image_prompts"] = image_prompts
+            steps[step]["status"] = "completed"
+
         # Determine next pipeline status
         nxt = _next_step(step)
         mode = pipeline.get("mode", "semi_auto")
@@ -452,28 +546,29 @@ async def retry_failed_step(pipeline_id: str, bg: BackgroundTasks, user=Depends(
     if not result.data:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     pipeline = result.data[0]
-    if pipeline["status"] != "failed":
-        raise HTTPException(status_code=400, detail="Pipeline is not in failed state")
+    if pipeline["status"] not in ("failed", "running"):
+        raise HTTPException(status_code=400, detail="Pipeline is not in a retryable state")
 
     steps = pipeline.get("steps") or {}
-    failed_step = None
+    retry_step = None
     for s in STEP_ORDER:
-        if steps.get(s, {}).get("status") == "failed":
-            failed_step = s
+        st = steps.get(s, {}).get("status")
+        if st in ("failed", "running"):
+            retry_step = s
             break
 
-    if not failed_step:
-        raise HTTPException(status_code=400, detail="No failed step found")
+    if not retry_step:
+        raise HTTPException(status_code=400, detail="No retryable step found")
 
-    steps[failed_step]["status"] = "pending"
-    steps[failed_step]["error"] = None
+    steps[retry_step]["status"] = "pending"
+    steps[retry_step]["error"] = None
     supabase.table("pipelines").update({
         "steps": steps, "status": "running",
         "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", pipeline_id).execute()
 
-    bg.add_task(_execute_step, pipeline_id, failed_step)
-    return {"status": "retrying", "step": failed_step}
+    bg.add_task(_execute_step, pipeline_id, retry_step)
+    return {"status": "retrying", "step": retry_step}
 
 
 @router.get("/{pipeline_id}/labels")
