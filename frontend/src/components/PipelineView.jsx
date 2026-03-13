@@ -1,0 +1,609 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'sonner';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const STEP_META = {
+  sofia_copy: { agent: 'Sofia', role: 'Copywriter', icon: PenTool, color: '#C9A84C' },
+  ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50' },
+  lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8' },
+  ana_review_design: { agent: 'Ana', role: 'Revisora de Design', icon: CheckCircle, color: '#4CAF50' },
+  pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C' },
+};
+
+const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'ana_review_design', 'pedro_publish'];
+
+const PLATFORMS = [
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'facebook', label: 'Facebook' },
+  { id: 'telegram', label: 'Telegram' },
+  { id: 'email', label: 'Email' },
+  { id: 'sms', label: 'SMS' },
+];
+
+function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, onToggle }) {
+  const meta = STEP_META[step];
+  const Icon = meta.icon;
+  const status = data?.status || 'pending';
+  const needsApproval = pipelineStatus === 'waiting_approval' && status === 'completed' &&
+    ((step === 'ana_review_copy' && !data?.user_selection) ||
+     (step === 'ana_review_design' && !data?.user_selections));
+  const isFailed = status === 'failed';
+
+  return (
+    <div data-testid={`step-card-${step}`} className={`rounded-xl border transition-all duration-300 ${
+      isActive ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
+      needsApproval ? 'border-amber-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(245,158,11,0.08)]' :
+      isFailed ? 'border-red-500/30 bg-[#0D0D0D]' :
+      status === 'completed' ? 'border-green-500/20 bg-[#0D0D0D]' :
+      'border-[#1A1A1A] bg-[#0A0A0A]'
+    }`}>
+      {/* Header */}
+      <button onClick={onToggle} className="w-full px-3 py-2.5 flex items-center gap-2.5">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-all ${
+          isActive ? 'animate-pulse' : ''
+        }`} style={{ backgroundColor: `${meta.color}15` }}>
+          {status === 'running' ? (
+            <div className="relative">
+              <Loader2 size={16} className="animate-spin" style={{ color: meta.color }} />
+              <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: meta.color }} />
+            </div>
+          ) : status === 'completed' ? (
+            <Check size={16} className="text-green-400" />
+          ) : isFailed ? (
+            <AlertTriangle size={16} className="text-red-400" />
+          ) : (
+            <Icon size={16} style={{ color: `${meta.color}55` }} />
+          )}
+        </div>
+        <div className="flex-1 text-left min-w-0">
+          <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#555] font-normal">- {meta.role}</span></p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {status === 'running' && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
+                Processando...
+              </span>
+            )}
+            {status === 'completed' && !needsApproval && (
+              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Concluido</span>
+            )}
+            {needsApproval && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Aguardando sua aprovacao
+              </span>
+            )}
+            {status === 'pending' && (
+              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">Pendente</span>
+            )}
+            {isFailed && (
+              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Falhou</span>
+            )}
+          </div>
+        </div>
+        {data?.elapsed_ms && <span className="text-[8px] text-[#444] shrink-0 bg-[#111] px-1.5 py-0.5 rounded">{(data.elapsed_ms / 1000).toFixed(1)}s</span>}
+        {(data?.output || isFailed) && (expanded ? <ChevronUp size={14} className="text-[#444]" /> : <ChevronDown size={14} className="text-[#444]" />)}
+      </button>
+
+      {/* Expanded Content */}
+      {expanded && (data?.output || isFailed) && (
+        <div className="px-3 pb-3 border-t border-[#151515]">
+          {data?.output && (
+            <div className="mt-2 rounded-lg bg-[#111] p-3 max-h-[300px] overflow-y-auto">
+              <pre className="text-[10px] text-[#aaa] whitespace-pre-wrap leading-relaxed font-sans">{data.output}</pre>
+            </div>
+          )}
+          {isFailed && data?.error && (
+            <div className="mt-2 rounded-lg bg-red-500/5 border border-red-500/20 p-3">
+              <p className="text-[10px] text-red-400">{data.error}</p>
+            </div>
+          )}
+          {needsApproval && step === 'ana_review_copy' && (
+            <CopyApproval data={data} onApprove={onApprove} />
+          )}
+          {needsApproval && step === 'ana_review_design' && (
+            <DesignApproval data={data} onApprove={onApprove} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CopyApproval({ data, onApprove }) {
+  const [selected, setSelected] = useState(data?.auto_selection || 1);
+  const [submitting, setSubmitting] = useState(false);
+  const autoSel = data?.auto_selection || 1;
+
+  const handleApprove = async () => {
+    setSubmitting(true);
+    await onApprove({ selection: selected });
+    setSubmitting(false);
+  };
+
+  return (
+    <div data-testid="copy-approval" className="mt-3 space-y-2.5 bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
+      <p className="text-[11px] text-amber-200 font-semibold">Escolha a variacao para continuar:</p>
+      <p className="text-[9px] text-[#888]">Ana recomendou a <span className="text-[#C9A84C] font-bold">Variacao {autoSel}</span></p>
+      <div className="flex gap-2">
+        {[1, 2, 3].map(n => (
+          <button key={n} data-testid={`select-copy-${n}`}
+            onClick={() => setSelected(n)}
+            className={`flex-1 rounded-lg py-2.5 text-[11px] font-semibold border-2 transition-all ${
+              selected === n
+                ? 'border-[#C9A84C] bg-[#C9A84C]/15 text-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.15)]'
+                : 'border-[#222] text-[#666] hover:text-white hover:border-[#333]'
+            }`}>
+            {n === autoSel ? `Var ${n} *` : `Variacao ${n}`}
+          </button>
+        ))}
+      </div>
+      <button data-testid="approve-copy-btn"
+        onClick={handleApprove}
+        disabled={submitting}
+        className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
+        {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+        {submitting ? 'Enviando...' : 'Aprovar e Continuar'}
+      </button>
+    </div>
+  );
+}
+
+function DesignApproval({ data, onApprove }) {
+  const autoSels = data?.auto_selections || {};
+  const [selections, setSelections] = useState(autoSels);
+  const [submitting, setSubmitting] = useState(false);
+
+  const platforms = Object.keys(autoSels);
+
+  const handleApprove = async () => {
+    setSubmitting(true);
+    await onApprove({ selections: Object.keys(selections).length > 0 ? selections : { default: 1 } });
+    setSubmitting(false);
+  };
+
+  return (
+    <div data-testid="design-approval" className="mt-3 space-y-2.5 bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
+      <p className="text-[11px] text-amber-200 font-semibold">Escolha o design por plataforma:</p>
+      {platforms.length > 0 ? platforms.map(p => (
+        <div key={p} className="flex items-center gap-2">
+          <span className="text-[11px] text-white font-medium capitalize w-24">{p}</span>
+          <div className="flex gap-1.5 flex-1">
+            {[1, 2, 3].map(n => (
+              <button key={n}
+                onClick={() => setSelections(prev => ({ ...prev, [p]: n }))}
+                className={`flex-1 rounded-lg py-2 text-[10px] font-semibold border-2 transition-all ${
+                  (selections[p] || 1) === n
+                    ? 'border-[#C9A84C] bg-[#C9A84C]/15 text-[#C9A84C]'
+                    : 'border-[#222] text-[#666] hover:text-white'
+                }`}>
+                {n === autoSels[p] ? `D${n} *` : `Design ${n}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )) : (
+        <p className="text-[9px] text-[#888]">Ana avaliou os designs. Clique para aprovar e publicar.</p>
+      )}
+      <button data-testid="approve-design-btn"
+        onClick={handleApprove}
+        disabled={submitting}
+        className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
+        {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+        {submitting ? 'Enviando...' : 'Aprovar e Continuar'}
+      </button>
+    </div>
+  );
+}
+
+export default function PipelineView({ context }) {
+  const { i18n } = useTranslation();
+  const lang = i18n.language || 'en';
+  const [pipelines, setPipelines] = useState([]);
+  const [activePipeline, setActivePipeline] = useState(null);
+  const [briefing, setBriefing] = useState('');
+  const [mode, setMode] = useState('semi_auto');
+  const [platforms, setPlatforms] = useState(['whatsapp', 'instagram', 'facebook']);
+  const [creating, setCreating] = useState(false);
+  const [expandedSteps, setExpandedSteps] = useState({});
+  const [showHistory, setShowHistory] = useState(false);
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    loadPipelines();
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  // Auto-expand steps that need approval or just completed
+  useEffect(() => {
+    if (!activePipeline) return;
+    const steps = activePipeline.steps || {};
+    const newExpanded = { ...expandedSteps };
+    let changed = false;
+
+    STEP_ORDER.forEach(s => {
+      const st = steps[s];
+      if (!st) return;
+      // Auto-expand: waiting_approval step
+      if (activePipeline.status === 'waiting_approval' && st.status === 'completed' &&
+          (s === 'ana_review_copy' || s === 'ana_review_design') && !newExpanded[s]) {
+        newExpanded[s] = true;
+        changed = true;
+      }
+      // Auto-expand: failed step
+      if (st.status === 'failed' && !newExpanded[s]) {
+        newExpanded[s] = true;
+        changed = true;
+      }
+    });
+
+    if (changed) setExpandedSteps(newExpanded);
+  }, [activePipeline?.status, activePipeline?.current_step]);
+
+  // Polling logic
+  const startPolling = useCallback((id) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => pollPipeline(id), 3000);
+  }, []);
+
+  useEffect(() => {
+    if (activePipeline && ['running', 'pending'].includes(activePipeline.status)) {
+      startPolling(activePipeline.id);
+    } else {
+      if (pollRef.current) clearInterval(pollRef.current);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [activePipeline?.id, activePipeline?.status, startPolling]);
+
+  const loadPipelines = async () => {
+    try {
+      const { data } = await axios.get(`${API}/campaigns/pipeline/list`);
+      const list = data.pipelines || [];
+      setPipelines(list);
+      const active = list.find(p => ['running', 'pending', 'waiting_approval'].includes(p.status));
+      if (active) {
+        setActivePipeline(active);
+        // Auto-expand completed steps
+        const exp = {};
+        STEP_ORDER.forEach(s => {
+          if (active.steps?.[s]?.status === 'completed') exp[s] = true;
+          if (active.steps?.[s]?.status === 'failed') exp[s] = true;
+        });
+        setExpandedSteps(exp);
+      }
+    } catch {}
+  };
+
+  const pollPipeline = async (id) => {
+    try {
+      const { data } = await axios.get(`${API}/campaigns/pipeline/${id}`);
+      setActivePipeline(data);
+      if (['completed', 'failed', 'waiting_approval'].includes(data.status)) {
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    } catch {}
+  };
+
+  const createPipeline = async () => {
+    if (!briefing.trim() || platforms.length === 0) {
+      toast.error('Preencha o briefing e selecione ao menos uma plataforma');
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/pipeline`, {
+        briefing: briefing.trim(),
+        mode,
+        platforms,
+        context: context || {},
+      });
+      setActivePipeline(data);
+      setBriefing('');
+      setExpandedSteps({});
+      toast.success('Pipeline iniciado!');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao criar pipeline');
+    }
+    setCreating(false);
+  };
+
+  const approveStep = async (approvalData) => {
+    if (!activePipeline) return;
+    try {
+      await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/approve`, approvalData);
+      toast.success('Aprovado! Proxima etapa iniciando...');
+      // Immediately poll and restart polling
+      setTimeout(() => {
+        pollPipeline(activePipeline.id);
+        startPolling(activePipeline.id);
+      }, 1000);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao aprovar');
+    }
+  };
+
+  const retryPipeline = async () => {
+    if (!activePipeline) return;
+    try {
+      await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/retry`);
+      toast.success('Tentando novamente...');
+      setTimeout(() => {
+        pollPipeline(activePipeline.id);
+        startPolling(activePipeline.id);
+      }, 1000);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro');
+    }
+  };
+
+  const deletePipeline = async (id) => {
+    try {
+      await axios.delete(`${API}/campaigns/pipeline/${id}`);
+      if (activePipeline?.id === id) setActivePipeline(null);
+      setPipelines(prev => prev.filter(p => p.id !== id));
+      toast.success('Pipeline removido');
+    } catch {}
+  };
+
+  const toggleStep = (step) => {
+    setExpandedSteps(prev => ({ ...prev, [step]: !prev[step] }));
+  };
+
+  const togglePlatform = (pid) => {
+    setPlatforms(prev => prev.includes(pid) ? prev.filter(p => p !== pid) : [...prev, pid]);
+  };
+
+  const resetView = () => {
+    setActivePipeline(null);
+    setExpandedSteps({});
+    loadPipelines();
+  };
+
+  // ── Active Pipeline View ──
+  if (activePipeline) {
+    const steps = activePipeline.steps || {};
+    const completedCount = STEP_ORDER.filter(s => steps[s]?.status === 'completed').length;
+    const progressPct = Math.round((completedCount / STEP_ORDER.length) * 100);
+
+    const statusConfig = {
+      running: { label: 'Executando', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
+      waiting_approval: { label: 'Aguardando Aprovacao', color: 'text-amber-400', bg: 'bg-amber-400' },
+      completed: { label: 'Concluido!', color: 'text-green-400', bg: 'bg-green-400' },
+      failed: { label: 'Falhou', color: 'text-red-400', bg: 'bg-red-400' },
+      pending: { label: 'Iniciando...', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
+    };
+    const sc = statusConfig[activePipeline.status] || statusConfig.pending;
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Pipeline Header */}
+        <div className="border-b border-[#111] px-3 py-2.5 flex items-center gap-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold text-white">
+                Pipeline {activePipeline.mode === 'auto' ? 'Automatico' : 'Semi-Automatico'}
+              </p>
+              <span className={`inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full ${sc.color}`}
+                style={{ backgroundColor: `${sc.bg.replace('bg-', '')}10` }}>
+                {['running', 'pending'].includes(activePipeline.status) && (
+                  <span className={`w-1.5 h-1.5 rounded-full ${sc.bg} animate-pulse`} />
+                )}
+                {sc.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
+              {(activePipeline.platforms || []).map(p => (
+                <span key={p} className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded capitalize">{p}</span>
+              ))}
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] font-bold text-white">{progressPct}%</span>
+            <span className="text-[8px] text-[#555] ml-1">completo</span>
+          </div>
+          <button onClick={resetView} className="text-[#444] hover:text-white p-1.5 rounded-lg hover:bg-[#111] transition" title="Novo">
+            <RotateCcw size={14} />
+          </button>
+        </div>
+
+        {/* Briefing */}
+        <div className="px-3 py-2 bg-[#080808] border-b border-[#111]">
+          <p className="text-[8px] text-[#555] uppercase tracking-wider mb-0.5">Briefing</p>
+          <p className="text-[10px] text-[#999] line-clamp-2">{activePipeline.briefing}</p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-0.5">
+            {STEP_ORDER.map((s, i) => {
+              const st = steps[s]?.status || 'pending';
+              const isRun = st === 'running';
+              return (
+                <div key={s} className="flex items-center flex-1 gap-0.5">
+                  <div className="relative h-2 rounded-full flex-1 bg-[#1A1A1A] overflow-hidden">
+                    <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
+                      st === 'completed' ? 'w-full bg-green-500' :
+                      isRun ? 'w-1/2 bg-[#C9A84C]' :
+                      st === 'failed' ? 'w-full bg-red-500' :
+                      'w-0'
+                    }`} />
+                    {isRun && <div className="absolute inset-0 bg-[#C9A84C]/20 animate-pulse rounded-full" />}
+                  </div>
+                  {i < STEP_ORDER.length - 1 && <ArrowRight size={8} className="text-[#333] shrink-0" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Steps */}
+        <div className="flex-1 overflow-y-auto px-3 py-1 space-y-2">
+          {STEP_ORDER.map((s) => (
+            <StepCard
+              key={s}
+              step={s}
+              data={steps[s]}
+              isActive={s === activePipeline.current_step && activePipeline.status === 'running'}
+              pipelineStatus={activePipeline.status}
+              onApprove={approveStep}
+              expanded={!!expandedSteps[s]}
+              onToggle={() => toggleStep(s)}
+            />
+          ))}
+        </div>
+
+        {/* Bottom actions */}
+        {activePipeline.status === 'completed' && (
+          <div className="px-3 py-3 border-t border-[#111] bg-green-500/5">
+            <div className="flex items-center gap-2">
+              <Check size={18} className="text-green-400" />
+              <p className="text-xs font-bold text-green-400 flex-1">Pipeline concluido com sucesso!</p>
+              <button onClick={resetView}
+                className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition">
+                Novo Pipeline
+              </button>
+            </div>
+          </div>
+        )}
+        {activePipeline.status === 'failed' && (
+          <div className="px-3 py-3 border-t border-[#111] bg-red-500/5">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-red-400" />
+              <p className="text-xs font-semibold text-red-400 flex-1">Uma etapa falhou. Tente novamente.</p>
+              <button onClick={retryPipeline}
+                className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5">
+                <RefreshCw size={12} /> Tentar Novamente
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Creation Form ──
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {/* Pipeline Intro */}
+        <div className="text-center py-3">
+          <div className="flex items-center justify-center gap-1.5 mb-2">
+            {[PenTool, CheckCircle, Palette, CheckCircle, CalendarClock].map((Icon, i) => (
+              <div key={i} className="flex items-center gap-1">
+                {i > 0 && <ArrowRight size={10} className="text-[#333]" />}
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${Object.values(STEP_META)[i].color}15` }}>
+                  <Icon size={14} style={{ color: Object.values(STEP_META)[i].color }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-[#888]">Sofia cria → Ana aprova → Lucas desenha → Ana aprova → Pedro publica</p>
+        </div>
+
+        {/* Briefing */}
+        <div>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1">Briefing da Campanha</label>
+          <textarea
+            data-testid="pipeline-briefing"
+            value={briefing}
+            onChange={e => setBriefing(e.target.value)}
+            rows={4}
+            placeholder="Descreva o que voce quer: tipo de campanha, objetivo, publico-alvo, tom de voz..."
+            className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30 transition"
+          />
+        </div>
+
+        {/* Platforms */}
+        <div>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Plataformas</label>
+          <div className="flex flex-wrap gap-1.5">
+            {PLATFORMS.map(p => (
+              <button
+                key={p.id}
+                data-testid={`platform-${p.id}`}
+                onClick={() => togglePlatform(p.id)}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-medium border transition ${
+                  platforms.includes(p.id)
+                    ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]'
+                    : 'border-[#1E1E1E] text-[#555] hover:text-white'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Mode */}
+        <div>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Modo de Execucao</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              data-testid="mode-semi-auto"
+              onClick={() => setMode('semi_auto')}
+              className={`rounded-xl border p-3 text-left transition ${
+                mode === 'semi_auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'
+              }`}
+            >
+              <p className="text-xs font-semibold text-white mb-0.5">Semi-Automatico</p>
+              <p className="text-[9px] text-[#555]">Pausa para voce aprovar cada etapa antes de continuar</p>
+            </button>
+            <button
+              data-testid="mode-auto"
+              onClick={() => setMode('auto')}
+              className={`rounded-xl border p-3 text-left transition ${
+                mode === 'auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'
+              }`}
+            >
+              <p className="text-xs font-semibold text-white mb-0.5">Automatico</p>
+              <p className="text-[9px] text-[#555]">Ana decide sozinha e o pipeline roda ate o final</p>
+            </button>
+          </div>
+        </div>
+
+        {/* Previous Pipelines */}
+        {pipelines.length > 0 && (
+          <div>
+            <button onClick={() => setShowHistory(!showHistory)} className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
+              {showHistory ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              {pipelines.length} pipeline{pipelines.length > 1 ? 's' : ''} anterior{pipelines.length > 1 ? 'es' : ''}
+            </button>
+            {showHistory && (
+              <div className="mt-1.5 space-y-1">
+                {pipelines.map(p => (
+                  <div key={p.id} className="flex items-center gap-2 rounded-lg bg-[#111] p-2 group">
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { setActivePipeline(p); setExpandedSteps({}); }}>
+                      <p className="text-[10px] text-white truncate">{p.briefing}</p>
+                      <p className="text-[8px] text-[#555]">{p.mode === 'auto' ? 'Auto' : 'Semi'} - {p.status}</p>
+                    </div>
+                    <button onClick={() => deletePipeline(p.id)} className="text-[#333] hover:text-red-400 opacity-0 group-hover:opacity-100">
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Start Button */}
+      <div className="px-4 py-3 border-t border-[#1A1A1A]">
+        <button
+          data-testid="start-pipeline-btn"
+          onClick={createPipeline}
+          disabled={creating || !briefing.trim() || platforms.length === 0}
+          className="w-full rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-[13px] font-bold text-black transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]"
+        >
+          {creating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+          {creating ? 'Iniciando Pipeline...' : `Iniciar Pipeline ${mode === 'auto' ? 'Automatico' : 'Semi-Automatico'}`}
+        </button>
+      </div>
+    </div>
+  );
+}

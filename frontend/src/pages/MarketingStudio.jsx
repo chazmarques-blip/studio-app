@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Sparkles, Send, PenTool, Palette, CheckCircle, CalendarClock, Save, RotateCcw, Copy, Loader2, Lock } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send, PenTool, Palette, CheckCircle, CalendarClock, Save, RotateCcw, Copy, Loader2, Lock, Workflow } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import PipelineView from '../components/PipelineView';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -112,6 +113,7 @@ export default function MarketingStudio() {
   const [loading, setLoading] = useState(true);
   const [context, setContext] = useState({ company: 'AgentZZ', industry: 'SaaS / AI', audience: 'PMEs que buscam automacao de atendimento', brand_voice: 'Moderno, profissional, inovador' });
   const [showContext, setShowContext] = useState(false);
+  const [studioMode, setStudioMode] = useState('manual');
   const chatRef = useRef(null);
 
   useEffect(() => {
@@ -229,7 +231,16 @@ export default function MarketingStudio() {
           </div>
           <div className="flex-1">
             <h1 className="text-sm font-semibold text-white">Marketing AI Studio</h1>
-            <p className="text-[9px] text-[#555]">4 {lang === 'pt' ? 'agentes especializados' : 'specialized agents'}</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <button data-testid="mode-manual-tab" onClick={() => setStudioMode('manual')}
+                className={`text-[9px] font-semibold px-2 py-0.5 rounded transition ${studioMode === 'manual' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#555] hover:text-white'}`}>
+                Manual
+              </button>
+              <button data-testid="mode-pipeline-tab" onClick={() => setStudioMode('pipeline')}
+                className={`text-[9px] font-semibold px-2 py-0.5 rounded transition flex items-center gap-1 ${studioMode === 'pipeline' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#555] hover:text-white'}`}>
+                <Workflow size={9} /> Pipeline
+              </button>
+            </div>
           </div>
           <button onClick={() => setShowContext(!showContext)} className="text-[9px] text-[#C9A84C] hover:underline">
             {lang === 'pt' ? 'Contexto' : 'Context'}
@@ -258,6 +269,9 @@ export default function MarketingStudio() {
       )}
 
       {/* Main Layout */}
+      {studioMode === 'pipeline' ? (
+        <PipelineView context={context} />
+      ) : (
       <div className="flex flex-1 overflow-hidden">
         {/* Agents Sidebar */}
         <div className="w-[180px] md:w-[220px] shrink-0 border-r border-[#1A1A1A] p-2 overflow-y-auto space-y-1.5">
@@ -330,6 +344,7 @@ export default function MarketingStudio() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
