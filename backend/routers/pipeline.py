@@ -145,28 +145,43 @@ def _next_step(current):
     return STEP_ORDER[idx + 1] if idx + 1 < len(STEP_ORDER) else None
 
 
-async def _generate_image(prompt_text, pipeline_id, index):
-    """Generate a single image using Gemini Nano Banana and save to disk"""
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"img-{pipeline_id}-{index}-{int(time.time())}",
-            system_message="You are a professional graphic designer. Generate high-quality marketing images."
-        )
-        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None):
+    """Generate a single image using Gemini Nano Banana with retry logic"""
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_KEY,
+                session_id=f"img-{pipeline_id}-{index}-{int(time.time())}-{attempt}",
+                system_message="You are a world-class professional graphic designer specialized in creating stunning marketing visuals. Generate high-quality, vibrant, professional marketing images with clean composition and impactful design."
+            )
+            chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
 
-        msg = UserMessage(text=prompt_text)
-        text_resp, images = await chat.send_message_multimodal_response(msg)
+            file_contents = []
+            if brand_logo_path and os.path.exists(brand_logo_path):
+                try:
+                    with open(brand_logo_path, "rb") as f:
+                        logo_b64 = base64.b64encode(f.read()).decode("utf-8")
+                    file_contents.append(ImageContent(logo_b64))
+                    prompt_text = f"IMPORTANT: Include this exact brand logo in the design without any modifications. Place it prominently.\n\n{prompt_text}"
+                except Exception:
+                    pass
 
-        if images and len(images) > 0:
-            img_data = base64.b64decode(images[0]["data"])
-            filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
-            filepath = os.path.join(UPLOADS_DIR, filename)
-            with open(filepath, "wb") as f:
-                f.write(img_data)
-            return f"/api/uploads/pipeline/{filename}"
-    except Exception as e:
-        logger.warning(f"Nano Banana image generation failed for index {index}: {e}")
+            msg = UserMessage(text=prompt_text, file_contents=file_contents if file_contents else None)
+            text_resp, images = await chat.send_message_multimodal_response(msg)
+
+            if images and len(images) > 0:
+                img_data = base64.b64decode(images[0]["data"])
+                filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
+                filepath = os.path.join(UPLOADS_DIR, filename)
+                with open(filepath, "wb") as f:
+                    f.write(img_data)
+                logger.info(f"Image generated successfully: {filename}")
+                return f"/api/uploads/pipeline/{filename}"
+        except Exception as e:
+            logger.warning(f"Nano Banana attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(2 * (attempt + 1))
     return None
 
 
@@ -235,10 +250,23 @@ Format:
             "Elegant promotional graphic, minimalist style, premium feel, brand campaign",
         ]
 
+    # Find brand logo file path if uploaded
+    brand_logo_path = None
+    if pipeline_data:
+        p = pipeline_data[0]
+        assets = p.get("result", {}).get("uploaded_assets", [])
+        logo_assets = [a for a in assets if a.get("type") == "logo"]
+        if logo_assets:
+            logo_url = logo_assets[0].get("url", "")
+            # Convert API URL to filesystem path
+            if logo_url.startswith("/api/uploads/pipeline/"):
+                brand_logo_path = os.path.join(UPLOADS_DIR, logo_url.split("/")[-1])
+
     # Generate images sequentially to avoid overwhelming the API
     image_urls = []
     for i, prompt in enumerate(prompts):
-        url = await _generate_image(prompt, pipeline_id, i + 1)
+        enhanced_prompt = f"{prompt}\n\nIMPORTANT STYLE DIRECTIVES: Ultra high quality, professional marketing campaign visual. Sharp details, vivid colors, clean composition. Suitable for {', '.join(platforms)} advertising. 1080x1080 square format."
+        url = await _generate_image(enhanced_prompt, pipeline_id, i + 1, brand_logo_path=brand_logo_path)
         image_urls.append(url)
 
     return image_urls, prompts
@@ -780,12 +808,22 @@ async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, use
         "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", pipeline_id).execute()
 
+    # Find brand logo
+    brand_logo_path = None
+    result_data = pipeline.get("result", {})
+    assets = result_data.get("uploaded_assets", [])
+    logo_assets = [a for a in assets if a.get("type") == "logo"]
+    if logo_assets:
+        logo_url = logo_assets[0].get("url", "")
+        if logo_url.startswith("/api/uploads/pipeline/"):
+            brand_logo_path = os.path.join(UPLOADS_DIR, logo_url.split("/")[-1])
+
     # Regenerate in background thread
     def _regen():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            new_url = loop.run_until_complete(_generate_image(enhanced_prompt, pipeline_id, idx + 10))
+            new_url = loop.run_until_complete(_generate_image(enhanced_prompt, pipeline_id, idx + 10, brand_logo_path=brand_logo_path))
             fresh = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data[0]
             s = fresh.get("steps", {})
             urls = s.get("lucas_design", {}).get("image_urls", list(old_urls))
