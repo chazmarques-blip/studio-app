@@ -46,6 +46,12 @@ WhatsApp, Instagram, Facebook, TikTok, Google Ads, Telegram, Email, SMS
 ## Backlog (Prioritized)
 ### P1
 - Capacitor mobile app (iOS + Android) for store publishing
+- **Programa de Referral / Embaixador AgentZZ:**
+  - Todo novo usuário recebe uma campanha pronta da AgentZZ (pré-criada, profissional) pronta para publicar
+  - Cada campanha tem uma **tag única do usuário** (link de referral rastreável)
+  - Quando o usuário publica a campanha e traz novos assinantes pagantes, ele **ganha créditos** na plataforma
+  - Modelo: campanha viral auto-propagável — cada cliente vira promotor da AgentZZ
+  - Necessita: sistema de tracking de referral, dashboard de créditos, campanha template da AgentZZ
 
 ### P2
 - Video generation agent (Sora 2)
