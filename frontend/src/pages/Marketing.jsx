@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -526,7 +526,7 @@ function CampaignDetail({ campaign, onClose }) {
 }
 
 /* ── Enhanced Campaign Card ── */
-function CampaignCard({ campaign, lang, onAction, onPreview, onDetail }) {
+function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmingDelete, setConfirmingDelete }) {
   const type = TYPE_META[campaign.type] || TYPE_META.nurture;
   const status = STATUS_META[campaign.status] || STATUS_META.draft;
   const stats = campaign.stats || {};
@@ -540,6 +540,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail }) {
   const startDate = schedule.start_date || campaign.created_at?.split('T')[0];
   const endDate = schedule.end_date;
   const hasCpl = stats.sent > 0;
+  const isConfirming = confirmingDelete === campaign.id;
 
   return (
     <div data-testid={`campaign-card-${campaign.id}`} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3.5 hover:border-[#2A2A2A] transition group">
@@ -593,16 +594,27 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail }) {
               <Play size={13} />
             </button>
           )}
-          <button data-testid={`delete-${campaign.id}`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onAction('delete', campaign.id);
-            }}
-            className="p-2 rounded-lg bg-red-500/5 hover:bg-red-500/20 text-red-400/50 hover:text-red-400 transition cursor-pointer"
-            title="Excluir campanha">
-            <Trash2 size={14} />
-          </button>
+          {isConfirming ? (
+            <div className="flex items-center gap-0.5">
+              <button data-testid={`confirm-delete-${campaign.id}`}
+                onClick={() => { onAction('delete-now', campaign.id); setConfirmingDelete(null); }}
+                className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition">
+                <Check size={13} />
+              </button>
+              <button data-testid={`cancel-delete-${campaign.id}`}
+                onClick={() => setConfirmingDelete(null)}
+                className="p-1.5 rounded-lg hover:bg-[#1A1A1A] text-[#555] hover:text-white transition">
+                <X size={13} />
+              </button>
+            </div>
+          ) : (
+            <button data-testid={`delete-${campaign.id}`}
+              onClick={() => setConfirmingDelete(campaign.id)}
+              className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#444] hover:text-red-400 transition"
+              title="Excluir campanha">
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -640,6 +652,7 @@ export default function Marketing() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [previewCampaign, setPreviewCampaign] = useState(null);
   const [detailCampaign, setDetailCampaign] = useState(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -683,11 +696,10 @@ export default function Marketing() {
         await axios.post(`${API}/campaigns/${id}/pause`);
         setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'paused' } : c));
         toast.success('Campanha pausada');
-      } else if (action === 'delete') {
-        if (!window.confirm('Excluir campanha?')) return;
+      } else if (action === 'delete-now') {
         await axios.delete(`${API}/campaigns/${id}`);
         setCampaigns(prev => prev.filter(c => c.id !== id));
-        toast.success('Excluida');
+        toast.success('Campanha excluida!');
       }
     } catch (e) { toast.error(e.response?.data?.detail || 'Erro'); }
   };
@@ -822,7 +834,8 @@ export default function Marketing() {
         <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-2' : 'space-y-2'}>
           {filtered.map(c => (
             <CampaignCard key={c.id} campaign={c} lang={lang} onAction={handleAction}
-              onPreview={setPreviewCampaign} onDetail={setDetailCampaign} />
+              onPreview={setPreviewCampaign} onDetail={setDetailCampaign}
+              confirmingDelete={confirmingDelete} setConfirmingDelete={setConfirmingDelete} />
           ))}
         </div>
 
