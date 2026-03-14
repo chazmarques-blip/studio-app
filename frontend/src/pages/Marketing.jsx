@@ -593,8 +593,17 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail }) {
               <Play size={13} />
             </button>
           )}
-          <button data-testid={`delete-${campaign.id}`} onClick={(e) => { e.stopPropagation(); onAction('delete', campaign.id); }} className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#333] hover:text-red-400 transition">
-            <Trash2 size={12} />
+          <button data-testid={`delete-${campaign.id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (window.confirm('Excluir esta campanha?')) {
+                onAction('delete-confirmed', campaign.id);
+              }
+            }}
+            className="p-2 rounded-lg bg-red-500/5 hover:bg-red-500/20 text-red-400/50 hover:text-red-400 transition cursor-pointer"
+            title="Excluir campanha">
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
