@@ -597,9 +597,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail }) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (window.confirm('Excluir esta campanha?')) {
-                onAction('delete-confirmed', campaign.id);
-              }
+              onAction('delete', campaign.id);
             }}
             className="p-2 rounded-lg bg-red-500/5 hover:bg-red-500/20 text-red-400/50 hover:text-red-400 transition cursor-pointer"
             title="Excluir campanha">
