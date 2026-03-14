@@ -15,75 +15,65 @@ AgentZZ is a comprehensive, mobile-first, no-code SaaS platform for businesses t
 ### Phase 1-5: Core Platform (Complete)
 - User auth, Dashboard, Agent Management, Marketplace
 - Agent Configuration with Google Calendar/Sheets integration
-- CRM with Kanban board
-- Multi-language UI (EN, PT, ES) via i18next
+- CRM with Kanban board, Multi-language UI (EN, PT, ES)
 
 ### Phase 6: Google Integration (Complete)
-- Google account connection, Calendar/Sheets selection per agent
 
 ### Phase 7: AI Marketing Studio (Complete)
 - Multi-agent pipeline: Sofia → Ana → Lucas → Rafael → Marcos → Pedro
-- Text (Claude Sonnet 4.5), Image (Nano Banana), Video (Sora 2 + TTS + FFmpeg)
 
-### Video Pipeline V6 (Mar 14, 2026)
-- 2x 12s Sora 2 clips with crossfade transition (23s total)
-- Energetic TTS narration (Nova voice, 1.08x, ends ~14s before video end)
-- Background music by mood (upbeat/energetic/emotional/cinematic/corporate)
-- Audio resampled to 44100Hz stereo before mixing (fixed buzzing issue)
-- Brand logo overlay: fully opaque black background (1.0), logo 240px centered
-- Tagline + contact CTA positioned below logo
-- Narration cleaned of [SILENCE] stage directions
+### Video Pipeline V7 (Mar 14, 2026)
+- 2x 12s Sora 2 clips with crossfade (23s total)
+- TTS narration (Nova voice, 1.08x) — cleaned of [SILENCE] stage directions
+- REAL background music (royalty-free from Pixabay CDN, resampled 44100Hz stereo)
+- Brand logo overlay: fully opaque black bg, logo 240px centered
+- Contact: (321) 960-2080 | mytruckflorida.com
 
-### P0: Company Info Fields (Mar 14, 2026)
-- Added Address field to Contact Data section (Phone, Website, Email, Address)
-- Contact info (including address) passed to agent pipeline for CTA personalization
-- Backend PipelineCreate model updated to accept address in contact_info
+### P0: Company Info Fields (Complete)
+- 4 fields: Phone, Website, Email, Address
+- Passed to agent pipeline for CTA personalization
 
-### P1: Adaptive Media Formats (Mar 14, 2026)
-- Platform definitions include imgRatio, vidRatio, imgSize, vidSize per channel
-- Formats: 9:16 (TikTok/Instagram/WhatsApp), 16:9 (Google Ads/Facebook/Telegram), 1:1 (Facebook/WhatsApp)
-- media_formats dict sent to backend and stored in pipeline result
-- Format instructions injected into Sofia, Lucas, and Marcos agent prompts
+### P1: Adaptive Media Formats (Complete)
+- 8 platforms with imgRatio/vidRatio/imgSize/vidSize
+- 9:16 (TikTok/Instagram), 16:9 (Google Ads), 1:1 (Facebook)
+- media_formats sent to backend → injected in agent prompts
 
-### P2: Music Library by Mood (Mar 14, 2026)
-- 5 mood-categorized tracks in /app/backend/assets/music/
-- Mood mapping: upbeat, energetic, emotional, cinematic, corporate
-- Sofia specifies mood in VIDEO BRIEF → Marcos confirms → _combine_commercial_video selects track
+### P2: Music Library (Complete)
+- 5 real tracks: Upbeat, Energetic, Emotional, Cinematic, Corporate
+- UI: Selectable list with play/pause preview buttons
+- API: GET /api/campaigns/pipeline/music-library (list tracks)
+- API: GET /api/campaigns/pipeline/music-preview/{id} (stream audio)
+- Pipeline: selected_music field → overrides AI mood selection
+- Mood mapping in _combine_commercial_video for auto-selection
 
-### i18n Full Translation (Mar 14, 2026)
-- Marketing.jsx: L(lang) function with EN/PT/ES for 50+ labels
-- PipelineView.jsx: t() with studio.* keys for all UI text
-- FinalPreview.jsx: t() for publish/edit/back labels
-- Locale files updated with 70+ studio keys across 3 languages
+### i18n Full Translation (Complete)
+- Marketing.jsx: L(lang) with EN/PT/ES
+- PipelineView.jsx: t() with 70+ studio.* keys
+- FinalPreview.jsx: t() for all buttons
 
-## Current Test User
+## Test User
 - Email: test@agentflow.com / Password: password123 / Plan: Enterprise
 
-## Upcoming Tasks
-
-### User Verification Pending
-- Verify V6 video quality (music, logo, narration)
-- URL: https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/new_v6_commercial.mp4
+## User Verification Pending
+- V7 Video: https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/new_v7_commercial.mp4
 
 ## Future Tasks
 - Creative Gallery for asset reuse
 - Affiliate Program / Viral Loop
-- Evaluate advanced video AI (Runway Gen-3, Google Veo, Kling via fal.ai)
+- Evaluate advanced video AI (Runway Gen-3, Google Veo, Kling)
 - Mobile app (Capacitor)
 - Admin Management System
 - Payment gateway (Stripe)
-- Omnichannel live integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
-- pipeline.py refactoring (~1900 lines → smaller modules)
+- Omnichannel live integrations
+- pipeline.py refactoring (~2000 lines → modules)
 
 ## Key Files
-- `/app/backend/routers/pipeline.py` - Core AI pipeline (~1900 lines)
-- `/app/frontend/src/pages/Marketing.jsx` - Campaign hub with i18n
-- `/app/frontend/src/components/PipelineView.jsx` - AI Studio UI
-- `/app/frontend/src/components/FinalPreview.jsx` - Campaign publish preview
-- `/app/backend/assets/brand_logo.png` - My Truck logo
-- `/app/backend/assets/music/` - 5 mood-categorized music tracks
+- /app/backend/routers/pipeline.py - Core AI pipeline
+- /app/frontend/src/pages/Marketing.jsx - Campaign hub
+- /app/frontend/src/components/PipelineView.jsx - AI Studio UI
+- /app/backend/assets/music/ - 5 music tracks
+- /app/backend/assets/brand_logo.png - My Truck logo
 
 ## Test Reports
-- /app/test_reports/iteration_25.json
-- /app/test_reports/iteration_26.json
 - /app/test_reports/iteration_27.json (100% pass)
+- /app/test_reports/iteration_28.json (100% pass - music library verified)
