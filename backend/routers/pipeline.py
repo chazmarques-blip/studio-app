@@ -738,6 +738,53 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
     return result.data[0]
 
 
+
+@router.get("/saved/history")
+async def get_saved_history_v2(user=Depends(get_current_user)):
+    """Get saved logos and recent briefings from previous pipelines"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("briefing, result, platforms, created_at").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
+    pipelines = result.data or []
+
+    logos = []
+    seen_urls = set()
+    briefings = []
+    seen_briefings = set()
+
+    for p in pipelines:
+        assets = (p.get("result") or {}).get("uploaded_assets") or []
+        for a in assets:
+            if a.get("type") == "logo" and a.get("url") and a["url"] not in seen_urls:
+                seen_urls.add(a["url"])
+                logos.append({"url": a["url"], "filename": a.get("filename", "logo")})
+        b = p.get("briefing", "").strip()
+        camp_name = (p.get("result") or {}).get("campaign_name", "")
+        camp_lang = (p.get("result") or {}).get("campaign_language", "")
+        if b and b not in seen_briefings:
+            seen_briefings.add(b)
+            briefings.append({
+                "briefing": b, "campaign_name": camp_name,
+                "campaign_language": camp_lang,
+                "platforms": p.get("platforms", []),
+                "created_at": p.get("created_at", ""),
+            })
+
+    return {"logos": logos[:10], "briefings": briefings[:10]}
+
+
+@router.delete("/saved/logo")
+async def delete_saved_logo_v2(url: str, user=Depends(get_current_user)):
+    """Delete a saved logo file from disk"""
+    await _get_tenant(user)
+    if not url.startswith("/api/uploads/pipeline/"):
+        raise HTTPException(status_code=400, detail="Invalid logo URL")
+    filename = url.split("/")[-1]
+    filepath = os.path.join(UPLOADS_DIR, "assets", filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    return {"status": "deleted", "url": url}
+
+
 @router.get("/{pipeline_id}")
 async def get_pipeline(pipeline_id: str, user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
@@ -931,56 +978,7 @@ async def get_step_labels(pipeline_id: str, user=Depends(get_current_user)):
 
 
 
-@router.get("/saved/history")
-async def get_saved_history(user=Depends(get_current_user)):
-    """Get saved logos and recent briefings from previous pipelines"""
-    tenant = await _get_tenant(user)
-    result = supabase.table("pipelines").select("briefing, result, platforms, created_at").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
-    pipelines = result.data or []
 
-    logos = []
-    seen_urls = set()
-    briefings = []
-    seen_briefings = set()
-
-    for p in pipelines:
-        # Extract logos
-        assets = (p.get("result") or {}).get("uploaded_assets") or []
-        for a in assets:
-            if a.get("type") == "logo" and a.get("url") and a["url"] not in seen_urls:
-                seen_urls.add(a["url"])
-                logos.append({"url": a["url"], "filename": a.get("filename", "logo")})
-        # Extract briefings
-        b = p.get("briefing", "").strip()
-        camp_name = (p.get("result") or {}).get("campaign_name", "")
-        camp_lang = (p.get("result") or {}).get("campaign_language", "")
-        if b and b not in seen_briefings:
-            seen_briefings.add(b)
-            briefings.append({
-                "briefing": b,
-                "campaign_name": camp_name,
-                "campaign_language": camp_lang,
-                "platforms": p.get("platforms", []),
-                "created_at": p.get("created_at", ""),
-            })
-
-    return {"logos": logos[:10], "briefings": briefings[:10]}
-
-
-
-@router.delete("/saved/logo")
-async def delete_saved_logo(url: str, user=Depends(get_current_user)):
-    """Delete a saved logo file from disk"""
-    tenant = await _get_tenant(user)
-    # Security: only allow deleting files in the uploads directory
-    if not url.startswith("/api/uploads/pipeline/"):
-        raise HTTPException(status_code=400, detail="Invalid logo URL")
-    filename = url.split("/")[-1]
-    filepath = os.path.join(UPLOADS_DIR, "assets", filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-        logger.info(f"Deleted logo: {filename}")
-    return {"status": "deleted", "url": url}
 
 
 class RegenerateStyleRequest(BaseModel):

@@ -1064,9 +1064,35 @@ export default function PipelineView({ context }) {
           </div>
 
           {briefingMode === 'free' ? (
-            <textarea data-testid="pipeline-briefing" value={briefing} onChange={e => setBriefing(e.target.value)} rows={4}
-              placeholder={t('studio.briefing_placeholder')}
-              className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
+            <div>
+              <textarea data-testid="pipeline-briefing" value={briefing} onChange={e => setBriefing(e.target.value)} rows={4}
+                placeholder={t('studio.briefing_placeholder')}
+                className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
+              {savedBriefings.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">Briefings Anteriores</p>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                    {savedBriefings.map((sb, i) => (
+                      <button key={i} onClick={() => {
+                        setBriefing(sb.briefing);
+                        if (sb.campaign_name && !campaignName) setCampaignName(sb.campaign_name);
+                        if (sb.campaign_language) setCampaignLang(sb.campaign_language);
+                        if (sb.platforms?.length) setPlatforms(sb.platforms);
+                        toast.success('Briefing carregado!');
+                      }}
+                        className="w-full text-left rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 hover:border-[#C9A84C]/30 transition group">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          {sb.campaign_name && <span className="text-[10px] font-semibold text-white">{sb.campaign_name}</span>}
+                          {sb.campaign_language && <span className="text-[8px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
+                          <span className="text-[7px] text-[#333] ml-auto group-hover:text-[#C9A84C]">Usar</span>
+                        </div>
+                        <p className="text-[9px] text-[#555] line-clamp-2">{sb.briefing}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-3 bg-[#0A0A0A] rounded-xl border border-[#1A1A1A] p-3">
               <p className="text-[9px] text-[#C9A84C] font-medium mb-1">{t('studio.guided_intro')}</p>
@@ -1213,32 +1239,6 @@ export default function PipelineView({ context }) {
           )}
           <AssetUploader assets={uploadedAssets} onAssetsChange={setUploadedAssets} />
         </div>
-
-        {/* Saved Briefings */}
-        {savedBriefings.length > 0 && briefingMode === 'free' && !briefing.trim() && (
-          <div>
-            <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Briefings Anteriores</label>
-            <div className="space-y-1.5 max-h-36 overflow-y-auto">
-              {savedBriefings.map((sb, i) => (
-                <button key={i} onClick={() => {
-                  setBriefing(sb.briefing);
-                  if (sb.campaign_name && !campaignName) setCampaignName(sb.campaign_name);
-                  if (sb.campaign_language) setCampaignLang(sb.campaign_language);
-                  if (sb.platforms?.length) setPlatforms(sb.platforms);
-                  toast.success('Briefing carregado! Ajuste o que precisar.');
-                }}
-                  className="w-full text-left rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 hover:border-[#C9A84C]/30 transition group">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    {sb.campaign_name && <span className="text-[10px] font-semibold text-white">{sb.campaign_name}</span>}
-                    {sb.campaign_language && <span className="text-[8px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
-                    <span className="text-[7px] text-[#333] ml-auto group-hover:text-[#555]">Usar</span>
-                  </div>
-                  <p className="text-[9px] text-[#555] line-clamp-2">{sb.briefing}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Contact Info */}
         <div>
