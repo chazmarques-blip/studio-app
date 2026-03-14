@@ -584,16 +584,16 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail }) {
             <ChevronRight size={13} />
           </button>
           {campaign.status === 'active' && (
-            <button onClick={() => onAction('pause', campaign.id)} className="p-1.5 rounded-lg hover:bg-yellow-500/10 text-[#444] hover:text-yellow-500 opacity-0 group-hover:opacity-100 transition">
+            <button onClick={() => onAction('pause', campaign.id)} className="p-1.5 rounded-lg hover:bg-yellow-500/10 text-[#444] hover:text-yellow-500 transition">
               <Pause size={13} />
             </button>
           )}
           {(campaign.status === 'draft' || campaign.status === 'paused') && (
-            <button onClick={() => onAction('activate', campaign.id)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-[#444] hover:text-green-400 opacity-0 group-hover:opacity-100 transition">
+            <button onClick={() => onAction('activate', campaign.id)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-[#444] hover:text-green-400 transition">
               <Play size={13} />
             </button>
           )}
-          <button onClick={() => onAction('delete', campaign.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#333] hover:text-red-400 opacity-0 group-hover:opacity-100 transition">
+          <button data-testid={`delete-${campaign.id}`} onClick={(e) => { e.stopPropagation(); onAction('delete', campaign.id); }} className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#333] hover:text-red-400 transition">
             <Trash2 size={12} />
           </button>
         </div>
