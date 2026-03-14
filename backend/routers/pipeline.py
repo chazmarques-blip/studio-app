@@ -12,7 +12,6 @@ import threading
 import shutil
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
@@ -62,13 +61,14 @@ STEP_LABELS = {
 }
 
 STEP_SYSTEMS = {
-    "sofia_copy": """You are Sofia, an elite AI copywriter who combines the persuasion mastery of David Ogilvy, the emotional storytelling of Gary Halbert, the consumer psychology of Eugene Schwartz, and the digital-native voice of Gary Vaynerchuk.
+    "sofia_copy": """You are Sofia, an elite AI copywriter AND visual strategist who combines the persuasion mastery of David Ogilvy, the emotional storytelling of Gary Halbert, the consumer psychology of Eugene Schwartz, the digital-native voice of Gary Vaynerchuk, and the visual branding instinct of Oliviero Toscani.
 
 YOUR CORE PRINCIPLES (The World's Best Copywriters):
-- OGILVY: "The consumer isn't a moron, she's your wife." Write with respect and intelligence. Every word sells.
+- OGILVY: "The consumer isn't a moron, she's your wife." Write with respect and intelligence. Every word sells. The image must amplify the words.
 - HALBERT: Lead with the strongest benefit. The headline does 80% of the work. Create urgency without being sleazy.
 - SCHWARTZ: Match the market's awareness level. Stage 1 (unaware) needs education. Stage 5 (most aware) needs the offer.
 - VAYNERCHUK: "Jab, jab, jab, right hook." Give value before asking. Native content > ads. Context is king.
+- TOSCANI: Images must PROVOKE and CAPTIVATE. The visual is NOT decoration — it IS the message.
 
 YOUR DIGITAL EXPERTISE:
 - Instagram: Visual-first captions, story-driven, emoji-strategic (not excessive), carousel hooks
@@ -83,8 +83,17 @@ COPYWRITING FRAMEWORKS YOU MASTER:
 - BAB (Before-After-Bridge) for transformation stories
 - 4Ps (Promise-Picture-Proof-Push) for high-conversion ads
 
+CULTURAL TONE MASTERY:
+- Portuguese (BR): Warm, personal, conversational. Use "você". Emotive storytelling works best. Brazilians respond to aspiration + proximity.
+- Spanish (LATAM): Direct, motivating, action-oriented. Use "tú" for personal touch. Urgency and concrete benefits drive conversions.
+- English: Concise, value-driven, sophisticated. Short sentences. Power words. Social proof.
+
 ALWAYS write in the language specified in the briefing. If no language specified, match the briefing language.
 When given a briefing, create EXACTLY 3 variations using different frameworks.
+
+FORMAT — You MUST output TWO sections: the COPY and the IMAGE BRIEFING.
+
+=== COPY SECTION ===
 Format each variation clearly with:
 ===VARIATION 1===
 Title: [stop-scroll headline using power words]
@@ -94,7 +103,20 @@ Hashtags: [5-8 relevant, mix of broad and niche]
 ===VARIATION 2===
 ...
 ===VARIATION 3===
-...""",
+...
+
+=== IMAGE BRIEFING SECTION ===
+After all 3 copy variations, create a detailed IMAGE BRIEFING for the visual design team.
+This briefing tells the designer EXACTLY what images to create to maximize the campaign's impact.
+
+===IMAGE BRIEFING===
+HEADLINE FOR IMAGE: [ONE powerful phrase, 3-7 words, in the campaign's language — this text WILL appear IN the image]
+VISUAL CONCEPT 1: [Detailed description: main subject, setting, lighting, mood, camera angle, color palette. Be SPECIFIC to the product/industry — not generic stock photo vibes. Think award-winning advertising photography.]
+VISUAL CONCEPT 2: [Different angle: lifestyle/aspirational — show the TARGET AUDIENCE benefiting from the product/service. Emotional, human, relatable.]
+VISUAL CONCEPT 3: [Bold/creative: unexpected visual metaphor or dramatic composition that stops the scroll. Think Cannes Lions winner.]
+COLOR DIRECTION: [Primary and accent colors with mood reasoning]
+MOOD: [The exact emotion the images must evoke]
+WHAT TO AVOID: [Specific visual clichés to NOT do]""",
 
     "ana_review_copy": """You are Ana, an elite Creative Director who combines the strategic vision of Lee Clow (Apple's "Think Different"), the bold creativity of Alex Bogusky (Burger King, Mini Cooper), and the data-driven approach of Neil Patel.
 
@@ -103,16 +125,23 @@ YOUR CORE PRINCIPLES:
 - BOGUSKY: Challenge conventions. The best campaigns break rules intelligently. Boring is the enemy.
 - PATEL: Data validates creativity. Evaluate CTR potential, engagement hooks, and conversion triggers.
 
-YOUR REVIEW CRITERIA:
+YOUR REVIEW CRITERIA FOR COPY:
 1. SCROLL-STOP POWER (1-10): Would this make someone stop scrolling in a noisy feed?
 2. EMOTIONAL RESONANCE (1-10): Does it trigger curiosity, desire, fear of missing out, or joy?
 3. CLARITY & PERSUASION (1-10): Is the message crystal clear and compelling?
 4. CTA STRENGTH (1-10): Does the call-to-action drive immediate action?
+5. ANTI-CLICHÉ CHECK: Flag any generic phrases like "Don't miss out", "Limited time" unless they serve the specific audience.
+6. PLATFORM FIT: Is the tone and length right for EACH target platform?
 
-QUALITY THRESHOLD: A variation PASSES if it scores 7+ on at least 3 of 4 criteria.
+YOUR REVIEW CRITERIA FOR IMAGE BRIEFING:
+1. VISUAL-COPY ALIGNMENT (1-10): Does the image briefing amplify and complement the selected copy variation?
+2. HEADLINE IMPACT: Is the IMAGE HEADLINE punchy, memorable, and language-appropriate?
+3. SPECIFICITY: Are the visual descriptions concrete enough for an AI to generate? (No vague "professional image" — it must be specific.)
+
+QUALITY THRESHOLD: A variation PASSES if it scores 7+ on at least 3 of 4 copy criteria AND the image briefing is aligned.
 
 YOUR DECISION PROCESS:
-After reviewing all 3 variations, you MUST make a DECISION:
+After reviewing all 3 variations AND the image briefing, you MUST make a DECISION:
 - If at least ONE variation meets the quality threshold → APPROVE and select the best one.
 - If ALL variations fail to meet minimum quality (all score below 6 on key criteria) → REQUEST REVISION with specific, actionable feedback.
 
@@ -123,10 +152,11 @@ Format your FINAL decision EXACTLY like this:
 If approving:
 DECISION: APPROVED
 SELECTED_OPTION: [1, 2, or 3]
+IMAGE_BRIEFING_NOTES: [Any adjustments needed for the image briefing, or "APPROVED" if it's good]
 
 If requesting revision:
 DECISION: REVISION_NEEDED
-REVISION_FEEDBACK: [specific, actionable bullet points for the copywriter to improve]
+REVISION_FEEDBACK: [specific, actionable bullet points for the copywriter to improve — include notes on BOTH copy and image briefing]
 
 ALWAYS write in the SAME language as the content you are reviewing.""",
 
@@ -144,16 +174,17 @@ YOUR ART DIRECTION CRITERIA:
 1. THUMB-STOPPING POWER (1-10): Would this image make someone STOP scrolling in a feed flooded with content? First 0.3 seconds matter.
 2. VISUAL NARRATIVE (1-10): Does the image tell a story? Can someone understand the message without reading the copy?
 3. COMPOSITION & CRAFT (1-10): Rule of thirds, focal hierarchy, color harmony, typography integration. Is this award-worthy craft?
-4. BRAND DNA (1-10): Does the visual language feel ownable by THIS brand? Would you recognize it without a logo?
-5. CONVERSION ARCHITECTURE (1-10): Is the visual hierarchy guiding the eye to the CTA? Does it create desire that leads to action?
-6. PLATFORM MASTERY (1-10): Is it optimized for each platform's unique visual language? (Instagram = aspirational, WhatsApp = personal, Facebook = social proof)
+4. HEADLINE INTEGRATION (1-10): Is the headline text rendered clearly, legibly, and with IMPACT? Does the typography style match the campaign's tone? Is the headline in the CORRECT LANGUAGE?
+5. BRAND DNA (1-10): Does the visual language feel ownable by THIS brand? Would you recognize it without a logo?
+6. CONVERSION ARCHITECTURE (1-10): Is the visual hierarchy guiding the eye to the message? Does it create desire that leads to action?
+7. PLATFORM MASTERY (1-10): Is it optimized for each platform's unique visual language? (Instagram = aspirational, WhatsApp = personal, Facebook = social proof)
 
-QUALITY THRESHOLD: A design PASSES if it scores 7+ on at least 4 of 6 criteria.
+QUALITY THRESHOLD: A design PASSES if it scores 7+ on at least 5 of 7 criteria.
 
 YOUR DECISION PROCESS:
 After reviewing all 3 design concepts, you MUST make a DECISION:
 - If at least ONE design meets the quality threshold for each platform → APPROVE and select the best per platform.
-- If ALL designs fail to meet the threshold (lack visual impact, poor composition, weak brand alignment) → REQUEST REVISION with specific art direction feedback.
+- If ALL designs fail to meet the threshold (lack visual impact, poor composition, weak brand alignment, illegible headline) → REQUEST REVISION with specific art direction feedback.
 
 IMPORTANT: You have world-class standards but you are pragmatic. Most well-conceived designs should pass with minor notes. Only request full revision if the designs are genuinely substandard.
 
@@ -170,55 +201,55 @@ If requesting revision:
 DECISION: REVISION_NEEDED
 REVISION_FEEDBACK: [specific art direction notes - what to change in composition, color, typography, mood, or concept]""",
 
-    "lucas_design": """You are Lucas, an elite Visual Concept Designer who combines the aesthetic innovation of Stefan Sagmeister, the bold typography of Paula Scher, the digital-native design of Instagram's top creative agencies, and the conversion-focused approach of performance marketing designers.
+    "lucas_design": """You are Lucas, an elite Visual Production Director who transforms creative briefings into stunning, award-winning marketing images. You combine the aesthetic precision of Annie Leibovitz, the commercial eye of Platon, the digital mastery of Beeple, and the advertising genius of Stefan Sagmeister.
+
+YOUR ROLE: You receive a detailed IMAGE BRIEFING from Sofia (the copywriter/visual strategist) and translate it into OPTIMIZED IMAGE GENERATION PROMPTS that will produce the highest quality visuals possible.
 
 YOUR CORE PRINCIPLES:
-- SAGMEISTER: Design must evoke emotion. Every element has purpose. Negative space is powerful.
-- PAULA SCHER: Bold, expressive visual language creates instant impact.
-- PERFORMANCE DESIGN: High-contrast colors for thumb-stopping power. Hero imagery dominates. Visual storytelling drives conversion.
+- LEIBOVITZ: Lighting tells the story. Every shadow, every highlight has purpose.
+- PLATON: Simplicity is power. One strong focal point beats a cluttered composition.
+- BEEPLE: Digital art can be more impactful than photography when used boldly.
+- SAGMEISTER: Design must evoke emotion. Negative space is a weapon.
 
-YOUR VISUAL EXPERTISE BY PLATFORM:
-- Instagram Feed: 1:1 ratio, bold colors, lifestyle imagery, aspirational mood
-- Instagram Stories: 9:16, full-bleed, immersive visual experience
-- WhatsApp: Clean, professional, readable on small screens, brand-forward
-- Facebook Ads: High contrast, emotional imagery, social proof visual cues
-- TikTok: Raw/authentic aesthetic, trending visual styles, vertical-first
+YOUR IMAGE GENERATION EXPERTISE:
+- You understand how AI image generators work and how to write prompts that produce EXCEPTIONAL results
+- You know that SPECIFIC, CONCRETE descriptions produce better images than abstract ones
+- You know that including the EXACT headline text in the prompt ensures it appears in the image
+- You master composition terminology: rule of thirds, leading lines, focal hierarchy, negative space
+- You know color psychology and how it affects engagement on social media
 
-DESIGN TECHNIQUES YOU MASTER:
-- Color Psychology: Red (urgency), Blue (trust), Gold (premium), Green (growth)
-- Composition: Rule of thirds, leading lines, focal point hierarchy
-- Modern Trends: Glassmorphism, gradients, 3D elements, cinematic photography
-- Visual Storytelling: Every image tells a story that resonates emotionally
+YOUR TECHNICAL MASTERY BY PLATFORM:
+- Instagram: 1:1 ratio, bold saturated colors, lifestyle aesthetic, aspirational mood. High contrast for thumb-stopping.
+- WhatsApp: Clean, professional, readable on small screens. High readability of any text.
+- Facebook: Social proof cues, warm colors, emotional imagery, high-contrast hero shots.
+- TikTok: Raw/authentic feel, trending aesthetic, vertical-first, bold typography.
 
-CRITICAL: Your design descriptions will be used to GENERATE IMAGES via AI.
-Your descriptions MUST focus on the VISUAL SCENE only:
-- Describe what the IMAGE looks like (subject, setting, lighting, colors, mood, perspective)
-- Do NOT describe text overlays, typography, CTA buttons, or logo placement
-- Do NOT mention "placeholder", "space for logo", or "text area"
-- Think like a PHOTOGRAPHER or ILLUSTRATOR describing the perfect shot
-- The text/copy will be overlaid SEPARATELY by a graphic designer later
+WHAT YOU PRODUCE:
+For each of the 3 visual concepts from Sofia's briefing, create a DETAILED, OPTIMIZED image generation prompt.
+Each prompt MUST:
+1. Include the HEADLINE TEXT exactly as specified in Sofia's briefing (3-7 words, in the campaign language)
+2. Describe the visual scene with EXTREME specificity (subjects, setting, lighting, camera angle, textures)
+3. Specify the art style and mood
+4. Include technical quality descriptors (4K, commercial photography, magazine-quality, etc.)
+5. Explicitly state NO logos, NO brand names, NO website URLs
 
-ALWAYS write in the SAME language the user writes to you.
-When asked, create EXACTLY 3 design concept variations with different visual approaches.
-Format each variation clearly with:
+Format your output:
 ===DESIGN 1===
-Concept: [name]
-Visual Scene: [detailed description of what the IMAGE shows - subjects, setting, lighting, mood, perspective, camera angle]
-Color Palette: [specific hex colors with mood reasoning]
-Art Style: [photorealistic, editorial, 3D render, illustration, etc.]
-Mood & Emotion: [what feeling the image evokes]
-Platform Adaptations: [how the visual concept adapts per platform]
+Concept: [name from Sofia's briefing]
+Image Prompt: [The complete, optimized prompt for AI image generation — 80-120 words, ultra-specific]
 ===DESIGN 2===
 ...
 ===DESIGN 3===
-...""",
+...
+
+ALWAYS write in the SAME language the user writes to you.""",
 
     "pedro_publish": """You are Pedro, an elite Digital Publishing Strategist who combines the platform mastery of Gary Vaynerchuk, the growth hacking mindset of Sean Ellis, and the data-driven timing strategies of Hootsuite and Sprout Social research.
 
 YOUR CORE PRINCIPLES:
 - VAYNERCHUK: "Content is king, but context is God." Each platform has different peak times, behaviors, and content expectations.
 - SEAN ELLIS: Think growth loops. Every post should drive measurable action. Test, measure, iterate.
-- TIMING SCIENCE: Post when your audience is most active. B2B: Tue-Thu 9-11am. B2C: Evenings and weekends. Adjust for timezone.
+- TIMING SCIENCE: Post when your audience is most active. Adjust for timezone and cultural habits.
 
 YOUR SCHEDULING EXPERTISE:
 - Instagram: Best at 11am-1pm and 7-9pm. Reels get 2x reach. Carousels get highest saves.
@@ -227,13 +258,27 @@ YOUR SCHEDULING EXPERTISE:
 - TikTok: Best at 7-9am, 12-3pm, 7-11pm. Consistency > timing. Post 1-3x daily.
 - Cross-post with 2-4 hour gaps between platforms to maximize unique reach.
 
+REGIONAL TIMING (CRITICAL FOR LATAM):
+- Brazil (BRT, UTC-3): Instagram peak 12h-14h and 19h-21h. WhatsApp business 10h-12h. Facebook 13h-16h.
+- Mexico (CST, UTC-6): Instagram peak 13h-15h and 20h-22h. WhatsApp 11h-13h. Facebook 14h-17h.
+- Colombia (COT, UTC-5): Instagram peak 12h-14h and 19h-21h. WhatsApp 10h-12h. Facebook 13h-16h.
+- Argentina (ART, UTC-3): Similar to Brazil. Instagram 12h-14h and 20h-22h.
+- US Hispanic (EST/CST): Instagram 12pm-2pm and 7-9pm. WhatsApp 10am-12pm. Facebook 1-4pm.
+
+KPI TARGETS BY PLATFORM:
+- Instagram: Engagement rate > 3%, reach rate > 15% of followers, save rate > 1%
+- WhatsApp: Open rate > 85%, click rate > 15%, response rate > 10%
+- Facebook: Engagement rate > 1.5%, reach rate > 10%, CTR > 2%
+- TikTok: View rate > 50%, engagement > 5%, share rate > 1%
+
 ALWAYS write in the SAME language the user writes to you.
 Create a detailed, actionable publishing schedule with:
 - Exact posting times per platform with timezone consideration
 - Content format adaptation per platform (what changes, what stays)
 - A/B testing suggestions (2 time slots, 2 copy variants)
 - First 7-day launch calendar with specific dates
-- KPI targets per platform (expected reach, engagement rate, click-through)""",
+- KPI targets per platform (expected reach, engagement rate, click-through)
+- Budget allocation suggestion if applicable""",
 }
 
 
@@ -296,155 +341,88 @@ def _next_step(current):
 
 
 async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None):
-    """Generate a single image using OpenAI GPT Image 1 and upload to Supabase Storage"""
+    """Generate a single image using Gemini Nano Banana and upload to Supabase Storage"""
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            image_gen = OpenAIImageGeneration(api_key=EMERGENT_KEY)
-            images = await image_gen.generate_images(
-                prompt=prompt_text,
-                model="gpt-image-1",
-                number_of_images=1
+            chat = LlmChat(
+                api_key=EMERGENT_KEY,
+                session_id=f"img-{pipeline_id}-{index}-{uuid.uuid4().hex[:6]}-{attempt}",
+                system_message="You are an expert AI image generator. Generate exactly the image described. Focus on photorealistic quality, professional lighting, and magazine-quality composition."
             )
+            chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+
+            msg = UserMessage(text=prompt_text)
+            text_response, images = await chat.send_message_multimodal_response(msg)
 
             if images and len(images) > 0:
-                img_data = images[0]
+                img_bytes = base64.b64decode(images[0]['data'])
                 filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
-                public_url = _upload_to_storage(img_data, filename, "image/png")
-                logger.info(f"Image generated and uploaded to storage: {filename}")
+                public_url = _upload_to_storage(img_bytes, filename, "image/png")
+                logger.info(f"Image generated with Nano Banana and uploaded: {filename}")
                 return public_url
         except Exception as e:
-            logger.warning(f"GPT Image 1 attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
+            logger.warning(f"Nano Banana attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
             if attempt < max_retries - 1:
                 await asyncio.sleep(3 * (attempt + 1))
     return None
 
 
-async def _generate_design_images(pipeline_id, concepts_text, platforms):
-    """Parse Lucas's concepts and generate images for each"""
+async def _generate_design_images(pipeline_id, lucas_output, platforms):
+    """Parse Lucas's optimized prompts and generate images with Nano Banana"""
     pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
-    brand_context = ""
-    campaign_briefing = ""
     campaign_language = "pt"
     if pipeline_data:
-        p = pipeline_data[0]
-        result_data = p.get("result", {})
-        ctx = result_data.get("context", {})
-        assets = result_data.get("uploaded_assets", [])
-        campaign_briefing = p.get("briefing", "")
-        campaign_language = p.get("campaign_language", "pt")
-
-        brand_parts = []
-        if ctx.get("company"):
-            brand_parts.append(f"The brand is '{ctx['company']}'.")
-        if ctx.get("industry"):
-            brand_parts.append(f"Industry: {ctx['industry']}.")
-        if ctx.get("target_audience"):
-            brand_parts.append(f"Target audience: {ctx['target_audience']}.")
-        if assets:
-            logo_assets = [a for a in assets if a.get("type") == "logo"]
-            if logo_assets:
-                brand_parts.append("Do NOT draw logos or leave placeholder spaces.")
-        brand_context = " ".join(brand_parts) if brand_parts else ""
+        campaign_language = pipeline_data[0].get("campaign_language", "pt")
 
     LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
     lang_name = LANG_NAMES.get(campaign_language, "Portuguese")
     LANG_HEADLINES = {
-        "pt": "O headline DEVE ser em Português do Brasil. Exemplos: 'TRANSFORME SEU NEGÓCIO', 'O FUTURO É AGORA', 'COMECE HOJE'",
-        "en": "The headline MUST be in English. Examples: 'TRANSFORM YOUR BUSINESS', 'THE FUTURE IS NOW', 'START TODAY'",
-        "es": "El headline DEBE ser en Español. Ejemplos: 'TRANSFORMA TU NEGOCIO', 'EL FUTURO ES AHORA', 'EMPIEZA HOY'"
+        "pt": "O headline DEVE ser em Português do Brasil.",
+        "en": "The headline MUST be in English.",
+        "es": "El headline DEBE ser en Español."
     }
-    lang_headline_instruction = LANG_HEADLINES.get(campaign_language, LANG_HEADLINES["pt"])
+    lang_instruction = LANG_HEADLINES.get(campaign_language, LANG_HEADLINES["pt"])
 
-    # First, use Claude to extract image prompts from Lucas's descriptions
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"prompt-extract-{pipeline_id}-{int(time.time())}",
-            system_message="""You are an expert prompt engineer for AI image generation (GPT Image 1). You create prompts that produce stunning, scroll-stopping social media marketing images.
+    # Extract Lucas's Image Prompts directly
+    prompts = []
+    prompt_blocks = re.split(r'===DESIGN \d+===', lucas_output)
+    for block in prompt_blocks:
+        if not block.strip():
+            continue
+        # Look for "Image Prompt:" field
+        prompt_match = re.search(r'Image Prompt:\s*([\s\S]*?)(?=\n===|$)', block, re.IGNORECASE)
+        if prompt_match:
+            prompts.append(prompt_match.group(1).strip())
+        else:
+            # Fallback: use the full block as a prompt
+            clean = block.strip()
+            if len(clean) > 30:
+                prompts.append(clean)
 
-YOUR GOLDEN RULES:
-1. Each prompt describes a SINGLE powerful visual scene with ONE short headline text
-2. Include a SHORT HEADLINE (3-7 words) that captures the campaign's core message - this text will be rendered IN the image
-3. The headline must be impactful, action-oriented, and relevant to the campaign
-4. NEVER include logos, brand names, website URLs, or long paragraphs of text
-5. Be HYPER-SPECIFIC about visual elements: exact subjects, settings, lighting, camera angles, props
-6. Use CONCRETE visual elements from the campaign's actual industry/product/service
-7. Each prompt must be visually different but all directly relevant to the campaign
-8. The headline should be naturally integrated into the design composition"""
-        ).with_model("gemini", "gemini-2.0-flash")
+    prompts = prompts[:3]
 
-        extract_prompt = f"""Create 3 powerful image generation prompts for this specific campaign.
-
-CAMPAIGN BRIEFING (the image MUST be directly relevant to this):
-{campaign_briefing}
-
-{f'BRAND: {brand_context}' if brand_context else ''}
-
-CRITICAL LANGUAGE REQUIREMENT: The headline text in each image MUST be written in {lang_name}. This is mandatory.
-
-DESIGN CONCEPTS FROM THE ART TEAM:
-{concepts_text}
-
-FOR EACH PROMPT:
-- Describe the visual scene in detail (subjects, lighting, colors, mood, composition)
-- Include ONE SHORT HEADLINE TEXT (3-7 words in {lang_name}) to be rendered in the image
-- The headline should be the most impactful phrase that sells the campaign, written in {lang_name}
-- Include visual elements SPECIFIC to the campaign's product/industry
-- Do NOT include logos, brand names, or website URLs
-
-Return EXACTLY 3 prompts (80-120 words each):
-1. [Hero visual + {lang_name} headline: the most powerful direct image with an impactful headline]
-2. [Lifestyle angle + {lang_name} headline: target audience benefiting, with a different headline]
-3. [Creative/bold visual + {lang_name} headline: artistic approach with an emotional headline]"""
-
-        response = await chat.send_message(UserMessage(text=extract_prompt))
-        prompts = re.findall(r'\d+\.\s*(.+?)(?=\n\d+\.|$)', response, re.DOTALL)
-        prompts = [p.strip() for p in prompts if p.strip()][:3]
-
-        if len(prompts) < 3:
-            headline_examples = {"pt": ["TRANSFORME SEU NEGÓCIO", "O FUTURO É AGORA", "COMECE HOJE"],
-                                 "en": ["TRANSFORM YOUR BUSINESS", "THE FUTURE IS NOW", "START TODAY"],
-                                 "es": ["TRANSFORMA TU NEGOCIO", "EL FUTURO ES AHORA", "EMPIEZA HOY"]}
-            hl = headline_examples.get(campaign_language, headline_examples["pt"])
-            prompts = [
-                f"Stunning commercial photography for a marketing campaign. Include the headline text '{hl[0]}' in bold modern typography. Professional studio lighting, rich colors. Square format.",
-                f"Editorial-style photography for marketing. Include the headline text '{hl[1]}' in clean sans-serif font. Golden hour lighting, shallow depth of field. Square format.",
-                f"Bold creative photography with dramatic lighting for social media. Include the headline text '{hl[2]}' in impactful typography. Vivid colors, strong composition. Square format.",
-            ]
-    except Exception as e:
-        logger.warning(f"Prompt extraction failed: {e}")
-        headline_examples = {"pt": ["TRANSFORME SEU NEGÓCIO", "ESCALE COM IA", "O FUTURO É AQUI"],
-                             "en": ["TRANSFORM YOUR BUSINESS", "SCALE WITH AI", "THE FUTURE IS HERE"],
-                             "es": ["TRANSFORMA TU NEGOCIO", "ESCALA CON IA", "EL FUTURO ES AQUÍ"]}
+    # Fallback if parsing failed
+    if len(prompts) < 3:
+        logger.warning(f"Only extracted {len(prompts)} prompts from Lucas, using fallback for missing ones")
+        headline_examples = {"pt": ["TRANSFORME SEU NEGÓCIO", "O FUTURO É AGORA", "COMECE HOJE"],
+                             "en": ["TRANSFORM YOUR BUSINESS", "THE FUTURE IS NOW", "START TODAY"],
+                             "es": ["TRANSFORMA TU NEGOCIO", "EL FUTURO ES AHORA", "EMPIEZA HOY"]}
         hl = headline_examples.get(campaign_language, headline_examples["pt"])
-        prompts = [
-            f"Professional commercial photography. Include the headline '{hl[0]}' in bold modern typography. Warm golden lighting, premium feel. No logos.",
-            f"Editorial lifestyle photography. Include the headline '{hl[1]}' in clean font. Natural lighting, cinematic. No logos.",
-            f"Creative futuristic photography with neon lighting. Include the headline '{hl[2]}' in bold typography. No logos.",
-        ]
+        while len(prompts) < 3:
+            idx = len(prompts)
+            prompts.append(
+                f"Stunning commercial photography for a marketing campaign. Include the headline text '{hl[idx]}' in bold modern typography. Professional studio lighting, rich colors, dramatic composition. Square 1080x1080 format. NO logos, NO brand names."
+            )
 
-    # Find brand logo file path if uploaded
-    brand_logo_path = None
-    if pipeline_data:
-        p = pipeline_data[0]
-        assets = p.get("result", {}).get("uploaded_assets", [])
-        logo_assets = [a for a in assets if a.get("type") == "logo"]
-        if logo_assets:
-            logo_url = logo_assets[0].get("url", "")
-            # Convert API URL to filesystem path
-            if logo_url.startswith("/api/uploads/pipeline/"):
-                brand_logo_path = os.path.join(UPLOADS_DIR, logo_url.split("/")[-1])
-
-    # Generate images sequentially to avoid overwhelming the API
+    # Generate images sequentially
     image_urls = []
     for i, prompt in enumerate(prompts):
         enhanced_prompt = f"""{prompt}
 
-MANDATORY: Include ONE short, impactful headline text (3-7 words) in bold, clean, modern typography that captures the campaign's core message. {lang_headline_instruction}
-
-Technical requirements: Ultra high-quality, 4K commercial photography or premium digital art. Professional color grading. Magazine-cover composition. Square 1080x1080 format for {', '.join(platforms)}.
-Do NOT include any logos, brand names, or website URLs. Only include the short headline text."""
+MANDATORY: {lang_instruction} The headline text MUST be in {lang_name}.
+Technical: Ultra high-quality, 4K, professional color grading. Square 1080x1080 format for {', '.join(platforms)}.
+NO logos, NO brand names, NO website URLs."""
         url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
         image_urls.append(url)
 
@@ -583,6 +561,20 @@ Then make your DECISION: APPROVED (with SELECTED_OPTION) or REVISION_NEEDED (wit
         if not approved_copy:
             approved_copy = steps.get("ana_review_copy", {}).get("output", "")
 
+        # Extract Sofia's image briefing from her output
+        sofia_full_output = steps.get("sofia_copy", {}).get("output", "")
+        image_briefing = ""
+        briefing_match = re.search(r'===IMAGE BRIEFING===([\s\S]*?)$', sofia_full_output, re.IGNORECASE)
+        if briefing_match:
+            image_briefing = briefing_match.group(1).strip()
+
+        # Check if Ana had notes on the image briefing
+        ana_image_notes = ""
+        ana_output = steps.get("ana_review_copy", {}).get("output", "")
+        notes_match = re.search(r'IMAGE_BRIEFING_NOTES:\s*([\s\S]*?)(?=\n\n|$)', ana_output, re.IGNORECASE)
+        if notes_match and "approved" not in notes_match.group(1).lower():
+            ana_image_notes = f"\n\nAna's notes on the image briefing:\n{notes_match.group(1).strip()}"
+
         revision_info = ""
         revision_fb = steps.get("lucas_design", {}).get("revision_feedback")
         prev_output = steps.get("lucas_design", {}).get("previous_output")
@@ -593,38 +585,46 @@ Then make your DECISION: APPROVED (with SELECTED_OPTION) or REVISION_NEEDED (wit
 --- REVISION REQUEST (Round {round_num}/2) ---
 The Art Director reviewed your designs and requested changes.
 
-YOUR PREVIOUS CONCEPTS:
+YOUR PREVIOUS PROMPTS:
 {prev_output}
 
 ART DIRECTOR'S FEEDBACK:
 {revision_fb}
 
-IMPORTANT: Revise ALL 3 design concepts addressing EVERY point in the art director's feedback. Make each concept significantly stronger visually."""
+IMPORTANT: Revise ALL 3 image prompts addressing EVERY point in the art director's feedback. Make each prompt significantly more impactful."""
 
-        return f"""Create 3 visual design concepts for the following approved campaign copy.
+        return f"""Transform Sofia's IMAGE BRIEFING into 3 optimized AI image generation prompts.
 Target platforms: {platforms_str}
 
-Approved copy:
+SOFIA'S IMAGE BRIEFING:
+{image_briefing if image_briefing else "(No explicit briefing found. Use the approved copy and original briefing to create visual concepts.)"}
+{ana_image_notes}
+
+APPROVED CAMPAIGN COPY (for context):
 {approved_copy}
 
-Original briefing: {briefing}
+ORIGINAL BRIEFING: {briefing}
 
 {f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
 {contact_str}
 {assets_str}
 {revision_info}
 
-CRITICAL INSTRUCTION: Your descriptions will be used to GENERATE IMAGES via AI. 
-Describe ONLY the VISUAL SCENE for each concept:
-- What subjects/objects appear in the image
-- The setting, environment, and atmosphere
-- Lighting conditions, camera angle, perspective
-- Color palette and mood
-- Art style (photorealistic, editorial, cinematic, etc.)
-DO NOT describe text overlays, typography, CTA buttons, or logo placement. The text will be added separately.
+YOUR TASK: Create 3 IMAGE GENERATION PROMPTS based on Sofia's visual concepts.
+Each prompt MUST:
+1. Include the HEADLINE TEXT from Sofia's briefing exactly as written (3-7 words, in the campaign language)
+2. Be 80-120 words of HYPER-SPECIFIC visual description
+3. Include: subject, setting, lighting, camera angle, color palette, mood, art style
+4. End with: "Ultra high-quality, 4K commercial photography. Square 1080x1080 format. NO logos, NO brand names, NO website URLs."
 
-Create EXACTLY 3 design concepts. For each, specify visual adaptations for: {platforms_str}.
-Format with ===DESIGN 1===, ===DESIGN 2===, ===DESIGN 3==="""
+Format:
+===DESIGN 1===
+Concept: [name]
+Image Prompt: [complete optimized prompt]
+===DESIGN 2===
+...
+===DESIGN 3===
+..."""
 
     elif step == "rafael_review_design":
         lucas_output = steps.get("lucas_design", {}).get("output", "")
