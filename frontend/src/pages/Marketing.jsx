@@ -31,6 +31,9 @@ const L = (lang) => {
       deleted: 'Campanha excluida!', loadError: 'Erro ao carregar templates', error: 'Erro',
       testCreated: 'Dados de teste criados!', env: 'env', conv: 'conv',
       byChannel: 'Por Canal', video: 'Video',
+      videoCommercial: 'Video Comercial', download: 'Baixar', downloadArts: 'Download das Artes',
+      copyText: 'Texto para Copiar', allNetworks: 'Todas as Redes', copy: 'Copiar', noMessages: 'Sem mensagens',
+      totalSent: 'Total Enviado', openings: 'Aberturas', avgCpl: 'CPL Medio', performanceByChannel: 'Performance por Canal',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -51,6 +54,9 @@ const L = (lang) => {
       deleted: 'Campaign deleted!', loadError: 'Error loading templates', error: 'Error',
       testCreated: 'Test data created!', env: 'sent', conv: 'conv',
       byChannel: 'By Channel', video: 'Video',
+      videoCommercial: 'Commercial Video', download: 'Download', downloadArts: 'Download Creatives',
+      copyText: 'Copy Text', allNetworks: 'All Networks', copy: 'Copy', noMessages: 'No messages',
+      totalSent: 'Total Sent', openings: 'Opens', avgCpl: 'Average CPL', performanceByChannel: 'Performance by Channel',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -71,6 +77,9 @@ const L = (lang) => {
       deleted: 'Campana eliminada!', loadError: 'Error al cargar plantillas', error: 'Error',
       testCreated: 'Datos de prueba creados!', env: 'env', conv: 'conv',
       byChannel: 'Por Canal', video: 'Video',
+      videoCommercial: 'Video Comercial', download: 'Descargar', downloadArts: 'Descargar Artes',
+      copyText: 'Texto para Copiar', allNetworks: 'Todas las Redes', copy: 'Copiar', noMessages: 'Sin mensajes',
+      totalSent: 'Total Enviado', openings: 'Aperturas', avgCpl: 'CPL Promedio', performanceByChannel: 'Performance por Canal',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -538,7 +547,7 @@ function CampaignDetail({ campaign, onClose, labels }) {
               {/* Video Commercial */}
               {videoUrl && (
                 <div data-testid="content-video-section">
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Video Comercial</p>
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.videoCommercial}</p>
                   <div className="max-w-[340px] mx-auto rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
                     <video src={videoUrl} controls playsInline className="w-full" data-testid="content-video-player" />
                   </div>
@@ -546,7 +555,7 @@ function CampaignDetail({ campaign, onClose, labels }) {
                     <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
                     <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                       className="ml-auto text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                      <Download size={9} /> Baixar
+                      <Download size={9} /> {labels.download}
                     </a>
                   </div>
                 </div>
@@ -555,7 +564,7 @@ function CampaignDetail({ campaign, onClose, labels }) {
               {/* Download All Images */}
               {images.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Download das Artes</p>
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.downloadArts}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((url, i) => (
                       <div key={i} className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group">
@@ -579,21 +588,21 @@ function CampaignDetail({ campaign, onClose, labels }) {
 
               {/* Copy texts for manual posting */}
               <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Texto para Copiar</p>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.copyText}</p>
                 {messages.map((m, i) => (
                   <div key={i} className="mb-2 rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[9px] font-semibold capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>
-                        {m.channel === 'multi' ? 'Todas as Redes' : m.channel}
+                        {m.channel === 'multi' ? labels.allNetworks : m.channel}
                       </span>
                       <button onClick={() => copyText(m.content)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                        <Copy size={8} /> Copiar
+                        <Copy size={8} /> {labels.copy}
                       </button>
                     </div>
                     <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{cleanCampaignText(m.content)}</pre>
                   </div>
                 ))}
-                {messages.length === 0 && <p className="text-[10px] text-[#444] text-center py-4">Sem mensagens</p>}
+                {messages.length === 0 && <p className="text-[10px] text-[#444] text-center py-4">{labels.noMessages}</p>}
               </div>
             </>
           )}
@@ -603,34 +612,34 @@ function CampaignDetail({ campaign, onClose, labels }) {
               {/* Results Summary */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">Total Enviado</p>
+                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.totalSent}</p>
                   <p className="text-xl font-bold text-white">{stats.sent || 0}</p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">Entregues</p>
+                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.delivered}</p>
                   <p className="text-xl font-bold text-white">{stats.delivered || stats.sent || 0}</p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">Aberturas</p>
+                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.openings}</p>
                   <p className="text-xl font-bold text-[#C9A84C]">{stats.opened || 0} <span className="text-sm text-[#555]">({openRate}%)</span></p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">Cliques</p>
+                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.clicks}</p>
                   <p className="text-xl font-bold text-blue-400">{stats.clicked || 0}</p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">Conversoes</p>
+                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.conversions}</p>
                   <p className="text-xl font-bold text-green-400">{stats.converted || 0} <span className="text-sm text-[#555]">({convRate}%)</span></p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">CPL Medio</p>
+                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.avgCpl}</p>
                   <p className="text-xl font-bold text-white">R$ {stats.sent > 0 ? (Math.random() * 3 + 1).toFixed(2) : '0.00'}</p>
                 </div>
               </div>
 
               {/* Channel Breakdown */}
               <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Performance por Canal</p>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.performanceByChannel}</p>
                 {(channels.length > 0 ? channels : ['whatsapp']).map(ch => (
                   <div key={ch} className="flex items-center gap-3 rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 mb-1">
                     <span className="text-[10px] font-bold capitalize w-20" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
