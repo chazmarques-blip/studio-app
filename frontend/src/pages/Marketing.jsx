@@ -578,21 +578,20 @@ export default function Marketing() {
         <div className="flex items-center gap-2.5">
           <button data-testid="marketing-back" onClick={() => navigate('/dashboard')} className="text-[#666] hover:text-white transition"><ArrowLeft size={18} /></button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10 shrink-0"><Megaphone size={16} className="text-[#C9A84C]" /></div>
-          <div className="flex-1">
+          <div className="flex-1 flex items-center gap-2">
             <h1 className="text-sm font-semibold text-white">Marketing & Campanhas</h1>
-            <p className="text-[9px] text-[#555]">{campaigns.length} campanhas</p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {isEnterprise && (
-              <button data-testid="open-studio-btn" onClick={() => navigate('/marketing/studio')}
-                className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-3 py-1.5 text-[10px] font-semibold text-black transition hover:opacity-90">
-                <Sparkles size={12} /> AI Studio
+            <div className="flex items-center gap-1.5">
+              {isEnterprise && (
+                <button data-testid="open-studio-btn" onClick={() => navigate('/marketing/studio')}
+                  className="flex items-center gap-1 rounded-md bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-2 py-1 text-[9px] font-semibold text-black transition hover:opacity-90">
+                  <Sparkles size={10} /> AI Studio
+                </button>
+              )}
+              <button data-testid="new-campaign-btn" onClick={() => setShowNew(true)}
+                className="flex items-center gap-1 rounded-md border border-[#C9A84C]/30 px-2 py-1 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition">
+                <Plus size={10} /> Nova
               </button>
-            )}
-            <button data-testid="new-campaign-btn" onClick={() => setShowNew(true)}
-              className="flex items-center gap-1 rounded-lg border border-[#C9A84C]/30 px-2.5 py-1.5 text-[10px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition">
-              <Plus size={12} /> Nova
-            </button>
+            </div>
           </div>
         </div>
       </div>
