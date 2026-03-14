@@ -635,13 +635,13 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         # 1. Normalize both clips to consistent format
         for i, clip in enumerate([clip1_path, clip2_path], 1):
             subprocess.run(
-                f"ffmpeg -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
+                f"/usr/bin/ffmpeg -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
                 shell=True, capture_output=True, timeout=60
             )
 
         # 2. Crossfade (1s fade at 11s mark → total ~23s)
         xfade_cmd = (
-            f'ffmpeg -y -i /tmp/{pipeline_id}_norm1.mp4 -i /tmp/{pipeline_id}_norm2.mp4 '
+            f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_norm1.mp4 -i /tmp/{pipeline_id}_norm2.mp4 '
             f'-filter_complex "'
             f'[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];'
             f'[v0][v1]xfade=transition=fade:duration=1:offset=11,format=yuv420p[vout]'
@@ -653,7 +653,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             with open(f"/tmp/{pipeline_id}_clips.txt", "w") as f:
                 f.write(f"file '/tmp/{pipeline_id}_norm1.mp4'\nfile '/tmp/{pipeline_id}_norm2.mp4'\n")
             subprocess.run(
-                f"ffmpeg -y -f concat -safe 0 -i /tmp/{pipeline_id}_clips.txt -c copy /tmp/{pipeline_id}_xfade.mp4",
+                f"/usr/bin/ffmpeg -y -f concat -safe 0 -i /tmp/{pipeline_id}_clips.txt -c copy /tmp/{pipeline_id}_xfade.mp4",
                 shell=True, capture_output=True, timeout=60
             )
 
@@ -677,7 +677,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             # Pre-scale logo to reasonable size for overlay (240px wide, maintain aspect)
             scaled_logo = f"/tmp/{pipeline_id}_logo_scaled.png"
             subprocess.run(
-                f"ffmpeg -y -i {logo_path} -vf scale=240:-1 {scaled_logo}",
+                f"/usr/bin/ffmpeg -y -i {logo_path} -vf scale=240:-1 {scaled_logo}",
                 shell=True, capture_output=True, timeout=30
             )
             if not os.path.exists(scaled_logo):
@@ -693,7 +693,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             if safe_contact:
                 vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
-            logo_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {scaled_logo} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
+            logo_cmd = f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {scaled_logo} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(logo_cmd, shell=True, capture_output=True, text=True, timeout=120)
             branded_ok = r.returncode == 0 and os.path.exists(f"/tmp/{pipeline_id}_branded.mp4")
             if branded_ok:
@@ -710,7 +710,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             if safe_contact:
                 text_vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
-            brand_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -vf "{text_vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
+            brand_cmd = f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -vf "{text_vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
             if r.returncode != 0 or not os.path.exists(f"/tmp/{pipeline_id}_branded.mp4"):
                 logger.warning("Brand overlay failed, using crossfade only")
@@ -747,12 +747,12 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             # Resample both to 44100Hz stereo before mixing for clean audio
             narr_resampled = f"/tmp/{pipeline_id}_narr_44k.wav"
             music_resampled = f"/tmp/{pipeline_id}_music_44k.wav"
-            subprocess.run(f"ffmpeg -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
-            subprocess.run(f"ffmpeg -y -i {bg_music_path} -ar 44100 -ac 2 {music_resampled}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"/usr/bin/ffmpeg -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"/usr/bin/ffmpeg -y -i {bg_music_path} -ar 44100 -ac 2 {music_resampled}", shell=True, capture_output=True, timeout=30)
 
             mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.wav"
             mix_cmd = (
-                f'ffmpeg -y -i {narr_resampled} -i {music_resampled} '
+                f'/usr/bin/ffmpeg -y -i {narr_resampled} -i {music_resampled} '
                 f'-filter_complex "'
                 f'[0:a]volume=1.2,apad[narr];'
                 f'[1:a]volume=0.25,aloop=loop=-1:size=2e+09[music];'
@@ -772,7 +772,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         if final_audio:
             # Merge audio with video — high quality AAC
             subprocess.run(
-                f"ffmpeg -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 256k -ar 44100 -ac 2 -t {vid_duration} {output_path}",
+                f"/usr/bin/ffmpeg -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 256k -ar 44100 -ac 2 -t {vid_duration} {output_path}",
                 shell=True, capture_output=True, timeout=60
             )
         else:
@@ -1993,3 +1993,60 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
     supabase.table("pipelines").update({"status": "completed"}).eq("id", pipeline_id).execute()
 
     return {"status": "published", "campaign_id": campaign_id}
+
+
+
+@router.post("/{pipeline_id}/regenerate-video")
+async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
+    """Regenerate the commercial video for a completed pipeline and update its campaign"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline = result.data[0]
+    steps = pipeline.get("steps") or {}
+    marcos = steps.get("marcos_video", {})
+    marcos_output = marcos.get("output", "")
+    if not marcos_output:
+        raise HTTPException(status_code=400, detail="No video script found in pipeline")
+
+    # Determine video format
+    format_match = re.search(r'Format:\s*(horizontal|vertical)', marcos_output, re.IGNORECASE)
+    video_format = format_match.group(1).lower() if format_match else "horizontal"
+    FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
+    size = FORMAT_MAP.get(video_format, "1280x720")
+    user_music = pipeline.get("result", {}).get("selected_music", "")
+
+    # Mark as generating
+    steps["marcos_video"]["status"] = "generating_video"
+    steps["marcos_video"]["video_url"] = None
+    supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+
+    # Generate in background
+    async def _regen():
+        try:
+            video_url = await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override=user_music)
+            steps["marcos_video"]["video_url"] = video_url
+            steps["marcos_video"]["status"] = "completed"
+            supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+
+            # Auto-update associated campaign
+            if video_url:
+                campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+                for c in campaigns:
+                    m = c.get("metrics") or {}
+                    s = m.get("stats") or {}
+                    if s.get("pipeline_id") == pipeline_id:
+                        s["video_url"] = video_url
+                        m["stats"] = s
+                        supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+                        logger.info(f"Auto-updated campaign {c['id']} with video {video_url}")
+                        break
+        except Exception as e:
+            logger.error(f"Video regeneration failed: {e}")
+            steps["marcos_video"]["status"] = "completed"
+            supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+
+    asyncio.create_task(_regen())
+    return {"status": "generating", "pipeline_id": pipeline_id, "message": "Video regeneration started"}

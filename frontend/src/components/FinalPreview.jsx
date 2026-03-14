@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Check, ChevronLeft, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Loader2, Pencil, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { X, Check, ChevronLeft, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Loader2, Pencil, Image as ImageIcon, RefreshCw, Film, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -404,6 +404,15 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
                 <span className="text-[7px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">12s Sora 2</span>
                 <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                   className="ml-auto text-[8px] text-[#C9A84C] hover:underline">Baixar</a>
+              </div>
+            </div>
+          )}
+          {!videoUrl && pipeline?.id && (
+            <div className="w-full max-w-[320px]">
+              <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial</p>
+              <div className="rounded-xl border border-dashed border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4 text-center">
+                <Film size={18} className="mx-auto mb-1 text-[#C9A84C]/60" />
+                <p className="text-[9px] text-[#666]">{t('studio.video_generating') || 'Video will appear here once generated'}</p>
               </div>
             </div>
           )}

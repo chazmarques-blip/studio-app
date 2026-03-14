@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -34,6 +34,7 @@ const L = (lang) => {
       videoCommercial: 'Video Comercial', download: 'Baixar', downloadArts: 'Download das Artes',
       copyText: 'Texto para Copiar', allNetworks: 'Todas as Redes', copy: 'Copiar', noMessages: 'Sem mensagens',
       totalSent: 'Total Enviado', openings: 'Aberturas', avgCpl: 'CPL Medio', performanceByChannel: 'Performance por Canal',
+      regenVideo: 'Gerar Video', regenVideoDesc: 'Clique para gerar o video comercial desta campanha', regenerating: 'Gerando video...', videoGenStarted: 'Geracao de video iniciada!',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -57,6 +58,7 @@ const L = (lang) => {
       videoCommercial: 'Commercial Video', download: 'Download', downloadArts: 'Download Creatives',
       copyText: 'Copy Text', allNetworks: 'All Networks', copy: 'Copy', noMessages: 'No messages',
       totalSent: 'Total Sent', openings: 'Opens', avgCpl: 'Average CPL', performanceByChannel: 'Performance by Channel',
+      regenVideo: 'Generate Video', regenVideoDesc: 'Click to generate the commercial video for this campaign', regenerating: 'Generating video...', videoGenStarted: 'Video generation started!',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -80,6 +82,7 @@ const L = (lang) => {
       videoCommercial: 'Video Comercial', download: 'Descargar', downloadArts: 'Descargar Artes',
       copyText: 'Texto para Copiar', allNetworks: 'Todas las Redes', copy: 'Copiar', noMessages: 'Sin mensajes',
       totalSent: 'Total Enviado', openings: 'Aperturas', avgCpl: 'CPL Promedio', performanceByChannel: 'Performance por Canal',
+      regenVideo: 'Generar Video', regenVideoDesc: 'Haga clic para generar el video comercial de esta campana', regenerating: 'Generando video...', videoGenStarted: 'Generacion de video iniciada!',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -260,12 +263,46 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState(channels[0] || 'whatsapp');
   const videoUrl = stats.video_url || '';
+  const pipelineId = stats.pipeline_id || '';
+  const [regenLoading, setRegenLoading] = useState(false);
 
-  useEffect(() => {
+  const refreshCampaign = () => {
     axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/${initialCampaign.id}`)
       .then(res => setCampaign(res.data))
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshCampaign();
   }, [initialCampaign.id]);
+
+  // Poll for video when regenerating
+  useEffect(() => {
+    if (!regenLoading) return;
+    const interval = setInterval(() => {
+      axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/${initialCampaign.id}`)
+        .then(res => {
+          setCampaign(res.data);
+          if (res.data?.stats?.video_url) {
+            setRegenLoading(false);
+            toast.success(labels.videoCommercial + ' OK!');
+          }
+        }).catch(() => {});
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [regenLoading, initialCampaign.id]);
+
+  const regenerateVideo = async () => {
+    if (!pipelineId) return;
+    setRegenLoading(true);
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/regenerate-video`);
+      toast.success(labels.videoGenStarted);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || labels.error);
+      setRegenLoading(false);
+    }
+  };
 
   const startDate = schedule.start_date || campaign.created_at?.split('T')[0];
   const endDate = schedule.end_date || null;
@@ -565,6 +602,34 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <Download size={9} /> {labels.download}
                     </a>
                   </div>
+                </div>
+              )}
+
+              {/* Generate Video Button - when no video but pipeline exists */}
+              {!videoUrl && pipelineId && campaign.type === 'ai_pipeline' && (
+                <div data-testid="content-generate-video-section" className="max-w-[340px] mx-auto">
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.videoCommercial}</p>
+                  <button
+                    data-testid="regenerate-video-btn"
+                    onClick={regenerateVideo}
+                    disabled={regenLoading}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-[#C9A84C]/30 bg-[#C9A84C]/5 hover:bg-[#C9A84C]/10 transition text-[#C9A84C] disabled:opacity-50"
+                  >
+                    {regenLoading ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span className="text-[10px] font-semibold">{labels.regenerating}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Film size={14} />
+                        <span className="text-[10px] font-semibold">{labels.regenVideo}</span>
+                      </>
+                    )}
+                  </button>
+                  {regenLoading && (
+                    <p className="text-[8px] text-[#555] text-center mt-1.5">Sora 2 + TTS + FFmpeg (~5 min)</p>
+                  )}
                 </div>
               )}
 
