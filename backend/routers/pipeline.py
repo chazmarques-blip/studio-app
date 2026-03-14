@@ -121,7 +121,18 @@ VISUAL CONCEPT 2: [Different angle: lifestyle/aspirational — show the TARGET A
 VISUAL CONCEPT 3: [Bold/creative: unexpected visual metaphor or dramatic composition that stops the scroll. Think Cannes Lions winner.]
 COLOR DIRECTION: [Primary and accent colors with mood reasoning]
 MOOD: [The exact emotion the images must evoke]
-WHAT TO AVOID: [Specific visual clichés to NOT do]""",
+WHAT TO AVOID: [Specific visual clichés to NOT do]
+
+=== VIDEO BRIEF SECTION ===
+After the image briefing, create a VIDEO BRIEF for the commercial video team.
+This tells the video director EXACTLY what the 24-second commercial should convey.
+
+===VIDEO BRIEF===
+VIDEO TAGLINE: [ONE powerful phrase for the final CTA frame, 3-8 words, same language as copy — this appears at the END of the video with the brand logo. Must create urgency/desire.]
+VIDEO TONE: [The exact emotional arc: e.g., "Starts intimate and personal, builds to aspirational triumph, ends with urgent excitement"]
+MUSIC MOOD: [ONE word for background music: "upbeat" or "emotional" or "corporate" or "cinematic" or "energetic"]
+CTA FOR VIDEO: [The specific action: e.g., "Chame no WhatsApp agora", "Visit mysite.com", "Call 555-1234"]
+CONTACT FOR CTA: [Which contact info to show: WhatsApp number, website, phone, etc.]""",
 
     "ana_review_copy": """You are Ana, an elite Creative Director who combines the strategic vision of Lee Clow (Apple's "Think Different"), the bold creativity of Alex Bogusky (Burger King, Mini Cooper), and the data-driven approach of Neil Patel.
 
@@ -192,6 +203,14 @@ After reviewing all 3 design concepts, you MUST make a DECISION:
 - If ALL designs fail to meet the threshold (lack visual impact, poor composition, weak brand alignment, illegible headline) → REQUEST REVISION with specific art direction feedback.
 
 IMPORTANT: You have world-class standards but you are pragmatic. Most well-conceived designs should pass with minor notes. Only request full revision if the designs are genuinely substandard.
+
+YOUR REVIEW CRITERIA FOR VIDEO CONCEPT (when marcos_video output is available):
+After reviewing images, also evaluate the video concept from Marcos (if present in the context):
+V1. NARRATION LANGUAGE: Is the narration in the SAME language as the campaign copy? Mismatch = AUTOMATIC rejection.
+V2. CTA STRENGTH: Does the narration end with a STRONG, URGENT call to action? Is the contact info included?
+V3. BRAND CLOSING: Does the video concept include a proper brand logo + tagline ending?
+V4. MUSIC FIT: Does the music mood match the campaign's emotional tone?
+If any video criterion fails, add VIDEO_REVISION_FEEDBACK to your response.
 
 ALWAYS write in the SAME language as the content you are reviewing.
 
@@ -288,56 +307,78 @@ Create a detailed, actionable publishing schedule with:
 - KPI targets per platform (expected reach, engagement rate, click-through)
 - Budget allocation suggestion if applicable""",
 
-    "marcos_video": """You are Marcos, an elite AI Commercial Director and the creative mind behind viral Super Bowl ads. You create broadcast-quality 24-second commercials by designing TWO perfectly connected 12-second video sequences that feel like ONE continuous shot.
+    "marcos_video": """You are Marcos, an elite AI Commercial Director — the creative genius behind Super Bowl ads, Nike campaigns, and Apple product launches. You create broadcast-quality 24-second commercials with TWO perfectly connected 12-second sequences that feel like ONE continuous masterpiece.
 
 YOUR GENIUS:
 - RIDLEY SCOTT + ROGER DEAKINS: Cinematic framing, natural lighting that tells the story, camera movement with purpose.
-- SUPER BOWL COMMERCIAL MASTERY: Every frame sells. The hook is irresistible. The CTA is unforgettable.
+- SUPER BOWL COMMERCIAL MASTERY: Every frame sells. The hook is irresistible. The CTA is unforgettable. The viewer MUST feel something.
 - VISUAL CONTINUITY EXPERT: You design clip transitions so the LAST FRAME of clip 1 flows seamlessly into the FIRST FRAME of clip 2 — same character, same setting, same lighting, same camera movement direction.
+- MUSIC VIDEO DIRECTOR: You think in rhythm. The visuals sync with the narration beats. Cuts happen on emotional peaks.
 
 24-SECOND COMMERCIAL STRUCTURE:
-- CLIP 1 (Seconds 0-12): THE SETUP
-  - 0-3s: HOOK — Irresistible visual that stops scrolling (close-up detail, dramatic reveal)
-  - 3-8s: THE PROBLEM/DESIRE — Show the before state or the aspiration
-  - 8-12s: THE TURNING POINT — The moment of change. CRITICAL: end clip 1 with the character in a specific pose/position that clip 2 will continue from.
+- CLIP 1 (Seconds 0-12): THE SETUP & HOOK
+  - 0-3s: HOOK — An irresistible visual that stops everything. Close-up of a powerful detail. The viewer is CAPTURED.
+  - 3-8s: THE PROBLEM/DESIRE — Show the pain point or the dream. The audience sees THEMSELVES in the character.
+  - 8-12s: THE TURNING POINT — The breakthrough moment. CRITICAL: End with the character in a clear pose/position that clip 2 picks up seamlessly.
 
-- CLIP 2 (Seconds 12-24): THE PAYOFF
-  - 12-15s: CONTINUATION — Start EXACTLY where clip 1 ended. Same character, same position, continue the motion.
-  - 15-20s: THE TRANSFORMATION — Show the after state, the product benefit in full glory
-  - 20-22s: EMOTIONAL PEAK — The moment of satisfaction, pride, or joy
-  - 22-24s: BRAND MOMENT — Clean frame for the brand name/logo overlay to appear
+- CLIP 2 (Seconds 12-24): THE PAYOFF & CTA
+  - 12-15s: SEAMLESS CONTINUATION — Pick up EXACTLY where clip 1 ended. Same character, same pose, continue the motion.
+  - 15-19s: THE TRANSFORMATION — The payoff. Show the product/service in its full glory. The character's life has changed.
+  - 19-21s: EMOTIONAL PEAK — The moment of triumph, pride, or pure joy. The viewer FEELS this.
+  - 21-24s: BRAND CLOSING — The frame gradually simplifies. Character fades or moves away. Final 2 seconds: CLEAN, DARK/SIMPLE background perfect for logo overlay + CTA text.
 
-CONTINUITY RULES (CRITICAL):
-1. SAME CHARACTER in both clips: describe them IDENTICALLY (age, clothing, hair, build)
-2. SAME COLOR PALETTE: specify the exact same lighting and color tones in both
-3. TRANSITION BRIDGE: The last action in clip 1 must naturally lead to the first action in clip 2
-4. SAME ENVIRONMENT: If clip 1 is indoors, clip 2 starts indoors before transitioning outside (or vice versa with a clear visual bridge)
+CONTINUITY RULES (CRITICAL — VIOLATION = UNUSABLE VIDEO):
+1. CHARACTER IDENTITY: Describe the character with SURGICAL precision in BOTH prompts. Same age, same clothing colors, same hair, same build. Copy-paste the description.
+2. COLOR PALETTE: Specify the IDENTICAL lighting and color tones in both prompts (e.g., "warm amber golden hour, lens flares").
+3. TRANSITION BRIDGE: The LAST ACTION in clip 1 (e.g., "pushes open a glass door") MUST be the FIRST ACTION in clip 2 (e.g., "walks through a glass door into sunlight").
+4. CAMERA CONTINUITY: If clip 1 ends with a tracking shot moving right, clip 2 starts with continuing motion to the right.
+5. ENVIRONMENT BRIDGE: If clip 1 is indoors ending at a door, clip 2 starts at that same door transitioning outdoors.
 
 NARRATION SCRIPT RULES:
-- Write a DYNAMIC, URGENT voiceover for the FULL 24 seconds
-- Style: Think car dealership TV commercial meets Apple product launch — exciting, aspirational, impossible to ignore
-- Structure: Problem (0-6s) → Solution (6-12s) → Benefits (12-18s) → URGENT CTA (18-24s)
-- The CTA must create FOMO: "Don't miss this", "Only this week", "Chat now before spots fill up"
+- Write like the BEST TV COMMERCIAL VOICEOVER you've ever heard
+- Energy: Start intimate/personal, build excitement, EXPLODE with urgency at the CTA
+- Rhythm: Short punchy sentences. Rhetorical questions. Power words. Emotional pauses.
+- Structure with TIMING MARKS:
+  [0-6s]: The HOOK — Present the problem or dream. "Imagine..." / "What if..." / "Tired of..."
+  [6-12s]: The SOLUTION — Introduce the product/service. Fast, exciting, benefits-focused.
+  [12-18s]: The PROOF — Social proof, transformation, results. Build desire to fever pitch.
+  [18-24s]: The CTA — URGENT, IRRESISTIBLE call to action. Create FOMO. Include contact method. Final tagline.
+- End ALWAYS with the video tagline from Sofia's brief
 - Write in the SAME LANGUAGE as the campaign copy
+
+MUSIC DIRECTION:
+- Describe the PERFECT background music for this commercial
+- The music sets the emotional rhythm. It builds with the narrative.
+- Choose a mood that amplifies the campaign's emotional arc
 
 ALWAYS write in the SAME language the user writes to you.
 
 Format your output EXACTLY like this:
 
 ===CHARACTER DESCRIPTION===
-[Precise description of the main character: age, ethnicity, build, hair, facial features, clothing — used for BOTH clips]
+[SURGICAL precision: age, ethnicity, build, height, hair (style+color), facial features (stubble, clean-shaven, etc), EXACT clothing (colors, brands, style). This description is COPY-PASTED into both clip prompts.]
 
 ===CLIP 1 PROMPT===
-[80-120 words. The first 12 seconds. Describe opening shot, camera movement, character actions, lighting, mood. End with a CLEAR transition point that clip 2 will continue from.]
+[80-120 words. Seconds 0-12. Opening shot, camera movement, character actions, lighting, mood. INCLUDE the full character description. End with a CLEAR transition moment.]
 
 ===CLIP 2 PROMPT===
-[80-120 words. The second 12 seconds. Start EXACTLY where clip 1 ended. Continue the character's story. End with a clean, simple frame suitable for brand logo overlay in the final 2 seconds.]
+[80-120 words. Seconds 12-24. INCLUDE the full character description again. Start at the transition moment. Build to emotional peak. Final 2 seconds: clean/simple frame for logo overlay.]
 
 ===NARRATION SCRIPT===
-[The complete voiceover script for all 24 seconds. Dynamic, commercial, urgent. Must create desire and end with an irresistible CTA. Timed to match the visual beats.]
+[0-6s]: [Hook — intimate, personal, attention-grabbing]
+[6-12s]: [Solution — exciting, benefits-focused]
+[12-18s]: [Proof — build desire, social proof, transformation]
+[18-24s]: [CTA — URGENT, FOMO, contact method, final tagline]
 
-===BRAND NAME===
-[The brand/company name that will appear as a logo in the final 3 seconds]
+===MUSIC DIRECTION===
+Mood: [upbeat/emotional/cinematic/energetic/corporate]
+Description: [2-3 sentences describing the musical arc: instruments, tempo changes, energy progression]
+
+===CTA SEQUENCE===
+Brand name: [company/brand name for logo]
+Tagline: [the powerful phrase from Sofia's VIDEO BRIEF]
+Contact: [WhatsApp/phone/website/email for CTA overlay]
+Visual: [How the final 3 seconds should look: e.g., "fade to black, white logo centered, tagline below, WhatsApp number in gold"]
 
 ===VIDEO FORMAT===
 Format: [vertical/horizontal]
@@ -536,18 +577,18 @@ async def _generate_narration(text, pipeline_id):
     return None
 
 
-def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id):
-    """Combine 2 clips with crossfade + narration + brand logo ending"""
+def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta=""):
+    """Combine 2 clips with crossfade + narration + brand logo ending with CTA"""
     output_path = f"/tmp/{pipeline_id}_commercial.mp4"
     try:
-        # 1. Normalize both clips (ensure identical codec/framerate)
+        # 1. Normalize both clips
         for i, clip in enumerate([clip1_path, clip2_path], 1):
             subprocess.run(
                 f"ffmpeg -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
                 shell=True, capture_output=True, timeout=60
             )
 
-        # 2. Crossfade between clips (1 second fade at the 11s mark)
+        # 2. Crossfade (1s fade at 11s mark)
         xfade_cmd = (
             f'ffmpeg -y -i /tmp/{pipeline_id}_norm1.mp4 -i /tmp/{pipeline_id}_norm2.mp4 '
             f'-filter_complex "'
@@ -557,7 +598,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         )
         result = subprocess.run(xfade_cmd, shell=True, capture_output=True, text=True, timeout=120)
         if result.returncode != 0:
-            logger.warning(f"Crossfade failed, falling back to concat: {result.stderr[-200:]}")
+            logger.warning("Crossfade failed, falling back to concat")
             with open(f"/tmp/{pipeline_id}_clips.txt", "w") as f:
                 f.write(f"file '/tmp/{pipeline_id}_norm1.mp4'\nfile '/tmp/{pipeline_id}_norm2.mp4'\n")
             subprocess.run(
@@ -565,26 +606,48 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 shell=True, capture_output=True, timeout=60
             )
 
-        # 3. Add brand name overlay in last 3 seconds (fade-in text on dark vignette)
-        safe_brand = brand_name.replace("'", "").replace('"', '').replace(':', '')
-        brand_cmd = (
-            f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 '
-            f'-vf "'
-            f"drawbox=x=0:y=ih*0.35:w=iw:h=ih*0.3:color=black@0.7:t=fill:enable='between(t,20,23)',"
-            f"drawtext=text=\\'{safe_brand}\\':"
-            f"fontsize=56:fontcolor=white:borderw=2:bordercolor=black@0.5:"
-            f"x=(w-text_w)/2:y=(h-text_h)/2:"
-            f"enable='between(t,20,23)'"
-            f'" -c:v libx264 -preset fast -crf 18 -c:a copy /tmp/{pipeline_id}_branded.mp4'
-        )
-        brand_result = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
-        branded_file = f"/tmp/{pipeline_id}_branded.mp4"
-        if brand_result.returncode != 0 or not os.path.exists(branded_file):
-            logger.warning("Brand overlay failed, using xfade only")
-            branded_file = f"/tmp/{pipeline_id}_xfade.mp4"
+        # 3. Brand ending overlay (last 4 seconds): logo + tagline + contact CTA
+        safe_brand = brand_name.replace("'", "").replace('"', '').replace(':', '').replace('\\', '')
+        safe_tagline = (tagline or "").replace("'", "").replace('"', '').replace(':', '').replace('\\', '')
+        safe_contact = (contact_cta or "").replace("'", "").replace('"', '').replace(':', ' ').replace('\\', '')
+
+        branded_ok = False
+        if logo_path and os.path.exists(logo_path):
+            # Use actual uploaded logo image
+            vf = (
+                "[0:v]drawbox=x=0:y=0:w=iw:h=ih:color=black@0.75:t=fill:enable='between(t,20,23)'[bg];"
+                "[1:v]scale=200:-1[logo];"
+                "[bg][logo]overlay=(W-w)/2:(H-h)/2-40:enable='between(t,20,23)'"
+            )
+            if safe_tagline:
+                vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=28:fontcolor=white@0.9:x=(w-text_w)/2:y=(h/2)+40:enable='between(t,20.5,23)'"
+            if safe_contact:
+                vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=18:fontcolor=gold@0.8:x=(w-text_w)/2:y=(h/2)+75:enable='between(t,21,23)'"
+
+            logo_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {logo_path} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
+            r = subprocess.run(logo_cmd, shell=True, capture_output=True, text=True, timeout=120)
+            branded_ok = r.returncode == 0 and os.path.exists(f"/tmp/{pipeline_id}_branded.mp4")
+            if branded_ok:
+                logger.info("Logo overlay applied")
+
+        if not branded_ok:
+            # Text-only brand ending: Brand Name (large) + Tagline + Contact
+            text_vf = "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.75:t=fill:enable='between(t,20,23)'"
+            text_vf += f",drawtext=text=\\'{safe_brand}\\':fontsize=60:fontcolor=white:borderw=2:bordercolor=black@0.5:x=(w-text_w)/2:y=(h/2)-30:enable='between(t,20,23)'"
+            if safe_tagline:
+                text_vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=24:fontcolor=white@0.8:x=(w-text_w)/2:y=(h/2)+30:enable='between(t,20.5,23)'"
+            if safe_contact:
+                text_vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=18:fontcolor=gold@0.8:x=(w-text_w)/2:y=(h/2)+65:enable='between(t,21,23)'"
+
+            brand_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -vf "{text_vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
+            r = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
+            if r.returncode != 0 or not os.path.exists(f"/tmp/{pipeline_id}_branded.mp4"):
+                logger.warning("Brand overlay failed, using crossfade only")
+                shutil.copy2(f"/tmp/{pipeline_id}_xfade.mp4", f"/tmp/{pipeline_id}_branded.mp4")
 
         # 4. Merge video + narration audio
-        if audio_path:
+        branded_file = f"/tmp/{pipeline_id}_branded.mp4"
+        if audio_path and os.path.exists(audio_path):
             subprocess.run(
                 f"ffmpeg -y -i {branded_file} -i {audio_path} -c:v copy -c:a aac -b:a 192k -shortest {output_path}",
                 shell=True, capture_output=True, timeout=60
@@ -593,7 +656,6 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             shutil.copy2(branded_file, output_path)
 
         if os.path.exists(output_path):
-            # Upload to Supabase Storage
             with open(output_path, "rb") as f:
                 video_bytes = f.read()
             filename = f"videos/{pipeline_id}_commercial.mp4"
@@ -607,12 +669,15 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
 
 
 async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"):
-    """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo"""
+    """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo + CTA"""
     # Parse Marcos's structured output
     clip1_prompt = ""
     clip2_prompt = ""
     narration_text = ""
     brand_name = ""
+    tagline = ""
+    contact_cta = ""
+    music_mood = "cinematic"
 
     c1_match = re.search(r'===CLIP 1 PROMPT===([\s\S]*?)===CLIP 2 PROMPT===', marcos_output, re.IGNORECASE)
     if c1_match:
@@ -622,27 +687,54 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     if c2_match:
         clip2_prompt = c2_match.group(1).strip()
 
-    narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===BRAND NAME===', marcos_output, re.IGNORECASE)
+    narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===MUSIC DIRECTION===', marcos_output, re.IGNORECASE)
+    if not narr_match:
+        narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===(?:BRAND NAME|CTA SEQUENCE|VIDEO FORMAT)===', marcos_output, re.IGNORECASE)
     if narr_match:
         narration_text = narr_match.group(1).strip()
+        # Clean timing marks from narration for TTS
+        narration_text = re.sub(r'\[\d+-\d+s?\]:\s*', '', narration_text)
 
-    brand_match = re.search(r'===BRAND NAME===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
-    if brand_match:
-        brand_name = brand_match.group(1).strip()
+    # Parse CTA Sequence
+    cta_match = re.search(r'===CTA SEQUENCE===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
+    if cta_match:
+        cta_block = cta_match.group(1)
+        brand_line = re.search(r'Brand\s*name:\s*(.+)', cta_block, re.IGNORECASE)
+        if brand_line:
+            brand_name = brand_line.group(1).strip()
+        tag_line = re.search(r'Tagline:\s*(.+)', cta_block, re.IGNORECASE)
+        if tag_line:
+            tagline = tag_line.group(1).strip()
+        contact_line = re.search(r'Contact:\s*(.+)', cta_block, re.IGNORECASE)
+        if contact_line:
+            contact_cta = contact_line.group(1).strip()
+
+    # Fallback for brand name from old format
+    if not brand_name:
+        old_brand = re.search(r'===BRAND NAME===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
+        if old_brand:
+            brand_name = old_brand.group(1).strip()
+
+    # Parse music mood
+    music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===CTA SEQUENCE===', marcos_output, re.IGNORECASE)
+    if music_match:
+        mood_line = re.search(r'Mood:\s*(\w+)', music_match.group(1), re.IGNORECASE)
+        if mood_line:
+            music_mood = mood_line.group(1).strip().lower()
 
     # Fallback: if parsing fails, use old single-prompt format
     if not clip1_prompt:
         old_match = re.search(r'===VIDEO PROMPT===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
         if old_match:
             clip1_prompt = old_match.group(1).strip()
-            clip2_prompt = clip1_prompt  # duplicate
+            clip2_prompt = clip1_prompt
         else:
             clip1_prompt = marcos_output[:500]
             clip2_prompt = marcos_output[:500]
 
-    logger.info(f"Generating commercial: brand={brand_name}, narration={len(narration_text)}chars")
+    logger.info(f"Generating commercial: brand={brand_name}, tagline={tagline}, music={music_mood}, narration={len(narration_text)}chars")
 
-    # 1. Generate narration first (fast, ~5-10s)
+    # 1. Generate narration (fast, ~5-10s)
     audio_path = None
     if narration_text:
         audio_path = await _generate_narration(narration_text, pipeline_id)
@@ -656,14 +748,30 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     clip2_path = _generate_video_clip_sync(clip2_prompt, pipeline_id, "clip2", size)
     if not clip2_path:
         logger.error(f"Clip 2 failed for pipeline {pipeline_id}")
-        # Still return clip 1 as a standalone video
         with open(clip1_path, "rb") as f:
             video_bytes = f.read()
         filename = f"videos/{pipeline_id}_commercial.mp4"
         return _upload_to_storage(video_bytes, filename, "video/mp4")
 
-    # 3. Combine everything: crossfade + brand + narration
-    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id)
+    # 3. Check for uploaded logo image
+    logo_path = None
+    try:
+        pipeline = supabase.table("pipelines").select("result").eq("id", pipeline_id).single().execute()
+        assets = pipeline.data.get("result", {}).get("uploaded_assets", []) if pipeline.data else []
+        for asset in assets:
+            url = asset.get("url", "") if isinstance(asset, dict) else str(asset)
+            if url and any(url.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp']):
+                # Download the logo
+                import urllib.request
+                logo_path = f"/tmp/{pipeline_id}_logo.png"
+                urllib.request.urlretrieve(url, logo_path)
+                logger.info(f"Downloaded logo for video: {url}")
+                break
+    except Exception as e:
+        logger.warning(f"Could not fetch logo: {e}")
+
+    # 4. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration
+    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta)
 
 
 def _parse_ana_copy_selection(text):
@@ -892,11 +1000,28 @@ If approving, end with:
     elif step == "marcos_video":
         approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
         image_briefing = ""
+        video_brief = ""
         sofia_output = steps.get("sofia_copy", {}).get("output", "")
-        briefing_match = re.search(r'===IMAGE BRIEFING===([\s\S]*?)$', sofia_output, re.IGNORECASE)
+        briefing_match = re.search(r'===IMAGE BRIEFING===([\s\S]*?)===VIDEO BRIEF===', sofia_output, re.IGNORECASE)
         if briefing_match:
             image_briefing = briefing_match.group(1).strip()
+        else:
+            briefing_match = re.search(r'===IMAGE BRIEFING===([\s\S]*?)$', sofia_output, re.IGNORECASE)
+            if briefing_match:
+                image_briefing = briefing_match.group(1).strip()
+        video_brief_match = re.search(r'===VIDEO BRIEF===([\s\S]*?)$', sofia_output, re.IGNORECASE)
+        if video_brief_match:
+            video_brief = video_brief_match.group(1).strip()
         campaign_name = pipeline.get("result", {}).get("campaign_name", "Brand")
+        contact_info = pipeline.get("result", {}).get("contact_info", {})
+        contact_details = ""
+        if contact_info:
+            parts = []
+            if contact_info.get("whatsapp"): parts.append(f"WhatsApp: {contact_info['whatsapp']}")
+            if contact_info.get("phone"): parts.append(f"Phone: {contact_info['phone']}")
+            if contact_info.get("website"): parts.append(f"Website: {contact_info['website']}")
+            if contact_info.get("email"): parts.append(f"Email: {contact_info['email']}")
+            contact_details = " | ".join(parts)
 
         return f"""Create a 24-second commercial video (TWO 12-second clips with perfect continuity) for this campaign.
 
@@ -904,16 +1029,18 @@ Brand/Company: {campaign_name}
 Platforms: {platforms_str}
 Approved campaign copy: {approved_copy}
 Visual direction: {image_briefing}
+Video brief from Sofia: {video_brief}
+Contact info for CTA: {contact_details or contact_str}
 Original briefing: {briefing}
-{contact_str}
 {lang_instruction}
 
 REQUIREMENTS:
 1. Design TWO clips that feel like ONE continuous shot — same character, same visual style, seamless transition
-2. Write a DYNAMIC commercial narration script for the full 24 seconds — urgent, exciting, creates FOMO
-3. End clip 2 with a clean frame for the brand name "{campaign_name}" to appear as a logo
-4. The narration must be in the SAME LANGUAGE as the campaign copy above
-5. Match the narration timing to the visual beats
+2. Write a DYNAMIC commercial narration script for the full 24 seconds with timing marks — urgent, exciting, creates FOMO
+3. The final 3 seconds: clean dark background for brand logo "{campaign_name}" + tagline + contact CTA
+4. Choose the right MUSIC MOOD that amplifies the commercial's emotional arc
+5. The narration and all text must be in the SAME LANGUAGE as the campaign copy above
+6. Include the contact info in the CTA SEQUENCE for the video ending overlay
 
 Output EXACTLY in the format specified in your instructions."""
 
