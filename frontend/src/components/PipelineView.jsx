@@ -42,6 +42,8 @@ const PLATFORMS = [
   { id: 'whatsapp', label: 'WhatsApp' },
   { id: 'instagram', label: 'Instagram' },
   { id: 'facebook', label: 'Facebook' },
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'google_ads', label: 'Google Ads' },
   { id: 'telegram', label: 'Telegram' },
   { id: 'email', label: 'Email' },
   { id: 'sms', label: 'SMS' },

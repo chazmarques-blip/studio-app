@@ -27,6 +27,7 @@ const STATUS_META = {
 const CHANNEL_COLORS = {
   whatsapp: '#25D366', instagram: '#E4405F', facebook: '#1877F2',
   telegram: '#26A5E4', email: '#C9A84C', sms: '#FF9800', multi: '#888', tiktok: '#000000',
+  google_ads: '#4285F4',
 };
 
 const GOLD = '#C9A84C';
@@ -43,12 +44,13 @@ function ChannelIcon({ channel, active, size = 16 }) {
     email: <svg width={s} height={s} viewBox="0 0 24 24" fill={color}><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>,
     sms: <svg width={s} height={s} viewBox="0 0 24 24" fill={color}><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>,
     tiktok: <svg width={s} height={s} viewBox="0 0 24 24" fill={color}><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.48v-7.13a8.16 8.16 0 004.77 1.53v-3.44a4.85 4.85 0 01-.81-.07 4.84 4.84 0 01-.38-3.88z"/></svg>,
+    google_ads: <svg width={s} height={s} viewBox="0 0 24 24" fill={color}><path d="M3.2 14.6l4.8-8.3c.6-1 1.9-1.4 2.9-.8l6.9 4c1 .6 1.4 1.9.8 2.9l-4.8 8.3c-.6 1-1.9 1.4-2.9.8l-6.9-4c-1-.6-1.4-1.9-.8-2.9z"/><circle cx="6" cy="18" r="3.5"/><path d="M15.8 4.2l4.8 8.3c.6 1 .2 2.3-.8 2.9l-2.4 1.4-7.6-13.2 2.4-1.4c1-.5 2.3-.1 2.9.8l.7 1.2z"/></svg>,
   };
   return <span title={channel} className="inline-flex">{icons[channel] || <span className="w-4 h-4 rounded-full" style={{backgroundColor: color}} />}</span>;
 }
 
 /* All available platforms for showing on cards */
-const ALL_PLATFORMS = ['whatsapp', 'instagram', 'facebook', 'telegram', 'email', 'sms'];
+const ALL_PLATFORMS = ['whatsapp', 'instagram', 'facebook', 'tiktok', 'google_ads', 'telegram', 'email', 'sms'];
 
 /* ── Text Cleaner ── */
 function cleanCampaignText(raw) {
@@ -392,6 +394,64 @@ function CampaignDetail({ campaign, onClose }) {
                           <span className="text-[9px] text-[#B0B3B8]">Comment</span>
                           <span className="text-[9px] text-[#B0B3B8] flex items-center gap-0.5"><Share2 size={10} /> Share</span>
                         </div>
+                      </div>
+                    </div>
+                  );
+
+                  if (channel === 'tiktok') return (
+                    <div key={channel} data-testid="mockup-tiktok-content">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ChannelIcon channel="tiktok" active size={14} />
+                        <span className="text-[10px] font-semibold text-white">TikTok</span>
+                      </div>
+                      <div className="w-full max-w-[260px] mx-auto bg-black rounded-xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16', maxHeight: 420}}>
+                        {imgSrc && <img src={imgSrc} alt="" className="w-full h-full object-cover absolute inset-0" />}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-10 p-3">
+                          <p className="text-[10px] font-bold text-white mb-1">@{brandName.toLowerCase().replace(/\s+/g, '')}</p>
+                          <p className="text-[8px] text-white/90 leading-relaxed line-clamp-4">{copyText_ch}</p>
+                          <p className="text-[7px] text-white/50 mt-1">#marketing #ia #agentZZ</p>
+                        </div>
+                        <div className="absolute right-2 bottom-16 flex flex-col items-center gap-3">
+                          <div className="flex flex-col items-center"><Heart size={20} className="text-white" /><span className="text-[7px] text-white">24.5K</span></div>
+                          <div className="flex flex-col items-center"><MessageCircle size={20} className="text-white" /><span className="text-[7px] text-white">1,234</span></div>
+                          <div className="flex flex-col items-center"><Share2 size={20} className="text-white" /><span className="text-[7px] text-white">892</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  if (channel === 'google_ads') return (
+                    <div key={channel} data-testid="mockup-google-ads-content">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ChannelIcon channel="google_ads" active size={14} />
+                        <span className="text-[10px] font-semibold text-white">Google Ads</span>
+                      </div>
+                      <div className="w-full max-w-[340px] mx-auto space-y-2">
+                        {/* Search Ad */}
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#ddd] p-3">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-[8px] font-bold text-[#202124] bg-[#f1f3f4] px-1.5 py-0.5 rounded">Ad</span>
+                            <span className="text-[9px] text-[#202124]">·</span>
+                            <span className="text-[9px] text-[#202124]">{brandName.toLowerCase().replace(/\s+/g, '')}.com</span>
+                          </div>
+                          <p className="text-[12px] font-medium text-[#1a0dab] leading-tight mb-0.5">{copyText_ch.split('\n')[0]?.substring(0, 60) || brandName} | Comece Agora</p>
+                          <p className="text-[9px] text-[#4d5156] leading-relaxed line-clamp-2">{copyText_ch.substring(0, 120)}...</p>
+                        </div>
+                        {/* Display Ad */}
+                        {imgSrc && (
+                          <div className="bg-white rounded-xl overflow-hidden border border-[#ddd]">
+                            <img src={imgSrc} alt="" className="w-full aspect-[1.91/1] object-cover" />
+                            <div className="p-2.5 border-t border-[#eee]">
+                              <div className="flex items-center gap-1 mb-0.5">
+                                <span className="text-[7px] font-bold text-white bg-[#FBBC04] px-1 py-0.5 rounded">Ad</span>
+                                <span className="text-[8px] text-[#70757a]">{brandName.toLowerCase().replace(/\s+/g, '')}.com</span>
+                              </div>
+                              <p className="text-[10px] font-medium text-[#202124] line-clamp-1">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
+                              <p className="text-[8px] text-[#70757a] line-clamp-1">Saiba mais sobre {brandName}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

@@ -111,6 +111,60 @@ function FacebookMockup({ copy, image, brandName, brandLogo }) {
   );
 }
 
+/* ── TikTok Mockup ── */
+function TikTokMockup({ copy, image, brandName, brandLogo }) {
+  return (
+    <div data-testid="mockup-tiktok" className="w-full max-w-[260px] mx-auto bg-black rounded-xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16', maxHeight: 480}}>
+      {image && <img src={resolveImageSrc(image)} alt="" className="w-full h-full object-cover absolute inset-0" />}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+      <div className="absolute bottom-0 left-0 right-10 p-3">
+        <p className="text-[10px] font-bold text-white mb-1">@{brandName.toLowerCase().replace(/\s+/g, '')}</p>
+        <p className="text-[9px] text-white/90 leading-relaxed line-clamp-4 whitespace-pre-wrap">{copy}</p>
+      </div>
+      <div className="absolute right-2 bottom-16 flex flex-col items-center gap-3">
+        <img src={brandLogo} alt="" className="w-8 h-8 rounded-full border-2 border-white object-contain bg-black" onError={e => { e.target.src = DEFAULT_LOGO; }} />
+        <div className="flex flex-col items-center"><Heart size={22} className="text-white" /><span className="text-[7px] text-white">24.5K</span></div>
+        <div className="flex flex-col items-center"><MessageCircle size={22} className="text-white" /><span className="text-[7px] text-white">1.2K</span></div>
+        <div className="flex flex-col items-center"><Share2 size={22} className="text-white" /><span className="text-[7px] text-white">892</span></div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Google Ads Mockup ── */
+function GoogleAdsMockup({ copy, image, brandName }) {
+  const headline = copy?.split('\n')[0]?.substring(0, 60) || brandName;
+  const description = copy?.substring(0, 120) || '';
+  const domain = `${brandName.toLowerCase().replace(/\s+/g, '')}.com`;
+  return (
+    <div data-testid="mockup-google-ads" className="w-full max-w-[320px] mx-auto space-y-3">
+      {/* Search Ad */}
+      <div className="bg-white rounded-xl overflow-hidden border border-[#dadce0] p-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-[8px] font-bold text-[#202124] bg-[#f1f3f4] px-1.5 py-0.5 rounded">Ad</span>
+          <span className="text-[9px] text-[#202124]">{domain}</span>
+        </div>
+        <p className="text-[13px] font-medium text-[#1a0dab] leading-tight mb-0.5">{headline} | Comece Agora</p>
+        <p className="text-[10px] text-[#4d5156] leading-relaxed line-clamp-2">{description}...</p>
+      </div>
+      {/* Display Ad */}
+      {image && (
+        <div className="bg-white rounded-xl overflow-hidden border border-[#dadce0]">
+          <img src={resolveImageSrc(image)} alt="" className="w-full aspect-[1.91/1] object-cover" />
+          <div className="p-2.5 border-t border-[#eee]">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[7px] font-bold text-white bg-[#FBBC04] px-1 py-0.5 rounded">Ad</span>
+              <span className="text-[8px] text-[#70757a]">{domain}</span>
+            </div>
+            <p className="text-[11px] font-medium text-[#202124] line-clamp-1">{headline}</p>
+            <p className="text-[8px] text-[#70757a]">Saiba mais sobre {brandName}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Final Preview Component ── */
 export default function FinalPreview({ pipeline, onClose, onPublish }) {
   const steps = pipeline?.steps || {};
@@ -194,6 +248,8 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
     whatsapp: { label: 'WhatsApp', color: '#25D366', Component: WhatsAppMockup },
     instagram: { label: 'Instagram', color: '#E4405F', Component: InstagramMockup },
     facebook: { label: 'Facebook', color: '#1877F2', Component: FacebookMockup },
+    tiktok: { label: 'TikTok', color: '#000000', Component: TikTokMockup },
+    google_ads: { label: 'Google Ads', color: '#4285F4', Component: GoogleAdsMockup },
   };
 
   const channel = CHANNEL_MAP[selectedChannel] || CHANNEL_MAP.whatsapp;

@@ -8,49 +8,57 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - **Backend:** FastAPI (Python)
 - **Database:** Supabase (PostgreSQL) + Supabase Storage (pipeline-assets bucket)
 - **AI Models:**
-  - Sofia, Ana, Lucas, Rafael: Claude Sonnet 4.5 (max quality)
-  - Pedro (scheduling): Gemini 2.0 Flash (primary, reliable)
-  - All creative steps: Claude with Gemini fallback if 502
+  - Sofia, Ana, Lucas, Rafael: Claude Sonnet 4.5 (with Gemini Flash fallback)
+  - Pedro (scheduling): Gemini 2.0 Flash (primary)
   - Image Generation: Gemini Nano Banana (gemini-3-pro-image-preview)
-  - All via emergentintegrations library with Emergent LLM Key
+  - All via emergentintegrations + Emergent LLM Key
 - **Auth:** JWT-based custom auth
 
+## Supported Platforms (8 total)
+WhatsApp, Instagram, Facebook, TikTok, Google Ads, Telegram, Email, SMS
+
 ## AI Agent Pipeline
-1. **Sofia** — Claude Sonnet → Copy (3 variations) + IMAGE BRIEFING
-2. **Ana** — Claude Sonnet → Reviews copy + briefing alignment
-3. **Lucas** — Claude Sonnet → Translates Sofia's briefing into optimized Nano Banana prompts
-4. **Rafael** — Claude Sonnet → Reviews images (7 criteria including headline integration)
-5. **Pedro** — Gemini Flash → Publishing schedule with LATAM timing + KPIs
-- All creative steps have asyncio.wait_for timeout (120s) + Gemini fallback
-
-## File Storage
-- Supabase Storage bucket: `pipeline-assets` (PUBLIC, persistent)
-- Frontend uses `resolveImageUrl()` helper
-
-## UI Updates (2026-03-14)
-- Marketing page: Unified "Criar com AI Studio" button (was 2 separate buttons)
-- Delete: Inline confirmation (checkmark/X, no window.confirm)
+1. **Sofia** — Claude → Copy (3 variations) + IMAGE BRIEFING + Google Ads expertise
+2. **Ana** — Claude → Reviews copy + briefing alignment
+3. **Lucas** — Claude → Translates briefing into Nano Banana prompts
+4. **Rafael** — Claude → Reviews images (7 criteria)
+5. **Pedro** — Gemini Flash → Schedule + Google Ads strategy + LATAM timing + KPIs
+- asyncio.wait_for timeout 120s per attempt + Gemini fallback for Claude steps
 
 ## Implemented Features
-- AI Marketing Studio (Phase 7) — Complete
+
+### AI Marketing Studio (Phase 7) - COMPLETE
 - Multi-Agent Pipeline with revision loops
-- Guided Briefing, i18n, Platform Mockups
-- Core Platform (Dashboard, Agents, Google Integration, Omnichannel UI)
+- Guided Briefing (questionnaire + free-form), i18n (PT/EN/ES)
+- Platform Mockups: Instagram, Facebook, WhatsApp, TikTok, Google Ads (Search + Display)
+- Final Preview with style-based regeneration
+- Unified "Criar com AI Studio" button
+- Delete with inline confirmation
+
+### File Storage - PERSISTENT
+- Supabase Storage bucket: `pipeline-assets`
+- 67 files migrated, all campaigns/pipelines updated
+
+### Core Platform
+- Dynamic Dashboard, Agent Management, Google Calendar/Sheets
+- Omnichannel UI, Multi-language (PT/EN/ES), Dark luxury theme
 
 ## Backlog (Prioritized)
-### P1 - High
-- Add Google Ads as platform/channel
-- Add TikTok as channel
+### P1
+- Capacitor mobile app (iOS + Android) for store publishing
 
-### P2 - Medium
+### P2
 - Video generation agent (Sora 2)
 - Activate live channel integrations
-- Admin Management System
 
-### P3 - Low
-- Payment gateway
-- Refactor large files
+### P3
+- Admin Management System
+- Payment gateway (Stripe)
 - Terms of Use / Privacy Policy
+
+### P4
+- Refactor large files
+- Scalability hardening
 
 ## Credentials
 - Email: test@agentflow.com
