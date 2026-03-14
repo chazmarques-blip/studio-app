@@ -22,14 +22,14 @@ ASSETS_DIR = "/app/backend/uploads/pipeline/assets"
 os.makedirs(ASSETS_DIR, exist_ok=True)
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 
-STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "ana_review_design", "pedro_publish"]
-PAUSE_AFTER = {"ana_review_copy", "ana_review_design"}
+STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_design", "pedro_publish"]
+PAUSE_AFTER = {"ana_review_copy", "rafael_review_design"}
 
 STEP_LABELS = {
     "sofia_copy": {"agent": "Sofia", "role": "Copywriter", "icon": "pen-tool"},
     "ana_review_copy": {"agent": "Ana", "role": "Revisora de Copy", "icon": "check-circle"},
     "lucas_design": {"agent": "Lucas", "role": "Designer", "icon": "palette"},
-    "ana_review_design": {"agent": "Ana", "role": "Revisora de Design", "icon": "check-circle"},
+    "rafael_review_design": {"agent": "Rafael", "role": "Diretor de Arte", "icon": "award"},
     "pedro_publish": {"agent": "Pedro", "role": "Publisher", "icon": "calendar-clock"},
 }
 
@@ -78,29 +78,69 @@ YOUR CORE PRINCIPLES:
 YOUR REVIEW CRITERIA:
 1. SCROLL-STOP POWER (1-10): Would this make someone stop scrolling in a noisy feed?
 2. EMOTIONAL RESONANCE (1-10): Does it trigger curiosity, desire, fear of missing out, or joy?
-3. CLARITY & CTA (1-10): Is the value proposition crystal clear in 3 seconds? Is the CTA irresistible?
-4. PLATFORM FIT (1-10): Is the tone, length, and style native to the target platforms?
-5. BRAND VOICE (1-10): Does it feel authentic to the brand, not generic AI?
+3. CLARITY & PERSUASION (1-10): Is the message crystal clear and compelling?
+4. CTA STRENGTH (1-10): Does the call-to-action drive immediate action?
+
+QUALITY THRESHOLD: A variation PASSES if it scores 7+ on at least 3 of 4 criteria.
+
+YOUR DECISION PROCESS:
+After reviewing all 3 variations, you MUST make a DECISION:
+- If at least ONE variation meets the quality threshold → APPROVE and select the best one.
+- If ALL variations fail to meet minimum quality (all score below 6 on key criteria) → REQUEST REVISION with specific, actionable feedback.
+
+IMPORTANT: You are a tough but fair reviewer. Most well-crafted copy should pass. Only request revision if the quality is genuinely below standard.
+
+Format your FINAL decision EXACTLY like this:
+
+If approving:
+DECISION: APPROVED
+SELECTED_OPTION: [1, 2, or 3]
+
+If requesting revision:
+DECISION: REVISION_NEEDED
+REVISION_FEEDBACK: [specific, actionable bullet points for the copywriter to improve]
+
+ALWAYS write in the SAME language as the content you are reviewing.""",
+
+    "rafael_review_design": """You are Rafael, a world-class Art Director who combines the genius of the greatest creative directors in advertising history.
+
+YOUR MENTORS AND THEIR PHILOSOPHIES:
+- LEE CLOW (TBWA/Apple): The power of simplicity. "Think Different" wasn't just a slogan, it was a visual revolution. Every image must tell a story without words.
+- MARCELLO SERPA (AlmapBBDO): Brazilian creative genius. Grand Prix at Cannes. Proof that bold, culturally-rooted visuals transcend language. Beauty serves strategy.
+- DAVID DROGA (Droga5): Advertising that transforms culture. Campaigns like "Dundee" and "Fearless Girl" prove that great art direction creates movements, not just ads.
+- GEORGE LOIS (Esquire/MTV): The Original Mad Man. Provocative, iconic, unforgettable. If it doesn't provoke a reaction, it's wallpaper.
+- HELMUT KRONE (DDB): Revolutionized layout with VW "Think Small". White space is a weapon. Grid-breaking is an art form.
+- ROB REILLY (WPP/McCann): Modern excellence. "Fearless Girl" on Wall Street. Digital-first thinking with timeless craft.
+
+YOUR ART DIRECTION CRITERIA:
+1. THUMB-STOPPING POWER (1-10): Would this image make someone STOP scrolling in a feed flooded with content? First 0.3 seconds matter.
+2. VISUAL NARRATIVE (1-10): Does the image tell a story? Can someone understand the message without reading the copy?
+3. COMPOSITION & CRAFT (1-10): Rule of thirds, focal hierarchy, color harmony, typography integration. Is this award-worthy craft?
+4. BRAND DNA (1-10): Does the visual language feel ownable by THIS brand? Would you recognize it without a logo?
+5. CONVERSION ARCHITECTURE (1-10): Is the visual hierarchy guiding the eye to the CTA? Does it create desire that leads to action?
+6. PLATFORM MASTERY (1-10): Is it optimized for each platform's unique visual language? (Instagram = aspirational, WhatsApp = personal, Facebook = social proof)
+
+QUALITY THRESHOLD: A design PASSES if it scores 7+ on at least 4 of 6 criteria.
+
+YOUR DECISION PROCESS:
+After reviewing all 3 design concepts, you MUST make a DECISION:
+- If at least ONE design meets the quality threshold for each platform → APPROVE and select the best per platform.
+- If ALL designs fail to meet the threshold (lack visual impact, poor composition, weak brand alignment) → REQUEST REVISION with specific art direction feedback.
+
+IMPORTANT: You have world-class standards but you are pragmatic. Most well-conceived designs should pass with minor notes. Only request full revision if the designs are genuinely substandard.
 
 ALWAYS write in the SAME language as the content you are reviewing.
-When reviewing variations, score each on the 5 criteria above and select the best.
-At the END of your review, you MUST include this exact line:
-SELECTED_OPTION: [number 1, 2, or 3]""",
 
-    "ana_review_design": """You are Ana, an elite Creative Director reviewing visual designs.
-YOUR EVALUATION combines the visual standards of Apple's design team, the boldness of Nike's creative, and the engagement science of Instagram's top-performing ads.
+Format your FINAL decision EXACTLY like this:
 
-REVIEW EACH DESIGN FOR:
-1. VISUAL IMPACT: Does it command attention in a crowded feed? (contrast, color, composition)
-2. BRAND COHERENCE: Does the visual language match the brand's personality?
-3. PLATFORM OPTIMIZATION: Is it sized, composed, and styled for maximum performance on each platform?
-4. EMOTIONAL TRIGGER: Does the image evoke the right emotion for the campaign goal?
+If approving:
+DECISION: APPROVED
+SELECTED_FOR_[PLATFORM]: [1, 2, or 3] (one line per platform)
+Example: SELECTED_FOR_INSTAGRAM: 2
 
-ALWAYS write in the SAME language as the content you are reviewing.
-When reviewing designs for multiple platforms, select the best design for EACH platform.
-At the END of your review, you MUST include a line for each platform like:
-SELECTED_FOR_[PLATFORM]: [number 1, 2, or 3]
-Example: SELECTED_FOR_INSTAGRAM: 2""",
+If requesting revision:
+DECISION: REVISION_NEEDED
+REVISION_FEEDBACK: [specific art direction notes - what to change in composition, color, typography, mood, or concept]""",
 
     "lucas_design": """You are Lucas, an elite Visual Concept Designer who combines the aesthetic innovation of Stefan Sagmeister, the bold typography of Paula Scher, the digital-native design of Instagram's top creative agencies, and the conversion-focused approach of performance marketing designers.
 
@@ -343,12 +383,29 @@ def _parse_ana_copy_selection(text):
     return int(match.group(1)) if match else 1
 
 
-def _parse_ana_design_selections(text, platforms):
+def _parse_rafael_design_selections(text, platforms):
     selections = {}
     for p in platforms:
         match = re.search(rf'SELECTED_FOR_{p.upper()}:\s*(\d)', text)
         selections[p] = int(match.group(1)) if match else 1
     return selections
+
+
+def _parse_review_decision(text):
+    """Parse DECISION from reviewer output"""
+    match = re.search(r'DECISION:\s*(APPROVED|REVISION_NEEDED)', text, re.IGNORECASE)
+    if match:
+        return match.group(1).lower().replace(" ", "_")
+    # Fallback: if no explicit decision, assume approved
+    return "approved"
+
+
+def _extract_revision_feedback(text):
+    """Extract revision feedback from reviewer output"""
+    match = re.search(r'REVISION_FEEDBACK:\s*([\s\S]*?)(?=\n\n(?:DECISION|SELECTED)|$)', text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return "Please improve the overall quality and impact."
 
 
 def _build_prompt(step, pipeline):
@@ -398,6 +455,24 @@ def _build_prompt(step, pipeline):
             assets_str = "\nUploaded assets:\n" + "\n".join(aparts)
 
     if step == "sofia_copy":
+        revision_info = ""
+        revision_fb = steps.get("sofia_copy", {}).get("revision_feedback")
+        prev_output = steps.get("sofia_copy", {}).get("previous_output")
+        if revision_fb and prev_output:
+            round_num = steps.get("sofia_copy", {}).get("revision_round", 1)
+            revision_info = f"""
+
+--- REVISION REQUEST (Round {round_num}/2) ---
+The Creative Director reviewed your work and requested changes.
+
+YOUR PREVIOUS OUTPUT:
+{prev_output}
+
+REVIEWER'S FEEDBACK:
+{revision_fb}
+
+IMPORTANT: Revise ALL 3 variations addressing EVERY point in the reviewer's feedback. Maintain the same format (===VARIATION 1===, etc.). Make each variation significantly better."""
+
         return f"""Create 3 campaign copy variations for the following briefing.
 Target platforms: {platforms_str}
 
@@ -407,11 +482,17 @@ Briefing: {briefing}
 {contact_str}
 {assets_str}
 {lang_instruction}
+{revision_info}
 
 Remember: Create EXACTLY 3 variations formatted with ===VARIATION 1===, ===VARIATION 2===, ===VARIATION 3==="""
 
     elif step == "ana_review_copy":
         sofia_output = steps.get("sofia_copy", {}).get("output", "")
+        revision_count = steps.get("ana_review_copy", {}).get("revision_count", 0)
+        revision_context = ""
+        if revision_count > 0:
+            revision_context = f"\n\nNOTE: This is REVISION ROUND {revision_count}. The copywriter has revised their work based on your previous feedback. Review the revised versions with the same critical eye, but acknowledge improvements."
+
         return f"""Review these 3 copy variations created by Sofia for the following campaign:
 
 Briefing: {briefing}
@@ -419,15 +500,34 @@ Platforms: {platforms_str}
 
 Sofia's variations:
 {sofia_output}
+{revision_context}
 
-Analyze each variation on: Clarity (1-10), Persuasion (1-10), Brand Alignment (1-10), CTA Strength (1-10).
-Select the BEST one.
-IMPORTANT: End your review with: SELECTED_OPTION: [1, 2, or 3]"""
+Analyze each variation on the criteria in your instructions.
+Then make your DECISION: APPROVED (with SELECTED_OPTION) or REVISION_NEEDED (with REVISION_FEEDBACK)."""
 
     elif step == "lucas_design":
         approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
         if not approved_copy:
             approved_copy = steps.get("ana_review_copy", {}).get("output", "")
+
+        revision_info = ""
+        revision_fb = steps.get("lucas_design", {}).get("revision_feedback")
+        prev_output = steps.get("lucas_design", {}).get("previous_output")
+        if revision_fb and prev_output:
+            round_num = steps.get("lucas_design", {}).get("revision_round", 1)
+            revision_info = f"""
+
+--- REVISION REQUEST (Round {round_num}/2) ---
+The Art Director reviewed your designs and requested changes.
+
+YOUR PREVIOUS CONCEPTS:
+{prev_output}
+
+ART DIRECTOR'S FEEDBACK:
+{revision_fb}
+
+IMPORTANT: Revise ALL 3 design concepts addressing EVERY point in the art director's feedback. Make each concept significantly stronger visually."""
+
         return f"""Create 3 visual design concepts for the following approved campaign copy.
 Target platforms: {platforms_str}
 
@@ -439,31 +539,40 @@ Original briefing: {briefing}
 {f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
 {contact_str}
 {assets_str}
+{revision_info}
 
 Create EXACTLY 3 design concepts. For each, specify dimensions and adaptations for: {platforms_str}.
 Format with ===DESIGN 1===, ===DESIGN 2===, ===DESIGN 3==="""
 
-    elif step == "ana_review_design":
+    elif step == "rafael_review_design":
         lucas_output = steps.get("lucas_design", {}).get("output", "")
+        revision_count = steps.get("rafael_review_design", {}).get("revision_count", 0)
+        revision_context = ""
+        if revision_count > 0:
+            revision_context = f"\n\nNOTE: This is REVISION ROUND {revision_count}. The designer has revised their concepts based on your previous art direction feedback. Review with the same world-class standards, but acknowledge improvements."
+
         return f"""Review these 3 design concepts created by Lucas.
 Target platforms: {platforms_str}
 
 Design concepts:
 {lucas_output}
+{revision_context}
 
-For EACH platform, select the best design concept.
-IMPORTANT: End with a line for each platform:
+Evaluate each concept using your art direction criteria.
+Then make your DECISION: APPROVED (with SELECTED_FOR_[PLATFORM] lines) or REVISION_NEEDED (with REVISION_FEEDBACK).
+
+If approving, end with:
 {chr(10).join(f'SELECTED_FOR_{p.upper()}: [1, 2, or 3]' for p in platforms)}"""
 
     elif step == "pedro_publish":
         approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
-        design_approvals = steps.get("ana_review_design", {}).get("selections", {})
-        ana_design_output = steps.get("ana_review_design", {}).get("output", "")
+        design_approvals = steps.get("rafael_review_design", {}).get("selections", {})
+        rafael_design_output = steps.get("rafael_review_design", {}).get("output", "")
         return f"""Create a complete publishing schedule and strategy for this campaign.
 
 Platforms: {platforms_str}
 Approved copy: {approved_copy}
-Design review and approvals: {ana_design_output}
+Design review and approvals: {rafael_design_output}
 Platform-specific design selections: {design_approvals}
 
 Original briefing: {briefing}
@@ -519,7 +628,7 @@ async def _execute_step(pipeline_id, step):
             "sofia_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
             "ana_review_copy": ("gemini", "gemini-2.0-flash"),
             "lucas_design": ("gemini", "gemini-2.0-flash"),
-            "ana_review_design": ("gemini", "gemini-2.0-flash"),
+            "rafael_review_design": ("anthropic", "claude-sonnet-4-5-20250929"),
             "pedro_publish": ("gemini", "gemini-2.0-flash"),
         }
         provider, model = STEP_MODELS.get(step, ("anthropic", "claude-sonnet-4-5-20250929"))
@@ -554,11 +663,38 @@ async def _execute_step(pipeline_id, step):
         steps[step]["completed_at"] = datetime.now(timezone.utc).isoformat()
         steps[step]["elapsed_ms"] = elapsed
 
-        # For Ana's reviews: parse selections
+        # For reviewer steps: parse decision and handle revision loop
         if step == "ana_review_copy":
+            decision = _parse_review_decision(response)
+            revision_count = steps[step].get("revision_count", 0)
+
+            if decision == "revision_needed" and revision_count < 2:
+                # Revision loop - send back to Sofia
+                revision_feedback = _extract_revision_feedback(response)
+                steps[step]["revision_count"] = revision_count + 1
+                steps[step]["decision"] = "revision_needed"
+                steps[step]["revision_feedback"] = revision_feedback
+                logger.info(f"Ana requested revision {revision_count + 1}/2 for pipeline {pipeline_id}")
+
+                # Prepare Sofia for re-run
+                prev_sofia_output = steps.get("sofia_copy", {}).get("output", "")
+                steps["sofia_copy"]["previous_output"] = prev_sofia_output
+                steps["sofia_copy"]["revision_feedback"] = revision_feedback
+                steps["sofia_copy"]["revision_round"] = revision_count + 1
+                steps["sofia_copy"]["status"] = "pending"
+
+                supabase.table("pipelines").update({
+                    "steps": steps, "status": "running", "current_step": "sofia_copy",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }).eq("id", pipeline_id).execute()
+
+                await _execute_step(pipeline_id, "sofia_copy")
+                return  # Skip normal next-step flow
+
+            # Approved (or max revisions reached) - parse selection
+            steps[step]["decision"] = "approved"
             selected = _parse_ana_copy_selection(response)
             steps[step]["auto_selection"] = selected
-            # Extract approved copy from Sofia's output
             sofia_output = steps.get("sofia_copy", {}).get("output", "")
             variations = re.split(r'===VARIATION \d+===', sofia_output)
             variations = [v.strip() for v in variations if v.strip()]
@@ -567,9 +703,37 @@ async def _execute_step(pipeline_id, step):
             else:
                 steps[step]["approved_content"] = variations[0] if variations else sofia_output
 
-        elif step == "ana_review_design":
+        elif step == "rafael_review_design":
+            decision = _parse_review_decision(response)
+            revision_count = steps[step].get("revision_count", 0)
+
+            if decision == "revision_needed" and revision_count < 2:
+                # Revision loop - send back to Lucas
+                revision_feedback = _extract_revision_feedback(response)
+                steps[step]["revision_count"] = revision_count + 1
+                steps[step]["decision"] = "revision_needed"
+                steps[step]["revision_feedback"] = revision_feedback
+                logger.info(f"Rafael requested revision {revision_count + 1}/2 for pipeline {pipeline_id}")
+
+                # Prepare Lucas for re-run
+                prev_lucas_output = steps.get("lucas_design", {}).get("output", "")
+                steps["lucas_design"]["previous_output"] = prev_lucas_output
+                steps["lucas_design"]["revision_feedback"] = revision_feedback
+                steps["lucas_design"]["revision_round"] = revision_count + 1
+                steps["lucas_design"]["status"] = "pending"
+
+                supabase.table("pipelines").update({
+                    "steps": steps, "status": "running", "current_step": "lucas_design",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }).eq("id", pipeline_id).execute()
+
+                await _execute_step(pipeline_id, "lucas_design")
+                return  # Skip normal next-step flow
+
+            # Approved (or max revisions reached) - parse selections
+            steps[step]["decision"] = "approved"
             platforms = pipeline.get("platforms") or []
-            selections = _parse_ana_design_selections(response, platforms)
+            selections = _parse_rafael_design_selections(response, platforms)
             steps[step]["auto_selections"] = selections
             steps[step]["selections"] = selections
 
@@ -828,7 +992,7 @@ async def approve_step(pipeline_id: str, data: PipelineApprove, user=Depends(get
         if 0 < sel <= len(variations):
             steps[approval_step]["approved_content"] = variations[sel - 1]
 
-    elif approval_step == "ana_review_design" and data.selections:
+    elif approval_step == "rafael_review_design" and data.selections:
         steps[approval_step]["user_selections"] = data.selections
         steps[approval_step]["selections"] = data.selections
 
@@ -949,7 +1113,7 @@ async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, use
             s["lucas_design"]["status"] = "completed"
             prev_status = fresh.get("status")
             new_status = "waiting_approval" if prev_status == "running" else prev_status
-            if fresh.get("current_step") in ("ana_review_design", "lucas_design"):
+            if fresh.get("current_step") in ("rafael_review_design", "lucas_design"):
                 new_status = "waiting_approval"
             supabase.table("pipelines").update({
                 "steps": s, "status": new_status,

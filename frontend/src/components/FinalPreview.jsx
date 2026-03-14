@@ -138,7 +138,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
   const [regenerating, setRegenerating] = useState(false);
   const fileInputRef = useRef(null);
 
-  const anaDesignSelections = steps.ana_review_design?.result?.auto_selections || {};
+  const anaDesignSelections = steps.rafael_review_design?.result?.auto_selections || {};
   const [selectedChannel, setSelectedChannel] = useState(platforms[0] || 'whatsapp');
 
   const getSelectedImageIndex = (channel) => {

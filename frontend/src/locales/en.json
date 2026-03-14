@@ -369,7 +369,7 @@
     "mode_semi": "Semi-Automatic",
     "mode_semi_desc": "Pauses for you to approve each step before continuing",
     "mode_auto": "Automatic",
-    "mode_auto_desc": "Ana decides on her own and the pipeline runs to the end",
+    "mode_auto_desc": "Agents decide on their own and the pipeline runs to the end",
     "start_pipeline_semi": "Start Semi-Automatic Pipeline",
     "start_pipeline_auto": "Start Automatic Pipeline",
     "starting": "Starting Pipeline...",

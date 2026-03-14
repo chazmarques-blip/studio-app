@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -31,11 +31,11 @@ const STEP_META = {
   sofia_copy: { agent: 'Sofia', role: 'Copywriter', icon: PenTool, color: '#C9A84C', estimatedSec: 30 },
   ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
   lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
-  ana_review_design: { agent: 'Ana', role: 'Revisora de Design', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
+  rafael_review_design: { agent: 'Rafael', role: 'Diretor de Arte', icon: Award, color: '#9B59B6', estimatedSec: 25 },
   pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
 };
 
-const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'ana_review_design', 'pedro_publish'];
+const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'pedro_publish'];
 
 const PLATFORMS = [
   { id: 'whatsapp', label: 'WhatsApp' },
@@ -153,10 +153,14 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
   const isGeneratingImages = status === 'generating_images';
   const needsApproval = pipelineStatus === 'waiting_approval' && (status === 'completed') &&
     ((step === 'ana_review_copy' && !data?.user_selection) ||
-     (step === 'ana_review_design' && !data?.user_selections));
+     (step === 'rafael_review_design' && !data?.user_selections));
   const isFailed = status === 'failed';
   const requiresUpgrade = status === 'requires_upgrade';
   const hasImages = data?.image_urls && data.image_urls.some(u => u);
+  const revisionRound = data?.revision_round || 0;
+  const revisionFeedback = data?.revision_feedback;
+  const reviewerDecision = data?.decision;
+  const reviewerRevisionCount = data?.revision_count || 0;
 
   return (
     <div data-testid={`step-card-${step}`} className={`rounded-xl border transition-all duration-300 ${
@@ -186,14 +190,19 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
         </div>
         <div className="flex-1 text-left min-w-0">
           <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#555] font-normal">- {meta.role}</span></p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />Processando...</span>}
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `Revisando (${revisionRound}/2)` : 'Processando...'}</span>}
             {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />Gerando imagens...</span>}
             {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Concluido</span>}
             {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />Aguardando sua aprovacao</span>}
             {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">Pendente</span>}
             {isFailed && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Falhou</span>}
             {requiresUpgrade && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><Crown size={8} /> Upgrade Necessario</span>}
+            {reviewerRevisionCount > 0 && (step === 'ana_review_copy' || step === 'rafael_review_design') && (
+              <span className="inline-flex items-center gap-1 text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400">
+                <RotateCcw size={7} />{reviewerRevisionCount} revisao(oes)
+              </span>
+            )}
           </div>
         </div>
         {data?.elapsed_ms && <span className="text-[8px] text-[#444] shrink-0 bg-[#111] px-1.5 py-0.5 rounded">{(data.elapsed_ms / 1000).toFixed(1)}s</span>}
@@ -203,6 +212,14 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
       {/* Progress Timer for running steps */}
       {(status === 'running' || isGeneratingImages) && data?.started_at && (
         <ProgressTimer startedAt={data.started_at} estimatedSec={isGeneratingImages ? 90 : meta.estimatedSec} color={meta.color} />
+      )}
+
+      {/* Revision feedback banner */}
+      {revisionFeedback && status === 'running' && (
+        <div className="mx-3 mb-2 px-3 py-2 rounded-lg bg-purple-500/5 border border-purple-500/20">
+          <p className="text-[8px] text-purple-400 uppercase tracking-wider font-semibold mb-0.5">Feedback do Revisor</p>
+          <p className="text-[9px] text-purple-300/80 line-clamp-3">{revisionFeedback}</p>
+        </div>
       )}
 
       {expanded && (data?.output || isFailed || requiresUpgrade) && (
@@ -254,7 +271,7 @@ function StepContent({ step, data, hasImages, isFailed, needsApproval, requiresU
         </div>
       )}
       {needsApproval && step === 'ana_review_copy' && <CopyApproval data={data} onApprove={onApprove} />}
-      {needsApproval && step === 'ana_review_design' && <DesignApproval data={data} onApprove={onApprove} images={images} pipelineId={pipelineId} onRefresh={onRefresh} />}
+      {needsApproval && step === 'rafael_review_design' && <DesignApproval data={data} onApprove={onApprove} images={images} pipelineId={pipelineId} onRefresh={onRefresh} />}
     </div>
   );
 }
@@ -332,7 +349,7 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
           </div>
         </div>
       )) : (
-        <p className="text-[9px] text-[#888]">Ana avaliou os designs. Clique para aprovar e publicar.</p>
+        <p className="text-[9px] text-[#888]">Rafael avaliou os designs. Clique para aprovar e publicar.</p>
       )}
       <button data-testid="approve-design-btn" onClick={handleApprove} disabled={submitting}
         className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
@@ -718,7 +735,9 @@ export default function PipelineView({ context }) {
       const { data } = await axios.get(`${API}/campaigns/pipeline/saved/history`);
       setSavedLogos(data.logos || []);
       setSavedBriefings(data.briefings || []);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load saved history:', err?.response?.status, err?.response?.data, err?.message);
+    }
   };
 
   useEffect(() => {
@@ -729,7 +748,7 @@ export default function PipelineView({ context }) {
     STEP_ORDER.forEach(s => {
       const st = steps[s];
       if (!st) return;
-      if (activePipeline.status === 'waiting_approval' && st.status === 'completed' && (s === 'ana_review_copy' || s === 'ana_review_design') && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
+      if (activePipeline.status === 'waiting_approval' && st.status === 'completed' && (s === 'ana_review_copy' || s === 'rafael_review_design') && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
       if (st.status === 'failed' && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
       if (st.status === 'requires_upgrade' && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
     });
@@ -1031,14 +1050,14 @@ export default function PipelineView({ context }) {
         {/* Pipeline Intro */}
         <div className="text-center py-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15">
-            {[PenTool, CheckCircle, Palette, CheckCircle, CalendarClock].map((Icon, i) => (
+            {[PenTool, CheckCircle, Palette, Award, CalendarClock].map((Icon, i) => (
               <div key={i} className="flex items-center gap-1">
                 {i > 0 && <ArrowRight size={8} className="text-[#333]" />}
                 <Icon size={12} style={{ color: Object.values(STEP_META)[i].color }} />
               </div>
             ))}
           </div>
-          <p className="text-[9px] text-[#555] mt-1.5">Sofia &rarr; Ana &rarr; Lucas &rarr; Ana &rarr; Pedro</p>
+          <p className="text-[9px] text-[#555] mt-1.5">Sofia &rarr; Ana &rarr; Lucas &rarr; Rafael &rarr; Pedro</p>
         </div>
 
         {/* Campaign Name */}
