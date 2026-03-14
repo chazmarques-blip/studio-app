@@ -300,12 +300,14 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
     pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
     brand_context = ""
     campaign_briefing = ""
+    campaign_language = "pt"
     if pipeline_data:
         p = pipeline_data[0]
         result_data = p.get("result", {})
         ctx = result_data.get("context", {})
         assets = result_data.get("uploaded_assets", [])
         campaign_briefing = p.get("briefing", "")
+        campaign_language = p.get("campaign_language", "pt")
 
         brand_parts = []
         if ctx.get("company"):
@@ -320,6 +322,15 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
                 brand_parts.append("Do NOT draw logos or leave placeholder spaces.")
         brand_context = " ".join(brand_parts) if brand_parts else ""
 
+    LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
+    lang_name = LANG_NAMES.get(campaign_language, "Portuguese")
+    LANG_HEADLINES = {
+        "pt": "O headline DEVE ser em Português do Brasil. Exemplos: 'TRANSFORME SEU NEGÓCIO', 'O FUTURO É AGORA', 'COMECE HOJE'",
+        "en": "The headline MUST be in English. Examples: 'TRANSFORM YOUR BUSINESS', 'THE FUTURE IS NOW', 'START TODAY'",
+        "es": "El headline DEBE ser en Español. Ejemplos: 'TRANSFORMA TU NEGOCIO', 'EL FUTURO ES AHORA', 'EMPIEZA HOY'"
+    }
+    lang_headline_instruction = LANG_HEADLINES.get(campaign_language, LANG_HEADLINES["pt"])
+
     # First, use Claude to extract image prompts from Lucas's descriptions
     try:
         chat = LlmChat(
@@ -328,14 +339,14 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
             system_message="""You are an expert prompt engineer for AI image generation (GPT Image 1). You create prompts that produce stunning, scroll-stopping social media marketing images.
 
 YOUR GOLDEN RULES:
-1. Each prompt describes a SINGLE powerful visual scene - like directing a photo shoot
-2. NEVER mention text, typography, words, letters, logos, brand names, CTA buttons, or any written content
-3. NEVER describe generic stock photography (people at desks, handshakes, smiling at cameras)
-4. Every image MUST contain visual elements SPECIFIC to the campaign's industry, product, or service
-5. Be HYPER-SPECIFIC: exact subjects, settings, lighting, camera angles, props, atmosphere
-6. Use CONCRETE visual elements, not abstractions - if it's about trucking, show trucks; if about AI, show futuristic interfaces and holograms
-7. Think like a TOP-TIER creative director: "What single image would SELL this product on Instagram?"
-8. Each prompt must be visually different from the others but all directly relevant to the campaign"""
+1. Each prompt describes a SINGLE powerful visual scene with ONE short headline text
+2. Include a SHORT HEADLINE (3-7 words) that captures the campaign's core message - this text will be rendered IN the image
+3. The headline must be impactful, action-oriented, and relevant to the campaign
+4. NEVER include logos, brand names, website URLs, or long paragraphs of text
+5. Be HYPER-SPECIFIC about visual elements: exact subjects, settings, lighting, camera angles, props
+6. Use CONCRETE visual elements from the campaign's actual industry/product/service
+7. Each prompt must be visually different but all directly relevant to the campaign
+8. The headline should be naturally integrated into the design composition"""
         ).with_model("gemini", "gemini-2.0-flash")
 
         extract_prompt = f"""Create 3 powerful image generation prompts for this specific campaign.
@@ -345,36 +356,47 @@ CAMPAIGN BRIEFING (the image MUST be directly relevant to this):
 
 {f'BRAND: {brand_context}' if brand_context else ''}
 
+CRITICAL LANGUAGE REQUIREMENT: The headline text in each image MUST be written in {lang_name}. This is mandatory.
+
 DESIGN CONCEPTS FROM THE ART TEAM:
 {concepts_text}
 
-YOUR TASK: Create 3 prompts that produce images DIRECTLY relevant to the campaign briefing above.
-- Each image must immediately communicate what this campaign is about
-- Include specific visual elements from the actual industry/product/service mentioned in the briefing
-- NEVER describe text, words, logos, or typography - only the visual scene
-- Be hyper-specific: exact subjects, settings, lighting, camera angles, mood
+FOR EACH PROMPT:
+- Describe the visual scene in detail (subjects, lighting, colors, mood, composition)
+- Include ONE SHORT HEADLINE TEXT (3-7 words in {lang_name}) to be rendered in the image
+- The headline should be the most impactful phrase that sells the campaign, written in {lang_name}
+- Include visual elements SPECIFIC to the campaign's product/industry
+- Do NOT include logos, brand names, or website URLs
 
 Return EXACTLY 3 prompts (80-120 words each):
-1. [Hero shot: the most powerful, direct visual representation of the campaign's core message]
-2. [Lifestyle angle: show the target audience benefiting from the product/service]
-3. [Creative metaphor: a bold, artistic visual that captures the campaign's promise emotionally]"""
+1. [Hero visual + {lang_name} headline: the most powerful direct image with an impactful headline]
+2. [Lifestyle angle + {lang_name} headline: target audience benefiting, with a different headline]
+3. [Creative/bold visual + {lang_name} headline: artistic approach with an emotional headline]"""
 
         response = await chat.send_message(UserMessage(text=extract_prompt))
         prompts = re.findall(r'\d+\.\s*(.+?)(?=\n\d+\.|$)', response, re.DOTALL)
         prompts = [p.strip() for p in prompts if p.strip()][:3]
 
         if len(prompts) < 3:
+            headline_examples = {"pt": ["TRANSFORME SEU NEGÓCIO", "O FUTURO É AGORA", "COMECE HOJE"],
+                                 "en": ["TRANSFORM YOUR BUSINESS", "THE FUTURE IS NOW", "START TODAY"],
+                                 "es": ["TRANSFORMA TU NEGOCIO", "EL FUTURO ES AHORA", "EMPIEZA HOY"]}
+            hl = headline_examples.get(campaign_language, headline_examples["pt"])
             prompts = [
-                f"Stunning commercial photography for a social media campaign. Professional studio lighting, rich colors, modern composition. Subject related to business innovation and technology. No text or logos in the image. Square format.",
-                f"Editorial-style lifestyle photography for a marketing campaign. Natural golden hour lighting, shallow depth of field, emotional moment. Subject related to business success and growth. No text or logos. Square format.",
-                f"Bold creative photography with dramatic lighting and vivid colors for a social media ad campaign. Subject showing professional achievement and modern technology. No text or logos. Square format.",
+                f"Stunning commercial photography for a marketing campaign. Include the headline text '{hl[0]}' in bold modern typography. Professional studio lighting, rich colors. Square format.",
+                f"Editorial-style photography for marketing. Include the headline text '{hl[1]}' in clean sans-serif font. Golden hour lighting, shallow depth of field. Square format.",
+                f"Bold creative photography with dramatic lighting for social media. Include the headline text '{hl[2]}' in impactful typography. Vivid colors, strong composition. Square format.",
             ]
     except Exception as e:
         logger.warning(f"Prompt extraction failed: {e}")
+        headline_examples = {"pt": ["TRANSFORME SEU NEGÓCIO", "ESCALE COM IA", "O FUTURO É AQUI"],
+                             "en": ["TRANSFORM YOUR BUSINESS", "SCALE WITH AI", "THE FUTURE IS HERE"],
+                             "es": ["TRANSFORMA TU NEGOCIO", "ESCALA CON IA", "EL FUTURO ES AQUÍ"]}
+        hl = headline_examples.get(campaign_language, headline_examples["pt"])
         prompts = [
-            "Professional commercial photography: a modern workspace bathed in warm golden light, sleek laptop and coffee, shallow depth of field, premium feel. No text or logos in the image.",
-            "Editorial lifestyle photography: confident professional in a modern glass office, dramatic natural lighting from large windows, cinematic color grading. No text or logos.",
-            "Creative product photography: abstract representation of digital innovation, glowing connections and circuits in dark blue and gold, futuristic and elegant. No text or logos.",
+            f"Professional commercial photography. Include the headline '{hl[0]}' in bold modern typography. Warm golden lighting, premium feel. No logos.",
+            f"Editorial lifestyle photography. Include the headline '{hl[1]}' in clean font. Natural lighting, cinematic. No logos.",
+            f"Creative futuristic photography with neon lighting. Include the headline '{hl[2]}' in bold typography. No logos.",
         ]
 
     # Find brand logo file path if uploaded
@@ -392,13 +414,12 @@ Return EXACTLY 3 prompts (80-120 words each):
     # Generate images sequentially to avoid overwhelming the API
     image_urls = []
     for i, prompt in enumerate(prompts):
-        briefing_context = f"Campaign context: {campaign_briefing[:200]}" if campaign_briefing else ""
         enhanced_prompt = f"""{prompt}
 
-{briefing_context}
+MANDATORY: Include ONE short, impactful headline text (3-7 words) in bold, clean, modern typography that captures the campaign's core message. {lang_headline_instruction}
 
 Technical requirements: Ultra high-quality, 4K commercial photography or premium digital art. Professional color grading. Magazine-cover composition. Square 1080x1080 format for {', '.join(platforms)}.
-The image must contain absolutely NO text, NO words, NO letters, NO logos, NO watermarks. Pure visual imagery only."""
+Do NOT include any logos, brand names, or website URLs. Only include the short headline text."""
         url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
         image_urls.append(url)
 
@@ -1205,7 +1226,7 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
 
     style_desc = STYLE_PROMPTS.get(body.style, STYLE_PROMPTS["professional"])
     prompt = body.prompt_override.strip() if body.prompt_override.strip() else f"Create a stunning visual for a marketing campaign about '{body.campaign_name or 'brand'}'. Focus on powerful visual storytelling through imagery."
-    prompt += f"\n\nVISUAL STYLE: {style_desc}\n\nABSOLUTE RULE: This image must contain ZERO text, ZERO words, ZERO letters, ZERO logos, ZERO watermarks. Pure visual imagery only. 1080x1080 square format."
+    prompt += f"\n\nVISUAL STYLE: {style_desc}\n\nINCLUDE one short impactful headline text (3-7 words) in bold clean typography. No logos or brand names. 1080x1080 square format."
 
     pid = f"single-{uuid.uuid4().hex[:8]}"
     url = await _generate_image(prompt, pid, 1)

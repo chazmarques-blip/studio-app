@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -62,6 +62,14 @@ function cleanCampaignText(raw) {
   const labels = 'Title|Titulo|Título|Copy|Texto|Headline|Body|CTA|Caption|Legenda|Subject|Assunto|Chamada|Subtítulo|Subtitle|Hashtags|Visual|Conceito|Concept|Plataforma|Platform|Dimensões|Dimensions|Adaptações|Call.to.Action';
   text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*[:：]\\s*`, 'gim'), '');
   text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*$`, 'gim'), '');
+  // Remove metadata lines (Framework, Platform Focus, etc.)
+  text = text.replace(/^.*Framework[:：].*$/gim, '');
+  text = text.replace(/^.*Platform\s*Focus[:：].*$/gim, '');
+  text = text.replace(/^.*Foco\s*da\s*Plataforma[:：].*$/gim, '');
+  text = text.replace(/^.*Formato[:：].*$/gim, '');
+  text = text.replace(/^.*Tom[:：].*$/gim, '');
+  text = text.replace(/^.*Estratégia[:：].*$/gim, '');
+  text = text.replace(/^.*Strategy[:：].*$/gim, '');
   text = text.replace(/={3,}.*?={3,}/g, '');
   text = text.replace(/^-{3,}\s*$/gm, '');
   text = text.replace(/\n{3,}/g, '\n\n').trim();
@@ -300,38 +308,141 @@ function CampaignDetail({ campaign, onClose }) {
 
           {tab === 'content' && (
             <>
-              {/* Campaign Images/Arts */}
+              {/* Platform-Specific Mockups */}
+              <div className="space-y-4">
+                <p className="text-[9px] text-[#555] uppercase tracking-wider">Campanha por Canal</p>
+                {channels.map((channel, idx) => {
+                  const imgUrl = images[idx % Math.max(images.length, 1)];
+                  const imgSrc = imgUrl ? `${process.env.REACT_APP_BACKEND_URL}${imgUrl}` : null;
+                  const channelMsg = messages.find(m => m.channel === channel);
+                  const copyText_ch = cleanCampaignText(channelMsg?.content || messages[0]?.content || '');
+                  const brandName = campaign.name?.split(' - ')[0]?.split(' ').slice(0, 3).join(' ') || 'Brand';
+
+                  if (channel === 'whatsapp') return (
+                    <div key={channel} data-testid="mockup-whatsapp-content">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ChannelIcon channel="whatsapp" active size={14} />
+                        <span className="text-[10px] font-semibold text-white">WhatsApp</span>
+                      </div>
+                      <div className="w-full max-w-[340px] mx-auto">
+                        <div className="bg-[#075E54] rounded-t-xl px-3 py-2 flex items-center gap-2">
+                          <ChevronLeft size={14} className="text-white/70" />
+                          <div className="w-6 h-6 rounded-full bg-[#C9A84C]/20 flex items-center justify-center text-[8px] text-[#C9A84C] font-bold">{brandName[0]}</div>
+                          <div className="flex-1"><p className="text-[10px] font-semibold text-white">{brandName}</p><p className="text-[7px] text-white/50">online</p></div>
+                        </div>
+                        <div className="bg-[#0B141A] px-2.5 py-3 min-h-[200px] rounded-b-xl">
+                          <div className="max-w-[85%] ml-auto">
+                            {imgSrc && <img src={imgSrc} alt="" className="w-full rounded-lg mb-1" />}
+                            <div className="bg-[#005C4B] rounded-xl rounded-tr-none px-3 py-2">
+                              <p className="text-[9px] text-[#E9EDEF] leading-relaxed whitespace-pre-wrap line-clamp-[12]">{copyText_ch}</p>
+                              <p className="text-[6px] text-[#ffffff40] text-right mt-1">10:30 ✓✓</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  if (channel === 'instagram') return (
+                    <div key={channel} data-testid="mockup-instagram-content">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ChannelIcon channel="instagram" active size={14} />
+                        <span className="text-[10px] font-semibold text-white">Instagram</span>
+                      </div>
+                      <div className="w-full max-w-[340px] mx-auto bg-black rounded-xl overflow-hidden border border-[#262626]">
+                        <div className="flex items-center gap-2 px-3 py-2">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[7px] text-white font-bold">{brandName[0]}</div>
+                          </div>
+                          <p className="text-[10px] font-semibold text-white flex-1">{brandName.toLowerCase().replace(/\s+/g, '')}</p>
+                          <MoreHorizontal size={12} className="text-white/50" />
+                        </div>
+                        {imgSrc && <img src={imgSrc} alt="" className="w-full aspect-square object-cover" />}
+                        <div className="px-3 py-2">
+                          <div className="flex items-center gap-3 mb-1.5">
+                            <Heart size={18} className="text-white" />
+                            <MessageCircle size={18} className="text-white" />
+                            <Send size={18} className="text-white" />
+                            <Bookmark size={18} className="text-white ml-auto" />
+                          </div>
+                          <p className="text-[9px] text-white/60 mb-1">1,247 likes</p>
+                          <p className="text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-6"><span className="font-bold">{brandName.toLowerCase().replace(/\s+/g, '')}</span> {copyText_ch}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  if (channel === 'facebook') return (
+                    <div key={channel} data-testid="mockup-facebook-content">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ChannelIcon channel="facebook" active size={14} />
+                        <span className="text-[10px] font-semibold text-white">Facebook</span>
+                      </div>
+                      <div className="w-full max-w-[340px] mx-auto bg-[#242526] rounded-xl overflow-hidden border border-[#3A3B3C]">
+                        <div className="flex items-center gap-2 px-3 py-2">
+                          <div className="w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center text-[9px] text-white font-bold">{brandName[0]}</div>
+                          <div className="flex-1"><p className="text-[10px] font-semibold text-[#E4E6EB]">{brandName}</p><p className="text-[7px] text-[#B0B3B8]">Patrocinado</p></div>
+                          <MoreHorizontal size={12} className="text-[#B0B3B8]" />
+                        </div>
+                        <p className="px-3 pb-2 text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-4">{copyText_ch}</p>
+                        {imgSrc && <img src={imgSrc} alt="" className="w-full" />}
+                        <div className="px-3 py-2 border-t border-[#3A3B3C] flex items-center justify-around">
+                          <span className="text-[9px] text-[#B0B3B8]">Like</span>
+                          <span className="text-[9px] text-[#B0B3B8]">Comment</span>
+                          <span className="text-[9px] text-[#B0B3B8] flex items-center gap-0.5"><Share2 size={10} /> Share</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+
+                  return (
+                    <div key={channel} data-testid={`mockup-${channel}-content`}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ChannelIcon channel={channel} active size={14} />
+                        <span className="text-[10px] font-semibold text-white capitalize">{channel}</span>
+                      </div>
+                      <div className="w-full max-w-[340px] mx-auto bg-[#111] rounded-xl border border-[#1A1A1A] p-3">
+                        {imgSrc && <img src={imgSrc} alt="" className="w-full rounded-lg mb-2" />}
+                        <p className="text-[9px] text-[#ccc] whitespace-pre-wrap line-clamp-6">{copyText_ch}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Download All Images */}
               {images.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Artes da Campanha</p>
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Download das Artes</p>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((url, i) => (
-                      <button key={i} onClick={() => setLightboxIdx(i)}
-                        className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-[#C9A84C]/30 transition">
-                        <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                          <Maximize2 size={16} className="text-white" />
-                        </div>
+                      <div key={i} className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group">
+                        <button onClick={() => setLightboxIdx(i)} className="w-full text-left">
+                          <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                            <Maximize2 size={16} className="text-white" />
+                          </div>
+                        </button>
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
                           <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
                           <a href={`${process.env.REACT_APP_BACKEND_URL}${url}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/60 hover:text-white">
                             <Download size={10} />
                           </a>
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* All Message Contents */}
+              {/* Copy texts for manual posting */}
               <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Textos das Mensagens</p>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Texto para Copiar</p>
                 {messages.map((m, i) => (
                   <div key={i} className="mb-2 rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[9px] font-semibold capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>
-                        Etapa {i + 1} — {m.channel}
+                        {m.channel === 'multi' ? 'Todas as Redes' : m.channel}
                       </span>
                       <button onClick={() => copyText(m.content)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
                         <Copy size={8} /> Copiar
