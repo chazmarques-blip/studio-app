@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
-import { X, Check, ChevronLeft, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Loader2, Pencil, Image as ImageIcon } from 'lucide-react';
+import { X, Check, ChevronLeft, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Loader2, Pencil, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND}/api`;
 const DEFAULT_LOGO = '/brand/logo.png';
 
 /* ── Text Cleaner ── */
@@ -132,6 +134,8 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCopy, setEditedCopy] = useState(null); // null = not edited yet
   const [customImages, setCustomImages] = useState([]);
+  const [selectedStyle, setSelectedStyle] = useState('');
+  const [regenerating, setRegenerating] = useState(false);
   const fileInputRef = useRef(null);
 
   const anaDesignSelections = steps.ana_review_design?.result?.auto_selections || {};
@@ -165,6 +169,22 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
       setCustomImages(prev => [...prev, { url: blobUrl, name: file.name }]);
     });
     e.target.value = '';
+  };
+
+  // Regenerate image with style
+  const handleRegenerateImage = async (style) => {
+    setRegenerating(true);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/pipeline/regenerate-single-image`, {
+        style, campaign_name: campaignName,
+      });
+      if (data.image_url) {
+        setCustomImages(prev => [...prev, { url: data.image_url, name: `${style}-${Date.now()}` }]);
+        setSelectedImage(allImages.length); // Select the new image
+        toast.success(`Imagem "${style}" gerada!`);
+      }
+    } catch (e) { toast.error('Erro ao gerar imagem'); }
+    setRegenerating(false);
   };
 
   const allImages = [...images, ...customImages.map(c => c.url)];
@@ -248,6 +268,33 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
               <ImageIcon size={14} className="text-[#444] group-hover:text-[#C9A84C]" />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
+          </div>
+
+          {/* Style Selector for Image Regeneration */}
+          <div className="w-full max-w-[320px]">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <RefreshCw size={10} className="text-[#555]" />
+              <p className="text-[8px] text-[#555] uppercase tracking-wider">Gerar nova imagem com estilo</p>
+              {regenerating && <Loader2 size={10} className="text-[#C9A84C] animate-spin" />}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[
+                { key: 'minimalist', label: 'Minimalista' },
+                { key: 'vibrant', label: 'Vibrante' },
+                { key: 'luxury', label: 'Luxo' },
+                { key: 'corporate', label: 'Corporativo' },
+                { key: 'playful', label: 'Divertido' },
+                { key: 'bold', label: 'Ousado' },
+                { key: 'organic', label: 'Organico' },
+                { key: 'tech', label: 'Tech' },
+              ].map(s => (
+                <button key={s.key} disabled={regenerating}
+                  onClick={() => { setSelectedStyle(s.key); handleRegenerateImage(s.key); }}
+                  className={`rounded-md px-2 py-1 text-[9px] border transition disabled:opacity-30 ${selectedStyle === s.key && regenerating ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white hover:border-[#333]'}`}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Text Editing */}

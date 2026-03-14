@@ -704,6 +704,15 @@ export default function PipelineView({ context }) {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
+  const deleteSavedLogo = async (url) => {
+    try {
+      await axios.delete(`${API}/campaigns/pipeline/saved/logo?url=${encodeURIComponent(url)}`);
+      setSavedLogos(prev => prev.filter(l => l.url !== url));
+      setUploadedAssets(prev => prev.filter(a => !(a.url === url && a.type === 'logo')));
+      toast.success('Logo removido');
+    } catch { toast.error('Erro ao remover logo'); }
+  };
+
   const loadSavedHistory = async () => {
     try {
       const { data } = await axios.get(`${API}/campaigns/pipeline/saved/history`);
@@ -1181,16 +1190,22 @@ export default function PipelineView({ context }) {
                 {savedLogos.map((logo, i) => {
                   const isSelected = uploadedAssets.some(a => a.url === logo.url && a.type === 'logo');
                   return (
-                    <button key={i} onClick={() => {
-                      if (isSelected) {
-                        setUploadedAssets(prev => prev.filter(a => !(a.url === logo.url && a.type === 'logo')));
-                      } else {
-                        setUploadedAssets(prev => [...prev.filter(a => a.type !== 'logo'), { url: logo.url, type: 'logo', filename: logo.filename }]);
-                      }
-                    }}
-                      className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.3)]' : 'border-[#1E1E1E] opacity-60 hover:opacity-100'}`}>
-                      <img src={logo.url.startsWith('http') ? logo.url : `${process.env.REACT_APP_BACKEND_URL}${logo.url}`} alt={logo.filename} className="w-full h-full object-contain bg-black" />
-                    </button>
+                    <div key={i} className="relative group">
+                      <button onClick={() => {
+                        if (isSelected) {
+                          setUploadedAssets(prev => prev.filter(a => !(a.url === logo.url && a.type === 'logo')));
+                        } else {
+                          setUploadedAssets(prev => [...prev.filter(a => a.type !== 'logo'), { url: logo.url, type: 'logo', filename: logo.filename }]);
+                        }
+                      }}
+                        className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.3)]' : 'border-[#1E1E1E] opacity-60 hover:opacity-100'}`}>
+                        <img src={logo.url.startsWith('http') ? logo.url : `${process.env.REACT_APP_BACKEND_URL}${logo.url}`} alt={logo.filename} className="w-full h-full object-contain bg-black" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteSavedLogo(logo.url); }}
+                        className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[8px] font-bold hover:bg-red-500">
+                        X
+                      </button>
+                    </div>
                   );
                 })}
               </div>
