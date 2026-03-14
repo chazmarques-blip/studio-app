@@ -113,7 +113,7 @@ After all 3 copy variations, create a detailed IMAGE BRIEFING for the visual des
 This briefing tells the designer EXACTLY what images to create to maximize the campaign's impact.
 
 ===IMAGE BRIEFING===
-HEADLINE FOR IMAGE: [ONE powerful phrase, 3-7 words, in the campaign's language — this text WILL appear IN the image]
+HEADLINE FOR IMAGE: [ONE powerful phrase, 3-7 words, in the EXACT SAME language as the copy above — this text WILL appear IN the image. NEVER use a different language than the copy.]
 VISUAL CONCEPT 1: [Detailed description: main subject, setting, lighting, mood, camera angle, color palette. Be SPECIFIC to the product/industry — not generic stock photo vibes. Think award-winning advertising photography.]
 VISUAL CONCEPT 2: [Different angle: lifestyle/aspirational — show the TARGET AUDIENCE benefiting from the product/service. Emotional, human, relatable.]
 VISUAL CONCEPT 3: [Bold/creative: unexpected visual metaphor or dramatic composition that stops the scroll. Think Cannes Lions winner.]
@@ -177,7 +177,7 @@ YOUR ART DIRECTION CRITERIA:
 1. THUMB-STOPPING POWER (1-10): Would this image make someone STOP scrolling in a feed flooded with content? First 0.3 seconds matter.
 2. VISUAL NARRATIVE (1-10): Does the image tell a story? Can someone understand the message without reading the copy?
 3. COMPOSITION & CRAFT (1-10): Rule of thirds, focal hierarchy, color harmony, typography integration. Is this award-worthy craft?
-4. HEADLINE INTEGRATION (1-10): Is the headline text rendered clearly, legibly, and with IMPACT? Does the typography style match the campaign's tone? Is the headline in the CORRECT LANGUAGE?
+4. HEADLINE INTEGRATION (1-10): Is the headline text rendered clearly, legibly, and with IMPACT? Does the typography style match the campaign's tone? Is the headline in the CORRECT LANGUAGE? CRITICAL: If the headline language does NOT match the campaign copy language, this is an AUTOMATIC FAIL — score 0 and request revision.
 5. BRAND DNA (1-10): Does the visual language feel ownable by THIS brand? Would you recognize it without a logo?
 6. CONVERSION ARCHITECTURE (1-10): Is the visual hierarchy guiding the eye to the message? Does it create desire that leads to action?
 7. PLATFORM MASTERY (1-10): Is it optimized for each platform's unique visual language? (Instagram = aspirational, WhatsApp = personal, Facebook = social proof)
@@ -690,6 +690,9 @@ Each prompt MUST:
 3. Include: subject, setting, lighting, camera angle, color palette, mood, art style
 4. End with: "Ultra high-quality, 4K commercial photography. Square 1080x1080 format. NO logos, NO brand names, NO website URLs."
 
+CRITICAL LANGUAGE RULE: ALL text that appears in the image (headlines, overlays, CTAs) MUST be in the SAME language as the approved campaign copy. If the copy is in English, the image headline MUST be in English. If in Portuguese, in Portuguese. NEVER mix languages between copy and image text — this destroys campaign coherence.
+{lang_instruction}
+
 Format:
 ===DESIGN 1===
 Concept: [name]
@@ -712,6 +715,9 @@ Target platforms: {platforms_str}
 Design concepts:
 {lucas_output}
 {revision_context}
+
+CRITICAL LANGUAGE CHECK: Verify that ALL text/headlines in the image prompts are in the SAME language as the campaign copy. If the campaign copy is in English, ALL image text must be in English. If in Portuguese, ALL in Portuguese. Language mismatch between copy and image headlines is an AUTOMATIC REJECTION — request revision immediately with specific notes about which text needs to change to which language.
+{lang_instruction}
 
 Evaluate each concept using your art direction criteria.
 Then make your DECISION: APPROVED (with SELECTED_FOR_[PLATFORM] lines) or REVISION_NEEDED (with REVISION_FEEDBACK).
@@ -1001,13 +1007,13 @@ async def _execute_step(pipeline_id, step):
 
             # Determine best format based on platforms if not specified by LLM
             platforms = pipeline.get("platforms") or []
-            FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1792x1024", "square": "1024x1024"}
+            FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
             if not format_match:
                 if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
                     video_format = "vertical"
                 elif any(p in platforms for p in ["google_ads", "facebook"]):
                     video_format = "horizontal"
-            size = FORMAT_MAP.get(video_format, "1024x1792")
+            size = FORMAT_MAP.get(video_format, "720x1280")
 
             # Update status to generating_video
             steps[step]["output"] = response
