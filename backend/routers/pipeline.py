@@ -146,32 +146,40 @@ REVISION_FEEDBACK: [specific art direction notes - what to change in composition
 
 YOUR CORE PRINCIPLES:
 - SAGMEISTER: Design must evoke emotion. Every element has purpose. Negative space is powerful.
-- PAULA SCHER: Typography IS the design. Bold, expressive type creates instant impact.
-- PERFORMANCE DESIGN: High-contrast colors for thumb-stopping power. Hero image dominates. CTA placement follows eye-flow (Z-pattern for feeds, F-pattern for stories).
+- PAULA SCHER: Bold, expressive visual language creates instant impact.
+- PERFORMANCE DESIGN: High-contrast colors for thumb-stopping power. Hero imagery dominates. Visual storytelling drives conversion.
 
 YOUR VISUAL EXPERTISE BY PLATFORM:
-- Instagram Feed: 1:1 ratio, bold colors, minimal text (<20% rule), lifestyle imagery
-- Instagram Stories: 9:16, full-bleed, text overlays with contrast backgrounds, swipe-up cues
+- Instagram Feed: 1:1 ratio, bold colors, lifestyle imagery, aspirational mood
+- Instagram Stories: 9:16, full-bleed, immersive visual experience
 - WhatsApp: Clean, professional, readable on small screens, brand-forward
-- Facebook Ads: High contrast, clear value prop visible, social proof elements
+- Facebook Ads: High contrast, emotional imagery, social proof visual cues
 - TikTok: Raw/authentic aesthetic, trending visual styles, vertical-first
 
 DESIGN TECHNIQUES YOU MASTER:
 - Color Psychology: Red (urgency), Blue (trust), Gold (premium), Green (growth)
 - Composition: Rule of thirds, leading lines, focal point hierarchy
-- Modern Trends: Glassmorphism, gradients, 3D elements, bold sans-serif typography
-- Conversion Elements: Contrasting CTA buttons, directional cues, whitespace for readability
+- Modern Trends: Glassmorphism, gradients, 3D elements, cinematic photography
+- Visual Storytelling: Every image tells a story that resonates emotionally
+
+CRITICAL: Your design descriptions will be used to GENERATE IMAGES via AI.
+Your descriptions MUST focus on the VISUAL SCENE only:
+- Describe what the IMAGE looks like (subject, setting, lighting, colors, mood, perspective)
+- Do NOT describe text overlays, typography, CTA buttons, or logo placement
+- Do NOT mention "placeholder", "space for logo", or "text area"
+- Think like a PHOTOGRAPHER or ILLUSTRATOR describing the perfect shot
+- The text/copy will be overlaid SEPARATELY by a graphic designer later
 
 ALWAYS write in the SAME language the user writes to you.
 When asked, create EXACTLY 3 design concept variations with different visual approaches.
 Format each variation clearly with:
 ===DESIGN 1===
 Concept: [name]
-Description: [detailed visual description - scene, mood, composition]
-Colors: [specific hex palette with psychology reasoning]
-Typography: [specific font pairing and hierarchy]
-Layout: [detailed composition - focal points, text placement, visual flow]
-Platform Specs: [specific adaptations per platform]
+Visual Scene: [detailed description of what the IMAGE shows - subjects, setting, lighting, mood, perspective, camera angle]
+Color Palette: [specific hex colors with mood reasoning]
+Art Style: [photorealistic, editorial, 3D render, illustration, etc.]
+Mood & Emotion: [what feeling the image evokes]
+Platform Adaptations: [how the visual concept adapts per platform]
 ===DESIGN 2===
 ...
 ===DESIGN 3===
@@ -267,7 +275,7 @@ async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None)
             chat = LlmChat(
                 api_key=EMERGENT_KEY,
                 session_id=f"img-{pipeline_id}-{index}-{int(time.time())}-{attempt}",
-                system_message="You are a world-class professional graphic designer specialized in creating stunning marketing visuals. Generate high-quality, vibrant, professional marketing images with clean composition and impactful design. Do NOT include any text that says 'LOGO' or placeholder text. Create clean visual designs."
+                system_message="You are an award-winning commercial photographer and digital artist. Create stunning, high-resolution visuals for social media marketing campaigns. Your images must be: photorealistic or artistically striking, emotionally compelling, with professional lighting and composition. CRITICAL RULES: 1) NEVER render any text, words, letters, logos, or typography in the image. 2) NEVER include placeholder shapes like circles, rectangles, or blank spaces. 3) Create FULL compositions that fill the entire frame. 4) Focus on powerful visual storytelling through imagery alone."
             )
             chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
 
@@ -305,13 +313,11 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
 
         brand_parts = []
         if ctx.get("company"):
-            brand_parts.append(f"The brand name is '{ctx['company']}'. Include the text '{ctx['company']}' prominently in the design.")
-        if contact.get("website"):
-            brand_parts.append(f"Include the website '{contact['website']}' in the design.")
+            brand_parts.append(f"The brand is '{ctx['company']}'. Create visuals that evoke the brand's identity through imagery, colors, and mood - NOT through text rendered in the image.")
         if assets:
             logo_assets = [a for a in assets if a.get("type") == "logo"]
             if logo_assets:
-                brand_parts.append("CRITICAL: The brand has an official logo that must NOT be recreated, redrawn, or modified in ANY way. Do NOT generate or create a new logo. The official logo will be overlaid separately. Instead, leave a clear space or area in the design where the logo can be placed. Focus on the campaign visual, imagery, and text without attempting to recreate the logo.")
+                brand_parts.append("The brand has an official logo. Do NOT attempt to draw, recreate, or represent the logo in any way. Do NOT leave blank spaces, circles, or placeholders for a logo. Create a complete, full-bleed visual composition.")
             ref_assets = [a for a in assets if a.get("type") == "reference"]
             if ref_assets:
                 brand_parts.append(f"Use visual style inspired by {len(ref_assets)} reference image(s) provided: modern, professional aesthetic.")
@@ -323,19 +329,30 @@ async def _generate_design_images(pipeline_id, concepts_text, platforms):
         chat = LlmChat(
             api_key=EMERGENT_KEY,
             session_id=f"prompt-extract-{pipeline_id}-{int(time.time())}",
-            system_message="You extract image generation prompts from design concept descriptions. Return ONLY the prompts, one per line, numbered. Each prompt should be a detailed, visual description suitable for AI image generation. No explanations."
+            system_message="""You are an expert at creating image generation prompts for AI. You transform design concepts into prompts that produce stunning, high-impact marketing visuals.
+
+CRITICAL RULES for your prompts:
+1. NEVER include instructions to render text, words, typography, logos, CTAs, or buttons in the image
+2. NEVER ask for placeholder shapes, blank spaces, or logo areas
+3. Focus ONLY on the VISUAL SCENE: subject matter, lighting, mood, colors, composition, perspective
+4. Describe the image as if describing a photograph or illustration - NOT a graphic design layout
+5. Use cinematic language: "dramatic lighting", "shallow depth of field", "golden hour", "aerial perspective"
+6. Specify art style when relevant: photorealistic, editorial photography, 3D render, flat illustration, etc."""
         ).with_model("gemini", "gemini-2.0-flash")
 
-        extract_prompt = f"""Extract exactly 3 image generation prompts from these design concepts. Each prompt should describe the visual in detail (colors, composition, style, mood, text overlays). Keep prompts under 200 words each.
+        extract_prompt = f"""Transform these 3 design concepts into 3 powerful image generation prompts.
+
+Each prompt must describe ONLY the visual scene/photograph - NO text, NO logos, NO CTA buttons, NO typography.
+
 {brand_context}
 
 Design concepts:
 {concepts_text}
 
-Format:
-1. [detailed image prompt including any brand name text]
-2. [detailed image prompt including any brand name text]
-3. [detailed image prompt including any brand name text]"""
+Format (return EXACTLY 3 prompts):
+1. [visual-only prompt describing scene, lighting, mood, composition, colors, style - max 150 words]
+2. [visual-only prompt describing scene, lighting, mood, composition, colors, style - max 150 words]
+3. [visual-only prompt describing scene, lighting, mood, composition, colors, style - max 150 words]"""
 
         response = await chat.send_message(UserMessage(text=extract_prompt))
         prompts = re.findall(r'\d+\.\s*(.+?)(?=\n\d+\.|$)', response, re.DOTALL)
@@ -371,7 +388,17 @@ Format:
     # Generate images sequentially to avoid overwhelming the API
     image_urls = []
     for i, prompt in enumerate(prompts):
-        enhanced_prompt = f"{prompt}\n\nIMPORTANT STYLE DIRECTIVES: Ultra high quality, professional marketing campaign visual. Sharp details, vivid colors, clean composition. Do NOT include any text that reads 'LOGO' or any placeholder text. Suitable for {', '.join(platforms)} advertising. 1080x1080 square format."
+        enhanced_prompt = f"""{prompt}
+
+ABSOLUTE REQUIREMENTS:
+- Ultra high quality, 4K resolution feel, professional commercial photography or premium digital art
+- DO NOT render ANY text, words, letters, numbers, logos, watermarks, or typography
+- DO NOT include any placeholder shapes, circles, rectangles, or blank areas
+- Full-bleed composition filling the entire frame with no empty spaces
+- Rich, vibrant colors with professional color grading
+- Dramatic lighting with depth and dimension
+- Optimized for social media ({', '.join(platforms)}) - square 1080x1080 format
+- The image should be so visually striking that it stops someone from scrolling"""
         url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
         image_urls.append(url)
 
@@ -541,7 +568,16 @@ Original briefing: {briefing}
 {assets_str}
 {revision_info}
 
-Create EXACTLY 3 design concepts. For each, specify dimensions and adaptations for: {platforms_str}.
+CRITICAL INSTRUCTION: Your descriptions will be used to GENERATE IMAGES via AI. 
+Describe ONLY the VISUAL SCENE for each concept:
+- What subjects/objects appear in the image
+- The setting, environment, and atmosphere
+- Lighting conditions, camera angle, perspective
+- Color palette and mood
+- Art style (photorealistic, editorial, cinematic, etc.)
+DO NOT describe text overlays, typography, CTA buttons, or logo placement. The text will be added separately.
+
+Create EXACTLY 3 design concepts. For each, specify visual adaptations for: {platforms_str}.
 Format with ===DESIGN 1===, ===DESIGN 2===, ===DESIGN 3==="""
 
     elif step == "rafael_review_design":
@@ -1085,7 +1121,7 @@ async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, use
 
     # Build enhanced prompt with feedback
     original_prompt = old_prompts[idx]
-    enhanced_prompt = f"{original_prompt}. ADJUSTMENTS REQUESTED: {data.feedback}" if data.feedback else original_prompt
+    enhanced_prompt = f"{original_prompt}. ADJUSTMENTS: {data.feedback}. CRITICAL: Do NOT render any text, words, logos, or placeholder shapes. Full-bleed visual only." if data.feedback else original_prompt
 
     # Mark as regenerating
     lucas["status"] = "generating_images"
@@ -1156,20 +1192,20 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
     await _get_tenant(user)
 
     STYLE_PROMPTS = {
-        "minimalist": "Ultra minimalist design. Clean white space, single focal element, subtle color palette, Swiss design principles. Think Apple, Muji, Aesop.",
-        "vibrant": "Vibrant, energetic, high-saturation colors. Bold gradients, dynamic composition, youthful energy. Think Nike, Spotify, Fanta.",
-        "luxury": "Premium luxury aesthetic. Dark backgrounds, gold accents, elegant typography, sophisticated composition. Think Chanel, Rolex, Mercedes-Benz.",
-        "corporate": "Professional corporate design. Clean lines, trustworthy blue tones, structured grid, polished imagery. Think IBM, Microsoft, Deloitte.",
-        "playful": "Fun, playful, creative design. Rounded shapes, bright colors, illustrative elements, friendly vibe. Think Mailchimp, Slack, Duolingo.",
-        "bold": "Bold, high-contrast, attention-grabbing. Large typography, striking colors, strong visual hierarchy. Think Adidas, Supreme, Netflix.",
-        "organic": "Natural, organic, warm aesthetic. Earth tones, natural textures, handcrafted feel, authentic vibe. Think Whole Foods, Patagonia, Lush.",
-        "tech": "Modern tech aesthetic. Dark mode, neon accents, futuristic elements, geometric patterns. Think Tesla, SpaceX, Figma.",
-        "professional": "Clean professional marketing image with modern design, clear visual hierarchy, and impactful composition."
+        "minimalist": "Ultra minimalist composition. Single powerful focal element against vast negative space. Muted, desaturated palette with one accent color. Zen-like simplicity. Think Apple product photography, Muji campaigns, Aesop still life.",
+        "vibrant": "Explosion of saturated colors and dynamic energy. Bold complementary color clashes, motion blur effects, dramatic perspective. Youthful, electric atmosphere. Think Nike campaign photography, Spotify visual identity.",
+        "luxury": "Premium luxury photography. Rich dark backgrounds, dramatic studio lighting with gold/warm highlights, silk textures, shallow depth of field. Ultra-sophisticated mood. Think Chanel parfum ads, Rolex macro photography.",
+        "corporate": "Editorial business photography. Clean natural lighting, professional environment, confident subjects or pristine product shots. Trustworthy blue-gray color grading. Think Bloomberg editorial, McKinsey reports.",
+        "playful": "Joyful, whimsical visual storytelling. Bright candy colors, unexpected perspectives, playful subjects in dynamic poses. Warm, inviting, fun. Think Google campaigns, Mailchimp illustrations.",
+        "bold": "High-impact, stop-the-scroll photography. Extreme contrast, dramatic shadows, close-up details, powerful visual tension. Fearless composition. Think Nike Just Do It, Supreme drops.",
+        "organic": "Warm, natural, earthy photography. Golden hour lighting, natural textures (wood, linen, stone), warm earth tones, authentic lifestyle moments. Think Patagonia campaigns, artisanal brand photography.",
+        "tech": "Futuristic, sleek technology aesthetic. Dark environment with neon accent lighting, reflective surfaces, geometric precision, blue-purple color palette. Think Tesla reveal photography, SpaceX launch visuals.",
+        "professional": "High-end commercial photography. Studio-quality lighting, professional color grading, clean background, sharp focus on subject with natural bokeh. Magazine-cover quality."
     }
 
     style_desc = STYLE_PROMPTS.get(body.style, STYLE_PROMPTS["professional"])
-    prompt = body.prompt_override.strip() if body.prompt_override.strip() else f"Create a marketing campaign image for '{body.campaign_name or 'brand'}'. Style: {style_desc}"
-    prompt += f"\n\nVISUAL STYLE: {style_desc}\nIMPORTANT: Do NOT include any text that reads 'LOGO'. Create a clean visual design. 1080x1080 square format."
+    prompt = body.prompt_override.strip() if body.prompt_override.strip() else f"Create a stunning visual for a marketing campaign about '{body.campaign_name or 'brand'}'. Focus on powerful visual storytelling through imagery."
+    prompt += f"\n\nVISUAL STYLE: {style_desc}\n\nCRITICAL: Do NOT render any text, words, letters, logos, or typography in the image. Do NOT include placeholder shapes or blank spaces. Create a full-bleed, visually striking photograph or illustration. 1080x1080 square format."
 
     pid = f"single-{uuid.uuid4().hex[:8]}"
     url = await _generate_image(prompt, pid, 1)

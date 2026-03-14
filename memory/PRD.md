@@ -1,60 +1,59 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Build a mobile-first, no-code SaaS platform called "AgentZZ" for SMBs to deploy AI agents on social channels.
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows SMBs to deploy and configure pre-built AI agents on social media channels.
 
-## Tech Stack
-- Frontend: React, Tailwind CSS, shadcn-ui, Lucide Icons
-- Backend: FastAPI (Python) with background threading
-- Database: Supabase (PostgreSQL)
-- AI: Claude Sonnet, Gemini Flash, Gemini Nano Banana (via Emergent LLM Key)
+## Core Architecture
+- **Frontend:** React, Tailwind CSS, shadcn-ui, i18next, Framer Motion, recharts
+- **Backend:** FastAPI (Python)
+- **Database:** Supabase (PostgreSQL) + MongoDB
+- **AI Models:** Claude Sonnet 4.5 (copy, art direction), Gemini Flash (reviews, scheduling), Gemini Nano Banana (image generation)
+- **Auth:** JWT-based custom auth
 
 ## Implemented Features
 
-### Phase 1-5: Core Platform (COMPLETE)
-- Auth, Dashboard, Marketplace (20+ agents), Agent Config, Chat Omnichannel (mock), CRM Kanban, Leads, Analytics, Settings, Pricing, Multi-language (PT/EN/ES)
+### AI Marketing Studio (Phase 7) - COMPLETE
+- **Multi-Agent Pipeline:** Sofia (Copy) → Ana (Copy Review) → Lucas (Design) → Rafael (Art Director) → Pedro (Publisher)
+- **Rafael Art Director:** World-class art direction agent (Lee Clow, Marcello Serpa, David Droga, George Lois, Helmut Krone, Rob Reilly mindsets)
+- **Revision Loop:** Ana and Rafael can request up to 2 revisions from creators before approving
+- **High-Impact Image Generation:** AI-generated images focused on visual storytelling without text/logos/placeholders
+- **Guided Briefing:** Dual-mode (questionnaire + free-form), i18n (PT/EN/ES)
+- **Campaign Language Selector:** Independent of UI language
+- **Final Preview:** Realistic mockups for WhatsApp/Instagram/Facebook, text editing, custom image upload, style-based regeneration (8 styles)
+- **Asset Management:** Logo gallery, previous briefings, reference images
+- **Plan Gating:** Enterprise plan exclusive
 
-### Phase 6: Google Integration (COMPLETE)
-- Google OAuth, Calendar/Sheets selection per agent
+### Core Platform
+- Dynamic Dashboard with recharts
+- Agent Management & Marketplace
+- Google Calendar/Sheets Integration (Phase 6)
+- Omnichannel UI (mocked integrations)
+- Multi-language UI (PT/EN/ES)
+- Dark luxury theme (monochrome gold/black/white)
 
-### Phase 7: AI Marketing Studio (COMPLETE)
-- **Simplified Flow**: No Manual/Pipeline tabs - direct "Nova Campanha" flow
-- **Pipeline**: Sofia (Claude) -> Ana (Gemini Flash) -> Lucas (Gemini Flash + Nano Banana) -> Ana -> Pedro
-- **Guided Questionnaire**: 8-question professional questionnaire as alternative to free briefing
-- **Campaign Language Selector**: Generate content in any language (PT, EN, ES, FR, Haitian Creole, custom)
-- **i18n Support**: All studio labels/buttons follow user's language setting
-- **Image Generation**: Nano Banana with 3x retry and clean prompts (no logo embedding)
-- **Final Preview**: Channel-specific mockups (WhatsApp, Instagram, Facebook) with dynamic brand name/logo
-- **Text Editing**: Edit campaign text before publishing with save/cancel
-- **Custom Image Upload**: Upload own images alongside AI-generated ones
-- **Campaign Publishing**: Real backend endpoint creates/updates campaign in DB, redirects to dashboard
-- **Pipeline Management**: Archive old pipelines, campaign name as first field
+## Current Status
+- **Working:** All features above are functional
+- **Known Issue:** File uploads use ephemeral storage (/app/backend/uploads/)
 
-### Campaign Dashboard (COMPLETE)
-- Enhanced campaign cards with dates, channel badges, CPL
-- Campaign Detail modal with 3 tabs (Overview, Content, Results)
-- Clean text display (no raw markdown labels)
+## Backlog (Prioritized)
+### P1 - Critical
+- Migrate file uploads to persistent storage (Supabase Storage)
 
-## Key Files
-- /app/backend/routers/pipeline.py - Pipeline logic, AI agents, publish, archive
-- /app/frontend/src/components/PipelineView.jsx - Pipeline creation with questionnaire + language
-- /app/frontend/src/components/FinalPreview.jsx - Channel mockups, text edit, image upload, publish
-- /app/frontend/src/pages/MarketingStudio.jsx - Simplified studio (direct to pipeline)
-- /app/frontend/src/pages/Marketing.jsx - Campaign dashboard
+### P2 - High
+- Add TikTok as channel
+- Video generation agent (Sora 2)
+
+### P3 - Medium
+- Activate live channel integrations (WhatsApp, SMS, Telegram, Instagram, Facebook)
+- Admin Management System
+- Payment gateway integration
+
+### P4 - Low
+- Refactor PipelineView.jsx (1300+ lines) and pipeline.py (1200+ lines)
+- Terms of Use / Privacy Policy
+- Scalability hardening
 
 ## Credentials
-- Email: test@agentflow.com / Password: password123 / Plan: Enterprise
-
-## Backlog
-- P1: Add TikTok channel (mockup + platform option)
-- P1: Video creator agent with Sora 2 integration
-- P2: Phase 8 Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram, TikTok)
-- P2: Admin Dashboard, Payment Gateway (Stripe), Legal pages
-- P3: Refactor PipelineView.jsx (1000+ lines) and pipeline.py (800+ lines) into smaller modules
-- P3: Real analytics, A/B Testing
-
-## Notes
-- Campaign CPL values are simulated for demo
-- Channel integrations are mocked
-- Mockups are visual previews (not connected to real channel APIs)
-- AI cannot embed real logos into generated images - logos are shown in mockup chrome instead
+- Email: test@agentflow.com
+- Password: password123
+- Plan: Enterprise
