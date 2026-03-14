@@ -177,6 +177,29 @@ async def pause_campaign(campaign_id: str, user=Depends(get_current_user)):
     return {"status": "paused"}
 
 
+class VideoUrlUpdate(BaseModel):
+    video_url: str
+
+@router.put("/{campaign_id}/video")
+async def update_campaign_video(campaign_id: str, data: VideoUrlUpdate, user=Depends(get_current_user)):
+    """Associate a video URL with a campaign's stats"""
+    tenant = await _get_tenant(user)
+    current = supabase.table("campaigns").select("*").eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not current.data:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    existing_metrics = current.data[0].get("metrics") or {}
+    stats = existing_metrics.get("stats", {})
+    stats["video_url"] = data.video_url
+    existing_metrics["stats"] = stats
+    result = supabase.table("campaigns").update({
+        "metrics": existing_metrics,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", campaign_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Failed to update")
+    return _row_to_campaign(result.data[0])
+
+
 # ── Campaign Templates ──
 
 CAMPAIGN_TEMPLATES = [
