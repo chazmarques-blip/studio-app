@@ -8,69 +8,48 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - **Backend:** FastAPI (Python)
 - **Database:** Supabase (PostgreSQL) + Supabase Storage (pipeline-assets bucket)
 - **AI Models:**
-  - Copy/Art Direction: Claude Sonnet 4.5
-  - Speed tasks (reviews, scheduling): Gemini 2.0 Flash
-  - Image Generation: **Gemini Nano Banana (gemini-3-pro-image-preview)** — replaced GPT Image 1
+  - Sofia, Ana, Lucas, Rafael: Claude Sonnet 4.5 (max quality)
+  - Pedro (scheduling): Gemini 2.0 Flash (primary, reliable)
+  - All creative steps: Claude with Gemini fallback if 502
+  - Image Generation: Gemini Nano Banana (gemini-3-pro-image-preview)
   - All via emergentintegrations library with Emergent LLM Key
 - **Auth:** JWT-based custom auth
 
-## AI Agent Pipeline (Updated 2026-03-14)
-
-### Agent Roles & Flow
-1. **Sofia (Copywriter + Visual Strategist)** — Claude Sonnet → Creates copy (3 variations) AND a detailed IMAGE BRIEFING with visual concepts, headline, color direction, mood
-2. **Ana (Creative Director)** — Gemini Flash → Reviews copy quality + image briefing alignment. New: anti-cliché check, CTA per platform, briefing notes
-3. **Lucas (Visual Production Director)** — Gemini Flash → Receives Sofia's image briefing, translates into optimized Nano Banana prompts (80-120 words each, with headline text embedded)
-4. **Rafael (Art Director)** — Claude Sonnet → Reviews generated images. New: HEADLINE INTEGRATION criterion (readability, impact, language correctness). 7 criteria now (was 6)
-5. **Pedro (Publisher)** — Gemini Flash → Creates publishing schedule. New: LATAM regional timing (Brazil, Mexico, Colombia, Argentina, US Hispanic), KPI targets per platform
-
-### Key Changes (2026-03-14)
-- Sofia now creates IMAGE BRIEFING alongside copy — no more separate prompt extraction step
-- Lucas is a "translator" of Sofia's visual vision into technical prompts
-- Removed intermediate Gemini Flash prompt extraction step (was redundant with Lucas's new role)
-- Rafael now evaluates headline text quality in images (7th criterion)
-- Pedro now has regional LATAM timing data
+## AI Agent Pipeline
+1. **Sofia** — Claude Sonnet → Copy (3 variations) + IMAGE BRIEFING
+2. **Ana** — Claude Sonnet → Reviews copy + briefing alignment
+3. **Lucas** — Claude Sonnet → Translates Sofia's briefing into optimized Nano Banana prompts
+4. **Rafael** — Claude Sonnet → Reviews images (7 criteria including headline integration)
+5. **Pedro** — Gemini Flash → Publishing schedule with LATAM timing + KPIs
+- All creative steps have asyncio.wait_for timeout (120s) + Gemini fallback
 
 ## File Storage
-- **Supabase Storage** bucket: `pipeline-assets` (PUBLIC)
-- All images (generated + uploaded) stored persistently
-- Frontend uses `resolveImageUrl()` helper for backward compatibility
-- Legacy local mount at `/api/uploads` still exists as fallback
+- Supabase Storage bucket: `pipeline-assets` (PUBLIC, persistent)
+- Frontend uses `resolveImageUrl()` helper
+
+## UI Updates (2026-03-14)
+- Marketing page: Unified "Criar com AI Studio" button (was 2 separate buttons)
+- Delete: Inline confirmation (checkmark/X, no window.confirm)
 
 ## Implemented Features
-
-### AI Marketing Studio (Phase 7) - COMPLETE
+- AI Marketing Studio (Phase 7) — Complete
 - Multi-Agent Pipeline with revision loops
-- Guided Briefing (questionnaire + free-form), i18n (PT/EN/ES)
-- Platform Mockups for Instagram, WhatsApp, Facebook
-- Final Preview with style-based regeneration
-- Asset Management (logos, references)
-- Plan Gating (Enterprise exclusive)
-
-### Core Platform
-- Dynamic Dashboard with recharts
-- Agent Management & Marketplace
-- Google Calendar/Sheets Integration
-- Omnichannel UI (mocked integrations)
-- Multi-language UI (PT/EN/ES)
-- Dark luxury theme
-
-## Current Status
-- **Working:** All features functional. Delete button with inline confirmation.
-- **Image Model:** Nano Banana (gemini-3-pro-image-preview) — quality 8-9/10
-- **Storage:** Supabase Storage (persistent) — 67 files migrated
+- Guided Briefing, i18n, Platform Mockups
+- Core Platform (Dashboard, Agents, Google Integration, Omnichannel UI)
 
 ## Backlog (Prioritized)
-### P2 - High
+### P1 - High
+- Add Google Ads as platform/channel
 - Add TikTok as channel
-- Video generation agent (Sora 2)
 
-### P3 - Medium
+### P2 - Medium
+- Video generation agent (Sora 2)
 - Activate live channel integrations
 - Admin Management System
-- Payment gateway
 
-### P4 - Low
-- Refactor large files (PipelineView.jsx, pipeline.py)
+### P3 - Low
+- Payment gateway
+- Refactor large files
 - Terms of Use / Privacy Policy
 
 ## Credentials

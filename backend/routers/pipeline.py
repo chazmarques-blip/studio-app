@@ -706,18 +706,21 @@ async def _execute_step(pipeline_id, step):
         system = STEP_SYSTEMS.get(step, "")
 
         # All agents use Claude Sonnet 4.5 for maximum quality
+        # Pedro uses Gemini Flash as primary (scheduling task, not creative)
         STEP_MODELS = {
             "sofia_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
             "ana_review_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
             "lucas_design": ("anthropic", "claude-sonnet-4-5-20250929"),
             "rafael_review_design": ("anthropic", "claude-sonnet-4-5-20250929"),
-            "pedro_publish": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "pedro_publish": ("gemini", "gemini-2.0-flash"),
         }
         provider, model = STEP_MODELS.get(step, ("anthropic", "claude-sonnet-4-5-20250929"))
 
-        # Retry up to 2 times on transient errors
+        # Execute with strict timeout per attempt
         response = None
         last_error = None
+        timeout_per_attempt = 120  # 2 min max per attempt
+
         for attempt in range(3):
             try:
                 chat = LlmChat(
@@ -727,15 +730,39 @@ async def _execute_step(pipeline_id, step):
                 ).with_model(provider, model)
 
                 start = time.time()
-                response = await chat.send_message(UserMessage(text=prompt))
+                response = await asyncio.wait_for(
+                    chat.send_message(UserMessage(text=prompt)),
+                    timeout=timeout_per_attempt
+                )
                 elapsed = round((time.time() - start) * 1000)
                 break
+            except asyncio.TimeoutError:
+                last_error = TimeoutError(f"Step {step} timed out after {timeout_per_attempt}s on attempt {attempt+1}")
+                logger.warning(f"Pipeline step {step} attempt {attempt+1} timed out after {timeout_per_attempt}s")
             except Exception as retry_err:
                 last_error = retry_err
                 logger.warning(f"Pipeline step {step} attempt {attempt+1} failed: {retry_err}")
-                if attempt < 2:
-                    import asyncio
-                    await asyncio.sleep(2)
+
+            if attempt < 2:
+                await asyncio.sleep(2)
+
+        # Fallback to Gemini Flash if Claude failed (for creative steps)
+        if response is None and provider == "anthropic":
+            logger.info(f"Claude failed for {step}, falling back to gemini-2.0-flash")
+            try:
+                chat = LlmChat(
+                    api_key=EMERGENT_KEY,
+                    session_id=f"pipe-{pipeline_id}-{step}-fallback-{int(time.time())}",
+                    system_message=system
+                ).with_model("gemini", "gemini-2.0-flash")
+                start = time.time()
+                response = await asyncio.wait_for(
+                    chat.send_message(UserMessage(text=prompt)),
+                    timeout=timeout_per_attempt
+                )
+                elapsed = round((time.time() - start) * 1000)
+            except Exception as fb_err:
+                logger.error(f"Fallback also failed for {step}: {fb_err}")
 
         if response is None:
             raise last_error
