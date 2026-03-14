@@ -174,6 +174,8 @@ function CampaignDetail({ campaign, onClose }) {
   const status = STATUS_META[campaign.status] || STATUS_META.draft;
   const [tab, setTab] = useState('overview');
   const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [selectedChannel, setSelectedChannel] = useState(channels[0] || 'whatsapp');
+  const videoUrl = stats.video_url || '';
 
   const startDate = schedule.start_date || campaign.created_at?.split('T')[0];
   const endDate = schedule.end_date || null;
@@ -209,12 +211,6 @@ function CampaignDetail({ campaign, onClose }) {
             {startDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />Inicio: {new Date(startDate).toLocaleDateString('pt-BR')}</span>}
             {endDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />Fim: {new Date(endDate).toLocaleDateString('pt-BR')}</span>}
             {!endDate && <span className="text-[9px] text-[#444]">Sem data de encerramento</span>}
-          </div>
-          {/* Channels */}
-          <div className="flex gap-2 mt-1.5 items-center">
-            {ALL_PLATFORMS.map(p => (
-              <ChannelIcon key={p} channel={p} active={channels.includes(p)} size={14} />
-            ))}
           </div>
           {/* Tabs */}
           <div className="flex gap-1 mt-2.5">
@@ -311,22 +307,38 @@ function CampaignDetail({ campaign, onClose }) {
 
           {tab === 'content' && (
             <>
-              {/* Platform-Specific Mockups */}
-              <div className="space-y-4">
-                <p className="text-[9px] text-[#555] uppercase tracking-wider">Campanha por Canal</p>
-                {channels.map((channel, idx) => {
-                  const imgUrl = images[idx % Math.max(images.length, 1)];
+              {/* Channel Selector Header */}
+              <div data-testid="channel-selector-header">
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">Selecione o Canal</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {channels.map(ch => (
+                    <button key={ch} onClick={() => setSelectedChannel(ch)} data-testid={`channel-select-${ch}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
+                        selectedChannel === ch
+                          ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 shadow-[0_0_10px_rgba(201,168,76,0.1)]'
+                          : 'border-[#1A1A1A] bg-[#111] hover:border-[#333]'
+                      }`}>
+                      <ChannelIcon channel={ch} active={selectedChannel === ch} size={14} />
+                      <span className={`text-[9px] font-semibold capitalize ${selectedChannel === ch ? 'text-[#C9A84C]' : 'text-[#555]'}`}>
+                        {ch === 'google_ads' ? 'Google Ads' : ch}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Selected Channel Mockup */}
+              <div className="space-y-3" data-testid={`mockup-${selectedChannel}-content`}>
+                {(() => {
+                  const channel = selectedChannel;
+                  const imgUrl = images[channels.indexOf(channel) % Math.max(images.length, 1)];
                   const imgSrc = imgUrl ? resolveImageUrl(imgUrl) : null;
                   const channelMsg = messages.find(m => m.channel === channel);
                   const copyText_ch = cleanCampaignText(channelMsg?.content || messages[0]?.content || '');
                   const brandName = campaign.name?.split(' - ')[0]?.split(' ').slice(0, 3).join(' ') || 'Brand';
 
                   if (channel === 'whatsapp') return (
-                    <div key={channel} data-testid="mockup-whatsapp-content">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <ChannelIcon channel="whatsapp" active size={14} />
-                        <span className="text-[10px] font-semibold text-white">WhatsApp</span>
-                      </div>
+                    <div>
                       <div className="w-full max-w-[340px] mx-auto">
                         <div className="bg-[#075E54] rounded-t-xl px-3 py-2 flex items-center gap-2">
                           <ChevronLeft size={14} className="text-white/70" />
@@ -347,11 +359,7 @@ function CampaignDetail({ campaign, onClose }) {
                   );
 
                   if (channel === 'instagram') return (
-                    <div key={channel} data-testid="mockup-instagram-content">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <ChannelIcon channel="instagram" active size={14} />
-                        <span className="text-[10px] font-semibold text-white">Instagram</span>
-                      </div>
+                    <div>
                       <div className="w-full max-w-[340px] mx-auto bg-black rounded-xl overflow-hidden border border-[#262626]">
                         <div className="flex items-center gap-2 px-3 py-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
@@ -376,11 +384,7 @@ function CampaignDetail({ campaign, onClose }) {
                   );
 
                   if (channel === 'facebook') return (
-                    <div key={channel} data-testid="mockup-facebook-content">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <ChannelIcon channel="facebook" active size={14} />
-                        <span className="text-[10px] font-semibold text-white">Facebook</span>
-                      </div>
+                    <div>
                       <div className="w-full max-w-[340px] mx-auto bg-[#242526] rounded-xl overflow-hidden border border-[#3A3B3C]">
                         <div className="flex items-center gap-2 px-3 py-2">
                           <div className="w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center text-[9px] text-white font-bold">{brandName[0]}</div>
@@ -399,11 +403,7 @@ function CampaignDetail({ campaign, onClose }) {
                   );
 
                   if (channel === 'tiktok') return (
-                    <div key={channel} data-testid="mockup-tiktok-content">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <ChannelIcon channel="tiktok" active size={14} />
-                        <span className="text-[10px] font-semibold text-white">TikTok</span>
-                      </div>
+                    <div>
                       <div className="w-full max-w-[260px] mx-auto bg-black rounded-xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16', maxHeight: 420}}>
                         {imgSrc && <img src={imgSrc} alt="" className="w-full h-full object-cover absolute inset-0" />}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
@@ -422,13 +422,8 @@ function CampaignDetail({ campaign, onClose }) {
                   );
 
                   if (channel === 'google_ads') return (
-                    <div key={channel} data-testid="mockup-google-ads-content">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <ChannelIcon channel="google_ads" active size={14} />
-                        <span className="text-[10px] font-semibold text-white">Google Ads</span>
-                      </div>
+                    <div>
                       <div className="w-full max-w-[340px] mx-auto space-y-2">
-                        {/* Search Ad */}
                         <div className="bg-white rounded-xl overflow-hidden border border-[#ddd] p-3">
                           <div className="flex items-center gap-1 mb-1">
                             <span className="text-[8px] font-bold text-[#202124] bg-[#f1f3f4] px-1.5 py-0.5 rounded">Ad</span>
@@ -438,7 +433,6 @@ function CampaignDetail({ campaign, onClose }) {
                           <p className="text-[12px] font-medium text-[#1a0dab] leading-tight mb-0.5">{copyText_ch.split('\n')[0]?.substring(0, 60) || brandName} | Comece Agora</p>
                           <p className="text-[9px] text-[#4d5156] leading-relaxed line-clamp-2">{copyText_ch.substring(0, 120)}...</p>
                         </div>
-                        {/* Display Ad */}
                         {imgSrc && (
                           <div className="bg-white rounded-xl overflow-hidden border border-[#ddd]">
                             <img src={imgSrc} alt="" className="w-full aspect-[1.91/1] object-cover" />
@@ -457,19 +451,32 @@ function CampaignDetail({ campaign, onClose }) {
                   );
 
                   return (
-                    <div key={channel} data-testid={`mockup-${channel}-content`}>
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <ChannelIcon channel={channel} active size={14} />
-                        <span className="text-[10px] font-semibold text-white capitalize">{channel}</span>
-                      </div>
+                    <div>
                       <div className="w-full max-w-[340px] mx-auto bg-[#111] rounded-xl border border-[#1A1A1A] p-3">
                         {imgSrc && <img src={imgSrc} alt="" className="w-full rounded-lg mb-2" />}
                         <p className="text-[9px] text-[#ccc] whitespace-pre-wrap line-clamp-6">{copyText_ch}</p>
                       </div>
                     </div>
                   );
-                })}
+                })()}
               </div>
+
+              {/* Video Commercial */}
+              {videoUrl && (
+                <div data-testid="content-video-section">
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Video Comercial</p>
+                  <div className="max-w-[340px] mx-auto rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
+                    <video src={videoUrl} controls playsInline className="w-full" data-testid="content-video-player" />
+                  </div>
+                  <div className="max-w-[340px] mx-auto flex items-center gap-2 mt-1.5">
+                    <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
+                    <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+                      className="ml-auto text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+                      <Download size={9} /> Baixar
+                    </a>
+                  </div>
+                </div>
+              )}
 
               {/* Download All Images */}
               {images.length > 0 && (
