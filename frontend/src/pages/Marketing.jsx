@@ -246,7 +246,8 @@ function PreviewModal({ campaign, onClose, labels }) {
 }
 
 /* ── Campaign Detail Modal ── */
-function CampaignDetail({ campaign, onClose, labels }) {
+function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
+  const [campaign, setCampaign] = useState(initialCampaign);
   const stats = campaign.stats || {};
   const images = stats.images || [];
   const messages = campaign.messages || [];
@@ -259,6 +260,12 @@ function CampaignDetail({ campaign, onClose, labels }) {
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState(channels[0] || 'whatsapp');
   const videoUrl = stats.video_url || '';
+
+  useEffect(() => {
+    axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/${initialCampaign.id}`)
+      .then(res => setCampaign(res.data))
+      .catch(() => {});
+  }, [initialCampaign.id]);
 
   const startDate = schedule.start_date || campaign.created_at?.split('T')[0];
   const endDate = schedule.end_date || null;
