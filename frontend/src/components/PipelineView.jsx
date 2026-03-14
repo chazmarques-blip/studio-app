@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -33,10 +33,11 @@ const STEP_META = {
   ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
   lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
   rafael_review_design: { agent: 'Rafael', role: 'Diretor de Arte', icon: Award, color: '#9B59B6', estimatedSec: 25 },
+  marcos_video: { agent: 'Marcos', role: 'Videomaker', icon: Film, color: '#E74C3C', estimatedSec: 300 },
   pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
 };
 
-const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'pedro_publish'];
+const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'marcos_video', 'pedro_publish'];
 
 const PLATFORMS = [
   { id: 'whatsapp', label: 'WhatsApp' },
@@ -154,12 +155,15 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
   const Icon = meta.icon;
   const status = data?.status || 'pending';
   const isGeneratingImages = status === 'generating_images';
+  const isGeneratingVideo = status === 'generating_video';
+  const isGenerating = isGeneratingImages || isGeneratingVideo;
   const needsApproval = pipelineStatus === 'waiting_approval' && (status === 'completed') &&
     ((step === 'ana_review_copy' && !data?.user_selection) ||
      (step === 'rafael_review_design' && !data?.user_selections));
   const isFailed = status === 'failed';
   const requiresUpgrade = status === 'requires_upgrade';
   const hasImages = data?.image_urls && data.image_urls.some(u => u);
+  const hasVideo = !!data?.video_url;
   const revisionRound = data?.revision_round || 0;
   const revisionFeedback = data?.revision_feedback;
   const reviewerDecision = data?.decision;
@@ -167,7 +171,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
 
   return (
     <div data-testid={`step-card-${step}`} className={`rounded-xl border transition-all duration-300 ${
-      isActive || isGeneratingImages ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
+      isActive || isGenerating ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
       needsApproval ? 'border-amber-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(245,158,11,0.08)]' :
       isFailed ? 'border-red-500/30 bg-[#0D0D0D]' :
       requiresUpgrade ? 'border-[#C9A84C]/40 bg-[#0D0D0D]' :
@@ -176,7 +180,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
     }`}>
       <button onClick={onToggle} className="w-full px-3 py-2.5 flex items-center gap-2.5">
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 transition-all ${isActive ? 'animate-pulse' : ''}`} style={{ backgroundColor: `${meta.color}15` }}>
-          {status === 'running' || isGeneratingImages ? (
+          {status === 'running' || isGenerating ? (
             <div className="relative">
               <Loader2 size={16} className="animate-spin" style={{ color: meta.color }} />
               <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: meta.color }} />
@@ -196,6 +200,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `Revisando (${revisionRound}/2)` : 'Processando...'}</span>}
             {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />Gerando imagens...</span>}
+            {isGeneratingVideo && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400"><Film size={8} className="animate-spin" />Gerando video comercial...</span>}
             {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Concluido</span>}
             {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />Aguardando sua aprovacao</span>}
             {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">Pendente</span>}
@@ -213,8 +218,8 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
       </button>
 
       {/* Progress Timer for running steps */}
-      {(status === 'running' || isGeneratingImages) && data?.started_at && (
-        <ProgressTimer startedAt={data.started_at} estimatedSec={isGeneratingImages ? 90 : meta.estimatedSec} color={meta.color} />
+      {(status === 'running' || isGenerating) && data?.started_at && (
+        <ProgressTimer startedAt={data.started_at} estimatedSec={isGeneratingVideo ? 300 : isGeneratingImages ? 90 : meta.estimatedSec} color={meta.color} />
       )}
 
       {/* Revision feedback banner */}
@@ -226,7 +231,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
       )}
 
       {expanded && (data?.output || isFailed || requiresUpgrade) && (
-        <StepContent step={step} data={data} hasImages={hasImages} isFailed={isFailed}
+        <StepContent step={step} data={data} hasImages={hasImages} hasVideo={hasVideo} isFailed={isFailed}
           needsApproval={needsApproval} requiresUpgrade={requiresUpgrade}
           onApprove={onApprove} pipelineId={pipelineId} onRefresh={onRefresh} />
       )}
@@ -234,7 +239,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
   );
 }
 
-function StepContent({ step, data, hasImages, isFailed, needsApproval, requiresUpgrade, onApprove, pipelineId, onRefresh }) {
+function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval, requiresUpgrade, onApprove, pipelineId, onRefresh }) {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const images = (data?.image_urls || []).filter(u => u);
 
@@ -243,6 +248,29 @@ function StepContent({ step, data, hasImages, isFailed, needsApproval, requiresU
       {data?.output && (
         <div className="mt-2 rounded-lg bg-[#111] p-3 max-h-[300px] overflow-y-auto">
           <pre className="text-[10px] text-[#aaa] whitespace-pre-wrap leading-relaxed font-sans">{data.output}</pre>
+        </div>
+      )}
+      {hasVideo && data.video_url && (
+        <div className="mt-2">
+          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={10} className="text-red-400" /> Video Comercial Gerado</p>
+          <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
+            <video
+              data-testid="pipeline-video-player"
+              src={data.video_url}
+              controls
+              playsInline
+              className="w-full max-h-[400px]"
+              poster=""
+            />
+          </div>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{data.video_duration || 12}s</span>
+            <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded capitalize">{data.video_format || 'vertical'}</span>
+            <a href={data.video_url} target="_blank" rel="noopener noreferrer"
+              className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
+              <Download size={10} /> Baixar Video
+            </a>
+          </div>
         </div>
       )}
       {hasImages && (
@@ -369,6 +397,7 @@ function CompletedSummary({ pipeline }) {
   const rawCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
   const approvedCopy = cleanDisplayText(rawCopy);
   const images = steps.lucas_design?.image_urls?.filter(u => u) || [];
+  const videoUrl = steps.marcos_video?.video_url || '';
   const rawSchedule = steps.pedro_publish?.output || '';
   const schedule = cleanDisplayText(rawSchedule);
   const [activeTab, setActiveTab] = useState('preview');
@@ -399,6 +428,7 @@ function CompletedSummary({ pipeline }) {
             { id: 'preview', label: 'Preview Completo', icon: Eye },
             { id: 'copy', label: 'Copy Final', icon: FileText },
             { id: 'images', label: `Imagens (${images.length})`, icon: Image },
+            ...(videoUrl ? [{ id: 'video', label: 'Video', icon: Film }] : []),
             { id: 'schedule', label: 'Cronograma', icon: CalendarClock },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`summary-tab-${tab.id}`}
@@ -445,6 +475,14 @@ function CompletedSummary({ pipeline }) {
                 </div>
               </div>
             )}
+            {videoUrl && (
+              <div>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1 flex items-center gap-1"><Film size={9} className="text-red-400" /> Video Comercial</p>
+                <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
+                  <video src={videoUrl} controls playsInline className="w-full max-h-[250px]" data-testid="summary-video-player" />
+                </div>
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'copy' && (
@@ -481,6 +519,22 @@ function CompletedSummary({ pipeline }) {
             ) : (
               <p className="text-[10px] text-[#555] text-center py-4">Nenhuma imagem gerada</p>
             )}
+          </div>
+        )}
+        {activeTab === 'video' && videoUrl && (
+          <div>
+            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={9} className="text-red-400" /> Video Comercial (12s)</p>
+            <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
+              <video src={videoUrl} controls playsInline autoPlay muted className="w-full max-h-[400px]" data-testid="summary-video-tab-player" />
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">12 segundos</span>
+              <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
+              <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+                className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
+                <Download size={10} /> Baixar Video
+              </a>
+            </div>
           </div>
         )}
         {activeTab === 'schedule' && (
@@ -1053,14 +1107,14 @@ export default function PipelineView({ context }) {
         {/* Pipeline Intro */}
         <div className="text-center py-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15">
-            {[PenTool, CheckCircle, Palette, Award, CalendarClock].map((Icon, i) => (
+            {[PenTool, CheckCircle, Palette, Award, Film, CalendarClock].map((Icon, i) => (
               <div key={i} className="flex items-center gap-1">
                 {i > 0 && <ArrowRight size={8} className="text-[#333]" />}
                 <Icon size={12} style={{ color: Object.values(STEP_META)[i].color }} />
               </div>
             ))}
           </div>
-          <p className="text-[9px] text-[#555] mt-1.5">Sofia &rarr; Ana &rarr; Lucas &rarr; Rafael &rarr; Pedro</p>
+          <p className="text-[9px] text-[#555] mt-1.5">Sofia &rarr; Ana &rarr; Lucas &rarr; Rafael &rarr; Marcos &rarr; Pedro</p>
         </div>
 
         {/* Campaign Name */}

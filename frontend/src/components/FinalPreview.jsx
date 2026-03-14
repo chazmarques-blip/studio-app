@@ -176,6 +176,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
   const campaignName = pipeline?.result?.campaign_name || 'Campanha';
   const assets = pipeline?.result?.uploaded_assets || [];
   const contextData = pipeline?.result?.context || {};
+  const videoUrl = steps.marcos_video?.video_url || '';
 
   // Derive brand name from campaign name first, then context
   const brandName = campaignName || contextData.company || 'Campanha';
@@ -387,6 +388,21 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
             <div className="w-full max-w-[320px] rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
               <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Cronograma (Pedro)</p>
               <pre className="text-[9px] text-[#999] whitespace-pre-wrap font-sans leading-relaxed line-clamp-6">{cleanText(schedule)}</pre>
+            </div>
+          )}
+
+          {/* Video Commercial */}
+          {videoUrl && (
+            <div className="w-full max-w-[320px]">
+              <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial (Marcos)</p>
+              <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
+                <video src={videoUrl} controls playsInline className="w-full" data-testid="final-preview-video" />
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[7px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">12s Sora 2</span>
+                <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+                  className="ml-auto text-[8px] text-[#C9A84C] hover:underline">Baixar</a>
+              </div>
             </div>
           )}
         </div>

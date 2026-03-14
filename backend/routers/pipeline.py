@@ -286,38 +286,45 @@ Create a detailed, actionable publishing schedule with:
 - KPI targets per platform (expected reach, engagement rate, click-through)
 - Budget allocation suggestion if applicable""",
 
-    "marcos_video": """You are Marcos, an elite AI Video Director who creates compelling short-form video prompts for Sora 2 AI video generation. You combine the cinematic vision of Roger Deakins, the storytelling of Martin Scorsese, and the social media mastery of top TikTok/Reels creators.
+    "marcos_video": """You are Marcos, an elite AI Commercial Director who creates broadcast-quality video concepts for Sora 2 AI video generation. You combine the cinematic vision of Roger Deakins, the commercial genius of Ridley Scott (Apple "1984"), the storytelling of Martin Scorsese, and the social-first creativity of the world's best Super Bowl commercial directors.
 
 YOUR CORE PRINCIPLES:
-- DEAKINS: Lighting is storytelling. Every frame must be visually stunning. Natural movement, no gimmicks.
+- DEAKINS: Every frame is a photograph. Lighting tells the story. Natural camera movement, no gimmicks.
+- RIDLEY SCOTT: 12 seconds is enough to tell a powerful story. Hook → Tension → Resolution → Brand Moment.
 - SCORSESE: Every second must serve the narrative. Hook in the first frame. Emotional payoff by the end.
-- SOCIAL MEDIA: Vertical (9:16) is king. Fast cuts work. Movement keeps attention. Text overlays boost retention.
+- SOCIAL MEDIA MASTERY: Vertical (9:16) dominates mobile feeds. The first 2 seconds decide everything.
 
-YOUR VIDEO EXPERTISE:
-- TikTok/Reels: 4-8 second loops, vertical format, hook in first frame, trending aesthetic
-- Instagram Stories: 15-second segments, swipe-up CTA, behind-the-scenes feel
-- YouTube Shorts: 15-30 seconds, value-packed, clear thumbnail moment
-- Google Ads Video: 6-15 seconds, product/benefit focus, CTA in final frame
+YOUR COMMERCIAL VIDEO EXPERTISE:
+- TikTok/Instagram Reels: 12-second vertical commercial, cinematic hook in first 2 frames, trending aesthetic
+- Instagram Stories: 12-second professional brand spot, aspirational narrative arc
+- Facebook: 12-second horizontal commercial, emotional product showcase with social proof cues
+- Google Ads Video: 12-second product-focused spot, benefit-led narrative, CTA in final 2 seconds
+
+NARRATIVE STRUCTURE FOR 12-SECOND COMMERCIAL:
+- Seconds 0-2: HOOK — Visual that demands attention (unexpected movement, striking color, dramatic reveal)
+- Seconds 2-6: STORY — Show the product/service benefit in action (transformation, lifestyle, aspiration)
+- Seconds 6-10: EMOTION — Peak emotional moment (satisfaction, desire, excitement, relief)
+- Seconds 10-12: PAYOFF — Brand moment + implicit CTA (the visual "mic drop")
 
 WHAT YOU PRODUCE:
 Based on the campaign's copy and visual direction, create ONE optimized video generation prompt.
-The prompt must describe a smooth, cinematic short video (4-8 seconds) that:
-1. Has a strong visual hook in the first frame
-2. Shows movement/motion that keeps attention
+The prompt describes a smooth, cinematic 12-second commercial that:
+1. Has a powerful visual hook in the first 2 seconds
+2. Shows fluid camera movement that builds narrative tension
 3. Relates directly to the campaign's product/service
-4. Evokes the right emotion (matching the copy's tone)
-5. Works as a loop (end connects visually to the start)
+4. Evokes the target emotion (matching the copy's tone)
+5. Ends with a visually memorable brand moment
 
 ALWAYS write in the SAME language the user writes to you.
 
 Format your output EXACTLY like this:
 ===VIDEO PROMPT===
-[Detailed video generation prompt, 60-100 words, describing the scene, camera movement, lighting, mood, subjects, and action sequence]
+[Detailed video generation prompt, 80-120 words, describing the complete 12-second narrative: opening shot, camera movement, subjects, lighting progression, mood evolution, and closing frame. Be cinematically specific.]
 ===VIDEO FORMAT===
-Format: [vertical/square/horizontal]
-Duration: [4/8/12]
+Format: [vertical/horizontal]
+Duration: 12
 ===VIDEO RATIONALE===
-[Brief explanation of why this video will stop scrollers and drive engagement]""",
+[Brief explanation of the commercial strategy: why this narrative sells, what emotion it triggers, and how it drives action]""",
 }
 
 
@@ -466,6 +473,33 @@ NO logos, NO brand names, NO website URLs."""
         image_urls.append(url)
 
     return image_urls, prompts
+
+
+def _generate_video_sync(prompt_text, pipeline_id, size="1024x1792", duration=12):
+    """Generate video using Sora 2 and upload to Supabase Storage (synchronous)"""
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            video_gen = OpenAIVideoGeneration(api_key=EMERGENT_KEY)
+            logger.info(f"Sora 2 video generation started (attempt {attempt+1}/{max_retries}): size={size}, duration={duration}s")
+            video_bytes = video_gen.text_to_video(
+                prompt=prompt_text,
+                model="sora-2",
+                size=size,
+                duration=duration,
+                max_wait_time=600
+            )
+            if video_bytes:
+                filename = f"videos/{pipeline_id}_{uuid.uuid4().hex[:6]}.mp4"
+                public_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+                logger.info(f"Video generated with Sora 2 and uploaded: {filename}")
+                return public_url
+            logger.warning(f"Sora 2 returned empty video bytes on attempt {attempt+1}")
+        except Exception as e:
+            logger.warning(f"Sora 2 attempt {attempt+1}/{max_retries} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(5)
+    return None
 
 
 def _parse_ana_copy_selection(text):
@@ -685,16 +719,45 @@ Then make your DECISION: APPROVED (with SELECTED_FOR_[PLATFORM] lines) or REVISI
 If approving, end with:
 {chr(10).join(f'SELECTED_FOR_{p.upper()}: [1, 2, or 3]' for p in platforms)}"""
 
+    elif step == "marcos_video":
+        approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
+        image_briefing = ""
+        sofia_output = steps.get("sofia_copy", {}).get("output", "")
+        briefing_match = re.search(r'===IMAGE BRIEFING===([\s\S]*?)$', sofia_output, re.IGNORECASE)
+        if briefing_match:
+            image_briefing = briefing_match.group(1).strip()
+
+        return f"""Create a 12-second commercial video concept for this campaign.
+
+Platforms: {platforms_str}
+Approved campaign copy: {approved_copy}
+Visual direction: {image_briefing}
+Original briefing: {briefing}
+{contact_str}
+{lang_instruction}
+
+Your video concept must follow the 12-second commercial narrative:
+- Seconds 0-2: HOOK (attention-grabbing opening)
+- Seconds 2-6: STORY (product/service in action)
+- Seconds 6-10: EMOTION (peak emotional moment)
+- Seconds 10-12: PAYOFF (brand moment)
+
+Output EXACTLY in the format specified in your instructions."""
+
     elif step == "pedro_publish":
         approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
         design_approvals = steps.get("rafael_review_design", {}).get("selections", {})
         rafael_design_output = steps.get("rafael_review_design", {}).get("output", "")
+        video_info = steps.get("marcos_video", {}).get("output", "")
+        has_video = bool(steps.get("marcos_video", {}).get("video_url"))
+        video_note = "\nA 12-second commercial video has been generated for this campaign. Include video posting strategy in your schedule (Reels, TikTok, YouTube Shorts, Google Ads Video)." if has_video else ""
         return f"""Create a complete publishing schedule and strategy for this campaign.
 
 Platforms: {platforms_str}
 Approved copy: {approved_copy}
 Design review and approvals: {rafael_design_output}
 Platform-specific design selections: {design_approvals}
+Video concept: {video_info}{video_note}
 
 Original briefing: {briefing}
 {contact_str}
@@ -702,7 +765,7 @@ Original briefing: {briefing}
 
 Create a detailed schedule with:
 - Best posting times per platform
-- Content adaptations per platform
+- Content adaptations per platform (including video for video-supporting platforms)
 - Recommended frequency
 - Timeline (next 7 days)
 - Any platform-specific considerations"""
@@ -751,6 +814,7 @@ async def _execute_step(pipeline_id, step):
             "ana_review_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
             "lucas_design": ("anthropic", "claude-sonnet-4-5-20250929"),
             "rafael_review_design": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "marcos_video": ("anthropic", "claude-sonnet-4-5-20250929"),
             "pedro_publish": ("gemini", "gemini-2.0-flash"),
         }
         provider, model = STEP_MODELS.get(step, ("anthropic", "claude-sonnet-4-5-20250929"))
@@ -912,6 +976,57 @@ async def _execute_step(pipeline_id, step):
             steps[step]["image_prompts"] = image_prompts
             steps[step]["status"] = "completed"
 
+        # Generate video for Marcos's video step
+        elif step == "marcos_video":
+            # Parse video prompt from Marcos's output
+            video_prompt = ""
+            video_format = "vertical"
+            video_duration = 12
+
+            prompt_match = re.search(r'===VIDEO PROMPT===([\s\S]*?)===VIDEO FORMAT===', response, re.IGNORECASE)
+            if prompt_match:
+                video_prompt = prompt_match.group(1).strip()
+            else:
+                video_prompt = response.strip()[:500]
+
+            format_match = re.search(r'Format:\s*(vertical|horizontal|square)', response, re.IGNORECASE)
+            if format_match:
+                video_format = format_match.group(1).lower()
+
+            duration_match = re.search(r'Duration:\s*(\d+)', response, re.IGNORECASE)
+            if duration_match:
+                dur = int(duration_match.group(1))
+                if dur in (4, 8, 12):
+                    video_duration = dur
+
+            # Determine best format based on platforms if not specified by LLM
+            platforms = pipeline.get("platforms") or []
+            FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1792x1024", "square": "1024x1024"}
+            if not format_match:
+                if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
+                    video_format = "vertical"
+                elif any(p in platforms for p in ["google_ads", "facebook"]):
+                    video_format = "horizontal"
+            size = FORMAT_MAP.get(video_format, "1024x1792")
+
+            # Update status to generating_video
+            steps[step]["output"] = response
+            steps[step]["status"] = "generating_video"
+            supabase.table("pipelines").update({
+                "steps": steps,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", pipeline_id).execute()
+
+            # Generate the actual video (sync, blocking - takes 2-5 min)
+            video_url = _generate_video_sync(video_prompt, pipeline_id, size, video_duration)
+            steps[step]["video_url"] = video_url
+            steps[step]["video_format"] = video_format
+            steps[step]["video_duration"] = video_duration
+            steps[step]["video_size"] = size
+            if not video_url:
+                logger.warning(f"Video generation failed for pipeline {pipeline_id}, continuing pipeline")
+            steps[step]["status"] = "completed"
+
         # Determine next pipeline status
         nxt = _next_step(step)
         mode = pipeline.get("mode", "semi_auto")
@@ -923,6 +1038,7 @@ async def _execute_step(pipeline_id, step):
                 approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
                 clean_copy = _clean_copy_text(approved_copy)
                 image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+                video_url = steps.get("marcos_video", {}).get("video_url", "")
                 schedule_text = steps.get("pedro_publish", {}).get("output", "")
                 ctx = pipeline.get("result", {}).get("context", {})
                 user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
@@ -937,7 +1053,7 @@ async def _execute_step(pipeline_id, step):
                         "target_segment": {"platforms": pipeline.get("platforms", [])},
                         "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
                         "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
-                        "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
+                        "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "video_url": video_url, "pipeline_id": pipeline_id},
                         "created_by": pipeline.get("tenant_id"),
                     },
                 }).execute()
@@ -1375,6 +1491,7 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
     approved_copy = body.edited_copy or steps.get("ana_review_copy", {}).get("approved_content", "")
     clean_copy = _clean_copy_text(approved_copy)
     image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+    video_url = steps.get("marcos_video", {}).get("video_url", "")
     schedule_text = steps.get("pedro_publish", {}).get("output", "")
     user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
     ctx = pipeline.get("result", {}).get("context", {})
@@ -1399,7 +1516,7 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
             "target_segment": {"platforms": pipeline.get("platforms", [])},
             "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
             "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
-            "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
+            "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "video_url": video_url, "pipeline_id": pipeline_id},
         },
     }
 
