@@ -79,6 +79,7 @@ function ProgressTimer({ startedAt, estimatedSec, color }) {
 
 /* ── Image Lightbox ── */
 function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate }) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(initialIndex || 0);
   const [showAdjust, setShowAdjust] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -151,6 +152,7 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
 }
 
 function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, onToggle, pipelineId, onRefresh }) {
+  const { t } = useTranslation();
   const meta = STEP_META[step];
   const Icon = meta.icon;
   const status = data?.status || 'pending';
@@ -308,6 +310,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
 }
 
 function CopyApproval({ data, onApprove }) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(data?.auto_selection || 1);
   const [submitting, setSubmitting] = useState(false);
   const autoSel = data?.auto_selection || 1;
@@ -393,6 +396,7 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
 
 /* ── Completed Pipeline Summary ── */
 function CompletedSummary({ pipeline }) {
+  const { t } = useTranslation();
   const steps = pipeline.steps || {};
   const rawCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
   const approvedCopy = cleanDisplayText(rawCopy);
@@ -558,6 +562,7 @@ function CompletedSummary({ pipeline }) {
 
 /* ── History Card ── */
 function HistoryCard({ pipeline, onSelect, onDelete }) {
+  const { t } = useTranslation();
   const steps = pipeline.steps || {};
   const completedCount = STEP_ORDER.filter(s => steps[s]?.status === 'completed').length;
   const hasImages = steps.lucas_design?.image_urls?.some(u => u);
@@ -770,13 +775,44 @@ export default function PipelineView({ context }) {
   const [showFinalPreview, setShowFinalPreview] = useState(false);
   const [savedLogos, setSavedLogos] = useState([]);
   const [savedBriefings, setSavedBriefings] = useState([]);
+  const [musicLibrary, setMusicLibrary] = useState([]);
+  const [selectedMusic, setSelectedMusic] = useState('');
+  const [playingTrack, setPlayingTrack] = useState(null);
+  const audioRef = useRef(null);
   const pollRef = useRef(null);
 
   useEffect(() => {
     loadPipelines();
     loadSavedHistory();
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    loadMusicLibrary();
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    };
   }, []);
+
+  const loadMusicLibrary = async () => {
+    try {
+      const { data } = await axios.get(`${API}/campaigns/pipeline/music-library`);
+      setMusicLibrary(data.tracks || []);
+    } catch { /* ignore */ }
+  };
+
+  const togglePlayTrack = (trackId) => {
+    if (playingTrack === trackId) {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      setPlayingTrack(null);
+    } else {
+      if (audioRef.current) { audioRef.current.pause(); }
+      const audio = new Audio(`${API}/campaigns/pipeline/music-preview/${trackId}`);
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+      audio.onended = () => setPlayingTrack(null);
+      audioRef.current = audio;
+      setPlayingTrack(trackId);
+    }
+  };
+
 
   const deleteSavedLogo = async (url) => {
     try {
@@ -887,6 +923,7 @@ export default function PipelineView({ context }) {
         contact_info: contactInfo,
         uploaded_assets: assetPayload,
         media_formats: mediaFormats,
+        selected_music: selectedMusic || '',
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1354,6 +1391,41 @@ export default function PipelineView({ context }) {
             </div>
           )}
         </div>
+
+        {/* Music Library */}
+        {musicLibrary.length > 0 && (
+          <div>
+            <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.music_library') || 'Background Music (Video)'}</label>
+            <div className="space-y-1">
+              {musicLibrary.map(track => (
+                <div key={track.id} data-testid={`music-${track.id}`}
+                  onClick={() => setSelectedMusic(selectedMusic === track.id ? '' : track.id)}
+                  className={`flex items-center gap-2 rounded-lg border p-2 cursor-pointer transition ${selectedMusic === track.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); togglePlayTrack(track.id); }}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#888] hover:text-white'}`}>
+                    {playingTrack === track.id ? <span className="text-[8px] font-bold">||</span> : <Play size={10} />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-medium text-white truncate">{track.name}</p>
+                    <p className="text-[8px] text-[#555] truncate">{track.description}</p>
+                  </div>
+                  {selectedMusic === track.id && <Check size={12} className="text-[#C9A84C] shrink-0" />}
+                </div>
+              ))}
+              {selectedMusic && (
+                <p className="text-[8px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
+                  <Check size={8} /> {t('studio.music_selected') || 'Music selected for video'}
+                </p>
+              )}
+              {!selectedMusic && (
+                <p className="text-[8px] text-[#444] mt-0.5">{t('studio.music_auto') || 'No selection = AI picks automatically based on campaign mood'}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+
 
         {/* Platforms */}
         <div>

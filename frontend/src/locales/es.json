@@ -417,6 +417,9 @@
     "campaign_default": "Campana",
     "choose_variation": "Elija la variacion para continuar",
     "archive": "Archivar y crear nuevo",
-    "address": "Direccion"
+    "address": "Direccion",
+    "music_library": "Musica de Fondo (Video)",
+    "music_selected": "Musica seleccionada para el video",
+    "music_auto": "Sin seleccion = IA elige automaticamente segun el mood de la campana"
   }
 }

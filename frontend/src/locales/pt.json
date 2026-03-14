@@ -417,6 +417,9 @@
     "campaign_default": "Campanha",
     "choose_variation": "Escolha a variacao para continuar",
     "archive": "Arquivar e criar novo",
-    "address": "Endereco"
+    "address": "Endereco",
+    "music_library": "Musica de Fundo (Video)",
+    "music_selected": "Musica selecionada para o video",
+    "music_auto": "Sem selecao = IA escolhe automaticamente baseado no mood da campanha"
   }
 }

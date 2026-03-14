@@ -430,12 +430,55 @@ class PipelineCreate(BaseModel):
     contact_info: Optional[dict] = {}
     uploaded_assets: Optional[list] = []
     media_formats: Optional[dict] = {}
+    selected_music: Optional[str] = ""  # mood key: upbeat, energetic, emotional, cinematic, corporate
 
 
 class PipelineApprove(BaseModel):
     selection: Optional[int] = None
     selections: Optional[dict] = None
     feedback: Optional[str] = None
+
+
+# ── Music Library ──
+
+MUSIC_LIBRARY = {
+    "upbeat": {"name": "Upbeat & Happy", "description": "Bright, positive, high-energy feel-good vibes", "file": "upbeat.mp3", "duration": 147},
+    "energetic": {"name": "Energetic & Powerful", "description": "Fast-paced, action-driven, adrenaline-pumping beats", "file": "energetic.mp3", "duration": 190},
+    "emotional": {"name": "Emotional & Inspiring", "description": "Heartfelt, motivational, touching orchestral sounds", "file": "emotional.mp3", "duration": 85},
+    "cinematic": {"name": "Cinematic & Epic", "description": "Grand, dramatic, movie-trailer atmosphere", "file": "cinematic.mp3", "duration": 86},
+    "corporate": {"name": "Corporate & Professional", "description": "Clean, polished, business-appropriate background", "file": "corporate.mp3", "duration": 174},
+}
+
+@router.get("/music-library")
+async def get_music_library():
+    """Return available background music tracks with preview URLs"""
+    music_dir = "/app/backend/assets/music"
+    tracks = []
+    for key, info in MUSIC_LIBRARY.items():
+        filepath = os.path.join(music_dir, info["file"])
+        if os.path.exists(filepath):
+            tracks.append({
+                "id": key,
+                "name": info["name"],
+                "description": info["description"],
+                "duration": info["duration"],
+                "file": info["file"],
+                "preview_url": f"/api/campaigns/pipeline/music-preview/{key}",
+            })
+    return {"tracks": tracks}
+
+@router.get("/music-preview/{track_id}")
+async def preview_music(track_id: str):
+    """Stream a music track for preview"""
+    from fastapi.responses import FileResponse
+    info = MUSIC_LIBRARY.get(track_id)
+    if not info:
+        raise HTTPException(status_code=404, detail="Track not found")
+    filepath = f"/app/backend/assets/music/{info['file']}"
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(filepath, media_type="audio/mpeg", filename=info["file"])
+
 
 
 # ── Helpers ──
@@ -748,7 +791,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
     return None
 
 
-async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"):
+async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720", selected_music_override=""):
     """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo + CTA"""
     # Parse Marcos's structured output
     clip1_prompt = ""
@@ -809,6 +852,11 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
         mood_line = re.search(r'Mood:\s*(\w+)', music_match.group(1), re.IGNORECASE)
         if mood_line:
             music_mood = mood_line.group(1).strip().lower()
+
+    # User-selected music overrides AI-picked mood
+    if selected_music_override:
+        music_mood = selected_music_override
+        logger.info(f"Using user-selected music: {music_mood}")
 
     # Fallback: if parsing fails, use old single-prompt format
     if not clip1_prompt:
@@ -1429,7 +1477,8 @@ async def _execute_step(pipeline_id, step):
             }).eq("id", pipeline_id).execute()
 
             # Generate the full commercial (2 clips + narration + crossfade + brand logo)
-            video_url = await _generate_commercial_video(pipeline_id, response, size)
+            user_music = pipeline.get("result", {}).get("selected_music", "")
+            video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music)
             steps[step]["video_url"] = video_url
             steps[step]["video_format"] = video_format
             steps[step]["video_duration"] = 24
@@ -1574,6 +1623,7 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
             "campaign_name": data.campaign_name or "",
             "campaign_language": data.campaign_language or "",
             "media_formats": data.media_formats or {},
+            "selected_music": data.selected_music or "",
         },
     }
 

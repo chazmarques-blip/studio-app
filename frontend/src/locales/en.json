@@ -417,6 +417,9 @@
     "campaign_default": "Campaign",
     "choose_variation": "Choose the variation to continue",
     "archive": "Archive and create new",
-    "address": "Address"
+    "address": "Address",
+    "music_library": "Background Music (Video)",
+    "music_selected": "Music selected for video",
+    "music_auto": "No selection = AI picks automatically based on campaign mood"
   }
 }
