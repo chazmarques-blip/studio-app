@@ -13,6 +13,8 @@ import shutil
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+from emergentintegrations.llm.openai import OpenAITextToSpeech
+import subprocess
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
@@ -286,45 +288,60 @@ Create a detailed, actionable publishing schedule with:
 - KPI targets per platform (expected reach, engagement rate, click-through)
 - Budget allocation suggestion if applicable""",
 
-    "marcos_video": """You are Marcos, an elite AI Commercial Director who creates broadcast-quality video concepts for Sora 2 AI video generation. You combine the cinematic vision of Roger Deakins, the commercial genius of Ridley Scott (Apple "1984"), the storytelling of Martin Scorsese, and the social-first creativity of the world's best Super Bowl commercial directors.
+    "marcos_video": """You are Marcos, an elite AI Commercial Director and the creative mind behind viral Super Bowl ads. You create broadcast-quality 24-second commercials by designing TWO perfectly connected 12-second video sequences that feel like ONE continuous shot.
 
-YOUR CORE PRINCIPLES:
-- DEAKINS: Every frame is a photograph. Lighting tells the story. Natural camera movement, no gimmicks.
-- RIDLEY SCOTT: 12 seconds is enough to tell a powerful story. Hook → Tension → Resolution → Brand Moment.
-- SCORSESE: Every second must serve the narrative. Hook in the first frame. Emotional payoff by the end.
-- SOCIAL MEDIA MASTERY: Vertical (9:16) dominates mobile feeds. The first 2 seconds decide everything.
+YOUR GENIUS:
+- RIDLEY SCOTT + ROGER DEAKINS: Cinematic framing, natural lighting that tells the story, camera movement with purpose.
+- SUPER BOWL COMMERCIAL MASTERY: Every frame sells. The hook is irresistible. The CTA is unforgettable.
+- VISUAL CONTINUITY EXPERT: You design clip transitions so the LAST FRAME of clip 1 flows seamlessly into the FIRST FRAME of clip 2 — same character, same setting, same lighting, same camera movement direction.
 
-YOUR COMMERCIAL VIDEO EXPERTISE:
-- TikTok/Instagram Reels: 12-second vertical commercial, cinematic hook in first 2 frames, trending aesthetic
-- Instagram Stories: 12-second professional brand spot, aspirational narrative arc
-- Facebook: 12-second horizontal commercial, emotional product showcase with social proof cues
-- Google Ads Video: 12-second product-focused spot, benefit-led narrative, CTA in final 2 seconds
+24-SECOND COMMERCIAL STRUCTURE:
+- CLIP 1 (Seconds 0-12): THE SETUP
+  - 0-3s: HOOK — Irresistible visual that stops scrolling (close-up detail, dramatic reveal)
+  - 3-8s: THE PROBLEM/DESIRE — Show the before state or the aspiration
+  - 8-12s: THE TURNING POINT — The moment of change. CRITICAL: end clip 1 with the character in a specific pose/position that clip 2 will continue from.
 
-NARRATIVE STRUCTURE FOR 12-SECOND COMMERCIAL:
-- Seconds 0-2: HOOK — Visual that demands attention (unexpected movement, striking color, dramatic reveal)
-- Seconds 2-6: STORY — Show the product/service benefit in action (transformation, lifestyle, aspiration)
-- Seconds 6-10: EMOTION — Peak emotional moment (satisfaction, desire, excitement, relief)
-- Seconds 10-12: PAYOFF — Brand moment + implicit CTA (the visual "mic drop")
+- CLIP 2 (Seconds 12-24): THE PAYOFF
+  - 12-15s: CONTINUATION — Start EXACTLY where clip 1 ended. Same character, same position, continue the motion.
+  - 15-20s: THE TRANSFORMATION — Show the after state, the product benefit in full glory
+  - 20-22s: EMOTIONAL PEAK — The moment of satisfaction, pride, or joy
+  - 22-24s: BRAND MOMENT — Clean frame for the brand name/logo overlay to appear
 
-WHAT YOU PRODUCE:
-Based on the campaign's copy and visual direction, create ONE optimized video generation prompt.
-The prompt describes a smooth, cinematic 12-second commercial that:
-1. Has a powerful visual hook in the first 2 seconds
-2. Shows fluid camera movement that builds narrative tension
-3. Relates directly to the campaign's product/service
-4. Evokes the target emotion (matching the copy's tone)
-5. Ends with a visually memorable brand moment
+CONTINUITY RULES (CRITICAL):
+1. SAME CHARACTER in both clips: describe them IDENTICALLY (age, clothing, hair, build)
+2. SAME COLOR PALETTE: specify the exact same lighting and color tones in both
+3. TRANSITION BRIDGE: The last action in clip 1 must naturally lead to the first action in clip 2
+4. SAME ENVIRONMENT: If clip 1 is indoors, clip 2 starts indoors before transitioning outside (or vice versa with a clear visual bridge)
+
+NARRATION SCRIPT RULES:
+- Write a DYNAMIC, URGENT voiceover for the FULL 24 seconds
+- Style: Think car dealership TV commercial meets Apple product launch — exciting, aspirational, impossible to ignore
+- Structure: Problem (0-6s) → Solution (6-12s) → Benefits (12-18s) → URGENT CTA (18-24s)
+- The CTA must create FOMO: "Don't miss this", "Only this week", "Chat now before spots fill up"
+- Write in the SAME LANGUAGE as the campaign copy
 
 ALWAYS write in the SAME language the user writes to you.
 
 Format your output EXACTLY like this:
-===VIDEO PROMPT===
-[Detailed video generation prompt, 80-120 words, describing the complete 12-second narrative: opening shot, camera movement, subjects, lighting progression, mood evolution, and closing frame. Be cinematically specific.]
+
+===CHARACTER DESCRIPTION===
+[Precise description of the main character: age, ethnicity, build, hair, facial features, clothing — used for BOTH clips]
+
+===CLIP 1 PROMPT===
+[80-120 words. The first 12 seconds. Describe opening shot, camera movement, character actions, lighting, mood. End with a CLEAR transition point that clip 2 will continue from.]
+
+===CLIP 2 PROMPT===
+[80-120 words. The second 12 seconds. Start EXACTLY where clip 1 ended. Continue the character's story. End with a clean, simple frame suitable for brand logo overlay in the final 2 seconds.]
+
+===NARRATION SCRIPT===
+[The complete voiceover script for all 24 seconds. Dynamic, commercial, urgent. Must create desire and end with an irresistible CTA. Timed to match the visual beats.]
+
+===BRAND NAME===
+[The brand/company name that will appear as a logo in the final 3 seconds]
+
 ===VIDEO FORMAT===
 Format: [vertical/horizontal]
-Duration: 12
-===VIDEO RATIONALE===
-[Brief explanation of the commercial strategy: why this narrative sells, what emotion it triggers, and how it drives action]""",
+Duration: 24""",
 }
 
 
@@ -475,31 +492,178 @@ NO logos, NO brand names, NO website URLs."""
     return image_urls, prompts
 
 
-def _generate_video_sync(prompt_text, pipeline_id, size="1024x1792", duration=12):
-    """Generate video using Sora 2 and upload to Supabase Storage (synchronous)"""
+def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x720"):
+    """Generate a single 12-second video clip with Sora 2"""
     max_retries = 2
     for attempt in range(max_retries):
         try:
             video_gen = OpenAIVideoGeneration(api_key=EMERGENT_KEY)
-            logger.info(f"Sora 2 video generation started (attempt {attempt+1}/{max_retries}): size={size}, duration={duration}s")
+            logger.info(f"Sora 2 {clip_name} started (attempt {attempt+1}): size={size}")
             video_bytes = video_gen.text_to_video(
-                prompt=prompt_text,
-                model="sora-2",
-                size=size,
-                duration=duration,
-                max_wait_time=600
+                prompt=prompt_text, model="sora-2",
+                size=size, duration=12, max_wait_time=600
             )
             if video_bytes:
-                filename = f"videos/{pipeline_id}_{uuid.uuid4().hex[:6]}.mp4"
-                public_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-                logger.info(f"Video generated with Sora 2 and uploaded: {filename}")
-                return public_url
-            logger.warning(f"Sora 2 returned empty video bytes on attempt {attempt+1}")
+                path = f"/tmp/{pipeline_id}_{clip_name}.mp4"
+                with open(path, "wb") as f:
+                    f.write(video_bytes)
+                logger.info(f"Sora 2 {clip_name} generated: {len(video_bytes)/1024:.0f}KB")
+                return path
+            logger.warning(f"Sora 2 {clip_name} returned empty on attempt {attempt+1}")
         except Exception as e:
-            logger.warning(f"Sora 2 attempt {attempt+1}/{max_retries} failed: {e}")
+            logger.warning(f"Sora 2 {clip_name} attempt {attempt+1} failed: {e}")
             if attempt < max_retries - 1:
                 time.sleep(5)
     return None
+
+
+async def _generate_narration(text, pipeline_id):
+    """Generate commercial narration with OpenAI TTS HD"""
+    try:
+        tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
+        audio_bytes = await tts.generate_speech(
+            text=text, model="tts-1-hd",
+            voice="onyx", speed=0.92, response_format="mp3"
+        )
+        if audio_bytes:
+            path = f"/tmp/{pipeline_id}_narration.mp3"
+            with open(path, "wb") as f:
+                f.write(audio_bytes)
+            logger.info(f"Narration generated: {len(audio_bytes)/1024:.0f}KB")
+            return path
+    except Exception as e:
+        logger.warning(f"TTS narration failed: {e}")
+    return None
+
+
+def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id):
+    """Combine 2 clips with crossfade + narration + brand logo ending"""
+    output_path = f"/tmp/{pipeline_id}_commercial.mp4"
+    try:
+        # 1. Normalize both clips (ensure identical codec/framerate)
+        for i, clip in enumerate([clip1_path, clip2_path], 1):
+            subprocess.run(
+                f"ffmpeg -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
+                shell=True, capture_output=True, timeout=60
+            )
+
+        # 2. Crossfade between clips (1 second fade at the 11s mark)
+        xfade_cmd = (
+            f'ffmpeg -y -i /tmp/{pipeline_id}_norm1.mp4 -i /tmp/{pipeline_id}_norm2.mp4 '
+            f'-filter_complex "'
+            f'[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];'
+            f'[v0][v1]xfade=transition=fade:duration=1:offset=11,format=yuv420p[vout]'
+            f'" -map "[vout]" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_xfade.mp4'
+        )
+        result = subprocess.run(xfade_cmd, shell=True, capture_output=True, text=True, timeout=120)
+        if result.returncode != 0:
+            logger.warning(f"Crossfade failed, falling back to concat: {result.stderr[-200:]}")
+            with open(f"/tmp/{pipeline_id}_clips.txt", "w") as f:
+                f.write(f"file '/tmp/{pipeline_id}_norm1.mp4'\nfile '/tmp/{pipeline_id}_norm2.mp4'\n")
+            subprocess.run(
+                f"ffmpeg -y -f concat -safe 0 -i /tmp/{pipeline_id}_clips.txt -c copy /tmp/{pipeline_id}_xfade.mp4",
+                shell=True, capture_output=True, timeout=60
+            )
+
+        # 3. Add brand name overlay in last 3 seconds (fade-in text on dark vignette)
+        safe_brand = brand_name.replace("'", "").replace('"', '').replace(':', '')
+        brand_cmd = (
+            f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 '
+            f'-vf "'
+            f"drawbox=x=0:y=ih*0.35:w=iw:h=ih*0.3:color=black@0.7:t=fill:enable='between(t,20,23)',"
+            f"drawtext=text=\\'{safe_brand}\\':"
+            f"fontsize=56:fontcolor=white:borderw=2:bordercolor=black@0.5:"
+            f"x=(w-text_w)/2:y=(h-text_h)/2:"
+            f"enable='between(t,20,23)'"
+            f'" -c:v libx264 -preset fast -crf 18 -c:a copy /tmp/{pipeline_id}_branded.mp4'
+        )
+        brand_result = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
+        branded_file = f"/tmp/{pipeline_id}_branded.mp4"
+        if brand_result.returncode != 0 or not os.path.exists(branded_file):
+            logger.warning("Brand overlay failed, using xfade only")
+            branded_file = f"/tmp/{pipeline_id}_xfade.mp4"
+
+        # 4. Merge video + narration audio
+        if audio_path:
+            subprocess.run(
+                f"ffmpeg -y -i {branded_file} -i {audio_path} -c:v copy -c:a aac -b:a 192k -shortest {output_path}",
+                shell=True, capture_output=True, timeout=60
+            )
+        else:
+            shutil.copy2(branded_file, output_path)
+
+        if os.path.exists(output_path):
+            # Upload to Supabase Storage
+            with open(output_path, "rb") as f:
+                video_bytes = f.read()
+            filename = f"videos/{pipeline_id}_commercial.mp4"
+            public_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+            logger.info(f"Commercial video uploaded: {filename} ({len(video_bytes)/1024:.0f}KB)")
+            return public_url
+
+    except Exception as e:
+        logger.error(f"Video combination failed: {e}")
+    return None
+
+
+async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"):
+    """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo"""
+    # Parse Marcos's structured output
+    clip1_prompt = ""
+    clip2_prompt = ""
+    narration_text = ""
+    brand_name = ""
+
+    c1_match = re.search(r'===CLIP 1 PROMPT===([\s\S]*?)===CLIP 2 PROMPT===', marcos_output, re.IGNORECASE)
+    if c1_match:
+        clip1_prompt = c1_match.group(1).strip()
+
+    c2_match = re.search(r'===CLIP 2 PROMPT===([\s\S]*?)===NARRATION SCRIPT===', marcos_output, re.IGNORECASE)
+    if c2_match:
+        clip2_prompt = c2_match.group(1).strip()
+
+    narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===BRAND NAME===', marcos_output, re.IGNORECASE)
+    if narr_match:
+        narration_text = narr_match.group(1).strip()
+
+    brand_match = re.search(r'===BRAND NAME===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
+    if brand_match:
+        brand_name = brand_match.group(1).strip()
+
+    # Fallback: if parsing fails, use old single-prompt format
+    if not clip1_prompt:
+        old_match = re.search(r'===VIDEO PROMPT===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
+        if old_match:
+            clip1_prompt = old_match.group(1).strip()
+            clip2_prompt = clip1_prompt  # duplicate
+        else:
+            clip1_prompt = marcos_output[:500]
+            clip2_prompt = marcos_output[:500]
+
+    logger.info(f"Generating commercial: brand={brand_name}, narration={len(narration_text)}chars")
+
+    # 1. Generate narration first (fast, ~5-10s)
+    audio_path = None
+    if narration_text:
+        audio_path = await _generate_narration(narration_text, pipeline_id)
+
+    # 2. Generate both video clips (slow, ~3min each)
+    clip1_path = _generate_video_clip_sync(clip1_prompt, pipeline_id, "clip1", size)
+    if not clip1_path:
+        logger.error(f"Clip 1 failed for pipeline {pipeline_id}")
+        return None
+
+    clip2_path = _generate_video_clip_sync(clip2_prompt, pipeline_id, "clip2", size)
+    if not clip2_path:
+        logger.error(f"Clip 2 failed for pipeline {pipeline_id}")
+        # Still return clip 1 as a standalone video
+        with open(clip1_path, "rb") as f:
+            video_bytes = f.read()
+        filename = f"videos/{pipeline_id}_commercial.mp4"
+        return _upload_to_storage(video_bytes, filename, "video/mp4")
+
+    # 3. Combine everything: crossfade + brand + narration
+    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id)
 
 
 def _parse_ana_copy_selection(text):
@@ -732,9 +896,11 @@ If approving, end with:
         briefing_match = re.search(r'===IMAGE BRIEFING===([\s\S]*?)$', sofia_output, re.IGNORECASE)
         if briefing_match:
             image_briefing = briefing_match.group(1).strip()
+        campaign_name = pipeline.get("result", {}).get("campaign_name", "Brand")
 
-        return f"""Create a 12-second commercial video concept for this campaign.
+        return f"""Create a 24-second commercial video (TWO 12-second clips with perfect continuity) for this campaign.
 
+Brand/Company: {campaign_name}
 Platforms: {platforms_str}
 Approved campaign copy: {approved_copy}
 Visual direction: {image_briefing}
@@ -742,11 +908,12 @@ Original briefing: {briefing}
 {contact_str}
 {lang_instruction}
 
-Your video concept must follow the 12-second commercial narrative:
-- Seconds 0-2: HOOK (attention-grabbing opening)
-- Seconds 2-6: STORY (product/service in action)
-- Seconds 6-10: EMOTION (peak emotional moment)
-- Seconds 10-12: PAYOFF (brand moment)
+REQUIREMENTS:
+1. Design TWO clips that feel like ONE continuous shot — same character, same visual style, seamless transition
+2. Write a DYNAMIC commercial narration script for the full 24 seconds — urgent, exciting, creates FOMO
+3. End clip 2 with a clean frame for the brand name "{campaign_name}" to appear as a logo
+4. The narration must be in the SAME LANGUAGE as the campaign copy above
+5. Match the narration timing to the visual beats
 
 Output EXACTLY in the format specified in your instructions."""
 
@@ -984,28 +1151,12 @@ async def _execute_step(pipeline_id, step):
 
         # Generate video for Marcos's video step
         elif step == "marcos_video":
-            # Parse video prompt from Marcos's output
-            video_prompt = ""
-            video_format = "vertical"
-            video_duration = 12
-
-            prompt_match = re.search(r'===VIDEO PROMPT===([\s\S]*?)===VIDEO FORMAT===', response, re.IGNORECASE)
-            if prompt_match:
-                video_prompt = prompt_match.group(1).strip()
-            else:
-                video_prompt = response.strip()[:500]
-
-            format_match = re.search(r'Format:\s*(vertical|horizontal|square)', response, re.IGNORECASE)
+            # Parse video format from output
+            video_format = "horizontal"
+            format_match = re.search(r'Format:\s*(vertical|horizontal)', response, re.IGNORECASE)
             if format_match:
                 video_format = format_match.group(1).lower()
 
-            duration_match = re.search(r'Duration:\s*(\d+)', response, re.IGNORECASE)
-            if duration_match:
-                dur = int(duration_match.group(1))
-                if dur in (4, 8, 12):
-                    video_duration = dur
-
-            # Determine best format based on platforms if not specified by LLM
             platforms = pipeline.get("platforms") or []
             FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
             if not format_match:
@@ -1013,7 +1164,7 @@ async def _execute_step(pipeline_id, step):
                     video_format = "vertical"
                 elif any(p in platforms for p in ["google_ads", "facebook"]):
                     video_format = "horizontal"
-            size = FORMAT_MAP.get(video_format, "720x1280")
+            size = FORMAT_MAP.get(video_format, "1280x720")
 
             # Update status to generating_video
             steps[step]["output"] = response
@@ -1023,14 +1174,14 @@ async def _execute_step(pipeline_id, step):
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }).eq("id", pipeline_id).execute()
 
-            # Generate the actual video (sync, blocking - takes 2-5 min)
-            video_url = _generate_video_sync(video_prompt, pipeline_id, size, video_duration)
+            # Generate the full commercial (2 clips + narration + crossfade + brand logo)
+            video_url = await _generate_commercial_video(pipeline_id, response, size)
             steps[step]["video_url"] = video_url
             steps[step]["video_format"] = video_format
-            steps[step]["video_duration"] = video_duration
+            steps[step]["video_duration"] = 24
             steps[step]["video_size"] = size
             if not video_url:
-                logger.warning(f"Video generation failed for pipeline {pipeline_id}, continuing pipeline")
+                logger.warning(f"Commercial video generation failed for pipeline {pipeline_id}, continuing pipeline")
             steps[step]["status"] = "completed"
 
         # Determine next pipeline status

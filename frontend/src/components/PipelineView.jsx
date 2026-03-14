@@ -33,7 +33,7 @@ const STEP_META = {
   ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
   lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
   rafael_review_design: { agent: 'Rafael', role: 'Diretor de Arte', icon: Award, color: '#9B59B6', estimatedSec: 25 },
-  marcos_video: { agent: 'Marcos', role: 'Videomaker', icon: Film, color: '#E74C3C', estimatedSec: 300 },
+  marcos_video: { agent: 'Marcos', role: 'Videomaker', icon: Film, color: '#E74C3C', estimatedSec: 500 },
   pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
 };
 
