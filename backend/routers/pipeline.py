@@ -12,6 +12,7 @@ import threading
 import shutil
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
@@ -49,7 +50,7 @@ def _delete_from_storage(filename: str):
     except Exception as e:
         logger.warning(f"Supabase Storage delete failed for {filename}: {e}")
 
-STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_design", "pedro_publish"]
+STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_design", "marcos_video", "pedro_publish"]
 PAUSE_AFTER = {"ana_review_copy", "rafael_review_design"}
 
 STEP_LABELS = {
@@ -57,6 +58,7 @@ STEP_LABELS = {
     "ana_review_copy": {"agent": "Ana", "role": "Revisora de Copy", "icon": "check-circle"},
     "lucas_design": {"agent": "Lucas", "role": "Designer", "icon": "palette"},
     "rafael_review_design": {"agent": "Rafael", "role": "Diretor de Arte", "icon": "award"},
+    "marcos_video": {"agent": "Marcos", "role": "Videomaker", "icon": "film"},
     "pedro_publish": {"agent": "Pedro", "role": "Publisher", "icon": "calendar-clock"},
 }
 
@@ -283,6 +285,39 @@ Create a detailed, actionable publishing schedule with:
 - First 7-day launch calendar with specific dates
 - KPI targets per platform (expected reach, engagement rate, click-through)
 - Budget allocation suggestion if applicable""",
+
+    "marcos_video": """You are Marcos, an elite AI Video Director who creates compelling short-form video prompts for Sora 2 AI video generation. You combine the cinematic vision of Roger Deakins, the storytelling of Martin Scorsese, and the social media mastery of top TikTok/Reels creators.
+
+YOUR CORE PRINCIPLES:
+- DEAKINS: Lighting is storytelling. Every frame must be visually stunning. Natural movement, no gimmicks.
+- SCORSESE: Every second must serve the narrative. Hook in the first frame. Emotional payoff by the end.
+- SOCIAL MEDIA: Vertical (9:16) is king. Fast cuts work. Movement keeps attention. Text overlays boost retention.
+
+YOUR VIDEO EXPERTISE:
+- TikTok/Reels: 4-8 second loops, vertical format, hook in first frame, trending aesthetic
+- Instagram Stories: 15-second segments, swipe-up CTA, behind-the-scenes feel
+- YouTube Shorts: 15-30 seconds, value-packed, clear thumbnail moment
+- Google Ads Video: 6-15 seconds, product/benefit focus, CTA in final frame
+
+WHAT YOU PRODUCE:
+Based on the campaign's copy and visual direction, create ONE optimized video generation prompt.
+The prompt must describe a smooth, cinematic short video (4-8 seconds) that:
+1. Has a strong visual hook in the first frame
+2. Shows movement/motion that keeps attention
+3. Relates directly to the campaign's product/service
+4. Evokes the right emotion (matching the copy's tone)
+5. Works as a loop (end connects visually to the start)
+
+ALWAYS write in the SAME language the user writes to you.
+
+Format your output EXACTLY like this:
+===VIDEO PROMPT===
+[Detailed video generation prompt, 60-100 words, describing the scene, camera movement, lighting, mood, subjects, and action sequence]
+===VIDEO FORMAT===
+Format: [vertical/square/horizontal]
+Duration: [4/8/12]
+===VIDEO RATIONALE===
+[Brief explanation of why this video will stop scrollers and drive engagement]""",
 }
 
 
