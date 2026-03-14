@@ -694,12 +694,23 @@ export default function PipelineView({ context }) {
   const [showContact, setShowContact] = useState(false);
   const [uploadedAssets, setUploadedAssets] = useState([]);
   const [showFinalPreview, setShowFinalPreview] = useState(false);
+  const [savedLogos, setSavedLogos] = useState([]);
+  const [savedBriefings, setSavedBriefings] = useState([]);
   const pollRef = useRef(null);
 
   useEffect(() => {
     loadPipelines();
+    loadSavedHistory();
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
+
+  const loadSavedHistory = async () => {
+    try {
+      const { data } = await axios.get(`${API}/campaigns/pipeline/saved/history`);
+      setSavedLogos(data.logos || []);
+      setSavedBriefings(data.briefings || []);
+    } catch {}
+  };
 
   useEffect(() => {
     if (!activePipeline) return;
@@ -1161,8 +1172,58 @@ export default function PipelineView({ context }) {
           </div>
         </div>
 
-        {/* Asset Upload */}
-        <AssetUploader assets={uploadedAssets} onAssetsChange={setUploadedAssets} />
+        {/* Saved Logos + Asset Upload */}
+        <div>
+          {savedLogos.length > 0 && (
+            <div className="mb-2">
+              <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Logos Salvos</label>
+              <div className="flex gap-2 flex-wrap">
+                {savedLogos.map((logo, i) => {
+                  const isSelected = uploadedAssets.some(a => a.url === logo.url && a.type === 'logo');
+                  return (
+                    <button key={i} onClick={() => {
+                      if (isSelected) {
+                        setUploadedAssets(prev => prev.filter(a => !(a.url === logo.url && a.type === 'logo')));
+                      } else {
+                        setUploadedAssets(prev => [...prev.filter(a => a.type !== 'logo'), { url: logo.url, type: 'logo', filename: logo.filename }]);
+                      }
+                    }}
+                      className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.3)]' : 'border-[#1E1E1E] opacity-60 hover:opacity-100'}`}>
+                      <img src={logo.url.startsWith('http') ? logo.url : `${process.env.REACT_APP_BACKEND_URL}${logo.url}`} alt={logo.filename} className="w-full h-full object-contain bg-black" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <AssetUploader assets={uploadedAssets} onAssetsChange={setUploadedAssets} />
+        </div>
+
+        {/* Saved Briefings */}
+        {savedBriefings.length > 0 && briefingMode === 'free' && !briefing.trim() && (
+          <div>
+            <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Briefings Anteriores</label>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto">
+              {savedBriefings.map((sb, i) => (
+                <button key={i} onClick={() => {
+                  setBriefing(sb.briefing);
+                  if (sb.campaign_name && !campaignName) setCampaignName(sb.campaign_name);
+                  if (sb.campaign_language) setCampaignLang(sb.campaign_language);
+                  if (sb.platforms?.length) setPlatforms(sb.platforms);
+                  toast.success('Briefing carregado! Ajuste o que precisar.');
+                }}
+                  className="w-full text-left rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 hover:border-[#C9A84C]/30 transition group">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {sb.campaign_name && <span className="text-[10px] font-semibold text-white">{sb.campaign_name}</span>}
+                    {sb.campaign_language && <span className="text-[8px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
+                    <span className="text-[7px] text-[#333] ml-auto group-hover:text-[#555]">Usar</span>
+                  </div>
+                  <p className="text-[9px] text-[#555] line-clamp-2">{sb.briefing}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Contact Info */}
         <div>

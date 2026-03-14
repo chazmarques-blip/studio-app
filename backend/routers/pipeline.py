@@ -858,6 +858,44 @@ async def get_step_labels(pipeline_id: str, user=Depends(get_current_user)):
 
 
 
+@router.get("/saved/history")
+async def get_saved_history(user=Depends(get_current_user)):
+    """Get saved logos and recent briefings from previous pipelines"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("briefing, result, platforms, created_at").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
+    pipelines = result.data or []
+
+    logos = []
+    seen_urls = set()
+    briefings = []
+    seen_briefings = set()
+
+    for p in pipelines:
+        # Extract logos
+        assets = (p.get("result") or {}).get("uploaded_assets") or []
+        for a in assets:
+            if a.get("type") == "logo" and a.get("url") and a["url"] not in seen_urls:
+                seen_urls.add(a["url"])
+                logos.append({"url": a["url"], "filename": a.get("filename", "logo")})
+        # Extract briefings
+        b = p.get("briefing", "").strip()
+        camp_name = (p.get("result") or {}).get("campaign_name", "")
+        camp_lang = (p.get("result") or {}).get("campaign_language", "")
+        if b and b not in seen_briefings:
+            seen_briefings.add(b)
+            briefings.append({
+                "briefing": b,
+                "campaign_name": camp_name,
+                "campaign_language": camp_lang,
+                "platforms": p.get("platforms", []),
+                "created_at": p.get("created_at", ""),
+            })
+
+    return {"logos": logos[:10], "briefings": briefings[:10]}
+
+
+
+
 @router.post("/{pipeline_id}/archive")
 async def archive_pipeline(pipeline_id: str, user=Depends(get_current_user)):
     """Archive/dismiss a pipeline so the user can create a new one"""
