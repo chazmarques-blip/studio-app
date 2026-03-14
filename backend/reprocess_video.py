@@ -1,114 +1,131 @@
-"""
-Reprocess the V5 commercial using EXISTING Sora 2 clips.
-Only regenerates: TTS narration + FFmpeg (logo + music + combine).
-No new Sora 2 calls needed.
-"""
-import os, sys, asyncio, re
+"""Reprocess V5 video with FIXED music + logo overlay using existing clips."""
+import os, sys, subprocess, shutil
 sys.path.insert(0, '/app/backend')
 from dotenv import load_dotenv
 load_dotenv('/app/backend/.env')
 
-# Read the existing marcos output
-with open("/tmp/marcos_v5_output.txt", "r") as f:
+import asyncio, re
+from emergentintegrations.llm.openai import OpenAITextToSpeech
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+
+# Read existing narration text
+with open("/tmp/marcos_v5_output.txt") as f:
     marcos_output = f.read()
 
-# Parse narration and clean it properly
 narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===MUSIC DIRECTION===', marcos_output, re.IGNORECASE)
 narration_text = ""
 if narr_match:
     narration_text = narr_match.group(1).strip()
-    # Remove timing marks
     narration_text = re.sub(r'\[\d+-\d+s?\]:\s*', '', narration_text)
-    # Remove SILENCE instructions and stage directions
     narration_text = re.sub(r'\[.*?SILENCE.*?\]', '', narration_text, flags=re.IGNORECASE)
     narration_text = re.sub(r'\[.*?music\s+only.*?\]', '', narration_text, flags=re.IGNORECASE)
     narration_text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', narration_text, flags=re.IGNORECASE)
     narration_text = re.sub(r'\[(?:COMPLETE|TOTAL|FULL)?\s*(?:SILENCE|QUIET|PAUSE|NO NARRATION).*?\]', '', narration_text, flags=re.IGNORECASE)
     narration_text = re.sub(r'\n{2,}', '\n', narration_text).strip()
 
-print(f"Cleaned narration ({len(narration_text.split())} words):")
-print(narration_text)
-print()
-
-# Parse CTA
-cta_match = re.search(r'===CTA SEQUENCE===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
-brand_name = "MY TRUCK"
-tagline = "Your Truck. Your Future."
-contact_cta = "WhatsApp: +1 (555) 123-4567"
-if cta_match:
-    cta_block = cta_match.group(1)
-    m = re.search(r'Brand\s*name:\s*(.+)', cta_block, re.IGNORECASE)
-    if m: brand_name = m.group(1).strip()
-    m = re.search(r'Tagline:\s*(.+)', cta_block, re.IGNORECASE)
-    if m: tagline = m.group(1).strip()
-    m = re.search(r'Contact:\s*(.+)', cta_block, re.IGNORECASE)
-    if m: contact_cta = m.group(1).strip()
-
-print(f"Brand: {brand_name}")
-print(f"Tagline: {tagline}")
-print(f"Contact: {contact_cta}")
+print(f"Narration ({len(narration_text.split())} words): {narration_text[:200]}")
 
 async def main():
-    from emergentintegrations.llm.openai import OpenAITextToSpeech
-    EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
-    
-    # 1. Regenerate TTS narration with energetic voice
-    print("\n=== STEP 1: Generating new TTS narration (Nova voice, 1.08x) ===")
-    tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
-    audio_bytes = await tts.generate_speech(
-        text=narration_text, model="tts-1-hd",
-        voice="nova", speed=1.08, response_format="mp3"
-    )
-    audio_path = "/tmp/new_v5_narration_v2.mp3"
-    with open(audio_path, "wb") as f:
-        f.write(audio_bytes)
-    
-    import subprocess
-    probe = subprocess.run(
-        "ffprobe -v error -show_entries format=duration -of csv=p=0 " + audio_path,
-        shell=True, capture_output=True, text=True
-    )
-    print(f"New narration duration: {probe.stdout.strip()}s")
-    
-    # 2. Re-combine with existing clips
-    print("\n=== STEP 2: Re-combining video with logo + music + new narration ===")
-    
+    pid = "new_v6"
     clip1 = "/tmp/new_v5_clip1.mp4"
     clip2 = "/tmp/new_v5_clip2.mp4"
     logo = "/app/backend/assets/brand_logo.png"
-    pid = "new_v5b"
+    music = "/app/backend/assets/music/upbeat.mp3"
     
-    # Import the updated combine function
-    sys.path.insert(0, '/app/backend/routers')
+    # 1. Generate fresh narration
+    print("\n=== STEP 1: TTS Narration (Nova, 1.08x) ===")
+    tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
+    audio_bytes = await tts.generate_speech(text=narration_text, model="tts-1-hd", voice="nova", speed=1.08, response_format="mp3")
+    narr_path = f"/tmp/{pid}_narration.mp3"
+    with open(narr_path, "wb") as f:
+        f.write(audio_bytes)
+    dur = subprocess.run(f"ffprobe -v error -show_entries format=duration -of csv=p=0 {narr_path}", shell=True, capture_output=True, text=True)
+    print(f"Narration: {dur.stdout.strip()}s")
+
+    # 2. Normalize clips
+    print("\n=== STEP 2: Normalize clips ===")
+    for i, clip in enumerate([clip1, clip2], 1):
+        subprocess.run(f"ffmpeg -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pid}_norm{i}.mp4", shell=True, capture_output=True, timeout=60)
+        print(f"  Clip {i} normalized")
+
+    # 3. Crossfade
+    print("\n=== STEP 3: Crossfade ===")
+    xfade = f'ffmpeg -y -i /tmp/{pid}_norm1.mp4 -i /tmp/{pid}_norm2.mp4 -filter_complex "[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];[v0][v1]xfade=transition=fade:duration=1:offset=11,format=yuv420p[vout]" -map "[vout]" -c:v libx264 -preset fast -crf 18 /tmp/{pid}_xfade.mp4'
+    subprocess.run(xfade, shell=True, capture_output=True, timeout=120)
+    dur_p = subprocess.run(f"ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/{pid}_xfade.mp4", shell=True, capture_output=True, text=True)
+    vid_duration = float(dur_p.stdout.strip()) if dur_p.stdout.strip() else 23.0
+    print(f"  Crossfade done: {vid_duration}s")
+
+    # 4. Logo overlay (fully opaque black background)
+    print("\n=== STEP 4: Brand logo overlay ===")
+    brand_start = max(vid_duration - 4, 18)
+    brand_mid = brand_start + 0.5
+    brand_late = brand_start + 1.0
+
+    scaled = f"/tmp/{pid}_logo_scaled.png"
+    subprocess.run(f"ffmpeg -y -i {logo} -vf scale=240:-1 {scaled}", shell=True, capture_output=True, timeout=30)
     
-    # Need to reload the module to get our fixes
-    import importlib
-    import pipeline
-    importlib.reload(pipeline)
-    
-    url = pipeline._combine_commercial_video(
-        clip1, clip2, audio_path, brand_name, pid,
-        logo_path=logo, tagline=tagline, contact_cta=contact_cta
+    vf = (
+        f"[0:v]drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill:enable='between(t,{brand_start},{vid_duration})'[bg];"
+        f"[1:v]scale=240:-1[logo];"
+        f"[bg][logo]overlay=(W-w)/2:(H/4)-(h/2):enable='between(t,{brand_start},{vid_duration})'"
+        f",drawtext=text='Your Truck. Your Future.':fontsize=28:fontcolor=white@0.95:x=(w-text_w)/2:y=(h*3/5):enable='between(t,{brand_mid},{vid_duration})'"
+        f",drawtext=text='WhatsApp  +1 (555) 123-4567':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
     )
-    
-    if url:
-        print(f"\n{'=' * 60}")
-        print(f"SUCCESS! Reprocessed commercial video:")
-        print(f"URL: {url}")
-        print(f"{'=' * 60}")
-        
-        # Verify final specs
-        probe = subprocess.run(
-            f"ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/{pid}_commercial.mp4",
-            shell=True, capture_output=True, text=True
-        )
-        print(f"Final video duration: {probe.stdout.strip()}s")
-        probe2 = subprocess.run(
-            f"ffprobe -v error -show_entries stream=codec_type -of csv=p=0 /tmp/{pid}_commercial.mp4",
-            shell=True, capture_output=True, text=True
-        )
-        print(f"Streams: {probe2.stdout.strip()}")
+    logo_cmd = f'ffmpeg -y -i /tmp/{pid}_xfade.mp4 -i {scaled} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pid}_branded.mp4'
+    r = subprocess.run(logo_cmd, shell=True, capture_output=True, text=True, timeout=120)
+    if r.returncode != 0:
+        print(f"Logo overlay FAILED: {r.stderr[:300]}")
+        shutil.copy2(f"/tmp/{pid}_xfade.mp4", f"/tmp/{pid}_branded.mp4")
     else:
-        print("\nFAILED")
+        print("  Logo overlay OK")
+
+    # 5. Mix audio: resample both to 44100Hz stereo, then mix
+    print("\n=== STEP 5: Audio mixing (narration + background music) ===")
+    narr_44k = f"/tmp/{pid}_narr_44k.wav"
+    music_44k = f"/tmp/{pid}_music_44k.wav"
+    subprocess.run(f"ffmpeg -y -i {narr_path} -ar 44100 -ac 2 {narr_44k}", shell=True, capture_output=True, timeout=30)
+    subprocess.run(f"ffmpeg -y -i {music} -ar 44100 -ac 2 {music_44k}", shell=True, capture_output=True, timeout=30)
+    
+    mixed = f"/tmp/{pid}_mixed.wav"
+    mix_cmd = (
+        f'ffmpeg -y -i {narr_44k} -i {music_44k} '
+        f'-filter_complex "'
+        f'[0:a]volume=1.2,apad[narr];'
+        f'[1:a]volume=0.25,aloop=loop=-1:size=2e+09[music];'
+        f'[narr][music]amix=inputs=2:duration=first:dropout_transition=3[out]'
+        f'" -map "[out]" -t {vid_duration} -ar 44100 -ac 2 {mixed}'
+    )
+    r = subprocess.run(mix_cmd, shell=True, capture_output=True, text=True, timeout=60)
+    if r.returncode != 0:
+        print(f"Mix FAILED: {r.stderr[:300]}")
+        mixed = narr_path
+    else:
+        mix_dur = subprocess.run(f"ffprobe -v error -show_entries format=duration -of csv=p=0 {mixed}", shell=True, capture_output=True, text=True)
+        print(f"  Mixed audio: {mix_dur.stdout.strip()}s (44100Hz stereo)")
+
+    # 6. Merge video + mixed audio
+    print("\n=== STEP 6: Final merge ===")
+    output = f"/tmp/{pid}_commercial.mp4"
+    subprocess.run(
+        f"ffmpeg -y -i /tmp/{pid}_branded.mp4 -i {mixed} -c:v copy -c:a aac -b:a 256k -ar 44100 -ac 2 -t {vid_duration} {output}",
+        shell=True, capture_output=True, timeout=60
+    )
+
+    # 7. Upload
+    print("\n=== STEP 7: Upload to Supabase ===")
+    sys.path.insert(0, '/app/backend/routers')
+    from pipeline import _upload_to_storage
+    with open(output, "rb") as f:
+        video_bytes = f.read()
+    url = _upload_to_storage(video_bytes, f"videos/{pid}_commercial.mp4", "video/mp4")
+    
+    # Verify
+    probe = subprocess.run(f"ffprobe -v error -show_entries stream=codec_name,codec_type,sample_rate,channels -of json {output}", shell=True, capture_output=True, text=True)
+    print(f"\nFinal specs: {probe.stdout}")
+    
+    print(f"\n{'='*60}")
+    print(f"SUCCESS! Video URL: {url}")
+    print(f"{'='*60}")
 
 asyncio.run(main())

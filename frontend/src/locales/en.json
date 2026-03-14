@@ -416,6 +416,7 @@
     "publish_campaign": "Publish Campaign",
     "campaign_default": "Campaign",
     "choose_variation": "Choose the variation to continue",
-    "archive": "Archive and create new"
+    "archive": "Archive and create new",
+    "address": "Address"
   }
 }

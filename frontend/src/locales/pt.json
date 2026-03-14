@@ -416,6 +416,7 @@
     "publish_campaign": "Publicar Campanha",
     "campaign_default": "Campanha",
     "choose_variation": "Escolha a variacao para continuar",
-    "archive": "Arquivar e criar novo"
+    "archive": "Arquivar e criar novo",
+    "address": "Endereco"
   }
 }

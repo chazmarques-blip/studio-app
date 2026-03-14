@@ -416,6 +416,7 @@
     "publish_campaign": "Publicar Campana",
     "campaign_default": "Campana",
     "choose_variation": "Elija la variacion para continuar",
-    "archive": "Archivar y crear nuevo"
+    "archive": "Archivar y crear nuevo",
+    "address": "Direccion"
   }
 }

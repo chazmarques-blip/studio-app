@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -40,14 +40,14 @@ const STEP_META = {
 const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'marcos_video', 'pedro_publish'];
 
 const PLATFORMS = [
-  { id: 'whatsapp', label: 'WhatsApp' },
-  { id: 'instagram', label: 'Instagram' },
-  { id: 'facebook', label: 'Facebook' },
-  { id: 'tiktok', label: 'TikTok' },
-  { id: 'google_ads', label: 'Google Ads' },
-  { id: 'telegram', label: 'Telegram' },
-  { id: 'email', label: 'Email' },
-  { id: 'sms', label: 'SMS' },
+  { id: 'whatsapp', label: 'WhatsApp', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '768x1344' },
+  { id: 'instagram', label: 'Instagram', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '768x1344' },
+  { id: 'facebook', label: 'Facebook', imgRatio: '1:1', vidRatio: '16:9', imgSize: '1024x1024', vidSize: '1280x720' },
+  { id: 'tiktok', label: 'TikTok', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '768x1344' },
+  { id: 'google_ads', label: 'Google Ads', imgRatio: '16:9', vidRatio: '16:9', imgSize: '1344x768', vidSize: '1280x720' },
+  { id: 'telegram', label: 'Telegram', imgRatio: '1:1', vidRatio: '16:9', imgSize: '1024x1024', vidSize: '1280x720' },
+  { id: 'email', label: 'Email', imgRatio: '16:9', vidRatio: '16:9', imgSize: '1344x768', vidSize: '1280x720' },
+  { id: 'sms', label: 'SMS', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '768x1344' },
 ];
 
 /* ── Progress Timer ── */
@@ -764,7 +764,7 @@ export default function PipelineView({ context }) {
   const [creating, setCreating] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState({});
   const [showHistory, setShowHistory] = useState(false);
-  const [contactInfo, setContactInfo] = useState({ phone: '', website: '', email: '' });
+  const [contactInfo, setContactInfo] = useState({ phone: '', website: '', email: '', address: '' });
   const [showContact, setShowContact] = useState(false);
   const [uploadedAssets, setUploadedAssets] = useState([]);
   const [showFinalPreview, setShowFinalPreview] = useState(false);
@@ -874,12 +874,19 @@ export default function PipelineView({ context }) {
     setCreating(true);
     try {
       const assetPayload = uploadedAssets.map(a => ({ url: a.url, type: a.type, filename: a.filename }));
+      // Build adaptive media format specs from selected platforms
+      const selectedPlatforms = PLATFORMS.filter(p => platforms.includes(p.id));
+      const mediaFormats = {};
+      selectedPlatforms.forEach(p => {
+        mediaFormats[p.id] = { imgRatio: p.imgRatio, vidRatio: p.vidRatio, imgSize: p.imgSize, vidSize: p.vidSize };
+      });
       const { data } = await axios.post(`${API}/campaigns/pipeline`, {
         briefing: effectiveBriefing.trim(), campaign_name: campaignName.trim(), mode, platforms,
         campaign_language: campaignLang || '',
         context: context || {},
         contact_info: contactInfo,
         uploaded_assets: assetPayload,
+        media_formats: mediaFormats,
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1323,21 +1330,26 @@ export default function PipelineView({ context }) {
             <Phone size={10} /> {t('studio.contact_data') || 'Contact Data (optional)'}
           </button>
           {showContact && (
-            <div data-testid="contact-info-section" className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-[#0D0D0D] rounded-xl border border-[#1A1A1A] p-3">
+            <div data-testid="contact-info-section" className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-[#0D0D0D] rounded-xl border border-[#1A1A1A] p-3">
               <div>
-                <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Phone size={8} /> Telefone</label>
+                <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Phone size={8} /> {t('studio.phone') || 'Phone'}</label>
                 <input data-testid="contact-phone" value={contactInfo.phone} onChange={e => setContactInfo(p => ({ ...p, phone: e.target.value }))}
-                  placeholder="+55 11 99999-9999" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                  placeholder="+1 (555) 123-4567" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
               <div>
                 <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Globe size={8} /> Website</label>
                 <input data-testid="contact-website" value={contactInfo.website} onChange={e => setContactInfo(p => ({ ...p, website: e.target.value }))}
-                  placeholder="www.suaempresa.com" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                  placeholder="www.yourcompany.com" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
               <div>
                 <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Mail size={8} /> Email</label>
                 <input data-testid="contact-email" value={contactInfo.email} onChange={e => setContactInfo(p => ({ ...p, email: e.target.value }))}
                   placeholder="contact@company.com" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+              </div>
+              <div>
+                <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><MapPin size={8} /> {t('studio.address') || 'Address'}</label>
+                <input data-testid="contact-address" value={contactInfo.address} onChange={e => setContactInfo(p => ({ ...p, address: e.target.value }))}
+                  placeholder="123 Main St, City, State" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
             </div>
           )}

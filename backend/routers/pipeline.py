@@ -429,6 +429,7 @@ class PipelineCreate(BaseModel):
     context: Optional[dict] = {}
     contact_info: Optional[dict] = {}
     uploaded_assets: Optional[list] = []
+    media_formats: Optional[dict] = {}
 
 
 class PipelineApprove(BaseModel):
@@ -584,7 +585,7 @@ async def _generate_narration(text, pipeline_id):
     return None
 
 
-def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta=""):
+def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta="", music_mood="upbeat"):
     """Combine 2 clips with crossfade + narration + background music + brand logo ending with CTA"""
     output_path = f"/tmp/{pipeline_id}_commercial.mp4"
     try:
@@ -630,24 +631,24 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
 
         branded_ok = False
         if logo_path and os.path.exists(logo_path):
-            # Pre-scale logo to reasonable size for overlay (300px wide, maintain aspect)
+            # Pre-scale logo to reasonable size for overlay (240px wide, maintain aspect)
             scaled_logo = f"/tmp/{pipeline_id}_logo_scaled.png"
             subprocess.run(
-                f"ffmpeg -y -i {logo_path} -vf scale=300:-1 {scaled_logo}",
+                f"ffmpeg -y -i {logo_path} -vf scale=240:-1 {scaled_logo}",
                 shell=True, capture_output=True, timeout=30
             )
             if not os.path.exists(scaled_logo):
                 scaled_logo = logo_path
 
             vf = (
-                f"[0:v]drawbox=x=0:y=0:w=iw:h=ih:color=black@0.8:t=fill:enable='between(t,{brand_start},{vid_duration})'[bg];"
-                f"[1:v]scale=300:-1[logo];"
-                f"[bg][logo]overlay=(W-w)/2:(H-h)/2-60:enable='between(t,{brand_start},{vid_duration})'"
+                f"[0:v]drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill:enable='between(t,{brand_start},{vid_duration})'[bg];"
+                f"[1:v]scale=240:-1[logo];"
+                f"[bg][logo]overlay=(W-w)/2:(H/4)-(h/2):enable='between(t,{brand_start},{vid_duration})'"
             )
             if safe_tagline:
-                vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=30:fontcolor=white@0.95:x=(w-text_w)/2:y=(h/2)+50:enable='between(t,{brand_mid},{vid_duration})'"
+                vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=28:fontcolor=white@0.95:x=(w-text_w)/2:y=(h*3/5):enable='between(t,{brand_mid},{vid_duration})'"
             if safe_contact:
-                vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h/2)+90:enable='between(t,{brand_late},{vid_duration})'"
+                vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
             logo_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {scaled_logo} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(logo_cmd, shell=True, capture_output=True, text=True, timeout=120)
@@ -658,13 +659,13 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 logger.warning(f"Logo overlay failed: {r.stderr[:200] if r.stderr else 'unknown'}")
 
         if not branded_ok:
-            # Text-only brand ending
-            text_vf = f"drawbox=x=0:y=0:w=iw:h=ih:color=black@0.8:t=fill:enable='between(t,{brand_start},{vid_duration})'"
-            text_vf += f",drawtext=text=\\'{safe_brand}\\':fontsize=60:fontcolor=white:borderw=2:bordercolor=black@0.5:x=(w-text_w)/2:y=(h/2)-30:enable='between(t,{brand_start},{vid_duration})'"
+            # Text-only brand ending (fully opaque black)
+            text_vf = f"drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill:enable='between(t,{brand_start},{vid_duration})'"
+            text_vf += f",drawtext=text=\\'{safe_brand}\\':fontsize=60:fontcolor=white:borderw=2:bordercolor=black@0.5:x=(w-text_w)/2:y=(h/3):enable='between(t,{brand_start},{vid_duration})'"
             if safe_tagline:
-                text_vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=26:fontcolor=white@0.9:x=(w-text_w)/2:y=(h/2)+30:enable='between(t,{brand_mid},{vid_duration})'"
+                text_vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=26:fontcolor=white@0.9:x=(w-text_w)/2:y=(h*3/5):enable='between(t,{brand_mid},{vid_duration})'"
             if safe_contact:
-                text_vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h/2)+70:enable='between(t,{brand_late},{vid_duration})'"
+                text_vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
             brand_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -vf "{text_vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
@@ -676,24 +677,44 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         branded_file = f"/tmp/{pipeline_id}_branded.mp4"
         final_audio = None
 
-        # Check for background music
+        # Check for background music — select by mood
         music_dir = "/app/backend/assets/music"
         bg_music_path = None
         if os.path.isdir(music_dir):
-            music_files = [f for f in os.listdir(music_dir) if f.endswith(('.mp3', '.wav', '.aac'))]
-            if music_files:
-                bg_music_path = os.path.join(music_dir, music_files[0])
+            # Mood-to-file mapping
+            mood_map = {
+                "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "exciting": "energetic.mp3",
+                "emotional": "emotional.mp3", "inspirational": "emotional.mp3", "triumphant": "energetic.mp3",
+                "cinematic": "cinematic.mp3", "dramatic": "cinematic.mp3", "epic": "cinematic.mp3",
+                "corporate": "corporate.mp3", "professional": "corporate.mp3", "clean": "corporate.mp3",
+            }
+            mood_file = mood_map.get(music_mood, "upbeat.mp3")
+            candidate = os.path.join(music_dir, mood_file)
+            if os.path.exists(candidate):
+                bg_music_path = candidate
+                logger.info(f"Selected music: {mood_file} (mood: {music_mood})")
+            else:
+                # Fallback to any available track
+                music_files = [f for f in os.listdir(music_dir) if f.endswith(('.mp3', '.wav', '.aac'))]
+                if music_files:
+                    bg_music_path = os.path.join(music_dir, music_files[0])
+                    logger.info(f"Fallback music: {music_files[0]}")
 
         if audio_path and os.path.exists(audio_path) and bg_music_path:
-            # Mix narration (loud) + background music (soft) then merge
-            mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.mp3"
+            # Resample both to 44100Hz stereo before mixing for clean audio
+            narr_resampled = f"/tmp/{pipeline_id}_narr_44k.wav"
+            music_resampled = f"/tmp/{pipeline_id}_music_44k.wav"
+            subprocess.run(f"ffmpeg -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"ffmpeg -y -i {bg_music_path} -ar 44100 -ac 2 {music_resampled}", shell=True, capture_output=True, timeout=30)
+
+            mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.wav"
             mix_cmd = (
-                f'ffmpeg -y -i {audio_path} -i {bg_music_path} '
+                f'ffmpeg -y -i {narr_resampled} -i {music_resampled} '
                 f'-filter_complex "'
-                f'[0:a]volume=1.0,apad[narr];'
-                f'[1:a]volume=0.30,aloop=loop=-1:size=2e+09[music];'
-                f'[narr][music]amix=inputs=2:duration=shortest:dropout_transition=2[out]'
-                f'" -map "[out]" -t {vid_duration} -c:a libmp3lame -b:a 192k {mixed_audio}'
+                f'[0:a]volume=1.2,apad[narr];'
+                f'[1:a]volume=0.25,aloop=loop=-1:size=2e+09[music];'
+                f'[narr][music]amix=inputs=2:duration=first:dropout_transition=3[out]'
+                f'" -map "[out]" -t {vid_duration} -ar 44100 -ac 2 {mixed_audio}'
             )
             r = subprocess.run(mix_cmd, shell=True, capture_output=True, text=True, timeout=60)
             if r.returncode == 0 and os.path.exists(mixed_audio):
@@ -706,9 +727,9 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             final_audio = audio_path
 
         if final_audio:
-            # Merge audio with video — use -t to trim audio to video length (NO -shortest)
+            # Merge audio with video — high quality AAC
             subprocess.run(
-                f"ffmpeg -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 192k -t {vid_duration} {output_path}",
+                f"ffmpeg -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 256k -ar 44100 -ac 2 -t {vid_duration} {output_path}",
                 shell=True, capture_output=True, timeout=60
             )
         else:
@@ -844,8 +865,8 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
             logo_path = default_logo
             logger.info("Using default brand logo from assets")
 
-    # 4. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration
-    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta)
+    # 4. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration + music
+    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood)
 
 
 def _parse_ana_copy_selection(text):
@@ -909,8 +930,24 @@ def _build_prompt(step, pipeline):
         if contact.get("phone"): cparts.append(f"Phone: {contact['phone']}")
         if contact.get("website"): cparts.append(f"Website: {contact['website']}")
         if contact.get("email"): cparts.append(f"Email: {contact['email']}")
+        if contact.get("address"): cparts.append(f"Address: {contact['address']}")
         if cparts:
             contact_str = "\nContact information to include in the campaign:\n" + "\n".join(cparts)
+
+    # Build media format instructions from selected platforms
+    media_formats = pipeline.get("result", {}).get("media_formats", {})
+    format_str = ""
+    if media_formats:
+        # Find the primary image and video sizes
+        img_sizes = set()
+        vid_sizes = set()
+        for pid_fmt, fmt in media_formats.items():
+            if fmt.get("imgSize"): img_sizes.add(fmt["imgSize"])
+            if fmt.get("vidSize"): vid_sizes.add(fmt["vidSize"])
+        if img_sizes:
+            format_str += f"\nIMAGE FORMAT REQUIREMENTS: Generate images for these sizes: {', '.join(img_sizes)}. Primary size: {list(img_sizes)[0]}."
+        if vid_sizes:
+            format_str += f"\nVIDEO FORMAT REQUIREMENTS: The commercial video should target: {', '.join(vid_sizes)}."
 
     assets_str = ""
     if assets:
@@ -950,6 +987,7 @@ Briefing: {briefing}
 
 {f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
 {contact_str}
+{format_str}
 {assets_str}
 {lang_instruction}
 {revision_info}
@@ -1026,6 +1064,7 @@ ORIGINAL BRIEFING: {briefing}
 
 {f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
 {contact_str}
+{format_str}
 {assets_str}
 {revision_info}
 
@@ -1034,7 +1073,8 @@ Each prompt MUST:
 1. Include the HEADLINE TEXT from Sofia's briefing exactly as written (3-7 words, in the campaign language)
 2. Be 80-120 words of HYPER-SPECIFIC visual description
 3. Include: subject, setting, lighting, camera angle, color palette, mood, art style
-4. End with: "Ultra high-quality, 4K commercial photography. Square 1080x1080 format. NO logos, NO brand names, NO website URLs."
+4. End with: "Ultra high-quality, 4K commercial photography. NO logos, NO brand names, NO website URLs."
+5. If IMAGE FORMAT REQUIREMENTS were provided above, adapt each prompt's aspect ratio description accordingly (e.g., "vertical portrait composition" for 9:16, "landscape panoramic" for 16:9, "square centered" for 1:1).
 
 CRITICAL LANGUAGE RULE: ALL text that appears in the image (headlines, overlays, CTAs) MUST be in the SAME language as the approved campaign copy. If the copy is in English, the image headline MUST be in English. If in Portuguese, in Portuguese. NEVER mix languages between copy and image text — this destroys campaign coherence.
 {lang_instruction}
@@ -1095,7 +1135,19 @@ If approving, end with:
             if contact_info.get("phone"): parts.append(f"Phone: {contact_info['phone']}")
             if contact_info.get("website"): parts.append(f"Website: {contact_info['website']}")
             if contact_info.get("email"): parts.append(f"Email: {contact_info['email']}")
+            if contact_info.get("address"): parts.append(f"Address: {contact_info['address']}")
             contact_details = " | ".join(parts)
+
+        # Get video format from media_formats
+        vid_format_note = ""
+        mf = pipeline.get("result", {}).get("media_formats", {})
+        if mf:
+            vid_sizes = set()
+            for p_fmt in mf.values():
+                if p_fmt.get("vidSize"): vid_sizes.add(p_fmt["vidSize"])
+            if vid_sizes:
+                primary_vid = list(vid_sizes)[0]
+                vid_format_note = f"\nVIDEO FORMAT: Primary target size is {primary_vid}. Adapt your video format (horizontal/vertical) accordingly."
 
         return f"""Create a 24-second commercial video (TWO 12-second clips with perfect continuity) for this campaign.
 
@@ -1106,6 +1158,7 @@ Visual direction: {image_briefing}
 Video brief from Sofia: {video_brief}
 Contact info for CTA: {contact_details or contact_str}
 Original briefing: {briefing}
+{vid_format_note}
 {lang_instruction}
 
 REQUIREMENTS:
@@ -1520,6 +1573,7 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
             "uploaded_assets": data.uploaded_assets or [],
             "campaign_name": data.campaign_name or "",
             "campaign_language": data.campaign_language or "",
+            "media_formats": data.media_formats or {},
         },
     }
 
