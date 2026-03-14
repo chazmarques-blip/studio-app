@@ -805,12 +805,21 @@ async def _execute_step(pipeline_id, step):
             selected = _parse_ana_copy_selection(response)
             steps[step]["auto_selection"] = selected
             sofia_output = steps.get("sofia_copy", {}).get("output", "")
-            variations = re.split(r'===VARIATION \d+===', sofia_output)
-            variations = [v.strip() for v in variations if v.strip()]
-            if 0 < selected <= len(variations):
+
+            # Strip IMAGE BRIEFING section from Sofia's output before parsing variations
+            copy_only = re.split(r'===\s*IMAGE BRIEFING\s*===', sofia_output, flags=re.IGNORECASE)[0]
+
+            variations = re.split(r'===\s*VARIATION \d+\s*===', copy_only)
+            # First element is always preamble (before ===VARIATION 1===), skip it
+            variations = [v.strip() for v in variations[1:] if v.strip()]
+
+            if variations and 0 < selected <= len(variations):
                 steps[step]["approved_content"] = variations[selected - 1]
+            elif variations:
+                steps[step]["approved_content"] = variations[0]
             else:
-                steps[step]["approved_content"] = variations[0] if variations else sofia_output
+                # Fallback: use full copy section
+                steps[step]["approved_content"] = copy_only.strip()
 
         elif step == "rafael_review_design":
             decision = _parse_review_decision(response)
@@ -1099,10 +1108,10 @@ async def approve_step(pipeline_id: str, data: PipelineApprove, user=Depends(get
     # Apply user's selection
     if approval_step == "ana_review_copy" and data.selection is not None:
         steps[approval_step]["user_selection"] = data.selection
-        # Update approved content with user's choice
         sofia_output = steps.get("sofia_copy", {}).get("output", "")
-        variations = re.split(r'===VARIATION \d+===', sofia_output)
-        variations = [v.strip() for v in variations if v.strip()]
+        copy_only = re.split(r'===\s*IMAGE BRIEFING\s*===', sofia_output, flags=re.IGNORECASE)[0]
+        variations = re.split(r'===\s*VARIATION \d+\s*===', copy_only)
+        variations = [v.strip() for v in variations[1:] if v.strip()]
         sel = data.selection
         if 0 < sel <= len(variations):
             steps[approval_step]["approved_content"] = variations[sel - 1]
