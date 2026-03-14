@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -116,7 +117,7 @@ function PreviewModal({ campaign, onClose }) {
                 {images.map((url, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
                     className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-[#C9A84C]/30 transition">
-                    <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
+                    <img src={resolveImageUrl(url)} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                       <Maximize2 size={16} className="text-white" />
                     </div>
@@ -142,12 +143,12 @@ function PreviewModal({ campaign, onClose }) {
               <button onClick={() => setLightboxIdx(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333]">
                 <X size={14} className="text-white" />
               </button>
-              <img src={`${process.env.REACT_APP_BACKEND_URL}${images[lightboxIdx]}`} alt="" className="w-full rounded-xl" />
+              <img src={resolveImageUrl(images[lightboxIdx])} alt="" className="w-full rounded-xl" />
               <div className="flex gap-2 mt-2 justify-center">
                 {images.map((u, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
                     className={`h-10 w-10 rounded-lg overflow-hidden border-2 ${i === lightboxIdx ? 'border-[#C9A84C]' : 'border-[#333] opacity-50'}`}>
-                    <img src={`${process.env.REACT_APP_BACKEND_URL}${u}`} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -313,7 +314,7 @@ function CampaignDetail({ campaign, onClose }) {
                 <p className="text-[9px] text-[#555] uppercase tracking-wider">Campanha por Canal</p>
                 {channels.map((channel, idx) => {
                   const imgUrl = images[idx % Math.max(images.length, 1)];
-                  const imgSrc = imgUrl ? `${process.env.REACT_APP_BACKEND_URL}${imgUrl}` : null;
+                  const imgSrc = imgUrl ? resolveImageUrl(imgUrl) : null;
                   const channelMsg = messages.find(m => m.channel === channel);
                   const copyText_ch = cleanCampaignText(channelMsg?.content || messages[0]?.content || '');
                   const brandName = campaign.name?.split(' - ')[0]?.split(' ').slice(0, 3).join(' ') || 'Brand';
@@ -418,14 +419,14 @@ function CampaignDetail({ campaign, onClose }) {
                     {images.map((url, i) => (
                       <div key={i} className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group">
                         <button onClick={() => setLightboxIdx(i)} className="w-full text-left">
-                          <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
+                          <img src={resolveImageUrl(url)} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                             <Maximize2 size={16} className="text-white" />
                           </div>
                         </button>
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
                           <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
-                          <a href={`${process.env.REACT_APP_BACKEND_URL}${url}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/60 hover:text-white">
+                          <a href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/60 hover:text-white">
                             <Download size={10} />
                           </a>
                         </div>
@@ -516,7 +517,7 @@ function CampaignDetail({ campaign, onClose }) {
           <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
             <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
               <button onClick={() => setLightboxIdx(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333]"><X size={14} className="text-white" /></button>
-              <img src={`${process.env.REACT_APP_BACKEND_URL}${images[lightboxIdx]}`} alt="" className="w-full rounded-xl" />
+              <img src={resolveImageUrl(images[lightboxIdx])} alt="" className="w-full rounded-xl" />
             </div>
           </div>
         )}
@@ -547,7 +548,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmin
       <div className="flex items-start gap-3">
         {/* Thumbnail */}
         {images.length > 0 ? (
-          <img src={`${process.env.REACT_APP_BACKEND_URL}${images[0]}`} alt=""
+          <img src={resolveImageUrl(images[0])} alt=""
             className="w-12 h-12 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
         ) : (
           <div className="w-12 h-12 rounded-lg bg-[#111] border border-[#1E1E1E] flex items-center justify-center shrink-0">

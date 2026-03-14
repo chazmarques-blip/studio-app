@@ -23,6 +23,33 @@ ASSETS_DIR = "/app/backend/uploads/pipeline/assets"
 os.makedirs(ASSETS_DIR, exist_ok=True)
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 
+STORAGE_BUCKET = "pipeline-assets"
+
+
+def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "image/png") -> str:
+    """Upload file to Supabase Storage and return public URL"""
+    try:
+        supabase.storage.from_(STORAGE_BUCKET).upload(
+            filename,
+            file_bytes,
+            file_options={"content-type": content_type, "upsert": "true"}
+        )
+        public_url = supabase.storage.from_(STORAGE_BUCKET).get_public_url(filename)
+        logger.info(f"Uploaded to Supabase Storage: {filename}")
+        return public_url
+    except Exception as e:
+        logger.error(f"Supabase Storage upload failed for {filename}: {e}")
+        raise
+
+
+def _delete_from_storage(filename: str):
+    """Delete file from Supabase Storage"""
+    try:
+        supabase.storage.from_(STORAGE_BUCKET).remove([filename])
+        logger.info(f"Deleted from Supabase Storage: {filename}")
+    except Exception as e:
+        logger.warning(f"Supabase Storage delete failed for {filename}: {e}")
+
 STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_design", "pedro_publish"]
 PAUSE_AFTER = {"ana_review_copy", "rafael_review_design"}
 
@@ -269,7 +296,7 @@ def _next_step(current):
 
 
 async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None):
-    """Generate a single image using OpenAI GPT Image 1 with retry logic"""
+    """Generate a single image using OpenAI GPT Image 1 and upload to Supabase Storage"""
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -283,11 +310,9 @@ async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None)
             if images and len(images) > 0:
                 img_data = images[0]
                 filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
-                filepath = os.path.join(UPLOADS_DIR, filename)
-                with open(filepath, "wb") as f:
-                    f.write(img_data)
-                logger.info(f"Image generated successfully with GPT Image 1: {filename}")
-                return f"/api/uploads/pipeline/{filename}"
+                public_url = _upload_to_storage(img_data, filename, "image/png")
+                logger.info(f"Image generated and uploaded to storage: {filename}")
+                return public_url
         except Exception as e:
             logger.warning(f"GPT Image 1 attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
             if attempt < max_retries - 1:
@@ -901,7 +926,7 @@ async def upload_pipeline_asset(
     asset_type: str = Form("reference"),
     user=Depends(get_current_user)
 ):
-    """Upload a brand logo or reference image for the pipeline"""
+    """Upload a brand logo or reference image to Supabase Storage"""
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files are accepted")
 
@@ -911,13 +936,10 @@ async def upload_pipeline_asset(
         raise HTTPException(status_code=400, detail="File too large (max 10MB)")
 
     ext = os.path.splitext(file.filename or "upload.png")[1] or ".png"
-    filename = f"{asset_type}_{uuid.uuid4().hex[:8]}{ext}"
-    filepath = os.path.join(ASSETS_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
-
-    url = f"/api/uploads/pipeline/assets/{filename}"
-    return {"url": url, "filename": filename, "type": asset_type, "size": len(content)}
+    filename = f"assets/{asset_type}_{uuid.uuid4().hex[:8]}{ext}"
+    content_type = file.content_type or "image/png"
+    public_url = _upload_to_storage(content, filename, content_type)
+    return {"url": public_url, "filename": filename, "type": asset_type, "size": len(content)}
 
 
 @router.get("/list")
@@ -995,15 +1017,24 @@ async def get_saved_history_v2(user=Depends(get_current_user)):
 
 @router.delete("/saved/logo")
 async def delete_saved_logo_v2(url: str, user=Depends(get_current_user)):
-    """Delete a saved logo file from disk"""
+    """Delete a saved logo file from Supabase Storage or local disk"""
     await _get_tenant(user)
-    if not url.startswith("/api/uploads/pipeline/"):
+    if url.startswith("http"):
+        # Supabase Storage URL — extract filename from URL
+        # URL format: https://xxx.supabase.co/storage/v1/object/public/pipeline-assets/assets/logo_xxx.png
+        parts = url.split(f"/{STORAGE_BUCKET}/")
+        if len(parts) == 2:
+            _delete_from_storage(parts[1])
+        return {"status": "deleted", "url": url}
+    elif url.startswith("/api/uploads/pipeline/"):
+        # Legacy local file
+        filename = url.split("/")[-1]
+        filepath = os.path.join(UPLOADS_DIR, "assets", filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return {"status": "deleted", "url": url}
+    else:
         raise HTTPException(status_code=400, detail="Invalid logo URL")
-    filename = url.split("/")[-1]
-    filepath = os.path.join(UPLOADS_DIR, "assets", filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-    return {"status": "deleted", "url": url}
 
 
 @router.get("/{pipeline_id}")

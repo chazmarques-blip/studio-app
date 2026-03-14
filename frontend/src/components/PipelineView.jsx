@@ -5,6 +5,7 @@ import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDo
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -106,19 +107,19 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
         <button onClick={onClose} className="absolute -top-3 -right-3 z-10 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] transition">
           <X size={16} className="text-white" />
         </button>
-        <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${index + 1}`}
+        <img src={resolveImageUrl(url)} alt={`Design ${index + 1}`}
           className="w-full rounded-xl border border-[#333] shadow-2xl" />
         <div className="flex items-center justify-between mt-3">
           <div className="flex gap-2">
             {images.map((u, i) => u && (
               <button key={i} onClick={() => setIndex(i)}
                 className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${i === index ? 'border-[#C9A84C]' : 'border-[#333] opacity-60 hover:opacity-100'}`}>
-                <img src={`${process.env.REACT_APP_BACKEND_URL}${u}`} alt="" className="w-full h-full object-cover" />
+                <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
           <div className="flex gap-2">
-            <a href={`${process.env.REACT_APP_BACKEND_URL}${url}`} target="_blank" rel="noopener noreferrer"
+            <a href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
               <Download size={12} /> Baixar
             </a>
@@ -249,7 +250,7 @@ function StepContent({ step, data, hasImages, isFailed, needsApproval, requiresU
             {data.image_urls.map((url, i) => url && (
               <button key={i} onClick={() => setLightboxIndex(i)}
                 className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group relative text-left hover:border-[#C9A84C]/30 transition">
-                <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
+                <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                   <Maximize2 size={18} className="text-white" />
                 </div>
@@ -319,7 +320,7 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
           {images.map((url, i) => (
             <button key={i} onClick={() => setLightboxIdx(i)}
               className="rounded-lg overflow-hidden border-2 border-[#222] hover:border-[#C9A84C]/50 transition relative group">
-              <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" />
+              <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                 <Maximize2 size={16} className="text-white" />
               </div>
@@ -425,7 +426,7 @@ function CompletedSummary({ pipeline }) {
                   {images.map((url, i) => (
                     <button key={i} onClick={() => setLightboxIdx(i)}
                       className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#C9A84C]/30 transition">
-                      <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
+                      <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                         <Maximize2 size={18} className="text-white" />
                       </div>
@@ -461,13 +462,13 @@ function CompletedSummary({ pipeline }) {
                 {images.map((url, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
                     className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#C9A84C]/30 transition">
-                    <img src={`${process.env.REACT_APP_BACKEND_URL}${url}`} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
+                    <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                       <Maximize2 size={16} className="text-white" />
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex items-center justify-between">
                       <span className="text-[8px] text-white font-semibold">Design {i + 1}</span>
-                      <a href={`${process.env.REACT_APP_BACKEND_URL}${url}`} target="_blank" rel="noopener noreferrer"
+                      <a href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()} className="text-white/70 hover:text-white">
                         <Download size={10} />
                       </a>
@@ -514,7 +515,7 @@ function HistoryCard({ pipeline, onSelect, onDelete }) {
       onClick={() => onSelect(pipeline)}>
       <div className="flex items-start gap-2.5">
         {hasImages && steps.lucas_design.image_urls[0] ? (
-          <img src={`${process.env.REACT_APP_BACKEND_URL}${steps.lucas_design.image_urls[0]}`}
+          <img src={resolveImageUrl(steps.lucas_design.image_urls[0])}
             alt="" className="w-10 h-10 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
         ) : (
           <div className="w-10 h-10 rounded-lg bg-[#111] border border-[#1E1E1E] flex items-center justify-center shrink-0">
@@ -608,7 +609,7 @@ function AssetUploader({ assets, onAssetsChange }) {
           <div className="flex gap-2 flex-wrap items-center">
             {logos.map((a, i) => (
               <div key={i} className="relative group">
-                <img src={a.preview || `${process.env.REACT_APP_BACKEND_URL}${a.url}`} alt="Logo"
+                <img src={a.preview || resolveImageUrl(a.url)} alt="Logo"
                   className="h-14 w-14 rounded-lg object-cover border-2 border-[#C9A84C]/30" />
                 <button onClick={() => removeAsset(assets.indexOf(a))}
                   className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
@@ -651,7 +652,7 @@ function AssetUploader({ assets, onAssetsChange }) {
           <div className="flex gap-2 flex-wrap items-center mb-2">
             {refs.map((a, i) => (
               <div key={i} className="relative group">
-                <img src={a.preview || `${process.env.REACT_APP_BACKEND_URL}${a.url}`} alt="Ref"
+                <img src={a.preview || resolveImageUrl(a.url)} alt="Ref"
                   className="h-14 w-14 rounded-lg object-cover border border-[#1E1E1E]" />
                 <button onClick={() => removeAsset(assets.indexOf(a))}
                   className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
@@ -1244,7 +1245,7 @@ export default function PipelineView({ context }) {
                         }
                       }}
                         className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.3)]' : 'border-[#1E1E1E] opacity-60 hover:opacity-100'}`}>
-                        <img src={logo.url.startsWith('http') ? logo.url : `${process.env.REACT_APP_BACKEND_URL}${logo.url}`} alt={logo.filename} className="w-full h-full object-contain bg-black" />
+                        <img src={resolveImageUrl(logo.url)} alt={logo.filename} className="w-full h-full object-contain bg-black" />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); deleteSavedLogo(logo.url); }}
                         className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[8px] font-bold hover:bg-red-500">
