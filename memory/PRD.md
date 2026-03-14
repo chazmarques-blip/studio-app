@@ -6,7 +6,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 ## Core Architecture
 - **Frontend:** React, Tailwind CSS, shadcn-ui, i18next, Framer Motion, recharts
 - **Backend:** FastAPI (Python)
-- **Database:** Supabase (PostgreSQL) + MongoDB
+- **Database:** Supabase (PostgreSQL)
 - **AI Models:**
   - Copy/Art Direction: Claude Sonnet 4.5
   - Speed tasks (reviews, scheduling): Gemini 2.0 Flash
@@ -17,7 +17,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 ## Implemented Features
 
 ### AI Marketing Studio (Phase 7) - COMPLETE
-- **Multi-Agent Pipeline:** Sofia (Copy) → Ana (Copy Review) → Lucas (Design) → Rafael (Art Director) → Pedro (Publisher)
+- **Multi-Agent Pipeline:** Sofia (Copy) -> Ana (Copy Review) -> Lucas (Design) -> Rafael (Art Director) -> Pedro (Publisher)
 - **Rafael Art Director:** World-class art direction agent (Lee Clow, Marcello Serpa, David Droga, George Lois, Helmut Krone, Rob Reilly mindsets)
 - **Revision Loop:** Ana and Rafael can request up to 2 revisions from creators before approving
 - **GPT Image 1:** High-quality images with impactful headlines (3-7 words), language-aware (PT/EN/ES)
@@ -36,8 +36,14 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - Multi-language UI (PT/EN/ES)
 - Dark luxury theme (monochrome gold/black/white)
 
+### Bug Fixes (2026-03-14)
+- **Delete button fix:** Fixed action type mismatch in CampaignCard - button was sending 'delete-confirmed' but handler only recognized 'delete'. Verified by testing agent (iteration_24).
+
+### Campaigns Created
+- **My Truck Brokers - Campana Espanol:** Created via full AI pipeline with 3 images, Spanish copy, targeting WhatsApp/Instagram/Facebook.
+
 ## Current Status
-- **Working:** All features above are functional
+- **Working:** All features above are functional. Delete button confirmed working.
 - **Known Issue:** File uploads use ephemeral storage (/app/backend/uploads/)
 
 ## Backlog (Prioritized)
