@@ -842,9 +842,11 @@ export default function PipelineView({ context }) {
       <FinalPreview
         pipeline={activePipeline}
         onClose={() => setShowFinalPreview(false)}
-        onPublish={async () => {
+        onPublish={async (editedCopy) => {
           try {
-            await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/publish`);
+            await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/publish`, {
+              edited_copy: editedCopy || null
+            });
             toast.success('Campanha publicada com sucesso!');
             navigate('/marketing');
           } catch (e) {

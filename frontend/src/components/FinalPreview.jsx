@@ -1,10 +1,9 @@
 import { useState, useRef } from 'react';
-import { X, Check, ChevronLeft, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Loader2, Pencil, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Check, ChevronLeft, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Loader2, Pencil, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import axios from 'axios';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL;
-const LOGO_URL = '/brand/logo.png';
+const DEFAULT_LOGO = '/brand/logo.png';
 
 /* ── Text Cleaner ── */
 function cleanText(raw) {
@@ -26,22 +25,28 @@ function cleanText(raw) {
   return lines.slice(0, 10).join('\n');
 }
 
+function resolveImageSrc(url) {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+  return `${BACKEND}${url}`;
+}
+
 /* ── WhatsApp Mockup ── */
-function WhatsAppMockup({ copy, image, contact }) {
+function WhatsAppMockup({ copy, image, contact, brandName, brandLogo }) {
   return (
     <div data-testid="mockup-whatsapp" className="w-full max-w-[320px] mx-auto">
       <div className="bg-[#075E54] rounded-t-xl px-3 py-2 flex items-center gap-2">
         <ChevronLeft size={16} className="text-white/70" />
-        <img src={LOGO_URL} alt="Brand" className="w-7 h-7 rounded-full object-contain bg-black" />
+        <img src={brandLogo} alt="" className="w-7 h-7 rounded-full object-contain bg-black" onError={e => { e.target.src = DEFAULT_LOGO; }} />
         <div className="flex-1">
-          <p className="text-[11px] font-semibold text-white">AgentZZ</p>
+          <p className="text-[11px] font-semibold text-white">{brandName}</p>
           <p className="text-[8px] text-white/50">online</p>
         </div>
         <MoreHorizontal size={14} className="text-white/50" />
       </div>
       <div className="bg-[#0B141A] px-2.5 py-3 min-h-[280px] rounded-b-xl" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'20\' height=\'20\' patternUnits=\'userSpaceOnUse\'%3E%3Ccircle cx=\'2\' cy=\'2\' r=\'0.5\' fill=\'%23ffffff06\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill=\'url(%23p)\' width=\'100\' height=\'100\'/%3E%3C/svg%3E")' }}>
         <div className="max-w-[85%] ml-auto">
-          {image && <img src={image.startsWith('http') || image.startsWith('blob:') ? image : `${BACKEND}${image}`} alt="" className="w-full rounded-lg mb-1" />}
+          {image && <img src={resolveImageSrc(image)} alt="" className="w-full rounded-lg mb-1" />}
           <div className="bg-[#005C4B] rounded-xl rounded-tr-none px-3 py-2">
             <p className="text-[10px] text-[#E9EDEF] leading-relaxed whitespace-pre-wrap">{copy}</p>
             {contact?.phone && <p className="text-[9px] text-[#53BDEB] mt-1.5">{contact.phone}</p>}
@@ -55,15 +60,16 @@ function WhatsAppMockup({ copy, image, contact }) {
 }
 
 /* ── Instagram Mockup ── */
-function InstagramMockup({ copy, image }) {
+function InstagramMockup({ copy, image, brandName, brandLogo }) {
+  const handle = brandName.toLowerCase().replace(/\s+/g, '');
   return (
     <div data-testid="mockup-instagram" className="w-full max-w-[320px] mx-auto bg-black rounded-xl overflow-hidden border border-[#262626]">
       <div className="flex items-center gap-2.5 px-3 py-2">
-        <img src={LOGO_URL} alt="" className="w-7 h-7 rounded-full object-contain bg-black border border-[#333]" />
-        <p className="text-[11px] font-semibold text-white flex-1">agentzz</p>
+        <img src={brandLogo} alt="" className="w-7 h-7 rounded-full object-contain bg-black border border-[#333]" onError={e => { e.target.src = DEFAULT_LOGO; }} />
+        <p className="text-[11px] font-semibold text-white flex-1">{handle}</p>
         <MoreHorizontal size={14} className="text-white/50" />
       </div>
-      {image && <img src={image.startsWith('http') || image.startsWith('blob:') ? image : `${BACKEND}${image}`} alt="" className="w-full aspect-square object-cover" />}
+      {image && <img src={resolveImageSrc(image)} alt="" className="w-full aspect-square object-cover" />}
       <div className="px-3 py-2">
         <div className="flex items-center gap-3 mb-2">
           <Heart size={20} className="text-white" />
@@ -72,30 +78,30 @@ function InstagramMockup({ copy, image }) {
           <Bookmark size={20} className="text-white ml-auto" />
         </div>
         <p className="text-[10px] text-white/60 mb-1">1,247 likes</p>
-        <p className="text-[10px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap"><span className="font-bold">agentzz</span> {copy}</p>
+        <p className="text-[10px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap"><span className="font-bold">{handle}</span> {copy}</p>
       </div>
     </div>
   );
 }
 
 /* ── Facebook Mockup ── */
-function FacebookMockup({ copy, image }) {
+function FacebookMockup({ copy, image, brandName, brandLogo }) {
   return (
     <div data-testid="mockup-facebook" className="w-full max-w-[320px] mx-auto bg-[#242526] rounded-xl overflow-hidden border border-[#3A3B3C]">
       <div className="flex items-center gap-2 px-3 py-2.5">
-        <img src={LOGO_URL} alt="" className="w-8 h-8 rounded-full object-contain bg-black" />
+        <img src={brandLogo} alt="" className="w-8 h-8 rounded-full object-contain bg-black" onError={e => { e.target.src = DEFAULT_LOGO; }} />
         <div className="flex-1">
-          <p className="text-[11px] font-semibold text-[#E4E6EB]">AgentZZ</p>
-          <p className="text-[8px] text-[#B0B3B8]">Patrocinado · 🌎</p>
+          <p className="text-[11px] font-semibold text-[#E4E6EB]">{brandName}</p>
+          <p className="text-[8px] text-[#B0B3B8]">Patrocinado</p>
         </div>
         <MoreHorizontal size={14} className="text-[#B0B3B8]" />
       </div>
       <p className="px-3 pb-2 text-[10px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap">{copy}</p>
-      {image && <img src={image.startsWith('http') || image.startsWith('blob:') ? image : `${BACKEND}${image}`} alt="" className="w-full" />}
+      {image && <img src={resolveImageSrc(image)} alt="" className="w-full" />}
       <div className="px-3 py-2 border-t border-[#3A3B3C]">
         <div className="flex items-center justify-around">
-          <span className="text-[10px] text-[#B0B3B8] flex items-center gap-1">👍 Like</span>
-          <span className="text-[10px] text-[#B0B3B8] flex items-center gap-1">💬 Comment</span>
+          <span className="text-[10px] text-[#B0B3B8]">👍 Like</span>
+          <span className="text-[10px] text-[#B0B3B8]">💬 Comment</span>
           <span className="text-[10px] text-[#B0B3B8] flex items-center gap-1"><Share2 size={12} /> Share</span>
         </div>
       </div>
@@ -112,13 +118,22 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
   const platforms = pipeline?.platforms || [];
   const contact = pipeline?.result?.contact_info || {};
   const campaignName = pipeline?.result?.campaign_name || 'Campanha';
+  const assets = pipeline?.result?.uploaded_assets || [];
+  const contextData = pipeline?.result?.context || {};
+
+  // Derive brand name from context or campaign name
+  const brandName = contextData.company || campaignName;
+
+  // Derive brand logo from uploaded assets
+  const logoAsset = assets.find(a => a.type === 'logo');
+  const brandLogo = logoAsset ? resolveImageSrc(logoAsset.url) : DEFAULT_LOGO;
+
   const [publishing, setPublishing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedCopy, setEditedCopy] = useState('');
-  const [customImages, setCustomImages] = useState([]); // [{url: blobUrl, name: ''}]
+  const [editedCopy, setEditedCopy] = useState(null); // null = not edited yet
+  const [customImages, setCustomImages] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Ana's design selections
   const anaDesignSelections = steps.ana_review_design?.result?.auto_selections || {};
   const [selectedChannel, setSelectedChannel] = useState(platforms[0] || 'whatsapp');
 
@@ -134,10 +149,12 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
     setSelectedImage(getSelectedImageIndex(ch));
   };
 
-  // Text editing
-  const displayCopy = isEditing ? editedCopy : cleanText(approvedCopy);
-  const handleStartEdit = () => { setEditedCopy(cleanText(approvedCopy)); setIsEditing(true); };
+  // Use edited copy if available, otherwise clean the original
+  const displayCopy = editedCopy !== null ? editedCopy : cleanText(approvedCopy);
+
+  const handleStartEdit = () => { setEditedCopy(displayCopy); setIsEditing(true); };
   const handleSaveEdit = () => { setIsEditing(false); toast.success('Texto atualizado!'); };
+  const handleCancelEdit = () => { setIsEditing(false); };
 
   // Custom image upload
   const handleFileUpload = (e) => {
@@ -150,7 +167,6 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
     e.target.value = '';
   };
 
-  // Combined images: pipeline + custom uploads
   const allImages = [...images, ...customImages.map(c => c.url)];
   const currentImage = allImages[selectedImage] || null;
 
@@ -168,7 +184,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-[#111] shrink-0">
         <div className="flex items-center gap-2">
-          <img src={LOGO_URL} alt="Brand" className="h-8 w-8 rounded-lg object-contain bg-black border border-[#1A1A1A]" />
+          <img src={brandLogo} alt="" className="h-8 w-8 rounded-lg object-contain bg-black border border-[#1A1A1A]" onError={e => { e.target.src = DEFAULT_LOGO; }} />
           <div className="flex-1">
             <p className="text-xs font-bold text-white">{campaignName}</p>
             <p className="text-[9px] text-[#555]">Visualize como sua campanha aparece em cada canal</p>
@@ -200,7 +216,13 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
       {/* Mockup Area */}
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <div className="flex flex-col items-center gap-3">
-          <MockupComponent copy={isEditing ? editedCopy : displayCopy} image={currentImage} contact={contact} />
+          <MockupComponent
+            copy={isEditing ? editedCopy : displayCopy}
+            image={currentImage}
+            contact={contact}
+            brandName={brandName}
+            brandLogo={brandLogo}
+          />
 
           {/* Image Selector + Upload */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -213,17 +235,14 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
                     className={`h-10 w-10 rounded-lg overflow-hidden border-2 transition ${
                       i === selectedImage ? 'border-[#C9A84C] shadow-lg' : 'border-[#333] opacity-50 hover:opacity-80'
                     }`}>
-                    <img src={url.startsWith('http') || url.startsWith('blob:') ? url : `${BACKEND}${url}`} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveImageSrc(url)} alt="" className="w-full h-full object-cover" />
                   </button>
                   {isCustom && (
-                    <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-blue-500 flex items-center justify-center">
-                      <Upload size={7} className="text-white" />
-                    </div>
+                    <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-blue-500 flex items-center justify-center text-[6px] text-white font-bold">+</div>
                   )}
                 </div>
               );
             })}
-            {/* Upload Custom Image Button */}
             <button data-testid="upload-custom-image" onClick={() => fileInputRef.current?.click()}
               className="h-10 w-10 rounded-lg border-2 border-dashed border-[#333] hover:border-[#C9A84C]/40 flex items-center justify-center transition group">
               <ImageIcon size={14} className="text-[#444] group-hover:text-[#C9A84C]" />
@@ -235,10 +254,20 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
           <div className="w-full max-w-[320px]">
             <div className="flex items-center justify-between mb-1">
               <p className="text-[8px] text-[#555] uppercase tracking-wider">Texto da Campanha</p>
-              <button data-testid="edit-copy-btn" onClick={isEditing ? handleSaveEdit : handleStartEdit}
-                className={`flex items-center gap-1 text-[9px] px-2 py-0.5 rounded transition ${isEditing ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' : 'bg-[#111] text-[#C9A84C] hover:bg-[#1A1A1A]'}`}>
-                {isEditing ? <><Check size={9} /> Salvar</> : <><Pencil size={9} /> Editar</>}
-              </button>
+              {isEditing ? (
+                <div className="flex gap-1">
+                  <button onClick={handleCancelEdit} className="text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#888] hover:text-white transition">Cancelar</button>
+                  <button data-testid="save-copy-btn" onClick={handleSaveEdit}
+                    className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition">
+                    <Check size={9} /> Salvar
+                  </button>
+                </div>
+              ) : (
+                <button data-testid="edit-copy-btn" onClick={handleStartEdit}
+                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#C9A84C] hover:bg-[#1A1A1A] transition">
+                  <Pencil size={9} /> Editar
+                </button>
+              )}
             </div>
             {isEditing ? (
               <textarea data-testid="edit-copy-textarea" value={editedCopy} onChange={e => setEditedCopy(e.target.value)} rows={6}
@@ -274,7 +303,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
             onClick={async () => {
               if (onPublish) {
                 setPublishing(true);
-                try { await onPublish(isEditing ? editedCopy : null); } catch {}
+                try { await onPublish(editedCopy); } catch {}
                 setPublishing(false);
               }
             }}

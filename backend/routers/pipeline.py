@@ -154,21 +154,13 @@ async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None)
             chat = LlmChat(
                 api_key=EMERGENT_KEY,
                 session_id=f"img-{pipeline_id}-{index}-{int(time.time())}-{attempt}",
-                system_message="You are a world-class professional graphic designer specialized in creating stunning marketing visuals. Generate high-quality, vibrant, professional marketing images with clean composition and impactful design."
+                system_message="You are a world-class professional graphic designer specialized in creating stunning marketing visuals. Generate high-quality, vibrant, professional marketing images with clean composition and impactful design. Do NOT include any text that says 'LOGO' or placeholder text. Create clean visual designs."
             )
             chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
 
-            file_contents = []
-            if brand_logo_path and os.path.exists(brand_logo_path):
-                try:
-                    with open(brand_logo_path, "rb") as f:
-                        logo_b64 = base64.b64encode(f.read()).decode("utf-8")
-                    file_contents.append(ImageContent(logo_b64))
-                    prompt_text = f"IMPORTANT: Include this exact brand logo in the design without any modifications. Place it prominently.\n\n{prompt_text}"
-                except Exception:
-                    pass
-
-            msg = UserMessage(text=prompt_text, file_contents=file_contents if file_contents else None)
+            # Do NOT send the logo as reference - the AI tends to distort it or write "LOGO"
+            # Instead, just focus on creating a clean marketing visual
+            msg = UserMessage(text=prompt_text)
             text_resp, images = await chat.send_message_multimodal_response(msg)
 
             if images and len(images) > 0:
@@ -266,8 +258,8 @@ Format:
     # Generate images sequentially to avoid overwhelming the API
     image_urls = []
     for i, prompt in enumerate(prompts):
-        enhanced_prompt = f"{prompt}\n\nIMPORTANT STYLE DIRECTIVES: Ultra high quality, professional marketing campaign visual. Sharp details, vivid colors, clean composition. Suitable for {', '.join(platforms)} advertising. 1080x1080 square format."
-        url = await _generate_image(enhanced_prompt, pipeline_id, i + 1, brand_logo_path=brand_logo_path)
+        enhanced_prompt = f"{prompt}\n\nIMPORTANT STYLE DIRECTIVES: Ultra high quality, professional marketing campaign visual. Sharp details, vivid colors, clean composition. Do NOT include any text that reads 'LOGO' or any placeholder text. Suitable for {', '.join(platforms)} advertising. 1080x1080 square format."
+        url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
         image_urls.append(url)
 
     return image_urls, prompts
@@ -819,22 +811,12 @@ async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, use
         "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", pipeline_id).execute()
 
-    # Find brand logo
-    brand_logo_path = None
-    result_data = pipeline.get("result", {})
-    assets = result_data.get("uploaded_assets", [])
-    logo_assets = [a for a in assets if a.get("type") == "logo"]
-    if logo_assets:
-        logo_url = logo_assets[0].get("url", "")
-        if logo_url.startswith("/api/uploads/pipeline/"):
-            brand_logo_path = os.path.join(UPLOADS_DIR, logo_url.split("/")[-1])
-
     # Regenerate in background thread
     def _regen():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            new_url = loop.run_until_complete(_generate_image(enhanced_prompt, pipeline_id, idx + 10, brand_logo_path=brand_logo_path))
+            new_url = loop.run_until_complete(_generate_image(enhanced_prompt, pipeline_id, idx + 10))
             fresh = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data[0]
             s = fresh.get("steps", {})
             urls = s.get("lucas_design", {}).get("image_urls", list(old_urls))
@@ -888,8 +870,11 @@ async def archive_pipeline(pipeline_id: str, user=Depends(get_current_user)):
 
 
 
+class PublishRequest(BaseModel):
+    edited_copy: Optional[str] = None
+
 @router.post("/{pipeline_id}/publish")
-async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_user)):
+async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = PublishRequest(), user=Depends(get_current_user)):
     """Publish a campaign created from a completed pipeline"""
     tenant = await _get_tenant(user)
     result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
@@ -897,10 +882,19 @@ async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_u
         raise HTTPException(status_code=404, detail="Pipeline not found")
 
     pipeline = result.data[0]
-    if pipeline.get("status") != "completed":
-        raise HTTPException(status_code=400, detail="Pipeline is not completed")
+    if pipeline.get("status") not in ("completed", "waiting_approval"):
+        raise HTTPException(status_code=400, detail="Pipeline is not ready")
 
-    # Find the campaign created from this pipeline (by checking metrics->stats->pipeline_id)
+    steps = pipeline.get("steps") or {}
+    approved_copy = body.edited_copy or steps.get("ana_review_copy", {}).get("approved_content", "")
+    clean_copy = _clean_copy_text(approved_copy)
+    image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+    schedule_text = steps.get("pedro_publish", {}).get("output", "")
+    user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
+    ctx = pipeline.get("result", {}).get("context", {})
+    campaign_name = user_campaign_name or ctx.get("company", "") or pipeline.get("briefing", "")[:50]
+
+    # Find existing campaign from this pipeline
     campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
     campaign_id = None
     for c in campaigns:
@@ -910,37 +904,25 @@ async def publish_pipeline_campaign(pipeline_id: str, user=Depends(get_current_u
             campaign_id = c["id"]
             break
 
-    if not campaign_id:
-        # Campaign wasn't created yet - create it now
-        steps = pipeline.get("steps") or {}
-        approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
-        clean_copy = _clean_copy_text(approved_copy)
-        image_urls = steps.get("lucas_design", {}).get("image_urls", [])
-        schedule_text = steps.get("pedro_publish", {}).get("output", "")
-        user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
-        ctx = pipeline.get("result", {}).get("context", {})
-        campaign_name = user_campaign_name or ctx.get("company", "") or pipeline.get("briefing", "")[:50]
+    campaign_data = {
+        "name": campaign_name,
+        "status": "active",
+        "goal": "ai_pipeline",
+        "metrics": {
+            "type": "ai_pipeline",
+            "target_segment": {"platforms": pipeline.get("platforms", [])},
+            "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
+            "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
+            "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
+        },
+    }
 
-        insert_result = supabase.table("campaigns").insert({
-            "tenant_id": tenant["id"],
-            "name": campaign_name,
-            "status": "active",
-            "goal": "ai_pipeline",
-            "metrics": {
-                "type": "ai_pipeline",
-                "target_segment": {"platforms": pipeline.get("platforms", [])},
-                "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
-                "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
-                "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "pipeline_id": pipeline_id},
-            },
-        }).execute()
-        campaign_id = insert_result.data[0]["id"]
+    if campaign_id:
+        supabase.table("campaigns").update({**campaign_data, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", campaign_id).execute()
     else:
-        # Update existing campaign status to active
-        supabase.table("campaigns").update({
-            "status": "active",
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }).eq("id", campaign_id).execute()
+        campaign_data["tenant_id"] = tenant["id"]
+        insert_result = supabase.table("campaigns").insert(campaign_data).execute()
+        campaign_id = insert_result.data[0]["id"]
 
     # Mark pipeline as completed/published
     supabase.table("pipelines").update({"status": "completed"}).eq("id", pipeline_id).execute()
