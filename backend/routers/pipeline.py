@@ -705,13 +705,13 @@ async def _execute_step(pipeline_id, step):
         prompt = _build_prompt(step, pipeline)
         system = STEP_SYSTEMS.get(step, "")
 
-        # Use appropriate model per step - Gemini Flash for simpler steps
+        # All agents use Claude Sonnet 4.5 for maximum quality
         STEP_MODELS = {
             "sofia_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
-            "ana_review_copy": ("gemini", "gemini-2.0-flash"),
-            "lucas_design": ("gemini", "gemini-2.0-flash"),
+            "ana_review_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "lucas_design": ("anthropic", "claude-sonnet-4-5-20250929"),
             "rafael_review_design": ("anthropic", "claude-sonnet-4-5-20250929"),
-            "pedro_publish": ("gemini", "gemini-2.0-flash"),
+            "pedro_publish": ("anthropic", "claude-sonnet-4-5-20250929"),
         }
         provider, model = STEP_MODELS.get(step, ("anthropic", "claude-sonnet-4-5-20250929"))
 
