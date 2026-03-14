@@ -12,6 +12,7 @@ import threading
 import shutil
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
@@ -268,109 +269,112 @@ def _next_step(current):
 
 
 async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None):
-    """Generate a single image using Gemini Nano Banana with retry logic"""
+    """Generate a single image using OpenAI GPT Image 1 with retry logic"""
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            chat = LlmChat(
-                api_key=EMERGENT_KEY,
-                session_id=f"img-{pipeline_id}-{index}-{int(time.time())}-{attempt}",
-                system_message="You are an award-winning commercial photographer and digital artist. Create stunning, high-resolution visuals for social media marketing campaigns. Your images must be: photorealistic or artistically striking, emotionally compelling, with professional lighting and composition. CRITICAL RULES: 1) NEVER render any text, words, letters, logos, or typography in the image. 2) NEVER include placeholder shapes like circles, rectangles, or blank spaces. 3) Create FULL compositions that fill the entire frame. 4) Focus on powerful visual storytelling through imagery alone."
+            image_gen = OpenAIImageGeneration(api_key=EMERGENT_KEY)
+            images = await image_gen.generate_images(
+                prompt=prompt_text,
+                model="gpt-image-1",
+                number_of_images=1
             )
-            chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
-
-            # Do NOT send the logo as reference - the AI tends to distort it or write "LOGO"
-            # Instead, just focus on creating a clean marketing visual
-            msg = UserMessage(text=prompt_text)
-            text_resp, images = await chat.send_message_multimodal_response(msg)
 
             if images and len(images) > 0:
-                img_data = base64.b64decode(images[0]["data"])
+                img_data = images[0]
                 filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
                 filepath = os.path.join(UPLOADS_DIR, filename)
                 with open(filepath, "wb") as f:
                     f.write(img_data)
-                logger.info(f"Image generated successfully: {filename}")
+                logger.info(f"Image generated successfully with GPT Image 1: {filename}")
                 return f"/api/uploads/pipeline/{filename}"
         except Exception as e:
-            logger.warning(f"Nano Banana attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
+            logger.warning(f"GPT Image 1 attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
             if attempt < max_retries - 1:
-                await asyncio.sleep(2 * (attempt + 1))
+                await asyncio.sleep(3 * (attempt + 1))
     return None
 
 
 async def _generate_design_images(pipeline_id, concepts_text, platforms):
     """Parse Lucas's concepts and generate images for each"""
-    # Get pipeline data for brand info
     pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
     brand_context = ""
+    campaign_briefing = ""
     if pipeline_data:
         p = pipeline_data[0]
         result_data = p.get("result", {})
         ctx = result_data.get("context", {})
         assets = result_data.get("uploaded_assets", [])
-        contact = result_data.get("contact_info", {})
+        campaign_briefing = p.get("briefing", "")
 
         brand_parts = []
         if ctx.get("company"):
-            brand_parts.append(f"The brand is '{ctx['company']}'. Create visuals that evoke the brand's identity through imagery, colors, and mood - NOT through text rendered in the image.")
+            brand_parts.append(f"The brand is '{ctx['company']}'.")
+        if ctx.get("industry"):
+            brand_parts.append(f"Industry: {ctx['industry']}.")
+        if ctx.get("target_audience"):
+            brand_parts.append(f"Target audience: {ctx['target_audience']}.")
         if assets:
             logo_assets = [a for a in assets if a.get("type") == "logo"]
             if logo_assets:
-                brand_parts.append("The brand has an official logo. Do NOT attempt to draw, recreate, or represent the logo in any way. Do NOT leave blank spaces, circles, or placeholders for a logo. Create a complete, full-bleed visual composition.")
-            ref_assets = [a for a in assets if a.get("type") == "reference"]
-            if ref_assets:
-                brand_parts.append(f"Use visual style inspired by {len(ref_assets)} reference image(s) provided: modern, professional aesthetic.")
-        if brand_parts:
-            brand_context = "\nBRAND REQUIREMENTS (MANDATORY): " + " ".join(brand_parts)
+                brand_parts.append("Do NOT draw logos or leave placeholder spaces.")
+        brand_context = " ".join(brand_parts) if brand_parts else ""
 
     # First, use Claude to extract image prompts from Lucas's descriptions
     try:
         chat = LlmChat(
             api_key=EMERGENT_KEY,
             session_id=f"prompt-extract-{pipeline_id}-{int(time.time())}",
-            system_message="""You are an expert at creating image generation prompts for AI. You transform design concepts into prompts that produce stunning, high-impact marketing visuals.
+            system_message="""You are an expert prompt engineer for AI image generation (GPT Image 1). You create prompts that produce stunning, scroll-stopping social media marketing images.
 
-CRITICAL RULES for your prompts:
-1. NEVER include instructions to render text, words, typography, logos, CTAs, or buttons in the image
-2. NEVER ask for placeholder shapes, blank spaces, or logo areas
-3. Focus ONLY on the VISUAL SCENE: subject matter, lighting, mood, colors, composition, perspective
-4. Describe the image as if describing a photograph or illustration - NOT a graphic design layout
-5. Use cinematic language: "dramatic lighting", "shallow depth of field", "golden hour", "aerial perspective"
-6. Specify art style when relevant: photorealistic, editorial photography, 3D render, flat illustration, etc."""
+YOUR GOLDEN RULES:
+1. Each prompt describes a SINGLE powerful visual scene - like directing a photo shoot
+2. NEVER mention text, typography, words, letters, logos, brand names, CTA buttons, or any written content
+3. NEVER describe generic stock photography (people at desks, handshakes, smiling at cameras)
+4. Every image MUST contain visual elements SPECIFIC to the campaign's industry, product, or service
+5. Be HYPER-SPECIFIC: exact subjects, settings, lighting, camera angles, props, atmosphere
+6. Use CONCRETE visual elements, not abstractions - if it's about trucking, show trucks; if about AI, show futuristic interfaces and holograms
+7. Think like a TOP-TIER creative director: "What single image would SELL this product on Instagram?"
+8. Each prompt must be visually different from the others but all directly relevant to the campaign"""
         ).with_model("gemini", "gemini-2.0-flash")
 
-        extract_prompt = f"""Transform these 3 design concepts into 3 powerful image generation prompts.
+        extract_prompt = f"""Create 3 powerful image generation prompts for this specific campaign.
 
-Each prompt must describe ONLY the visual scene/photograph - NO text, NO logos, NO CTA buttons, NO typography.
+CAMPAIGN BRIEFING (the image MUST be directly relevant to this):
+{campaign_briefing}
 
-{brand_context}
+{f'BRAND: {brand_context}' if brand_context else ''}
 
-Design concepts:
+DESIGN CONCEPTS FROM THE ART TEAM:
 {concepts_text}
 
-Format (return EXACTLY 3 prompts):
-1. [visual-only prompt describing scene, lighting, mood, composition, colors, style - max 150 words]
-2. [visual-only prompt describing scene, lighting, mood, composition, colors, style - max 150 words]
-3. [visual-only prompt describing scene, lighting, mood, composition, colors, style - max 150 words]"""
+YOUR TASK: Create 3 prompts that produce images DIRECTLY relevant to the campaign briefing above.
+- Each image must immediately communicate what this campaign is about
+- Include specific visual elements from the actual industry/product/service mentioned in the briefing
+- NEVER describe text, words, logos, or typography - only the visual scene
+- Be hyper-specific: exact subjects, settings, lighting, camera angles, mood
+
+Return EXACTLY 3 prompts (80-120 words each):
+1. [Hero shot: the most powerful, direct visual representation of the campaign's core message]
+2. [Lifestyle angle: show the target audience benefiting from the product/service]
+3. [Creative metaphor: a bold, artistic visual that captures the campaign's promise emotionally]"""
 
         response = await chat.send_message(UserMessage(text=extract_prompt))
         prompts = re.findall(r'\d+\.\s*(.+?)(?=\n\d+\.|$)', response, re.DOTALL)
         prompts = [p.strip() for p in prompts if p.strip()][:3]
 
         if len(prompts) < 3:
-            # Fallback: use generic prompts from the concepts
             prompts = [
-                f"Professional marketing banner design concept 1, modern clean style, {platforms[0] if platforms else 'social media'} format",
-                f"Professional marketing banner design concept 2, bold colors, {platforms[0] if platforms else 'social media'} format",
-                f"Professional marketing banner design concept 3, minimalist elegant, {platforms[0] if platforms else 'social media'} format",
+                f"Stunning commercial photography for a social media campaign. Professional studio lighting, rich colors, modern composition. Subject related to business innovation and technology. No text or logos in the image. Square format.",
+                f"Editorial-style lifestyle photography for a marketing campaign. Natural golden hour lighting, shallow depth of field, emotional moment. Subject related to business success and growth. No text or logos. Square format.",
+                f"Bold creative photography with dramatic lighting and vivid colors for a social media ad campaign. Subject showing professional achievement and modern technology. No text or logos. Square format.",
             ]
     except Exception as e:
         logger.warning(f"Prompt extraction failed: {e}")
         prompts = [
-            "Professional marketing campaign banner, modern design, vibrant colors, social media format",
-            "Creative marketing visual, bold typography, gradient background, digital marketing",
-            "Elegant promotional graphic, minimalist style, premium feel, brand campaign",
+            "Professional commercial photography: a modern workspace bathed in warm golden light, sleek laptop and coffee, shallow depth of field, premium feel. No text or logos in the image.",
+            "Editorial lifestyle photography: confident professional in a modern glass office, dramatic natural lighting from large windows, cinematic color grading. No text or logos.",
+            "Creative product photography: abstract representation of digital innovation, glowing connections and circuits in dark blue and gold, futuristic and elegant. No text or logos.",
         ]
 
     # Find brand logo file path if uploaded
@@ -388,17 +392,13 @@ Format (return EXACTLY 3 prompts):
     # Generate images sequentially to avoid overwhelming the API
     image_urls = []
     for i, prompt in enumerate(prompts):
+        briefing_context = f"Campaign context: {campaign_briefing[:200]}" if campaign_briefing else ""
         enhanced_prompt = f"""{prompt}
 
-ABSOLUTE REQUIREMENTS:
-- Ultra high quality, 4K resolution feel, professional commercial photography or premium digital art
-- DO NOT render ANY text, words, letters, numbers, logos, watermarks, or typography
-- DO NOT include any placeholder shapes, circles, rectangles, or blank areas
-- Full-bleed composition filling the entire frame with no empty spaces
-- Rich, vibrant colors with professional color grading
-- Dramatic lighting with depth and dimension
-- Optimized for social media ({', '.join(platforms)}) - square 1080x1080 format
-- The image should be so visually striking that it stops someone from scrolling"""
+{briefing_context}
+
+Technical requirements: Ultra high-quality, 4K commercial photography or premium digital art. Professional color grading. Magazine-cover composition. Square 1080x1080 format for {', '.join(platforms)}.
+The image must contain absolutely NO text, NO words, NO letters, NO logos, NO watermarks. Pure visual imagery only."""
         url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
         image_urls.append(url)
 
@@ -1121,7 +1121,7 @@ async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, use
 
     # Build enhanced prompt with feedback
     original_prompt = old_prompts[idx]
-    enhanced_prompt = f"{original_prompt}. ADJUSTMENTS: {data.feedback}. CRITICAL: Do NOT render any text, words, logos, or placeholder shapes. Full-bleed visual only." if data.feedback else original_prompt
+    enhanced_prompt = f"{original_prompt}. ADJUSTMENTS: {data.feedback}. ABSOLUTE RULE: ZERO text, words, logos, or placeholder shapes in the image. Pure visual only." if data.feedback else original_prompt
 
     # Mark as regenerating
     lucas["status"] = "generating_images"
@@ -1205,7 +1205,7 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
 
     style_desc = STYLE_PROMPTS.get(body.style, STYLE_PROMPTS["professional"])
     prompt = body.prompt_override.strip() if body.prompt_override.strip() else f"Create a stunning visual for a marketing campaign about '{body.campaign_name or 'brand'}'. Focus on powerful visual storytelling through imagery."
-    prompt += f"\n\nVISUAL STYLE: {style_desc}\n\nCRITICAL: Do NOT render any text, words, letters, logos, or typography in the image. Do NOT include placeholder shapes or blank spaces. Create a full-bleed, visually striking photograph or illustration. 1080x1080 square format."
+    prompt += f"\n\nVISUAL STYLE: {style_desc}\n\nABSOLUTE RULE: This image must contain ZERO text, ZERO words, ZERO letters, ZERO logos, ZERO watermarks. Pure visual imagery only. 1080x1080 square format."
 
     pid = f"single-{uuid.uuid4().hex[:8]}"
     url = await _generate_image(prompt, pid, 1)
