@@ -115,7 +115,7 @@ After all 3 copy variations, create a detailed IMAGE BRIEFING for the visual des
 This briefing tells the designer EXACTLY what images to create to maximize the campaign's impact.
 
 ===IMAGE BRIEFING===
-HEADLINE FOR IMAGE: [ONE powerful phrase, 3-7 words, in the EXACT SAME language as the copy above — this text WILL appear IN the image. NEVER use a different language than the copy.]
+HEADLINE FOR IMAGE: [ONE powerful phrase, 3-7 words. CRITICAL: This headline MUST be in the EXACT SAME language as the campaign copy above. If the copy is in English, this headline MUST be in English. If in Portuguese, in Portuguese. If in Spanish, in Spanish. NEVER write this headline in a different language than the copy — this is the #1 most common error and it DESTROYS the campaign. Verify the language before writing.]
 VISUAL CONCEPT 1: [Detailed description: main subject, setting, lighting, mood, camera angle, color palette. Be SPECIFIC to the product/industry — not generic stock photo vibes. Think award-winning advertising photography.]
 VISUAL CONCEPT 2: [Different angle: lifestyle/aspirational — show the TARGET AUDIENCE benefiting from the product/service. Emotional, human, relatable.]
 VISUAL CONCEPT 3: [Bold/creative: unexpected visual metaphor or dramatic composition that stops the scroll. Think Cannes Lions winner.]
@@ -254,7 +254,7 @@ YOUR TECHNICAL MASTERY BY PLATFORM:
 WHAT YOU PRODUCE:
 For each of the 3 visual concepts from Sofia's briefing, create a DETAILED, OPTIMIZED image generation prompt.
 Each prompt MUST:
-1. Include the HEADLINE TEXT exactly as specified in Sofia's briefing (3-7 words, in the campaign language)
+1. Include the HEADLINE TEXT exactly as specified in Sofia's briefing (3-7 words, in the campaign language). CRITICAL: If the campaign is in English, the headline MUST be in English. If in Portuguese, in Portuguese. NEVER generate an image with text in a different language than the campaign — this is the #1 quality failure.
 2. Describe the visual scene with EXTREME specificity (subjects, setting, lighting, camera angle, textures)
 3. Specify the art style and mood
 4. Include technical quality descriptors (4K, commercial photography, magazine-quality, etc.)
@@ -573,9 +573,11 @@ async def _generate_design_images(pipeline_id, lucas_output, platforms):
     # Generate images sequentially
     image_urls = []
     for i, prompt in enumerate(prompts):
-        enhanced_prompt = f"""{prompt}
+        enhanced_prompt = f"""CRITICAL LANGUAGE REQUIREMENT: ALL text visible in this image (headlines, titles, CTAs, overlay text) MUST be written in {lang_name}. DO NOT use any other language. If there is text in a different language in the prompt below, translate it to {lang_name} before generating.
+{lang_instruction}
 
-MANDATORY: {lang_instruction} The headline text MUST be in {lang_name}.
+{prompt}
+
 Technical: Ultra high-quality, 4K, professional color grading. Square 1080x1080 format for {', '.join(platforms)}.
 NO logos, NO brand names, NO website URLs."""
         url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
@@ -640,22 +642,42 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             )
 
         # 2. Crossfade (1s fade at 11s mark → total ~23s)
-        xfade_cmd = (
-            f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_norm1.mp4 -i /tmp/{pipeline_id}_norm2.mp4 '
-            f'-filter_complex "'
-            f'[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];'
-            f'[v0][v1]xfade=transition=fade:duration=1:offset=11,format=yuv420p[vout]'
-            f'" -map "[vout]" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_xfade.mp4'
-        )
-        result = subprocess.run(xfade_cmd, shell=True, capture_output=True, text=True, timeout=120)
-        if result.returncode != 0:
-            logger.warning("Crossfade failed, falling back to concat")
-            with open(f"/tmp/{pipeline_id}_clips.txt", "w") as f:
-                f.write(f"file '/tmp/{pipeline_id}_norm1.mp4'\nfile '/tmp/{pipeline_id}_norm2.mp4'\n")
-            subprocess.run(
-                f"/usr/bin/ffmpeg -y -f concat -safe 0 -i /tmp/{pipeline_id}_clips.txt -c copy /tmp/{pipeline_id}_xfade.mp4",
-                shell=True, capture_output=True, timeout=60
+        # First verify both normalized clips exist and have content
+        norm1 = f"/tmp/{pipeline_id}_norm1.mp4"
+        norm2 = f"/tmp/{pipeline_id}_norm2.mp4"
+        if not os.path.exists(norm1) or os.path.getsize(norm1) < 1000:
+            logger.error(f"Normalized clip1 missing or empty: {os.path.exists(norm1)}")
+            return None
+        if not os.path.exists(norm2) or os.path.getsize(norm2) < 1000:
+            logger.error(f"Normalized clip2 missing or empty: {os.path.exists(norm2)}")
+            # Fall back to using just clip1 with audio
+            shutil.copy2(norm1, f"/tmp/{pipeline_id}_xfade.mp4")
+        else:
+            xfade_cmd = (
+                f'/usr/bin/ffmpeg -y -i {norm1} -i {norm2} '
+                f'-filter_complex "'
+                f'[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];'
+                f'[v0][v1]xfade=transition=fade:duration=1:offset=11,format=yuv420p[vout]'
+                f'" -map "[vout]" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_xfade.mp4'
             )
+            result = subprocess.run(xfade_cmd, shell=True, capture_output=True, text=True, timeout=120)
+            if result.returncode != 0:
+                logger.warning(f"Crossfade failed ({result.stderr[:200] if result.stderr else 'unknown'}), falling back to concat")
+                with open(f"/tmp/{pipeline_id}_clips.txt", "w") as f:
+                    f.write(f"file '{norm1}'\nfile '{norm2}'\n")
+                concat_r = subprocess.run(
+                    f"/usr/bin/ffmpeg -y -f concat -safe 0 -i /tmp/{pipeline_id}_clips.txt -c copy /tmp/{pipeline_id}_xfade.mp4",
+                    shell=True, capture_output=True, text=True, timeout=60
+                )
+                if concat_r.returncode != 0:
+                    logger.error(f"Concat also failed: {concat_r.stderr[:200] if concat_r.stderr else ''}")
+                    shutil.copy2(norm1, f"/tmp/{pipeline_id}_xfade.mp4")
+
+        # Verify combined video duration
+        xfade_file = f"/tmp/{pipeline_id}_xfade.mp4"
+        if not os.path.exists(xfade_file):
+            logger.error("No combined video file created")
+            return None
 
         # Get video duration for accurate overlay timing
         probe = subprocess.run(
@@ -673,6 +695,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         safe_contact = (contact_cta or "").replace("'", "").replace('"', '').replace(':', ' ').replace('\\', '')
 
         branded_ok = False
+        font_path = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
         if logo_path and os.path.exists(logo_path):
             # Pre-scale logo to reasonable size for overlay (240px wide, maintain aspect)
             scaled_logo = f"/tmp/{pipeline_id}_logo_scaled.png"
@@ -689,9 +712,9 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 f"[bg][logo]overlay=(W-w)/2:(H/4)-(h/2):enable='between(t,{brand_start},{vid_duration})'"
             )
             if safe_tagline:
-                vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=28:fontcolor=white@0.95:x=(w-text_w)/2:y=(h*3/5):enable='between(t,{brand_mid},{vid_duration})'"
+                vf += f",drawtext=text='{safe_tagline}':fontfile={font_path}:fontsize=28:fontcolor=white@0.95:x=(w-text_w)/2:y=(h*3/5):enable='between(t,{brand_mid},{vid_duration})'"
             if safe_contact:
-                vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
+                vf += f",drawtext=text='{safe_contact}':fontfile={font_path}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
             logo_cmd = f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {scaled_logo} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(logo_cmd, shell=True, capture_output=True, text=True, timeout=120)
@@ -699,16 +722,17 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             if branded_ok:
                 logger.info("Logo overlay applied successfully")
             else:
-                logger.warning(f"Logo overlay failed: {r.stderr[:200] if r.stderr else 'unknown'}")
+                err_msg = r.stderr[-500:] if r.stderr else 'unknown'
+                logger.warning(f"Logo overlay failed: {err_msg}")
 
         if not branded_ok:
             # Text-only brand ending (fully opaque black)
             text_vf = f"drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill:enable='between(t,{brand_start},{vid_duration})'"
-            text_vf += f",drawtext=text=\\'{safe_brand}\\':fontsize=60:fontcolor=white:borderw=2:bordercolor=black@0.5:x=(w-text_w)/2:y=(h/3):enable='between(t,{brand_start},{vid_duration})'"
+            text_vf += f",drawtext=text='{safe_brand}':fontfile={font_path}:fontsize=60:fontcolor=white:borderw=2:bordercolor=black@0.5:x=(w-text_w)/2:y=(h/3):enable='between(t,{brand_start},{vid_duration})'"
             if safe_tagline:
-                text_vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=26:fontcolor=white@0.9:x=(w-text_w)/2:y=(h*3/5):enable='between(t,{brand_mid},{vid_duration})'"
+                text_vf += f",drawtext=text='{safe_tagline}':fontfile={font_path}:fontsize=26:fontcolor=white@0.9:x=(w-text_w)/2:y=(h*3/5):enable='between(t,{brand_mid},{vid_duration})'"
             if safe_contact:
-                text_vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
+                text_vf += f",drawtext=text='{safe_contact}':fontfile={font_path}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
             brand_cmd = f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -vf "{text_vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
@@ -894,10 +918,13 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     try:
         pipeline = supabase.table("pipelines").select("result").eq("id", pipeline_id).single().execute()
         assets = pipeline.data.get("result", {}).get("uploaded_assets", []) if pipeline.data else []
+        backend_url = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
         for asset in assets:
             url = asset.get("url", "") if isinstance(asset, dict) else str(asset)
             if url and any(url.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp']):
-                # Download the logo
+                # Convert relative URL to absolute
+                if url.startswith('/'):
+                    url = f"{backend_url}{url}"
                 import urllib.request
                 logo_path = f"/tmp/{pipeline_id}_logo.png"
                 urllib.request.urlretrieve(url, logo_path)
@@ -961,7 +988,18 @@ def _build_prompt(step, pipeline):
     lang_instruction = ""
     if campaign_lang:
         lang_name = LANG_NAMES.get(campaign_lang, campaign_lang)
-        lang_instruction = f"\n\nIMPORTANT: ALL campaign text content MUST be written in {lang_name}. This is mandatory regardless of the briefing language."
+        lang_instruction = f"""
+
+=== MANDATORY LANGUAGE RULE (NON-NEGOTIABLE) ===
+The campaign language is: **{lang_name}** (code: {campaign_lang})
+EVERY piece of text you produce MUST be in {lang_name}:
+- ALL headlines, titles, CTAs, taglines, hashtags → {lang_name}
+- ALL image headline text that will appear ON the image → {lang_name}
+- ALL narration scripts → {lang_name}
+- ALL copy variations → {lang_name}
+This overrides your default language. Even if the briefing is written in another language, your OUTPUT must be in {lang_name}.
+VIOLATION = AUTOMATIC REJECTION. No exceptions.
+=== END LANGUAGE RULE ==="""
 
     ctx_str = ""
     if ctx:

@@ -157,3 +157,10 @@ code {
         border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
     }
 }
+
+/* Fix fullscreen video in modals */
+video::-webkit-media-controls-fullscreen-button { display: block !important; }
+video:-webkit-full-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; }
+video:fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; }
+dialog::backdrop, [role="dialog"]::backdrop { z-index: 99990; }
+

@@ -35,6 +35,8 @@ const L = (lang) => {
       copyText: 'Texto para Copiar', allNetworks: 'Todas as Redes', copy: 'Copiar', noMessages: 'Sem mensagens',
       totalSent: 'Total Enviado', openings: 'Aberturas', avgCpl: 'CPL Medio', performanceByChannel: 'Performance por Canal',
       regenVideo: 'Gerar Video', regenVideoDesc: 'Clique para gerar o video comercial desta campanha', regenerating: 'Gerando video...', videoGenStarted: 'Geracao de video iniciada!',
+      cta: 'Comece Agora', learnMore: 'Saiba mais sobre',
+      sponsored: 'Patrocinado', format: 'Formato',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -59,6 +61,8 @@ const L = (lang) => {
       copyText: 'Copy Text', allNetworks: 'All Networks', copy: 'Copy', noMessages: 'No messages',
       totalSent: 'Total Sent', openings: 'Opens', avgCpl: 'Average CPL', performanceByChannel: 'Performance by Channel',
       regenVideo: 'Generate Video', regenVideoDesc: 'Click to generate the commercial video for this campaign', regenerating: 'Generating video...', videoGenStarted: 'Video generation started!',
+      cta: 'Start Now', learnMore: 'Learn more about',
+      sponsored: 'Sponsored', format: 'Format',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -83,6 +87,8 @@ const L = (lang) => {
       copyText: 'Texto para Copiar', allNetworks: 'Todas las Redes', copy: 'Copiar', noMessages: 'Sin mensajes',
       totalSent: 'Total Enviado', openings: 'Aperturas', avgCpl: 'CPL Promedio', performanceByChannel: 'Performance por Canal',
       regenVideo: 'Generar Video', regenVideoDesc: 'Haga clic para generar el video comercial de esta campana', regenerating: 'Generando video...', videoGenStarted: 'Generacion de video iniciada!',
+      cta: 'Empieza Ahora', learnMore: 'Mas informacion sobre',
+      sponsored: 'Patrocinado', format: 'Formato',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -434,11 +440,16 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
           {tab === 'content' && (
             <>
-              {/* Channel Selector Header */}
+              {/* Channel Selector Header with Format Badges */}
               <div data-testid="channel-selector-header">
                 <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">{labels.selectChannel}</p>
                 <div className="flex gap-1.5 flex-wrap">
-                  {channels.map(ch => (
+                  {channels.map(ch => {
+                    const FORMAT_BADGE = {
+                      whatsapp: '1:1', instagram: '1:1', facebook: '16:9',
+                      tiktok: '9:16', google_ads: '1.91:1', telegram: '16:9', sms: '-'
+                    };
+                    return (
                     <button key={ch} onClick={() => setSelectedChannel(ch)} data-testid={`channel-select-${ch}`}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
                         selectedChannel === ch
@@ -449,8 +460,10 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <span className={`text-[9px] font-semibold capitalize ${selectedChannel === ch ? 'text-[#C9A84C]' : 'text-[#555]'}`}>
                         {ch === 'google_ads' ? 'Google Ads' : ch}
                       </span>
+                      <span className="text-[7px] px-1 py-0.5 rounded bg-[#1A1A1A] text-[#666]">{FORMAT_BADGE[ch] || '1:1'}</span>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -515,7 +528,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <div className="w-full max-w-[340px] mx-auto bg-[#242526] rounded-xl overflow-hidden border border-[#3A3B3C]">
                         <div className="flex items-center gap-2 px-3 py-2">
                           <div className="w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center text-[9px] text-white font-bold">{brandName[0]}</div>
-                          <div className="flex-1"><p className="text-[10px] font-semibold text-[#E4E6EB]">{brandName}</p><p className="text-[7px] text-[#B0B3B8]">Patrocinado</p></div>
+                          <div className="flex-1"><p className="text-[10px] font-semibold text-[#E4E6EB]">{brandName}</p><p className="text-[7px] text-[#B0B3B8]">{labels.sponsored || 'Sponsored'}</p></div>
                           <MoreHorizontal size={12} className="text-[#B0B3B8]" />
                         </div>
                         <p className="px-3 pb-2 text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-4">{copyText_ch}</p>
@@ -557,7 +570,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             <span className="text-[9px] text-[#202124]">·</span>
                             <span className="text-[9px] text-[#202124]">{brandName.toLowerCase().replace(/\s+/g, '')}.com</span>
                           </div>
-                          <p className="text-[12px] font-medium text-[#1a0dab] leading-tight mb-0.5">{copyText_ch.split('\n')[0]?.substring(0, 60) || brandName} | Comece Agora</p>
+                          <p className="text-[12px] font-medium text-[#1a0dab] leading-tight mb-0.5">{copyText_ch.split('\n')[0]?.substring(0, 60) || brandName} | {labels.cta || 'Start Now'}</p>
                           <p className="text-[9px] text-[#4d5156] leading-relaxed line-clamp-2">{copyText_ch.substring(0, 120)}...</p>
                         </div>
                         {imgSrc && (
@@ -569,7 +582,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                                 <span className="text-[8px] text-[#70757a]">{brandName.toLowerCase().replace(/\s+/g, '')}.com</span>
                               </div>
                               <p className="text-[10px] font-medium text-[#202124] line-clamp-1">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
-                              <p className="text-[8px] text-[#70757a] line-clamp-1">Saiba mais sobre {brandName}</p>
+                              <p className="text-[8px] text-[#70757a] line-clamp-1">{labels.learnMore || 'Learn more about'} {brandName}</p>
                             </div>
                           </div>
                         )}
@@ -593,7 +606,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 <div data-testid="content-video-section">
                   <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.videoCommercial}</p>
                   <div className="max-w-[340px] mx-auto rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
-                    <video src={videoUrl} controls playsInline className="w-full" data-testid="content-video-player" />
+                    <video src={videoUrl} controls playsInline controlsList="nodownload" className="w-full" data-testid="content-video-player" style={{ maxHeight: '400px' }} />
                   </div>
                   <div className="max-w-[340px] mx-auto flex items-center gap-2 mt-1.5">
                     <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
