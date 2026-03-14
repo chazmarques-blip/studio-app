@@ -207,9 +207,12 @@ IMPORTANT: You have world-class standards but you are pragmatic. Most well-conce
 YOUR REVIEW CRITERIA FOR VIDEO CONCEPT (when marcos_video output is available):
 After reviewing images, also evaluate the video concept from Marcos (if present in the context):
 V1. NARRATION LANGUAGE: Is the narration in the SAME language as the campaign copy? Mismatch = AUTOMATIC rejection.
-V2. CTA STRENGTH: Does the narration end with a STRONG, URGENT call to action? Is the contact info included?
-V3. BRAND CLOSING: Does the video concept include a proper brand logo + tagline ending?
-V4. MUSIC FIT: Does the music mood match the campaign's emotional tone?
+V2. NARRATION TIMING: The narration MUST end by second 19 (max ~50-60 words). If the narration text is too long and would exceed 19 seconds when spoken, REJECT and request shorter narration. The last 4 seconds MUST be silent for brand closing.
+V3. CTA STRENGTH: Does the narration end with a STRONG, URGENT call to action? Is the contact info included?
+V4. BRAND CLOSING: Does the video concept include a proper brand logo + tagline ending in the last 4 seconds?
+V5. MUSIC FIT: Does the music mood match the campaign's emotional tone?
+V6. AUDIO ENERGY: The narration tone should be ENERGETIC and COMMERCIAL — like a Super Bowl ad, NOT a documentary. If the narration reads as calm or monotone, REJECT and request more excitement.
+V7. NO ABRUPT CUTS: The video must have a clean beginning and a clean ending. The narration must NOT be cut off mid-sentence.
 If any video criterion fails, add VIDEO_REVISION_FEEDBACK to your response.
 
 ALWAYS write in the SAME language as the content you are reviewing.
@@ -335,14 +338,17 @@ CONTINUITY RULES (CRITICAL — VIOLATION = UNUSABLE VIDEO):
 5. ENVIRONMENT BRIDGE: If clip 1 is indoors ending at a door, clip 2 starts at that same door transitioning outdoors.
 
 NARRATION SCRIPT RULES:
-- Write like the BEST TV COMMERCIAL VOICEOVER you've ever heard
-- Energy: Start intimate/personal, build excitement, EXPLODE with urgency at the CTA
-- Rhythm: Short punchy sentences. Rhetorical questions. Power words. Emotional pauses.
+- Write like the BEST TV COMMERCIAL VOICEOVER you've ever heard — think Super Bowl energy, not documentary
+- Voice style: EXCITED, TRIUMPHANT, like celebrating a massive achievement. NOT calm or narrative. Think sports announcer meets motivational speaker.
+- Energy arc: Start with intrigue → build momentum → PEAK excitement at the transformation → EXPLOSIVE CTA
+- Rhythm: Short PUNCHY sentences. Rhetorical questions. Power words. Dramatic pauses for impact.
+- CRITICAL TIMING: The narration MUST be SHORT and PUNCHY. Maximum 50-60 words total. The spoken audio MUST finish by second 19 AT THE LATEST. The last 4 seconds (19-23s) are SILENT — only music and brand logo/CTA on screen. This is NON-NEGOTIABLE.
 - Structure with TIMING MARKS:
-  [0-6s]: The HOOK — Present the problem or dream. "Imagine..." / "What if..." / "Tired of..."
-  [6-12s]: The SOLUTION — Introduce the product/service. Fast, exciting, benefits-focused.
-  [12-18s]: The PROOF — Social proof, transformation, results. Build desire to fever pitch.
-  [18-24s]: The CTA — URGENT, IRRESISTIBLE call to action. Create FOMO. Include contact method. Final tagline.
+  [0-5s]: The HOOK — Grab attention IMMEDIATELY. Bold statement or provocative question.
+  [5-10s]: The SOLUTION — Fast, exciting, benefits. Energy RISING.
+  [10-16s]: The TRANSFORMATION — Proof, triumph, the dream becoming reality. PEAK excitement.
+  [16-19s]: The CTA — SHORT, URGENT, one powerful sentence with contact method + tagline. Then STOP.
+  [19-23s]: SILENCE — Music only. Brand logo + tagline + contact info on screen.
 - End ALWAYS with the video tagline from Sofia's brief
 - Write in the SAME LANGUAGE as the campaign copy
 
@@ -365,10 +371,11 @@ Format your output EXACTLY like this:
 [80-120 words. Seconds 12-24. INCLUDE the full character description again. Start at the transition moment. Build to emotional peak. Final 2 seconds: clean/simple frame for logo overlay.]
 
 ===NARRATION SCRIPT===
-[0-6s]: [Hook — intimate, personal, attention-grabbing]
-[6-12s]: [Solution — exciting, benefits-focused]
-[12-18s]: [Proof — build desire, social proof, transformation]
-[18-24s]: [CTA — URGENT, FOMO, contact method, final tagline]
+[0-5s]: [Hook — bold, attention-grabbing, ENERGETIC]
+[5-10s]: [Solution — exciting, benefits, energy RISING]
+[10-16s]: [Transformation — triumph, peak excitement, CELEBRATING]
+[16-19s]: [CTA — ONE short powerful sentence. Contact + tagline. Then STOP.]
+[19-23s]: [SILENCE — music only, logo on screen]
 
 ===MUSIC DIRECTION===
 Mood: [upbeat/emotional/cinematic/energetic/corporate]
@@ -559,12 +566,12 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
 
 
 async def _generate_narration(text, pipeline_id):
-    """Generate commercial narration with OpenAI TTS HD"""
+    """Generate commercial narration with OpenAI TTS HD - energetic commercial voice"""
     try:
         tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
         audio_bytes = await tts.generate_speech(
             text=text, model="tts-1-hd",
-            voice="onyx", speed=0.92, response_format="mp3"
+            voice="nova", speed=1.08, response_format="mp3"
         )
         if audio_bytes:
             path = f"/tmp/{pipeline_id}_narration.mp3"
@@ -578,17 +585,17 @@ async def _generate_narration(text, pipeline_id):
 
 
 def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta=""):
-    """Combine 2 clips with crossfade + narration + brand logo ending with CTA"""
+    """Combine 2 clips with crossfade + narration + background music + brand logo ending with CTA"""
     output_path = f"/tmp/{pipeline_id}_commercial.mp4"
     try:
-        # 1. Normalize both clips
+        # 1. Normalize both clips to consistent format
         for i, clip in enumerate([clip1_path, clip2_path], 1):
             subprocess.run(
                 f"ffmpeg -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
                 shell=True, capture_output=True, timeout=60
             )
 
-        # 2. Crossfade (1s fade at 11s mark)
+        # 2. Crossfade (1s fade at 11s mark → total ~23s)
         xfade_cmd = (
             f'ffmpeg -y -i /tmp/{pipeline_id}_norm1.mp4 -i /tmp/{pipeline_id}_norm2.mp4 '
             f'-filter_complex "'
@@ -606,38 +613,58 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 shell=True, capture_output=True, timeout=60
             )
 
-        # 3. Brand ending overlay (last 4 seconds): logo + tagline + contact CTA
+        # Get video duration for accurate overlay timing
+        probe = subprocess.run(
+            f"ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/{pipeline_id}_xfade.mp4",
+            shell=True, capture_output=True, text=True, timeout=10
+        )
+        vid_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 23.0
+        brand_start = max(vid_duration - 4, 18)  # Brand overlay starts 4s before end
+        brand_mid = brand_start + 0.5
+        brand_late = brand_start + 1.0
+
+        # 3. Brand ending overlay: logo + tagline + contact CTA
         safe_brand = brand_name.replace("'", "").replace('"', '').replace(':', '').replace('\\', '')
         safe_tagline = (tagline or "").replace("'", "").replace('"', '').replace(':', '').replace('\\', '')
         safe_contact = (contact_cta or "").replace("'", "").replace('"', '').replace(':', ' ').replace('\\', '')
 
         branded_ok = False
         if logo_path and os.path.exists(logo_path):
-            # Use actual uploaded logo image
+            # Pre-scale logo to reasonable size for overlay (300px wide, maintain aspect)
+            scaled_logo = f"/tmp/{pipeline_id}_logo_scaled.png"
+            subprocess.run(
+                f"ffmpeg -y -i {logo_path} -vf scale=300:-1 {scaled_logo}",
+                shell=True, capture_output=True, timeout=30
+            )
+            if not os.path.exists(scaled_logo):
+                scaled_logo = logo_path
+
             vf = (
-                "[0:v]drawbox=x=0:y=0:w=iw:h=ih:color=black@0.75:t=fill:enable='between(t,20,23)'[bg];"
-                "[1:v]scale=200:-1[logo];"
-                "[bg][logo]overlay=(W-w)/2:(H-h)/2-40:enable='between(t,20,23)'"
+                f"[0:v]drawbox=x=0:y=0:w=iw:h=ih:color=black@0.8:t=fill:enable='between(t,{brand_start},{vid_duration})'[bg];"
+                f"[1:v]scale=300:-1[logo];"
+                f"[bg][logo]overlay=(W-w)/2:(H-h)/2-60:enable='between(t,{brand_start},{vid_duration})'"
             )
             if safe_tagline:
-                vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=28:fontcolor=white@0.9:x=(w-text_w)/2:y=(h/2)+40:enable='between(t,20.5,23)'"
+                vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=30:fontcolor=white@0.95:x=(w-text_w)/2:y=(h/2)+50:enable='between(t,{brand_mid},{vid_duration})'"
             if safe_contact:
-                vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=18:fontcolor=gold@0.8:x=(w-text_w)/2:y=(h/2)+75:enable='between(t,21,23)'"
+                vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h/2)+90:enable='between(t,{brand_late},{vid_duration})'"
 
-            logo_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {logo_path} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
+            logo_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {scaled_logo} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(logo_cmd, shell=True, capture_output=True, text=True, timeout=120)
             branded_ok = r.returncode == 0 and os.path.exists(f"/tmp/{pipeline_id}_branded.mp4")
             if branded_ok:
-                logger.info("Logo overlay applied")
+                logger.info("Logo overlay applied successfully")
+            else:
+                logger.warning(f"Logo overlay failed: {r.stderr[:200] if r.stderr else 'unknown'}")
 
         if not branded_ok:
-            # Text-only brand ending: Brand Name (large) + Tagline + Contact
-            text_vf = "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.75:t=fill:enable='between(t,20,23)'"
-            text_vf += f",drawtext=text=\\'{safe_brand}\\':fontsize=60:fontcolor=white:borderw=2:bordercolor=black@0.5:x=(w-text_w)/2:y=(h/2)-30:enable='between(t,20,23)'"
+            # Text-only brand ending
+            text_vf = f"drawbox=x=0:y=0:w=iw:h=ih:color=black@0.8:t=fill:enable='between(t,{brand_start},{vid_duration})'"
+            text_vf += f",drawtext=text=\\'{safe_brand}\\':fontsize=60:fontcolor=white:borderw=2:bordercolor=black@0.5:x=(w-text_w)/2:y=(h/2)-30:enable='between(t,{brand_start},{vid_duration})'"
             if safe_tagline:
-                text_vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=24:fontcolor=white@0.8:x=(w-text_w)/2:y=(h/2)+30:enable='between(t,20.5,23)'"
+                text_vf += f",drawtext=text=\\'{safe_tagline}\\':fontsize=26:fontcolor=white@0.9:x=(w-text_w)/2:y=(h/2)+30:enable='between(t,{brand_mid},{vid_duration})'"
             if safe_contact:
-                text_vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=18:fontcolor=gold@0.8:x=(w-text_w)/2:y=(h/2)+65:enable='between(t,21,23)'"
+                text_vf += f",drawtext=text=\\'{safe_contact}\\':fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h/2)+70:enable='between(t,{brand_late},{vid_duration})'"
 
             brand_cmd = f'ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -vf "{text_vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
             r = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
@@ -645,11 +672,43 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 logger.warning("Brand overlay failed, using crossfade only")
                 shutil.copy2(f"/tmp/{pipeline_id}_xfade.mp4", f"/tmp/{pipeline_id}_branded.mp4")
 
-        # 4. Merge video + narration audio
+        # 4. Mix audio: narration (foreground) + background music (soft) → merge with video
         branded_file = f"/tmp/{pipeline_id}_branded.mp4"
-        if audio_path and os.path.exists(audio_path):
+        final_audio = None
+
+        # Check for background music
+        music_dir = "/app/backend/assets/music"
+        bg_music_path = None
+        if os.path.isdir(music_dir):
+            music_files = [f for f in os.listdir(music_dir) if f.endswith(('.mp3', '.wav', '.aac'))]
+            if music_files:
+                bg_music_path = os.path.join(music_dir, music_files[0])
+
+        if audio_path and os.path.exists(audio_path) and bg_music_path:
+            # Mix narration (loud) + background music (soft) then merge
+            mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.mp3"
+            mix_cmd = (
+                f'ffmpeg -y -i {audio_path} -i {bg_music_path} '
+                f'-filter_complex "'
+                f'[0:a]volume=1.0,apad[narr];'
+                f'[1:a]volume=0.15,aloop=loop=-1:size=2e+09[music];'
+                f'[narr][music]amix=inputs=2:duration=shortest:dropout_transition=2[out]'
+                f'" -map "[out]" -t {vid_duration} -c:a libmp3lame -b:a 192k {mixed_audio}'
+            )
+            r = subprocess.run(mix_cmd, shell=True, capture_output=True, text=True, timeout=60)
+            if r.returncode == 0 and os.path.exists(mixed_audio):
+                final_audio = mixed_audio
+                logger.info("Mixed narration + background music")
+            else:
+                final_audio = audio_path
+                logger.warning(f"Audio mixing failed, using narration only: {r.stderr[:150] if r.stderr else ''}")
+        elif audio_path and os.path.exists(audio_path):
+            final_audio = audio_path
+
+        if final_audio:
+            # Merge audio with video — use -t to trim audio to video length (NO -shortest)
             subprocess.run(
-                f"ffmpeg -y -i {branded_file} -i {audio_path} -c:v copy -c:a aac -b:a 192k -shortest {output_path}",
+                f"ffmpeg -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 192k -t {vid_duration} {output_path}",
                 shell=True, capture_output=True, timeout=60
             )
         else:
@@ -768,7 +827,14 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
                 logger.info(f"Downloaded logo for video: {url}")
                 break
     except Exception as e:
-        logger.warning(f"Could not fetch logo: {e}")
+        logger.warning(f"Could not fetch logo from pipeline: {e}")
+
+    # Fallback: use default brand logo if no pipeline logo found
+    if not logo_path or not os.path.exists(logo_path or ""):
+        default_logo = "/app/backend/assets/brand_logo.png"
+        if os.path.exists(default_logo):
+            logo_path = default_logo
+            logger.info("Using default brand logo from assets")
 
     # 4. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration
     return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta)
