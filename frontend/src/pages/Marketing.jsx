@@ -9,19 +9,87 @@ import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+/* ── i18n labels ── */
+const L = (lang) => {
+  const t = {
+    pt: {
+      seasonal: 'Sazonal', draft: 'Rascunho', active: 'Ativa', paused: 'Pausada', completed: 'Concluida',
+      campaigns: 'Campanhas', sent: 'Enviadas', openRate: 'Taxa Abertura', conversions: 'Conversoes',
+      createWithStudio: 'Criar com AI Studio', newBtn: 'Nova', cancel: 'Cancelar', create: 'Criar',
+      createCampaign: 'Criar Campanha', testData: 'Dados de Teste', noCampaigns: 'Nenhuma campanha encontrada',
+      campaignName: 'Nome da campanha...', title: 'Marketing & Campanhas',
+      templates: 'Templates', readyTemplates: 'Templates Prontos',
+      upgradeEnterprise: 'Upgrade para Enterprise', studioDesc: '4 agentes IA especializados para criar campanhas completas.',
+      all: 'Todas', overview: 'Visao Geral', content: 'Conteudo', results: 'Resultados',
+      campaignArts: 'Artes da Campanha', campaignText: 'Texto da Campanha', noVisual: 'Sem conteudo visual disponivel',
+      selectChannel: 'Selecione o Canal', delivered: 'Entregues', opens: 'Abertura', conversion: 'Conversao',
+      cplByChannel: 'Custo por Lead por Canal', schedule: 'Cronograma de Publicacao', messageFlow: 'Fluxo de Mensagens',
+      immediate: 'Imediato', start: 'Inicio', end: 'Fim', noEndDate: 'Sem data de encerramento',
+      sends: 'Envios', clicks: 'Cliques', notSent: 'Campanha ainda nao foi enviada. Ative para comecar a coletar resultados.',
+      copied: 'Copiado!', deleteCampaign: 'Excluir campanha', details: 'Detalhes',
+      created: 'Campanha criada!', activated: 'Campanha ativada!', paused_toast: 'Campanha pausada',
+      deleted: 'Campanha excluida!', loadError: 'Erro ao carregar templates', error: 'Erro',
+      testCreated: 'Dados de teste criados!', env: 'env', conv: 'conv',
+      byChannel: 'Por Canal', video: 'Video',
+    },
+    en: {
+      seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
+      campaigns: 'Campaigns', sent: 'Sent', openRate: 'Open Rate', conversions: 'Conversions',
+      createWithStudio: 'Create with AI Studio', newBtn: 'New', cancel: 'Cancel', create: 'Create',
+      createCampaign: 'Create Campaign', testData: 'Test Data', noCampaigns: 'No campaigns found',
+      campaignName: 'Campaign name...', title: 'Marketing & Campaigns',
+      templates: 'Templates', readyTemplates: 'Ready Templates',
+      upgradeEnterprise: 'Upgrade to Enterprise', studioDesc: '4 specialized AI agents to create complete campaigns.',
+      all: 'All', overview: 'Overview', content: 'Content', results: 'Results',
+      campaignArts: 'Campaign Creatives', campaignText: 'Campaign Copy', noVisual: 'No visual content available',
+      selectChannel: 'Select Channel', delivered: 'Delivered', opens: 'Opens', conversion: 'Conversion',
+      cplByChannel: 'Cost per Lead by Channel', schedule: 'Publishing Schedule', messageFlow: 'Message Flow',
+      immediate: 'Immediate', start: 'Start', end: 'End', noEndDate: 'No end date',
+      sends: 'Sends', clicks: 'Clicks', notSent: 'Campaign not yet sent. Activate to start collecting results.',
+      copied: 'Copied!', deleteCampaign: 'Delete campaign', details: 'Details',
+      created: 'Campaign created!', activated: 'Campaign activated!', paused_toast: 'Campaign paused',
+      deleted: 'Campaign deleted!', loadError: 'Error loading templates', error: 'Error',
+      testCreated: 'Test data created!', env: 'sent', conv: 'conv',
+      byChannel: 'By Channel', video: 'Video',
+    },
+    es: {
+      seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
+      campaigns: 'Campanas', sent: 'Enviadas', openRate: 'Tasa Apertura', conversions: 'Conversiones',
+      createWithStudio: 'Crear con AI Studio', newBtn: 'Nueva', cancel: 'Cancelar', create: 'Crear',
+      createCampaign: 'Crear Campana', testData: 'Datos de Prueba', noCampaigns: 'No se encontraron campanas',
+      campaignName: 'Nombre de campana...', title: 'Marketing & Campanas',
+      templates: 'Plantillas', readyTemplates: 'Plantillas Listas',
+      upgradeEnterprise: 'Upgrade a Enterprise', studioDesc: '4 agentes IA especializados para crear campanas completas.',
+      all: 'Todas', overview: 'General', content: 'Contenido', results: 'Resultados',
+      campaignArts: 'Artes de Campana', campaignText: 'Texto de Campana', noVisual: 'Sin contenido visual disponible',
+      selectChannel: 'Seleccionar Canal', delivered: 'Entregadas', opens: 'Apertura', conversion: 'Conversion',
+      cplByChannel: 'Costo por Lead por Canal', schedule: 'Cronograma de Publicacion', messageFlow: 'Flujo de Mensajes',
+      immediate: 'Inmediato', start: 'Inicio', end: 'Fin', noEndDate: 'Sin fecha de cierre',
+      sends: 'Envios', clicks: 'Clics', notSent: 'Campana aun no fue enviada. Active para empezar a recolectar resultados.',
+      copied: 'Copiado!', deleteCampaign: 'Eliminar campana', details: 'Detalles',
+      created: 'Campana creada!', activated: 'Campana activada!', paused_toast: 'Campana pausada',
+      deleted: 'Campana eliminada!', loadError: 'Error al cargar plantillas', error: 'Error',
+      testCreated: 'Datos de prueba creados!', env: 'env', conv: 'conv',
+      byChannel: 'Por Canal', video: 'Video',
+    },
+  };
+  const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
+  return t[base] || t.en;
+};
+
 const TYPE_META = {
   drip: { label: 'Drip', color: '#C9A84C' },
   nurture: { label: 'Nurture', color: '#7CB9E8' },
   promotional: { label: 'Promo', color: '#E8A87C' },
-  seasonal: { label: 'Sazonal', color: '#A87CE8' },
+  seasonal: { label_key: 'seasonal', color: '#A87CE8' },
   ai_pipeline: { label: 'AI Pipeline', color: '#4CAF50' },
 };
 
 const STATUS_META = {
-  draft: { label: 'Rascunho', color: '#666' },
-  active: { label: 'Ativa', color: '#4CAF50' },
-  paused: { label: 'Pausada', color: '#FF9800' },
-  completed: { label: 'Concluida', color: '#2196F3' },
+  draft: { label_key: 'draft', color: '#666' },
+  active: { label_key: 'active', color: '#4CAF50' },
+  paused: { label_key: 'paused', color: '#FF9800' },
+  completed: { label_key: 'completed', color: '#2196F3' },
 };
 
 const CHANNEL_COLORS = {
@@ -94,8 +162,14 @@ function StatCard({ icon: Icon, value, label, trend }) {
   );
 }
 
+/* Helper to resolve meta label */
+function metaLabel(meta, labels) {
+  if (meta.label_key) return labels[meta.label_key] || meta.label_key;
+  return meta.label || '';
+}
+
 /* ── Preview Modal ── */
-function PreviewModal({ campaign, onClose }) {
+function PreviewModal({ campaign, onClose, labels }) {
   const stats = campaign.stats || {};
   const images = stats.images || [];
   const messages = campaign.messages || [];
@@ -114,7 +188,7 @@ function PreviewModal({ campaign, onClose }) {
           {/* Images */}
           {images.length > 0 && (
             <div>
-              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Artes da Campanha</p>
+              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.campaignArts}</p>
               <div className="grid grid-cols-3 gap-2">
                 {images.map((url, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
@@ -131,12 +205,12 @@ function PreviewModal({ campaign, onClose }) {
           {/* Text */}
           {mainText && (
             <div>
-              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Texto da Campanha</p>
+              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">{labels.campaignText}</p>
               <pre className="text-[11px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{cleanCampaignText(mainText)}</pre>
             </div>
           )}
           {images.length === 0 && !mainText && (
-            <p className="text-[11px] text-[#555] text-center py-6">Sem conteudo visual disponivel</p>
+            <p className="text-[11px] text-[#555] text-center py-6">{labels.noVisual}</p>
           )}
         </div>
         {lightboxIdx !== null && (
@@ -163,7 +237,7 @@ function PreviewModal({ campaign, onClose }) {
 }
 
 /* ── Campaign Detail Modal ── */
-function CampaignDetail({ campaign, onClose }) {
+function CampaignDetail({ campaign, onClose, labels }) {
   const stats = campaign.stats || {};
   const images = stats.images || [];
   const messages = campaign.messages || [];
@@ -192,8 +266,8 @@ function CampaignDetail({ campaign, onClose }) {
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select(); document.execCommand('copy');
       document.body.removeChild(ta);
-      toast.success('Copiado!');
-    } catch { toast.error('Erro'); }
+      toast.success(labels.copied);
+    } catch { toast.error(labels.error); }
   };
 
   return (
@@ -202,22 +276,22 @@ function CampaignDetail({ campaign, onClose }) {
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#111] shrink-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: type.color, backgroundColor: `${type.color}15` }}>{type.label}</span>
-            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: status.color, backgroundColor: `${status.color}15` }}>{status.label}</span>
+            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: type.color, backgroundColor: `${type.color}15` }}>{metaLabel(type, labels)}</span>
+            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: status.color, backgroundColor: `${status.color}15` }}>{metaLabel(status, labels)}</span>
             <span className="ml-auto text-[#555] hover:text-white cursor-pointer" onClick={onClose}><X size={16} /></span>
           </div>
           <h2 className="text-base font-bold text-white">{campaign.name}</h2>
           <div className="flex items-center gap-3 mt-1.5">
-            {startDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />Inicio: {new Date(startDate).toLocaleDateString('pt-BR')}</span>}
-            {endDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />Fim: {new Date(endDate).toLocaleDateString('pt-BR')}</span>}
-            {!endDate && <span className="text-[9px] text-[#444]">Sem data de encerramento</span>}
+            {startDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />{labels.start}: {new Date(startDate).toLocaleDateString()}</span>}
+            {endDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />{labels.end}: {new Date(endDate).toLocaleDateString()}</span>}
+            {!endDate && <span className="text-[9px] text-[#444]">{labels.noEndDate}</span>}
           </div>
           {/* Tabs */}
           <div className="flex gap-1 mt-2.5">
             {[
-              { id: 'overview', label: 'Visao Geral' },
-              { id: 'content', label: 'Conteudo' },
-              { id: 'results', label: 'Resultados' },
+              { id: 'overview', label: labels.overview },
+              { id: 'content', label: labels.content },
+              { id: 'results', label: labels.results },
             ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)} data-testid={`detail-tab-${t.id}`}
                 className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition ${tab === t.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] hover:text-white border border-transparent'}`}>
@@ -235,25 +309,25 @@ function CampaignDetail({ campaign, onClose }) {
               <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
                   <p className="text-lg font-bold text-white">{stats.sent || 0}</p>
-                  <p className="text-[8px] text-[#555]">Enviadas</p>
+                  <p className="text-[8px] text-[#555]">{labels.sent}</p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
                   <p className="text-lg font-bold text-white">{deliveryRate}%</p>
-                  <p className="text-[8px] text-[#555]">Entregues</p>
+                  <p className="text-[8px] text-[#555]">{labels.delivered}</p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
                   <p className="text-lg font-bold text-[#C9A84C]">{openRate}%</p>
-                  <p className="text-[8px] text-[#555]">Abertura</p>
+                  <p className="text-[8px] text-[#555]">{labels.opens}</p>
                 </div>
                 <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
                   <p className="text-lg font-bold text-green-400">{convRate}%</p>
-                  <p className="text-[8px] text-[#555]">Conversao</p>
+                  <p className="text-[8px] text-[#555]">{labels.conversion}</p>
                 </div>
               </div>
 
               {/* Cost per Lead by Channel */}
               <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Custo por Lead por Canal</p>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.cplByChannel}</p>
                 <div className="space-y-1">
                   {(channels.length > 0 ? channels : ['whatsapp', 'instagram', 'facebook']).map(ch => {
                     const cpls = { whatsapp: cplWhatsapp, instagram: cplInstagram, facebook: cplFacebook };
@@ -277,7 +351,7 @@ function CampaignDetail({ campaign, onClose }) {
               {/* Schedule */}
               {schedule.schedule_text && (
                 <div>
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Cronograma de Publicacao</p>
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">{labels.schedule}</p>
                   <pre className="text-[10px] text-[#999] whitespace-pre-wrap font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A] max-h-[200px] overflow-y-auto">{schedule.schedule_text}</pre>
                 </div>
               )}
@@ -285,7 +359,7 @@ function CampaignDetail({ campaign, onClose }) {
               {/* Steps/Messages Timeline */}
               {messages.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Fluxo de Mensagens</p>
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.messageFlow}</p>
                   <div className="space-y-1.5">
                     {messages.map((m, i) => (
                       <div key={i} className="flex items-start gap-2 rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5">
@@ -293,7 +367,7 @@ function CampaignDetail({ campaign, onClose }) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[9px] font-medium capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>{m.channel}</span>
-                            <span className="text-[8px] text-[#444]">{m.delay_hours === 0 ? 'Imediato' : `+${m.delay_hours}h`}</span>
+                            <span className="text-[8px] text-[#444]">{m.delay_hours === 0 ? labels.immediate : `+${m.delay_hours}h`}</span>
                           </div>
                           <p className="text-[10px] text-[#999] mt-0.5 line-clamp-2">{cleanCampaignText(m.content)}</p>
                         </div>
@@ -309,7 +383,7 @@ function CampaignDetail({ campaign, onClose }) {
             <>
               {/* Channel Selector Header */}
               <div data-testid="channel-selector-header">
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">Selecione o Canal</p>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">{labels.selectChannel}</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {channels.map(ch => (
                     <button key={ch} onClick={() => setSelectedChannel(ch)} data-testid={`channel-select-${ch}`}
@@ -561,9 +635,9 @@ function CampaignDetail({ campaign, onClose }) {
                   <div key={ch} className="flex items-center gap-3 rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 mb-1">
                     <span className="text-[10px] font-bold capitalize w-20" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
                     <div className="flex-1 grid grid-cols-4 gap-2">
-                      <div><p className="text-[8px] text-[#555]">Envios</p><p className="text-[10px] font-bold text-white">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
-                      <div><p className="text-[8px] text-[#555]">Abertura</p><p className="text-[10px] font-bold text-white">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
-                      <div><p className="text-[8px] text-[#555]">Cliques</p><p className="text-[10px] font-bold text-white">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
+                      <div><p className="text-[8px] text-[#555]">{labels.sends}</p><p className="text-[10px] font-bold text-white">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
+                      <div><p className="text-[8px] text-[#555]">{labels.opens}</p><p className="text-[10px] font-bold text-white">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
+                      <div><p className="text-[8px] text-[#555]">{labels.clicks}</p><p className="text-[10px] font-bold text-white">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
                       <div><p className="text-[8px] text-[#555]">CPL</p><p className="text-[10px] font-bold text-white">R$ {stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</p></div>
                     </div>
                   </div>
@@ -572,7 +646,7 @@ function CampaignDetail({ campaign, onClose }) {
 
               {stats.sent === 0 && (
                 <div className="text-center py-4">
-                  <p className="text-[11px] text-[#444]">Campanha ainda nao foi enviada. Ative para comecar a coletar resultados.</p>
+                  <p className="text-[11px] text-[#444]">{labels.notSent}</p>
                 </div>
               )}
             </>
@@ -594,7 +668,7 @@ function CampaignDetail({ campaign, onClose }) {
 }
 
 /* ── Enhanced Campaign Card ── */
-function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmingDelete, setConfirmingDelete }) {
+function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmingDelete, setConfirmingDelete, labels }) {
   const type = TYPE_META[campaign.type] || TYPE_META.nurture;
   const status = STATUS_META[campaign.status] || STATUS_META.draft;
   const stats = campaign.stats || {};
@@ -626,16 +700,16 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmin
         <div className="flex-1 min-w-0">
           {/* Tags */}
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: type.color, backgroundColor: `${type.color}15` }}>{type.label}</span>
-            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: status.color, backgroundColor: `${status.color}15` }}>{status.label}</span>
+            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: type.color, backgroundColor: `${type.color}15` }}>{metaLabel(type, labels)}</span>
+            <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: status.color, backgroundColor: `${status.color}15` }}>{metaLabel(status, labels)}</span>
           </div>
           <h3 className="text-[13px] font-semibold text-white truncate">{campaign.name}</h3>
 
           {/* Stats Row */}
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-[9px] text-[#555] flex items-center gap-1"><Send size={9} />{stats.sent || 0} env</span>
+            <span className="text-[9px] text-[#555] flex items-center gap-1"><Send size={9} />{stats.sent || 0} {labels.env}</span>
             <span className="text-[9px] text-[#555] flex items-center gap-1"><TrendingUp size={9} />{openRate}%</span>
-            <span className="text-[9px] text-[#555] flex items-center gap-1"><Users size={9} />{convRate}% conv</span>
+            <span className="text-[9px] text-[#555] flex items-center gap-1"><Users size={9} />{convRate}% {labels.conv}</span>
             {hasCpl && <span className="text-[9px] text-[#C9A84C] flex items-center gap-0.5"><DollarSign size={8} />R$ {(Math.random() * 3 + 0.8).toFixed(2)}/lead</span>}
           </div>
         </div>
@@ -679,7 +753,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmin
             <button data-testid={`delete-${campaign.id}`}
               onClick={() => setConfirmingDelete(campaign.id)}
               className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#444] hover:text-red-400 transition"
-              title="Excluir campanha">
+              title={labels.deleteCampaign}>
               <Trash2 size={13} />
             </button>
           )}
@@ -690,8 +764,8 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmin
       <div className="mt-2.5 pt-2 border-t border-[#111] flex items-center gap-2 flex-wrap">
         {startDate && (
           <span className="text-[8px] text-[#444] flex items-center gap-0.5">
-            <CalendarDays size={8} />{new Date(startDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-            {endDate && ` - ${new Date(endDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`}
+            <CalendarDays size={8} />{new Date(startDate).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+            {endDate && ` - ${new Date(endDate).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}`}
           </span>
         )}
         <div className="flex gap-1.5 ml-auto items-center">
@@ -708,6 +782,7 @@ export default function Marketing() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
   const lang = i18n.language || 'en';
+  const labels = L(lang);
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState('free');
@@ -742,7 +817,7 @@ export default function Marketing() {
       const { data } = await axios.get(`${API}/campaigns/templates/list`);
       setTemplates(data.templates || []);
       setShowTemplates(true);
-    } catch { toast.error('Erro ao carregar templates'); }
+    } catch { toast.error(labels.loadError); }
   };
 
   const createCampaign = async (name, type, messages) => {
@@ -750,8 +825,8 @@ export default function Marketing() {
       const { data } = await axios.post(`${API}/campaigns`, { name, type, messages: messages || [] });
       setCampaigns(prev => [data, ...prev]);
       setShowNew(false); setNewName('');
-      toast.success('Campanha criada!');
-    } catch (e) { toast.error(e.response?.data?.detail || 'Erro'); }
+      toast.success(labels.created);
+    } catch (e) { toast.error(e.response?.data?.detail || labels.error); }
   };
 
   const handleAction = async (action, id) => {
@@ -759,22 +834,22 @@ export default function Marketing() {
       if (action === 'activate') {
         await axios.post(`${API}/campaigns/${id}/activate`);
         setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'active' } : c));
-        toast.success('Campanha ativada!');
+        toast.success(labels.activated);
       } else if (action === 'pause') {
         await axios.post(`${API}/campaigns/${id}/pause`);
         setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'paused' } : c));
-        toast.success('Campanha pausada');
+        toast.success(labels.paused_toast);
       } else if (action === 'delete-now') {
         await axios.delete(`${API}/campaigns/${id}`);
         setCampaigns(prev => prev.filter(c => c.id !== id));
-        toast.success('Campanha excluida!');
+        toast.success(labels.deleted);
       }
-    } catch (e) { toast.error(e.response?.data?.detail || 'Erro'); }
+    } catch (e) { toast.error(e.response?.data?.detail || labels.error); }
   };
 
   const seedTest = async () => {
-    try { await axios.post(`${API}/campaigns/seed-test`); await loadData(); toast.success('Dados de teste criados!'); }
-    catch { toast.error('Erro'); }
+    try { await axios.post(`${API}/campaigns/seed-test`); await loadData(); toast.success(labels.testCreated); }
+    catch { toast.error(labels.error); }
   };
 
   const filtered = filter === 'all' ? campaigns : campaigns.filter(c => c.status === filter);
@@ -797,17 +872,17 @@ export default function Marketing() {
           <button data-testid="marketing-back" onClick={() => navigate('/dashboard')} className="text-[#666] hover:text-white transition"><ArrowLeft size={18} /></button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10 shrink-0"><Megaphone size={16} className="text-[#C9A84C]" /></div>
           <div className="flex-1 flex items-center gap-2">
-            <h1 className="text-sm font-semibold text-white">Marketing & Campanhas</h1>
+            <h1 className="text-sm font-semibold text-white">{labels.title}</h1>
             <div className="flex items-center gap-1.5">
               {isEnterprise ? (
                 <button data-testid="open-studio-btn" onClick={() => navigate('/marketing/studio')}
                   className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-3 py-1.5 text-[10px] font-semibold text-black transition hover:opacity-90">
-                  <Sparkles size={11} /> Criar com AI Studio
+                  <Sparkles size={11} /> {labels.createWithStudio}
                 </button>
               ) : (
                 <button data-testid="new-campaign-btn" onClick={() => setShowNew(true)}
                   className="flex items-center gap-1 rounded-md border border-[#C9A84C]/30 px-2 py-1 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition">
-                  <Plus size={10} /> Nova
+                  <Plus size={10} /> {labels.newBtn}
                 </button>
               )}
             </div>
@@ -826,8 +901,8 @@ export default function Marketing() {
                   <h3 className="text-[12px] font-semibold text-white">Marketing AI Studio</h3>
                   <span className="text-[8px] font-bold bg-[#C9A84C]/15 text-[#C9A84C] px-1.5 py-0.5 rounded flex items-center gap-0.5"><Lock size={7} /> ENTERPRISE</span>
                 </div>
-                <p className="text-[10px] text-[#888] mb-2">4 agentes IA especializados para criar campanhas completas.</p>
-                <button onClick={() => navigate('/upgrade')} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">Upgrade para Enterprise</button>
+                <p className="text-[10px] text-[#888] mb-2">{labels.studioDesc}</p>
+                <button onClick={() => navigate('/upgrade')} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">{labels.upgradeEnterprise}</button>
               </div>
             </div>
           </div>
@@ -835,10 +910,10 @@ export default function Marketing() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-4 gap-2 mb-3">
-          <StatCard icon={Megaphone} value={campaigns.length} label="Campanhas" />
-          <StatCard icon={Send} value={totalSent} label="Enviadas" trend={12} />
-          <StatCard icon={BarChart3} value={`${avgOpenRate}%`} label="Taxa Abertura" />
-          <StatCard icon={Users} value={totalConverted} label="Conversoes" trend={8} />
+          <StatCard icon={Megaphone} value={campaigns.length} label={labels.campaigns} />
+          <StatCard icon={Send} value={totalSent} label={labels.sent} trend={12} />
+          <StatCard icon={BarChart3} value={`${avgOpenRate}%`} label={labels.openRate} />
+          <StatCard icon={Users} value={totalConverted} label={labels.conversions} trend={8} />
         </div>
 
         {/* Filter + View Toggle */}
@@ -847,12 +922,12 @@ export default function Marketing() {
             {['all', 'active', 'draft', 'paused'].map(f => (
               <button key={f} data-testid={`filter-${f}`} onClick={() => setFilter(f)}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition ${filter === f ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] hover:text-white border border-transparent'}`}>
-                {f === 'all' ? 'Todas' : (STATUS_META[f]?.label || f)}
+                {f === 'all' ? labels.all : (labels[STATUS_META[f]?.label_key] || f)}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={loadTemplates} className="text-[9px] text-[#C9A84C] hover:underline mr-2">Templates</button>
+            <button onClick={loadTemplates} className="text-[9px] text-[#C9A84C] hover:underline mr-2">{labels.templates}</button>
             <button onClick={() => setView('grid')} className={`p-1 rounded ${view === 'grid' ? 'text-[#C9A84C]' : 'text-[#444]'}`}><LayoutGrid size={13} /></button>
             <button onClick={() => setView('list')} className={`p-1 rounded ${view === 'list' ? 'text-[#C9A84C]' : 'text-[#444]'}`}><List size={13} /></button>
           </div>
@@ -862,7 +937,7 @@ export default function Marketing() {
         {showNew && (
           <div data-testid="new-campaign-form" className="mb-3 rounded-xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-3 space-y-2">
             <input data-testid="campaign-name-input" value={newName} onChange={e => setNewName(e.target.value)}
-              placeholder="Nome da campanha..." className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[12px] text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/30" autoFocus />
+              placeholder={labels.campaignName} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[12px] text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/30" autoFocus />
             <div className="flex gap-1.5 flex-wrap">
               {Object.entries(TYPE_META).filter(([k]) => k !== 'ai_pipeline').map(([key, meta]) => (
                 <button key={key} onClick={() => setNewType(key)}
@@ -872,9 +947,9 @@ export default function Marketing() {
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowNew(false)} className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666]">Cancelar</button>
+              <button onClick={() => setShowNew(false)} className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666]">{labels.cancel}</button>
               <button data-testid="create-campaign-submit" onClick={() => newName && createCampaign(newName, newType)}
-                className="flex-1 btn-gold rounded-lg py-1.5 text-[10px]">Criar</button>
+                className="flex-1 btn-gold rounded-lg py-1.5 text-[10px]">{labels.create}</button>
             </div>
           </div>
         )}
@@ -883,7 +958,7 @@ export default function Marketing() {
         {showTemplates && (
           <div className="mb-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[11px] font-semibold text-white">Templates Prontos</h3>
+              <h3 className="text-[11px] font-semibold text-white">{labels.readyTemplates}</h3>
               <button onClick={() => setShowTemplates(false)} className="text-[#555] text-[10px]"><X size={12} /></button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -904,20 +979,20 @@ export default function Marketing() {
           {filtered.map(c => (
             <CampaignCard key={c.id} campaign={c} lang={lang} onAction={handleAction}
               onPreview={setPreviewCampaign} onDetail={setDetailCampaign}
-              confirmingDelete={confirmingDelete} setConfirmingDelete={setConfirmingDelete} />
+              confirmingDelete={confirmingDelete} setConfirmingDelete={setConfirmingDelete} labels={labels} />
           ))}
         </div>
 
         {filtered.length === 0 && !showNew && (
           <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center mt-2">
             <Megaphone size={28} className="mx-auto mb-2 text-[#222]" />
-            <p className="text-[11px] text-[#666] mb-2">Nenhuma campanha encontrada</p>
+            <p className="text-[11px] text-[#666] mb-2">{labels.noCampaigns}</p>
             <div className="flex gap-2 justify-center">
               <button onClick={() => setShowNew(true)} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">
-                <Plus size={11} className="inline mr-1" />Criar Campanha
+                <Plus size={11} className="inline mr-1" />{labels.createCampaign}
               </button>
               <button onClick={seedTest} className="rounded-lg border border-[#1E1E1E] px-3 py-1.5 text-[10px] text-[#666] hover:text-white transition">
-                <Zap size={11} className="inline mr-1" />Dados de Teste
+                <Zap size={11} className="inline mr-1" />{labels.testData}
               </button>
             </div>
           </div>
@@ -925,8 +1000,8 @@ export default function Marketing() {
       </div>
 
       {/* Modals */}
-      {previewCampaign && <PreviewModal campaign={previewCampaign} onClose={() => setPreviewCampaign(null)} />}
-      {detailCampaign && <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCampaign(null)} />}
+      {previewCampaign && <PreviewModal campaign={previewCampaign} onClose={() => setPreviewCampaign(null)} labels={labels} />}
+      {detailCampaign && <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCampaign(null)} labels={labels} />}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Check, ChevronLeft, Heart, MessageCircle, Bookmark, Share2, Send, MoreHorizontal, Loader2, Pencil, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -167,13 +168,14 @@ function GoogleAdsMockup({ copy, image, brandName }) {
 
 /* ── Main Final Preview Component ── */
 export default function FinalPreview({ pipeline, onClose, onPublish }) {
+  const { t } = useTranslation();
   const steps = pipeline?.steps || {};
   const approvedCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
   const images = steps.lucas_design?.image_urls?.filter(u => u) || [];
   const schedule = steps.pedro_publish?.output || '';
   const platforms = pipeline?.platforms || [];
   const contact = pipeline?.result?.contact_info || {};
-  const campaignName = pipeline?.result?.campaign_name || 'Campanha';
+  const campaignName = pipeline?.result?.campaign_name || (t('studio.campaign_default') || 'Campaign');
   const assets = pipeline?.result?.uploaded_assets || [];
   const contextData = pipeline?.result?.context || {};
   const videoUrl = steps.marcos_video?.video_url || '';
@@ -357,10 +359,10 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
           {/* Text Editing */}
           <div className="w-full max-w-[320px]">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[8px] text-[#555] uppercase tracking-wider">Texto da Campanha</p>
+              <p className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.campaign_text') || 'Campaign Copy'}</p>
               {isEditing ? (
                 <div className="flex gap-1">
-                  <button onClick={handleCancelEdit} className="text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#888] hover:text-white transition">Cancelar</button>
+                  <button onClick={handleCancelEdit} className="text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#888] hover:text-white transition">{t('studio.cancel') || 'Cancel'}</button>
                   <button data-testid="save-copy-btn" onClick={handleSaveEdit}
                     className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition">
                     <Check size={9} /> Salvar
@@ -369,7 +371,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
               ) : (
                 <button data-testid="edit-copy-btn" onClick={handleStartEdit}
                   className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#C9A84C] hover:bg-[#1A1A1A] transition">
-                  <Pencil size={9} /> Editar
+                  <Pencil size={9} /> {t('studio.edit') || 'Edit'}
                 </button>
               )}
             </div>
@@ -414,7 +416,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
           {onClose && (
             <button onClick={onClose}
               className="flex-1 rounded-xl border border-[#1E1E1E] py-2.5 text-[11px] text-[#888] hover:text-white transition">
-              Voltar
+              {t('studio.back') || 'Back'}
             </button>
           )}
           <button data-testid="publish-campaign-btn"
@@ -428,7 +430,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
             }}
             className="flex-1 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)] disabled:opacity-50">
             {publishing ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            {publishing ? 'Publicando...' : 'Publicar Campanha'}
+            {publishing ? (t('studio.publishing') || 'Publishing...') : (t('studio.publish_campaign') || 'Publish Campaign')}
           </button>
         </div>
       </div>

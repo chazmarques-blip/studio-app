@@ -93,7 +93,7 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
       await axios.post(`${API}/campaigns/pipeline/${pipelineId}/regenerate-design`, {
         design_index: index, feedback: feedback.trim()
       });
-      toast.success('Ajuste solicitado! Gerando nova imagem...');
+      toast.success(t('studio.adjustment_requested') || 'Adjustment requested! Generating new image...');
       setShowAdjust(false);
       setFeedback('');
       if (onRegenerate) onRegenerate();
@@ -134,14 +134,14 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
         </div>
         {showAdjust && (
           <div className="mt-3 p-3 rounded-xl bg-[#111] border border-[#C9A84C]/20">
-            <p className="text-[10px] text-[#888] mb-1.5">Descreva o ajuste que deseja no Design {index + 1}:</p>
+            <p className="text-[10px] text-[#888] mb-1.5">{t('studio.describe_adjustment') || 'Describe the adjustment you want'} {index + 1}:</p>
             <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2}
               placeholder="Ex: Aumentar o logo, mudar a cor de fundo para azul, adicionar o telefone..."
               className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30" />
             <button onClick={requestAdjust} disabled={submitting || !feedback.trim()}
               className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] text-[11px] font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
               {submitting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-              {submitting ? 'Gerando...' : 'Enviar Ajuste'}
+              {submitting ? (t('studio.generating') || 'Generating...') : (t('studio.send_adjustment') || 'Send Adjustment')}
             </button>
           </div>
         )}
@@ -199,12 +199,12 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
           <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#555] font-normal">- {meta.role}</span></p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `Revisando (${revisionRound}/2)` : 'Processando...'}</span>}
-            {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />Gerando imagens...</span>}
-            {isGeneratingVideo && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400"><Film size={8} className="animate-spin" />Gerando video comercial...</span>}
-            {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Concluido</span>}
-            {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />Aguardando sua aprovacao</span>}
+            {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />{t('studio.generating_images') || 'Generating images...'}</span>}
+            {isGeneratingVideo && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400"><Film size={8} className="animate-spin" />{t('studio.generating_video') || 'Generating commercial video...'}</span>}
+            {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">{t('studio.status_completed') || 'Completed'}</span>}
+            {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />{t('studio.status_waiting') || 'Waiting Approval'}</span>}
             {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">Pendente</span>}
-            {isFailed && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Falhou</span>}
+            {isFailed && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{t('studio.status_failed') || 'Failed'}</span>}
             {requiresUpgrade && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><Crown size={8} /> Upgrade Necessario</span>}
             {reviewerRevisionCount > 0 && (step === 'ana_review_copy' || step === 'rafael_review_design') && (
               <span className="inline-flex items-center gap-1 text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400">
@@ -314,7 +314,7 @@ function CopyApproval({ data, onApprove }) {
   const handleApprove = async () => { setSubmitting(true); await onApprove({ selection: selected }); setSubmitting(false); };
   return (
     <div data-testid="copy-approval" className="mt-3 space-y-2.5 bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
-      <p className="text-[11px] text-amber-200 font-semibold">Escolha a variacao para continuar:</p>
+      <p className="text-[11px] text-amber-200 font-semibold">{t('studio.choose_variation') || 'Choose the variation to continue'}:</p>
       <p className="text-[9px] text-[#888]">Ana recomendou a <span className="text-[#C9A84C] font-bold">Variacao {autoSel}</span></p>
       <div className="flex gap-2">
         {[1, 2, 3].map(n => (
@@ -380,7 +380,7 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
           </div>
         </div>
       )) : (
-        <p className="text-[9px] text-[#888]">Rafael avaliou os designs. Clique para aprovar e publicar.</p>
+        <p className="text-[9px] text-[#888]">Rafael reviewed the designs. Click to approve and publish.</p>
       )}
       <button data-testid="approve-design-btn" onClick={handleApprove} disabled={submitting}
         className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
@@ -419,7 +419,7 @@ function CompletedSummary({ pipeline }) {
         <div className="flex items-center gap-2 mb-2">
           <div className="h-7 w-7 rounded-lg bg-green-500/10 flex items-center justify-center"><Check size={14} className="text-green-400" /></div>
           <div>
-            <p className="text-xs font-bold text-white">Campanha Finalizada</p>
+            <p className="text-xs font-bold text-white">{t('studio.campaign_finished') || 'Campaign Finished'}</p>
             <p className="text-[9px] text-[#666]">{(pipeline.platforms || []).join(' / ')}</p>
           </div>
         </div>
@@ -446,14 +446,14 @@ function CompletedSummary({ pipeline }) {
           <div className="space-y-3">
             {/* Preview: Copy + Images side by side */}
             <div>
-              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Texto da Campanha</p>
+              <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">{t('studio.campaign_text') || 'Campaign Copy'}</p>
               <div className="rounded-lg bg-[#111] p-3 border border-[#1A1A1A]">
                 <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{approvedCopy}</pre>
               </div>
             </div>
             {images.length > 0 && (
               <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Imagens da Campanha</p>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">{t('studio.campaign_images') || 'Campaign Images'}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((url, i) => (
                     <button key={i} onClick={() => setLightboxIdx(i)}
@@ -496,7 +496,7 @@ function CompletedSummary({ pipeline }) {
         )}
         {activeTab === 'images' && (
           <div>
-            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Clique para ver em tamanho completo</p>
+            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Click to view full size</p>
             {images.length > 0 ? (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((url, i) => (
@@ -562,7 +562,7 @@ function HistoryCard({ pipeline, onSelect, onDelete }) {
   const completedCount = STEP_ORDER.filter(s => steps[s]?.status === 'completed').length;
   const hasImages = steps.lucas_design?.image_urls?.some(u => u);
   const statusColors = { completed: 'text-green-400', failed: 'text-red-400', running: 'text-[#C9A84C]', waiting_approval: 'text-amber-400' };
-  const statusLabels = { completed: 'Concluido', failed: 'Falhou', running: 'Em andamento', waiting_approval: 'Aguardando', requires_upgrade: 'Upgrade' };
+  const statusLabels = { completed: t('studio.status_completed') || 'Completed', failed: t('studio.status_failed') || 'Failed', running: t('studio.status_running') || 'Running', waiting_approval: t('studio.status_waiting') || 'Waiting', requires_upgrade: 'Upgrade' };
   const createdAt = pipeline.created_at ? new Date(pipeline.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
@@ -652,11 +652,11 @@ function AssetUploader({ assets, onAssetsChange }) {
 
   return (
     <div data-testid="asset-uploader" className="space-y-3">
-      <label className="text-[9px] text-[#555] uppercase tracking-wider block">Marca & Imagens de Referencia</label>
+      <label className="text-[9px] text-[#555] uppercase tracking-wider block">Brand & Reference Images</label>
 
       {/* Logo Upload */}
       <div>
-        <p className="text-[10px] text-[#888] mb-1.5">Logo da marca</p>
+        <p className="text-[10px] text-[#888] mb-1.5">Brand logo</p>
         <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
           style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
           onChange={e => { handleUpload(e.target.files, 'logo'); e.target.value = ''; }} />
@@ -691,7 +691,7 @@ function AssetUploader({ assets, onAssetsChange }) {
             <div className="h-10 w-10 rounded-xl bg-[#C9A84C]/10 flex items-center justify-center">
               <Upload size={18} className="text-[#C9A84C]" />
             </div>
-            <span className="text-[11px] text-[#C9A84C] font-medium">Clique para enviar o logo</span>
+            <span className="text-[11px] text-[#C9A84C] font-medium">Click to upload logo</span>
             <span className="text-[8px] text-[#444]">PNG, JPG, SVG, WEBP (max 10MB)</span>
           </button>
         )}
@@ -699,7 +699,7 @@ function AssetUploader({ assets, onAssetsChange }) {
 
       {/* Reference Images Upload */}
       <div>
-        <p className="text-[10px] text-[#888] mb-1.5">Imagens de referencia</p>
+        <p className="text-[10px] text-[#888] mb-1.5">Reference images</p>
         <input ref={refRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
           style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
           onChange={e => { handleUpload(e.target.files, 'reference'); e.target.value = ''; }} />
@@ -731,8 +731,8 @@ function AssetUploader({ assets, onAssetsChange }) {
           <div className="h-8 w-8 rounded-lg bg-[#7CB9E8]/10 flex items-center justify-center">
             <Image size={14} className="text-[#7CB9E8]" />
           </div>
-          <span className="text-[10px] text-[#7CB9E8] font-medium">{refs.length > 0 ? 'Adicionar mais imagens' : 'Clique para enviar imagens de referencia'}</span>
-          <span className="text-[8px] text-[#444]">Selecione uma ou varias imagens</span>
+          <span className="text-[10px] text-[#7CB9E8] font-medium">{refs.length > 0 ? 'Add more images' : 'Click to upload reference images'}</span>
+          <span className="text-[8px] text-[#444]">Select one or more images</span>
         </button>
       </div>
 
@@ -783,7 +783,7 @@ export default function PipelineView({ context }) {
       await axios.delete(`${API}/campaigns/pipeline/saved/logo?url=${encodeURIComponent(url)}`);
       setSavedLogos(prev => prev.filter(l => l.url !== url));
       setUploadedAssets(prev => prev.filter(a => !(a.url === url && a.type === 'logo')));
-      toast.success('Logo removido');
+      toast.success('Logo removed');
     } catch { toast.error('Erro ao remover logo'); }
   };
 
@@ -869,8 +869,8 @@ export default function PipelineView({ context }) {
 
   const createPipeline = async () => {
     const effectiveBriefing = getEffectiveBriefing();
-    if (!campaignName.trim()) { toast.error('Defina o nome da campanha'); return; }
-    if (!effectiveBriefing.trim() || platforms.length === 0) { toast.error('Preencha o briefing e selecione ao menos uma plataforma'); return; }
+    if (!campaignName.trim()) { toast.error(t('studio.err_name') || 'Define the campaign name'); return; }
+    if (!effectiveBriefing.trim() || platforms.length === 0) { toast.error(t('studio.err_briefing') || 'Fill in the briefing and select at least one platform'); return; }
     setCreating(true);
     try {
       const assetPayload = uploadedAssets.map(a => ({ url: a.url, type: a.type, filename: a.filename }));
@@ -885,8 +885,8 @@ export default function PipelineView({ context }) {
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
       setQuestionnaire({ product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: '' });
       setCampaignLang('');
-      toast.success('Pipeline iniciado!');
-    } catch (e) { toast.error(e.response?.data?.detail || 'Erro ao criar pipeline'); }
+      toast.success(t('studio.pipeline_started') || 'Pipeline started!');
+    } catch (e) { toast.error(e.response?.data?.detail || t('studio.err_create') || 'Error creating pipeline'); }
     setCreating(false);
   };
 
@@ -894,18 +894,18 @@ export default function PipelineView({ context }) {
     if (!activePipeline) return;
     try {
       await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/approve`, approvalData);
-      toast.success('Aprovado! Proxima etapa iniciando...');
+      toast.success(t('studio.approved') || 'Approved! Next step starting...');
       setTimeout(() => { pollPipeline(activePipeline.id); startPolling(activePipeline.id); }, 1000);
-    } catch (e) { toast.error(e.response?.data?.detail || 'Erro ao aprovar'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('studio.err_approve') || 'Error approving'); }
   };
 
   const retryPipeline = async () => {
     if (!activePipeline) return;
     try {
       await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/retry`);
-      toast.success('Tentando novamente...');
+      toast.success(t('studio.retrying') || 'Retrying...');
       setTimeout(() => { pollPipeline(activePipeline.id); startPolling(activePipeline.id); }, 1000);
-    } catch (e) { toast.error(e.response?.data?.detail || 'Erro'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('studio.err_generic') || 'Error'); }
   };
 
   const deletePipeline = async (id) => {
@@ -913,7 +913,7 @@ export default function PipelineView({ context }) {
       await axios.delete(`${API}/campaigns/pipeline/${id}`);
       if (activePipeline?.id === id) setActivePipeline(null);
       setPipelines(prev => prev.filter(p => p.id !== id));
-      toast.success('Pipeline removido');
+      toast.success(t('studio.pipeline_removed') || 'Pipeline removed');
     } catch {}
   };
 
@@ -928,8 +928,8 @@ export default function PipelineView({ context }) {
       setExpandedSteps({});
       setShowFinalPreview(false);
       loadPipelines();
-      toast.success('Pipeline arquivado');
-    } catch { toast.error('Erro ao arquivar pipeline'); }
+      toast.success(t('studio.pipeline_archived') || 'Pipeline archived');
+    } catch { toast.error(t('studio.err_archive') || 'Error archiving pipeline'); }
   };
 
   // ── Final Preview Mode ──
@@ -943,10 +943,10 @@ export default function PipelineView({ context }) {
             await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/publish`, {
               edited_copy: editedCopy || null
             });
-            toast.success('Campanha publicada com sucesso!');
+            toast.success(t('studio.published') || 'Campaign published successfully!');
             navigate('/marketing');
           } catch (e) {
-            toast.error(e.response?.data?.detail || 'Erro ao publicar campanha');
+            toast.error(e.response?.data?.detail || t('studio.err_publish') || 'Error publishing campaign');
           }
         }}
       />
@@ -960,11 +960,11 @@ export default function PipelineView({ context }) {
     const progressPct = Math.round((completedCount / STEP_ORDER.length) * 100);
     const allStepsComplete = completedCount === STEP_ORDER.length;
     const statusConfig = {
-      running: { label: 'Executando', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
-      waiting_approval: { label: 'Aguardando Aprovacao', color: 'text-amber-400', bg: 'bg-amber-400' },
-      completed: { label: 'Concluido!', color: 'text-green-400', bg: 'bg-green-400' },
-      failed: { label: 'Falhou', color: 'text-red-400', bg: 'bg-red-400' },
-      pending: { label: 'Iniciando...', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
+      running: { label: t('studio.status_running') || 'Running', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
+      waiting_approval: { label: t('studio.status_waiting') || 'Waiting Approval', color: 'text-amber-400', bg: 'bg-amber-400' },
+      completed: { label: t('studio.status_completed') || 'Completed!', color: 'text-green-400', bg: 'bg-green-400' },
+      failed: { label: t('studio.status_failed') || 'Failed', color: 'text-red-400', bg: 'bg-red-400' },
+      pending: { label: t('studio.status_pending') || 'Starting...', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
     };
     const sc = statusConfig[activePipeline.status] || statusConfig.pending;
 
@@ -991,7 +991,7 @@ export default function PipelineView({ context }) {
             <span className="text-[10px] font-bold text-white">{progressPct}%</span>
             <span className="text-[8px] text-[#555] ml-1">completo</span>
           </div>
-          <button onClick={() => archivePipeline(activePipeline.id)} className="text-[#666] hover:text-red-400 p-1.5 rounded-lg hover:bg-[#111] transition" title="Arquivar e criar novo">
+          <button onClick={() => archivePipeline(activePipeline.id)} className="text-[#666] hover:text-red-400 p-1.5 rounded-lg hover:bg-[#111] transition" title={t('studio.archive') || 'Archive and create new'}>
             <X size={14} />
           </button>
         </div>
@@ -1010,7 +1010,7 @@ export default function PipelineView({ context }) {
           {activePipeline.result?.contact_info && Object.values(activePipeline.result.contact_info).some(v => v) && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <Phone size={9} className="text-[#444]" />
-              <span className="text-[8px] text-[#444]">Dados de contato incluidos</span>
+              <span className="text-[8px] text-[#444]">{t('studio.contact_included') || 'Contact data included'}</span>
             </div>
           )}
         </div>
@@ -1146,7 +1146,7 @@ export default function PipelineView({ context }) {
                 className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
               {savedBriefings.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">Briefings Anteriores</p>
+                  <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">{t('studio.previous_briefings') || 'Previous Briefings'}</p>
                   <div className="space-y-1.5 max-h-36 overflow-y-auto">
                     {savedBriefings.map((sb, i) => (
                       <button key={i} onClick={() => {
@@ -1154,13 +1154,13 @@ export default function PipelineView({ context }) {
                         if (sb.campaign_name && !campaignName) setCampaignName(sb.campaign_name);
                         if (sb.campaign_language) setCampaignLang(sb.campaign_language);
                         if (sb.platforms?.length) setPlatforms(sb.platforms);
-                        toast.success('Briefing carregado!');
+                        toast.success(t('studio.briefing_loaded') || 'Briefing loaded!');
                       }}
                         className="w-full text-left rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 hover:border-[#C9A84C]/30 transition group">
                         <div className="flex items-center gap-2 mb-0.5">
                           {sb.campaign_name && <span className="text-[10px] font-semibold text-white">{sb.campaign_name}</span>}
                           {sb.campaign_language && <span className="text-[8px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
-                          <span className="text-[7px] text-[#333] ml-auto group-hover:text-[#C9A84C]">Usar</span>
+                          <span className="text-[7px] text-[#333] ml-auto group-hover:text-[#C9A84C]">{t('studio.use') || 'Use'}</span>
                         </div>
                         <p className="text-[9px] text-[#555] line-clamp-2">{sb.briefing}</p>
                       </button>
@@ -1278,7 +1278,7 @@ export default function PipelineView({ context }) {
             ))}
             <input value={campaignLang && !['', 'pt', 'en', 'es', 'fr', 'ht'].includes(campaignLang) ? campaignLang : ''}
               onChange={e => setCampaignLang(e.target.value)}
-              placeholder="Outro idioma..."
+              placeholder="Other language..."
               className="rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition w-32" />
           </div>
         </div>
@@ -1287,7 +1287,7 @@ export default function PipelineView({ context }) {
         <div>
           {savedLogos.length > 0 && (
             <div className="mb-2">
-              <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">Logos Salvos</label>
+              <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.saved_logos') || 'Saved Logos'}</label>
               <div className="flex gap-2 flex-wrap">
                 {savedLogos.map((logo, i) => {
                   const isSelected = uploadedAssets.some(a => a.url === logo.url && a.type === 'logo');
@@ -1320,7 +1320,7 @@ export default function PipelineView({ context }) {
         <div>
           <button onClick={() => setShowContact(!showContact)} className="flex items-center gap-1.5 text-[9px] text-[#555] uppercase tracking-wider mb-1.5 hover:text-[#888] transition">
             {showContact ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-            <Phone size={10} /> Dados de Contato (opcional)
+            <Phone size={10} /> {t('studio.contact_data') || 'Contact Data (optional)'}
           </button>
           {showContact && (
             <div data-testid="contact-info-section" className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-[#0D0D0D] rounded-xl border border-[#1A1A1A] p-3">
@@ -1337,7 +1337,7 @@ export default function PipelineView({ context }) {
               <div>
                 <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Mail size={8} /> Email</label>
                 <input data-testid="contact-email" value={contactInfo.email} onChange={e => setContactInfo(p => ({ ...p, email: e.target.value }))}
-                  placeholder="contato@empresa.com" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                  placeholder="contact@company.com" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
             </div>
           )}

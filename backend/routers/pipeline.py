@@ -691,7 +691,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 f'ffmpeg -y -i {audio_path} -i {bg_music_path} '
                 f'-filter_complex "'
                 f'[0:a]volume=1.0,apad[narr];'
-                f'[1:a]volume=0.15,aloop=loop=-1:size=2e+09[music];'
+                f'[1:a]volume=0.30,aloop=loop=-1:size=2e+09[music];'
                 f'[narr][music]amix=inputs=2:duration=shortest:dropout_transition=2[out]'
                 f'" -map "[out]" -t {vid_duration} -c:a libmp3lame -b:a 192k {mixed_audio}'
             )
@@ -753,6 +753,14 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
         narration_text = narr_match.group(1).strip()
         # Clean timing marks from narration for TTS
         narration_text = re.sub(r'\[\d+-\d+s?\]:\s*', '', narration_text)
+        # Remove SILENCE instructions and any bracketed stage directions (NOT spoken content)
+        narration_text = re.sub(r'\[.*?SILENCE.*?\]', '', narration_text, flags=re.IGNORECASE)
+        narration_text = re.sub(r'\[.*?music\s+only.*?\]', '', narration_text, flags=re.IGNORECASE)
+        narration_text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', narration_text, flags=re.IGNORECASE)
+        # Remove any remaining bracketed stage directions
+        narration_text = re.sub(r'\[(?:COMPLETE|TOTAL|FULL)?\s*(?:SILENCE|QUIET|PAUSE|NO NARRATION).*?\]', '', narration_text, flags=re.IGNORECASE)
+        # Clean up extra whitespace
+        narration_text = re.sub(r'\n{2,}', '\n', narration_text).strip()
 
     # Parse CTA Sequence
     cta_match = re.search(r'===CTA SEQUENCE===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
