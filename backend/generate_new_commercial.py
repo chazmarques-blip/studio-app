@@ -5,7 +5,7 @@ CHARACTER DESCRIPTION, CLIP 1, CLIP 2, NARRATION SCRIPT with timing marks,
 MUSIC DIRECTION, CTA SEQUENCE.
 Campaign: My Truck especial (truck financing for Latino workers)
 """
-import os, sys, asyncio
+import os, sys, asyncio, time
 sys.path.insert(0, '/app/backend')
 from dotenv import load_dotenv
 load_dotenv('/app/backend/.env')
@@ -76,11 +76,14 @@ async def main():
     print("=" * 60)
     
     # Use Claude to generate the full Marcos output
-    chat = LlmChat(api_key=EMERGENT_KEY, provider="anthropic", model="claude-sonnet-4-5-20250929")
-    chat.system_message = MARCOS_SYSTEM
+    chat = LlmChat(
+        api_key=EMERGENT_KEY,
+        session_id=f"marcos-v4-test-{int(time.time())}",
+        system_message=MARCOS_SYSTEM
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
     
     response = await asyncio.wait_for(
-        chat.send_message(MARCOS_PROMPT),
+        chat.send_message(UserMessage(text=MARCOS_PROMPT)),
         timeout=120
     )
     
