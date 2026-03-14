@@ -11,7 +11,7 @@ export default function MarketingStudio() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const lang = i18n.language || 'en';
-  const [context, setContext] = useState({ company: 'AgentZZ', industry: 'SaaS / AI', audience: 'PMEs que buscam automacao de atendimento', brand_voice: 'Moderno, profissional, inovador' });
+  const [context, setContext] = useState({ company: '', industry: '', audience: '', brand_voice: '' });
   const [showContext, setShowContext] = useState(false);
   const [plan, setPlan] = useState('');
   const [loading, setLoading] = useState(true);

@@ -121,8 +121,8 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
   const assets = pipeline?.result?.uploaded_assets || [];
   const contextData = pipeline?.result?.context || {};
 
-  // Derive brand name from context or campaign name
-  const brandName = contextData.company || campaignName;
+  // Derive brand name from campaign name first, then context
+  const brandName = campaignName || contextData.company || 'Campanha';
 
   // Derive brand logo from uploaded assets
   const logoAsset = assets.find(a => a.type === 'logo');
