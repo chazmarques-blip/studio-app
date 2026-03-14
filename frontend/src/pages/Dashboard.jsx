@@ -137,6 +137,22 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ── Quick Actions ── */}
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        {[
+          { icon: Bot, label: t('dashboard.create_agent'), path: '/agents' },
+          { icon: MessageSquare, label: t('dashboard.view_inbox'), path: '/chat' },
+          { icon: Target, label: t('dashboard.view_crm'), path: '/crm' },
+          { icon: Megaphone, label: 'Marketing', path: '/marketing' },
+        ].map((a, i) => (
+          <button key={i} data-testid={`quick-action-${i}`} onClick={() => navigate(a.path)}
+            className="glass-card flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/20">
+            <a.icon size={15} className="text-[#C9A84C]" />
+            <p className="text-center text-[9px] font-medium text-[#888]">{a.label}</p>
+          </button>
+        ))}
+      </div>
+
       {/* ── KPI Cards ── */}
       <div className="mb-3 grid grid-cols-4 gap-2">
         {[
@@ -299,22 +315,6 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* ── Quick Actions ── */}
-      <div className="mb-3 grid grid-cols-4 gap-2">
-        {[
-          { icon: Bot, label: t('dashboard.create_agent'), path: '/agents' },
-          { icon: MessageSquare, label: t('dashboard.view_inbox'), path: '/chat' },
-          { icon: Target, label: t('dashboard.view_crm'), path: '/crm' },
-          { icon: Megaphone, label: 'Marketing', path: '/marketing' },
-        ].map((a, i) => (
-          <button key={i} data-testid={`quick-action-${i}`} onClick={() => navigate(a.path)}
-            className="glass-card flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/20">
-            <a.icon size={15} className="text-[#C9A84C]" />
-            <p className="text-center text-[9px] font-medium text-[#888]">{a.label}</p>
-          </button>
-        ))}
       </div>
 
       {/* ── Plan & Usage ── */}
