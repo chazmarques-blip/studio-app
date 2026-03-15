@@ -5,6 +5,7 @@ import { Search, Star, Eye, Bot, Crown, ChevronRight, Zap } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { getAgentAvatar, DEFAULT_AVATAR } from '../data/agentAvatars';
+import AgentDetailsDrawer from '../components/AgentDetailsDrawer';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -81,6 +82,7 @@ export default function Agents() {
   const [marketplace, setMarketplace] = useState([]);
   const [myAgents, setMyAgents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [detailsAgent, setDetailsAgent] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -111,11 +113,7 @@ export default function Agents() {
   };
 
   const handleDetails = (agent) => {
-    const avatar = getAgentAvatar(agent.name);
-    toast(<div className="flex gap-2 text-left">
-      {avatar && <img src={avatar} className="h-10 w-10 rounded-lg object-cover shrink-0" alt="" />}
-      <div><p className="font-bold text-white text-xs">{agent.name}</p><p className="text-[9px] text-[#888] capitalize mb-1">{agent.type}</p><p className="text-[9px] text-[#999]">{agent.description}</p></div>
-    </div>, { duration: 4000 });
+    setDetailsAgent(agent);
   };
 
   return (
@@ -212,6 +210,13 @@ export default function Agents() {
           ) : myAgents.map(a => <MyAgentCard key={a.id} agent={a} />)}
         </div>
       )}
+
+      <AgentDetailsDrawer
+        agent={detailsAgent}
+        open={!!detailsAgent}
+        onClose={() => setDetailsAgent(null)}
+        onDeploy={handleDeploy}
+      />
     </div>
   );
 }
