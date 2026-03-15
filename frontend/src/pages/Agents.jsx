@@ -18,27 +18,21 @@ function AgentCard({ agent, onDeploy, onDetails, isPersonal, lang }) {
   const avatar = getAgentAvatar(agent.name);
   return (
     <div data-testid={`agent-card-${agent.name}`}
-      className="group relative rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-2.5 transition-all duration-300 hover:border-[#C9A84C]/20 hover:shadow-[0_0_20px_rgba(201,168,76,0.04)]">
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className="h-9 w-9 rounded-lg overflow-hidden ring-1 ring-[#C9A84C]/15 shrink-0">
+      className="group relative rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-2 transition-all duration-300 hover:border-[#C9A84C]/20 hover:shadow-[0_0_20px_rgba(201,168,76,0.04)]">
+      <div className="flex gap-2 mb-1.5">
+        <div className="h-10 w-10 rounded-lg overflow-hidden ring-1 ring-[#C9A84C]/15 shrink-0">
           {avatar ? <img src={avatar} alt={agent.name} className="h-full w-full object-cover" loading="lazy" />
             : <div className="h-full w-full bg-[#C9A84C]/10 flex items-center justify-center"><Bot size={16} className="text-[#C9A84C]/50" /></div>}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-white truncate">{agent.name}</span>
-            {isPersonal && <Crown size={9} className="text-[#C9A84C] shrink-0" />}
+          <div className="flex items-center gap-1 mb-px">
+            <span className="text-[10px] font-bold text-white truncate">{agent.name}</span>
+            {isPersonal && <Crown size={8} className="text-[#C9A84C] shrink-0" />}
+            {agent.rating && <><Star size={7} className="text-[#C9A84C] fill-[#C9A84C] ml-auto shrink-0" /><span className="text-[7px] font-bold text-[#C9A84C]">{agent.rating}</span></>}
           </div>
-          <span className="text-[8px] text-[#555] capitalize">{agent.type}</span>
+          <p className="text-[7px] text-[#666] leading-[1.3] line-clamp-2">{agent.description}</p>
         </div>
-        {agent.rating && (
-          <div className="flex items-center gap-px shrink-0">
-            <Star size={8} className="text-[#C9A84C] fill-[#C9A84C]" />
-            <span className="text-[8px] font-bold text-[#C9A84C]">{agent.rating}</span>
-          </div>
-        )}
       </div>
-      <p className="text-[8px] text-[#777] leading-relaxed mb-2 line-clamp-2">{agent.description}</p>
       <div className="flex gap-1">
         <button data-testid={`details-${agent.name}`} onClick={() => onDetails(agent)}
           className="flex-1 flex items-center justify-center gap-0.5 rounded-lg border border-[#1E1E1E] bg-[#111] py-1.5 text-[8px] font-medium text-[#777] transition-all hover:border-[#C9A84C]/30 hover:text-[#C9A84C] active:scale-[0.97]">
