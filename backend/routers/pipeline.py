@@ -1923,8 +1923,8 @@ async def _execute_step(pipeline_id, step):
                 video_format = format_match.group(1).lower()
 
             platforms = pipeline.get("platforms") or []
-            # Sora 2 valid sizes: 1280x720, 1792x1024, 1024x1792, 1024x1024
-            FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1280x720"}
+            # Sora 2 valid sizes: 720x1280, 1280x720
+            FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
             if not format_match:
                 if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
                     video_format = "vertical"
@@ -2492,7 +2492,7 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
     # Determine video format
     format_match = re.search(r'Format:\s*(horizontal|vertical)', marcos_output, re.IGNORECASE)
     video_format = format_match.group(1).lower() if format_match else "horizontal"
-    FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1280x720"}
+    FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
     size = FORMAT_MAP.get(video_format, "1280x720")
     user_music = pipeline.get("result", {}).get("selected_music", "")
 
