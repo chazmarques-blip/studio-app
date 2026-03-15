@@ -23,6 +23,13 @@ from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
 router = APIRouter(prefix="/api/campaigns/pipeline", tags=["pipeline"])
 
+# FFmpeg binary path - from imageio_ffmpeg package
+try:
+    import imageio_ffmpeg
+    FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
+except Exception:
+    FFMPEG_PATH = "/usr/bin/ffmpeg"
+
 # Track running pipeline tasks to detect orphans on restart
 _active_pipelines = set()
 
@@ -158,7 +165,8 @@ CULTURAL TONE MASTERY:
 - Spanish (LATAM): Direct, motivating, action-oriented. Use "tú" for personal touch. Urgency and concrete benefits drive conversions.
 - English: Concise, value-driven, sophisticated. Short sentences. Power words. Social proof.
 
-ALWAYS write in the language specified in the briefing. If no language specified, match the briefing language.
+ALWAYS write in the language specified by the CAMPAIGN_LANGUAGE field in the briefing metadata. This is the ABSOLUTE TRUTH for the content language.
+⚠️ CRITICAL: The user may write the briefing in ANY language (e.g., Portuguese), but the CAMPAIGN_LANGUAGE field determines the OUTPUT language. If CAMPAIGN_LANGUAGE=en but the briefing is in Portuguese, you MUST write ALL content in ENGLISH. NEVER match the briefing's language — ALWAYS match CAMPAIGN_LANGUAGE.
 When given a briefing, create EXACTLY 3 variations using different frameworks.
 
 FORMAT — You MUST output TWO sections: the COPY and the IMAGE BRIEFING.
@@ -228,7 +236,14 @@ After reviewing all 3 variations AND the image briefing, you MUST make a DECISIO
 
 IMPORTANT: You are a tough but fair reviewer. Most well-crafted copy should pass. Only request revision if the quality is genuinely below standard.
 
-CRITICAL LANGUAGE CHECK: Before ANYTHING else, verify that ALL text content is in the CORRECT campaign language. If the copy or image headline is in the WRONG language, this is an AUTOMATIC REVISION_NEEDED — no exceptions, regardless of how good the creative is otherwise.
+CRITICAL LANGUAGE CHECK — THE #1 MOST IMPORTANT RULE:
+The briefing contains a field called CAMPAIGN_LANGUAGE (e.g., "en", "pt", "es"). This is the ABSOLUTE, NON-NEGOTIABLE target language for ALL content.
+⚠️ The user may WRITE the briefing in any language (e.g., Portuguese) — but that does NOT determine the output language. ONLY the CAMPAIGN_LANGUAGE field matters.
+- If CAMPAIGN_LANGUAGE = "en" → ALL copy, headlines, CTAs, hashtags MUST be in ENGLISH, even if the briefing was written in Portuguese.
+- If CAMPAIGN_LANGUAGE = "pt" → ALL content MUST be in Portuguese, even if the briefing was written in English.
+- If the content IS in the correct CAMPAIGN_LANGUAGE → DO NOT request revision for language. The content is correct.
+- If the content is in a DIFFERENT language than CAMPAIGN_LANGUAGE → AUTOMATIC REVISION_NEEDED.
+NEVER confuse the briefing's language with the CAMPAIGN_LANGUAGE. They can be different.
 
 Format your FINAL decision EXACTLY like this (you MUST include the DECISION: line):
 
@@ -753,7 +768,8 @@ async def _generate_design_images(pipeline_id, lucas_output, platforms):
     pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
     campaign_language = "pt"
     if pipeline_data:
-        campaign_language = pipeline_data[0].get("campaign_language", "pt")
+        # campaign_language is stored inside result, not at root level
+        campaign_language = pipeline_data[0].get("result", {}).get("campaign_language") or pipeline_data[0].get("campaign_language") or "pt"
 
     LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
     lang_name = LANG_NAMES.get(campaign_language, "Portuguese")
@@ -817,20 +833,42 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
     for attempt in range(max_retries):
         try:
             video_gen = OpenAIVideoGeneration(api_key=EMERGENT_KEY)
-            logger.info(f"Sora 2 {clip_name} started (attempt {attempt+1}): size={size}")
-            video_bytes = video_gen.text_to_video(
+            logger.info(f"Sora 2 {clip_name} started (attempt {attempt+1}): size={size}, key={EMERGENT_KEY[:15]}...")
+
+            # Step 1: Initiate generation
+            operation_id = video_gen._generate_video(
                 prompt=prompt_text, model="sora-2",
-                size=size, duration=12, max_wait_time=600
+                size=size, duration=12
             )
+            if not operation_id:
+                logger.error(f"Sora 2 {clip_name}: _generate_video returned None (no operation_id)")
+                if attempt < max_retries - 1:
+                    time.sleep(5)
+                continue
+
+            logger.info(f"Sora 2 {clip_name}: operation_id={operation_id}, polling...")
+
+            # Step 2: Wait for completion
+            video_uri = video_gen._wait_for_completion(operation_id, max_wait_time=600)
+            if not video_uri:
+                logger.error(f"Sora 2 {clip_name}: _wait_for_completion returned None")
+                if attempt < max_retries - 1:
+                    time.sleep(5)
+                continue
+
+            logger.info(f"Sora 2 {clip_name}: video_uri={video_uri[:80]}...")
+
+            # Step 3: Download
+            video_bytes = video_gen._download_video_bytes(video_uri)
             if video_bytes:
                 path = f"/tmp/{pipeline_id}_{clip_name}.mp4"
                 with open(path, "wb") as f:
                     f.write(video_bytes)
                 logger.info(f"Sora 2 {clip_name} generated: {len(video_bytes)/1024:.0f}KB")
                 return path
-            logger.warning(f"Sora 2 {clip_name} returned empty on attempt {attempt+1}")
+            logger.warning(f"Sora 2 {clip_name}: download returned empty bytes")
         except Exception as e:
-            logger.warning(f"Sora 2 {clip_name} attempt {attempt+1} failed: {e}")
+            logger.warning(f"Sora 2 {clip_name} attempt {attempt+1} failed: {type(e).__name__}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(5)
     return None
@@ -862,7 +900,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         # 1. Normalize both clips to consistent format
         for i, clip in enumerate([clip1_path, clip2_path], 1):
             subprocess.run(
-                f"/usr/bin/ffmpeg -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
+                f"{FFMPEG_PATH} -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
                 shell=True, capture_output=True, timeout=60
             )
 
@@ -878,20 +916,23 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             # Fall back to using just clip1 with audio
             shutil.copy2(norm1, f"/tmp/{pipeline_id}_xfade.mp4")
         else:
-            xfade_cmd = (
-                f'/usr/bin/ffmpeg -y -i {norm1} -i {norm2} '
-                f'-filter_complex "'
-                f'[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];'
-                f'[v0][v1]xfade=transition=fade:duration=1:offset=11,format=yuv420p[vout]'
-                f'" -map "[vout]" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_xfade.mp4'
+            xfade_filter = (
+                '[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];'
+                '[v0][v1]xfade=transition=fade:duration=1:offset=11,format=yuv420p[vout]'
             )
-            result = subprocess.run(xfade_cmd, shell=True, capture_output=True, text=True, timeout=120)
+            xfade_cmd = [
+                FFMPEG_PATH, "-y", "-i", norm1, "-i", norm2,
+                "-filter_complex", xfade_filter,
+                "-map", "[vout]", "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+                f"/tmp/{pipeline_id}_xfade.mp4"
+            ]
+            result = subprocess.run(xfade_cmd, capture_output=True, text=True, timeout=120)
             if result.returncode != 0:
                 logger.warning(f"Crossfade failed ({result.stderr[:200] if result.stderr else 'unknown'}), falling back to concat")
                 with open(f"/tmp/{pipeline_id}_clips.txt", "w") as f:
                     f.write(f"file '{norm1}'\nfile '{norm2}'\n")
                 concat_r = subprocess.run(
-                    f"/usr/bin/ffmpeg -y -f concat -safe 0 -i /tmp/{pipeline_id}_clips.txt -c copy /tmp/{pipeline_id}_xfade.mp4",
+                    f"{FFMPEG_PATH} -y -f concat -safe 0 -i /tmp/{pipeline_id}_clips.txt -c copy /tmp/{pipeline_id}_xfade.mp4",
                     shell=True, capture_output=True, text=True, timeout=60
                 )
                 if concat_r.returncode != 0:
@@ -925,7 +966,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             # Pre-scale logo to reasonable size for overlay (240px wide, maintain aspect)
             scaled_logo = f"/tmp/{pipeline_id}_logo_scaled.png"
             subprocess.run(
-                f"/usr/bin/ffmpeg -y -i {logo_path} -vf scale=240:-1 {scaled_logo}",
+                f"{FFMPEG_PATH} -y -i {logo_path} -vf scale=240:-1 {scaled_logo}",
                 shell=True, capture_output=True, timeout=30
             )
             if not os.path.exists(scaled_logo):
@@ -941,8 +982,8 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             if safe_contact:
                 vf += f",drawtext=text='{safe_contact}':fontfile={font_path}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
-            logo_cmd = f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -i {scaled_logo} -filter_complex "{vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
-            r = subprocess.run(logo_cmd, shell=True, capture_output=True, text=True, timeout=120)
+            logo_cmd = [FFMPEG_PATH, "-y", "-i", f"/tmp/{pipeline_id}_xfade.mp4", "-i", scaled_logo, "-filter_complex", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "18", f"/tmp/{pipeline_id}_branded.mp4"]
+            r = subprocess.run(logo_cmd, capture_output=True, text=True, timeout=120)
             branded_ok = r.returncode == 0 and os.path.exists(f"/tmp/{pipeline_id}_branded.mp4")
             if branded_ok:
                 logger.info("Logo overlay applied successfully")
@@ -959,8 +1000,8 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             if safe_contact:
                 text_vf += f",drawtext=text='{safe_contact}':fontfile={font_path}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
-            brand_cmd = f'/usr/bin/ffmpeg -y -i /tmp/{pipeline_id}_xfade.mp4 -vf "{text_vf}" -c:v libx264 -preset fast -crf 18 /tmp/{pipeline_id}_branded.mp4'
-            r = subprocess.run(brand_cmd, shell=True, capture_output=True, text=True, timeout=120)
+            brand_cmd = [FFMPEG_PATH, "-y", "-i", f"/tmp/{pipeline_id}_xfade.mp4", "-vf", text_vf, "-c:v", "libx264", "-preset", "fast", "-crf", "18", f"/tmp/{pipeline_id}_branded.mp4"]
+            r = subprocess.run(brand_cmd, capture_output=True, text=True, timeout=120)
             if r.returncode != 0 or not os.path.exists(f"/tmp/{pipeline_id}_branded.mp4"):
                 logger.warning("Brand overlay failed, using crossfade only")
                 shutil.copy2(f"/tmp/{pipeline_id}_xfade.mp4", f"/tmp/{pipeline_id}_branded.mp4")
@@ -996,12 +1037,12 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             # Resample both to 44100Hz stereo before mixing for clean audio
             narr_resampled = f"/tmp/{pipeline_id}_narr_44k.wav"
             music_resampled = f"/tmp/{pipeline_id}_music_44k.wav"
-            subprocess.run(f"/usr/bin/ffmpeg -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
-            subprocess.run(f"/usr/bin/ffmpeg -y -i {bg_music_path} -ar 44100 -ac 2 {music_resampled}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"{FFMPEG_PATH} -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music_path} -ar 44100 -ac 2 {music_resampled}", shell=True, capture_output=True, timeout=30)
 
             mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.wav"
             mix_cmd = (
-                f'/usr/bin/ffmpeg -y -i {narr_resampled} -i {music_resampled} '
+                f'{FFMPEG_PATH} -y -i {narr_resampled} -i {music_resampled} '
                 f'-filter_complex "'
                 f'[0:a]volume=1.2,apad[narr];'
                 f'[1:a]volume=0.25,aloop=loop=-1:size=2e+09[music];'
@@ -1021,7 +1062,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         if final_audio:
             # Merge audio with video — high quality AAC
             subprocess.run(
-                f"/usr/bin/ffmpeg -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 256k -ar 44100 -ac 2 -t {vid_duration} {output_path}",
+                f"{FFMPEG_PATH} -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 256k -ar 44100 -ac 2 -t {vid_duration} {output_path}",
                 shell=True, capture_output=True, timeout=60
             )
         else:
@@ -1344,14 +1385,17 @@ Remember: Create EXACTLY 3 variations formatted with ===VARIATION 1===, ===VARIA
         if revision_count > 0:
             revision_context = f"\n\nNOTE: This is REVISION ROUND {revision_count}. The copywriter has revised their work based on your previous feedback. Review the revised versions with the same critical eye, but acknowledge improvements."
 
-        return f"""Review these 3 copy variations created by Sofia for the following campaign:
+        return f"""Review these 3 copy variations created by David for the following campaign:
 
 Briefing: {briefing}
 Platforms: {platforms_str}
+{lang_instruction}
 
-Sofia's variations:
+David's variations:
 {sofia_output}
 {revision_context}
+
+CRITICAL: The CAMPAIGN_LANGUAGE is specified above. Verify that ALL content matches this language. If the briefing was written in a different language, that's OK — what matters is that David's OUTPUT is in the correct CAMPAIGN_LANGUAGE.
 
 Analyze each variation on the criteria in your instructions.
 Then make your DECISION: APPROVED (with SELECTED_OPTION) or REVISION_NEEDED (with REVISION_FEEDBACK)."""
@@ -1393,10 +1437,10 @@ ART DIRECTOR'S FEEDBACK:
 
 IMPORTANT: Revise ALL 3 image prompts addressing EVERY point in the art director's feedback. Make each prompt significantly more impactful."""
 
-        return f"""Transform Sofia's IMAGE BRIEFING into 3 optimized AI image generation prompts.
+        return f"""Transform David's IMAGE BRIEFING into 3 optimized AI image generation prompts.
 Target platforms: {platforms_str}
 
-SOFIA'S IMAGE BRIEFING:
+DAVID'S IMAGE BRIEFING:
 {image_briefing if image_briefing else "(No explicit briefing found. Use the approved copy and original briefing to create visual concepts.)"}
 {ana_image_notes}
 
@@ -1411,9 +1455,9 @@ ORIGINAL BRIEFING: {briefing}
 {assets_str}
 {revision_info}
 
-YOUR TASK: Create 3 IMAGE GENERATION PROMPTS based on Sofia's visual concepts.
+YOUR TASK: Create 3 IMAGE GENERATION PROMPTS based on David's visual concepts.
 Each prompt MUST:
-1. Include the HEADLINE TEXT from Sofia's briefing exactly as written (3-7 words, in the campaign language)
+1. Include the HEADLINE TEXT from David's briefing exactly as written (3-7 words, in the campaign language)
 2. Be 80-120 words of HYPER-SPECIFIC visual description
 3. Include: subject, setting, lighting, camera angle, color palette, mood, art style
 4. End with: "Ultra high-quality, 4K commercial photography. NO logos, NO brand names, NO website URLs."
@@ -1438,14 +1482,14 @@ Image Prompt: [complete optimized prompt]
         if revision_count > 0:
             revision_context = f"\n\nNOTE: This is REVISION ROUND {revision_count}. The designer has revised their concepts based on your previous art direction feedback. Review with the same world-class standards, but acknowledge improvements."
 
-        return f"""Review these 3 design concepts created by Lucas.
+        return f"""Review these 3 design concepts created by Stefan.
 Target platforms: {platforms_str}
 
 Design concepts:
 {lucas_output}
 {revision_context}
 
-CRITICAL LANGUAGE CHECK: Verify that ALL text/headlines in the image prompts are in the SAME language as the campaign copy. If the campaign copy is in English, ALL image text must be in English. If in Portuguese, ALL in Portuguese. Language mismatch between copy and image headlines is an AUTOMATIC REJECTION — request revision immediately with specific notes about which text needs to change to which language.
+CRITICAL LANGUAGE CHECK: Verify that ALL text/headlines in the image prompts are in the SAME language as the campaign copy. The CAMPAIGN_LANGUAGE specified below is the ABSOLUTE truth. If the campaign copy is in English, ALL image text must be in English. If in Portuguese, ALL in Portuguese. Language mismatch is an AUTOMATIC REJECTION.
 {lang_instruction}
 
 Evaluate each concept using your art direction criteria.
@@ -1517,7 +1561,7 @@ Brand/Company: {campaign_name}
 Platforms: {platforms_str}
 Approved campaign copy: {approved_copy}
 Visual direction: {image_briefing}
-Video brief from Sofia: {video_brief}
+Video brief from David: {video_brief}
 Contact info for CTA: {contact_details or contact_str}
 Original briefing: {briefing}
 {vid_format_note}
@@ -1538,11 +1582,11 @@ Output EXACTLY in the format specified in your instructions."""
         marcos_output = steps.get("marcos_video", {}).get("output", "")
         video_url = steps.get("marcos_video", {}).get("video_url", "")
         briefing_summary = steps.get("sofia_copy", {}).get("output", "")[:500]
-        return f"""Review the video commercial created by Marcos for this campaign.
+        return f"""Review the video commercial created by Ridley for this campaign.
 
 Campaign briefing summary: {briefing_summary}
 
-Marcos's video script and concept:
+Ridley's video script and concept:
 {marcos_output}
 
 Video generated: {"YES - " + video_url if video_url else "NO - Video generation failed or pending"}
@@ -1566,25 +1610,29 @@ Provide your detailed score (V1-V6) and DECISION."""
         rafael_design_output = steps.get("rafael_review_design", {}).get("output", "")
         video_info = steps.get("marcos_video", {}).get("output", "")
         has_video = bool(steps.get("marcos_video", {}).get("video_url"))
-        video_note = "\nA 12-second commercial video has been generated for this campaign. Include video posting strategy in your schedule (Reels, TikTok, YouTube Shorts, Google Ads Video)." if has_video else ""
-        return f"""Create a complete publishing schedule and strategy for this campaign.
+        video_note = "\nA commercial video has been generated for this campaign." if has_video else "\nNo video was generated for this campaign."
+        return f"""Validate this complete campaign package before marking it as CREATED.
 
 Platforms: {platforms_str}
-Approved copy: {approved_copy}
-Design review and approvals: {rafael_design_output}
-Platform-specific design selections: {design_approvals}
-Video concept: {video_info}{video_note}
 
-Original briefing: {briefing}
+APPROVED COPY:
+{approved_copy}
+
+DESIGN REVIEW & APPROVALS:
+{rafael_design_output}
+Platform selections: {design_approvals}
+
+VIDEO CONCEPT:
+{video_info}{video_note}
+
+ORIGINAL BRIEFING:
+{briefing}
 {contact_str}
 {lang_instruction}
 
-Create a detailed schedule with:
-- Best posting times per platform
-- Content adaptations per platform (including video for video-supporting platforms)
-- Recommended frequency
-- Timeline (next 7 days)
-- Any platform-specific considerations"""
+Perform your validation following the criteria in your system prompt.
+Output your CAMPAIGN VALIDATION REPORT with scores and FINAL VERDICT.
+Include RECOMMENDATIONS FOR TRAFFIC TEAM at the end — strategic notes for James (Chief Traffic Manager) and the channel specialists (Emily for Meta, Ryan for TikTok, Sarah for Messaging, Mike for Google Ads)."""
 
     return briefing
 
