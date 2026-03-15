@@ -1,0 +1,125 @@
+{
+  "summary": "Iteration 35 - Agent Generator (AgentBuilder) Feature Testing Complete. All requested features verified working: (1) 5-step guided questionnaire (Segment > Objective > Tone > Business Info > Generate), (2) 16 segment buttons with golden highlight on selection, (3) 5 objectives with icons and descriptions, (4) 5 tones with example phrases, (5) Business form with required/optional fields and validation, (6) AI generation (POST /api/agents/generate-preview) returns complete agent config in ~35-55 seconds, (7) Deploy (POST /api/agents/deploy-generated) creates agent and redirects to /agents/{id}/config.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard charts",
+        "issues": ["Console warning about chart width/height being -1 - appears on dashboard load but doesn't affect functionality"]
+      }
+    ]
+  },
+  "verified_features": {
+    "step_0_segment_selection": {
+      "status": "PASSED",
+      "segments_count": 16,
+      "all_data_testids": "seg-{segment_id}",
+      "highlight_on_selection": true,
+      "highlight_class": "border-[#C9A84C]/50 bg-[#C9A84C]/8"
+    },
+    "step_1_objective_selection": {
+      "status": "PASSED",
+      "objectives_count": 5,
+      "objectives": ["sales", "support", "scheduling", "sac", "onboarding"],
+      "all_data_testids": "obj-{objective_id}",
+      "icons_and_descriptions": true
+    },
+    "step_2_tone_selection": {
+      "status": "PASSED",
+      "tones_count": 5,
+      "tones": ["professional", "friendly", "empathetic", "direct", "consultive"],
+      "all_data_testids": "tone-{tone_id}",
+      "example_phrases": true
+    },
+    "step_3_business_form": {
+      "status": "PASSED",
+      "required_fields": ["business_name", "business_description"],
+      "optional_fields": ["products_services", "hours", "target_audience", "differentials"],
+      "data_testids": ["biz-name", "biz-desc", "biz-products"],
+      "validation_works": true
+    },
+    "navigation": {
+      "status": "PASSED",
+      "next_button_disabled_when_no_selection": true,
+      "back_button_on_steps_1_3": true,
+      "progress_indicator_shows_completed": true
+    },
+    "step_4_generate": {
+      "status": "PASSED",
+      "generate_button_data_testid": "builder-generate-btn",
+      "loading_state_visible": true,
+      "ai_generation_time": "35-55 seconds"
+    },
+    "step_4_result": {
+      "status": "PASSED",
+      "generated_agent_name": true,
+      "description": true,
+      "sample_conversation": true,
+      "personality_bars": true,
+      "suggested_knowledge": true,
+      "system_prompt_collapsible": true
+    },
+    "deploy": {
+      "status": "PASSED",
+      "deploy_button_data_testid": "builder-deploy-btn",
+      "creates_agent_in_database": true,
+      "redirects_to_config": "/agents/{id}/config",
+      "success_toast": "Agent created successfully!"
+    },
+    "regenerate": {
+      "status": "PASSED",
+      "regenerate_button_data_testid": "builder-regenerate-btn",
+      "visible_after_generation": true
+    },
+    "backend_api_generate_preview": {
+      "status": "PASSED",
+      "endpoint": "POST /api/agents/generate-preview",
+      "auth_required": true,
+      "response_fields": ["agent_name", "description", "system_prompt", "personality", "suggested_knowledge", "escalation_keywords", "sample_conversation", "generation_time_ms"],
+      "personality_fields": ["tone_value", "verbosity_value", "emoji_value", "proactivity", "formality"],
+      "generation_time_ms": "~35000ms"
+    },
+    "backend_api_deploy_generated": {
+      "status": "PASSED",
+      "endpoint": "POST /api/agents/deploy-generated",
+      "auth_required": true,
+      "creates_agent_with_knowledge": true,
+      "returns_agent_data_with_id": true
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration35_agent_generator.py",
+    "/app/test_reports/pytest/pytest_results_iteration35.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Code quality is good - proper use of environment variables, data-testids on all interactive elements",
+    "Backend agent_generator.py handles JSON parsing edge cases (markdown code blocks)",
+    "Frontend AgentBuilder.jsx properly validates form before enabling buttons",
+    "AI generation timeout is long (~35-55s) but expected due to Claude API complexity"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration35_agent_generator.py"
+  ],
+  "success_rate": {
+    "backend": "100% - All endpoints working (health, auth validation, generate-preview, deploy-generated)",
+    "frontend": "100% - All UI elements verified, navigation works, AI generation complete, deploy successful"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Created test agents: TEST_QuickValidation, TEST_DeployAgent, TEST_UI_TestBusiness, TEST_DeployTestClinic (via AI generation and deploy)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 35: Agent Generator (AgentBuilder) feature fully tested. All 5 steps work: Segment (16 options), Objective (5 options), Tone (5 options with examples), Business Info (form validation), Generate (AI returns in ~35-55s). Deploy creates agent in database and redirects to /agents/{id}/config. Backend uses Claude Sonnet 4.5 via Emergent LLM key. Key data-testids: seg-{id}, obj-{id}, tone-{id}, biz-name, biz-desc, builder-next-btn, builder-prev-btn, builder-generate-btn, builder-deploy-btn, builder-regenerate-btn, toggle-prompt.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
