@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw, Target } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -972,10 +972,16 @@ export default function Marketing() {
             <h1 className="text-sm font-semibold text-white">{labels.title}</h1>
             <div className="flex items-center gap-1.5">
               {isEnterprise ? (
-                <button data-testid="open-studio-btn" onClick={() => navigate('/marketing/studio')}
-                  className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-3 py-1.5 text-[10px] font-semibold text-black transition hover:opacity-90">
-                  <Sparkles size={11} /> {labels.createWithStudio}
-                </button>
+                <>
+                  <button data-testid="open-studio-btn" onClick={() => navigate('/marketing/studio')}
+                    className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-3 py-1.5 text-[10px] font-semibold text-black transition hover:opacity-90">
+                    <Sparkles size={11} /> {labels.createWithStudio}
+                  </button>
+                  <button data-testid="open-traffic-hub-btn" onClick={() => navigate('/traffic-hub')}
+                    className="flex items-center gap-1.5 rounded-md border border-[#C9A84C]/30 bg-[#C9A84C]/5 px-3 py-1.5 text-[10px] font-semibold text-[#C9A84C] transition hover:bg-[#C9A84C]/15">
+                    <Target size={11} /> Traffic Hub
+                  </button>
+                </>
               ) : (
                 <button data-testid="new-campaign-btn" onClick={() => setShowNew(true)}
                   className="flex items-center gap-1 rounded-md border border-[#C9A84C]/30 px-2 py-1 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition">

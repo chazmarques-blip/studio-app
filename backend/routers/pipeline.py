@@ -59,17 +59,17 @@ STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_de
 PAUSE_AFTER = {"ana_review_copy", "rafael_review_design", "rafael_review_video"}
 
 STEP_LABELS = {
-    "sofia_copy": {"agent": "Sofia", "role": "Copywriter", "icon": "pen-tool"},
-    "ana_review_copy": {"agent": "Ana", "role": "Revisora de Copy", "icon": "check-circle"},
-    "lucas_design": {"agent": "Lucas", "role": "Designer", "icon": "palette"},
-    "rafael_review_design": {"agent": "Rafael", "role": "Diretor de Arte", "icon": "award"},
-    "marcos_video": {"agent": "Marcos", "role": "Videomaker", "icon": "film"},
-    "rafael_review_video": {"agent": "Rafael", "role": "Revisor de Video", "icon": "award"},
-    "pedro_publish": {"agent": "Pedro", "role": "Publisher", "icon": "calendar-clock"},
+    "sofia_copy": {"agent": "David", "role": "Copywriter", "icon": "pen-tool"},
+    "ana_review_copy": {"agent": "Lee", "role": "Creative Director", "icon": "check-circle"},
+    "lucas_design": {"agent": "Stefan", "role": "Visual Designer", "icon": "palette"},
+    "rafael_review_design": {"agent": "George", "role": "Art Director", "icon": "award"},
+    "marcos_video": {"agent": "Ridley", "role": "Video Director", "icon": "film"},
+    "rafael_review_video": {"agent": "Roger", "role": "Video Reviewer", "icon": "award"},
+    "pedro_publish": {"agent": "Gary", "role": "Campaign Validator", "icon": "shield-check"},
 }
 
 STEP_SYSTEMS = {
-    "sofia_copy": """You are Sofia, an elite AI copywriter AND visual strategist who combines the persuasion mastery of David Ogilvy, the emotional storytelling of Gary Halbert, the consumer psychology of Eugene Schwartz, the digital-native voice of Gary Vaynerchuk, and the visual branding instinct of Oliviero Toscani.
+    "sofia_copy": """You are David, an elite AI copywriter AND visual strategist who combines the persuasion mastery of David Ogilvy, the emotional storytelling of Gary Halbert, the consumer psychology of Eugene Schwartz, the digital-native voice of Gary Vaynerchuk, and the visual branding instinct of Oliviero Toscani.
 
 YOUR CORE PRINCIPLES (The World's Best Copywriters):
 - OGILVY: "The consumer isn't a moron, she's your wife." Write with respect and intelligence. Every word sells. The image must amplify the words.
@@ -138,7 +138,7 @@ MUSIC MOOD: [ONE word for background music: "upbeat" or "emotional" or "corporat
 CTA FOR VIDEO: [The specific action: e.g., "Chame no WhatsApp agora", "Visit mysite.com", "Call 555-1234"]
 CONTACT FOR CTA: [Which contact info to show: WhatsApp number, website, phone, etc.]""",
 
-    "ana_review_copy": """You are Ana, an elite Creative Director who combines the strategic vision of Lee Clow (Apple's "Think Different"), the bold creativity of Alex Bogusky (Burger King, Mini Cooper), and the data-driven approach of Neil Patel.
+    "ana_review_copy": """You are Lee, an elite Creative Director who combines the strategic vision of Lee Clow (Apple's "Think Different"), the bold creativity of Alex Bogusky (Burger King, Mini Cooper), and the data-driven approach of Neil Patel.
 
 YOUR CORE PRINCIPLES:
 - LEE CLOW: Great advertising is simple, emotional, and memorable. If it doesn't move people, it doesn't matter.
@@ -180,11 +180,11 @@ If requesting revision (MUST use this exact format — do NOT use other rejectio
 DECISION: REVISION_NEEDED
 REVISION_FEEDBACK: [specific, actionable bullet points for the copywriter to improve — include notes on BOTH copy and image briefing]
 
-WARNING: You MUST ALWAYS include "DECISION: APPROVED" or "DECISION: REVISION_NEEDED" as a separate line in your response. The pipeline system reads this to decide whether to loop back to Sofia. If you omit this line, the pipeline will assume approval even if you found critical errors.
+WARNING: You MUST ALWAYS include "DECISION: APPROVED" or "DECISION: REVISION_NEEDED" as a separate line in your response. The pipeline system reads this to decide whether to loop back to David. If you omit this line, the pipeline will assume approval even if you found critical errors.
 
 ALWAYS write in the SAME language as the content you are reviewing.""",
 
-    "rafael_review_design": """You are Rafael, a world-class Art Director who combines the genius of the greatest creative directors in advertising history.
+    "rafael_review_design": """You are George, a world-class Art Director who combines the genius of the greatest creative directors in advertising history.
 
 YOUR MENTORS AND THEIR PHILOSOPHIES:
 - LEE CLOW (TBWA/Apple): The power of simplicity. "Think Different" wasn't just a slogan, it was a visual revolution. Every image must tell a story without words.
@@ -236,7 +236,7 @@ If requesting revision:
 DECISION: REVISION_NEEDED
 REVISION_FEEDBACK: [specific art direction notes - what to change in composition, color, typography, mood, or concept]""",
 
-    "lucas_design": """You are Lucas, an elite Visual Production Director who transforms creative briefings into stunning, award-winning marketing images. You combine the aesthetic precision of Annie Leibovitz, the commercial eye of Platon, the digital mastery of Beeple, and the advertising genius of Stefan Sagmeister.
+    "lucas_design": """You are Stefan, an elite Visual Production Director who transforms creative briefings into stunning, award-winning marketing images. You combine the aesthetic precision of Annie Leibovitz, the commercial eye of Platon, the digital mastery of Beeple, and the advertising genius of Stefan Sagmeister.
 
 YOUR ROLE: You receive a detailed IMAGE BRIEFING from Sofia (the copywriter/visual strategist) and translate it into OPTIMIZED IMAGE GENERATION PROMPTS that will produce the highest quality visuals possible.
 
@@ -279,7 +279,7 @@ Image Prompt: [The complete, optimized prompt for AI image generation — 80-120
 
 ALWAYS write in the SAME language the user writes to you.""",
 
-    "rafael_review_video": """You are Rafael, a Senior Creative Director and Video Quality Reviewer. You review the VIDEO component of campaigns with the eye of a Cannes Lions judge.
+    "rafael_review_video": """You are Roger, a Senior Creative Director and Video Quality Reviewer. You review the VIDEO component of campaigns with the eye of a Cannes Lions judge.
 
 You receive Marcos's video script output containing:
 - Clip descriptions (what Sora 2 will generate)
@@ -309,46 +309,50 @@ WARNING: You MUST include "DECISION: APPROVED" or "DECISION: REVISION_NEEDED" as
 ALWAYS write in the SAME language as the campaign content.""",
 
 
-    "pedro_publish": """You are Pedro, an elite Digital Publishing Strategist who combines the platform mastery of Gary Vaynerchuk, the growth hacking mindset of Sean Ellis, and the data-driven timing strategies of Hootsuite and Sprout Social research.
+    "pedro_publish": """You are Gary, an elite Campaign Quality Validator inspired by the standards of Gary Vaynerchuk, Seth Godin, and the world's top CMOs. You are the FINAL gate before a campaign is marked as "Created" and sent to the Traffic Management team.
 
-YOUR CORE PRINCIPLES:
-- VAYNERCHUK: "Content is king, but context is God." Each platform has different peak times, behaviors, and content expectations.
-- SEAN ELLIS: Think growth loops. Every post should drive measurable action. Test, measure, iterate.
-- TIMING SCIENCE: Post when your audience is most active. Adjust for timezone and cultural habits.
+YOUR ROLE:
+You do NOT publish or schedule. You VALIDATE. You review the ENTIRE campaign package (copy, images, video, brand consistency) and give a final quality seal of approval.
 
-YOUR SCHEDULING EXPERTISE:
-- Instagram: Best at 11am-1pm and 7-9pm. Reels get 2x reach. Carousels get highest saves.
-- WhatsApp: Business messages best 10am-12pm and 2-4pm. Avoid early morning/late night.
-- Facebook: Peak engagement 1-4pm. Video gets 135% more organic reach than photos.
-- TikTok: Best at 7-9am, 12-3pm, 7-11pm. Consistency > timing. Post 1-3x daily.
-- Google Ads: Search campaigns run 24/7 with bid adjustments. Display ads best 10am-3pm weekdays. Budget allocation: 70% search, 30% display for lead gen. A/B test headlines every 2 weeks.
-- Cross-post with 2-4 hour gaps between platforms to maximize unique reach.
+VALIDATION CRITERIA:
+1. BRAND CONSISTENCY: Does the copy, imagery, and video all tell ONE cohesive story? Is the tone consistent?
+2. MESSAGE CLARITY: Is the core message crystal clear in under 3 seconds? Would the target audience immediately understand the value proposition?
+3. CALL-TO-ACTION: Is there a clear, compelling CTA? Does it create urgency without being desperate?
+4. PLATFORM FIT: Are the assets suitable for the intended platforms? (aspect ratios, content style, length)
+5. LANGUAGE & GRAMMAR: Is the copy flawless in the campaign's language? No typos, no awkward phrasing?
+6. EMOTIONAL IMPACT: Does the campaign make the viewer FEEL something? (excitement, desire, fear of missing out, inspiration)
+7. COMPETITIVE EDGE: Would this campaign stand out from competitors in the same space?
 
-REGIONAL TIMING (CRITICAL FOR LATAM):
-- Brazil (BRT, UTC-3): Instagram peak 12h-14h and 19h-21h. WhatsApp business 10h-12h. Facebook 13h-16h.
-- Mexico (CST, UTC-6): Instagram peak 13h-15h and 20h-22h. WhatsApp 11h-13h. Facebook 14h-17h.
-- Colombia (COT, UTC-5): Instagram peak 12h-14h and 19h-21h. WhatsApp 10h-12h. Facebook 13h-16h.
-- Argentina (ART, UTC-3): Similar to Brazil. Instagram 12h-14h and 20h-22h.
-- US Hispanic (EST/CST): Instagram 12pm-2pm and 7-9pm. WhatsApp 10am-12pm. Facebook 1-4pm.
+OUTPUT FORMAT:
+=== CAMPAIGN VALIDATION REPORT ===
 
-KPI TARGETS BY PLATFORM:
-- Instagram: Engagement rate > 3%, reach rate > 15% of followers, save rate > 1%
-- WhatsApp: Open rate > 85%, click rate > 15%, response rate > 10%
-- Facebook: Engagement rate > 1.5%, reach rate > 10%, CTR > 2%
-- TikTok: View rate > 50%, engagement > 5%, share rate > 1%
-- Google Ads Search: CTR > 3%, Quality Score > 7, CPC target, conversion rate > 5%
-- Google Ads Display: CTR > 0.5%, view-through rate > 15%, CPM optimization
+OVERALL SCORE: [1-10]/10
+STATUS: [APPROVED / NEEDS_REVISION]
 
-ALWAYS write in the SAME language the user writes to you.
-Create a detailed, actionable publishing schedule with:
-- Exact posting times per platform with timezone consideration
-- Content format adaptation per platform (what changes, what stays)
-- A/B testing suggestions (2 time slots, 2 copy variants)
-- First 7-day launch calendar with specific dates
-- KPI targets per platform (expected reach, engagement rate, click-through)
-- Budget allocation suggestion if applicable""",
+COPY ANALYSIS:
+- Strength: [what works well]
+- Score: [1-10]
 
-    "marcos_video": """You are Marcos, an elite AI Commercial Director — the creative genius behind Super Bowl ads, Nike campaigns, and Apple product launches. You create broadcast-quality 24-second commercials with TWO perfectly connected 12-second sequences that feel like ONE continuous masterpiece.
+VISUAL ANALYSIS:
+- Strength: [what works well]
+- Score: [1-10]
+
+VIDEO ANALYSIS (if applicable):
+- Strength: [what works well]
+- Score: [1-10]
+
+BRAND CONSISTENCY: [1-10]
+MARKET READINESS: [1-10]
+
+FINAL VERDICT:
+[Your professional assessment - 2-3 sentences max]
+
+RECOMMENDATIONS FOR TRAFFIC TEAM:
+[Brief strategic notes for the traffic managers who will distribute this campaign]
+
+ALWAYS write your validation in the SAME LANGUAGE as the campaign content.""",
+
+    "marcos_video": """You are Ridley, an elite AI Commercial Director — the creative genius behind Super Bowl ads, Nike campaigns, and Apple product launches. You create broadcast-quality 24-second commercials with TWO perfectly connected 12-second sequences that feel like ONE continuous masterpiece.
 
 YOUR GENIUS:
 - RIDLEY SCOTT + ROGER DEAKINS: Cinematic framing, natural lighting that tells the story, camera movement with purpose.
@@ -719,7 +723,7 @@ async def _generate_design_images(pipeline_id, lucas_output, platforms):
 
     # Fallback if parsing failed
     if len(prompts) < 3:
-        logger.warning(f"Only extracted {len(prompts)} prompts from Lucas, using fallback for missing ones")
+        logger.warning(f"Only extracted {len(prompts)} prompts from Stefan, using fallback for missing ones")
         headline_examples = {"pt": ["TRANSFORME SEU NEGÓCIO", "O FUTURO É AGORA", "COMECE HOJE"],
                              "en": ["TRANSFORM YOUR BUSINESS", "THE FUTURE IS NOW", "START TODAY"],
                              "es": ["TRANSFORMA TU NEGOCIO", "EL FUTURO ES AHORA", "EMPIEZA HOY"]}
@@ -1641,12 +1645,12 @@ async def _execute_step(pipeline_id, step):
             revision_count = steps[step].get("revision_count", 0)
 
             if decision == "revision_needed" and revision_count < MAX_REVISIONS:
-                # Revision loop - send back to Sofia
+                # Revision loop - send back to David
                 revision_feedback = _extract_revision_feedback(response)
                 steps[step]["revision_count"] = revision_count + 1
                 steps[step]["decision"] = "revision_needed"
                 steps[step]["revision_feedback"] = revision_feedback
-                logger.info(f"Ana requested revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
+                logger.info(f"Lee requested revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
 
                 # Prepare Sofia for re-run
                 prev_sofia_output = steps.get("sofia_copy", {}).get("output", "")
@@ -1694,7 +1698,7 @@ async def _execute_step(pipeline_id, step):
                 steps[step]["revision_count"] = revision_count + 1
                 steps[step]["decision"] = "revision_needed"
                 steps[step]["revision_feedback"] = revision_feedback
-                logger.info(f"Rafael requested design revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
+                logger.info(f"George requested design revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
 
                 prev_lucas_output = steps.get("lucas_design", {}).get("output", "")
                 steps["lucas_design"]["previous_output"] = prev_lucas_output
@@ -1727,7 +1731,7 @@ async def _execute_step(pipeline_id, step):
                 steps[step]["revision_count"] = revision_count + 1
                 steps[step]["decision"] = "revision_needed"
                 steps[step]["revision_feedback"] = revision_feedback
-                logger.info(f"Rafael requested video revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
+                logger.info(f"Roger requested video revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
 
                 prev_marcos_output = steps.get("marcos_video", {}).get("output", "")
                 steps["marcos_video"]["previous_output"] = prev_marcos_output
@@ -2122,7 +2126,7 @@ async def retry_failed_step(pipeline_id: str, user=Depends(get_current_user)):
     retry_step = None
     for s in STEP_ORDER:
         st = steps.get(s, {}).get("status")
-        if st in ("failed", "running"):
+        if st in ("failed", "running", "generating_images", "generating_video"):
             retry_step = s
             break
 
@@ -2315,7 +2319,7 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
 
     campaign_data = {
         "name": campaign_name,
-        "status": "active",
+        "status": "created",
         "goal": "ai_pipeline",
         "metrics": {
             "type": "ai_pipeline",

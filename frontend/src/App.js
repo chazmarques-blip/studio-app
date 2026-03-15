@@ -24,6 +24,7 @@ import Pricing from './pages/Pricing';
 import GoogleIntegration from './pages/GoogleIntegration';
 import Marketing from './pages/Marketing';
 import MarketingStudio from './pages/MarketingStudio';
+import TrafficHub from './pages/TrafficHub';
 
 import { useEffect } from 'react';
 
@@ -98,6 +99,7 @@ function App() {
           <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
           <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
           <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
+          <Route path="/traffic-hub" element={<ProtectedRoute><TrafficHub /></ProtectedRoute>} />
           <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />

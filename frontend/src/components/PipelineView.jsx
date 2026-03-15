@@ -29,13 +29,13 @@ function cleanDisplayText(raw) {
 }
 
 const STEP_META = {
-  sofia_copy: { agent: 'Sofia', role: 'Copywriter', icon: PenTool, color: '#C9A84C', estimatedSec: 30 },
-  ana_review_copy: { agent: 'Ana', role: 'Revisora de Copy', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
-  lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
-  rafael_review_design: { agent: 'Rafael', role: 'Diretor de Arte', icon: Award, color: '#9B59B6', estimatedSec: 25 },
-  marcos_video: { agent: 'Marcos', role: 'Videomaker', icon: Film, color: '#E74C3C', estimatedSec: 500 },
-  rafael_review_video: { agent: 'Rafael', role: 'Revisor de Video', icon: Award, color: '#9B59B6', estimatedSec: 25 },
-  pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
+  sofia_copy: { agent: 'David', role: 'Copywriter', icon: PenTool, color: '#C9A84C', estimatedSec: 30 },
+  ana_review_copy: { agent: 'Lee', role: 'Creative Director', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
+  lucas_design: { agent: 'Stefan', role: 'Visual Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
+  rafael_review_design: { agent: 'George', role: 'Art Director', icon: Award, color: '#9B59B6', estimatedSec: 25 },
+  marcos_video: { agent: 'Ridley', role: 'Video Director', icon: Film, color: '#E74C3C', estimatedSec: 500 },
+  rafael_review_video: { agent: 'Roger', role: 'Video Reviewer', icon: Award, color: '#9B59B6', estimatedSec: 25 },
+  pedro_publish: { agent: 'Gary', role: 'Campaign Validator', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
 };
 
 const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'marcos_video', 'rafael_review_video', 'pedro_publish'];
@@ -333,7 +333,7 @@ function CopyApproval({ data, onApprove }) {
   return (
     <div data-testid="copy-approval" className="mt-3 space-y-2.5 bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
       <p className="text-[11px] text-amber-200 font-semibold">{t('studio.choose_variation') || 'Choose the variation to continue'}:</p>
-      <p className="text-[9px] text-[#888]">Ana recomendou a <span className="text-[#C9A84C] font-bold">Variacao {autoSel}</span></p>
+      <p className="text-[9px] text-[#888]">Lee recomendou a <span className="text-[#C9A84C] font-bold">Variacao {autoSel}</span></p>
       <div className="flex gap-2">
         {[1, 2, 3].map(n => (
           <button key={n} data-testid={`select-copy-${n}`} onClick={() => setSelected(n)}
@@ -398,7 +398,7 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
           </div>
         </div>
       )) : (
-        <p className="text-[9px] text-[#888]">Rafael reviewed the designs. Click to approve and publish.</p>
+        <p className="text-[9px] text-[#888]">George reviewed the designs. Click to approve and publish.</p>
       )}
       <button data-testid="approve-design-btn" onClick={handleApprove} disabled={submitting}
         className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
@@ -1184,7 +1184,7 @@ export default function PipelineView({ context }) {
               </div>
             ))}
           </div>
-          <p className="text-[9px] text-[#555] mt-1.5">Sofia &rarr; Ana &rarr; Lucas &rarr; Rafael &rarr; Marcos &rarr; Pedro</p>
+          <p className="text-[9px] text-[#555] mt-1.5">David &rarr; Lee &rarr; Stefan &rarr; George &rarr; Ridley &rarr; Roger &rarr; Gary</p>
         </div>
 
         {/* Campaign Name */}
