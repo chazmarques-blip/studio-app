@@ -85,6 +85,7 @@ function App() {
             <Route path="/agents" element={<Agents />} />
             <Route path="/crm" element={<CRM />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/marketing" element={<Marketing />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/pricing" element={<Pricing />} />
           </Route>
@@ -97,7 +98,6 @@ function App() {
           <Route path="/chat/handoff/:id" element={<ProtectedRoute><HandoffHuman /></ProtectedRoute>} />
           <Route path="/settings/channels" element={<ProtectedRoute><ChannelConnection /></ProtectedRoute>} />
           <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
-          <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
           <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
           <Route path="/traffic-hub" element={<ProtectedRoute><TrafficHub /></ProtectedRoute>} />
           <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />

@@ -3,12 +3,17 @@ from pydantic import BaseModel
 from typing import Optional, List
 import time
 import uuid
+import json
+import asyncio
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
-from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
 router = APIRouter(prefix="/api", tags=["agent-generator"])
+
+# In-memory store for generation tasks
+_generation_tasks = {}
 
 
 class AgentGenerateRequest(BaseModel):
@@ -22,6 +27,13 @@ class AgentGenerateRequest(BaseModel):
     differentials: Optional[str] = ""
     target_audience: Optional[str] = ""
     language: Optional[str] = "pt"
+    mindset: Optional[str] = ""
+    response_length: Optional[str] = "medium"
+    topic_scope: Optional[str] = ""
+    forbidden_topics: Optional[str] = ""
+    no_response_action: Optional[str] = "follow_up_24h"
+    context_recovery: Optional[bool] = True
+    integrations: Optional[List[str]] = []
 
 
 SEGMENT_CONTEXT = {
@@ -51,94 +63,170 @@ OBJECTIVE_MAP = {
     "onboarding": "welcome new customers, guide through setup, explain features, best practices",
 }
 
+RESPONSE_LENGTH_MAP = {
+    "short": "Keep responses concise: 1-3 sentences max. Be direct and efficient.",
+    "medium": "Use moderate-length responses: 2-5 sentences. Balance detail with brevity.",
+    "detailed": "Provide comprehensive responses: 4-8 sentences. Include context and examples.",
+}
+
+NO_RESPONSE_MAP = {
+    "follow_up_24h": "If the customer doesn't respond within 24 hours, send a gentle follow-up message asking if they still need help.",
+    "follow_up_1h": "If the customer doesn't respond within 1 hour, send a quick check-in.",
+    "wait": "Wait patiently for the customer to respond. Do not send follow-ups.",
+    "close_48h": "If no response after 48 hours, send a closing message and archive the conversation.",
+}
+
+MINDSET_TEMPLATES = {
+    "closer": {"name": "Closer", "desc": "Focused on closing deals", "traits": "assertive, solution-oriented, urgency-creating, objection-handling"},
+    "consultant": {"name": "Consultant", "desc": "Asks deep questions first", "traits": "analytical, patient, inquisitive, thorough"},
+    "concierge": {"name": "Concierge", "desc": "Premium service", "traits": "proactive, attentive, luxurious, detail-oriented"},
+    "educator": {"name": "Educator", "desc": "Teaches and explains", "traits": "informative, patient, clear, encouraging"},
+    "friend": {"name": "Friend", "desc": "Casual and warm", "traits": "relaxed, empathetic, approachable, genuine"},
+    "resolver": {"name": "Resolver", "desc": "Problem-first approach", "traits": "decisive, pragmatic, focused, no-nonsense"},
+    "nurturer": {"name": "Nurturer", "desc": "Long-term relationships", "traits": "caring, follow-up focused, relationship-builder, loyal"},
+    "guardian": {"name": "Guardian", "desc": "Protective and careful", "traits": "cautious, transparent, ethical, advisory"},
+}
+
+
+@router.get("/agents/mindsets")
+async def get_mindsets():
+    return list(MINDSET_TEMPLATES.values())
+
+
+def _build_prompt(req: AgentGenerateRequest) -> str:
+    segment_ctx = SEGMENT_CONTEXT.get(req.segment, SEGMENT_CONTEXT["general"])
+    objective_ctx = OBJECTIVE_MAP.get(req.objective, OBJECTIVE_MAP["support"])
+    length_ctx = RESPONSE_LENGTH_MAP.get(req.response_length, RESPONSE_LENGTH_MAP["medium"])
+    no_resp_ctx = NO_RESPONSE_MAP.get(req.no_response_action, NO_RESPONSE_MAP["follow_up_24h"])
+    lang_map = {"pt": "Brazilian Portuguese", "en": "English", "es": "Spanish", "fr": "French", "de": "German", "it": "Italian", "auto": "the customer's language (auto-detect)"}
+    lang_name = lang_map.get(req.language, "Brazilian Portuguese")
+
+    extras = ""
+    if req.mindset and req.mindset in MINDSET_TEMPLATES:
+        m = MINDSET_TEMPLATES[req.mindset]
+        extras += f"\nMINDSET: {m['name']} - {m['desc']}. Key traits: {m['traits']}."
+    if req.topic_scope:
+        extras += f"\nTOPIC SCOPE (agent ONLY talks about these subjects): {req.topic_scope}"
+    if req.forbidden_topics:
+        extras += f"\nFORBIDDEN TOPICS (agent must NEVER discuss): {req.forbidden_topics}. If asked about forbidden topics, politely redirect."
+    if req.integrations:
+        extras += f"\nINTEGRATIONS: {', '.join(req.integrations)}. Reference capabilities naturally."
+    if req.context_recovery:
+        extras += "\nCONTEXT RECOVERY: Remember previous conversations with the same customer."
+
+    return f"""You are an expert AI agent designer. Generate a COMPLETE agent configuration.
+
+BUSINESS:
+- Segment: {req.segment} ({segment_ctx})
+- Objective: {req.objective} ({objective_ctx})
+- Tone: {req.tone}
+- Name: {req.business_name}
+- Description: {req.business_description}
+- Products: {req.products_services or 'N/A'}
+- Hours: {req.hours or 'N/A'}
+- Differentials: {req.differentials or 'N/A'}
+- Audience: {req.target_audience or 'General'}
+{extras}
+RESPONSE STYLE: {length_ctx}
+NO-RESPONSE: {no_resp_ctx}
+
+RESPOND IN {lang_name}. Output ONLY valid JSON:
+{{
+  "agent_name": "Creative human-like name",
+  "description": "1-2 sentence description",
+  "system_prompt": "Detailed 400-700 word system prompt with: identity, style, conversation flow, business knowledge, escalation rules, topic boundaries, no-response behavior, integration usage.",
+  "personality": {{"tone_value": 0.0-1.0, "verbosity_value": 0.0-1.0, "emoji_value": 0.0-1.0, "proactivity": 0.0-1.0, "formality": 0.0-1.0}},
+  "suggested_knowledge": [{{"type": "faq", "title": "...", "content": "..."}}, {{"type": "product", "title": "...", "content": "..."}}, {{"type": "policy", "title": "...", "content": "..."}}],
+  "escalation_keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+  "sample_conversation": [{{"role": "customer", "message": "..."}}, {{"role": "agent", "message": "..."}}, {{"role": "customer", "message": "..."}}, {{"role": "agent", "message": "..."}}, {{"role": "customer", "message": "..."}}, {{"role": "agent", "message": "..."}}],
+  "topic_boundaries": {{"allowed": ["topics agent can discuss"], "forbidden": ["topics to avoid"]}}
+}}"""
+
+
+async def _run_generation(task_id: str, prompt: str):
+    """Background task that generates the agent and stores result."""
+    models = [
+        ("gemini", "gemini-2.0-flash"),
+        ("anthropic", "claude-sonnet-4-5-20250929"),
+    ]
+
+    for provider, model in models:
+        try:
+            logger.info(f"Agent gen [{task_id}]: trying {provider}/{model}")
+            chat = LlmChat(
+                api_key=EMERGENT_KEY,
+                session_id=f"agent-gen-{task_id}",
+                system_message="You are a JSON generator. Output ONLY valid JSON, no markdown, no code blocks."
+            ).with_model(provider, model)
+
+            start = time.time()
+            response = await chat.send_message(UserMessage(text=prompt))
+            elapsed = round((time.time() - start) * 1000)
+
+            cleaned = response.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+                if cleaned.endswith("```"):
+                    cleaned = cleaned[:-3]
+                cleaned = cleaned.strip()
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:].strip()
+
+            result = json.loads(cleaned)
+            result["generation_time_ms"] = elapsed
+            result["model_used"] = f"{provider}/{model}"
+
+            _generation_tasks[task_id] = {"status": "completed", "result": result}
+            logger.info(f"Agent gen [{task_id}]: OK with {provider}/{model} in {elapsed}ms")
+            return
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Agent gen [{task_id}] JSON error ({model}): {e}")
+            continue
+        except Exception as e:
+            logger.error(f"Agent gen [{task_id}] error ({model}): {e}")
+            continue
+
+    _generation_tasks[task_id] = {"status": "failed", "error": "All AI models failed. Please try again."}
+
 
 @router.post("/agents/generate-preview")
 async def generate_agent_preview(req: AgentGenerateRequest, user=Depends(get_current_user)):
-    """Use AI to generate a complete agent configuration from questionnaire answers"""
-    segment_ctx = SEGMENT_CONTEXT.get(req.segment, SEGMENT_CONTEXT["general"])
-    objective_ctx = OBJECTIVE_MAP.get(req.objective, OBJECTIVE_MAP["support"])
+    """Start async agent generation, return task_id for polling."""
+    task_id = uuid.uuid4().hex[:12]
+    prompt = _build_prompt(req)
 
-    lang_map = {"pt": "Brazilian Portuguese", "en": "English", "es": "Spanish"}
-    lang_name = lang_map.get(req.language, "Brazilian Portuguese")
+    _generation_tasks[task_id] = {"status": "generating"}
 
-    prompt = f"""You are an expert AI agent designer for a customer service automation platform.
-Based on the following business information, generate a COMPLETE agent configuration.
+    # Fire and forget background task
+    asyncio.create_task(_run_generation(task_id, prompt))
 
-BUSINESS INFORMATION:
-- Segment: {req.segment} ({segment_ctx})
-- Primary Objective: {req.objective} ({objective_ctx})
-- Desired Tone: {req.tone}
-- Business Name: {req.business_name}
-- Business Description: {req.business_description}
-- Products/Services: {req.products_services or 'Not specified'}
-- Operating Hours: {req.hours or 'Not specified'}
-- Differentials: {req.differentials or 'Not specified'}
-- Target Audience: {req.target_audience or 'General public'}
+    return {"task_id": task_id, "status": "generating"}
 
-RESPOND IN {lang_name}. Output ONLY valid JSON with this exact structure:
-{{
-  "agent_name": "A creative, human-like name appropriate for the business context",
-  "description": "A concise 1-2 sentence description of what this agent does",
-  "system_prompt": "A detailed, professional system prompt (300-500 words) that includes: agent identity, communication style, step-by-step conversation flow, specific knowledge about the business, escalation rules, and language handling. Make it specific to the business, not generic.",
-  "personality": {{
-    "tone_value": 0.0-1.0,
-    "verbosity_value": 0.0-1.0,
-    "emoji_value": 0.0-1.0,
-    "proactivity": 0.0-1.0,
-    "formality": 0.0-1.0
-  }},
-  "suggested_knowledge": [
-    {{"type": "faq", "title": "...", "content": "..."}},
-    {{"type": "product", "title": "...", "content": "..."}},
-    {{"type": "hours", "title": "...", "content": "..."}}
-  ],
-  "escalation_keywords": ["keyword1", "keyword2", "keyword3"],
-  "sample_conversation": [
-    {{"role": "customer", "message": "..."}},
-    {{"role": "agent", "message": "..."}},
-    {{"role": "customer", "message": "..."}},
-    {{"role": "agent", "message": "..."}}
-  ]
-}}"""
 
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"agent-gen-{uuid.uuid4().hex[:8]}",
-            system_message="You are a JSON generator. Output ONLY valid JSON, no markdown, no code blocks, no extra text."
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+@router.get("/agents/generate-status/{task_id}")
+async def get_generation_status(task_id: str, user=Depends(get_current_user)):
+    """Poll for generation result."""
+    task = _generation_tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
 
-        start = time.time()
-        response = await chat.send_message(UserMessage(text=prompt))
-        elapsed = round((time.time() - start) * 1000)
+    if task["status"] == "completed":
+        # Clean up after delivery
+        result = task["result"]
+        del _generation_tasks[task_id]
+        return {"status": "completed", "result": result}
 
-        # Parse JSON from response
-        import json
-        cleaned = response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
-            if cleaned.endswith("```"):
-                cleaned = cleaned[:-3]
-            cleaned = cleaned.strip()
-        if cleaned.startswith("json"):
-            cleaned = cleaned[4:].strip()
+    if task["status"] == "failed":
+        error = task.get("error", "Unknown error")
+        del _generation_tasks[task_id]
+        return {"status": "failed", "error": error}
 
-        result = json.loads(cleaned)
-        result["generation_time_ms"] = elapsed
-
-        return result
-
-    except json.JSONDecodeError as e:
-        logger.error(f"Agent generation JSON parse error: {e}\nResponse: {response[:500]}")
-        raise HTTPException(status_code=500, detail="Failed to parse AI response. Please try again.")
-    except Exception as e:
-        logger.error(f"Agent generation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "generating"}
 
 
 @router.post("/agents/deploy-generated")
 async def deploy_generated_agent(data: dict, user=Depends(get_current_user)):
-    """Deploy an AI-generated agent to the user's account"""
     tenant_result = supabase.table("tenants").select("*").eq("owner_id", user["id"]).execute()
     if not tenant_result.data:
         raise HTTPException(status_code=400, detail="Create a tenant first")
@@ -157,7 +245,7 @@ async def deploy_generated_agent(data: dict, user=Depends(get_current_user)):
         "description": data.get("description", ""),
         "system_prompt": data.get("system_prompt", ""),
         "status": "active",
-        "language_mode": "auto_detect",
+        "language_mode": data.get("language_mode", "auto_detect"),
         "fixed_language": data.get("language", "pt"),
         "personality": {
             "tone": personality.get("tone_value", 0.6),
@@ -173,16 +261,29 @@ async def deploy_generated_agent(data: dict, user=Depends(get_current_user)):
             "keywords": data.get("escalation_keywords", ["atendente", "humano", "gerente"]),
             "sentiment_threshold": 0.3,
         },
-        "follow_up_config": {"enabled": False, "delay_hours": 24, "max_follow_ups": 3, "cool_down_days": 7},
+        "follow_up_config": {
+            "enabled": data.get("no_response_action", "follow_up_24h") != "wait",
+            "delay_hours": 1 if data.get("no_response_action") == "follow_up_1h" else 24,
+            "max_follow_ups": 3,
+            "cool_down_days": 7,
+        },
         "knowledge_instructions": "",
         "is_deployed": True,
         "marketplace_template_id": None,
+        "agent_config": {
+            "response_length": data.get("response_length", "medium"),
+            "topic_scope": data.get("topic_boundaries", {}).get("allowed", []),
+            "forbidden_topics": data.get("topic_boundaries", {}).get("forbidden", []),
+            "context_recovery": data.get("context_recovery", True),
+            "mindset": data.get("mindset", ""),
+            "integrations": data.get("integrations", []),
+            "no_response_action": data.get("no_response_action", "follow_up_24h"),
+        },
     }
 
     result = supabase.table("agents").insert(agent).execute()
     agent_data = result.data[0]
 
-    # Add suggested knowledge items
     suggested_knowledge = data.get("suggested_knowledge", [])
     for item in suggested_knowledge:
         if item.get("title") and item.get("content"):
@@ -193,7 +294,6 @@ async def deploy_generated_agent(data: dict, user=Depends(get_current_user)):
                 "content": item["content"],
             }).execute()
 
-    # Update tenant usage
     current_usage = tenant.get("usage", {})
     current_usage["agents_created"] = current_usage.get("agents_created", 0) + 1
     supabase.table("tenants").update({"usage": current_usage}).eq("id", tenant["id"]).execute()
