@@ -37,6 +37,10 @@ const L = (lang) => {
       regenVideo: 'Gerar Video', regenVideoDesc: 'Clique para gerar o video comercial desta campanha', regenerating: 'Gerando video...', videoGenStarted: 'Geracao de video iniciada!',
       cta: 'Comece Agora', learnMore: 'Saiba mais sobre',
       sponsored: 'Patrocinado', format: 'Formato',
+      editCopy: 'Editar Texto', saveCopy: 'Salvar', cancelEdit: 'Cancelar', copyUpdated: 'Texto atualizado!',
+      regenImage: 'Regenerar Imagem', regenImageFeedback: 'Descreva o ajuste desejado...', regenImageStarted: 'Regenerando imagem...',
+      cloneLanguage: 'Clonar em outro idioma', cloneStarted: 'Campanha clonada! Gerando em', selectLanguage: 'Selecione o idioma',
+      editing: 'Editando',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -63,6 +67,10 @@ const L = (lang) => {
       regenVideo: 'Generate Video', regenVideoDesc: 'Click to generate the commercial video for this campaign', regenerating: 'Generating video...', videoGenStarted: 'Video generation started!',
       cta: 'Start Now', learnMore: 'Learn more about',
       sponsored: 'Sponsored', format: 'Format',
+      editCopy: 'Edit Copy', saveCopy: 'Save', cancelEdit: 'Cancel', copyUpdated: 'Copy updated!',
+      regenImage: 'Regenerate Image', regenImageFeedback: 'Describe the adjustment...', regenImageStarted: 'Regenerating image...',
+      cloneLanguage: 'Clone to another language', cloneStarted: 'Campaign cloned! Generating in', selectLanguage: 'Select language',
+      editing: 'Editing',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -89,6 +97,10 @@ const L = (lang) => {
       regenVideo: 'Generar Video', regenVideoDesc: 'Haga clic para generar el video comercial de esta campana', regenerating: 'Generando video...', videoGenStarted: 'Generacion de video iniciada!',
       cta: 'Empieza Ahora', learnMore: 'Mas informacion sobre',
       sponsored: 'Patrocinado', format: 'Formato',
+      editCopy: 'Editar Texto', saveCopy: 'Guardar', cancelEdit: 'Cancelar', copyUpdated: 'Texto actualizado!',
+      regenImage: 'Regenerar Imagen', regenImageFeedback: 'Describe el ajuste...', regenImageStarted: 'Regenerando imagen...',
+      cloneLanguage: 'Clonar en otro idioma', cloneStarted: 'Campana clonada! Generando en', selectLanguage: 'Seleccione idioma',
+      editing: 'Editando',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -335,6 +347,79 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
     }
   };
 
+  // Edit copy state
+  const [editingCopy, setEditingCopy] = useState(false);
+  const [editCopyText, setEditCopyText] = useState('');
+  const [savingCopy, setSavingCopy] = useState(false);
+
+  const startEditCopy = () => {
+    const fullCopy = stats.full_copy || messages.map(m => m.content).join('\n\n---\n\n');
+    setEditCopyText(fullCopy);
+    setEditingCopy(true);
+  };
+
+  const saveCopy = async () => {
+    if (!pipelineId) return;
+    setSavingCopy(true);
+    try {
+      await axios.put(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/update-copy`, { copy_text: editCopyText });
+      toast.success(labels.copyUpdated);
+      setEditingCopy(false);
+      refreshCampaign();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || labels.error);
+    } finally {
+      setSavingCopy(false);
+    }
+  };
+
+  // Regenerate image state
+  const [regenImageIdx, setRegenImageIdx] = useState(null);
+  const [regenImageFeedback, setRegenImageFeedback] = useState('');
+  const [regenImageLoading, setRegenImageLoading] = useState(false);
+
+  const regenerateImage = async (idx) => {
+    if (!pipelineId) return;
+    setRegenImageLoading(true);
+    try {
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/regenerate-image`, {
+        image_index: idx,
+        feedback: regenImageFeedback,
+      });
+      toast.success(labels.regenImageStarted);
+      setRegenImageIdx(null);
+      setRegenImageFeedback('');
+      // Poll for updated image
+      const pollInterval = setInterval(() => {
+        refreshCampaign();
+      }, 5000);
+      setTimeout(() => { clearInterval(pollInterval); setRegenImageLoading(false); }, 60000);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || labels.error);
+      setRegenImageLoading(false);
+    }
+  };
+
+  // Clone language state
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [cloneLoading, setCloneLoading] = useState(false);
+
+  const cloneCampaign = async (targetLang) => {
+    if (!pipelineId) return;
+    setCloneLoading(true);
+    try {
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/clone-language`, { target_language: targetLang });
+      const langLabel = { pt: 'Portugues', en: 'English', es: 'Espanol', fr: 'Francais', de: 'Deutsch' }[targetLang] || targetLang;
+      toast.success(`${labels.cloneStarted} ${langLabel}!`);
+      setShowCloneModal(false);
+      onClose();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || labels.error);
+    } finally {
+      setCloneLoading(false);
+    }
+  };
+
   const startDate = schedule.start_date || campaign.created_at?.split('T')[0];
   const endDate = schedule.end_date || null;
   const cplWhatsapp = stats.sent > 0 ? (Math.random() * 3 + 0.5).toFixed(2) : '0.00';
@@ -369,7 +454,37 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
             {startDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />{labels.start}: {new Date(startDate).toLocaleDateString()}</span>}
             {endDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />{labels.end}: {new Date(endDate).toLocaleDateString()}</span>}
             {!endDate && <span className="text-[9px] text-[#444]">{labels.noEndDate}</span>}
+            {pipelineId && (
+              <button data-testid="clone-language-btn" onClick={() => setShowCloneModal(!showCloneModal)}
+                className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] font-semibold hover:bg-[#C9A84C]/10 transition">
+                <Globe size={10} /> {labels.cloneLanguage}
+              </button>
+            )}
           </div>
+          {/* Clone Language Modal */}
+          {showCloneModal && (
+            <div data-testid="clone-language-modal" className="mt-2 p-3 rounded-xl bg-[#111] border border-[#C9A84C]/20">
+              <p className="text-[9px] text-[#C9A84C] font-bold mb-2">{labels.selectLanguage}</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { code: 'pt', label: 'Portugues', flag: 'BR' },
+                  { code: 'en', label: 'English', flag: 'US' },
+                  { code: 'es', label: 'Espanol', flag: 'ES' },
+                  { code: 'fr', label: 'Francais', flag: 'FR' },
+                  { code: 'de', label: 'Deutsch', flag: 'DE' },
+                  { code: 'it', label: 'Italiano', flag: 'IT' },
+                ].map(l => (
+                  <button key={l.code} data-testid={`clone-lang-${l.code}`}
+                    onClick={() => cloneCampaign(l.code)} disabled={cloneLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] text-[10px] text-white hover:border-[#C9A84C]/40 hover:bg-[#C9A84C]/5 transition disabled:opacity-50">
+                    <span className="text-[8px] text-[#555] font-bold">{l.flag}</span>
+                    {l.label}
+                    {cloneLoading && <RefreshCw size={9} className="animate-spin ml-1" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {/* Tabs */}
           <div className="flex gap-1 mt-2.5">
             {[
@@ -700,10 +815,37 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         </button>
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
                           <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
-                          <a href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/60 hover:text-white">
-                            <Download size={10} />
-                          </a>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={e => { e.stopPropagation(); setRegenImageIdx(i); setRegenImageFeedback(''); }}
+                              data-testid={`regen-image-${i}`}
+                              className="text-[#C9A84C] hover:text-[#D4B85C] transition" title={labels.regenImage}>
+                              <RefreshCw size={10} />
+                            </button>
+                            <a href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/60 hover:text-white">
+                              <Download size={10} />
+                            </a>
+                          </div>
                         </div>
+                        {regenImageIdx === i && (
+                          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
+                            <p className="text-[8px] text-[#C9A84C] font-bold mb-1.5">{labels.regenImage}</p>
+                            <textarea data-testid={`regen-feedback-${i}`}
+                              value={regenImageFeedback} onChange={e => setRegenImageFeedback(e.target.value)}
+                              placeholder={labels.regenImageFeedback}
+                              className="w-full text-[9px] bg-[#1A1A1A] border border-[#333] rounded-lg p-2 text-white placeholder-[#555] resize-none"
+                              rows={2} />
+                            <div className="flex gap-1.5 mt-1.5 w-full">
+                              <button onClick={() => setRegenImageIdx(null)}
+                                className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                                {labels.cancelEdit}
+                              </button>
+                              <button data-testid={`regen-image-confirm-${i}`} onClick={() => regenerateImage(i)} disabled={regenImageLoading}
+                                className="flex-1 text-[8px] py-1 rounded-lg bg-[#C9A84C] text-black font-bold hover:bg-[#D4B85C] transition disabled:opacity-50">
+                                {regenImageLoading ? <RefreshCw size={10} className="animate-spin mx-auto" /> : labels.regenImage}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -712,21 +854,55 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
               {/* Copy texts for manual posting */}
               <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.copyText}</p>
-                {messages.map((m, i) => (
-                  <div key={i} className="mb-2 rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-semibold capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>
-                        {m.channel === 'multi' ? labels.allNetworks : m.channel}
-                      </span>
-                      <button onClick={() => copyText(m.content)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                        <Copy size={8} /> {labels.copy}
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider">{labels.copyText}</p>
+                  {pipelineId && !editingCopy && (
+                    <button data-testid="edit-copy-btn" onClick={startEditCopy}
+                      className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-1">
+                      <FileText size={9} /> {labels.editCopy}
+                    </button>
+                  )}
+                </div>
+                {editingCopy ? (
+                  <div data-testid="copy-editor" className="rounded-lg bg-[#111] border border-[#C9A84C]/30 p-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <FileText size={10} className="text-[#C9A84C]" />
+                      <span className="text-[9px] text-[#C9A84C] font-bold">{labels.editing}</span>
+                    </div>
+                    <textarea data-testid="copy-editor-textarea"
+                      value={editCopyText} onChange={e => setEditCopyText(e.target.value)}
+                      className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg p-3 text-[10px] text-[#ccc] font-sans leading-relaxed resize-none focus:border-[#C9A84C]/50 focus:outline-none"
+                      rows={16} />
+                    <div className="flex gap-2 mt-2 justify-end">
+                      <button data-testid="copy-cancel-btn" onClick={() => setEditingCopy(false)}
+                        className="px-3 py-1.5 rounded-lg border border-[#333] text-[9px] text-[#888] hover:text-white transition">
+                        {labels.cancelEdit}
+                      </button>
+                      <button data-testid="copy-save-btn" onClick={saveCopy} disabled={savingCopy}
+                        className="px-4 py-1.5 rounded-lg bg-[#C9A84C] text-[9px] text-black font-bold hover:bg-[#D4B85C] transition disabled:opacity-50 flex items-center gap-1">
+                        {savingCopy ? <RefreshCw size={10} className="animate-spin" /> : <Check size={10} />}
+                        {labels.saveCopy}
                       </button>
                     </div>
-                    <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{cleanCampaignText(m.content)}</pre>
                   </div>
-                ))}
-                {messages.length === 0 && <p className="text-[10px] text-[#444] text-center py-4">{labels.noMessages}</p>}
+                ) : (
+                  <>
+                    {messages.map((m, i) => (
+                      <div key={i} className="mb-2 rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[9px] font-semibold capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>
+                            {m.channel === 'multi' ? labels.allNetworks : m.channel}
+                          </span>
+                          <button onClick={() => copyText(m.content)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+                            <Copy size={8} /> {labels.copy}
+                          </button>
+                        </div>
+                        <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{cleanCampaignText(m.content)}</pre>
+                      </div>
+                    ))}
+                    {messages.length === 0 && <p className="text-[10px] text-[#444] text-center py-4">{labels.noMessages}</p>}
+                  </>
+                )}
               </div>
             </>
           )}

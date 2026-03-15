@@ -671,6 +671,11 @@ async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None)
     return None
 
 
+async def _generate_single_image(prompt_text, pipeline_id, suffix):
+    """Wrapper around _generate_image for single image regeneration"""
+    return await _generate_image(prompt_text, pipeline_id, f"regen_{suffix}")
+
+
 # Platform-specific aspect ratio configs
 PLATFORM_ASPECT_RATIOS = {
     "tiktok": {"ratio": (9, 16), "label": "9:16", "w": 768, "h": 1344},
@@ -2523,3 +2528,212 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
 
     asyncio.create_task(_regen())
     return {"status": "generating", "pipeline_id": pipeline_id, "message": "Video regeneration started"}
+
+
+
+# ── Campaign Editing Endpoints ──
+
+class UpdateCopyRequest(BaseModel):
+    copy_text: str
+
+class RegenerateImageRequest(BaseModel):
+    image_index: int = 0
+    feedback: str = ""
+
+class CloneLanguageRequest(BaseModel):
+    target_language: str = "pt"
+
+@router.put("/{pipeline_id}/update-copy")
+async def update_pipeline_copy(pipeline_id: str, data: UpdateCopyRequest, user=Depends(get_current_user)):
+    """Update the copy text in a completed pipeline and sync to campaign"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline = result.data[0]
+    steps = pipeline.get("steps") or {}
+    sofia = steps.get("sofia_copy", {})
+    sofia["output"] = data.copy_text
+    steps["sofia_copy"] = sofia
+    supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+
+    # Sync updated copy to the campaign messages
+    campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+    for c in campaigns:
+        m = c.get("metrics") or {}
+        s = m.get("stats") or {}
+        if s.get("pipeline_id") == pipeline_id:
+            # Parse variations and rebuild messages
+            variations = re.split(r'===\s*VARIATION\s*\d+\s*===', data.copy_text, flags=re.IGNORECASE)
+            variations = [v.strip() for v in variations if v.strip()]
+            platforms = pipeline.get("platforms") or []
+            new_messages = []
+            for i, plat in enumerate(platforms):
+                var_idx = i % max(len(variations), 1)
+                text = _clean_copy_text(variations[var_idx] if variations else data.copy_text)
+                new_messages.append({"channel": plat, "content": text, "delay_hours": 0})
+            m["messages"] = new_messages
+            supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+            logger.info(f"Updated campaign {c['id']} copy from pipeline {pipeline_id}")
+            break
+
+    return {"status": "updated", "pipeline_id": pipeline_id}
+
+
+@router.post("/{pipeline_id}/regenerate-image")
+async def regenerate_pipeline_image(pipeline_id: str, data: RegenerateImageRequest, user=Depends(get_current_user)):
+    """Regenerate a specific image in the pipeline with optional feedback"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline = result.data[0]
+    steps = pipeline.get("steps") or {}
+    lucas = steps.get("lucas_design", {})
+    image_urls = lucas.get("image_urls", [])
+
+    if data.image_index < 0 or data.image_index >= len(image_urls):
+        raise HTTPException(status_code=400, detail=f"Invalid image index {data.image_index}. Available: 0-{len(image_urls)-1}")
+
+    # Get pipeline context for image generation
+    pipeline_result = pipeline.get("result") or {}
+    campaign_language = pipeline_result.get("campaign_language", "en")
+    lang_name = {"en": "English", "pt": "Portuguese", "es": "Spanish", "fr": "French", "de": "German", "it": "Italian"}.get(campaign_language, "English")
+    platforms = pipeline.get("platforms") or ["instagram"]
+
+    # Build enhanced prompt with feedback
+    sofia_output = steps.get("sofia_copy", {}).get("output", "")
+    briefing = pipeline.get("briefing", "")
+
+    base_prompt = f"""Create a professional marketing image for: {briefing[:300]}
+Campaign copy context: {sofia_output[:200]}
+Target platforms: {', '.join(platforms)}"""
+
+    if data.feedback:
+        base_prompt = f"""REGENERATION REQUEST — The previous image was NOT satisfactory.
+USER FEEDBACK: {data.feedback}
+
+Based on this feedback, create a NEW and IMPROVED image.
+Original context: {briefing[:300]}
+Campaign copy context: {sofia_output[:200]}
+Target platforms: {', '.join(platforms)}"""
+
+    enhanced_prompt = f"""ABSOLUTE LANGUAGE REQUIREMENT: ALL text in the image MUST be in {lang_name}.
+
+{base_prompt}
+
+Technical: Ultra high-quality, 4K, professional color grading. Square 1080x1080.
+NO logos, NO brand names, NO website URLs.
+ALL visible text MUST be in {lang_name}."""
+
+    async def _regen_image():
+        try:
+            logger.info(f"Regenerating image {data.image_index} for pipeline {pipeline_id}")
+            new_url = await _generate_single_image(enhanced_prompt, pipeline_id, f"regen_{data.image_index}")
+            if new_url:
+                # Update main image
+                image_urls[data.image_index] = new_url
+                lucas["image_urls"] = image_urls
+                steps["lucas_design"] = lucas
+                supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+
+                # Regenerate platform variants for this image
+                media_formats = pipeline_result.get("media_formats", {})
+                platform_variants = lucas.get("platform_variants", {})
+                for plat in platforms:
+                    fmt = media_formats.get(plat, {})
+                    ratio = fmt.get("imgRatio", "1:1")
+                    if ratio != "1:1":
+                        variant_url = _resize_image_for_platform(new_url, plat, ratio, pipeline_id)
+                        if variant_url:
+                            if plat not in platform_variants:
+                                platform_variants[plat] = list(image_urls)
+                            if data.image_index < len(platform_variants.get(plat, [])):
+                                platform_variants[plat][data.image_index] = variant_url
+                            lucas["platform_variants"] = platform_variants
+                            steps["lucas_design"] = lucas
+                            supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+
+                # Sync to campaign
+                campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+                for c in campaigns:
+                    m = c.get("metrics") or {}
+                    s = m.get("stats") or {}
+                    if s.get("pipeline_id") == pipeline_id:
+                        s["image_urls"] = image_urls
+                        s["platform_variants"] = lucas.get("platform_variants", {})
+                        m["stats"] = s
+                        supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+                        logger.info(f"Updated campaign images for pipeline {pipeline_id}")
+                        break
+
+                logger.info(f"Image {data.image_index} regenerated: {new_url}")
+            else:
+                logger.error(f"Image regeneration returned None for pipeline {pipeline_id}")
+        except Exception as e:
+            logger.error(f"Image regeneration failed: {e}")
+
+    asyncio.create_task(_regen_image())
+    return {"status": "regenerating", "pipeline_id": pipeline_id, "image_index": data.image_index}
+
+
+@router.post("/{pipeline_id}/clone-language")
+async def clone_pipeline_language(pipeline_id: str, data: CloneLanguageRequest, user=Depends(get_current_user)):
+    """Clone a completed pipeline into a different language, creating a new campaign"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    original = result.data[0]
+    orig_result = original.get("result") or {}
+    orig_name = orig_result.get("campaign_name", "Campaign")
+    orig_lang = orig_result.get("campaign_language", "en")
+
+    lang_labels = {"en": "English", "pt": "Portuguese", "es": "Spanish", "fr": "French", "de": "German", "it": "Italian", "ja": "Japanese", "zh": "Chinese"}
+    target_label = lang_labels.get(data.target_language, data.target_language.upper())
+
+    if orig_lang == data.target_language:
+        raise HTTPException(status_code=400, detail=f"Campaign is already in {target_label}")
+
+    # Create new pipeline with same config but different language
+    init_steps = {}
+    for s in STEP_ORDER:
+        init_steps[s] = {"status": "pending", "output": None, "started_at": None, "completed_at": None}
+
+    new_name = f"{orig_name} ({target_label})"
+    new_pipeline = {
+        "tenant_id": tenant["id"],
+        "briefing": original.get("briefing", ""),
+        "mode": "auto",
+        "platforms": original.get("platforms", []),
+        "status": "running",
+        "current_step": "sofia_copy",
+        "steps": init_steps,
+        "result": {
+            "context": orig_result.get("context", {}),
+            "contact_info": orig_result.get("contact_info", {}),
+            "uploaded_assets": orig_result.get("uploaded_assets", []),
+            "campaign_name": new_name,
+            "campaign_language": data.target_language,
+            "media_formats": orig_result.get("media_formats", {}),
+            "selected_music": orig_result.get("selected_music", ""),
+            "cloned_from": pipeline_id,
+        },
+    }
+
+    new_result = supabase.table("pipelines").insert(new_pipeline).execute()
+    new_pid = new_result.data[0]["id"]
+
+    _start_step_bg(new_pid, "sofia_copy")
+    logger.info(f"Cloned pipeline {pipeline_id} ({orig_lang}) -> {new_pid} ({data.target_language}) as '{new_name}'")
+
+    return {
+        "status": "running",
+        "pipeline_id": new_pid,
+        "campaign_name": new_name,
+        "target_language": data.target_language,
+        "cloned_from": pipeline_id,
+    }
