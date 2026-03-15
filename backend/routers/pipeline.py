@@ -23,6 +23,67 @@ from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
 router = APIRouter(prefix="/api/campaigns/pipeline", tags=["pipeline"])
 
+# Track running pipeline tasks to detect orphans on restart
+_active_pipelines = set()
+
+
+def _recover_orphaned_pipelines():
+    """On startup, find pipelines stuck in 'running' state and retry them.
+    This handles the case where the server restarts and background tasks are lost."""
+    try:
+        result = supabase.table("pipelines").select("id, status, current_step, steps, updated_at").eq("status", "running").execute()
+        orphans = result.data or []
+        if not orphans:
+            return
+
+        now = datetime.now(timezone.utc)
+        for p in orphans:
+            # Only recover if stuck for more than 3 minutes
+            updated = p.get("updated_at", "")
+            if updated:
+                try:
+                    updated_dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+                    age_seconds = (now - updated_dt).total_seconds()
+                    if age_seconds < 180:  # Less than 3 min, might still be running
+                        continue
+                except Exception:
+                    pass
+
+            pipeline_id = p["id"]
+            current_step = p.get("current_step", "")
+            steps = p.get("steps", {})
+
+            # Find the stuck step
+            retry_step = None
+            for s in STEP_ORDER:
+                st = steps.get(s, {}).get("status", "")
+                if st in ("running", "generating_images", "generating_video"):
+                    retry_step = s
+                    break
+
+            if retry_step:
+                logger.info(f"RECOVERY: Retrying orphaned pipeline {pipeline_id} at step {retry_step}")
+                steps[retry_step]["status"] = "pending"
+                steps[retry_step]["error"] = None
+                supabase.table("pipelines").update({
+                    "steps": steps, "status": "running",
+                    "updated_at": now.isoformat()
+                }).eq("id", pipeline_id).execute()
+                _start_step_bg(pipeline_id, retry_step)
+            else:
+                logger.warning(f"RECOVERY: Pipeline {pipeline_id} is running but no stuck step found at {current_step}")
+    except Exception as e:
+        logger.error(f"Pipeline recovery failed: {e}")
+
+
+# Schedule recovery after a short delay to allow server startup
+def _delayed_recovery():
+    import time as _time
+    _time.sleep(10)  # Wait for server to fully start
+    _recover_orphaned_pipelines()
+
+threading.Thread(target=_delayed_recovery, daemon=True).start()
+
 UPLOADS_DIR = "/app/backend/uploads/pipeline"
 ASSETS_DIR = "/app/backend/uploads/pipeline/assets"
 os.makedirs(ASSETS_DIR, exist_ok=True)
@@ -1800,7 +1861,8 @@ async def _execute_step(pipeline_id, step):
                 video_format = format_match.group(1).lower()
 
             platforms = pipeline.get("platforms") or []
-            FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
+            # Sora 2 valid sizes: 1280x720, 1792x1024, 1024x1792, 1024x1024
+            FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1280x720"}
             if not format_match:
                 if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
                     video_format = "vertical"
@@ -2368,7 +2430,7 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
     # Determine video format
     format_match = re.search(r'Format:\s*(horizontal|vertical)', marcos_output, re.IGNORECASE)
     video_format = format_match.group(1).lower() if format_match else "horizontal"
-    FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
+    FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1280x720"}
     size = FORMAT_MAP.get(video_format, "1280x720")
     user_music = pipeline.get("result", {}).get("selected_music", "")
 

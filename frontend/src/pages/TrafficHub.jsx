@@ -84,9 +84,9 @@ const CHANNEL_COLORS = {
 
 // Campaign card for Traffic Hub
 function CampaignCard({ campaign, onManage }) {
-  const stats = campaign.metrics?.stats || {};
-  const platforms = campaign.metrics?.target_segment?.platforms || [];
-  const copyText = campaign.metrics?.messages?.[0]?.content || '';
+  const stats = campaign.stats || {};
+  const platforms = campaign.target_segment?.platforms || [];
+  const copyText = campaign.messages?.[0]?.content || '';
   const preview = copyText.substring(0, 100) + (copyText.length > 100 ? '...' : '');
   const isCreated = campaign.status === 'created';
   const isActive = campaign.status === 'active';
@@ -204,7 +204,7 @@ export default function TrafficHub() {
 
   const fetchCampaigns = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('agentzz_token');
       const res = await fetch(`${API}/api/campaigns`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
@@ -226,7 +226,7 @@ export default function TrafficHub() {
     }
     if (action === 'activate' || action === 'pause') {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('agentzz_token');
         const newStatus = action === 'activate' ? 'active' : 'paused';
         await fetch(`${API}/api/campaigns/${campaign.id}`, {
           method: 'PUT',
@@ -242,7 +242,7 @@ export default function TrafficHub() {
 
   // Filter campaigns based on selected agent's channels
   const agentCampaigns = campaigns.filter(c => {
-    const platforms = c.metrics?.target_segment?.platforms || [];
+    const platforms = c.target_segment?.platforms || [];
     if (selectedAgent.channels.includes('all')) return true;
     return platforms.some(p => selectedAgent.channels.includes(p));
   });
@@ -301,7 +301,7 @@ export default function TrafficHub() {
             <p className="text-[9px] text-[#555] uppercase tracking-wider px-1 mb-2">Especialistas de Tráfego</p>
             {TRAFFIC_AGENTS.map(agent => {
               const count = campaigns.filter(c => {
-                const platforms = c.metrics?.target_segment?.platforms || [];
+                const platforms = c.target_segment?.platforms || [];
                 if (agent.channels.includes('all')) return true;
                 return platforms.some(p => agent.channels.includes(p));
               }).length;
