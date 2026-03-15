@@ -320,6 +320,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
       )}
       {needsApproval && step === 'ana_review_copy' && <CopyApproval data={data} onApprove={onApprove} />}
       {needsApproval && step === 'rafael_review_design' && <DesignApproval data={data} onApprove={onApprove} images={images} pipelineId={pipelineId} onRefresh={onRefresh} />}
+      {needsApproval && step === 'rafael_review_video' && <VideoApproval data={data} onApprove={onApprove} pipelineId={pipelineId} />}
     </div>
   );
 }
@@ -409,6 +410,45 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
   );
 }
 
+function VideoApproval({ data, onApprove, pipelineId }) {
+  const [submitting, setSubmitting] = useState(false);
+  const decision = data?.decision || 'approved';
+  const output = data?.output || '';
+
+  const handleApprove = async () => {
+    setSubmitting(true);
+    await onApprove({ step: 'rafael_review_video' });
+    setSubmitting(false);
+  };
+
+  // Extract key points from Roger's review
+  const lines = output.split('\n').filter(l => l.trim());
+  const summaryLines = lines.slice(0, 8);
+
+  return (
+    <div data-testid="video-approval" className="mt-3 space-y-2.5 bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
+      <p className="text-[11px] text-amber-200 font-semibold flex items-center gap-1.5">
+        <Film size={13} /> Roger reviewed the video concept
+      </p>
+      <div className="text-[9px] text-[#888] bg-[#0A0A0A] rounded-lg p-2 max-h-32 overflow-y-auto">
+        {summaryLines.map((line, i) => <p key={i} className="mb-0.5">{line}</p>)}
+        {lines.length > 8 && <p className="text-[#555]">... ({lines.length - 8} more lines)</p>}
+      </div>
+      <div className="flex items-center gap-2 text-[9px]">
+        <span className={`px-2 py-0.5 rounded-full font-bold ${decision === 'approved' ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
+          {decision === 'approved' ? 'APPROVED' : 'NEEDS REVISION'}
+        </span>
+      </div>
+      <button data-testid="approve-video-btn" onClick={handleApprove} disabled={submitting}
+        className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
+        {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+        {submitting ? 'Processing...' : 'Approve & Continue to Validation'}
+      </button>
+    </div>
+  );
+}
+
+
 /* ── Completed Pipeline Summary ── */
 function CompletedSummary({ pipeline }) {
   const { t } = useTranslation();
@@ -419,6 +459,7 @@ function CompletedSummary({ pipeline }) {
   const videoUrl = steps.marcos_video?.video_url || '';
   const rawSchedule = steps.pedro_publish?.output || '';
   const schedule = cleanDisplayText(rawSchedule);
+  const validationLabel = 'Validation Report';
   const [activeTab, setActiveTab] = useState('preview');
   const [lightboxIdx, setLightboxIdx] = useState(null);
 
@@ -858,7 +899,7 @@ export default function PipelineView({ context }) {
     STEP_ORDER.forEach(s => {
       const st = steps[s];
       if (!st) return;
-      if (activePipeline.status === 'waiting_approval' && st.status === 'completed' && (s === 'ana_review_copy' || s === 'rafael_review_design') && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
+      if (activePipeline.status === 'waiting_approval' && st.status === 'completed' && (s === 'ana_review_copy' || s === 'rafael_review_design' || s === 'rafael_review_video') && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
       if (st.status === 'failed' && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
       if (st.status === 'requires_upgrade' && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
     });
