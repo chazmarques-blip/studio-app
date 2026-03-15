@@ -186,6 +186,30 @@ function metaLabel(meta, labels) {
   return meta.label || '';
 }
 
+/* ── Video Lightbox ── */
+function VideoLightbox({ videoUrl, onClose, labels }) {
+  return (
+    <div data-testid="video-lightbox" className="fixed inset-0 z-[70] bg-black/95 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative w-full max-w-4xl" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} data-testid="video-lightbox-close"
+          className="absolute -top-3 -right-3 z-10 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] transition">
+          <X size={16} className="text-white" />
+        </button>
+        <div className="rounded-xl overflow-hidden border border-[#333] bg-black shadow-2xl">
+          <video src={videoUrl} controls playsInline autoPlay className="w-full" data-testid="video-lightbox-player" style={{ maxHeight: '80vh' }} />
+        </div>
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-[9px] text-[#555] bg-[#111] px-2 py-1 rounded">Sora 2</span>
+          <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
+            <Download size={12} /> {labels?.download || 'Baixar'}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Preview Modal ── */
 function PreviewModal({ campaign, onClose, labels }) {
   const stats = campaign.stats || {};
@@ -271,6 +295,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const videoUrl = stats.video_url || '';
   const pipelineId = stats.pipeline_id || '';
   const [regenLoading, setRegenLoading] = useState(false);
+  const [showVideoLightbox, setShowVideoLightbox] = useState(false);
 
   const refreshCampaign = () => {
     axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/${initialCampaign.id}`)
@@ -608,17 +633,28 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               {videoUrl && (
                 <div data-testid="content-video-section">
                   <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.videoCommercial}</p>
-                  <div className="max-w-[340px] mx-auto rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
-                    <video src={videoUrl} controls playsInline controlsList="nodownload" className="w-full" data-testid="content-video-player" style={{ maxHeight: '400px' }} />
+                  <div className="max-w-[340px] mx-auto rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
+                    <video src={videoUrl} controls playsInline controlsList="nodownload" className="w-full" data-testid="content-video-player" style={{ maxHeight: '400px' }} onClick={e => e.stopPropagation()} />
+                    <button data-testid="video-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
+                      className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80 z-10">
+                      <Maximize2 size={14} className="text-white" />
+                    </button>
                   </div>
                   <div className="max-w-[340px] mx-auto flex items-center gap-2 mt-1.5">
                     <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
+                    <button onClick={() => setShowVideoLightbox(true)} data-testid="video-expand-text-btn"
+                      className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+                      <Maximize2 size={9} /> Expandir
+                    </button>
                     <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                       className="ml-auto text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
                       <Download size={9} /> {labels.download}
                     </a>
                   </div>
                 </div>
+              )}
+              {showVideoLightbox && videoUrl && (
+                <VideoLightbox videoUrl={videoUrl} onClose={() => setShowVideoLightbox(false)} labels={labels} />
               )}
 
               {/* Generate Video Button - when no video but pipeline exists */}

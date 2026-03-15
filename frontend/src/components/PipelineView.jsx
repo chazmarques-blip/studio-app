@@ -244,6 +244,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
 
 function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval, requiresUpgrade, onApprove, pipelineId, onRefresh }) {
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [showStepVideoLightbox, setShowStepVideoLightbox] = useState(false);
   const images = (data?.image_urls || []).filter(u => u);
 
   return (
@@ -256,7 +257,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
       {hasVideo && data.video_url && (
         <div className="mt-2">
           <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={10} className="text-red-400" /> Video Comercial Gerado</p>
-          <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
+          <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowStepVideoLightbox(true)}>
             <video
               data-testid="pipeline-video-player"
               src={data.video_url}
@@ -264,16 +265,45 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
               playsInline
               className="w-full max-h-[400px]"
               poster=""
+              onClick={e => e.stopPropagation()}
             />
+            <button data-testid="step-video-expand-btn" onClick={(e) => { e.stopPropagation(); setShowStepVideoLightbox(true); }}
+              className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80 z-10">
+              <Maximize2 size={14} className="text-white" />
+            </button>
           </div>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{data.video_duration || 12}s</span>
             <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded capitalize">{data.video_format || 'vertical'}</span>
+            <button onClick={() => setShowStepVideoLightbox(true)} data-testid="step-video-expand-text"
+              className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+              <Maximize2 size={9} /> Expandir
+            </button>
             <a href={data.video_url} target="_blank" rel="noopener noreferrer"
               className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
               <Download size={10} /> Baixar Video
             </a>
           </div>
+          {showStepVideoLightbox && (
+            <div data-testid="step-video-lightbox" className="fixed inset-0 z-[70] bg-black/95 flex items-center justify-center p-4" onClick={() => setShowStepVideoLightbox(false)}>
+              <div className="relative w-full max-w-4xl" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowStepVideoLightbox(false)}
+                  className="absolute -top-3 -right-3 z-10 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] transition">
+                  <X size={16} className="text-white" />
+                </button>
+                <div className="rounded-xl overflow-hidden border border-[#333] bg-black shadow-2xl">
+                  <video src={data.video_url} controls playsInline autoPlay className="w-full" style={{ maxHeight: '80vh' }} />
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-[9px] text-[#555] bg-[#111] px-2 py-1 rounded">Sora 2</span>
+                  <a href={data.video_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
+                    <Download size={12} /> Baixar Video
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
       {hasImages && (
@@ -462,6 +492,7 @@ function CompletedSummary({ pipeline }) {
   const validationLabel = 'Validation Report';
   const [activeTab, setActiveTab] = useState('preview');
   const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [showVideoLightbox, setShowVideoLightbox] = useState(false);
 
   const copyToClipboard = (text) => {
     try {
@@ -538,8 +569,12 @@ function CompletedSummary({ pipeline }) {
             {videoUrl && (
               <div>
                 <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1 flex items-center gap-1"><Film size={9} className="text-red-400" /> Video Comercial</p>
-                <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
-                  <video src={videoUrl} controls playsInline className="w-full max-h-[250px]" data-testid="summary-video-player" />
+                <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
+                  <video src={videoUrl} controls playsInline className="w-full max-h-[250px]" data-testid="summary-video-player" onClick={e => e.stopPropagation()} />
+                  <button data-testid="summary-video-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
+                    className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80 z-10">
+                    <Maximize2 size={14} className="text-white" />
+                  </button>
                 </div>
               </div>
             )}
@@ -584,12 +619,20 @@ function CompletedSummary({ pipeline }) {
         {activeTab === 'video' && videoUrl && (
           <div>
             <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={9} className="text-red-400" /> Video Comercial (12s)</p>
-            <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
-              <video src={videoUrl} controls playsInline autoPlay muted className="w-full max-h-[400px]" data-testid="summary-video-tab-player" />
+            <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
+              <video src={videoUrl} controls playsInline autoPlay muted className="w-full max-h-[400px]" data-testid="summary-video-tab-player" onClick={e => e.stopPropagation()} />
+              <button data-testid="video-tab-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
+                className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80 z-10">
+                <Maximize2 size={14} className="text-white" />
+              </button>
             </div>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">12 segundos</span>
               <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
+              <button onClick={() => setShowVideoLightbox(true)} data-testid="video-tab-expand-text"
+                className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+                <Maximize2 size={9} /> Expandir
+              </button>
               <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                 className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
                 <Download size={10} /> Baixar Video
@@ -611,6 +654,26 @@ function CompletedSummary({ pipeline }) {
       {lightboxIdx !== null && (
         <ImageLightbox images={images} initialIndex={lightboxIdx}
           onClose={() => setLightboxIdx(null)} pipelineId={pipeline.id} />
+      )}
+      {showVideoLightbox && videoUrl && (
+        <div data-testid="video-lightbox" className="fixed inset-0 z-[70] bg-black/95 flex items-center justify-center p-4" onClick={() => setShowVideoLightbox(false)}>
+          <div className="relative w-full max-w-4xl" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowVideoLightbox(false)} data-testid="video-lightbox-close"
+              className="absolute -top-3 -right-3 z-10 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] transition">
+              <X size={16} className="text-white" />
+            </button>
+            <div className="rounded-xl overflow-hidden border border-[#333] bg-black shadow-2xl">
+              <video src={videoUrl} controls playsInline autoPlay className="w-full" style={{ maxHeight: '80vh' }} />
+            </div>
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-[9px] text-[#555] bg-[#111] px-2 py-1 rounded">Sora 2</span>
+              <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
+                <Download size={12} /> Baixar Video
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

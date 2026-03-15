@@ -814,12 +814,16 @@ async def _generate_design_images(pipeline_id, lucas_output, platforms):
     # Generate images sequentially
     image_urls = []
     for i, prompt in enumerate(prompts):
-        enhanced_prompt = f"""CRITICAL LANGUAGE REQUIREMENT: ALL text visible in this image (headlines, titles, CTAs, overlay text) MUST be written in {lang_name}. DO NOT use any other language. If there is text in a different language in the prompt below, translate it to {lang_name} before generating.
+        enhanced_prompt = f"""ABSOLUTE LANGUAGE REQUIREMENT — THIS OVERRIDES EVERYTHING:
+ALL text visible in this image (headlines, titles, CTAs, overlay text, any words) MUST be written ONLY in {lang_name}.
 {lang_instruction}
+If the prompt below contains text in a DIFFERENT language, you MUST TRANSLATE it to {lang_name} before generating.
+DO NOT copy any non-{lang_name} text into the image. TRANSLATE first.
 
 {prompt}
 
 Technical: Ultra high-quality, 4K, professional color grading. Square 1080x1080 format for {', '.join(platforms)}.
+REMINDER: ALL visible text in the image MUST be in {lang_name}. NO other languages.
 NO logos, NO brand names, NO website URLs."""
         url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
         image_urls.append(url)
@@ -1364,7 +1368,9 @@ REVIEWER'S FEEDBACK:
 
 IMPORTANT: Revise ALL 3 variations addressing EVERY point in the reviewer's feedback. Maintain the same format (===VARIATION 1===, etc.). Make each variation significantly better."""
 
-        return f"""Create 3 campaign copy variations for the following briefing.
+        return f"""{lang_instruction}
+
+Create 3 campaign copy variations for the following briefing.
 Target platforms: {platforms_str}
 
 Briefing: {briefing}
@@ -1373,8 +1379,11 @@ Briefing: {briefing}
 {contact_str}
 {format_str}
 {assets_str}
-{lang_instruction}
 {revision_info}
+
+{lang_instruction}
+
+FINAL REMINDER: The briefing above may be written in ANY language. That does NOT matter. Your OUTPUT must be ENTIRELY in the language specified at the top of this prompt. Every word, headline, CTA, hashtag — ALL in that language. Zero exceptions.
 
 Remember: Create EXACTLY 3 variations formatted with ===VARIATION 1===, ===VARIATION 2===, ===VARIATION 3==="""
 
