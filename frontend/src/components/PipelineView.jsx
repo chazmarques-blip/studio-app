@@ -34,10 +34,11 @@ const STEP_META = {
   lucas_design: { agent: 'Lucas', role: 'Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
   rafael_review_design: { agent: 'Rafael', role: 'Diretor de Arte', icon: Award, color: '#9B59B6', estimatedSec: 25 },
   marcos_video: { agent: 'Marcos', role: 'Videomaker', icon: Film, color: '#E74C3C', estimatedSec: 500 },
+  rafael_review_video: { agent: 'Rafael', role: 'Revisor de Video', icon: Award, color: '#9B59B6', estimatedSec: 25 },
   pedro_publish: { agent: 'Pedro', role: 'Publisher', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
 };
 
-const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'marcos_video', 'pedro_publish'];
+const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'marcos_video', 'rafael_review_video', 'pedro_publish'];
 
 const PLATFORMS = [
   { id: 'whatsapp', label: 'WhatsApp', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '768x1344' },
@@ -200,7 +201,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
         <div className="flex-1 text-left min-w-0">
           <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#555] font-normal">- {meta.role}</span></p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `Revisando (${revisionRound}/2)` : 'Processando...'}</span>}
+            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `Revisando (${revisionRound}/1)` : 'Processando...'}</span>}
             {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />{t('studio.generating_images') || 'Generating images...'}</span>}
             {isGeneratingVideo && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400"><Film size={8} className="animate-spin" />{t('studio.generating_video') || 'Generating commercial video...'}</span>}
             {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">{t('studio.status_completed') || 'Completed'}</span>}
@@ -292,6 +293,20 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
               </button>
             ))}
           </div>
+          {/* Platform variant badges */}
+          {data.platform_variants && Object.keys(data.platform_variants).length > 0 && (
+            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+              <span className="text-[8px] text-[#555]">Formatos:</span>
+              {Object.keys(data.platform_variants).map(p => {
+                const AR_LABELS = { tiktok: '9:16', google_ads: '16:9', instagram: '1:1', facebook: '1:1', whatsapp: '1:1', email: '16:9' };
+                return (
+                  <span key={p} className="text-[7px] px-1.5 py-0.5 rounded bg-[#1A1A1A] text-[#C9A84C] border border-[#C9A84C]/20 capitalize">
+                    {p === 'google_ads' ? 'Google Ads' : p} {AR_LABELS[p] || ''}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           {lightboxIndex !== null && (
             <ImageLightbox images={images} initialIndex={lightboxIndex}
               onClose={() => setLightboxIndex(null)} pipelineId={pipelineId} onRegenerate={onRefresh} />

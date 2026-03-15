@@ -14,7 +14,10 @@ import shutil
 from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
 from emergentintegrations.llm.openai import OpenAITextToSpeech
+from PIL import Image
+from io import BytesIO
 import subprocess
+import urllib.request
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
@@ -588,6 +591,98 @@ async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None)
     return None
 
 
+# Platform-specific aspect ratio configs
+PLATFORM_ASPECT_RATIOS = {
+    "tiktok": {"ratio": (9, 16), "label": "9:16", "w": 768, "h": 1344},
+    "instagram": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
+    "facebook": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
+    "whatsapp": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
+    "google_ads": {"ratio": (16, 9), "label": "16:9", "w": 1344, "h": 768},
+    "telegram": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
+    "email": {"ratio": (16, 9), "label": "16:9", "w": 1344, "h": 768},
+    "sms": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
+}
+
+
+def _resize_image_for_platform(img_bytes: bytes, target_w: int, target_h: int) -> bytes:
+    """Resize/crop an image to a target aspect ratio using PIL center-crop + resize"""
+    img = Image.open(BytesIO(img_bytes))
+    src_w, src_h = img.size
+    target_ratio = target_w / target_h
+    src_ratio = src_w / src_h
+
+    if abs(src_ratio - target_ratio) < 0.05:
+        # Already close to target ratio, just resize
+        img = img.resize((target_w, target_h), Image.LANCZOS)
+    elif src_ratio > target_ratio:
+        # Source is wider — crop sides
+        new_w = int(src_h * target_ratio)
+        left = (src_w - new_w) // 2
+        img = img.crop((left, 0, left + new_w, src_h))
+        img = img.resize((target_w, target_h), Image.LANCZOS)
+    else:
+        # Source is taller — crop top/bottom
+        new_h = int(src_w / target_ratio)
+        top = (src_h - new_h) // 2
+        img = img.crop((0, top, src_w, top + new_h))
+        img = img.resize((target_w, target_h), Image.LANCZOS)
+
+    buf = BytesIO()
+    img.save(buf, format="PNG", quality=95)
+    return buf.getvalue()
+
+
+async def _create_platform_variants(pipeline_id: str, base_image_urls: list, platforms: list) -> dict:
+    """Create platform-specific image variants by cropping/resizing base images.
+    Returns dict: { "tiktok": [url1, url2, url3], "google_ads": [url1, url2, url3], ... }
+    """
+    # Determine which unique aspect ratios we need
+    needed_ratios = {}  # label -> {platforms, w, h}
+    for p in platforms:
+        cfg = PLATFORM_ASPECT_RATIOS.get(p)
+        if not cfg:
+            continue
+        label = cfg["label"]
+        if label not in needed_ratios:
+            needed_ratios[label] = {"platforms": [], "w": cfg["w"], "h": cfg["h"]}
+        needed_ratios[label]["platforms"].append(p)
+
+    # Base images are assumed 1:1 (1024x1024). Create variants for non-1:1 ratios.
+    variants = {}
+    for p in platforms:
+        variants[p] = list(base_image_urls)  # default: same as base
+
+    non_square_ratios = {k: v for k, v in needed_ratios.items() if k != "1:1"}
+    if not non_square_ratios:
+        return variants
+
+    for ratio_label, ratio_info in non_square_ratios.items():
+        tw, th = ratio_info["w"], ratio_info["h"]
+        ratio_urls = []
+        for idx, base_url in enumerate(base_image_urls):
+            if not base_url:
+                ratio_urls.append(None)
+                continue
+            try:
+                # Download original image
+                resp_data = urllib.request.urlopen(base_url, timeout=15).read()
+                # Resize
+                resized_bytes = _resize_image_for_platform(resp_data, tw, th)
+                # Upload variant
+                filename = f"{pipeline_id}_v{idx+1}_{ratio_label.replace(':', 'x')}_{uuid.uuid4().hex[:6]}.png"
+                variant_url = _upload_to_storage(resized_bytes, filename, "image/png")
+                ratio_urls.append(variant_url)
+                logger.info(f"Created {ratio_label} variant for image {idx+1}: {filename}")
+            except Exception as e:
+                logger.warning(f"Failed to create {ratio_label} variant for image {idx+1}: {e}")
+                ratio_urls.append(base_url)  # fallback to original
+
+        for p in ratio_info["platforms"]:
+            variants[p] = ratio_urls
+
+    return variants
+
+
 async def _generate_design_images(pipeline_id, lucas_output, platforms):
     """Parse Lucas's optimized prompts and generate images with Nano Banana"""
     pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
@@ -990,7 +1085,6 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
                 # Convert relative URL to absolute
                 if url.startswith('/'):
                     url = f"{backend_url}{url}"
-                import urllib.request
                 logo_path = f"/tmp/{pipeline_id}_logo.png"
                 urllib.request.urlretrieve(url, logo_path)
                 logger.info(f"Downloaded logo for video: {url}")
@@ -1333,6 +1427,25 @@ If approving, end with:
                 primary_vid = list(vid_sizes)[0]
                 vid_format_note = f"\nVIDEO FORMAT: Primary target size is {primary_vid}. Adapt your video format (horizontal/vertical) accordingly."
 
+        # Check for revision feedback from rafael_review_video
+        revision_info = ""
+        revision_fb = steps.get("marcos_video", {}).get("revision_feedback")
+        prev_output = steps.get("marcos_video", {}).get("previous_output")
+        if revision_fb and prev_output:
+            round_num = steps.get("marcos_video", {}).get("revision_round", 1)
+            revision_info = f"""
+
+--- VIDEO REVISION REQUEST (Round {round_num}) ---
+The Video Director reviewed your script and requested changes.
+
+YOUR PREVIOUS OUTPUT:
+{prev_output}
+
+DIRECTOR'S FEEDBACK:
+{revision_fb}
+
+IMPORTANT: Address EVERY point in the director's feedback. Maintain the same output format."""
+
         return f"""Create a 24-second commercial video (TWO 12-second clips with perfect continuity) for this campaign.
 
 Brand/Company: {campaign_name}
@@ -1344,6 +1457,7 @@ Contact info for CTA: {contact_details or contact_str}
 Original briefing: {briefing}
 {vid_format_note}
 {lang_instruction}
+{revision_info}
 
 REQUIREMENTS:
 1. Design TWO clips that feel like ONE continuous shot — same character, same visual style, seamless transition
@@ -1444,14 +1558,16 @@ async def _execute_step(pipeline_id, step):
         prompt = _build_prompt(step, pipeline)
         system = STEP_SYSTEMS.get(step, "")
 
-        # All agents use Claude Sonnet 4.5 for maximum quality
-        # Pedro uses Gemini Flash as primary (scheduling task, not creative)
+        # Creative agents use Claude Sonnet 4.5 for quality
+        # Review agents use Gemini Flash for SPEED (reviews don't need creative generation)
+        # This cuts review time from ~60s to ~10s each
         STEP_MODELS = {
             "sofia_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
-            "ana_review_copy": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "ana_review_copy": ("gemini", "gemini-2.0-flash"),
             "lucas_design": ("anthropic", "claude-sonnet-4-5-20250929"),
-            "rafael_review_design": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "rafael_review_design": ("gemini", "gemini-2.0-flash"),
             "marcos_video": ("anthropic", "claude-sonnet-4-5-20250929"),
+            "rafael_review_video": ("gemini", "gemini-2.0-flash"),
             "pedro_publish": ("gemini", "gemini-2.0-flash"),
         }
         provider, model = STEP_MODELS.get(step, ("anthropic", "claude-sonnet-4-5-20250929"))
@@ -1459,9 +1575,12 @@ async def _execute_step(pipeline_id, step):
         # Execute with strict timeout per attempt
         response = None
         last_error = None
-        timeout_per_attempt = 120  # 2 min max per attempt
+        # Review steps (Gemini Flash) are fast — use shorter timeout and fewer retries
+        is_review = step in ("ana_review_copy", "rafael_review_design", "rafael_review_video", "pedro_publish")
+        timeout_per_attempt = 60 if is_review else 120
+        max_attempts = 2 if is_review else 3
 
-        for attempt in range(3):
+        for attempt in range(max_attempts):
             try:
                 chat = LlmChat(
                     api_key=EMERGENT_KEY,
@@ -1483,7 +1602,7 @@ async def _execute_step(pipeline_id, step):
                 last_error = retry_err
                 logger.warning(f"Pipeline step {step} attempt {attempt+1} failed: {retry_err}")
 
-            if attempt < 2:
+            if attempt < max_attempts - 1:
                 await asyncio.sleep(2)
 
         # Fallback to Gemini Flash if Claude failed (for creative steps)
@@ -1513,17 +1632,21 @@ async def _execute_step(pipeline_id, step):
         steps[step]["elapsed_ms"] = elapsed
 
         # For reviewer steps: parse decision and handle revision loop
+        # MAX_REVISIONS = 1: Only 1 revision allowed per review step for speed.
+        # The initial prompt is strong enough that 1 revision should fix most issues.
+        MAX_REVISIONS = 1
+
         if step == "ana_review_copy":
             decision = _parse_review_decision(response)
             revision_count = steps[step].get("revision_count", 0)
 
-            if decision == "revision_needed" and revision_count < 2:
+            if decision == "revision_needed" and revision_count < MAX_REVISIONS:
                 # Revision loop - send back to Sofia
                 revision_feedback = _extract_revision_feedback(response)
                 steps[step]["revision_count"] = revision_count + 1
                 steps[step]["decision"] = "revision_needed"
                 steps[step]["revision_feedback"] = revision_feedback
-                logger.info(f"Ana requested revision {revision_count + 1}/2 for pipeline {pipeline_id}")
+                logger.info(f"Ana requested revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
 
                 # Prepare Sofia for re-run
                 prev_sofia_output = steps.get("sofia_copy", {}).get("output", "")
@@ -1541,6 +1664,8 @@ async def _execute_step(pipeline_id, step):
                 return  # Skip normal next-step flow
 
             # Approved (or max revisions reached) - parse selection
+            if decision == "revision_needed" and revision_count >= MAX_REVISIONS:
+                logger.warning(f"Max revisions ({MAX_REVISIONS}) reached for ana_review_copy, auto-approving pipeline {pipeline_id}")
             steps[step]["decision"] = "approved"
             selected = _parse_ana_copy_selection(response)
             steps[step]["auto_selection"] = selected
@@ -1550,7 +1675,6 @@ async def _execute_step(pipeline_id, step):
             copy_only = re.split(r'===\s*IMAGE BRIEFING\s*===', sofia_output, flags=re.IGNORECASE)[0]
 
             variations = re.split(r'===\s*VARIATION \d+\s*===', copy_only)
-            # First element is always preamble (before ===VARIATION 1===), skip it
             variations = [v.strip() for v in variations[1:] if v.strip()]
 
             if variations and 0 < selected <= len(variations):
@@ -1558,22 +1682,20 @@ async def _execute_step(pipeline_id, step):
             elif variations:
                 steps[step]["approved_content"] = variations[0]
             else:
-                # Fallback: use full copy section
                 steps[step]["approved_content"] = copy_only.strip()
 
         elif step == "rafael_review_design":
             decision = _parse_review_decision(response)
             revision_count = steps[step].get("revision_count", 0)
 
-            if decision == "revision_needed" and revision_count < 2:
+            if decision == "revision_needed" and revision_count < MAX_REVISIONS:
                 # Revision loop - send back to Lucas
                 revision_feedback = _extract_revision_feedback(response)
                 steps[step]["revision_count"] = revision_count + 1
                 steps[step]["decision"] = "revision_needed"
                 steps[step]["revision_feedback"] = revision_feedback
-                logger.info(f"Rafael requested revision {revision_count + 1}/2 for pipeline {pipeline_id}")
+                logger.info(f"Rafael requested design revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
 
-                # Prepare Lucas for re-run
                 prev_lucas_output = steps.get("lucas_design", {}).get("output", "")
                 steps["lucas_design"]["previous_output"] = prev_lucas_output
                 steps["lucas_design"]["revision_feedback"] = revision_feedback
@@ -1586,14 +1708,44 @@ async def _execute_step(pipeline_id, step):
                 }).eq("id", pipeline_id).execute()
 
                 await _execute_step(pipeline_id, "lucas_design")
-                return  # Skip normal next-step flow
+                return
 
-            # Approved (or max revisions reached) - parse selections
+            if decision == "revision_needed" and revision_count >= MAX_REVISIONS:
+                logger.warning(f"Max revisions ({MAX_REVISIONS}) reached for rafael_review_design, auto-approving pipeline {pipeline_id}")
             steps[step]["decision"] = "approved"
             platforms = pipeline.get("platforms") or []
             selections = _parse_rafael_design_selections(response, platforms)
             steps[step]["auto_selections"] = selections
             steps[step]["selections"] = selections
+
+        elif step == "rafael_review_video":
+            decision = _parse_review_decision(response)
+            revision_count = steps[step].get("revision_count", 0)
+
+            if decision == "revision_needed" and revision_count < MAX_REVISIONS:
+                revision_feedback = _extract_revision_feedback(response)
+                steps[step]["revision_count"] = revision_count + 1
+                steps[step]["decision"] = "revision_needed"
+                steps[step]["revision_feedback"] = revision_feedback
+                logger.info(f"Rafael requested video revision {revision_count + 1}/{MAX_REVISIONS} for pipeline {pipeline_id}")
+
+                prev_marcos_output = steps.get("marcos_video", {}).get("output", "")
+                steps["marcos_video"]["previous_output"] = prev_marcos_output
+                steps["marcos_video"]["revision_feedback"] = revision_feedback
+                steps["marcos_video"]["revision_round"] = revision_count + 1
+                steps["marcos_video"]["status"] = "pending"
+
+                supabase.table("pipelines").update({
+                    "steps": steps, "status": "running", "current_step": "marcos_video",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }).eq("id", pipeline_id).execute()
+
+                await _execute_step(pipeline_id, "marcos_video")
+                return
+
+            if decision == "revision_needed" and revision_count >= MAX_REVISIONS:
+                logger.warning(f"Max revisions ({MAX_REVISIONS}) reached for rafael_review_video, auto-approving pipeline {pipeline_id}")
+            steps[step]["decision"] = "approved"
 
         # Generate actual images for Lucas's design step
         elif step == "lucas_design":
@@ -1611,6 +1763,16 @@ async def _execute_step(pipeline_id, step):
             )
             steps[step]["image_urls"] = image_urls
             steps[step]["image_prompts"] = image_prompts
+
+            # Create platform-specific variants (TikTok 9:16, Google Ads 16:9, etc.)
+            try:
+                platform_variants = await _create_platform_variants(pipeline_id, image_urls, platforms)
+                steps[step]["platform_variants"] = platform_variants
+                logger.info(f"Created platform variants for {len(platform_variants)} platforms")
+            except Exception as pv_err:
+                logger.warning(f"Platform variant creation failed: {pv_err}")
+                steps[step]["platform_variants"] = {}
+
             steps[step]["status"] = "completed"
 
         # Generate video for Marcos's video step
@@ -1672,6 +1834,7 @@ async def _execute_step(pipeline_id, step):
                 approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
                 clean_copy = _clean_copy_text(approved_copy)
                 image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+                platform_variants = steps.get("lucas_design", {}).get("platform_variants", {})
                 video_url = steps.get("marcos_video", {}).get("video_url", "")
                 schedule_text = steps.get("pedro_publish", {}).get("output", "")
                 ctx = pipeline.get("result", {}).get("context", {})
@@ -1687,7 +1850,13 @@ async def _execute_step(pipeline_id, step):
                         "target_segment": {"platforms": pipeline.get("platforms", [])},
                         "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
                         "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
-                        "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "video_url": video_url, "pipeline_id": pipeline_id},
+                        "stats": {
+                            "sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0,
+                            "images": [u for u in image_urls if u],
+                            "platform_variants": platform_variants,
+                            "video_url": video_url,
+                            "pipeline_id": pipeline_id,
+                        },
                         "created_by": pipeline.get("tenant_id"),
                     },
                 }).execute()
@@ -2127,6 +2296,7 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
     approved_copy = body.edited_copy or steps.get("ana_review_copy", {}).get("approved_content", "")
     clean_copy = _clean_copy_text(approved_copy)
     image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+    platform_variants = steps.get("lucas_design", {}).get("platform_variants", {})
     video_url = steps.get("marcos_video", {}).get("video_url", "")
     schedule_text = steps.get("pedro_publish", {}).get("output", "")
     user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
@@ -2152,7 +2322,13 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
             "target_segment": {"platforms": pipeline.get("platforms", [])},
             "messages": [{"step": 1, "channel": "multi", "content": clean_copy, "delay_hours": 0}],
             "schedule": {"pipeline_id": pipeline_id, "schedule_text": schedule_text},
-            "stats": {"sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0, "images": [u for u in image_urls if u], "video_url": video_url, "pipeline_id": pipeline_id},
+            "stats": {
+                "sent": 0, "delivered": 0, "opened": 0, "clicked": 0, "converted": 0,
+                "images": [u for u in image_urls if u],
+                "platform_variants": platform_variants,
+                "video_url": video_url,
+                "pipeline_id": pipeline_id,
+            },
         },
     }
 
