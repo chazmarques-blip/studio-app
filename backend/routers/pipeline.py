@@ -442,11 +442,40 @@ class PipelineApprove(BaseModel):
 # ── Music Library ──
 
 MUSIC_LIBRARY = {
-    "upbeat": {"name": "Upbeat & Happy", "description": "Bright, positive, high-energy feel-good vibes", "file": "upbeat.mp3", "duration": 147},
-    "energetic": {"name": "Energetic & Powerful", "description": "Fast-paced, action-driven, adrenaline-pumping beats", "file": "energetic.mp3", "duration": 190},
-    "emotional": {"name": "Emotional & Inspiring", "description": "Heartfelt, motivational, touching orchestral sounds", "file": "emotional.mp3", "duration": 85},
-    "cinematic": {"name": "Cinematic & Epic", "description": "Grand, dramatic, movie-trailer atmosphere", "file": "cinematic.mp3", "duration": 86},
-    "corporate": {"name": "Corporate & Professional", "description": "Clean, polished, business-appropriate background", "file": "corporate.mp3", "duration": 174},
+    # Original tracks
+    "upbeat": {"name": "Upbeat & Happy", "description": "Feel-good vibes", "file": "upbeat.mp3", "duration": 147, "category": "General"},
+    "energetic": {"name": "Energetic & Powerful", "description": "Adrenaline beats", "file": "energetic.mp3", "duration": 190, "category": "General"},
+    "emotional": {"name": "Emotional & Inspiring", "description": "Motivational orchestral", "file": "emotional.mp3", "duration": 85, "category": "General"},
+    "cinematic": {"name": "Cinematic & Epic", "description": "Movie-trailer atmosphere", "file": "cinematic.mp3", "duration": 86, "category": "General"},
+    "corporate": {"name": "Corporate & Professional", "description": "Business-appropriate", "file": "corporate.mp3", "duration": 174, "category": "General"},
+    # Pop
+    "pop_dance": {"name": "Pop Dance", "description": "Catchy dance-pop beat", "file": "pop_dance.mp3", "duration": 15, "category": "Pop"},
+    "pop_acoustic": {"name": "Pop Acoustic", "description": "Soft acoustic pop", "file": "pop_acoustic.mp3", "duration": 15, "category": "Pop"},
+    # Hip-Hop & R&B
+    "hiphop_trap": {"name": "Hip-Hop Trap", "description": "Modern trap beat", "file": "hiphop_trap.mp3", "duration": 15, "category": "Hip-Hop"},
+    "hiphop_boom": {"name": "Hip-Hop Boom Bap", "description": "Classic boom bap", "file": "hiphop_boom.mp3", "duration": 15, "category": "Hip-Hop"},
+    "rnb_smooth": {"name": "R&B Smooth", "description": "Smooth R&B groove", "file": "rnb_smooth.mp3", "duration": 15, "category": "Hip-Hop"},
+    # Electronic
+    "electronic_edm": {"name": "EDM Festival", "description": "High-energy EDM", "file": "electronic_edm.mp3", "duration": 15, "category": "Electronic"},
+    "electronic_chill": {"name": "Chillwave", "description": "Chill electronic vibes", "file": "electronic_chill.mp3", "duration": 15, "category": "Electronic"},
+    # Latin
+    "latin_reggaeton": {"name": "Reggaeton", "description": "Urban latin beat", "file": "latin_reggaeton.mp3", "duration": 15, "category": "Latin"},
+    "latin_salsa": {"name": "Latin Tropical", "description": "Salsa & tropical", "file": "latin_salsa.mp3", "duration": 15, "category": "Latin"},
+    # Rock
+    "rock_indie": {"name": "Indie Rock", "description": "Indie guitar vibes", "file": "rock_indie.mp3", "duration": 15, "category": "Rock"},
+    "rock_alternative": {"name": "Alt Rock", "description": "Alternative energy", "file": "rock_alternative.mp3", "duration": 15, "category": "Rock"},
+    # Jazz & Lo-Fi
+    "jazz_lofi": {"name": "Lo-Fi Chill", "description": "Lo-fi study beats", "file": "jazz_lofi.mp3", "duration": 15, "category": "Jazz"},
+    "jazz_smooth": {"name": "Smooth Jazz", "description": "Smooth jazz sax", "file": "jazz_smooth.mp3", "duration": 15, "category": "Jazz"},
+    # Ambient
+    "ambient_dreamy": {"name": "Dreamy Ambient", "description": "Ethereal textures", "file": "ambient_dreamy.mp3", "duration": 15, "category": "Ambient"},
+    "ambient_nature": {"name": "Nature Ambient", "description": "Organic nature sounds", "file": "ambient_nature.mp3", "duration": 15, "category": "Ambient"},
+    # Other
+    "country_modern": {"name": "Modern Country", "description": "Country pop", "file": "country_modern.mp3", "duration": 15, "category": "Other"},
+    "gospel_uplifting": {"name": "Gospel Uplifting", "description": "Uplifting gospel", "file": "gospel_uplifting.mp3", "duration": 15, "category": "Other"},
+    "classical_piano": {"name": "Classical Piano", "description": "Elegant piano", "file": "classical_piano.mp3", "duration": 15, "category": "Other"},
+    "funk_groove": {"name": "Funk Groove", "description": "Funky bass groove", "file": "funk_groove.mp3", "duration": 15, "category": "Other"},
+    "world_afrobeat": {"name": "Afrobeat", "description": "African rhythm", "file": "world_afrobeat.mp3", "duration": 15, "category": "Other"},
 }
 
 @router.get("/music-library")
@@ -463,6 +492,7 @@ async def get_music_library():
                 "description": info["description"],
                 "duration": info["duration"],
                 "file": info["file"],
+                "category": info.get("category", "General"),
                 "preview_url": f"/api/campaigns/pipeline/music-preview/{key}",
             })
     return {"tracks": tracks}

@@ -761,7 +761,8 @@ export default function PipelineView({ context }) {
   const [briefing, setBriefing] = useState('');
   const [briefingMode, setBriefingMode] = useState('free'); // 'free' | 'guided'
   const [questionnaire, setQuestionnaire] = useState({
-    product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: ''
+    product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: '',
+    gender: '', ageMin: '', ageMax: '', socialClass: '', lifestyle: '', painPoints: '', visualStyle: ''
   });
   const [campaignLang, setCampaignLang] = useState('');
   const [mode, setMode] = useState('semi_auto');
@@ -892,8 +893,17 @@ export default function PipelineView({ context }) {
     const parts = [];
     if (q.product) parts.push(`${t('studio.q_product')} ${q.product}`);
     if (q.goal) parts.push(`${t('studio.q_goal')} ${q.goal}`);
-    if (q.audience) parts.push(`${t('studio.q_audience')} ${q.audience}`);
+    // Build audience string from selectable fields
+    const audienceParts = [];
+    if (q.gender) audienceParts.push(`Gender: ${q.gender}`);
+    if (q.ageMin || q.ageMax) audienceParts.push(`Age: ${q.ageMin || '18'}–${q.ageMax || '65+'}`);
+    if (q.socialClass) audienceParts.push(`Social class: ${q.socialClass}`);
+    if (q.lifestyle) audienceParts.push(`Lifestyle: ${q.lifestyle}`);
+    if (q.audience) audienceParts.push(q.audience);
+    if (audienceParts.length) parts.push(`${t('studio.q_audience')} ${audienceParts.join(', ')}`);
+    if (q.painPoints) parts.push(`${t('studio.q_pain_points') || 'Pain points:'} ${q.painPoints}`);
     if (q.tone) parts.push(`${t('studio.q_tone')} ${q.tone}`);
+    if (q.visualStyle) parts.push(`${t('studio.q_visual_style') || 'Visual style:'} ${q.visualStyle}`);
     if (q.offer) parts.push(`${t('studio.q_offer')} ${q.offer}`);
     if (q.differentials) parts.push(`${t('studio.q_differentials')} ${q.differentials}`);
     if (q.cta) parts.push(`${t('studio.q_cta')} ${q.cta}`);
@@ -1241,9 +1251,64 @@ export default function PipelineView({ context }) {
 
               <div>
                 <label className="text-[9px] text-[#777] block mb-1">3. {t('studio.q_audience')}</label>
+
+                {/* Gender */}
+                <p className="text-[8px] text-[#555] mb-1 mt-1">{t('studio.q_gender') || 'Gender'}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['All', 'Male', 'Female', 'LGBTQ+', 'Non-binary'].map(g => (
+                    <button key={g} onClick={() => setQuestionnaire(p => ({...p, gender: p.gender === g ? '' : g}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.gender === g ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Age Range */}
+                <p className="text-[8px] text-[#555] mb-1">{t('studio.q_age_range') || 'Age range'}</p>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <input data-testid="q-age-min" value={questionnaire.ageMin} onChange={e => setQuestionnaire(p => ({...p, ageMin: e.target.value}))}
+                    placeholder="18" type="number" min="13" max="99"
+                    className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                  <span className="text-[9px] text-[#444]">—</span>
+                  <input data-testid="q-age-max" value={questionnaire.ageMax} onChange={e => setQuestionnaire(p => ({...p, ageMax: e.target.value}))}
+                    placeholder="65+" type="text"
+                    className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                  <div className="flex gap-1 ml-2">
+                    {['13-17', '18-24', '25-34', '35-44', '45-54', '55+'].map(r => (
+                      <button key={r} onClick={() => { const [min, max] = r.split('-'); setQuestionnaire(p => ({...p, ageMin: min, ageMax: max || '65+'})); }}
+                        className={`rounded-md px-1.5 py-0.5 text-[8px] border transition ${questionnaire.ageMin === r.split('-')[0] ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Social Class */}
+                <p className="text-[8px] text-[#555] mb-1">{t('studio.q_social_class') || 'Social class'}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['A (Luxury)', 'B (Upper-middle)', 'C (Middle)', 'D (Lower-middle)', 'E (Low income)', 'All classes'].map(c => (
+                    <button key={c} onClick={() => setQuestionnaire(p => ({...p, socialClass: p.socialClass === c ? '' : c}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.socialClass === c ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Lifestyle / Interests */}
+                <p className="text-[8px] text-[#555] mb-1">{t('studio.q_lifestyle') || 'Lifestyle & Interests'}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['Fitness', 'Tech', 'Fashion', 'Gaming', 'Travel', 'Food', 'Music', 'Sports', 'Business', 'Eco-friendly', 'Luxury', 'Family'].map(l => (
+                    <button key={l} onClick={() => setQuestionnaire(p => ({...p, lifestyle: p.lifestyle?.includes(l) ? p.lifestyle.replace(l, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '') : (p.lifestyle ? `${p.lifestyle}, ${l}` : l)}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.lifestyle?.includes(l) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Free-text audience */}
                 <input data-testid="q-audience" value={questionnaire.audience} onChange={e => setQuestionnaire(p => ({...p, audience: e.target.value}))}
                   placeholder={t('studio.q_audience_placeholder')}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
@@ -1273,7 +1338,26 @@ export default function PipelineView({ context }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">7. {t('studio.q_cta')}</label>
+                <label className="text-[9px] text-[#777] block mb-1">7. {t('studio.q_pain_points') || 'What problems does your audience face?'}</label>
+                <input data-testid="q-pain-points" value={questionnaire.painPoints} onChange={e => setQuestionnaire(p => ({...p, painPoints: e.target.value}))}
+                  placeholder={t('studio.q_pain_points_placeholder') || 'E.g.: High costs, lack of time, complexity...'}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">8. {t('studio.q_visual_style') || 'Visual style preference'}</label>
+                <div className="flex flex-wrap gap-1">
+                  {['Minimalist', 'Bold & Vibrant', 'Luxury & Elegant', 'Natural & Organic', 'Tech & Modern', 'Retro & Vintage', 'Dark & Moody', 'Playful & Colorful'].map(s => (
+                    <button key={s} onClick={() => setQuestionnaire(p => ({...p, visualStyle: p.visualStyle === s ? '' : s}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.visualStyle === s ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#777] block mb-1">9. {t('studio.q_cta')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {[{k:'cta_signup'},{k:'cta_demo'},{k:'cta_buy'},{k:'cta_learn'},{k:'cta_download'},{k:'cta_whatsapp'}].map(({k}) => (
                     <button key={k} onClick={() => setQuestionnaire(p => ({...p, cta: p.cta === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
@@ -1285,7 +1369,7 @@ export default function PipelineView({ context }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-[#777] block mb-1">8. {t('studio.q_urgency')}</label>
+                <label className="text-[9px] text-[#777] block mb-1">10. {t('studio.q_urgency')}</label>
                 <input data-testid="q-urgency" value={questionnaire.urgency} onChange={e => setQuestionnaire(p => ({...p, urgency: e.target.value}))}
                   placeholder={t('studio.q_urgency_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 transition" />
@@ -1392,36 +1476,42 @@ export default function PipelineView({ context }) {
           )}
         </div>
 
-        {/* Music Library */}
+        {/* Music Library - Compact */}
         {musicLibrary.length > 0 && (
           <div>
             <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.music_library') || 'Background Music (Video)'}</label>
-            <div className="space-y-1">
-              {musicLibrary.map(track => (
-                <div key={track.id} data-testid={`music-${track.id}`}
-                  onClick={() => setSelectedMusic(selectedMusic === track.id ? '' : track.id)}
-                  className={`flex items-center gap-2 rounded-lg border p-2 cursor-pointer transition ${selectedMusic === track.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); togglePlayTrack(track.id); }}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#888] hover:text-white'}`}>
-                    {playingTrack === track.id ? <span className="text-[8px] font-bold">||</span> : <Play size={10} />}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-white truncate">{track.name}</p>
-                    <p className="text-[8px] text-[#555] truncate">{track.description}</p>
+            {(() => {
+              const categories = [...new Set(musicLibrary.map(t => t.category || 'General'))];
+              return categories.map(cat => (
+                <div key={cat} className="mb-1.5">
+                  <p className="text-[7px] text-[#444] uppercase tracking-wider mb-0.5">{cat}</p>
+                  <div className="space-y-0.5">
+                    {musicLibrary.filter(t => (t.category || 'General') === cat).map(track => (
+                      <div key={track.id} data-testid={`music-${track.id}`}
+                        onClick={() => setSelectedMusic(selectedMusic === track.id ? '' : track.id)}
+                        className={`flex items-center gap-2 rounded-md border px-2 py-1 cursor-pointer transition ${selectedMusic === track.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1A1A1A] hover:border-[#2A2A2A]'}`}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); togglePlayTrack(track.id); }}
+                          className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#888] hover:text-white'}`}>
+                          {playingTrack === track.id ? <span className="text-[6px] font-bold">||</span> : <Play size={8} />}
+                        </button>
+                        <span className="text-[9px] font-medium text-white truncate flex-1">{track.name}</span>
+                        <span className="text-[7px] text-[#444] truncate max-w-[140px]">{track.description}</span>
+                        {selectedMusic === track.id && <Check size={10} className="text-[#C9A84C] shrink-0" />}
+                      </div>
+                    ))}
                   </div>
-                  {selectedMusic === track.id && <Check size={12} className="text-[#C9A84C] shrink-0" />}
                 </div>
-              ))}
-              {selectedMusic && (
-                <p className="text-[8px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
-                  <Check size={8} /> {t('studio.music_selected') || 'Music selected for video'}
-                </p>
-              )}
-              {!selectedMusic && (
-                <p className="text-[8px] text-[#444] mt-0.5">{t('studio.music_auto') || 'No selection = AI picks automatically based on campaign mood'}</p>
-              )}
-            </div>
+              ));
+            })()}
+            {selectedMusic && (
+              <p className="text-[8px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
+                <Check size={8} /> {t('studio.music_selected') || 'Music selected for video'}
+              </p>
+            )}
+            {!selectedMusic && (
+              <p className="text-[8px] text-[#444] mt-0.5">{t('studio.music_auto') || 'No selection = AI picks automatically based on campaign mood'}</p>
+            )}
           </div>
         )}
 
