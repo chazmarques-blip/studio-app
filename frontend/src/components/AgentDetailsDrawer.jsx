@@ -80,7 +80,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
         </button>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 overscroll-contain px-4 pb-24">
+        <div className="overflow-y-auto flex-1 overscroll-contain px-4 pb-32">
           {/* Hero Section */}
           <div className="flex flex-col items-center text-center pt-2 pb-4">
             <div className="relative mb-3">
@@ -243,7 +243,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
         </div>
 
         {/* Sticky Deploy Footer */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0D0D0D] via-[#0D0D0D] to-transparent pt-6 pb-4 px-4">
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0D0D0D] via-[#0D0D0D] to-transparent pt-6 pb-20 px-4">
           <button
             data-testid={`deploy-modal-${agent.name}`}
             onClick={() => { onDeploy(agent); onClose(); }}
