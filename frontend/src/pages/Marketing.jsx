@@ -308,6 +308,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const pipelineId = stats.pipeline_id || '';
   const [regenLoading, setRegenLoading] = useState(false);
   const [showVideoLightbox, setShowVideoLightbox] = useState(false);
+  const [showChannelVideo, setShowChannelVideo] = useState(false);
 
   const refreshCampaign = () => {
     axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/${initialCampaign.id}`)
@@ -621,17 +622,35 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               <div className="space-y-3" data-testid={`mockup-${selectedChannel}-content`}>
                 {(() => {
                   const channel = selectedChannel;
-                  // Use platform-specific variant if available, otherwise fall back to base images
+                  // Use platform-specific variant if available
                   const platformVariants = stats.platform_variants || {};
                   const channelImages = platformVariants[channel] || images;
-                  const imgUrl = channelImages[channels.indexOf(channel) % Math.max(channelImages.length, 1)] || channelImages[0];
+                  const imgUrl = channelImages[0] || images[0];
                   const imgSrc = imgUrl ? resolveImageUrl(imgUrl) : null;
                   const channelMsg = messages.find(m => m.channel === channel);
                   const copyText_ch = cleanCampaignText(channelMsg?.content || messages[0]?.content || '');
                   const brandName = campaign.name?.split(' - ')[0]?.split(' ').slice(0, 3).join(' ') || 'Brand';
+                  const handle = brandName.toLowerCase().replace(/\s+/g, '');
+                  // Per-channel video
+                  const videoVariants = stats.video_variants || {};
+                  const channelVideo = videoVariants[channel] || videoUrl;
+                  // Toggle for image/video
+                  const MediaToggle = () => (channelVideo && imgSrc) ? (
+                    <div className="flex gap-1 mb-2 max-w-[340px] mx-auto">
+                      <button onClick={() => setShowChannelVideo(false)} className={`text-[8px] px-2 py-1 rounded ${!showChannelVideo ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'bg-[#111] text-[#555] border border-[#1A1A1A]'}`} data-testid={`toggle-image-${channel}`}>Imagem</button>
+                      <button onClick={() => setShowChannelVideo(true)} className={`text-[8px] px-2 py-1 rounded ${showChannelVideo ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'bg-[#111] text-[#555] border border-[#1A1A1A]'}`} data-testid={`toggle-video-${channel}`}>Video</button>
+                    </div>
+                  ) : null;
+                  // Format badge for channel
+                  const FORMAT_SIZES = {
+                    whatsapp: '1:1 · 720x720', instagram: '1:1 · 1080x1080', facebook: '16:9 · 1280x720',
+                    tiktok: '9:16 · 720x1280', google_ads: '16:9 · 1344x768', telegram: '16:9 · 1280x720',
+                    email: '16:9 · 1280x720', sms: '9:16 · 720x1280'
+                  };
 
                   if (channel === 'whatsapp') return (
                     <div>
+                      <MediaToggle />
                       <div className="w-full max-w-[340px] mx-auto">
                         <div className="bg-[#075E54] rounded-t-xl px-3 py-2 flex items-center gap-2">
                           <ChevronLeft size={14} className="text-white/70" />
@@ -640,7 +659,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         </div>
                         <div className="bg-[#0B141A] px-2.5 py-3 min-h-[200px] rounded-b-xl">
                           <div className="max-w-[85%] ml-auto">
-                            {imgSrc && <img src={imgSrc} alt="" className="w-full rounded-lg mb-1" />}
+                            {showChannelVideo && channelVideo ? (
+                              <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-1 aspect-square object-cover" data-testid="whatsapp-video" />
+                            ) : imgSrc ? (
+                              <img src={imgSrc} alt="" className="w-full rounded-lg mb-1 aspect-square object-cover" />
+                            ) : null}
                             <div className="bg-[#005C4B] rounded-xl rounded-tr-none px-3 py-2">
                               <p className="text-[9px] text-[#E9EDEF] leading-relaxed whitespace-pre-wrap line-clamp-[12]">{copyText_ch}</p>
                               <p className="text-[6px] text-[#ffffff40] text-right mt-1">10:30 ✓✓</p>
@@ -648,98 +671,184 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           </div>
                         </div>
                       </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.whatsapp}</p>
                     </div>
                   );
 
                   if (channel === 'instagram') return (
                     <div>
+                      <MediaToggle />
                       <div className="w-full max-w-[340px] mx-auto bg-black rounded-xl overflow-hidden border border-[#262626]">
                         <div className="flex items-center gap-2 px-3 py-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
                             <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[7px] text-white font-bold">{brandName[0]}</div>
                           </div>
-                          <p className="text-[10px] font-semibold text-white flex-1">{brandName.toLowerCase().replace(/\s+/g, '')}</p>
+                          <p className="text-[10px] font-semibold text-white flex-1">{handle}</p>
                           <MoreHorizontal size={12} className="text-white/50" />
                         </div>
-                        {imgSrc && <img src={imgSrc} alt="" className="w-full aspect-square object-cover" />}
+                        {showChannelVideo && channelVideo ? (
+                          <video src={channelVideo} controls playsInline className="w-full aspect-square object-cover" data-testid="instagram-video" />
+                        ) : imgSrc ? (
+                          <img src={imgSrc} alt="" className="w-full aspect-square object-cover" />
+                        ) : null}
                         <div className="px-3 py-2">
                           <div className="flex items-center gap-3 mb-1.5">
-                            <Heart size={18} className="text-white" />
-                            <MessageCircle size={18} className="text-white" />
-                            <Send size={18} className="text-white" />
-                            <Bookmark size={18} className="text-white ml-auto" />
+                            <Heart size={18} className="text-white" /><MessageCircle size={18} className="text-white" /><Send size={18} className="text-white" /><Bookmark size={18} className="text-white ml-auto" />
                           </div>
                           <p className="text-[9px] text-white/60 mb-1">1,247 likes</p>
-                          <p className="text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-6"><span className="font-bold">{brandName.toLowerCase().replace(/\s+/g, '')}</span> {copyText_ch}</p>
+                          <p className="text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-6"><span className="font-bold">{handle}</span> {copyText_ch}</p>
                         </div>
                       </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.instagram}</p>
                     </div>
                   );
 
                   if (channel === 'facebook') return (
                     <div>
+                      <MediaToggle />
                       <div className="w-full max-w-[340px] mx-auto bg-[#242526] rounded-xl overflow-hidden border border-[#3A3B3C]">
                         <div className="flex items-center gap-2 px-3 py-2">
                           <div className="w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center text-[9px] text-white font-bold">{brandName[0]}</div>
-                          <div className="flex-1"><p className="text-[10px] font-semibold text-[#E4E6EB]">{brandName}</p><p className="text-[7px] text-[#B0B3B8]">{labels.sponsored || 'Sponsored'}</p></div>
+                          <div className="flex-1"><p className="text-[10px] font-semibold text-[#E4E6EB]">{brandName}</p><p className="text-[7px] text-[#B0B3B8]">{labels.sponsored || 'Patrocinado'}</p></div>
                           <MoreHorizontal size={12} className="text-[#B0B3B8]" />
                         </div>
                         <p className="px-3 pb-2 text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-4">{copyText_ch}</p>
-                        {imgSrc && <img src={imgSrc} alt="" className="w-full" />}
+                        {showChannelVideo && channelVideo ? (
+                          <video src={channelVideo} controls playsInline className="w-full aspect-video object-cover" data-testid="facebook-video" />
+                        ) : imgSrc ? (
+                          <img src={imgSrc} alt="" className="w-full aspect-video object-cover" />
+                        ) : null}
                         <div className="px-3 py-2 border-t border-[#3A3B3C] flex items-center justify-around">
-                          <span className="text-[9px] text-[#B0B3B8]">Like</span>
-                          <span className="text-[9px] text-[#B0B3B8]">Comment</span>
-                          <span className="text-[9px] text-[#B0B3B8] flex items-center gap-0.5"><Share2 size={10} /> Share</span>
+                          <span className="text-[9px] text-[#B0B3B8]">Curtir</span>
+                          <span className="text-[9px] text-[#B0B3B8]">Comentar</span>
+                          <span className="text-[9px] text-[#B0B3B8] flex items-center gap-0.5"><Share2 size={10} /> Compartilhar</span>
                         </div>
                       </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.facebook}</p>
                     </div>
                   );
 
                   if (channel === 'tiktok') return (
                     <div>
-                      <div className="w-full max-w-[260px] mx-auto bg-black rounded-xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16', maxHeight: 420}}>
-                        {imgSrc && <img src={imgSrc} alt="" className="w-full h-full object-cover absolute inset-0" />}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-10 p-3">
-                          <p className="text-[10px] font-bold text-white mb-1">@{brandName.toLowerCase().replace(/\s+/g, '')}</p>
-                          <p className="text-[8px] text-white/90 leading-relaxed line-clamp-4">{copyText_ch}</p>
-                          <p className="text-[7px] text-white/50 mt-1">#marketing #ia #agentZZ</p>
-                        </div>
-                        <div className="absolute right-2 bottom-16 flex flex-col items-center gap-3">
-                          <div className="flex flex-col items-center"><Heart size={20} className="text-white" /><span className="text-[7px] text-white">24.5K</span></div>
-                          <div className="flex flex-col items-center"><MessageCircle size={20} className="text-white" /><span className="text-[7px] text-white">1,234</span></div>
-                          <div className="flex flex-col items-center"><Share2 size={20} className="text-white" /><span className="text-[7px] text-white">892</span></div>
-                        </div>
+                      <MediaToggle />
+                      <div className="w-full max-w-[240px] mx-auto bg-black rounded-2xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16'}}>
+                        {showChannelVideo && channelVideo ? (
+                          <video src={channelVideo} controls playsInline className="w-full h-full object-cover absolute inset-0" data-testid="tiktok-video" />
+                        ) : imgSrc ? (
+                          <img src={imgSrc} alt="" className="w-full h-full object-cover absolute inset-0" />
+                        ) : null}
+                        {!showChannelVideo && <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-10 p-3">
+                            <p className="text-[10px] font-bold text-white mb-1">@{handle}</p>
+                            <p className="text-[8px] text-white/90 leading-relaxed line-clamp-3">{copyText_ch.substring(0, 150)}</p>
+                            <p className="text-[7px] text-white/50 mt-1">#marketing #ia #agentZZ</p>
+                          </div>
+                          <div className="absolute right-2 bottom-20 flex flex-col items-center gap-3">
+                            <div className="flex flex-col items-center"><Heart size={18} className="text-white" /><span className="text-[6px] text-white">24.5K</span></div>
+                            <div className="flex flex-col items-center"><MessageCircle size={18} className="text-white" /><span className="text-[6px] text-white">1,234</span></div>
+                            <div className="flex flex-col items-center"><Share2 size={18} className="text-white" /><span className="text-[6px] text-white">892</span></div>
+                          </div>
+                        </>}
                       </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.tiktok}</p>
                     </div>
                   );
 
                   if (channel === 'google_ads') return (
                     <div>
+                      <MediaToggle />
                       <div className="w-full max-w-[340px] mx-auto space-y-2">
                         <div className="bg-white rounded-xl overflow-hidden border border-[#ddd] p-3">
                           <div className="flex items-center gap-1 mb-1">
                             <span className="text-[8px] font-bold text-[#202124] bg-[#f1f3f4] px-1.5 py-0.5 rounded">Ad</span>
                             <span className="text-[9px] text-[#202124]">·</span>
-                            <span className="text-[9px] text-[#202124]">{brandName.toLowerCase().replace(/\s+/g, '')}.com</span>
+                            <span className="text-[9px] text-[#202124]">{handle}.com</span>
                           </div>
-                          <p className="text-[12px] font-medium text-[#1a0dab] leading-tight mb-0.5">{copyText_ch.split('\n')[0]?.substring(0, 60) || brandName} | {labels.cta || 'Start Now'}</p>
+                          <p className="text-[12px] font-medium text-[#1a0dab] leading-tight mb-0.5">{copyText_ch.split('\n')[0]?.substring(0, 60) || brandName}</p>
                           <p className="text-[9px] text-[#4d5156] leading-relaxed line-clamp-2">{copyText_ch.substring(0, 120)}...</p>
                         </div>
-                        {imgSrc && (
-                          <div className="bg-white rounded-xl overflow-hidden border border-[#ddd]">
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#ddd]">
+                          {showChannelVideo && channelVideo ? (
+                            <video src={channelVideo} controls playsInline className="w-full aspect-[1.91/1] object-cover" data-testid="google-ads-video" />
+                          ) : imgSrc ? (
                             <img src={imgSrc} alt="" className="w-full aspect-[1.91/1] object-cover" />
-                            <div className="p-2.5 border-t border-[#eee]">
-                              <div className="flex items-center gap-1 mb-0.5">
-                                <span className="text-[7px] font-bold text-white bg-[#FBBC04] px-1 py-0.5 rounded">Ad</span>
-                                <span className="text-[8px] text-[#70757a]">{brandName.toLowerCase().replace(/\s+/g, '')}.com</span>
-                              </div>
-                              <p className="text-[10px] font-medium text-[#202124] line-clamp-1">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
-                              <p className="text-[8px] text-[#70757a] line-clamp-1">{labels.learnMore || 'Learn more about'} {brandName}</p>
+                          ) : null}
+                          <div className="p-2.5 border-t border-[#eee]">
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <span className="text-[7px] font-bold text-white bg-[#FBBC04] px-1 py-0.5 rounded">Ad</span>
+                              <span className="text-[8px] text-[#70757a]">{handle}.com</span>
                             </div>
+                            <p className="text-[10px] font-medium text-[#202124] line-clamp-1">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
                           </div>
-                        )}
+                        </div>
                       </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.google_ads}</p>
+                    </div>
+                  );
+
+                  if (channel === 'telegram') return (
+                    <div>
+                      <MediaToggle />
+                      <div className="w-full max-w-[340px] mx-auto">
+                        <div className="bg-[#17212B] rounded-t-xl px-3 py-2 flex items-center gap-2">
+                          <ChevronLeft size={14} className="text-[#6AB2F2]" />
+                          <div className="w-6 h-6 rounded-full bg-[#6AB2F2] flex items-center justify-center text-[8px] text-white font-bold">{brandName[0]}</div>
+                          <div className="flex-1"><p className="text-[10px] font-semibold text-white">{brandName}</p><p className="text-[7px] text-[#6AB2F2]">canal</p></div>
+                        </div>
+                        <div className="bg-[#0E1621] px-2.5 py-3 rounded-b-xl">
+                          {showChannelVideo && channelVideo ? (
+                            <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-2 aspect-video object-cover" data-testid="telegram-video" />
+                          ) : imgSrc ? (
+                            <img src={imgSrc} alt="" className="w-full rounded-lg mb-2 aspect-video object-cover" />
+                          ) : null}
+                          <div className="bg-[#182533] rounded-xl px-3 py-2">
+                            <p className="text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-[8]">{copyText_ch}</p>
+                            <p className="text-[6px] text-[#6AB2F2] text-right mt-1">10:30</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.telegram}</p>
+                    </div>
+                  );
+
+                  if (channel === 'email') return (
+                    <div>
+                      <MediaToggle />
+                      <div className="w-full max-w-[340px] mx-auto bg-white rounded-xl overflow-hidden border border-[#ddd]">
+                        <div className="bg-[#f8f9fa] px-3 py-2 border-b border-[#eee]">
+                          <p className="text-[8px] text-[#5f6368]">De: {brandName} &lt;contato@{handle}.com&gt;</p>
+                          <p className="text-[10px] font-semibold text-[#202124] mt-0.5">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
+                        </div>
+                        {showChannelVideo && channelVideo ? (
+                          <video src={channelVideo} controls playsInline className="w-full aspect-video object-cover" data-testid="email-video" />
+                        ) : imgSrc ? (
+                          <img src={imgSrc} alt="" className="w-full aspect-video object-cover" />
+                        ) : null}
+                        <div className="px-3 py-3">
+                          <p className="text-[9px] text-[#202124] leading-relaxed whitespace-pre-wrap line-clamp-6">{copyText_ch}</p>
+                          <button className="mt-2 px-4 py-1.5 bg-[#C9A84C] text-white text-[9px] font-semibold rounded-lg">{labels.cta || 'Saiba Mais'}</button>
+                        </div>
+                      </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.email}</p>
+                    </div>
+                  );
+
+                  if (channel === 'sms') return (
+                    <div>
+                      <div className="w-full max-w-[260px] mx-auto bg-[#1C1C1E] rounded-2xl overflow-hidden border border-[#333]">
+                        <div className="bg-[#2C2C2E] px-3 py-2 text-center">
+                          <p className="text-[10px] font-semibold text-white">{brandName}</p>
+                          <p className="text-[7px] text-[#8E8E93]">SMS</p>
+                        </div>
+                        <div className="px-3 py-3 min-h-[150px]">
+                          <div className="max-w-[85%] bg-[#3A3A3C] rounded-2xl rounded-tl-none px-3 py-2">
+                            <p className="text-[9px] text-white leading-relaxed whitespace-pre-wrap line-clamp-[10]">{copyText_ch}</p>
+                            <p className="text-[6px] text-[#8E8E93] text-right mt-1">10:30</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.sms}</p>
                     </div>
                   );
 

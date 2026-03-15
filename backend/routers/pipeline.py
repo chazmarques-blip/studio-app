@@ -828,6 +828,115 @@ async def _create_platform_variants(pipeline_id: str, base_image_urls: list, pla
     return variants
 
 
+# Video format definitions per platform
+VIDEO_PLATFORM_FORMATS = {
+    "tiktok": {"w": 720, "h": 1280, "label": "9:16"},
+    "instagram": {"w": 1080, "h": 1080, "label": "1:1"},
+    "facebook": {"w": 1280, "h": 720, "label": "16:9"},
+    "whatsapp": {"w": 720, "h": 720, "label": "1:1"},
+    "google_ads": {"w": 1280, "h": 720, "label": "16:9"},
+    "telegram": {"w": 1280, "h": 720, "label": "16:9"},
+    "email": {"w": 1280, "h": 720, "label": "16:9"},
+    "sms": {"w": 720, "h": 1280, "label": "9:16"},
+}
+
+
+async def _create_video_variants(pipeline_id: str, master_video_url: str, master_format: str, platforms: list) -> dict:
+    """Create platform-specific video variants by cropping/resizing the master video.
+    Returns dict: { "tiktok": "url", "instagram": "url", ... }
+    """
+    import urllib.request as urlreq
+
+    # Download master video
+    master_path = f"/tmp/{pipeline_id}_master_vid.mp4"
+    try:
+        urlreq.urlretrieve(master_video_url, master_path)
+    except Exception as e:
+        logger.warning(f"Failed to download master video for variants: {e}")
+        return {}
+
+    # Get master dimensions
+    probe = subprocess.run(
+        f"ffprobe -v error -show_entries stream=width,height -of csv=p=0:s=x {master_path}",
+        shell=True, capture_output=True, text=True, timeout=10
+    )
+    if not probe.stdout.strip():
+        return {}
+    master_w, master_h = [int(x) for x in probe.stdout.strip().split("x")]
+
+    variants = {}
+    # Group by unique target size to avoid duplicate processing
+    done_sizes = {}  # "WxH" -> url
+
+    for platform in platforms:
+        fmt = VIDEO_PLATFORM_FORMATS.get(platform)
+        if not fmt:
+            variants[platform] = master_video_url
+            continue
+
+        tw, th = fmt["w"], fmt["h"]
+        size_key = f"{tw}x{th}"
+
+        # Skip if master is already this size
+        if abs(master_w - tw) < 10 and abs(master_h - th) < 10:
+            variants[platform] = master_video_url
+            continue
+
+        # Reuse if already generated this size
+        if size_key in done_sizes:
+            variants[platform] = done_sizes[size_key]
+            continue
+
+        # Create variant via FFmpeg crop + scale
+        output_path = f"/tmp/{pipeline_id}_vid_{platform}.mp4"
+        target_ratio = tw / th
+        master_ratio = master_w / master_h
+
+        if abs(master_ratio - target_ratio) < 0.05:
+            # Same ratio, just scale
+            vf = f"scale={tw}:{th}"
+        elif master_ratio > target_ratio:
+            # Master is wider → crop sides (e.g., 16:9 → 9:16 or 1:1)
+            crop_w = int(master_h * target_ratio)
+            crop_x = (master_w - crop_w) // 2
+            vf = f"crop={crop_w}:{master_h}:{crop_x}:0,scale={tw}:{th}"
+        else:
+            # Master is taller → crop top/bottom
+            crop_h = int(master_w / target_ratio)
+            crop_y = (master_h - crop_h) // 2
+            vf = f"crop={master_w}:{crop_h}:0:{crop_y},scale={tw}:{th}"
+
+        cmd = [
+            FFMPEG_PATH, "-y", "-i", master_path,
+            "-vf", vf,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart",
+            output_path
+        ]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        if r.returncode == 0 and os.path.exists(output_path):
+            with open(output_path, "rb") as f:
+                video_bytes = f.read()
+            filename = f"videos/{pipeline_id}_{platform}_{size_key}.mp4"
+            url = _upload_to_storage(video_bytes, filename, "video/mp4")
+            variants[platform] = url
+            done_sizes[size_key] = url
+            logger.info(f"Created video variant: {platform} ({size_key})")
+            os.remove(output_path)
+        else:
+            variants[platform] = master_video_url
+            logger.warning(f"Video variant failed for {platform}: {r.stderr[:100] if r.stderr else ''}")
+
+    try:
+        os.remove(master_path)
+    except Exception:
+        pass
+
+    return variants
+
+
+
 async def _generate_design_images(pipeline_id, lucas_output, platforms):
     """Parse Lucas's optimized prompts and generate images with Nano Banana"""
     pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
@@ -2073,6 +2182,16 @@ async def _execute_step(pipeline_id, step):
             steps[step]["video_format"] = video_format
             steps[step]["video_duration"] = 24
             steps[step]["video_size"] = size
+
+            # Generate per-channel video variants (crop/resize from master)
+            if video_url:
+                try:
+                    video_variants = await _create_video_variants(pipeline_id, video_url, video_format, pipeline.get("platforms", []))
+                    steps[step]["video_variants"] = video_variants
+                    logger.info(f"Created video variants for {len(video_variants)} platforms")
+                except Exception as vv_err:
+                    logger.warning(f"Failed to create video variants: {vv_err}")
+
             if not video_url:
                 logger.warning(f"Commercial video generation failed for pipeline {pipeline_id}, continuing pipeline")
             steps[step]["status"] = "completed"
@@ -2109,6 +2228,7 @@ async def _execute_step(pipeline_id, step):
                             "images": [u for u in image_urls if u],
                             "platform_variants": platform_variants,
                             "video_url": video_url,
+                            "video_variants": steps.get("marcos_video", {}).get("video_variants", {}),
                             "pipeline_id": pipeline_id,
                         },
                         "created_by": pipeline.get("tenant_id"),
