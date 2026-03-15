@@ -1,79 +1,80 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-AgentZZ is a comprehensive, mobile-first, no-code SaaS platform for businesses to deploy AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS). Features omnichannel inbox, AI-powered marketing campaigns, CRM, and multi-language support.
+Build "AgentZZ," a comprehensive, mobile-first, no-code SaaS platform for SMBs to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS). Features include an AI Marketing Studio with multi-agent video/image generation pipeline, omnichannel inbox, CRM, and admin system.
 
-## Core Architecture
-- **Frontend:** React + Tailwind CSS + shadcn-ui + Framer Motion + recharts
-- **Backend:** FastAPI (Python)
-- **Database:** Supabase (PostgreSQL) + MongoDB (flexible-schema features)
-- **AI Models:** Claude Sonnet 4.5 (text), Gemini Nano Banana (image), Sora 2 (video), OpenAI TTS HD (narration)
-- **Video Processing:** FFmpeg (crossfade, audio mixing, logo overlay)
+## Architecture
+- **Frontend**: React + Tailwind CSS + shadcn-ui + Lucide Icons + Framer Motion + recharts
+- **Backend**: FastAPI (Python)
+- **Database**: Supabase (PostgreSQL) + MongoDB for flexible-schema features
+- **3rd Party**: Claude Sonnet 4.5, Gemini Nano Banana, Sora 2, OpenAI TTS, Google APIs, FFmpeg
+- **Auth**: Supabase Auth
+- **Storage**: Supabase Storage
 
-## Implemented Features
+## What's Been Implemented
 
-### Phase 1-5: Core Platform (Complete)
-- User auth, Dashboard, Agent Management, Marketplace
-- Agent Configuration with Google Calendar/Sheets integration
-- CRM with Kanban board, Multi-language UI (EN, PT, ES)
+### Core Platform
+- Landing page with pricing, auth system, dashboard with recharts analytics
+- Agent management with marketplace, configuration, Google Calendar/Sheets integration
+- CRM with Kanban board, multi-language support (EN/PT/ES)
+- Dark luxury theme (monochrome gold/black/white)
 
-### Phase 6: Google Integration (Complete)
+### AI Marketing Studio (Phase 7) - COMPLETE
+- Multi-agent pipeline: Sofia (Copy) → Ana (Reviewer) → Lucas (Design) → Rafael (Ad Manager) → Marcos (Video) → Pedro (Publisher)
+- Image generation via Gemini Nano Banana with language-enforced prompts
+- Video generation via Sora 2 (2 clips × 12s = 23s with crossfade) + TTS narration + FFmpeg mixing
+- Background music library: 25 royalty-free tracks in 9 categories (General, Pop, Hip-Hop, Electronic, Latin, Rock, Jazz, Ambient, Other)
+- Enhanced questionnaire with selectable fields: Gender, Age Range, Social Class, Lifestyle, Pain Points, Visual Style
+- Campaign Content tab with video player, format badges per channel, and "Generate Video" button for retry
+- Full internationalization (EN/PT/ES) including all UI text, agent prompts, and Google Ads previews
+- Company contact info fields (phone, email, website, address)
+- Adaptive media formats per channel
 
-### Phase 7: AI Marketing Studio (Complete)
-- Multi-agent pipeline: Sofia → Ana → Lucas → Rafael → Marcos → Pedro
+### Recent Fixes (March 14, 2026)
+- Fixed video not appearing in campaign Content tab (auto-link to campaign after generation)
+- Fixed FFmpeg not found (installed + absolute path /usr/bin/ffmpeg)
+- Fixed video duration (12s → 23s, crossfade combining was silently failing)
+- Fixed logo overlay (relative URL → absolute URL for download)
+- Fixed hardcoded Portuguese text in Google Ads and Facebook previews (Patrocinado → Sponsored)
+- Added CSS fullscreen fix for video player in modals
+- Strengthened language enforcement in ALL agent prompts (MANDATORY LANGUAGE RULE)
+- Added format badges per channel (WhatsApp 1:1, TikTok 9:16, Facebook 16:9, Google Ads 1.91:1)
+- Created PUT /api/campaigns/{id}/video endpoint for manual video linking
+- Created POST /api/campaigns/pipeline/{id}/regenerate-video endpoint
 
-### Video Pipeline V7 (Mar 14, 2026)
-- 2x 12s Sora 2 clips with crossfade (23s total)
-- TTS narration (Nova voice, 1.08x) — cleaned of [SILENCE] stage directions
-- REAL background music (royalty-free from Pixabay CDN, resampled 44100Hz stereo)
-- Brand logo overlay: fully opaque black bg, logo 240px centered
-- Contact: (321) 960-2080 | mytruckflorida.com
+## Prioritized Backlog
 
-### P0: Company Info Fields (Complete)
-- 4 fields: Phone, Website, Email, Address
-- Passed to agent pipeline for CTA personalization
+### P0 (Critical)
+- None currently
 
-### P1: Adaptive Media Formats (Complete)
-- 8 platforms with imgRatio/vidRatio/imgSize/vidSize
-- 9:16 (TikTok/Instagram), 16:9 (Google Ads), 1:1 (Facebook)
-- media_formats sent to backend → injected in agent prompts
+### P1 (High)
+- Phase 8: Omnichannel Integrations (WhatsApp Evolution API, SMS Twilio, Instagram, Facebook, Telegram)
+- Admin Management System (full admin dashboard)
+- Payment Gateway Integration (Stripe)
 
-### P2: Music Library (Complete)
-- 5 real tracks: Upbeat, Energetic, Emotional, Cinematic, Corporate
-- UI: Selectable list with play/pause preview buttons
-- API: GET /api/campaigns/pipeline/music-library (list tracks)
-- API: GET /api/campaigns/pipeline/music-preview/{id} (stream audio)
-- Pipeline: selected_music field → overrides AI mood selection
-- Mood mapping in _combine_commercial_video for auto-selection
+### P2 (Medium)
+- Creative Gallery (browse/reuse generated assets)
+- Advanced Video AI Evaluation (Runway Gen-3, Google Veo, Kling)
+- Refactor pipeline.py (~2000 lines → smaller modules)
 
-### i18n Full Translation (Complete)
-- Marketing.jsx: L(lang) with EN/PT/ES
-- PipelineView.jsx: t() with 70+ studio.* keys
-- FinalPreview.jsx: t() for all buttons
+### P3 (Low)
+- Mobile App (Capacitor)
+- Terms of Use / Privacy Policy
+- Scalability hardening
 
-## Test User
-- Email: test@agentflow.com / Password: password123 / Plan: Enterprise
-
-## User Verification Pending
-- V7 Video: https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/new_v7_commercial.mp4
-
-## Future Tasks
-- Creative Gallery for asset reuse
-- Affiliate Program / Viral Loop
-- Evaluate advanced video AI (Runway Gen-3, Google Veo, Kling)
-- Mobile app (Capacitor)
-- Admin Management System
-- Payment gateway (Stripe)
-- Omnichannel live integrations
-- pipeline.py refactoring (~2000 lines → modules)
-
-## Key Files
-- /app/backend/routers/pipeline.py - Core AI pipeline
-- /app/frontend/src/pages/Marketing.jsx - Campaign hub
-- /app/frontend/src/components/PipelineView.jsx - AI Studio UI
-- /app/backend/assets/music/ - 5 music tracks
-- /app/backend/assets/brand_logo.png - My Truck logo
+## Key API Endpoints
+- POST /api/pipeline/create - Start campaign generation
+- GET /api/campaigns/pipeline/music-library - List 25 music tracks
+- GET /api/campaigns/pipeline/music-preview/{track_id} - Preview music
+- PUT /api/campaigns/{id}/video - Link video to campaign
+- POST /api/campaigns/pipeline/{id}/regenerate-video - Regenerate video
+- GET /api/campaigns - List all campaigns
+- GET /api/campaigns/{id} - Get campaign detail
 
 ## Test Reports
-- /app/test_reports/iteration_27.json (100% pass)
-- /app/test_reports/iteration_28.json (100% pass - music library verified)
+- /app/test_reports/iteration_28.json (i18n + music library - 100% pass)
+- /app/test_reports/iteration_29.json (questionnaire + music + content tab - 100% pass)
+
+## Credentials
+- Email: test@agentflow.com
+- Password: password123
