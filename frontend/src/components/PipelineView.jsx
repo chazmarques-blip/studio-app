@@ -893,6 +893,7 @@ export default function PipelineView({ context }) {
   const [showContact, setShowContact] = useState(false);
   const [uploadedAssets, setUploadedAssets] = useState([]);
   const [showFinalPreview, setShowFinalPreview] = useState(false);
+  const [skipVideo, setSkipVideo] = useState(false);
   const [savedLogos, setSavedLogos] = useState([]);
   const [savedBriefings, setSavedBriefings] = useState([]);
   const [musicLibrary, setMusicLibrary] = useState([]);
@@ -1054,6 +1055,7 @@ export default function PipelineView({ context }) {
         uploaded_assets: assetPayload,
         media_formats: mediaFormats,
         selected_music: selectedMusic || '',
+        skip_video: skipVideo,
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1650,6 +1652,22 @@ export default function PipelineView({ context }) {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Video Option */}
+        <div className="flex items-center gap-2 py-1">
+          <button
+            data-testid="skip-video-toggle"
+            onClick={() => setSkipVideo(!skipVideo)}
+            className={`w-8 h-4 rounded-full transition-all relative ${skipVideo ? 'bg-[#C9A84C]/40' : 'bg-[#1E1E1E]'}`}>
+            <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${skipVideo ? 'right-0.5 bg-[#C9A84C]' : 'left-0.5 bg-[#555]'}`} />
+          </button>
+          <span className="text-[10px] text-[#888]">
+            {skipVideo
+              ? (i18n.language === 'pt' ? 'Campanha sem video (mais rapido)' : i18n.language === 'es' ? 'Campana sin video (mas rapido)' : 'Campaign without video (faster)')
+              : (i18n.language === 'pt' ? 'Gerar video comercial' : i18n.language === 'es' ? 'Generar video comercial' : 'Generate commercial video')
+            }
+          </span>
         </div>
 
         {/* Mode */}

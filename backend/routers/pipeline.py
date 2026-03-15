@@ -323,8 +323,14 @@ YOUR ART DIRECTION CRITERIA:
 5. BRAND DNA (1-10): Does the visual language feel ownable by THIS brand? Would you recognize it without a logo?
 6. CONVERSION ARCHITECTURE (1-10): Is the visual hierarchy guiding the eye to the message? Does it create desire that leads to action?
 7. PLATFORM MASTERY (1-10): Is it optimized for each platform's unique visual language? (Instagram = aspirational, WhatsApp = personal, Facebook = social proof)
+8. FORMAT COMPATIBILITY (1-10) — **CRITICAL NEW CHECK**:
+   - Are ALL text elements (headline, subheadline, CTA) fully readable and NOT cut off in every target format?
+   - For VERTICAL formats (TikTok 9:16, SMS): Text must be centered horizontally, NOT near the edges. The image will be center-cropped from 1:1, so left/right edges WILL be cropped. Any text within 20% of the left or right edge will be CUT OFF.
+   - For HORIZONTAL formats (Facebook 16:9, Google Ads): Text must be vertically centered. Top/bottom edges will be cropped.
+   - Are the main subjects centered enough to survive cropping to ALL target aspect ratios (1:1, 9:16, 16:9)?
+   - If ANY text would be cut off or unreadable after cropping, this is an AUTOMATIC FAIL for FORMAT COMPATIBILITY — score 0 and REQUEST REVISION with specific notes about which elements need repositioning.
 
-QUALITY THRESHOLD: A design PASSES if it scores 7+ on at least 5 of 7 criteria.
+QUALITY THRESHOLD: A design PASSES if it scores 7+ on at least 5 of 8 criteria. FORMAT COMPATIBILITY must score at least 6 to pass.
 
 YOUR DECISION PROCESS:
 After reviewing all 3 design concepts, you MUST make a DECISION:
@@ -609,6 +615,7 @@ class PipelineCreate(BaseModel):
     uploaded_assets: Optional[list] = []
     media_formats: Optional[dict] = {}
     selected_music: Optional[str] = ""  # mood key: upbeat, energetic, emotional, cinematic, corporate
+    skip_video: Optional[bool] = False  # Flag to skip video generation (faster campaign creation)
 
 
 class PipelineApprove(BaseModel):
@@ -1394,11 +1401,25 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
 
     clip2_path = _generate_video_clip_sync(clip2_prompt, pipeline_id, "clip2", size)
     if not clip2_path:
-        logger.error(f"Clip 2 failed for pipeline {pipeline_id}")
-        with open(clip1_path, "rb") as f:
-            video_bytes = f.read()
-        filename = f"videos/{pipeline_id}_commercial.mp4"
-        return _upload_to_storage(video_bytes, filename, "video/mp4")
+        # Retry clip2 with simplified prompt before giving up
+        logger.warning(f"Clip 2 first attempt failed, retrying with simplified prompt...")
+        simplified_clip2 = f"Cinematic commercial continuation: {clip2_prompt[:200]}. Professional lighting, smooth camera movement."
+        clip2_path = _generate_video_clip_sync(simplified_clip2, pipeline_id, "clip2", size)
+
+    if not clip2_path:
+        # Last resort: duplicate clip1 to maintain 24-second duration
+        logger.warning(f"Clip 2 failed completely. Duplicating clip1 to maintain 24s duration.")
+        clip2_path = f"/tmp/{pipeline_id}_clip2.mp4"
+        # Create a reversed version of clip1 for visual variation
+        r = subprocess.run(
+            [FFMPEG_PATH, "-y", "-i", clip1_path, "-vf", "reverse", "-af", "areverse", "-c:v", "libx264", "-preset", "fast", clip2_path],
+            capture_output=True, timeout=60
+        )
+        if r.returncode != 0 or not os.path.exists(clip2_path):
+            # If reverse fails, just copy clip1
+            import shutil
+            shutil.copy2(clip1_path, clip2_path)
+            logger.warning("Reverse failed, using clip1 copy as clip2")
 
     # 3. Check for uploaded logo image
     logo_path = None
@@ -2139,62 +2160,73 @@ async def _execute_step(pipeline_id, step):
 
         # Generate video for Marcos's video step
         elif step == "marcos_video":
-            # Validate narration script language before generating
-            camp_lang = pipeline.get("result", {}).get("campaign_language", "")
-            if camp_lang:
-                narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===', response, re.IGNORECASE)
-                if not narr_match:
-                    narr_match = re.search(r'NARRATION SCRIPT[:\s]*([\s\S]*?)(?:===|MUSIC DIRECTION)', response, re.IGNORECASE)
-                if narr_match:
-                    narr_text = narr_match.group(1).strip()
-                    LANG_NAMES_V = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
-                    expected_lang = LANG_NAMES_V.get(camp_lang, camp_lang)
-                    logger.info(f"Video narration language validation: expected={expected_lang}, checking script ({len(narr_text)} chars)")
+            # Check skip_video flag
+            skip_video = pipeline.get("result", {}).get("skip_video", False)
+            if skip_video:
+                logger.info(f"Skipping video generation for pipeline {pipeline_id} (skip_video=True)")
+                steps[step]["output"] = response
+                steps[step]["status"] = "completed"
+                steps[step]["video_url"] = None
+                steps[step]["video_format"] = "horizontal"
+                steps[step]["video_duration"] = 0
+                steps[step]["skipped"] = True
+            else:
+                # Validate narration script language before generating
+                camp_lang = pipeline.get("result", {}).get("campaign_language", "")
+                if camp_lang:
+                    narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===', response, re.IGNORECASE)
+                    if not narr_match:
+                        narr_match = re.search(r'NARRATION SCRIPT[:\s]*([\s\S]*?)(?:===|MUSIC DIRECTION)', response, re.IGNORECASE)
+                    if narr_match:
+                        narr_text = narr_match.group(1).strip()
+                        LANG_NAMES_V = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
+                        expected_lang = LANG_NAMES_V.get(camp_lang, camp_lang)
+                        logger.info(f"Video narration language validation: expected={expected_lang}, checking script ({len(narr_text)} chars)")
 
-            # Parse video format from output
-            video_format = "horizontal"
-            format_match = re.search(r'Format:\s*(vertical|horizontal)', response, re.IGNORECASE)
-            if format_match:
-                video_format = format_match.group(1).lower()
+                # Parse video format from output
+                video_format = "horizontal"
+                format_match = re.search(r'Format:\s*(vertical|horizontal)', response, re.IGNORECASE)
+                if format_match:
+                    video_format = format_match.group(1).lower()
 
-            platforms = pipeline.get("platforms") or []
-            # Sora 2 valid sizes: 720x1280, 1280x720
-            FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
-            if not format_match:
-                if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
-                    video_format = "vertical"
-                elif any(p in platforms for p in ["google_ads", "facebook"]):
-                    video_format = "horizontal"
-            size = FORMAT_MAP.get(video_format, "1280x720")
+                platforms = pipeline.get("platforms") or []
+                # Sora 2 valid sizes: 720x1280, 1280x720
+                FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
+                if not format_match:
+                    if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
+                        video_format = "vertical"
+                    elif any(p in platforms for p in ["google_ads", "facebook"]):
+                        video_format = "horizontal"
+                size = FORMAT_MAP.get(video_format, "1280x720")
 
-            # Update status to generating_video
-            steps[step]["output"] = response
-            steps[step]["status"] = "generating_video"
-            supabase.table("pipelines").update({
-                "steps": steps,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }).eq("id", pipeline_id).execute()
+                # Update status to generating_video
+                steps[step]["output"] = response
+                steps[step]["status"] = "generating_video"
+                supabase.table("pipelines").update({
+                    "steps": steps,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }).eq("id", pipeline_id).execute()
 
-            # Generate the full commercial (2 clips + narration + crossfade + brand logo)
-            user_music = pipeline.get("result", {}).get("selected_music", "")
-            video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music)
-            steps[step]["video_url"] = video_url
-            steps[step]["video_format"] = video_format
-            steps[step]["video_duration"] = 24
-            steps[step]["video_size"] = size
+                # Generate the full commercial (2 clips + narration + crossfade + brand logo)
+                user_music = pipeline.get("result", {}).get("selected_music", "")
+                video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music)
+                steps[step]["video_url"] = video_url
+                steps[step]["video_format"] = video_format
+                steps[step]["video_duration"] = 24
+                steps[step]["video_size"] = size
 
-            # Generate per-channel video variants (crop/resize from master)
-            if video_url:
-                try:
-                    video_variants = await _create_video_variants(pipeline_id, video_url, video_format, pipeline.get("platforms", []))
-                    steps[step]["video_variants"] = video_variants
-                    logger.info(f"Created video variants for {len(video_variants)} platforms")
-                except Exception as vv_err:
-                    logger.warning(f"Failed to create video variants: {vv_err}")
+                # Generate per-channel video variants (crop/resize from master)
+                if video_url:
+                    try:
+                        video_variants = await _create_video_variants(pipeline_id, video_url, video_format, pipeline.get("platforms", []))
+                        steps[step]["video_variants"] = video_variants
+                        logger.info(f"Created video variants for {len(video_variants)} platforms")
+                    except Exception as vv_err:
+                        logger.warning(f"Failed to create video variants: {vv_err}")
 
-            if not video_url:
-                logger.warning(f"Commercial video generation failed for pipeline {pipeline_id}, continuing pipeline")
-            steps[step]["status"] = "completed"
+                if not video_url:
+                    logger.warning(f"Commercial video generation failed for pipeline {pipeline_id}, continuing pipeline")
+                steps[step]["status"] = "completed"
 
         # Determine next pipeline status
         nxt = _next_step(step)
@@ -2341,6 +2373,7 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
             "campaign_language": data.campaign_language or "",
             "media_formats": data.media_formats or {},
             "selected_music": data.selected_music or "",
+            "skip_video": data.skip_video or False,
         },
     }
 
