@@ -37,14 +37,15 @@ Build "AgentZZ," a no-code SaaS platform for SMBs to deploy AI agents. Features:
 - Root: Lee's prompt didn't receive `lang_instruction`
 - Root: Lee confused briefing language with campaign target language
 - Fix: All prompts now use `result.campaign_language`, Lee explicitly checks CAMPAIGN_LANGUAGE
-- VERIFIED: PT briefing + EN campaign → ALL output in English, images show "FRESH ROASTED. SERIOUSLY GOOD."
+- Further strengthened: lang_instruction moved to top of all prompts with double-reinforcement at bottom
+- VERIFIED: PT briefing + EN campaign → ALL output in English
 
 ### Video Generation (FIXED & VERIFIED)
 - Root: FFmpeg at `/usr/bin/ffmpeg` doesn't exist → use `imageio_ffmpeg.get_ffmpeg_exe()`
 - Root: `text_to_video()` failed silently → split into 3 phases with detailed logging
 - Root: FFmpeg shell quotes corrupted filters → converted to subprocess list args
 - Root: Invalid Sora 2 size `720x1280` → corrected to `1024x1792`
-- VERIFIED: Full video pipeline working (Clip1 6789KB + Clip2 6051KB = 9515KB commercial)
+- VERIFIED: Full video pipeline working
 
 ### Pipeline UI Approval Flow (FIXED)
 - Added VideoApproval component for `rafael_review_video` step
@@ -56,20 +57,33 @@ Build "AgentZZ," a no-code SaaS platform for SMBs to deploy AI agents. Features:
 - Changed from Publisher (scheduling) to Campaign Validator (quality gate)
 - Updated `_build_prompt` to output validation report + traffic team recommendations
 
-## Full Pipeline Test: "Bean and Brew Coffee"
+## VideoLightbox Feature (March 15, 2026) - NEW
+- Added VideoLightbox modal overlay to Marketing.jsx and PipelineView.jsx
+- Expand button (Maximize2 icon) appears on hover over video containers
+- "Expandir" text link also opens lightbox
+- Lightbox features: close button, download link, fullscreen video player with autoplay
+- Applied to: CampaignDetail content tab, PipelineView StepContent, CompletedSummary (preview & video tabs)
+
+## Full Pipeline Test: "Therapeutic & Relaxing Massage"
+- Pipeline ID: 93501df9-b090-455f-8bc5-603952ccfded
+- Campaign ID: 8e238aa0-6ae6-4a7f-a044-7846f764a4e7
 - Briefing: Portuguese | Campaign Language: English
-- David (51s) → Lee (6s) → Stefan (215s) → George (47s) → Ridley (281s) → Roger (13s) → Gary (93s)
-- 3 images with English text, video with narration, platform variants for Instagram (1:1) and Google Ads (16:9)
+- Platforms: All 8 (WhatsApp, Instagram, Facebook, TikTok, Google Ads, Telegram, Email, SMS)
+- David (48.8s) → Lee (3.5s) → Stefan (21s) → George (4.1s) → Ridley (38s) → Roger (3.4s) → Gary (3.2s)
+- 3 images with English text ("Expert Hands. Real Relief."), video with narration (24s horizontal)
+- Platform variants: 1:1 (WhatsApp/Instagram/Facebook/Telegram/SMS), 9:16 (TikTok), 16:9 (Email/Google Ads)
+- Validation Score: 9/10 - APPROVED
 - STATUS: COMPLETED SUCCESSFULLY
 
 ## Prioritized Backlog
-### P0: Integrate AI in Traffic Hub agents (James/Emily/Ryan/Sarah/Mike)
-### P1: Omnichannel integrations, Admin system, Stripe
-### P2: Creative gallery, Refactor pipeline.py (~2500 lines), Logo overlay in video
-### P3: Mobile app, Legal pages
+### P0: Campaign editing (adjust images/texts) + Multi-language cloning
+### P1: Integrate AI in Traffic Hub agents (James/Emily/Ryan/Sarah/Mike)
+### P2: Omnichannel integrations, Admin system, Stripe
+### P3: Creative gallery, Refactor pipeline.py (~2500 lines), Logo overlay in video
+### P4: Mobile app, Legal pages
 
 ## Test Reports
-- /app/test_reports/iteration_31.json, iteration_32.json (100% pass)
+- /app/test_reports/iteration_31.json, iteration_32.json, iteration_33.json (100% pass)
 
 ## Credentials
 - Email: test@agentflow.com | Password: password123
