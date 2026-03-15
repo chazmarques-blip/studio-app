@@ -163,16 +163,20 @@ After reviewing all 3 variations AND the image briefing, you MUST make a DECISIO
 
 IMPORTANT: You are a tough but fair reviewer. Most well-crafted copy should pass. Only request revision if the quality is genuinely below standard.
 
-Format your FINAL decision EXACTLY like this:
+CRITICAL LANGUAGE CHECK: Before ANYTHING else, verify that ALL text content is in the CORRECT campaign language. If the copy or image headline is in the WRONG language, this is an AUTOMATIC REVISION_NEEDED — no exceptions, regardless of how good the creative is otherwise.
+
+Format your FINAL decision EXACTLY like this (you MUST include the DECISION: line):
 
 If approving:
 DECISION: APPROVED
 SELECTED_OPTION: [1, 2, or 3]
 IMAGE_BRIEFING_NOTES: [Any adjustments needed for the image briefing, or "APPROVED" if it's good]
 
-If requesting revision:
+If requesting revision (MUST use this exact format — do NOT use other rejection formats):
 DECISION: REVISION_NEEDED
 REVISION_FEEDBACK: [specific, actionable bullet points for the copywriter to improve — include notes on BOTH copy and image briefing]
+
+WARNING: You MUST ALWAYS include "DECISION: APPROVED" or "DECISION: REVISION_NEEDED" as a separate line in your response. The pipeline system reads this to decide whether to loop back to Sofia. If you omit this line, the pipeline will assume approval even if you found critical errors.
 
 ALWAYS write in the SAME language as the content you are reviewing.""",
 
@@ -988,20 +992,53 @@ def _parse_rafael_design_selections(text, platforms):
 
 
 def _parse_review_decision(text):
-    """Parse DECISION from reviewer output"""
-    match = re.search(r'DECISION:\s*(APPROVED|REVISION_NEEDED)', text, re.IGNORECASE)
+    """Parse DECISION from reviewer output - robust detection"""
+    # 1. Check explicit DECISION tag
+    match = re.search(r'DECISION:\s*(APPROVED|REVISION_NEEDED|REJECTED)', text, re.IGNORECASE)
     if match:
-        return match.group(1).lower().replace(" ", "_")
-    # Fallback: if no explicit decision, assume approved
+        val = match.group(1).lower().replace(" ", "_")
+        return "revision_needed" if val in ("revision_needed", "rejected") else "approved"
+
+    # 2. Detect implicit rejection signals (critical errors found by reviewer)
+    rejection_signals = [
+        r'PROBLEMA\s+CR[ÍI]TICO',
+        r'CRITICAL\s+PROBLEM',
+        r'IDIOMA\s+INCORRECTO|IDIOMA\s+INCORRETO|WRONG\s+LANGUAGE',
+        r'REJECTED|REJEITADO|RECHAZADO',
+        r'REVISION\s*NEEDED|REVIS[AÃ]O\s+NECESS[AÁ]RIA',
+        r'LANGUAGE\s+MISMATCH|LANGUAGE\s+ERROR',
+        r'FUNDAMENTAL\s+ERROR|ERRO\s+FUNDAMENTAL',
+        r'INVALIDATES?\s+(THE\s+)?CAMPAIGN|INVALIDA\s+(A\s+)?CAMPANHA',
+        r'MUST\s+BE\s+REDONE|DEVE\s+SER\s+REFEITO',
+        r'SCORE.*?[0-4]/10',  # Very low score
+    ]
+    text_upper = text.upper()
+    for pattern in rejection_signals:
+        if re.search(pattern, text_upper, re.IGNORECASE):
+            return "revision_needed"
+
+    # 3. Fallback: assume approved if no rejection signals
     return "approved"
 
 
 def _extract_revision_feedback(text):
     """Extract revision feedback from reviewer output"""
+    # Try explicit tag first
     match = re.search(r'REVISION_FEEDBACK:\s*([\s\S]*?)(?=\n\n(?:DECISION|SELECTED)|$)', text, re.IGNORECASE)
-    if match:
+    if match and match.group(1).strip():
         return match.group(1).strip()
-    return "Please improve the overall quality and impact."
+
+    # Try to extract the critical problem description
+    problem_match = re.search(r'(?:PROBLEMA\s+CR[ÍI]TICO|CRITICAL\s+PROBLEM)[:\s]*([\s\S]*?)(?=\n\n|\n[A-Z]{3,}|\Z)', text, re.IGNORECASE)
+    if problem_match and problem_match.group(1).strip():
+        return problem_match.group(1).strip()
+
+    # Extract any section mentioning errors or issues
+    error_match = re.search(r'(?:ERRORS?|ISSUES?|PROBLEMAS?)[:\s]*([\s\S]*?)(?=\n\n[A-Z]|\Z)', text, re.IGNORECASE)
+    if error_match and error_match.group(1).strip():
+        return error_match.group(1).strip()
+
+    return "Quality issues detected. Please improve the copy/design quality, ensure correct language, and fix all identified problems."
 
 
 def _build_prompt(step, pipeline):
@@ -1521,6 +1558,18 @@ async def _execute_step(pipeline_id, step):
 
         # Generate video for Marcos's video step
         elif step == "marcos_video":
+            # Validate narration script language before generating
+            camp_lang = pipeline.get("result", {}).get("campaign_language", "")
+            if camp_lang:
+                narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===', response, re.IGNORECASE)
+                if not narr_match:
+                    narr_match = re.search(r'NARRATION SCRIPT[:\s]*([\s\S]*?)(?:===|MUSIC DIRECTION)', response, re.IGNORECASE)
+                if narr_match:
+                    narr_text = narr_match.group(1).strip()
+                    LANG_NAMES_V = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
+                    expected_lang = LANG_NAMES_V.get(camp_lang, camp_lang)
+                    logger.info(f"Video narration language validation: expected={expected_lang}, checking script ({len(narr_text)} chars)")
+
             # Parse video format from output
             video_format = "horizontal"
             format_match = re.search(r'Format:\s*(vertical|horizontal)', response, re.IGNORECASE)

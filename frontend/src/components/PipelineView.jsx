@@ -778,6 +778,7 @@ export default function PipelineView({ context }) {
   const [savedBriefings, setSavedBriefings] = useState([]);
   const [musicLibrary, setMusicLibrary] = useState([]);
   const [selectedMusic, setSelectedMusic] = useState('');
+  const [musicGenre, setMusicGenre] = useState('All');
   const [playingTrack, setPlayingTrack] = useState(null);
   const audioRef = useRef(null);
   const pollRef = useRef(null);
@@ -1476,34 +1477,36 @@ export default function PipelineView({ context }) {
           )}
         </div>
 
-        {/* Music Library - Compact */}
+        {/* Music Library - Compact with Genre Tabs */}
         {musicLibrary.length > 0 && (
           <div>
             <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.music_library') || 'Background Music (Video)'}</label>
-            {(() => {
-              const categories = [...new Set(musicLibrary.map(t => t.category || 'General'))];
-              return categories.map(cat => (
-                <div key={cat} className="mb-1.5">
-                  <p className="text-[7px] text-[#444] uppercase tracking-wider mb-0.5">{cat}</p>
-                  <div className="space-y-0.5">
-                    {musicLibrary.filter(t => (t.category || 'General') === cat).map(track => (
-                      <div key={track.id} data-testid={`music-${track.id}`}
-                        onClick={() => setSelectedMusic(selectedMusic === track.id ? '' : track.id)}
-                        className={`flex items-center gap-2 rounded-md border px-2 py-1 cursor-pointer transition ${selectedMusic === track.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1A1A1A] hover:border-[#2A2A2A]'}`}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); togglePlayTrack(track.id); }}
-                          className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#888] hover:text-white'}`}>
-                          {playingTrack === track.id ? <span className="text-[6px] font-bold">||</span> : <Play size={8} />}
-                        </button>
-                        <span className="text-[9px] font-medium text-white truncate flex-1">{track.name}</span>
-                        <span className="text-[7px] text-[#444] truncate max-w-[140px]">{track.description}</span>
-                        {selectedMusic === track.id && <Check size={10} className="text-[#C9A84C] shrink-0" />}
-                      </div>
-                    ))}
-                  </div>
+            {/* Genre Tabs */}
+            <div className="flex gap-1 flex-wrap mb-1.5">
+              {['All', ...new Set(musicLibrary.map(t => t.category || 'General'))].map(cat => (
+                <button key={cat} onClick={() => setMusicGenre(cat)}
+                  className={`rounded-md px-2 py-0.5 text-[8px] border transition ${musicGenre === cat ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C] font-semibold' : 'border-[#1A1A1A] text-[#555] hover:text-white'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            {/* Scrollable Track List */}
+            <div className="max-h-[160px] overflow-y-auto space-y-0.5 pr-1" style={{scrollbarWidth:'thin', scrollbarColor:'#333 transparent'}}>
+              {(musicGenre === 'All' ? musicLibrary : musicLibrary.filter(t => (t.category || 'General') === musicGenre)).map(track => (
+                <div key={track.id} data-testid={`music-${track.id}`}
+                  onClick={() => setSelectedMusic(selectedMusic === track.id ? '' : track.id)}
+                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1 cursor-pointer transition ${selectedMusic === track.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1A1A1A] hover:border-[#2A2A2A]'}`}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); togglePlayTrack(track.id); }}
+                    className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#666] hover:text-white'}`}>
+                    {playingTrack === track.id ? <span className="text-[5px] font-bold">||</span> : <Play size={7} />}
+                  </button>
+                  <span className="text-[8px] font-medium text-white truncate flex-1">{track.name}</span>
+                  <span className="text-[7px] text-[#444] truncate max-w-[100px] hidden sm:block">{track.description}</span>
+                  {selectedMusic === track.id && <Check size={9} className="text-[#C9A84C] shrink-0" />}
                 </div>
-              ));
-            })()}
+              ))}
+            </div>
             {selectedMusic && (
               <p className="text-[8px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
                 <Check size={8} /> {t('studio.music_selected') || 'Music selected for video'}
