@@ -2639,22 +2639,15 @@ ALL visible text MUST be in {lang_name}."""
                 steps["lucas_design"] = lucas
                 supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
 
-                # Regenerate platform variants for this image
-                media_formats = pipeline_result.get("media_formats", {})
-                platform_variants = lucas.get("platform_variants", {})
-                for plat in platforms:
-                    fmt = media_formats.get(plat, {})
-                    ratio = fmt.get("imgRatio", "1:1")
-                    if ratio != "1:1":
-                        variant_url = _resize_image_for_platform(new_url, plat, ratio, pipeline_id)
-                        if variant_url:
-                            if plat not in platform_variants:
-                                platform_variants[plat] = list(image_urls)
-                            if data.image_index < len(platform_variants.get(plat, [])):
-                                platform_variants[plat][data.image_index] = variant_url
-                            lucas["platform_variants"] = platform_variants
-                            steps["lucas_design"] = lucas
-                            supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+                # Regenerate ALL platform variants using the updated image list
+                try:
+                    new_variants = await _create_platform_variants(pipeline_id, image_urls, platforms)
+                    lucas["platform_variants"] = new_variants
+                    steps["lucas_design"] = lucas
+                    supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+                    logger.info(f"Platform variants regenerated for pipeline {pipeline_id}")
+                except Exception as ve:
+                    logger.warning(f"Platform variant regeneration failed (non-critical): {ve}")
 
                 # Sync to campaign
                 campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
@@ -2669,7 +2662,7 @@ ALL visible text MUST be in {lang_name}."""
                         logger.info(f"Updated campaign images for pipeline {pipeline_id}")
                         break
 
-                logger.info(f"Image {data.image_index} regenerated: {new_url}")
+                logger.info(f"Image {data.image_index} regenerated successfully: {new_url}")
             else:
                 logger.error(f"Image regeneration returned None for pipeline {pipeline_id}")
         except Exception as e:

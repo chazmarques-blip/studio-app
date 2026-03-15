@@ -377,10 +377,12 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [regenImageIdx, setRegenImageIdx] = useState(null);
   const [regenImageFeedback, setRegenImageFeedback] = useState('');
   const [regenImageLoading, setRegenImageLoading] = useState(false);
+  const [regenCountdown, setRegenCountdown] = useState(0);
 
   const regenerateImage = async (idx) => {
     if (!pipelineId) return;
     setRegenImageLoading(true);
+    setRegenCountdown(30);
     try {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/regenerate-image`, {
         image_index: idx,
@@ -389,14 +391,22 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
       toast.success(labels.regenImageStarted);
       setRegenImageIdx(null);
       setRegenImageFeedback('');
+      // Countdown timer
+      const countdownInterval = setInterval(() => {
+        setRegenCountdown(prev => {
+          if (prev <= 1) { clearInterval(countdownInterval); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
       // Poll for updated image
       const pollInterval = setInterval(() => {
         refreshCampaign();
       }, 5000);
-      setTimeout(() => { clearInterval(pollInterval); setRegenImageLoading(false); }, 60000);
+      setTimeout(() => { clearInterval(pollInterval); setRegenImageLoading(false); setRegenCountdown(0); }, 60000);
     } catch (e) {
       toast.error(e.response?.data?.detail || labels.error);
       setRegenImageLoading(false);
+      setRegenCountdown(0);
     }
   };
 
@@ -813,6 +823,15 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             <Maximize2 size={16} className="text-white" />
                           </div>
                         </button>
+                        {/* Regeneration loading overlay */}
+                        {regenImageLoading && regenImageIdx === null && (
+                          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10">
+                            <RefreshCw size={16} className="text-[#C9A84C] animate-spin mb-1" />
+                            {regenCountdown > 0 && (
+                              <span className="text-[10px] text-[#C9A84C] font-bold">{regenCountdown}s</span>
+                            )}
+                          </div>
+                        )}
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
                           <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
                           <div className="flex items-center gap-1.5">
