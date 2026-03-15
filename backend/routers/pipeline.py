@@ -516,9 +516,24 @@ NARRATION SCRIPT RULES:
 - Write in the SAME LANGUAGE as the campaign copy
 
 MUSIC DIRECTION:
-- Describe the PERFECT background music for this commercial
+- Choose the PERFECT background music for this commercial from the available options
 - The music sets the emotional rhythm. It builds with the narrative.
-- Choose a mood that amplifies the campaign's emotional arc
+- Choose the most appropriate mood keyword that matches both the industry and the emotional arc
+
+AVAILABLE MUSIC MOODS (choose ONE from the Mood field):
+- luxury, elegant, sophisticated → For premium brands, fashion, real estate
+- calm, peaceful, relaxing → For wellness, spa, meditation, healthcare
+- upbeat, happy, fun → For food, restaurants, retail, family brands
+- energetic, exciting, powerful → For sports, fitness, automotive, tech launches
+- cinematic, dramatic, epic → For storytelling brands, luxury, automotive
+- corporate, professional, clean → For B2B, finance, consulting, corporate
+- modern, tech, innovation → For startups, SaaS, technology
+- warm, friendly, cozy → For home services, local businesses, community
+- urban, street, edgy → For streetwear, youth brands, music, nightlife
+- tropical, festive, party → For tourism, events, summer brands
+- soulful, groovy → For lifestyle, culture, beauty
+- indie, creative → For art, design, creative agencies
+- emotional, inspirational → For nonprofits, education, motivational brands
 
 ALWAYS write in the SAME language the user writes to you.
 
@@ -541,7 +556,7 @@ Format your output EXACTLY like this:
 [19-23s]: [SILENCE — music only, logo on screen]
 
 ===MUSIC DIRECTION===
-Mood: [upbeat/emotional/cinematic/energetic/corporate]
+Mood: [choose ONE: luxury/elegant/sophisticated/calm/peaceful/relaxing/upbeat/happy/fun/energetic/exciting/powerful/cinematic/dramatic/epic/corporate/professional/clean/modern/tech/innovation/warm/friendly/cozy/urban/street/edgy/tropical/festive/party/soulful/groovy/indie/creative/emotional/inspirational]
 Description: [2-3 sentences describing the musical arc: instruments, tempo changes, energy progression]
 
 ===CTA SEQUENCE===
@@ -1073,52 +1088,70 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         branded_file = f"/tmp/{pipeline_id}_branded.mp4"
         final_audio = None
 
-        # Check for background music — select by mood
+        # Check for background music — intelligent selection by mood + industry
         music_dir = "/app/backend/assets/music"
         bg_music_path = None
         if os.path.isdir(music_dir):
-            # Mood-to-file mapping
+            # Comprehensive mood-to-file mapping with industry context
             mood_map = {
+                # Direct mood matches
                 "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "exciting": "energetic.mp3",
                 "emotional": "emotional.mp3", "inspirational": "emotional.mp3", "triumphant": "energetic.mp3",
                 "cinematic": "cinematic.mp3", "dramatic": "cinematic.mp3", "epic": "cinematic.mp3",
                 "corporate": "corporate.mp3", "professional": "corporate.mp3", "clean": "corporate.mp3",
+                # Industry-aware moods
+                "luxury": "jazz_smooth.mp3", "elegant": "classical_piano.mp3", "sophisticated": "jazz_smooth.mp3",
+                "relaxing": "ambient_dreamy.mp3", "calm": "ambient_nature.mp3", "peaceful": "ambient_nature.mp3",
+                "modern": "electronic_chill.mp3", "tech": "electronic_chill.mp3", "innovation": "electronic_chill.mp3",
+                "fun": "pop_dance.mp3", "playful": "funk_groove.mp3", "happy": "pop_acoustic.mp3",
+                "urban": "hiphop_boom.mp3", "street": "hiphop_trap.mp3", "edgy": "rock_alternative.mp3",
+                "warm": "pop_acoustic.mp3", "friendly": "country_modern.mp3", "cozy": "jazz_lofi.mp3",
+                "powerful": "rock_alternative.mp3", "bold": "electronic_edm.mp3", "intense": "rock_alternative.mp3",
+                "spiritual": "gospel_uplifting.mp3", "faith": "gospel_uplifting.mp3",
+                "tropical": "latin_salsa.mp3", "festive": "latin_reggaeton.mp3", "party": "latin_reggaeton.mp3",
+                "soulful": "rnb_smooth.mp3", "groovy": "funk_groove.mp3",
+                "global": "world_afrobeat.mp3", "cultural": "world_afrobeat.mp3",
+                "indie": "rock_indie.mp3", "creative": "jazz_lofi.mp3",
             }
-            mood_file = mood_map.get(music_mood, "upbeat.mp3")
+            mood_file = mood_map.get(music_mood.lower().strip(), "corporate.mp3")
             candidate = os.path.join(music_dir, mood_file)
             if os.path.exists(candidate):
                 bg_music_path = candidate
                 logger.info(f"Selected music: {mood_file} (mood: {music_mood})")
             else:
-                # Fallback to any available track
-                music_files = [f for f in os.listdir(music_dir) if f.endswith(('.mp3', '.wav', '.aac'))]
-                if music_files:
-                    bg_music_path = os.path.join(music_dir, music_files[0])
-                    logger.info(f"Fallback music: {music_files[0]}")
+                # Fallback to corporate (neutral and professional)
+                fallback = os.path.join(music_dir, "corporate.mp3")
+                if os.path.exists(fallback):
+                    bg_music_path = fallback
+                else:
+                    music_files = [f for f in os.listdir(music_dir) if f.endswith(('.mp3', '.wav', '.aac'))]
+                    if music_files:
+                        bg_music_path = os.path.join(music_dir, music_files[0])
+                logger.info(f"Fallback music selected")
 
         if audio_path and os.path.exists(audio_path) and bg_music_path:
-            # Resample both to 44100Hz stereo before mixing for clean audio
+            # Resample both to 44100Hz stereo before mixing
             narr_resampled = f"/tmp/{pipeline_id}_narr_44k.wav"
             music_resampled = f"/tmp/{pipeline_id}_music_44k.wav"
             subprocess.run(f"{FFMPEG_PATH} -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
-            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music_path} -ar 44100 -ac 2 -t {vid_duration} {music_resampled}", shell=True, capture_output=True, timeout=30)
-
-            # Get narration duration to avoid padding issues
-            narr_probe = subprocess.run(
-                f"ffprobe -v error -show_entries format=duration -of csv=p=0 {narr_resampled}",
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            narr_dur = float(narr_probe.stdout.strip()) if narr_probe.stdout.strip() else 15.0
+            # Trim music to video duration and apply heavy volume reduction during resample
+            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music_path} -af volume=0.08 -ar 44100 -ac 2 -t {vid_duration} {music_resampled}", shell=True, capture_output=True, timeout=30)
 
             mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.wav"
-            # Use amerge instead of amix to avoid dropout, then pan to stereo
-            # Music plays full duration, narration only plays for its natural length
+            # Professional audio mixing:
+            # - Narration: slight boost + compressor for consistent voice level
+            # - Music: very low volume (pre-reduced to 0.08), gentle fade in/out
+            # - amix with normalize=0 to prevent auto-leveling artifacts
+            mix_filter = (
+                f"[0:a]volume=1.5,acompressor=threshold=-20dB:ratio=4:attack=5:release=200[narr];"
+                f"[1:a]afade=t=in:d=2,afade=t=out:st={max(vid_duration-3, 18)}:d=3[music];"
+                f"[narr][music]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]"
+            )
             mix_cmd = [
                 FFMPEG_PATH, "-y",
                 "-i", narr_resampled,
                 "-i", music_resampled,
-                "-filter_complex",
-                f"[0:a]volume=1.3[narr];[1:a]volume=0.2,afade=t=out:st={vid_duration-2}:d=2[music];[narr][music]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]",
+                "-filter_complex", mix_filter,
                 "-map", "[out]",
                 "-t", str(vid_duration),
                 "-ar", "44100", "-ac", "2",
@@ -1127,7 +1160,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             r = subprocess.run(mix_cmd, capture_output=True, text=True, timeout=60)
             if r.returncode == 0 and os.path.exists(mixed_audio):
                 final_audio = mixed_audio
-                logger.info("Mixed narration + background music (clean)")
+                logger.info("Mixed narration + background music (professional levels)")
             else:
                 final_audio = audio_path
                 logger.warning(f"Audio mixing failed, using narration only: {r.stderr[:150] if r.stderr else ''}")
@@ -1609,16 +1642,36 @@ If approving, end with:
             if contact_info.get("address"): parts.append(f"Address: {contact_info['address']}")
             contact_details = " | ".join(parts)
 
-        # Get video format from media_formats
+        # Get video format from media_formats — choose based on majority of target platforms
         vid_format_note = ""
         mf = pipeline.get("result", {}).get("media_formats", {})
         if mf:
-            vid_sizes = set()
-            for p_fmt in mf.values():
-                if p_fmt.get("vidSize"): vid_sizes.add(p_fmt["vidSize"])
-            if vid_sizes:
-                primary_vid = list(vid_sizes)[0]
-                vid_format_note = f"\nVIDEO FORMAT: Primary target size is {primary_vid}. Adapt your video format (horizontal/vertical) accordingly."
+            vertical_count = 0
+            horizontal_count = 0
+            all_vid_sizes = {}
+            for plat, p_fmt in mf.items():
+                vs = p_fmt.get("vidSize", "")
+                if vs:
+                    all_vid_sizes[plat] = vs
+                    ratio = p_fmt.get("vidRatio", "")
+                    if ratio == "9:16":
+                        vertical_count += 1
+                    else:
+                        horizontal_count += 1
+            # Choose primary format based on majority
+            if vertical_count > horizontal_count:
+                primary_format = "vertical"
+                primary_size = "720x1280"
+            else:
+                primary_format = "horizontal"
+                primary_size = "1280x720"
+            vid_format_note = f"""
+VIDEO FORMAT REQUIREMENT:
+- Primary format: {primary_format.upper()} ({primary_size})
+- Target platforms requiring vertical (9:16): {', '.join([p for p,f in mf.items() if f.get('vidRatio') == '9:16'])}
+- Target platforms requiring horizontal (16:9): {', '.join([p for p,f in mf.items() if f.get('vidRatio') == '16:9'])}
+- Your video will be generated at {primary_size}. Choose your format accordingly: set Format to '{primary_format}' in your output.
+- Compose your shots to work well in {primary_format} format. Keep subjects centered for easy cropping to other formats."""
 
         # Check for revision feedback from rafael_review_video
         revision_info = ""
@@ -1685,6 +1738,9 @@ Review EVERY aspect:
 4. Is the timing appropriate for a 24-second commercial?
 5. Does the CTA have the correct contact information?
 6. Is the music direction appropriate for the target audience?
+7. AUDIO QUALITY CHECK: Is the music mood compatible with the campaign industry? A mismatch (e.g., energetic music for a spa brand) creates an unprofessional result. Flag any mood/industry mismatch.
+8. NARRATION LENGTH CHECK: The narration MUST end by second 19. Count the words — if the narration exceeds 60 words, it's TOO LONG and will overlap with the brand ending. Flag and request trimming.
+9. Is the contact CTA text clean and without placeholder text like "(display number)" or "[insert here]"? Real contact info must be present.
 
 Provide your detailed score (V1-V6) and DECISION."""
 
@@ -2421,6 +2477,228 @@ async def regenerate_design(pipeline_id: str, data: RegenerateDesignRequest, use
 @router.get("/{pipeline_id}/labels")
 async def get_step_labels(pipeline_id: str, user=Depends(get_current_user)):
     return {"labels": STEP_LABELS, "order": STEP_ORDER}
+
+
+@router.post("/{pipeline_id}/remix-audio")
+async def remix_audio(pipeline_id: str, user=Depends(get_current_user)):
+    """Re-mix audio for an existing video with corrected volume levels"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    pipeline = result.data[0]
+    steps = pipeline.get("steps") or {}
+    marcos = steps.get("marcos_video", {})
+    video_url = marcos.get("video_url", "")
+    marcos_output = marcos.get("output", "")
+    if not video_url:
+        raise HTTPException(status_code=400, detail="No video found to remix")
+
+    # Parse music mood from marcos output
+    music_mood = "corporate"
+    music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===CTA SEQUENCE===', marcos_output, re.IGNORECASE)
+    if music_match:
+        mood_line = re.search(r'Mood:\s*(\w+)', music_match.group(1), re.IGNORECASE)
+        if mood_line:
+            music_mood = mood_line.group(1).strip().lower()
+
+    # User-selected music override
+    user_music = pipeline.get("result", {}).get("selected_music", "")
+    if user_music:
+        music_mood = user_music
+
+    def _remix_bg(pid, vid_url, mood):
+        import urllib.request as urlreq
+        try:
+            # Download existing video
+            vid_path = f"/tmp/{pid}_remix_src.mp4"
+            urlreq.urlretrieve(vid_url, vid_path)
+
+            # Extract video (no audio) and existing narration
+            vid_only = f"/tmp/{pid}_remix_vid.mp4"
+            subprocess.run(f"{FFMPEG_PATH} -y -i {vid_path} -an -c:v copy {vid_only}", shell=True, capture_output=True, timeout=60)
+
+            # Extract existing audio to analyze
+            old_audio = f"/tmp/{pid}_remix_old_audio.wav"
+            subprocess.run(f"{FFMPEG_PATH} -y -i {vid_path} -vn -acodec pcm_s16le -ar 44100 -ac 2 {old_audio}", shell=True, capture_output=True, timeout=30)
+
+            # Get video duration
+            probe = subprocess.run(f"ffprobe -v error -show_entries format=duration -of csv=p=0 {vid_only}", shell=True, capture_output=True, text=True, timeout=10)
+            vid_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 23.0
+
+            # Select music
+            music_dir = "/app/backend/assets/music"
+            mood_map = {
+                "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "exciting": "energetic.mp3",
+                "emotional": "emotional.mp3", "inspirational": "emotional.mp3",
+                "cinematic": "cinematic.mp3", "dramatic": "cinematic.mp3", "epic": "cinematic.mp3",
+                "corporate": "corporate.mp3", "professional": "corporate.mp3", "clean": "corporate.mp3",
+                "luxury": "jazz_smooth.mp3", "elegant": "classical_piano.mp3", "sophisticated": "jazz_smooth.mp3",
+                "relaxing": "ambient_dreamy.mp3", "calm": "ambient_nature.mp3", "peaceful": "ambient_nature.mp3",
+                "modern": "electronic_chill.mp3", "tech": "electronic_chill.mp3",
+                "warm": "pop_acoustic.mp3", "friendly": "country_modern.mp3",
+                "fun": "pop_dance.mp3", "happy": "pop_acoustic.mp3",
+            }
+            mood_file = mood_map.get(mood, "corporate.mp3")
+            bg_music = os.path.join(music_dir, mood_file)
+            if not os.path.exists(bg_music):
+                bg_music = os.path.join(music_dir, "corporate.mp3")
+
+            # Resample with pre-reduced music volume
+            narr_rs = f"/tmp/{pid}_remix_narr.wav"
+            music_rs = f"/tmp/{pid}_remix_music.wav"
+            # Use old audio as narration source (it already has the mixed audio, so we try to use original narration if available)
+            narr_src = f"/tmp/{pid}_narration.mp3"
+            if not os.path.exists(narr_src):
+                narr_src = old_audio  # fallback to extracted audio
+            subprocess.run(f"{FFMPEG_PATH} -y -i {narr_src} -ar 44100 -ac 2 {narr_rs}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music} -af volume=0.08 -ar 44100 -ac 2 -t {vid_duration} {music_rs}", shell=True, capture_output=True, timeout=30)
+
+            # Professional mix
+            mixed = f"/tmp/{pid}_remix_mixed.wav"
+            mix_filter = (
+                f"[0:a]volume=1.5,acompressor=threshold=-20dB:ratio=4:attack=5:release=200[narr];"
+                f"[1:a]afade=t=in:d=2,afade=t=out:st={max(vid_duration-3, 18)}:d=3[music];"
+                f"[narr][music]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]"
+            )
+            r = subprocess.run([FFMPEG_PATH, "-y", "-i", narr_rs, "-i", music_rs, "-filter_complex", mix_filter, "-map", "[out]", "-t", str(vid_duration), "-ar", "44100", "-ac", "2", mixed], capture_output=True, text=True, timeout=60)
+
+            if r.returncode != 0:
+                logger.error(f"Remix audio mix failed: {r.stderr[:200]}")
+                return
+
+            # Merge new audio with video
+            output = f"/tmp/{pid}_remixed.mp4"
+            subprocess.run([FFMPEG_PATH, "-y", "-i", vid_only, "-i", mixed, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-shortest", output], capture_output=True, timeout=60)
+
+            if os.path.exists(output):
+                with open(output, "rb") as f:
+                    video_bytes = f.read()
+                filename = f"videos/{pid}_commercial.mp4"
+                new_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+                # Update pipeline
+                steps["marcos_video"]["video_url"] = new_url
+                supabase.table("pipelines").update({"steps": steps}).eq("id", pid).execute()
+                # Also update campaign if exists (search by pipeline_id in metrics JSONB)
+                try:
+                    camps = supabase.table("campaigns").select("id, metrics").eq("tenant_id", supabase.table("pipelines").select("tenant_id").eq("id", pid).single().execute().data["tenant_id"]).execute()
+                    for c in (camps.data or []):
+                        metrics = c.get("metrics") or {}
+                        if metrics.get("stats", {}).get("pipeline_id") == pid:
+                            stats = metrics.get("stats", {})
+                            stats["video_url"] = new_url
+                            metrics["stats"] = stats
+                            supabase.table("campaigns").update({"metrics": metrics}).eq("id", c["id"]).execute()
+                            logger.info(f"Updated campaign {c['id']} with new video URL")
+                            break
+                except Exception as ce:
+                    logger.warning(f"Campaign update skipped: {ce}")
+                logger.info(f"Audio remixed successfully for pipeline {pid}")
+        except Exception as e:
+            logger.error(f"Remix failed for {pid}: {e}")
+
+    t = threading.Thread(target=_remix_bg, args=(pipeline_id, video_url, music_mood), daemon=True)
+    t.start()
+    return {"status": "remixing", "message": "Audio is being remixed with corrected levels"}
+
+
+@router.post("/remix-all-videos")
+async def remix_all_videos(user=Depends(get_current_user)):
+    """Batch remix audio for ALL existing videos with corrected volume levels"""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("id, steps, result").eq("tenant_id", tenant["id"]).execute()
+    pipelines_with_video = []
+    for p in (result.data or []):
+        vid_url = (p.get("steps") or {}).get("marcos_video", {}).get("video_url", "")
+        if vid_url:
+            pipelines_with_video.append(p["id"])
+
+    # Process all remixes in a single background thread, sequentially
+    def _batch_remix_all(pipeline_ids, tenant_id):
+        import urllib.request as urlreq
+        for pid in pipeline_ids:
+            try:
+                p_data = supabase.table("pipelines").select("*").eq("id", pid).single().execute()
+                if not p_data.data:
+                    continue
+                steps = p_data.data.get("steps", {})
+                marcos = steps.get("marcos_video", {})
+                video_url = marcos.get("video_url", "")
+                marcos_output = marcos.get("output", "")
+                if not video_url:
+                    continue
+                music_mood = "corporate"
+                music_match = re.search(r'Mood:\s*(\w+)', marcos_output, re.IGNORECASE)
+                if music_match:
+                    music_mood = music_match.group(1).strip().lower()
+                user_music = p_data.data.get("result", {}).get("selected_music", "")
+                if user_music:
+                    music_mood = user_music
+
+                vid_path = f"/tmp/{pid}_remix_src.mp4"
+                urlreq.urlretrieve(video_url, vid_path)
+                vid_only = f"/tmp/{pid}_remix_vid.mp4"
+                subprocess.run(f"{FFMPEG_PATH} -y -i {vid_path} -an -c:v copy {vid_only}", shell=True, capture_output=True, timeout=60)
+                probe = subprocess.run(f"ffprobe -v error -show_entries format=duration -of csv=p=0 {vid_only}", shell=True, capture_output=True, text=True, timeout=10)
+                vid_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 23.0
+                music_dir = "/app/backend/assets/music"
+                mood_map = {
+                    "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "cinematic": "cinematic.mp3",
+                    "corporate": "corporate.mp3", "emotional": "emotional.mp3", "luxury": "jazz_smooth.mp3",
+                    "calm": "ambient_nature.mp3", "modern": "electronic_chill.mp3", "warm": "pop_acoustic.mp3",
+                    "fun": "pop_dance.mp3", "elegant": "classical_piano.mp3",
+                }
+                bg_music = os.path.join(music_dir, mood_map.get(music_mood, "corporate.mp3"))
+                if not os.path.exists(bg_music):
+                    bg_music = os.path.join(music_dir, "corporate.mp3")
+                narr_src = f"/tmp/{pid}_narration.mp3"
+                if not os.path.exists(narr_src):
+                    old_audio = f"/tmp/{pid}_remix_old.wav"
+                    subprocess.run(f"{FFMPEG_PATH} -y -i {vid_path} -vn -acodec pcm_s16le -ar 44100 -ac 2 {old_audio}", shell=True, capture_output=True, timeout=30)
+                    narr_src = old_audio
+                narr_rs = f"/tmp/{pid}_remix_narr.wav"
+                music_rs = f"/tmp/{pid}_remix_music.wav"
+                subprocess.run(f"{FFMPEG_PATH} -y -i {narr_src} -ar 44100 -ac 2 {narr_rs}", shell=True, capture_output=True, timeout=30)
+                subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music} -af volume=0.08 -ar 44100 -ac 2 -t {vid_duration} {music_rs}", shell=True, capture_output=True, timeout=30)
+                mixed = f"/tmp/{pid}_remix_mixed.wav"
+                mix_filter = f"[0:a]volume=1.5,acompressor=threshold=-20dB:ratio=4:attack=5:release=200[narr];[1:a]afade=t=in:d=2,afade=t=out:st={max(vid_duration-3,18)}:d=3[music];[narr][music]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]"
+                subprocess.run([FFMPEG_PATH, "-y", "-i", narr_rs, "-i", music_rs, "-filter_complex", mix_filter, "-map", "[out]", "-t", str(vid_duration), "-ar", "44100", "-ac", "2", mixed], capture_output=True, timeout=60)
+                output = f"/tmp/{pid}_remixed.mp4"
+                subprocess.run([FFMPEG_PATH, "-y", "-i", vid_only, "-i", mixed, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-shortest", output], capture_output=True, timeout=60)
+                if os.path.exists(output):
+                    with open(output, "rb") as f:
+                        vb = f.read()
+                    fn = f"videos/{pid}_commercial.mp4"
+                    new_url = _upload_to_storage(vb, fn, "video/mp4")
+                    steps["marcos_video"]["video_url"] = new_url
+                    supabase.table("pipelines").update({"steps": steps}).eq("id", pid).execute()
+                    # Update linked campaign
+                    try:
+                        camps = supabase.table("campaigns").select("id, metrics").eq("tenant_id", tenant_id).execute()
+                        for c in (camps.data or []):
+                            if (c.get("metrics") or {}).get("stats", {}).get("pipeline_id") == pid:
+                                m = c.get("metrics") or {}
+                                m.setdefault("stats", {})["video_url"] = new_url
+                                supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+                                break
+                    except Exception:
+                        pass
+                    logger.info(f"Batch remix done: {pid}")
+                # Clean up temp files
+                for f in [vid_path, vid_only, narr_rs, music_rs, mixed, output]:
+                    try:
+                        os.remove(f)
+                    except Exception:
+                        pass
+                time.sleep(3)  # Delay between uploads to avoid overwhelming Supabase
+            except Exception as e:
+                logger.error(f"Batch remix failed for {pid}: {e}")
+        logger.info(f"Batch remix complete: processed {len(pipeline_ids)} pipelines")
+
+    t = threading.Thread(target=_batch_remix_all, args=(pipelines_with_video, tenant["id"]), daemon=True)
+    t.start()
+    return {"status": "remixing", "count": len(pipelines_with_video), "pipelines": pipelines_with_video}
+
 
 
 
