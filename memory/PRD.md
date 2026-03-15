@@ -22,25 +22,29 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media (WhatsA
 
 ## Current Status (March 15, 2026)
 
-### Completed
+### Completed This Session
+- [x] Audio duplication fix — Music reduced from 0dB to -22dB, all 10 existing videos remixed
+- [x] Per-channel templates — 8 mockups (WhatsApp 1:1, TikTok 9:16, Facebook 16:9, Google Ads 1.91:1, Telegram 16:9, Email 16:9, SMS 9:16)
+- [x] Image/Video toggle per channel mockup
+- [x] Smart music selection (30+ industry moods)
+- [x] FFmpeg text escaping fix (special chars in CTA)
+- [x] Recovery optimization (reuse AI scripts on video failure)
+- [x] Remix API endpoints (individual + batch)
+- [x] Video variant generation per platform (crop/resize from master)
+- [x] Skip video flag — Campaign creation without video (faster)
+- [x] Clip2 retry + fallback — No more 12-second videos on clip2 failure
+- [x] Rafael review now checks format compatibility and text readability
+- [x] Format size labels under each channel mockup
+
+### Previously Completed
 - [x] Full UI redesign with dark luxury theme
 - [x] Agent marketplace with 25 cyberpunk avatars
 - [x] AI Marketing Studio pipeline (7-step AI agent workflow)
 - [x] Video generation with Sora 2
-- [x] Audio mixing fix (music volume corrected, batch remix for all videos)
-- [x] Per-channel content templates (WhatsApp 1:1, TikTok 9:16, Facebook 16:9, etc.)
-- [x] Image/Video toggle per channel mockup
-- [x] FFmpeg text escaping fix (special chars in CTA)
-- [x] Recovery optimization (reuse AI scripts on video failure)
-- [x] Smart music selection (30+ mood options by industry)
-- [x] Rafael review agent now checks audio quality
-- [x] remix-audio and remix-all-videos API endpoints
-- [x] Video variant generation per platform (crop/resize from master)
 - [x] Google Calendar/Sheets integration in Agent Config
 
 ### Known Issues
 - LLM Key budget exceeded (blocks AI Agent Generator and all AI generation)
-- Audio fix for previously generated videos applied but user should verify quality
 - FFmpeg logo overlay sometimes fails (low priority)
 
 ### Upcoming Tasks (Priority Order)
@@ -62,16 +66,25 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media (WhatsA
 ## Key API Endpoints
 - POST /api/auth/login
 - GET /api/campaigns
-- POST /api/campaigns/pipeline/start
+- POST /api/campaigns/pipeline (accepts skip_video:true)
 - GET /api/campaigns/pipeline/{id}
 - POST /api/campaigns/pipeline/{id}/remix-audio
 - POST /api/campaigns/pipeline/remix-all-videos
 - GET /api/agents/marketplace
 - POST /api/agents/generate (BLOCKED)
 
-## Key Files
-- /app/frontend/src/pages/Marketing.jsx - Marketing page with channel mockups
-- /app/backend/routers/pipeline.py - Video pipeline with audio mixing
-- /app/backend/routers/campaigns.py - Campaign CRUD
-- /app/backend/core/constants.py - Agent marketplace data
-- /app/frontend/src/pages/Agents.jsx - Agent marketplace UI
+## Video Format Per Channel
+| Channel | Image Format | Video Format |
+|---------|-------------|-------------|
+| WhatsApp | 1:1 720x720 | 1:1 720x720 |
+| Instagram | 1:1 1080x1080 | 1:1 1080x1080 |
+| Facebook | 16:9 1280x720 | 16:9 1280x720 |
+| TikTok | 9:16 720x1280 | 9:16 720x1280 |
+| Google Ads | 16:9 1344x768 | 16:9 1280x720 |
+| Telegram | 16:9 1280x720 | 16:9 1280x720 |
+| Email | 16:9 1280x720 | 16:9 1280x720 |
+| SMS | 9:16 720x1280 | 9:16 720x1280 |
+
+## Test Reports
+- /app/test_reports/iteration_38.json (Channel templates)
+- /app/test_reports/iteration_39.json (Skip video + format verification)
