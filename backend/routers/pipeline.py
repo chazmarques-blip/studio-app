@@ -52,8 +52,8 @@ def _delete_from_storage(filename: str):
     except Exception as e:
         logger.warning(f"Supabase Storage delete failed for {filename}: {e}")
 
-STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_design", "marcos_video", "pedro_publish"]
-PAUSE_AFTER = {"ana_review_copy", "rafael_review_design"}
+STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_design", "marcos_video", "rafael_review_video", "pedro_publish"]
+PAUSE_AFTER = {"ana_review_copy", "rafael_review_design", "rafael_review_video"}
 
 STEP_LABELS = {
     "sofia_copy": {"agent": "Sofia", "role": "Copywriter", "icon": "pen-tool"},
@@ -61,6 +61,7 @@ STEP_LABELS = {
     "lucas_design": {"agent": "Lucas", "role": "Designer", "icon": "palette"},
     "rafael_review_design": {"agent": "Rafael", "role": "Diretor de Arte", "icon": "award"},
     "marcos_video": {"agent": "Marcos", "role": "Videomaker", "icon": "film"},
+    "rafael_review_video": {"agent": "Rafael", "role": "Revisor de Video", "icon": "award"},
     "pedro_publish": {"agent": "Pedro", "role": "Publisher", "icon": "calendar-clock"},
 }
 
@@ -275,6 +276,36 @@ Image Prompt: [The complete, optimized prompt for AI image generation — 80-120
 
 ALWAYS write in the SAME language the user writes to you.""",
 
+    "rafael_review_video": """You are Rafael, a Senior Creative Director and Video Quality Reviewer. You review the VIDEO component of campaigns with the eye of a Cannes Lions judge.
+
+You receive Marcos's video script output containing:
+- Clip descriptions (what Sora 2 will generate)
+- Narration script (what will be spoken via TTS)
+- Music direction
+- CTA and brand information
+
+YOUR VIDEO REVIEW CRITERIA:
+
+V1. NARRATION QUALITY (1-10): Is the narration script natural, compelling, and persuasive? Does it flow smoothly when read aloud? Does it avoid robotic phrasing?
+V2. CLIP RELEVANCE (1-10): Do the clip descriptions accurately represent the product/service? Are they visually compelling and brand-appropriate?
+V3. EMOTIONAL ARC (1-10): Does the video have a clear narrative arc? Hook → Story → CTA?
+V4. TIMING & PACING (1-10): Is the timing appropriate? 24 seconds total (12s per clip). Is the narration length appropriate for the duration?
+V5. BRAND CONSISTENCY (1-10): Does the video match the campaign's visual style and tone? Is the CTA clear?
+V6. LANGUAGE CORRECTNESS (CRITICAL): Is the narration script in the CORRECT campaign language? Is any text that will appear in the video in the correct language? WRONG LANGUAGE = AUTOMATIC REJECTION.
+
+If AVERAGE score >= 7 AND no critical language errors:
+DECISION: APPROVED
+VIDEO_NOTES: [brief notes on what was good]
+
+If AVERAGE score < 7 OR language errors:
+DECISION: REVISION_NEEDED
+REVISION_FEEDBACK: [specific, actionable bullet points for Marcos to fix the video script]
+
+WARNING: You MUST include "DECISION: APPROVED" or "DECISION: REVISION_NEEDED" as a separate line. This is mandatory for the pipeline to function correctly.
+
+ALWAYS write in the SAME language as the campaign content.""",
+
+
     "pedro_publish": """You are Pedro, an elite Digital Publishing Strategist who combines the platform mastery of Gary Vaynerchuk, the growth hacking mindset of Sean Ellis, and the data-driven timing strategies of Hootsuite and Sprout Social research.
 
 YOUR CORE PRINCIPLES:
@@ -446,40 +477,40 @@ class PipelineApprove(BaseModel):
 # ── Music Library ──
 
 MUSIC_LIBRARY = {
-    # Original tracks
+    # Original tracks (full length)
     "upbeat": {"name": "Upbeat & Happy", "description": "Feel-good vibes", "file": "upbeat.mp3", "duration": 147, "category": "General"},
     "energetic": {"name": "Energetic & Powerful", "description": "Adrenaline beats", "file": "energetic.mp3", "duration": 190, "category": "General"},
     "emotional": {"name": "Emotional & Inspiring", "description": "Motivational orchestral", "file": "emotional.mp3", "duration": 85, "category": "General"},
     "cinematic": {"name": "Cinematic & Epic", "description": "Movie-trailer atmosphere", "file": "cinematic.mp3", "duration": 86, "category": "General"},
     "corporate": {"name": "Corporate & Professional", "description": "Business-appropriate", "file": "corporate.mp3", "duration": 174, "category": "General"},
-    # Pop
-    "pop_dance": {"name": "Pop Dance", "description": "Catchy dance-pop beat", "file": "pop_dance.mp3", "duration": 15, "category": "Pop"},
-    "pop_acoustic": {"name": "Pop Acoustic", "description": "Soft acoustic pop", "file": "pop_acoustic.mp3", "duration": 15, "category": "Pop"},
+    # Pop (Kevin MacLeod - CC BY)
+    "pop_dance": {"name": "Pop Dance", "description": "Happy upbeat theme", "file": "pop_dance.mp3", "duration": 30, "category": "Pop"},
+    "pop_acoustic": {"name": "Pop Acoustic", "description": "Carefree acoustic", "file": "pop_acoustic.mp3", "duration": 30, "category": "Pop"},
     # Hip-Hop & R&B
-    "hiphop_trap": {"name": "Hip-Hop Trap", "description": "Modern trap beat", "file": "hiphop_trap.mp3", "duration": 15, "category": "Hip-Hop"},
-    "hiphop_boom": {"name": "Hip-Hop Boom Bap", "description": "Classic boom bap", "file": "hiphop_boom.mp3", "duration": 15, "category": "Hip-Hop"},
-    "rnb_smooth": {"name": "R&B Smooth", "description": "Smooth R&B groove", "file": "rnb_smooth.mp3", "duration": 15, "category": "Hip-Hop"},
+    "hiphop_trap": {"name": "Hip-Hop Trap", "description": "Dark synth trap beat", "file": "hiphop_trap.mp3", "duration": 30, "category": "Hip-Hop"},
+    "hiphop_boom": {"name": "Hip-Hop Boom Bap", "description": "Icy flow rap beat", "file": "hiphop_boom.mp3", "duration": 30, "category": "Hip-Hop"},
+    "rnb_smooth": {"name": "R&B Smooth", "description": "Smooth chill wave", "file": "rnb_smooth.mp3", "duration": 30, "category": "Hip-Hop"},
     # Electronic
-    "electronic_edm": {"name": "EDM Festival", "description": "High-energy EDM", "file": "electronic_edm.mp3", "duration": 15, "category": "Electronic"},
-    "electronic_chill": {"name": "Chillwave", "description": "Chill electronic vibes", "file": "electronic_chill.mp3", "duration": 15, "category": "Electronic"},
+    "electronic_edm": {"name": "EDM Festival", "description": "Electrodoodle energy", "file": "electronic_edm.mp3", "duration": 30, "category": "Electronic"},
+    "electronic_chill": {"name": "Chillwave", "description": "Floating ambient", "file": "electronic_chill.mp3", "duration": 30, "category": "Electronic"},
     # Latin
-    "latin_reggaeton": {"name": "Reggaeton", "description": "Urban latin beat", "file": "latin_reggaeton.mp3", "duration": 15, "category": "Latin"},
-    "latin_salsa": {"name": "Latin Tropical", "description": "Salsa & tropical", "file": "latin_salsa.mp3", "duration": 15, "category": "Latin"},
+    "latin_reggaeton": {"name": "Reggaeton", "description": "Latin industries beat", "file": "latin_reggaeton.mp3", "duration": 30, "category": "Latin"},
+    "latin_salsa": {"name": "Latin Tropical", "description": "Tango de manzana", "file": "latin_salsa.mp3", "duration": 30, "category": "Latin"},
     # Rock
-    "rock_indie": {"name": "Indie Rock", "description": "Indie guitar vibes", "file": "rock_indie.mp3", "duration": 15, "category": "Rock"},
-    "rock_alternative": {"name": "Alt Rock", "description": "Alternative energy", "file": "rock_alternative.mp3", "duration": 15, "category": "Rock"},
+    "rock_indie": {"name": "Indie Rock", "description": "8-bit indie vibes", "file": "rock_indie.mp3", "duration": 30, "category": "Rock"},
+    "rock_alternative": {"name": "Alt Rock", "description": "Defiant clash energy", "file": "rock_alternative.mp3", "duration": 30, "category": "Rock"},
     # Jazz & Lo-Fi
-    "jazz_lofi": {"name": "Lo-Fi Chill", "description": "Lo-fi study beats", "file": "jazz_lofi.mp3", "duration": 15, "category": "Jazz"},
-    "jazz_smooth": {"name": "Smooth Jazz", "description": "Smooth jazz sax", "file": "jazz_smooth.mp3", "duration": 15, "category": "Jazz"},
+    "jazz_lofi": {"name": "Lo-Fi Chill", "description": "Lobby time beats", "file": "jazz_lofi.mp3", "duration": 30, "category": "Jazz"},
+    "jazz_smooth": {"name": "Smooth Jazz", "description": "Smooth lovin sax", "file": "jazz_smooth.mp3", "duration": 30, "category": "Jazz"},
     # Ambient
-    "ambient_dreamy": {"name": "Dreamy Ambient", "description": "Ethereal textures", "file": "ambient_dreamy.mp3", "duration": 15, "category": "Ambient"},
-    "ambient_nature": {"name": "Nature Ambient", "description": "Organic nature sounds", "file": "ambient_nature.mp3", "duration": 15, "category": "Ambient"},
+    "ambient_dreamy": {"name": "Dreamy Ambient", "description": "Ethereal relaxation", "file": "ambient_dreamy.mp3", "duration": 30, "category": "Ambient"},
+    "ambient_nature": {"name": "Dark Ambient", "description": "Dark fog atmosphere", "file": "ambient_nature.mp3", "duration": 30, "category": "Ambient"},
     # Other
-    "country_modern": {"name": "Modern Country", "description": "Country pop", "file": "country_modern.mp3", "duration": 15, "category": "Other"},
-    "gospel_uplifting": {"name": "Gospel Uplifting", "description": "Uplifting gospel", "file": "gospel_uplifting.mp3", "duration": 15, "category": "Other"},
-    "classical_piano": {"name": "Classical Piano", "description": "Elegant piano", "file": "classical_piano.mp3", "duration": 15, "category": "Other"},
-    "funk_groove": {"name": "Funk Groove", "description": "Funky bass groove", "file": "funk_groove.mp3", "duration": 15, "category": "Other"},
-    "world_afrobeat": {"name": "Afrobeat", "description": "African rhythm", "file": "world_afrobeat.mp3", "duration": 15, "category": "Other"},
+    "country_modern": {"name": "Modern Jazz Samba", "description": "Jazz samba fusion", "file": "country_modern.mp3", "duration": 30, "category": "Other"},
+    "gospel_uplifting": {"name": "Gospel Uplifting", "description": "Inspired & uplifting", "file": "gospel_uplifting.mp3", "duration": 30, "category": "Other"},
+    "classical_piano": {"name": "Classical Piano", "description": "Gymnopedie No. 1", "file": "classical_piano.mp3", "duration": 30, "category": "Other"},
+    "funk_groove": {"name": "Funk Groove", "description": "Funkorama bass groove", "file": "funk_groove.mp3", "duration": 30, "category": "Other"},
+    "world_afrobeat": {"name": "Bossa Nova", "description": "Bossa antigua rhythm", "file": "world_afrobeat.mp3", "duration": 30, "category": "Other"},
 }
 
 @router.get("/music-library")
@@ -1323,6 +1354,32 @@ REQUIREMENTS:
 6. Include the contact info in the CTA SEQUENCE for the video ending overlay
 
 Output EXACTLY in the format specified in your instructions."""
+
+    elif step == "rafael_review_video":
+        marcos_output = steps.get("marcos_video", {}).get("output", "")
+        video_url = steps.get("marcos_video", {}).get("video_url", "")
+        briefing_summary = steps.get("sofia_copy", {}).get("output", "")[:500]
+        return f"""Review the video commercial created by Marcos for this campaign.
+
+Campaign briefing summary: {briefing_summary}
+
+Marcos's video script and concept:
+{marcos_output}
+
+Video generated: {"YES - " + video_url if video_url else "NO - Video generation failed or pending"}
+
+Platforms: {platforms_str}
+{lang_instruction}
+
+Review EVERY aspect:
+1. Is the narration script in the CORRECT campaign language?
+2. Are the clip descriptions compelling and on-brand?
+3. Is the emotional arc effective (Hook → Story → CTA)?
+4. Is the timing appropriate for a 24-second commercial?
+5. Does the CTA have the correct contact information?
+6. Is the music direction appropriate for the target audience?
+
+Provide your detailed score (V1-V6) and DECISION."""
 
     elif step == "pedro_publish":
         approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
