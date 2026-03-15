@@ -69,14 +69,59 @@ def _recover_orphaned_pipelines():
                     break
 
             if retry_step:
-                logger.info(f"RECOVERY: Retrying orphaned pipeline {pipeline_id} at step {retry_step}")
-                steps[retry_step]["status"] = "pending"
-                steps[retry_step]["error"] = None
-                supabase.table("pipelines").update({
-                    "steps": steps, "status": "running",
-                    "updated_at": now.isoformat()
-                }).eq("id", pipeline_id).execute()
-                _start_step_bg(pipeline_id, retry_step)
+                stuck_status = steps.get(retry_step, {}).get("status", "")
+                has_output = bool(steps.get(retry_step, {}).get("output", ""))
+
+                # If marcos_video is stuck at generating_video but has AI output,
+                # only regenerate the video (skip expensive LLM call)
+                if retry_step == "marcos_video" and stuck_status == "generating_video" and has_output:
+                    logger.info(f"RECOVERY: Re-generating video only for pipeline {pipeline_id} (AI output exists)")
+                    steps[retry_step]["status"] = "generating_video"
+                    steps[retry_step]["video_url"] = None
+                    supabase.table("pipelines").update({
+                        "steps": steps, "status": "running",
+                        "updated_at": now.isoformat()
+                    }).eq("id", pipeline_id).execute()
+                    # Use regenerate-video logic (reuse existing AI script)
+                    def _regen_video_recovery(pid, marcos_out, steps_ref):
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            fmt = re.search(r'Format:\s*(horizontal|vertical)', marcos_out, re.IGNORECASE)
+                            vf = fmt.group(1).lower() if fmt else "horizontal"
+                            sz = {"vertical": "720x1280", "horizontal": "1280x720"}.get(vf, "1280x720")
+                            p_data = supabase.table("pipelines").select("result").eq("id", pid).single().execute()
+                            user_music = (p_data.data or {}).get("result", {}).get("selected_music", "")
+                            video_url = loop.run_until_complete(_generate_commercial_video(pid, marcos_out, sz, selected_music_override=user_music))
+                            steps_ref[retry_step]["video_url"] = video_url
+                            steps_ref[retry_step]["status"] = "completed"
+                            supabase.table("pipelines").update({"steps": steps_ref, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", pid).execute()
+                            # Continue pipeline from next step
+                            nxt = _next_step(retry_step)
+                            if nxt:
+                                supabase.table("pipelines").update({"current_step": nxt}).eq("id", pid).execute()
+                                loop.run_until_complete(_execute_step(pid, nxt))
+                            else:
+                                supabase.table("pipelines").update({"status": "completed"}).eq("id", pid).execute()
+                        except Exception as e:
+                            logger.error(f"RECOVERY video regen failed: {e}")
+                            steps_ref[retry_step]["status"] = "pending"
+                            supabase.table("pipelines").update({"steps": steps_ref, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", pid).execute()
+                            _start_step_bg(pid, retry_step)
+                        finally:
+                            loop.close()
+                    marcos_output = steps[retry_step].get("output", "")
+                    t = threading.Thread(target=_regen_video_recovery, args=(pipeline_id, marcos_output, steps), daemon=True)
+                    t.start()
+                else:
+                    logger.info(f"RECOVERY: Retrying orphaned pipeline {pipeline_id} at step {retry_step}")
+                    steps[retry_step]["status"] = "pending"
+                    steps[retry_step]["error"] = None
+                    supabase.table("pipelines").update({
+                        "steps": steps, "status": "running",
+                        "updated_at": now.isoformat()
+                    }).eq("id", pipeline_id).execute()
+                    _start_step_bg(pipeline_id, retry_step)
             else:
                 logger.warning(f"RECOVERY: Pipeline {pipeline_id} is running but no stuck step found at {current_step}")
     except Exception as e:
@@ -965,9 +1010,18 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         brand_late = brand_start + 1.0
 
         # 3. Brand ending overlay: logo + tagline + contact CTA
-        safe_brand = brand_name.replace("'", "").replace('"', '').replace(':', '').replace('\\', '')
-        safe_tagline = (tagline or "").replace("'", "").replace('"', '').replace(':', '').replace('\\', '')
-        safe_contact = (contact_cta or "").replace("'", "").replace('"', '').replace(':', ' ').replace('\\', '')
+        # FFmpeg drawtext requires escaping: ' : \ [ ] ; , ( )
+        def _ffmpeg_safe(text):
+            if not text:
+                return ""
+            t = text.replace("\\", "")
+            for ch in ["'", '"', ":", ";", "[", "]", "(", ")", ",", "%"]:
+                t = t.replace(ch, " ")
+            return " ".join(t.split())  # collapse multiple spaces
+
+        safe_brand = _ffmpeg_safe(brand_name)
+        safe_tagline = _ffmpeg_safe(tagline)
+        safe_contact = _ffmpeg_safe(contact_cta)
 
         branded_ok = False
         font_path = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
