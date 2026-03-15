@@ -1047,21 +1047,33 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             narr_resampled = f"/tmp/{pipeline_id}_narr_44k.wav"
             music_resampled = f"/tmp/{pipeline_id}_music_44k.wav"
             subprocess.run(f"{FFMPEG_PATH} -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
-            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music_path} -ar 44100 -ac 2 {music_resampled}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music_path} -ar 44100 -ac 2 -t {vid_duration} {music_resampled}", shell=True, capture_output=True, timeout=30)
+
+            # Get narration duration to avoid padding issues
+            narr_probe = subprocess.run(
+                f"ffprobe -v error -show_entries format=duration -of csv=p=0 {narr_resampled}",
+                shell=True, capture_output=True, text=True, timeout=10
+            )
+            narr_dur = float(narr_probe.stdout.strip()) if narr_probe.stdout.strip() else 15.0
 
             mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.wav"
-            mix_cmd = (
-                f'{FFMPEG_PATH} -y -i {narr_resampled} -i {music_resampled} '
-                f'-filter_complex "'
-                f'[0:a]volume=1.2,apad[narr];'
-                f'[1:a]volume=0.25,aloop=loop=-1:size=2e+09[music];'
-                f'[narr][music]amix=inputs=2:duration=first:dropout_transition=3[out]'
-                f'" -map "[out]" -t {vid_duration} -ar 44100 -ac 2 {mixed_audio}'
-            )
-            r = subprocess.run(mix_cmd, shell=True, capture_output=True, text=True, timeout=60)
+            # Use amerge instead of amix to avoid dropout, then pan to stereo
+            # Music plays full duration, narration only plays for its natural length
+            mix_cmd = [
+                FFMPEG_PATH, "-y",
+                "-i", narr_resampled,
+                "-i", music_resampled,
+                "-filter_complex",
+                f"[0:a]volume=1.3[narr];[1:a]volume=0.2,afade=t=out:st={vid_duration-2}:d=2[music];[narr][music]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]",
+                "-map", "[out]",
+                "-t", str(vid_duration),
+                "-ar", "44100", "-ac", "2",
+                mixed_audio
+            ]
+            r = subprocess.run(mix_cmd, capture_output=True, text=True, timeout=60)
             if r.returncode == 0 and os.path.exists(mixed_audio):
                 final_audio = mixed_audio
-                logger.info("Mixed narration + background music")
+                logger.info("Mixed narration + background music (clean)")
             else:
                 final_audio = audio_path
                 logger.warning(f"Audio mixing failed, using narration only: {r.stderr[:150] if r.stderr else ''}")
@@ -1069,10 +1081,14 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             final_audio = audio_path
 
         if final_audio:
-            # Merge audio with video — high quality AAC
+            # Merge audio with video — strip any existing audio from video first, use only our mixed audio
             subprocess.run(
-                f"{FFMPEG_PATH} -y -i {branded_file} -i {final_audio} -c:v copy -c:a aac -b:a 256k -ar 44100 -ac 2 -t {vid_duration} {output_path}",
-                shell=True, capture_output=True, timeout=60
+                [FFMPEG_PATH, "-y", "-i", branded_file, "-i", final_audio,
+                 "-map", "0:v", "-map", "1:a",
+                 "-c:v", "copy", "-c:a", "aac", "-b:a", "256k",
+                 "-ar", "44100", "-ac", "2", "-shortest",
+                 output_path],
+                capture_output=True, timeout=60
             )
         else:
             shutil.copy2(branded_file, output_path)

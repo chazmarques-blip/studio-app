@@ -1,0 +1,133 @@
+{
+  "summary": "Iteration 37 - Agents Page Update with American Names - ALL FEATURES PASSED. Verified: (1) Agents page at /agents with 25 marketplace agents showing American names, (2) Agent names correctly updated: Sarah (sales), James (support), Emily (scheduling), Ryan (sac), Olivia (onboarding), Emma (ecommerce sales), Daniel (ecommerce support), Madison (real estate), etc., (3) Personal agents: Alex, Luna, Max with PRO badge, (4) Compact card layout with 36px cyborg avatars, Details and Deploy buttons, (5) 'Criar Agente' button in top-right with avatar image navigates to /agents/builder, (6) Tab switcher shows 'Marketplace (25)' and 'Meus (N)' counts, (7) All 7 filter chips working (Todos/Vendas/Suporte/Agenda/SAC/Onboarding/Pessoal), (8) Search filters by name/description, (9) Bottom nav has 7 items including Marketing (Megaphone icon), (10) Deploy button works - tested James deployment with 'James deployed!' toast, (11) My Agents tab shows deployed agents with ON/OFF status badges.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard charts",
+        "issues": ["Console warning about chart width/height being -1 - existing issue, doesn't affect functionality"]
+      }
+    ]
+  },
+  "verified_features": {
+    "agents_page_load": {
+      "status": "PASSED",
+      "url": "/agents",
+      "header": "Agents",
+      "subtitle": "25 disponiveis"
+    },
+    "american_names_verification": {
+      "status": "PASSED",
+      "total_agents": 25,
+      "names_verified": ["Sarah", "James", "Emily", "Ryan", "Olivia", "Emma", "Daniel", "Madison", "Michael", "Ashley", "Carlos", "Nicole", "Tyler", "Jessica", "Marcus", "Chloe", "Kevin", "Sophia", "Ethan", "Jasmine", "David", "Megan", "Alex", "Luna", "Max"],
+      "personal_agents": ["Alex", "Luna", "Max"]
+    },
+    "agent_card_components": {
+      "status": "PASSED",
+      "avatar_size": "36px (h-9 w-9)",
+      "avatar_style": "cyborg/humanoid",
+      "name_visible": true,
+      "type_visible": true,
+      "rating_with_star": true,
+      "description_2_lines": true,
+      "details_button": "data-testid='details-{name}'",
+      "deploy_button": "data-testid='deploy-{name}'"
+    },
+    "create_agent_button": {
+      "status": "PASSED",
+      "data_testid": "create-agent-btn",
+      "text": "Criar Agente",
+      "has_avatar_image": true,
+      "navigates_to": "/agents/builder"
+    },
+    "tab_switcher": {
+      "status": "PASSED",
+      "marketplace_tab": "Marketplace (25)",
+      "my_agents_tab": "Meus (N)"
+    },
+    "filter_chips": {
+      "status": "PASSED",
+      "filters_working": {
+        "all": {"count": 25},
+        "sales": {"count": 9},
+        "support": {"count": 6},
+        "scheduling": {"count": 3},
+        "sac": {"count": 2},
+        "onboarding": {"count": 2},
+        "personal": {"count": 3}
+      }
+    },
+    "search_functionality": {
+      "status": "PASSED",
+      "filters_by_name": true,
+      "filters_by_description": true,
+      "search_sarah_result": "1 agent"
+    },
+    "personal_agents_section": {
+      "status": "PASSED",
+      "section_header": "Pessoais PRO",
+      "pro_badge": true,
+      "crown_icon": true,
+      "agents": ["Alex", "Luna", "Max"]
+    },
+    "business_agents_section": {
+      "status": "PASSED",
+      "section_header": "Negocio",
+      "agents_visible": ["Sarah", "James", "Emily", "Ryan", "Olivia", "Emma", "Daniel", "Madison", "Michael", "Ashley", "Carlos", "Nicole", "Tyler", "Jessica", "Marcus", "Chloe", "Kevin", "Sophia", "Ethan", "Jasmine", "David", "Megan"]
+    },
+    "bottom_navigation": {
+      "status": "PASSED",
+      "items_count": 7,
+      "items": ["Home", "Chat", "Agents", "Marketing", "CRM", "Analytics", "Settings"],
+      "marketing_icon": "Megaphone",
+      "marketing_navigates_to": "/marketing"
+    },
+    "deploy_functionality": {
+      "status": "PASSED",
+      "api_endpoint": "POST /api/agents/deploy",
+      "tested_agent": "James",
+      "success_toast": "James deployed!",
+      "my_agents_count_increased": "7 to 8"
+    },
+    "my_agents_tab": {
+      "status": "PASSED",
+      "status_badges": "ON/OFF",
+      "click_navigates_to": "/agents/{id}/config"
+    },
+    "details_button": {
+      "status": "PASSED",
+      "shows_toast_with": ["avatar", "name", "type", "description"]
+    }
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Code quality is excellent - all American names properly implemented in backend constants.py",
+    "Frontend correctly reads names from API /api/agents/marketplace which returns {agents: [], plan: ''}",
+    "Avatar mapping in agentAvatars.js correctly maps American names to cyborg images",
+    "Create Agent button correctly uses DEFAULT_AVATAR for avatar image",
+    "Rich system prompts implemented with professional guidelines (SPIN selling, HEART method, etc.)"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% - All APIs working correctly",
+    "frontend": "100% - All 12 features verified working"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Deployed James agent via Deploy button test",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 37: Agents page with American names fully tested. All 25 agents have American names (Sarah, James, Emily, Ryan, Olivia, Emma, Daniel, Madison, etc.). Personal agents: Alex, Luna, Max with PRO badge. Key data-testids unchanged. Deploy API working with POST /api/agents/deploy {template_name: 'agent_name'}. Bottom nav has Marketing with Megaphone icon. Create Agent button has avatar image and text 'Criar Agente'.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
