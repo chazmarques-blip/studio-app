@@ -911,6 +911,7 @@ export default function PipelineView({ context }) {
   const [clothingVariants, setClothingVariants] = useState({}); // { business_formal: url, casual: url, ... }
   const [generatingAngle, setGeneratingAngle] = useState(null);
   const [angleImages, setAngleImages] = useState({});
+  const [auto360Progress, setAuto360Progress] = useState(null); // null | { completed: number, total: 4 }
   const [voiceTab, setVoiceTab] = useState('bank'); // 'bank' | 'record'
   const [loadingVoicePreview, setLoadingVoicePreview] = useState(null);
   const [playingVoiceId, setPlayingVoiceId] = useState(null);
@@ -1065,6 +1066,38 @@ export default function PipelineView({ context }) {
     setAvatarVideoUploading(false);
   };
 
+  const startAuto360 = async (sourceUrl, clothing = 'business_formal') => {
+    setAuto360Progress({ completed: 0, total: 4 });
+    try {
+      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-360`, {
+        source_image_url: sourceUrl,
+        clothing,
+      });
+      if (data.job_id) {
+        const pollInterval = setInterval(async () => {
+          try {
+            const { data: status } = await axios.get(`${API}/campaigns/pipeline/generate-avatar-360/${data.job_id}`);
+            const completed = status.completed || Object.values(status.results || {}).filter(Boolean).length;
+            setAuto360Progress({ completed, total: 4 });
+            if (status.results) {
+              setAngleImages(prev => ({ ...prev, ...Object.fromEntries(Object.entries(status.results).filter(([,v]) => v)) }));
+            }
+            if (status.status === 'completed' || status.status === 'failed') {
+              clearInterval(pollInterval);
+              setAuto360Progress(null);
+              if (status.status === 'completed') {
+                toast.success(t('studio.angles_generated') || '360° generated!');
+              }
+            }
+          } catch { /* keep polling */ }
+        }, 6000);
+      }
+    } catch (e) {
+      setAuto360Progress(null);
+      toast.error('Error starting 360° generation');
+    }
+  };
+
   const generateAvatarFromPhoto = async () => {
     setGeneratingAvatar(true);
     try {
@@ -1088,6 +1121,8 @@ export default function PipelineView({ context }) {
           setVoiceTab('record');
         }
         toast.success(t('studio.avatar_generated'));
+        // Auto-generate 360° angles
+        startAuto360(avatarSourcePhoto?.url || data.avatar_url, 'business_formal');
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || t('studio.err_generic'));
@@ -1172,6 +1207,7 @@ export default function PipelineView({ context }) {
     setCustomizeTab('clothing');
     setAngleImages({});
     setClothingVariants({});
+    setAuto360Progress(null);
     setRecordedAudioUrl(null);
     setRecordedAudioBlob(null);
   };
@@ -1194,7 +1230,9 @@ export default function PipelineView({ context }) {
       if (data.avatar_url) {
         setClothingVariants(p => ({ ...p, [style]: data.avatar_url }));
         setTempAvatar(p => ({ ...p, url: data.avatar_url, clothing: style }));
-        setAngleImages(p => ({ ...p, front: data.avatar_url }));
+        setAngleImages({ front: data.avatar_url });
+        // Auto-generate remaining 360° angles for this style
+        startAuto360(tempAvatar.source_photo_url || tempAvatar.url, style);
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error');
@@ -2125,7 +2163,17 @@ export default function PipelineView({ context }) {
 
                     {/* 360° View Tab */}
                     {customizeTab === 'view360' && (
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="space-y-2">
+                        {auto360Progress && (
+                          <div className="flex items-center gap-2 text-[9px] text-[#C9A84C] bg-[#C9A84C]/10 rounded-lg px-3 py-1.5">
+                            <Loader2 size={10} className="animate-spin" />
+                            <span>{t('studio.auto_generating_360') || 'Generating 360°...'} {auto360Progress.completed}/4</span>
+                            <div className="flex-1 h-1 bg-[#1E1E1E] rounded-full overflow-hidden">
+                              <div className="h-full bg-[#C9A84C] transition-all duration-500 rounded-full" style={{width: `${(auto360Progress.completed / 4) * 100}%`}} />
+                            </div>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-4 gap-2">
                         {[
                           { id: 'front', label: t('studio.angle_front') },
                           { id: 'left_profile', label: t('studio.angle_left') },
@@ -2162,6 +2210,7 @@ export default function PipelineView({ context }) {
                             <p className="text-[8px] text-[#888] text-center py-1">{angle.label}</p>
                           </div>
                         ))}
+                      </div>
                       </div>
                     )}
 

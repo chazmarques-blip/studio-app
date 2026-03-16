@@ -478,6 +478,8 @@
     "photo_spec_res": "Mín 512x512px, ideal 1024x1024",
     "photo_spec_quality": "Rosto nítido, boa iluminação",
     "photo_spec_size": "Máx 10MB",
+    "auto_generating_360": "Gerando 360°...",
+    "angles_generated": "360° gerado com sucesso!",
     "generate_avatar_ai": "Gerar Avatar com IA",
     "generating_avatar": "Gerando avatar...",
     "avatar_ready": "Avatar pronto",

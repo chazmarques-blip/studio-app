@@ -3228,6 +3228,109 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class AvatarBatch360Request(BaseModel):
+    source_image_url: str = ""
+    clothing: str = "business_formal"
+
+# In-memory store for batch 360 jobs
+_batch360_jobs = {}
+
+def _run_batch_360(job_id: str, source_url: str, clothing: str):
+    """Background thread to generate all 4 angles for an avatar."""
+    import asyncio
+    CLOTHING_MAP = {
+        "business_formal": "wearing a tailored dark navy business suit, white dress shirt, elegant tie",
+        "casual": "wearing a casual smart outfit, clean jeans, stylish blazer over a t-shirt",
+        "streetwear": "wearing trendy streetwear, designer hoodie, sneakers, modern urban style",
+        "creative": "wearing an artistic creative outfit, colorful patterns, unique accessories",
+    }
+    ANGLE_MAP = {
+        "front": "facing directly towards the camera, front view, looking straight at the viewer",
+        "left_profile": "body and face turned to THEIR LEFT, showing the LEFT side profile view",
+        "right_profile": "body and face turned to THEIR RIGHT, showing the RIGHT side profile view",
+        "back": "turned completely away from camera showing their back, looking slightly over shoulder",
+    }
+    clothing_desc = CLOTHING_MAP.get(clothing, CLOTHING_MAP["business_formal"])
+    system_msg = (
+        "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
+        "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
+        "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
+        "same body build. Do NOT generate a different person. Do NOT change their appearance. "
+        "Only change their clothing and camera angle as instructed. "
+        "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
+    )
+
+    # Download source image once
+    img_b64 = None
+    mime = "image/png"
+    try:
+        img_req = urllib.request.Request(source_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(img_req, timeout=15) as resp:
+            img_data = resp.read()
+            img_b64 = base64.b64encode(img_data).decode("utf-8")
+            ct = resp.headers.get("Content-Type", "image/png")
+            mime = ct if ct.startswith("image/") else "image/png"
+    except Exception as e:
+        logger.error(f"Batch 360: Failed to download source: {e}")
+        _batch360_jobs[job_id] = {"status": "failed", "error": str(e)}
+        return
+
+    loop = asyncio.new_event_loop()
+    results = {}
+    for angle_key, angle_desc in ANGLE_MAP.items():
+        try:
+            prompt = (
+                f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
+                f"CHANGE ONLY:\n"
+                f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+                f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
+                f"KEEP EXACTLY THE SAME:\n"
+                f"- Their face (every detail — eyes, nose, mouth, jawline, eyebrows)\n"
+                f"- Their skin tone and complexion\n"
+                f"- Their hair color, style, and length\n"
+                f"- Their body build and proportions\n\n"
+                f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
+                f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
+                f"Photorealistic, 4K detail."
+            )
+            images = loop.run_until_complete(_gemini_edit_image(system_msg, prompt, img_b64, mime))
+            if images:
+                img_bytes = base64.b64decode(images[0]['data'])
+                filename = f"avatars/avatar_360_{angle_key}_{uuid.uuid4().hex[:6]}.png"
+                public_url = _upload_to_storage(img_bytes, filename, "image/png")
+                results[angle_key] = public_url
+                logger.info(f"Batch 360: {angle_key} done")
+            else:
+                results[angle_key] = None
+                logger.warning(f"Batch 360: {angle_key} returned no images")
+        except Exception as e:
+            logger.error(f"Batch 360: {angle_key} failed: {e}")
+            results[angle_key] = None
+        # Update progress
+        _batch360_jobs[job_id] = {"status": "processing", "results": results, "completed": len([v for v in results.values() if v])}
+
+    loop.close()
+    _batch360_jobs[job_id] = {"status": "completed", "results": results}
+
+@router.post("/generate-avatar-360")
+async def generate_avatar_360(req: AvatarBatch360Request, user=Depends(get_current_user)):
+    """Start batch generation of all 4 angles for an avatar (background job with polling)."""
+    job_id = uuid.uuid4().hex[:10]
+    _batch360_jobs[job_id] = {"status": "processing", "results": {}, "completed": 0}
+    thread = threading.Thread(target=_run_batch_360, args=(job_id, req.source_image_url, req.clothing), daemon=True)
+    thread.start()
+    return {"job_id": job_id, "status": "processing"}
+
+@router.get("/generate-avatar-360/{job_id}")
+async def get_avatar_360_status(job_id: str, user=Depends(get_current_user)):
+    """Poll for batch 360 generation status."""
+    job = _batch360_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+
 
 @router.post("/generate-presenter-video")
 async def generate_presenter_video_endpoint(
