@@ -30,6 +30,39 @@ try:
 except Exception:
     FFMPEG_PATH = "/usr/bin/ffmpeg"
 
+
+def _ffprobe_duration(filepath):
+    """Get media duration using ffmpeg (ffprobe not available in this env)."""
+    try:
+        r = subprocess.run(
+            [FFMPEG_PATH, "-i", filepath, "-f", "null", "-"],
+            capture_output=True, text=True, timeout=15
+        )
+        info = r.stderr or ""
+        m = re.search(r'Duration:\s*(\d+):(\d+):(\d+)\.(\d+)', info)
+        if m:
+            h, mn, s, cs = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+            return h * 3600 + mn * 60 + s + cs / 100.0
+    except Exception as e:
+        logger.warning(f"ffprobe_duration failed: {e}")
+    return 0
+
+
+def _ffprobe_dimensions(filepath):
+    """Get video width and height using ffmpeg (ffprobe not available)."""
+    try:
+        r = subprocess.run(
+            [FFMPEG_PATH, "-i", filepath],
+            capture_output=True, text=True, timeout=10
+        )
+        info = r.stderr or ""
+        m = re.search(r'Stream.*Video.*?(\d{2,5})x(\d{2,5})', info)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+    except Exception as e:
+        logger.warning(f"ffprobe_dimensions failed: {e}")
+    return 0, 0
+
 # Track running pipeline tasks to detect orphans on restart
 _active_pipelines = set()
 
@@ -869,13 +902,10 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
         return {}
 
     # Get master dimensions
-    probe = subprocess.run(
-        f"ffprobe -v error -show_entries stream=width,height -of csv=p=0:s=x {master_path}",
-        shell=True, capture_output=True, text=True, timeout=10
-    )
-    if not probe.stdout.strip():
+    master_w, master_h = _ffprobe_dimensions(master_path)
+    if master_w == 0 or master_h == 0:
+        logger.warning("Could not determine master video dimensions")
         return {}
-    master_w, master_h = [int(x) for x in probe.stdout.strip().split("x")]
 
     variants = {}
     # Group by unique target size to avoid duplicate processing
@@ -1081,11 +1111,7 @@ async def _generate_narration(text, pipeline_id, max_duration=19.0):
                 f.write(audio_bytes)
 
             # Check duration and speed up if it exceeds max_duration
-            probe = subprocess.run(
-                f"ffprobe -v error -show_entries format=duration -of csv=p=0 {raw_path}",
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            audio_dur = float(probe.stdout.strip()) if probe.stdout.strip() else 0
+            audio_dur = _ffprobe_duration(raw_path)
             logger.info(f"Narration raw duration: {audio_dur:.1f}s (max: {max_duration}s)")
 
             if audio_dur > max_duration and audio_dur > 0:
@@ -1130,9 +1156,20 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             logger.error(f"Normalized clip1 missing or empty: {os.path.exists(norm1)}")
             return None
         if not os.path.exists(norm2) or os.path.getsize(norm2) < 1000:
-            logger.error(f"Normalized clip2 missing or empty: {os.path.exists(norm2)}")
-            # Fall back to using just clip1 with audio
-            shutil.copy2(norm1, f"/tmp/{pipeline_id}_xfade.mp4")
+            logger.warning(f"Normalized clip2 missing or empty — concatenating clip1 twice for 24s")
+            # Create 24s video by concatenating clip1 with itself
+            concat_list = f"/tmp/{pipeline_id}_concat.txt"
+            with open(concat_list, "w") as cf:
+                cf.write(f"file '{norm1}'\nfile '{norm1}'\n")
+            r = subprocess.run(
+                [FFMPEG_PATH, "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
+                 "-c", "copy", f"/tmp/{pipeline_id}_xfade.mp4"],
+                capture_output=True, text=True, timeout=60
+            )
+            if r.returncode != 0:
+                logger.error(f"Concat fallback failed: {r.stderr[:200] if r.stderr else ''}")
+                # Absolute last resort: just use clip1
+                shutil.copy2(norm1, f"/tmp/{pipeline_id}_xfade.mp4")
         else:
             xfade_filter = (
                 '[0:v]settb=AVTB[v0];[1:v]settb=AVTB[v1];'
@@ -1155,7 +1192,15 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 )
                 if concat_r.returncode != 0:
                     logger.error(f"Concat also failed: {concat_r.stderr[:200] if concat_r.stderr else ''}")
-                    shutil.copy2(norm1, f"/tmp/{pipeline_id}_xfade.mp4")
+                    # Loop clip1 to maintain 24s
+                    loop_list = f"/tmp/{pipeline_id}_loop.txt"
+                    with open(loop_list, "w") as lf:
+                        lf.write(f"file '{norm1}'\nfile '{norm1}'\n")
+                    subprocess.run(
+                        [FFMPEG_PATH, "-y", "-f", "concat", "-safe", "0", "-i", loop_list,
+                         "-c", "copy", f"/tmp/{pipeline_id}_xfade.mp4"],
+                        capture_output=True, timeout=60
+                    )
 
         # Verify combined video duration
         xfade_file = f"/tmp/{pipeline_id}_xfade.mp4"
@@ -1164,11 +1209,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             return None
 
         # Get video duration for accurate overlay timing
-        probe = subprocess.run(
-            f"ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/{pipeline_id}_xfade.mp4",
-            shell=True, capture_output=True, text=True, timeout=10
-        )
-        vid_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 23.0
+        vid_duration = _ffprobe_duration(f"/tmp/{pipeline_id}_xfade.mp4") or 23.0
         brand_start = max(vid_duration - 4, 18)  # Brand overlay starts 4s before end
         brand_mid = brand_start + 0.5
         brand_late = brand_start + 1.0
@@ -1584,11 +1625,7 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
             return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
 
         # Get duration of presenter video
-        probe = subprocess.run(
-            f"ffprobe -v error -show_entries format=duration -of csv=p=0 {presenter_path}",
-            shell=True, capture_output=True, text=True, timeout=10
-        )
-        pres_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 20.0
+        pres_duration = _ffprobe_duration(presenter_path) or 20.0
 
         # Add background music (soft) to the presenter video
         music_dir = "/app/backend/assets/music"
@@ -2907,6 +2944,48 @@ async def get_step_labels(pipeline_id: str, user=Depends(get_current_user)):
     return {"labels": STEP_LABELS, "order": STEP_ORDER}
 
 
+@router.post("/{pipeline_id}/regenerate-video-variants")
+async def regenerate_video_variants(pipeline_id: str, user=Depends(get_current_user)):
+    """Regenerate per-platform video variants from the master video."""
+    tenant = await _get_tenant(user)
+    pipeline = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute().data
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    p = pipeline[0]
+    marcos = p.get("steps", {}).get("marcos_video", {})
+    video_url = marcos.get("video_url")
+    video_format = marcos.get("video_format", "horizontal")
+    platforms = p.get("platforms", [])
+    if not video_url:
+        raise HTTPException(status_code=400, detail="No master video to create variants from")
+
+    try:
+        variants = await _create_video_variants(pipeline_id, video_url, video_format, platforms)
+        if variants:
+            steps = p.get("steps", {})
+            steps["marcos_video"]["video_variants"] = variants
+            supabase.table("pipelines").update({
+                "steps": steps,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", pipeline_id).execute()
+            # Also update campaign stats
+            campaign_id = p.get("campaign_id")
+            if campaign_id:
+                try:
+                    campaign = supabase.table("campaigns").select("stats").eq("id", campaign_id).execute().data
+                    if campaign:
+                        stats = campaign[0].get("stats", {})
+                        stats["video_variants"] = variants
+                        supabase.table("campaigns").update({"stats": stats}).eq("id", campaign_id).execute()
+                except Exception as ce:
+                    logger.warning(f"Failed to update campaign video_variants: {ce}")
+            return {"status": "success", "variants": variants, "count": len(variants)}
+        return {"status": "no_variants_generated"}
+    except Exception as e:
+        logger.error(f"Regenerate video variants failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/{pipeline_id}/remix-audio")
 async def remix_audio(pipeline_id: str, user=Depends(get_current_user)):
     """Re-mix audio for an existing video with corrected volume levels"""
@@ -2951,8 +3030,7 @@ async def remix_audio(pipeline_id: str, user=Depends(get_current_user)):
             subprocess.run(f"{FFMPEG_PATH} -y -i {vid_path} -vn -acodec pcm_s16le -ar 44100 -ac 2 {old_audio}", shell=True, capture_output=True, timeout=30)
 
             # Get video duration
-            probe = subprocess.run(f"ffprobe -v error -show_entries format=duration -of csv=p=0 {vid_only}", shell=True, capture_output=True, text=True, timeout=10)
-            vid_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 23.0
+            vid_duration = _ffprobe_duration(vid_only) or 23.0
 
             # Select music
             music_dir = "/app/backend/assets/music"
@@ -3067,8 +3145,7 @@ async def remix_all_videos(user=Depends(get_current_user)):
                 urlreq.urlretrieve(video_url, vid_path)
                 vid_only = f"/tmp/{pid}_remix_vid.mp4"
                 subprocess.run(f"{FFMPEG_PATH} -y -i {vid_path} -an -c:v copy {vid_only}", shell=True, capture_output=True, timeout=60)
-                probe = subprocess.run(f"ffprobe -v error -show_entries format=duration -of csv=p=0 {vid_only}", shell=True, capture_output=True, text=True, timeout=10)
-                vid_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 23.0
+                vid_duration = _ffprobe_duration(vid_only) or 23.0
                 music_dir = "/app/backend/assets/music"
                 mood_map = {
                     "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "cinematic": "cinematic.mp3",
@@ -3489,6 +3566,9 @@ async def clone_pipeline_language(pipeline_id: str, data: CloneLanguageRequest, 
             "campaign_language": data.target_language,
             "media_formats": orig_result.get("media_formats", {}),
             "selected_music": orig_result.get("selected_music", ""),
+            "skip_video": orig_result.get("skip_video", False),
+            "video_mode": orig_result.get("video_mode", "narration"),
+            "avatar_url": orig_result.get("avatar_url", ""),
             "cloned_from": pipeline_id,
         },
     }

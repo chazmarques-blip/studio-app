@@ -1,0 +1,95 @@
+{
+  "summary": "Iteration 43 - Video Variants and Clone Bug Fixes Testing - ALL TESTS PASSED. Verified critical bug fixes: (1) Video variants per channel now work - replaced ffprobe binary calls with _ffprobe_duration/_ffprobe_dimensions helpers that parse ffmpeg stderr output, (2) Pipeline 4da83978-5af3-4736-8b5f-959df4a08071 has 8 video variants populated, (3) Clone endpoint now preserves skip_video, video_mode, avatar_url fields (verified in code at lines 3569-3571), (4) Regenerate-video-variants endpoint works successfully, (5) Content tab channel mockups show correct aspect ratios (WhatsApp=1:1, TikTok=9:16, Facebook=16:9), (6) Video lightbox pause fix still works - expands video and pauses background videos.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "Italian clone pipeline",
+        "issue": "Clone 68cb1b3c-7fe2-49c6-bbd6-b6f4444fb325 was created BEFORE the fix, so skip_video/video_mode/avatar_url fields are null. Future clones will have these fields.",
+        "priority": "INFO"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_features": {
+    "video_variants_populated": {
+      "status": "PASSED",
+      "pipeline_id": "4da83978-5af3-4736-8b5f-959df4a08071",
+      "video_variants_count": 8,
+      "channels_verified": ["whatsapp", "instagram", "facebook", "tiktok", "google_ads", "telegram", "email", "sms"]
+    },
+    "ffprobe_helpers": {
+      "status": "PASSED",
+      "helpers_implemented": ["_ffprobe_duration (lines 34-48)", "_ffprobe_dimensions (lines 51-64)"],
+      "method": "Parse ffmpeg -i stderr output for Duration and Video stream dimensions",
+      "fixes": "Replaced all ffprobe binary calls which didn't exist in environment"
+    },
+    "regenerate_video_variants_endpoint": {
+      "status": "PASSED",
+      "endpoint": "POST /api/campaigns/pipeline/{id}/regenerate-video-variants",
+      "response": "Returns status=success with variants dict and count"
+    },
+    "clone_preserves_video_fields": {
+      "status": "PASSED - CODE VERIFIED",
+      "code_location": "pipeline.py lines 3569-3571",
+      "fields_preserved": ["skip_video", "video_mode", "avatar_url"],
+      "note": "Existing Italian clone was created before fix, new clones will have fields"
+    },
+    "clip2_fallback_24s": {
+      "status": "VERIFIED IN CODE",
+      "code_location": "pipeline.py lines 1158-1170",
+      "fix": "When clip2 is missing/empty, concatenates clip1 twice to maintain 24s video duration"
+    },
+    "content_tab_channel_mockups": {
+      "status": "PASSED",
+      "channels_tested": ["WhatsApp (1:1 square)", "TikTok (9:16 vertical)", "Facebook (16:9 horizontal)"],
+      "channel_selector_data_testids": ["channel-select-whatsapp", "channel-select-instagram", "channel-select-facebook", "channel-select-tiktok", "channel-select-google_ads", "channel-select-telegram", "channel-select-email", "channel-select-sms"],
+      "mockup_displays_correct_aspect_ratio": true
+    },
+    "video_toggle_per_channel": {
+      "status": "PASSED",
+      "data_testids": ["toggle-image-{channel}", "toggle-video-{channel}"],
+      "behavior": "Switches between image and video in channel mockup"
+    },
+    "video_lightbox_pause_fix": {
+      "status": "PASSED",
+      "code_location": "Marketing.jsx lines 203-207",
+      "behavior": "useEffect pauses all videos without 'lightbox' in data-testid when lightbox opens"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration43_video_variants_clone.py",
+    "/app/test_reports/pytest/pytest_results_iteration43.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "pipeline.py lines 34-64: _ffprobe_duration and _ffprobe_dimensions correctly parse ffmpeg stderr output using regex to extract Duration (HH:MM:SS.cs) and Video stream dimensions (WxH)",
+    "pipeline.py lines 1158-1170: clip2 fallback correctly creates 24s video by concatenating clip1 twice using ffmpeg concat demuxer",
+    "pipeline.py lines 2947-2986: regenerate-video-variants endpoint correctly creates variants for all platforms and updates both pipeline and campaign",
+    "pipeline.py lines 3569-3571: clone-language endpoint correctly preserves skip_video, video_mode, avatar_url from original pipeline",
+    "Marketing.jsx lines 202-227: VideoLightbox component correctly pauses all background videos on mount and provides expand/download functionality"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration43_video_variants_clone.py"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6 tests passed)",
+    "frontend": "100% (All channel mockups, video toggle, lightbox verified)"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Used existing pipelines 4da83978-5af3-4736-8b5f-959df4a08071 and 68cb1b3c-7fe2-49c6-bbd6-b6f4444fb325 for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 43: Video variants bug FIXED - ffprobe binary replaced with _ffprobe_duration/_ffprobe_dimensions helpers parsing ffmpeg stderr. Pipeline 4da83978-5af3-4736-8b5f-959df4a08071 has 8 video variants. Clone endpoint now preserves skip_video/video_mode/avatar_url fields. Content tab shows proper aspect ratio mockups per channel. Key data-testids: channel-select-{channel}, toggle-image-{channel}, toggle-video-{channel}, video-lightbox, video-lightbox-close, video-lightbox-player.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
