@@ -38,6 +38,15 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - [x] **Multiple Avatars**: Avatars stored as separate list in localStorage (agentzz_avatars). Users can create multiple avatars via "+" button and select one for campaigns. Tested: iteration_46 (100% pass)
 - [x] **Company Logo Upload**: Logo upload integrated into company creation/edit modal. Company cards show uploaded logo on the left. Tested: iteration_47 (100% pass)
 - [x] **Avatar Zoom Preview**: Hover-to-zoom on avatar thumbnails opens fullscreen overlay with close and download. Tested: iteration_47 (100% pass)
+- [x] **Avatar Studio Advanced (P1 COMPLETE)**: Multi-step avatar creation modal with:
+  - Stage 1: Photo upload + AI generation (Gemini)
+  - Stage 2: 3 customization tabs (Clothing, 360° View, Voice)
+  - **Clothing**: 4 styles (Business Formal, Casual, Streetwear, Creative) with AI regeneration
+  - **360° View**: Generate 4 angles (front, left, right, back) for each avatar
+  - **Voice**: OpenAI TTS bank (6 voices: alloy, echo, fable, onyx, nova, shimmer) + custom voice recording in browser
+  - Each avatar saved with its selected voice. Gallery shows voice indicator
+  - Backend: 3 new endpoints (/voice-preview, /upload-voice-recording, /generate-avatar-variant)
+  - Tested: iteration_48 (100% pass - 11/11 tests)
 
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
@@ -61,4 +70,5 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - iteration_45: Avatar bug fix + Company edit (100% pass)
 - iteration_46: i18n refactor + UI reorganization (100% pass - 13/13 features)
 - iteration_47: Company logo upload + Avatar zoom preview (100% pass - 10/10 features)
+- iteration_48: Avatar Studio Advanced - Clothing, 360°, Voice (100% pass - 11/11 tests)
 - iteration_43: Video variants + clone fix (100% pass)
