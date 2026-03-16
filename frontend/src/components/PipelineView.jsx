@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -878,7 +878,7 @@ export default function PipelineView({ context }) {
   const [activePipeline, setActivePipeline] = useState(null);
   const [campaignName, setCampaignName] = useState('');
   const [briefing, setBriefing] = useState('');
-  const [briefingMode, setBriefingMode] = useState('free'); // 'free' | 'guided'
+  const [briefingMode, setBriefingMode] = useState('guided'); // 'free' | 'guided'
   const [questionnaire, setQuestionnaire] = useState({
     product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: '',
     gender: '', ageMin: '', ageMax: '', socialClass: '', lifestyle: '', painPoints: '', visualStyle: ''
@@ -902,6 +902,55 @@ export default function PipelineView({ context }) {
   const [playingTrack, setPlayingTrack] = useState(null);
   const audioRef = useRef(null);
   const pollRef = useRef(null);
+
+  // Company management
+  const [companies, setCompanies] = useState([]);
+  const [activeCompanyId, setActiveCompanyId] = useState(null);
+  const [showAddCompany, setShowAddCompany] = useState(false);
+  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('agentzz_companies');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setCompanies(parsed);
+        const primary = parsed.find(c => c.is_primary);
+        if (primary) setActiveCompanyId(primary.id);
+        else if (parsed.length) setActiveCompanyId(parsed[0].id);
+      } catch {}
+    }
+  }, []);
+
+  const saveCompanies = (list) => {
+    setCompanies(list);
+    localStorage.setItem('agentzz_companies', JSON.stringify(list));
+  };
+
+  const addCompany = () => {
+    if (!newCompany.name.trim()) return;
+    const co = { ...newCompany, id: Date.now().toString(), is_primary: companies.length === 0 };
+    const updated = [...companies, co];
+    saveCompanies(updated);
+    setActiveCompanyId(co.id);
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+    setShowAddCompany(false);
+    toast.success('Empresa cadastrada!');
+  };
+
+  const removeCompany = (id) => {
+    const updated = companies.filter(c => c.id !== id);
+    if (updated.length && !updated.some(c => c.is_primary)) updated[0].is_primary = true;
+    saveCompanies(updated);
+    if (activeCompanyId === id) setActiveCompanyId(updated[0]?.id || null);
+  };
+
+  const setPrimaryCompany = (id) => {
+    const updated = companies.map(c => ({ ...c, is_primary: c.id === id }));
+    saveCompanies(updated);
+  };
+
+  const activeCompany = companies.find(c => c.id === activeCompanyId) || null;
 
   useEffect(() => {
     loadPipelines();
@@ -1050,8 +1099,18 @@ export default function PipelineView({ context }) {
       const { data } = await axios.post(`${API}/campaigns/pipeline`, {
         briefing: effectiveBriefing.trim(), campaign_name: campaignName.trim(), mode, platforms,
         campaign_language: campaignLang || '',
-        context: context || {},
-        contact_info: contactInfo,
+        context: {
+          ...(context || {}),
+          ...(activeCompany ? { company: activeCompany.name, website_url: activeCompany.website_url } : {}),
+        },
+        contact_info: {
+          ...contactInfo,
+          ...(activeCompany ? {
+            phone: activeCompany.phone || contactInfo.phone,
+            website: activeCompany.website_url || contactInfo.website,
+            is_whatsapp: activeCompany.is_whatsapp,
+          } : {}),
+        },
         uploaded_assets: assetPayload,
         media_formats: mediaFormats,
         selected_music: selectedMusic || '',
@@ -1291,6 +1350,94 @@ export default function PipelineView({ context }) {
             ))}
           </div>
           <p className="text-[9px] text-[#555] mt-1.5">David &rarr; Lee &rarr; Stefan &rarr; George &rarr; Ridley &rarr; Roger &rarr; Gary</p>
+        </div>
+
+        {/* Company / Advertiser */}
+        <div>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1 mb-1.5">
+            <Building2 size={10} /> Empresa Anunciante
+          </label>
+
+          {companies.length > 0 && (
+            <div className="space-y-1.5 mb-2">
+              {companies.map(co => (
+                <button key={co.id} data-testid={`company-${co.id}`}
+                  onClick={() => setActiveCompanyId(co.id)}
+                  className={`w-full text-left rounded-xl border px-3 py-2 transition group ${activeCompanyId === co.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
+                      <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#555]'} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-white truncate">{co.name}</span>
+                        {co.is_primary && <span className="text-[7px] text-[#C9A84C] bg-[#C9A84C]/10 px-1 py-0.5 rounded-full font-bold shrink-0">PRINCIPAL</span>}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {co.phone && <span className="text-[8px] text-[#555] flex items-center gap-0.5"><Phone size={7} />{co.phone}{co.is_whatsapp && <span className="text-[#25D366]">WA</span>}</span>}
+                        {co.website_url && <span className="text-[8px] text-[#555] flex items-center gap-0.5 truncate max-w-[140px]"><Globe size={7} />{co.website_url.replace(/^https?:\/\//, '')}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
+                      {!co.is_primary && (
+                        <button onClick={e => { e.stopPropagation(); setPrimaryCompany(co.id); }} title="Tornar principal" className="p-1 rounded hover:bg-[#1A1A1A]">
+                          <Star size={10} className="text-[#555] hover:text-[#C9A84C]" />
+                        </button>
+                      )}
+                      <button onClick={e => { e.stopPropagation(); removeCompany(co.id); }} title="Remover" className="p-1 rounded hover:bg-red-500/10">
+                        <X size={10} className="text-[#555] hover:text-red-400" />
+                      </button>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {showAddCompany ? (
+            <div data-testid="add-company-form" className="rounded-xl border border-[#C9A84C]/20 bg-[#0A0A0A] p-3 space-y-2">
+              <div>
+                <label className="text-[8px] text-[#555] uppercase mb-0.5 block">Nome da Empresa *</label>
+                <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Ex: AgentZZ, Minha Empresa..." className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+              </div>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <div>
+                  <label className="text-[8px] text-[#555] uppercase mb-0.5 block">Telefone</label>
+                  <input data-testid="new-company-phone" value={newCompany.phone} onChange={e => setNewCompany(p => ({ ...p, phone: e.target.value }))}
+                    placeholder="+55 11 99999-0000" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                </div>
+                <div className="flex items-end pb-0.5">
+                  <button data-testid="new-company-whatsapp-toggle" onClick={() => setNewCompany(p => ({ ...p, is_whatsapp: !p.is_whatsapp }))}
+                    className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 text-[9px] font-medium transition ${newCompany.is_whatsapp ? 'border-[#25D366]/40 bg-[#25D366]/10 text-[#25D366]' : 'border-[#1E1E1E] text-[#555]'}`}>
+                    <MessageSquare size={9} /> WhatsApp
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[8px] text-[#555] uppercase mb-0.5 flex items-center gap-1">
+                  <Globe size={8} /> URL do Site (fonte de consulta p/ IA)
+                </label>
+                <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
+                  placeholder="https://www.suaempresa.com.br" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setShowAddCompany(false); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' }); }}
+                  className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666] hover:text-white transition">
+                  Cancelar
+                </button>
+                <button data-testid="save-company-btn" onClick={addCompany} disabled={!newCompany.name.trim()}
+                  className="flex-1 rounded-lg bg-[#C9A84C]/15 border border-[#C9A84C]/30 py-1.5 text-[10px] font-semibold text-[#C9A84C] hover:bg-[#C9A84C]/25 disabled:opacity-30 transition">
+                  Salvar Empresa
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button data-testid="add-company-btn" onClick={() => setShowAddCompany(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-dashed border-[#2A2A2A] px-3 py-2 text-[10px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition w-full justify-center">
+              <Plus size={12} /> {companies.length === 0 ? 'Cadastrar Empresa' : 'Adicionar Outra Empresa'}
+            </button>
+          )}
         </div>
 
         {/* Campaign Name */}

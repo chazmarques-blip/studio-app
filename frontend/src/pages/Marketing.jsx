@@ -200,6 +200,11 @@ function metaLabel(meta, labels) {
 
 /* ── Video Lightbox ── */
 function VideoLightbox({ videoUrl, onClose, labels }) {
+  useEffect(() => {
+    document.querySelectorAll('video').forEach(v => {
+      if (!v.dataset.testid?.includes('lightbox')) v.pause();
+    });
+  }, []);
   return (
     <div data-testid="video-lightbox" className="fixed inset-0 z-[70] bg-black/95 flex items-center justify-center p-4" onClick={onClose}>
       <div className="relative w-full max-w-4xl" onClick={e => e.stopPropagation()}>

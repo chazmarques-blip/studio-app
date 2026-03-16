@@ -1548,12 +1548,16 @@ VIOLATION = AUTOMATIC REJECTION. No exceptions.
         if ctx.get("industry"): parts.append(f"Industry: {ctx['industry']}")
         if ctx.get("audience"): parts.append(f"Target audience: {ctx['audience']}")
         if ctx.get("brand_voice"): parts.append(f"Brand voice: {ctx['brand_voice']}")
+        if ctx.get("website_url"): parts.append(f"Company website (use as reference): {ctx['website_url']}")
         ctx_str = "\n".join(parts)
 
     contact_str = ""
     if contact:
         cparts = []
-        if contact.get("phone"): cparts.append(f"Phone: {contact['phone']}")
+        if contact.get("phone"):
+            phone_str = f"Phone: {contact['phone']}"
+            if contact.get("is_whatsapp"): phone_str += " (also WhatsApp)"
+            cparts.append(phone_str)
         if contact.get("website"): cparts.append(f"Website: {contact['website']}")
         if contact.get("email"): cparts.append(f"Email: {contact['email']}")
         if contact.get("address"): cparts.append(f"Address: {contact['address']}")

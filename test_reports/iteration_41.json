@@ -1,0 +1,142 @@
+{
+  "summary": "Iteration 41 - Company Management, Default Briefing Mode, and Video Lightbox Pause - ALL TESTS PASSED. Verified: (1) 'EMPRESA ANUNCIANTE' section visible above CAMPAIGN NAME in AI Studio form, (2) '+ Cadastrar Empresa' button opens add company form with fields: Nome, Telefone, WhatsApp toggle, URL do Site, (3) WhatsApp toggle starts ACTIVE (green) by default - is_whatsapp: true, (4) WhatsApp toggle can be toggled off, (5) First company saved shows PRINCIPAL badge, (6) Second company shows without PRINCIPAL badge, (7) Selecting different company highlights with golden border (#C9A84C), (8) Star icon on hover sets company as primary, (9) X icon on hover removes company, (10) Companies persist in localStorage after page navigation, (11) 'Guided Questionnaire' is DEFAULT selected briefing mode (not Free Briefing), (12) Guided questionnaire form with 10 questions visible by default, (13) Backend POST /api/campaigns/pipeline correctly receives context.company, context.website_url, contact_info.phone, contact_info.is_whatsapp, (14) Video lightbox: when expanded, ALL background videos are PAUSED (tested on Marketing page Content tab).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_features": {
+    "company_section_visibility": {
+      "status": "PASSED",
+      "label": "EMPRESA ANUNCIANTE",
+      "position": "Above CAMPAIGN NAME in AI Studio form",
+      "icon": "Building2 (lucide-react)"
+    },
+    "add_company_button": {
+      "status": "PASSED",
+      "data_testid": "add-company-btn",
+      "text_first_company": "Cadastrar Empresa",
+      "text_after_first": "Adicionar Outra Empresa"
+    },
+    "add_company_form": {
+      "status": "PASSED",
+      "data_testid": "add-company-form",
+      "fields": {
+        "name": "data-testid='new-company-name' - label 'Nome da Empresa *'",
+        "phone": "data-testid='new-company-phone' - label 'Telefone'",
+        "whatsapp": "data-testid='new-company-whatsapp-toggle' - toggle button",
+        "website": "data-testid='new-company-website' - label 'URL do Site'"
+      }
+    },
+    "whatsapp_toggle_default": {
+      "status": "PASSED",
+      "default_value": true,
+      "styling_active": "border-[#25D366]/40 bg-[#25D366]/10 text-[#25D366]",
+      "styling_inactive": "border-[#1E1E1E] text-[#555]"
+    },
+    "whatsapp_toggle_off": {
+      "status": "PASSED",
+      "verified": "Can be toggled off and back on"
+    },
+    "first_company_principal_badge": {
+      "status": "PASSED",
+      "badge_text": "PRINCIPAL",
+      "styling": "text-[7px] text-[#C9A84C] bg-[#C9A84C]/10 px-1 py-0.5 rounded-full"
+    },
+    "second_company_no_badge": {
+      "status": "PASSED",
+      "verified": "Second company shows in list without PRINCIPAL badge"
+    },
+    "company_selection_golden_border": {
+      "status": "PASSED",
+      "active_styling": "border-[#C9A84C]/40 bg-[#C9A84C]/5",
+      "inactive_styling": "border-[#1E1E1E] hover:border-[#2A2A2A]"
+    },
+    "star_icon_set_primary": {
+      "status": "PASSED",
+      "title_attribute": "Tornar principal",
+      "behavior": "On hover, click sets company as is_primary: true"
+    },
+    "x_icon_remove_company": {
+      "status": "PASSED",
+      "title_attribute": "Remover",
+      "behavior": "On hover, click removes company from localStorage"
+    },
+    "localstorage_persistence": {
+      "status": "PASSED",
+      "key": "agentzz_companies",
+      "format": "JSON array of company objects",
+      "fields_per_company": ["id", "name", "phone", "is_whatsapp", "website_url", "is_primary"]
+    },
+    "default_briefing_mode_guided": {
+      "status": "PASSED",
+      "data_testid": "briefing-mode-guided",
+      "initial_state": "useState('guided')",
+      "active_styling": "bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30"
+    },
+    "guided_questionnaire_visible": {
+      "status": "PASSED",
+      "questions_count": 10,
+      "questions_verified": [
+        "What is your product or service?",
+        "What is the main goal of the campaign?",
+        "Who is your target audience?",
+        "What is the tone of voice?",
+        "What is the main offer or value proposition?",
+        "What are your differentials?",
+        "What problems does your audience face?",
+        "Visual style preference",
+        "What action do you want the audience to take?",
+        "Is there any urgency?"
+      ]
+    },
+    "backend_company_data_in_pipeline": {
+      "status": "PASSED",
+      "endpoint": "POST /api/campaigns/pipeline",
+      "context_fields_received": ["company", "website_url"],
+      "contact_fields_received": ["phone", "website", "is_whatsapp"],
+      "stored_in": "result.context and result.contact_info"
+    },
+    "video_lightbox_pause_background": {
+      "status": "PASSED",
+      "location": "Marketing page > Campaign Detail Modal > Content tab",
+      "trigger": "Click expand button (data-testid='video-expand-btn')",
+      "behavior": "useEffect pauses all <video> elements not containing 'lightbox' in data-testid",
+      "test_result": "1 background video found and paused when lightbox opened"
+    }
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_41.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PipelineView.jsx line 881: briefingMode state correctly defaults to 'guided'",
+    "PipelineView.jsx line 911: newCompany.is_whatsapp defaults to true in useState",
+    "PipelineView.jsx lines 913-927: localStorage save/load for 'agentzz_companies' key correctly implemented",
+    "PipelineView.jsx lines 1355-1441: Company section UI correctly positioned above Campaign Name",
+    "PipelineView.jsx lines 1100-1118: createPipeline correctly includes activeCompany data in context and contact_info",
+    "Marketing.jsx lines 202-207: VideoLightbox useEffect correctly pauses all non-lightbox videos on mount",
+    "pipeline.py lines 1544-1565: Context and contact strings correctly include website_url and is_whatsapp"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% - Pipeline creation API accepts and stores company data",
+    "frontend": "100% - All 14 features verified working"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Created test companies in localStorage for verification, then cleared",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 41: Company management fully tested in AI Studio. Key data-testids: add-company-btn, add-company-form, new-company-name, new-company-phone, new-company-whatsapp-toggle, new-company-website, save-company-btn, company-{id}. Companies persist to localStorage key 'agentzz_companies'. Default briefing mode is 'guided' (not 'free'). Video lightbox pause implemented in Marketing.jsx VideoLightbox component - pauses all background videos on mount. Backend correctly processes company data through context.company, context.website_url, contact_info.phone, contact_info.is_whatsapp.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
