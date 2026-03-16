@@ -935,7 +935,6 @@ export default function PipelineView({ context }) {
   const [loadingVoicePreview, setLoadingVoicePreview] = useState(null);
   const [playingVoiceId, setPlayingVoiceId] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [micPermission, setMicPermission] = useState('prompt'); // 'prompt' | 'granted' | 'denied'
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordedAudioBlob, setRecordedAudioBlob] = useState(null);
   const [uploadingRecording, setUploadingRecording] = useState(false);
@@ -1182,23 +1181,6 @@ export default function PipelineView({ context }) {
     setLoadingVoicePreview(null);
   };
 
-  const requestMicPermission = async () => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error('Your browser does not support audio recording');
-        setMicPermission('denied');
-        return false;
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop());
-      setMicPermission('granted');
-      return true;
-    } catch (e) {
-      setMicPermission('denied');
-      return false;
-    }
-  };
-
   const startRecording = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1206,7 +1188,6 @@ export default function PipelineView({ context }) {
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      setMicPermission('granted');
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
         : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
@@ -1226,14 +1207,11 @@ export default function PipelineView({ context }) {
       setRecordedAudioBlob(null);
     } catch (e) {
       console.error('Recording error:', e);
-      setMicPermission('denied');
-      if (e.name === 'NotAllowedError') {
-        toast.error('Microphone permission denied. Please allow access in your browser settings.');
-      } else if (e.name === 'NotFoundError') {
-        toast.error('No microphone found on this device.');
-      } else {
-        toast.error(`Recording error: ${e.message}`);
-      }
+      toast.error(
+        e.name === 'NotAllowedError'
+          ? 'Microphone blocked. Click the lock/tune icon in the address bar of THIS page → allow Microphone → reload.'
+          : e.name === 'NotFoundError' ? 'No microphone found.' : `Error: ${e.message}`
+      );
     }
   };
 
@@ -2110,41 +2088,21 @@ export default function PipelineView({ context }) {
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {micPermission === 'denied' ? (
-                              /* Permission denied - show instructions */
-                              <div className="text-center py-4 space-y-3">
-                                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20">
-                                  <MicOff size={24} className="text-red-400" />
-                                </div>
-                                <div>
-                                  <p className="text-xs text-white font-medium">Microphone Access Required</p>
-                                  <p className="text-[9px] text-[#555] mt-1 max-w-xs mx-auto">
-                                    Click the lock/camera icon in your browser&apos;s address bar and allow microphone access for this site, then try again.
-                                  </p>
-                                </div>
-                                <button data-testid="retry-mic-btn" onClick={requestMicPermission}
-                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#C9A84C]/30 text-[10px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition">
-                                  <RefreshCw size={11} /> Try Again
+                            <div className="flex items-center justify-center gap-3 py-4">
+                              {isRecording ? (
+                                <button data-testid="stop-recording-btn" onClick={stopRecording}
+                                  className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center animate-pulse hover:bg-red-600 transition">
+                                  <Square size={20} className="text-white" />
                                 </button>
-                              </div>
-                            ) : (
-                              /* Normal recording flow */
-                              <div className="flex items-center justify-center gap-3 py-4">
-                                {isRecording ? (
-                                  <button data-testid="stop-recording-btn" onClick={stopRecording}
-                                    className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center animate-pulse hover:bg-red-600 transition">
-                                    <Square size={20} className="text-white" />
-                                  </button>
-                                ) : (
-                                  <button data-testid="start-recording-btn" onClick={startRecording}
-                                    className="h-16 w-16 rounded-full border-2 border-[#C9A84C]/40 bg-[#C9A84C]/10 flex items-center justify-center hover:bg-[#C9A84C]/20 transition">
-                                    <Mic size={24} className="text-[#C9A84C]" />
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                              ) : (
+                                <button data-testid="start-recording-btn" onClick={startRecording}
+                                  className="h-16 w-16 rounded-full border-2 border-[#C9A84C]/40 bg-[#C9A84C]/10 flex items-center justify-center hover:bg-[#C9A84C]/20 transition">
+                                  <Mic size={24} className="text-[#C9A84C]" />
+                                </button>
+                              )}
+                            </div>
                             <p className="text-[9px] text-center text-[#555]">
-                              {isRecording ? t('studio.recording_in_progress') : micPermission === 'denied' ? '' : recordedAudioUrl ? t('studio.play_preview') : t('studio.record')}
+                              {isRecording ? t('studio.recording_in_progress') : recordedAudioUrl ? t('studio.play_preview') : t('studio.record')}
                             </p>
                             {recordedAudioUrl && (
                               <div className="space-y-2">
