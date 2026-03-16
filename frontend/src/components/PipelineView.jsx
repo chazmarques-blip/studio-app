@@ -1789,13 +1789,17 @@ export default function PipelineView({ context }) {
                       <Volume2 size={7} className="text-[#C9A84C]" />
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center pointer-events-none">
-                    <button onClick={e => { e.stopPropagation(); setAvatarPreviewUrl(av.url); }}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-1 pointer-events-none">
+                    <button data-testid={`edit-avatar-${av.id}`} onClick={e => { e.stopPropagation(); openAvatarForEdit(av); }}
+                      className="opacity-0 group-hover:opacity-100 transition h-7 w-7 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center pointer-events-auto">
+                      <PenTool size={11} className="text-[#C9A84C]" />
+                    </button>
+                    <button data-testid={`zoom-avatar-${av.id}`} onClick={e => { e.stopPropagation(); setAvatarPreviewUrl(av.url); }}
                       className="opacity-0 group-hover:opacity-100 transition h-7 w-7 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center pointer-events-auto">
                       <Maximize2 size={12} className="text-white" />
                     </button>
                   </div>
-                  <button onClick={e => { e.stopPropagation(); removeAvatar(av.id); }}
+                  <button data-testid={`delete-avatar-${av.id}`} onClick={e => { e.stopPropagation(); removeAvatar(av.id); }}
                     className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                     <X size={8} className="text-white" />
                   </button>
@@ -1907,7 +1911,7 @@ export default function PipelineView({ context }) {
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
-                  {avatarStage === 'customize' ? t('studio.customize_avatar') : t('studio.create_avatar')}
+                  {avatarStage === 'customize' ? (editingAvatarId ? t('studio.edit_avatar') : t('studio.customize_avatar')) : t('studio.create_avatar')}
                 </p>
                 <button onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#555]" /></button>
               </div>
@@ -2195,11 +2199,24 @@ export default function PipelineView({ context }) {
 
               {/* Footer */}
               {avatarStage === 'customize' && (
-                <div className="px-5 py-3 border-t border-[#151515] shrink-0">
-                  <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
-                    className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
-                    <Check size={14} /> {t('studio.save_avatar')}
-                  </button>
+                <div className="px-5 py-3 border-t border-[#151515] shrink-0 flex gap-2">
+                  {editingAvatarId ? (
+                    <>
+                      <button data-testid="save-avatar-as-new-btn" onClick={saveAvatarAsNew}
+                        className="flex-1 rounded-lg border border-[#C9A84C]/40 py-2.5 text-xs font-bold text-[#C9A84C] hover:bg-[#C9A84C]/10 transition flex items-center justify-center gap-2">
+                        <Plus size={14} /> {t('studio.save_as_new')}
+                      </button>
+                      <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
+                        className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
+                        <Check size={14} /> {t('studio.update_avatar')}
+                      </button>
+                    </>
+                  ) : (
+                    <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
+                      className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
+                      <Check size={14} /> {t('studio.save_avatar')}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
