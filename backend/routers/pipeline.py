@@ -122,7 +122,7 @@ def _recover_orphaned_pipelines():
                         try:
                             fmt = re.search(r'Format:\s*(horizontal|vertical)', marcos_out, re.IGNORECASE)
                             vf = fmt.group(1).lower() if fmt else "horizontal"
-                            sz = {"vertical": "720x1280", "horizontal": "1280x720"}.get(vf, "1280x720")
+                            sz = {"vertical": "1024x1792", "horizontal": "1280x720"}.get(vf, "1280x720")
                             p_data = supabase.table("pipelines").select("result").eq("id", pid).single().execute()
                             user_music = (p_data.data or {}).get("result", {}).get("selected_music", "")
                             av_voice = (p_data.data or {}).get("result", {}).get("avatar_voice", None)
@@ -203,7 +203,7 @@ def _delete_from_storage(filename: str):
         logger.warning(f"Supabase Storage delete failed for {filename}: {e}")
 
 STEP_ORDER = ["sofia_copy", "ana_review_copy", "lucas_design", "rafael_review_design", "marcos_video", "rafael_review_video", "pedro_publish"]
-PAUSE_AFTER = {"ana_review_copy", "rafael_review_design", "rafael_review_video"}
+PAUSE_AFTER = {"ana_review_copy", "rafael_review_design"}
 
 STEP_LABELS = {
     "sofia_copy": {"agent": "David", "role": "Copywriter", "icon": "pen-tool"},
@@ -2642,7 +2642,8 @@ async def _execute_step(pipeline_id, step):
 
                 platforms = pipeline.get("platforms") or []
                 # Sora 2 valid sizes: 720x1280, 1280x720
-                FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
+                # Sora 2 valid sizes: 1280x720, 1792x1024, 1024x1792, 1024x1024
+                FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1280x720"}
                 if not format_match:
                     if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
                         video_format = "vertical"
