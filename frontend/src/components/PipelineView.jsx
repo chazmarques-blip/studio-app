@@ -778,86 +778,85 @@ function AssetUploader({ assets, onAssetsChange }) {
     <div data-testid="asset-uploader" className="space-y-3">
       <label className="text-[9px] text-[#555] uppercase tracking-wider block">Brand & Reference Images</label>
 
-      {/* Logo Upload */}
-      <div>
-        <p className="text-[10px] text-[#888] mb-1.5">Brand logo</p>
-        <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
-          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
-          onChange={e => { handleUpload(e.target.files, 'logo'); e.target.value = ''; }} />
+      {/* Logo + Reference Images — side by side compact */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">Logo</p>
+          <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+            onChange={e => { handleUpload(e.target.files, 'logo'); e.target.value = ''; }} />
 
-        {logos.length > 0 ? (
-          <div className="flex gap-2 flex-wrap items-center">
-            {logos.map((a, i) => (
-              <div key={i} className="relative group">
-                <img src={a.preview || resolveImageUrl(a.url)} alt="Logo"
-                  className="h-14 w-14 rounded-lg object-cover border-2 border-[#C9A84C]/30" />
-                <button onClick={() => removeAsset(assets.indexOf(a))}
-                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
-                  <X size={10} className="text-white" />
-                </button>
-              </div>
-            ))}
-            <button onClick={() => logoRef.current?.click()} disabled={uploading}
-              className="h-14 w-14 rounded-lg border-2 border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[#C9A84C]/40 transition disabled:opacity-40">
-              <Upload size={14} className="text-[#555]" />
-            </button>
-          </div>
-        ) : (
-          <button data-testid="upload-logo-btn"
-            onClick={() => logoRef.current?.click()}
-            onDrop={e => handleDrop(e, 'logo')}
-            onDragOver={e => handleDragOver(e, 'logo')}
-            onDragLeave={handleDragLeave}
-            disabled={uploading}
-            className={`w-full rounded-xl border-2 border-dashed py-4 flex flex-col items-center gap-1.5 transition disabled:opacity-40 cursor-pointer ${
-              dragOver === 'logo' ? 'border-[#C9A84C] bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#C9A84C]/30 hover:bg-[#0D0D0D]'
-            }`}>
-            <div className="h-10 w-10 rounded-xl bg-[#C9A84C]/10 flex items-center justify-center">
-              <Upload size={18} className="text-[#C9A84C]" />
+          {logos.length > 0 ? (
+            <div className="flex gap-1.5 flex-wrap items-center">
+              {logos.map((a, i) => (
+                <div key={i} className="relative group">
+                  <img src={a.preview || resolveImageUrl(a.url)} alt="Logo"
+                    className="h-10 w-10 rounded-lg object-cover border border-[#C9A84C]/30" />
+                  <button onClick={() => removeAsset(assets.indexOf(a))}
+                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+                    <X size={8} className="text-white" />
+                  </button>
+                </div>
+              ))}
+              <button onClick={() => logoRef.current?.click()} disabled={uploading}
+                className="h-10 w-10 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[#C9A84C]/40 transition disabled:opacity-40">
+                <Upload size={10} className="text-[#555]" />
+              </button>
             </div>
-            <span className="text-[11px] text-[#C9A84C] font-medium">Click to upload logo</span>
-            <span className="text-[8px] text-[#444]">PNG, JPG, SVG, WEBP (max 10MB)</span>
-          </button>
-        )}
-      </div>
+          ) : (
+            <button data-testid="upload-logo-btn"
+              onClick={() => logoRef.current?.click()}
+              onDrop={e => handleDrop(e, 'logo')}
+              onDragOver={e => handleDragOver(e, 'logo')}
+              onDragLeave={handleDragLeave}
+              disabled={uploading}
+              className={`w-full rounded-xl border border-dashed py-3 flex flex-col items-center gap-1 transition disabled:opacity-40 cursor-pointer ${
+                dragOver === 'logo' ? 'border-[#C9A84C] bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#C9A84C]/30'
+              }`}>
+              <Upload size={14} className="text-[#C9A84C]" />
+              <span className="text-[8px] text-[#C9A84C] font-medium">Upload logo</span>
+            </button>
+          )}
+        </div>
 
-      {/* Reference Images Upload */}
-      <div>
-        <p className="text-[10px] text-[#888] mb-1.5">Reference images</p>
-        <input ref={refRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
-          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
-          onChange={e => { handleUpload(e.target.files, 'reference'); e.target.value = ''; }} />
+        <div>
+          <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">Referencia</p>
+          <input ref={refRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
+            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+            onChange={e => { handleUpload(e.target.files, 'reference'); e.target.value = ''; }} />
 
-        {refs.length > 0 && (
-          <div className="flex gap-2 flex-wrap items-center mb-2">
-            {refs.map((a, i) => (
-              <div key={i} className="relative group">
-                <img src={a.preview || resolveImageUrl(a.url)} alt="Ref"
-                  className="h-14 w-14 rounded-lg object-cover border border-[#1E1E1E]" />
-                <button onClick={() => removeAsset(assets.indexOf(a))}
-                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
-                  <X size={10} className="text-white" />
-                </button>
-                <p className="text-[7px] text-[#555] mt-0.5 truncate max-w-[56px] text-center">{a.name}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        <button data-testid="upload-ref-btn"
-          onClick={() => refRef.current?.click()}
-          onDrop={e => handleDrop(e, 'reference')}
-          onDragOver={e => handleDragOver(e, 'reference')}
-          onDragLeave={handleDragLeave}
-          disabled={uploading}
-          className={`w-full rounded-xl border-2 border-dashed py-3 flex flex-col items-center gap-1 transition disabled:opacity-40 cursor-pointer ${
-            dragOver === 'reference' ? 'border-[#7CB9E8] bg-[#7CB9E8]/5' : 'border-[#1E1E1E] hover:border-[#7CB9E8]/30 hover:bg-[#0D0D0D]'
-          }`}>
-          <div className="h-8 w-8 rounded-lg bg-[#7CB9E8]/10 flex items-center justify-center">
-            <Image size={14} className="text-[#7CB9E8]" />
-          </div>
-          <span className="text-[10px] text-[#7CB9E8] font-medium">{refs.length > 0 ? 'Add more images' : 'Click to upload reference images'}</span>
-          <span className="text-[8px] text-[#444]">Select one or more images</span>
-        </button>
+          {refs.length > 0 ? (
+            <div className="flex gap-1.5 flex-wrap items-center">
+              {refs.map((a, i) => (
+                <div key={i} className="relative group">
+                  <img src={a.preview || resolveImageUrl(a.url)} alt="Ref"
+                    className="h-10 w-10 rounded-lg object-cover border border-[#1E1E1E]" />
+                  <button onClick={() => removeAsset(assets.indexOf(a))}
+                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+                    <X size={8} className="text-white" />
+                  </button>
+                </div>
+              ))}
+              <button onClick={() => refRef.current?.click()} disabled={uploading}
+                className="h-10 w-10 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[#7CB9E8]/40 transition disabled:opacity-40">
+                <Upload size={10} className="text-[#555]" />
+              </button>
+            </div>
+          ) : (
+            <button data-testid="upload-ref-btn"
+              onClick={() => refRef.current?.click()}
+              onDrop={e => handleDrop(e, 'reference')}
+              onDragOver={e => handleDragOver(e, 'reference')}
+              onDragLeave={handleDragLeave}
+              disabled={uploading}
+              className={`w-full rounded-xl border border-dashed py-3 flex flex-col items-center gap-1 transition disabled:opacity-40 cursor-pointer ${
+                dragOver === 'reference' ? 'border-[#7CB9E8] bg-[#7CB9E8]/5' : 'border-[#1E1E1E] hover:border-[#7CB9E8]/30'
+              }`}>
+              <Image size={14} className="text-[#7CB9E8]" />
+              <span className="text-[8px] text-[#7CB9E8] font-medium">{refs.length > 0 ? 'Add more' : 'Upload ref'}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {uploading && (
