@@ -36,6 +36,8 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - [x] **i18n Refactor**: All hardcoded PT strings in PipelineView.jsx, Agents.jsx, AgentDetailsDrawer.jsx replaced with `t()` calls. Added 66 studio keys and 11 agent keys to en.json, pt.json, es.json. Tested: iteration_46 (100% pass)
 - [x] **UI Reorganization**: Company/Avatar creation moved to modal dialogs triggered by "+" buttons in section headers. In the campaign flow, companies/avatars are selectable cards/thumbnails. Tested: iteration_46 (100% pass)
 - [x] **Multiple Avatars**: Avatars stored as separate list in localStorage (agentzz_avatars). Users can create multiple avatars via "+" button and select one for campaigns. Tested: iteration_46 (100% pass)
+- [x] **Company Logo Upload**: Logo upload integrated into company creation/edit modal. Company cards show uploaded logo on the left. Tested: iteration_47 (100% pass)
+- [x] **Avatar Zoom Preview**: Hover-to-zoom on avatar thumbnails opens fullscreen overlay with close and download. Tested: iteration_47 (100% pass)
 
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
@@ -58,4 +60,5 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - iteration_44: Avatar Studio UI Refactor (100% pass)
 - iteration_45: Avatar bug fix + Company edit (100% pass)
 - iteration_46: i18n refactor + UI reorganization (100% pass - 13/13 features)
+- iteration_47: Company logo upload + Avatar zoom preview (100% pass - 10/10 features)
 - iteration_43: Video variants + clone fix (100% pass)
