@@ -2197,8 +2197,9 @@ async def _execute_step(pipeline_id, step):
         last_error = None
         # Review steps (Gemini Flash) are fast — use shorter timeout and fewer retries
         is_review = step in ("ana_review_copy", "rafael_review_design", "rafael_review_video", "pedro_publish")
-        timeout_per_attempt = 60 if is_review else 120
-        max_attempts = 2 if is_review else 3
+        timeout_per_attempt = 30 if is_review else 75
+        # Only 1 attempt for primary model before fallback (avoids long waits on 502 errors)
+        max_attempts = 1
 
         for attempt in range(max_attempts):
             try:
