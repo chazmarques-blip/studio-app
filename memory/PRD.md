@@ -75,6 +75,13 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
   - i18n: 8 new keys in all 3 locales
   - Tested: iteration_52 (100% pass - 11/11 features)
 
+- [x] **Exact Photos Pipeline (COMPLETE)**:
+  - `_edit_exact_image()`: New function that downloads the real product photo, sends it to Gemini as image input, and applies professional editing (background, lighting, composition) while keeping the EXACT product
+  - `_generate_design_images()`: When exact photos exist, uses them as base images for editing (first N designs match N exact photos); remaining designs generated from scratch
+  - `assets_str`: Differentiates between "exact" and "reference" photo types in prompt context
+  - `lucas_design` prompt: Instructs Stefan to write EDITING instructions for exact photos (not new product descriptions)
+  - Tested: Backend lint clean, upload endpoint verified
+
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
 - FFmpeg logo overlay sometimes fails (low priority)

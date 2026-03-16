@@ -752,6 +752,60 @@ def _next_step(current):
     return STEP_ORDER[idx + 1] if idx + 1 < len(STEP_ORDER) else None
 
 
+async def _edit_exact_image(source_image_url, edit_prompt, pipeline_id, index):
+    """Edit an exact product photo using Gemini — keeps the real product, applies professional treatment"""
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Download the source image
+            img_data = urllib.request.urlopen(source_image_url, timeout=30).read()
+            if not img_data or len(img_data) < 500:
+                logger.warning(f"Exact photo download failed or too small: {source_image_url}")
+                return None
+
+            img_b64 = base64.b64encode(img_data).decode('utf-8')
+            # Detect mime type
+            mime = "image/jpeg"
+            if source_image_url.lower().endswith(".png"):
+                mime = "image/png"
+            elif source_image_url.lower().endswith(".webp"):
+                mime = "image/webp"
+
+            chat = LlmChat(
+                api_key=EMERGENT_KEY,
+                session_id=f"edit-{pipeline_id}-{index}-{uuid.uuid4().hex[:6]}-{attempt}",
+                system_message="You are an expert product photographer and image editor. Edit the provided product photo with professional quality. Keep the EXACT product — do NOT replace it with a different or fictional version. Apply professional editing: clean background, studio lighting, color correction, and commercial-grade composition."
+            )
+            chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+
+            msg = UserMessage(
+                text=f"""Edit this EXACT product photo for a marketing campaign. 
+CRITICAL: Keep the REAL product exactly as it is — same model, same color, same details. Do NOT generate a different product.
+
+Editing instructions:
+{edit_prompt}
+
+Apply: professional studio lighting, clean/upgraded background, commercial-grade color grading, marketing-ready composition.
+Output: A polished, campaign-ready version of this EXACT product. Square 1080x1080 format.
+DO NOT add any text, logos, or watermarks to the image.""",
+                images=[ImageContent(base64_data=img_b64, media_type=mime)]
+            )
+            text_response, images = await chat.send_message_multimodal_response(msg)
+
+            if images and len(images) > 0:
+                img_bytes = base64.b64decode(images[0]['data'])
+                filename = f"{pipeline_id}_exact_{index}_{uuid.uuid4().hex[:6]}.png"
+                public_url = _upload_to_storage(img_bytes, filename, "image/png")
+                logger.info(f"Exact photo edited and uploaded: {filename}")
+                return public_url
+        except Exception as e:
+            logger.warning(f"Exact photo edit attempt {attempt+1}/{max_retries} failed: {e}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(3 * (attempt + 1))
+    return None
+
+
+
 async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None):
     """Generate a single image using Gemini Nano Banana and upload to Supabase Storage"""
     max_retries = 3
@@ -984,12 +1038,16 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
 
 
 async def _generate_design_images(pipeline_id, lucas_output, platforms):
-    """Parse Lucas's optimized prompts and generate images with Nano Banana"""
+    """Parse Lucas's optimized prompts and generate images with Nano Banana.
+    If exact product photos were uploaded, edit those instead of generating from scratch."""
     pipeline_data = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
     campaign_language = "pt"
+    uploaded_assets = []
     if pipeline_data:
-        # campaign_language is stored inside result, not at root level
         campaign_language = pipeline_data[0].get("result", {}).get("campaign_language") or pipeline_data[0].get("campaign_language") or "pt"
+        uploaded_assets = pipeline_data[0].get("result", {}).get("uploaded_assets", [])
+
+    exact_photos = [a for a in uploaded_assets if a.get("type") == "exact"]
 
     LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
     lang_name = LANG_NAMES.get(campaign_language, "Portuguese")
@@ -1006,12 +1064,10 @@ async def _generate_design_images(pipeline_id, lucas_output, platforms):
     for block in prompt_blocks:
         if not block.strip():
             continue
-        # Look for "Image Prompt:" field
         prompt_match = re.search(r'Image Prompt:\s*([\s\S]*?)(?=\n===|$)', block, re.IGNORECASE)
         if prompt_match:
             prompts.append(prompt_match.group(1).strip())
         else:
-            # Fallback: use the full block as a prompt
             clean = block.strip()
             if len(clean) > 30:
                 prompts.append(clean)
@@ -1031,10 +1087,37 @@ async def _generate_design_images(pipeline_id, lucas_output, platforms):
                 f"Stunning commercial photography for a marketing campaign. Include the headline text '{hl[idx]}' in bold modern typography. Professional studio lighting, rich colors, dramatic composition. Square 1080x1080 format. NO logos, NO brand names."
             )
 
-    # Generate images sequentially
+    # Generate images — use exact photos as base when available
     image_urls = []
     for i, prompt in enumerate(prompts):
-        enhanced_prompt = f"""ABSOLUTE LANGUAGE REQUIREMENT — THIS OVERRIDES EVERYTHING:
+        url = None
+
+        # If we have exact photos, edit them instead of generating from scratch
+        if i < len(exact_photos) and exact_photos[i].get("url"):
+            exact_url = exact_photos[i]["url"]
+            # Resolve relative URLs
+            if exact_url.startswith("/"):
+                exact_url = f"{os.environ.get('SUPABASE_URL', '')}/storage/v1/object/public/assets/{exact_url.lstrip('/')}"
+            logger.info(f"Using exact photo #{i+1} as base: {exact_url[:80]}...")
+            url = await _edit_exact_image(
+                source_image_url=exact_url,
+                edit_prompt=f"""Campaign edit instructions from the designer:
+{prompt}
+
+LANGUAGE: All text in the image must be in {lang_name}. {lang_instruction}
+Keep the EXACT product from the photo. Apply professional treatment: clean background, studio lighting, commercial composition.
+Square 1080x1080 format for {', '.join(platforms)}.""",
+                pipeline_id=pipeline_id,
+                index=i + 1
+            )
+            if url:
+                logger.info(f"Exact photo #{i+1} edited successfully")
+            else:
+                logger.warning(f"Exact photo #{i+1} edit failed, falling back to generation")
+
+        # Fallback: generate from scratch if no exact photo or edit failed
+        if not url:
+            enhanced_prompt = f"""ABSOLUTE LANGUAGE REQUIREMENT — THIS OVERRIDES EVERYTHING:
 ALL text visible in this image (headlines, titles, CTAs, overlay text, any words) MUST be written ONLY in {lang_name}.
 {lang_instruction}
 If the prompt below contains text in a DIFFERENT language, you MUST TRANSLATE it to {lang_name} before generating.
@@ -1045,7 +1128,8 @@ DO NOT copy any non-{lang_name} text into the image. TRANSLATE first.
 Technical: Ultra high-quality, 4K, professional color grading. Square 1080x1080 format for {', '.join(platforms)}.
 REMINDER: ALL visible text in the image MUST be in {lang_name}. NO other languages.
 NO logos, NO brand names, NO website URLs."""
-        url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
+            url = await _generate_image(enhanced_prompt, pipeline_id, i + 1)
+
         image_urls.append(url)
 
     return image_urls, prompts
@@ -1824,11 +1908,15 @@ VIOLATION = AUTOMATIC REJECTION. No exceptions.
 
     assets_str = ""
     if assets:
-        logo_assets = [a for a in assets if a.get("type") == "logo"]
+        exact_assets = [a for a in assets if a.get("type") == "exact"]
         ref_assets = [a for a in assets if a.get("type") == "reference"]
         aparts = []
-        if logo_assets:
-            aparts.append(f"Brand logo has been uploaded ({len(logo_assets)} file(s)). Use the brand identity from the logo in the campaign visuals.")
+        if exact_assets:
+            exact_urls = [a.get("url", "") for a in exact_assets]
+            aparts.append(f"EXACT PRODUCT PHOTOS ({len(exact_assets)} file(s)): {', '.join(exact_urls)}\n"
+                          f"CRITICAL: These are REAL product photos. The campaign images MUST feature these EXACT products — "
+                          f"do NOT create generic/fictional versions. You may describe professional editing (background removal, "
+                          f"studio lighting, color correction) but the product itself must be the one from the photos.")
         if ref_assets:
             aparts.append(f"Reference images have been uploaded ({len(ref_assets)} file(s)). Use these as visual inspiration and style reference for the campaign designs.")
         if aparts:
@@ -1931,6 +2019,17 @@ ART DIRECTOR'S FEEDBACK:
 
 IMPORTANT: Revise ALL 3 image prompts addressing EVERY point in the art director's feedback. Make each prompt significantly more impactful."""
 
+        # Get exact photos info for Stefan
+        exact_assets = [a for a in assets if a.get("type") == "exact"]
+        exact_photo_instruction = ""
+        if exact_assets:
+            exact_photo_instruction = f"""
+EXACT PRODUCT PHOTOS PROVIDED: {len(exact_assets)} photo(s)
+CRITICAL RULE: The client uploaded REAL product photos. Your prompts for designs #{', #'.join([str(i+1) for i in range(min(len(exact_assets), 3))])} MUST describe how to EDIT the real product photo — NOT generate a new product from scratch.
+For these designs, write EDITING INSTRUCTIONS: describe the background, lighting, composition, and styling to apply to the EXISTING product photo.
+Example: "The existing [product] photographed in a premium studio setting with soft gradient backdrop, dramatic rim lighting, golden hour tones..."
+For any remaining designs beyond the exact photos count, you may create fully new concepts."""
+
         return f"""Transform David's IMAGE BRIEFING into 3 optimized AI image generation prompts.
 Target platforms: {platforms_str}
 
@@ -1947,6 +2046,7 @@ ORIGINAL BRIEFING: {briefing}
 {contact_str}
 {format_str}
 {assets_str}
+{exact_photo_instruction}
 {revision_info}
 
 YOUR TASK: Create 3 IMAGE GENERATION PROMPTS based on David's visual concepts.
@@ -1956,6 +2056,7 @@ Each prompt MUST:
 3. Include: subject, setting, lighting, camera angle, color palette, mood, art style
 4. End with: "Ultra high-quality, 4K commercial photography. NO logos, NO brand names, NO website URLs."
 5. If IMAGE FORMAT REQUIREMENTS were provided above, adapt each prompt's aspect ratio description accordingly (e.g., "vertical portrait composition" for 9:16, "landscape panoramic" for 16:9, "square centered" for 1:1).
+6. If EXACT PRODUCT PHOTOS are provided, the first {len(exact_assets)} design(s) MUST be EDITING INSTRUCTIONS for the real photos — describe the treatment, background, and styling, NOT a new product.
 
 CRITICAL LANGUAGE RULE: ALL text that appears in the image (headlines, overlays, CTAs) MUST be in the SAME language as the approved campaign copy. If the copy is in English, the image headline MUST be in English. If in Portuguese, in Portuguese. NEVER mix languages between copy and image text — this destroys campaign coherence.
 {lang_instruction}
