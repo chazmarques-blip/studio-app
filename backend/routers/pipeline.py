@@ -11,7 +11,7 @@ import os
 import threading
 import shutil
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent, FileContent
 from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
 from emergentintegrations.llm.openai import OpenAITextToSpeech
 from PIL import Image
@@ -2597,8 +2597,19 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
             system_message="You are an expert portrait and fashion photographer. You create stunning full-body professional photos."
         )
 
+        file_contents = []
         if req.source_image_url:
-            # Image-to-image: Generate full-body avatar based on uploaded photo
+            # Download source image and convert to base64
+            try:
+                img_req = urllib.request.Request(req.source_image_url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(img_req, timeout=15) as resp:
+                    img_data = resp.read()
+                    img_b64 = base64.b64encode(img_data).decode("utf-8")
+                    content_type = resp.headers.get("Content-Type", "image/png")
+                file_contents = [FileContent(content_type=content_type, file_content_base64=img_b64)]
+            except Exception as dl_err:
+                logger.warning(f"Failed to download source image: {dl_err}")
+
             prompt = (
                 "Based on this reference photo, create a FULL-BODY professional portrait of this EXACT SAME person. "
                 "The person must look IDENTICAL — same face, same features, same skin tone, same hair. "
@@ -2607,9 +2618,7 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                 "Clean minimal background. Photorealistic, high quality, 4K detail. "
                 "The face and likeness MUST be preserved exactly as in the reference photo."
             )
-            msg = UserMessage(text=prompt, image_url=req.source_image_url)
         else:
-            # Text-only: Generate a generic professional avatar
             prompt = (
                 f"Professional full-body portrait of a confident business presenter"
                 f"{' for ' + req.company_name if req.company_name else ''}. "
@@ -2617,8 +2626,8 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                 "Full body visible from head to feet. Clean minimal background. "
                 "Photorealistic, high quality, 4K detail."
             )
-            msg = UserMessage(text=prompt)
 
+        msg = UserMessage(text=prompt, file_contents=file_contents if file_contents else None)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
 

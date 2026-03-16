@@ -907,6 +907,7 @@ export default function PipelineView({ context }) {
   const [companies, setCompanies] = useState([]);
   const [activeCompanyId, setActiveCompanyId] = useState(null);
   const [showAddCompany, setShowAddCompany] = useState(false);
+  const [editingCompanyId, setEditingCompanyId] = useState(null);
   const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '' });
 
   // Avatar Studio (standalone)
@@ -950,6 +951,28 @@ export default function PipelineView({ context }) {
     if (updated.length && !updated.some(c => c.is_primary)) updated[0].is_primary = true;
     saveCompanies(updated);
     if (activeCompanyId === id) setActiveCompanyId(updated[0]?.id || null);
+  };
+
+  const startEditCompany = (co) => {
+    setEditingCompanyId(co.id);
+    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '' });
+    setShowAddCompany(true);
+  };
+
+  const saveEditCompany = () => {
+    if (!newCompany.name.trim()) return;
+    const updated = companies.map(c => c.id === editingCompanyId ? { ...c, ...newCompany } : c);
+    saveCompanies(updated);
+    setEditingCompanyId(null);
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+    setShowAddCompany(false);
+    toast.success('Empresa atualizada!');
+  };
+
+  const cancelCompanyForm = () => {
+    setShowAddCompany(false);
+    setEditingCompanyId(null);
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
   };
 
   const setPrimaryCompany = (id) => {
@@ -1440,6 +1463,9 @@ export default function PipelineView({ context }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
+                      <button onClick={e => { e.stopPropagation(); startEditCompany(co); }} title="Editar" data-testid={`edit-company-${co.id}`} className="p-1 rounded hover:bg-[#1A1A1A]">
+                        <PenTool size={10} className="text-[#555] hover:text-[#C9A84C]" />
+                      </button>
                       {!co.is_primary && (
                         <button onClick={e => { e.stopPropagation(); setPrimaryCompany(co.id); }} title="Tornar principal" className="p-1 rounded hover:bg-[#1A1A1A]">
                           <Star size={10} className="text-[#555] hover:text-[#C9A84C]" />
@@ -1457,6 +1483,7 @@ export default function PipelineView({ context }) {
 
           {showAddCompany ? (
             <div data-testid="add-company-form" className="rounded-xl border border-[#C9A84C]/20 bg-[#0A0A0A] p-3 space-y-2">
+              <p className="text-[9px] text-[#C9A84C] font-medium">{editingCompanyId ? 'Editar Empresa' : 'Nova Empresa'}</p>
               <div>
                 <label className="text-[8px] text-[#555] uppercase mb-0.5 block">Nome da Empresa *</label>
                 <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
@@ -1482,15 +1509,14 @@ export default function PipelineView({ context }) {
                 <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
                   placeholder="https://www.suaempresa.com.br" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
-              {/* Avatar / Presenter - REMOVED from company form, now separate section below */}
               <div className="flex gap-2 pt-1">
-                <button onClick={() => { setShowAddCompany(false); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' }); }}
+                <button onClick={cancelCompanyForm}
                   className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666] hover:text-white transition">
                   Cancelar
                 </button>
-                <button data-testid="save-company-btn" onClick={addCompany} disabled={!newCompany.name.trim()}
+                <button data-testid="save-company-btn" onClick={editingCompanyId ? saveEditCompany : addCompany} disabled={!newCompany.name.trim()}
                   className="flex-1 rounded-lg bg-[#C9A84C]/15 border border-[#C9A84C]/30 py-1.5 text-[10px] font-semibold text-[#C9A84C] hover:bg-[#C9A84C]/25 disabled:opacity-30 transition">
-                  Salvar Empresa
+                  {editingCompanyId ? 'Atualizar Empresa' : 'Salvar Empresa'}
                 </button>
               </div>
             </div>
