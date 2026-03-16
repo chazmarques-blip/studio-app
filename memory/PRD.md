@@ -40,7 +40,10 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - [x] Fixed Sora 2 video sizes from invalid 1024x1792 to valid 720x1280 (3 places)
 - [x] Fixed voice URL consistency (recording_url -> url)
 - [x] Proxy timeout handled via async polling pattern
-- [x] All tests passing (iteration_54.json - 13/13 backend, 7/7 frontend)
+- [x] **BUG FIX:** `UserMessage.__init__() got an unexpected keyword argument 'images'` - Fixed ImageContent/UserMessage API calls (image_base64 + file_contents)
+- [x] **UI:** Avatar modal tabs reordered - Video first (left) with "Best" badge, Photo second (dimmed)
+- [x] **UI:** Added specs/instructions for video (MP4/MOV/WebM, 10-30s, max 100MB) and photo (PNG/JPG/WebP, min 512x512, max 10MB)
+- [x] All tests passing (iteration_55.json - 9/9 backend, 6/6 frontend)
 
 ## Backlog
 
