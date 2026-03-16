@@ -654,7 +654,8 @@ class PipelineCreate(BaseModel):
 
 
 class AvatarGenerateRequest(BaseModel):
-    company_name: str
+    company_name: str = ""
+    source_image_url: str = ""  # Photo to base the avatar on
 
 
 class PipelineApprove(BaseModel):
@@ -2588,21 +2589,37 @@ async def upload_pipeline_asset(
 
 @router.post("/generate-avatar")
 async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_user)):
-    """Generate a professional business avatar/presenter using AI image generation."""
+    """Generate a full-body professional avatar from an uploaded photo using AI."""
     try:
         chat = LlmChat(
             api_key=EMERGENT_KEY,
             session_id=f"avatar-{uuid.uuid4().hex[:8]}",
-            system_message="You are an expert AI image generator specializing in professional headshot portraits."
+            system_message="You are an expert portrait and fashion photographer. You create stunning full-body professional photos."
         )
-        prompt = (
-            f"Professional headshot portrait of a confident, friendly business presenter for the company '{req.company_name}'. "
-            "Clean studio background, professional attire, warm natural smile, looking directly at camera. "
-            "Photorealistic, high quality, well-lit, corporate headshot style. "
-            "The person should appear trustworthy, approachable, and professional."
-        )
+
+        if req.source_image_url:
+            # Image-to-image: Generate full-body avatar based on uploaded photo
+            prompt = (
+                "Based on this reference photo, create a FULL-BODY professional portrait of this EXACT SAME person. "
+                "The person must look IDENTICAL — same face, same features, same skin tone, same hair. "
+                "Show them standing confidently in a modern studio with soft lighting. "
+                "Professional business attire. Full body visible from head to feet. "
+                "Clean minimal background. Photorealistic, high quality, 4K detail. "
+                "The face and likeness MUST be preserved exactly as in the reference photo."
+            )
+            msg = UserMessage(text=prompt, image_url=req.source_image_url)
+        else:
+            # Text-only: Generate a generic professional avatar
+            prompt = (
+                f"Professional full-body portrait of a confident business presenter"
+                f"{' for ' + req.company_name if req.company_name else ''}. "
+                "Standing in a modern studio, professional attire, warm smile, looking at camera. "
+                "Full body visible from head to feet. Clean minimal background. "
+                "Photorealistic, high quality, 4K detail."
+            )
+            msg = UserMessage(text=prompt)
+
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
-        msg = UserMessage(text=prompt)
         text_response, images = await chat.send_message_multimodal_response(msg)
 
         if images and len(images) > 0:
@@ -2610,7 +2627,7 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
             filename = f"avatars/avatar_{uuid.uuid4().hex[:8]}.png"
             public_url = _upload_to_storage(img_bytes, filename, "image/png")
             return {"avatar_url": public_url}
-        raise HTTPException(status_code=500, detail="Failed to generate avatar image")
+        raise HTTPException(status_code=500, detail="AI não gerou a imagem. Tente novamente.")
     except HTTPException:
         raise
     except Exception as e:

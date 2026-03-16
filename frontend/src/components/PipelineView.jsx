@@ -1428,57 +1428,7 @@ export default function PipelineView({ context }) {
                 <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
                   placeholder="https://www.suaempresa.com.br" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
-              {/* Avatar / Presenter */}
-              <div>
-                <label className="text-[8px] text-[#555] uppercase mb-1 flex items-center gap-1">
-                  <Eye size={8} /> Avatar / Apresentador (para videos)
-                </label>
-                <div className="flex items-center gap-2">
-                  {newCompany.avatar_url ? (
-                    <div className="relative">
-                      <img src={newCompany.avatar_url} alt="Avatar" className="h-14 w-14 rounded-xl object-cover ring-1 ring-[#C9A84C]/30" />
-                      <button onClick={() => setNewCompany(p => ({ ...p, avatar_url: '' }))} className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500/80 flex items-center justify-center">
-                        <X size={8} className="text-white" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="h-14 w-14 rounded-xl border border-dashed border-[#2A2A2A] flex items-center justify-center">
-                      <Eye size={16} className="text-[#333]" />
-                    </div>
-                  )}
-                  <div className="flex-1 space-y-1">
-                    <label data-testid="avatar-upload-btn" className="flex items-center gap-1 rounded-lg border border-[#1E1E1E] px-2 py-1.5 text-[9px] text-[#888] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 cursor-pointer transition">
-                      <Upload size={9} /> Upload Foto
-                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        formData.append('asset_type', 'logo');
-                        try {
-                          const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, formData);
-                          if (data.url) setNewCompany(p => ({ ...p, avatar_url: data.url }));
-                          toast.success('Foto carregada!');
-                        } catch { toast.error('Erro ao carregar foto'); }
-                      }} />
-                    </label>
-                    <button data-testid="avatar-generate-btn" disabled={generatingAvatar || !newCompany.name}
-                      onClick={async () => {
-                        setGeneratingAvatar(true);
-                        try {
-                          const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar`, { company_name: newCompany.name });
-                          if (data.avatar_url) setNewCompany(p => ({ ...p, avatar_url: data.avatar_url }));
-                          toast.success('Avatar gerado!');
-                        } catch { toast.error('Erro ao gerar avatar'); }
-                        setGeneratingAvatar(false);
-                      }}
-                      className="flex items-center gap-1 rounded-lg border border-[#C9A84C]/20 bg-[#C9A84C]/5 px-2 py-1.5 text-[9px] font-medium text-[#C9A84C]/80 hover:bg-[#C9A84C]/10 disabled:opacity-30 transition w-full">
-                      {generatingAvatar ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
-                      {generatingAvatar ? 'Gerando...' : 'Gerar com IA'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {/* Avatar / Presenter - REMOVED from company form, now separate section below */}
               <div className="flex gap-2 pt-1">
                 <button onClick={() => { setShowAddCompany(false); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', avatar_url: '' }); }}
                   className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666] hover:text-white transition">
