@@ -912,7 +912,7 @@ export default function PipelineView({ context }) {
   const [activeCompanyId, setActiveCompanyId] = useState(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState(null);
-  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
 
   // Avatar Gallery (standalone, multiple avatars)
   const [avatars, setAvatars] = useState([]); // [{ id, url, name, source_photo_url }]
@@ -921,7 +921,10 @@ export default function PipelineView({ context }) {
   const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null);
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
+  const [logoUploading, setLogoUploading] = useState(false);
   const avatarInputRef = useRef(null);
+  const logoInputRef = useRef(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('agentzz_companies');
@@ -955,7 +958,7 @@ export default function PipelineView({ context }) {
     const updated = [...companies, co];
     saveCompanies(updated);
     setActiveCompanyId(co.id);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
     setShowCompanyModal(false);
     setEditingCompanyId(null);
     toast.success(t('studio.company_saved'));
@@ -970,7 +973,7 @@ export default function PipelineView({ context }) {
 
   const startEditCompany = (co) => {
     setEditingCompanyId(co.id);
-    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '' });
+    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '', logo_url: co.logo_url || '' });
     setShowCompanyModal(true);
   };
 
@@ -979,7 +982,7 @@ export default function PipelineView({ context }) {
     const updated = companies.map(c => c.id === editingCompanyId ? { ...c, ...newCompany } : c);
     saveCompanies(updated);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
     setShowCompanyModal(false);
     toast.success(t('studio.company_updated'));
   };
@@ -987,7 +990,24 @@ export default function PipelineView({ context }) {
   const cancelCompanyForm = () => {
     setShowCompanyModal(false);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
+  };
+
+  const uploadCompanyLogo = async (files) => {
+    if (!files?.length) return;
+    const file = files[0];
+    if (!file.type?.startsWith('image/')) return;
+    setLogoUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('asset_type', 'company_logo');
+      const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, form);
+      setNewCompany(p => ({ ...p, logo_url: data.url }));
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Upload error');
+    }
+    setLogoUploading(false);
   };
 
   const setPrimaryCompany = (id) => {
@@ -1464,7 +1484,7 @@ export default function PipelineView({ context }) {
             <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1">
               <Building2 size={10} /> {t('studio.advertiser_company')}
             </label>
-            <button data-testid="add-company-btn" onClick={() => { setEditingCompanyId(null); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' }); setShowCompanyModal(true); }}
+            <button data-testid="add-company-btn" onClick={() => { setEditingCompanyId(null); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' }); setShowCompanyModal(true); }}
               className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
               <Plus size={10} />
             </button>
@@ -1477,7 +1497,11 @@ export default function PipelineView({ context }) {
                   className={`w-full text-left rounded-xl border px-3 py-2 transition group cursor-pointer ${activeCompanyId === co.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
                   <div className="flex items-center gap-2">
                     <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
-                      <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#555]'} />
+                      {co.logo_url ? (
+                        <img src={resolveImageUrl(co.logo_url)} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#555]'} />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -1525,15 +1549,21 @@ export default function PipelineView({ context }) {
           {avatars.length > 0 ? (
             <div className="flex gap-2 flex-wrap">
               {avatars.map(av => (
-                <div key={av.id} data-testid={`avatar-${av.id}`} role="button" tabIndex={0}
-                  onClick={() => setSelectedAvatarId(av.id)}
+                <div key={av.id} data-testid={`avatar-${av.id}`}
                   className={`relative rounded-xl overflow-hidden border-2 transition cursor-pointer group ${selectedAvatarId === av.id ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-                  <img src={resolveImageUrl(av.url)} alt={av.name} className="h-16 w-16 object-cover" />
+                  <img src={resolveImageUrl(av.url)} alt={av.name} className="h-16 w-16 object-cover"
+                    onClick={() => setSelectedAvatarId(av.id)} />
                   {selectedAvatarId === av.id && (
                     <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
                       <Check size={8} className="text-black" />
                     </div>
                   )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center pointer-events-none">
+                    <button onClick={e => { e.stopPropagation(); setAvatarPreviewUrl(av.url); }}
+                      className="opacity-0 group-hover:opacity-100 transition h-7 w-7 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center pointer-events-auto">
+                      <Maximize2 size={12} className="text-white" />
+                    </button>
+                  </div>
                   <button onClick={e => { e.stopPropagation(); removeAvatar(av.id); }}
                     className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                     <X size={8} className="text-white" />
@@ -1546,6 +1576,25 @@ export default function PipelineView({ context }) {
           )}
         </div>
 
+        {/* Avatar Zoom Preview */}
+        {avatarPreviewUrl && (
+          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6" onClick={() => setAvatarPreviewUrl(null)}>
+            <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+              <img src={resolveImageUrl(avatarPreviewUrl)} alt="Avatar Preview" className="w-full rounded-2xl border border-[#C9A84C]/20 shadow-2xl" />
+              <button onClick={() => setAvatarPreviewUrl(null)}
+                className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-black border border-[#333] flex items-center justify-center hover:bg-[#1A1A1A] transition">
+                <X size={14} className="text-white" />
+              </button>
+              <div className="absolute bottom-3 right-3 flex gap-2">
+                <a href={resolveImageUrl(avatarPreviewUrl)} target="_blank" rel="noopener noreferrer"
+                  className="h-8 w-8 rounded-lg bg-black/70 border border-white/15 flex items-center justify-center hover:bg-black transition">
+                  <Download size={14} className="text-white" />
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Company Modal */}
         {showCompanyModal && (
           <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={cancelCompanyForm}>
@@ -1553,6 +1602,30 @@ export default function PipelineView({ context }) {
               <div className="flex items-center justify-between">
                 <p className="text-sm text-white font-semibold">{editingCompanyId ? t('studio.edit_company') : t('studio.new_company')}</p>
                 <button onClick={cancelCompanyForm} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#555]" /></button>
+              </div>
+              {/* Logo Upload */}
+              <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+                onChange={e => { uploadCompanyLogo(e.target.files); e.target.value = ''; }} />
+              <div className="flex items-center gap-3">
+                <button data-testid="company-logo-upload" type="button" onClick={() => logoInputRef.current?.click()}
+                  disabled={logoUploading}
+                  className={`relative shrink-0 h-14 w-14 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden transition ${newCompany.logo_url ? 'border-[#C9A84C]/40' : 'border-[#2A2A2A] hover:border-[#C9A84C]/30'}`}>
+                  {newCompany.logo_url ? (
+                    <img src={resolveImageUrl(newCompany.logo_url)} alt="Logo" className="h-full w-full object-cover" />
+                  ) : logoUploading ? (
+                    <Loader2 size={16} className="animate-spin text-[#C9A84C]" />
+                  ) : (
+                    <Image size={18} className="text-[#444]" />
+                  )}
+                </button>
+                <div className="flex-1">
+                  <p className="text-[10px] text-white font-medium">Logo</p>
+                  <p className="text-[8px] text-[#555]">{newCompany.logo_url ? t('studio.click_to_change') || 'Click to change' : t('studio.upload_logo')}</p>
+                  {newCompany.logo_url && (
+                    <button onClick={() => setNewCompany(p => ({ ...p, logo_url: '' }))} className="text-[8px] text-red-400 hover:text-red-300 mt-0.5">{t('studio.remove')}</button>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="text-[9px] text-[#555] uppercase mb-1 block">{t('studio.company_name_label')} *</label>

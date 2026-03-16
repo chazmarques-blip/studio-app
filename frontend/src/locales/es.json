@@ -504,6 +504,7 @@
     "previous_pipelines": "pipeline(s) anterior(es)",
     "no_avatar_yet": "Sin avatar aun",
     "select_avatar": "Seleccione un avatar para el modo presentador",
-    "my_avatars": "Mis Avatares"
+    "my_avatars": "Mis Avatares",
+    "click_to_change": "Haga clic para cambiar"
   }
 }
