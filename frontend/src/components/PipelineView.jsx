@@ -1183,6 +1183,13 @@ export default function PipelineView({ context }) {
 
   const startRecording = async () => {
     try {
+      // Check if running in iframe (mic blocked by feature policy)
+      if (window.self !== window.top) {
+        const appUrl = window.location.href;
+        toast.error(`Open the app in a new tab to use the microphone`, { duration: 6000 });
+        window.open(appUrl, '_blank');
+        return;
+      }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast.error('Your browser does not support audio recording');
         return;
@@ -1209,7 +1216,7 @@ export default function PipelineView({ context }) {
       console.error('Recording error:', e);
       toast.error(
         e.name === 'NotAllowedError'
-          ? 'Microphone blocked. Click the lock/tune icon in the address bar of THIS page → allow Microphone → reload.'
+          ? 'Microphone blocked. Open the app in a new tab to use the microphone.'
           : e.name === 'NotFoundError' ? 'No microphone found.' : `Error: ${e.message}`
       );
     }
