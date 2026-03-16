@@ -788,7 +788,7 @@ Editing instructions:
 Apply: professional studio lighting, clean/upgraded background, commercial-grade color grading, marketing-ready composition.
 Output: A polished, campaign-ready version of this EXACT product. Square 1080x1080 format.
 DO NOT add any text, logos, or watermarks to the image.""",
-                images=[ImageContent(base64_data=img_b64, media_type=mime)]
+                file_contents=[ImageContent(image_base64=img_b64)]
             )
             text_response, images = await chat.send_message_multimodal_response(msg)
 
@@ -2825,7 +2825,7 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                     img_b64 = base64.b64encode(img_data).decode("utf-8")
                     content_type = resp.headers.get("Content-Type", "image/png")
                     mime = content_type if content_type.startswith("image/") else "image/png"
-                img_contents = [ImageContent(base64_data=img_b64, media_type=mime)]
+                img_contents = [ImageContent(image_base64=img_b64)]
             except Exception as dl_err:
                 logger.warning(f"Failed to download source image: {dl_err}")
 
@@ -2847,7 +2847,7 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             )
 
-        msg = UserMessage(text=prompt, images=img_contents if img_contents else None)
+        msg = UserMessage(text=prompt, file_contents=img_contents if img_contents else None)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
 
@@ -3145,7 +3145,7 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
                     img_b64 = base64.b64encode(img_data).decode("utf-8")
                     content_type = resp.headers.get("Content-Type", "image/png")
                     mime = content_type if content_type.startswith("image/") else "image/png"
-                img_contents = [ImageContent(base64_data=img_b64, media_type=mime)]
+                img_contents = [ImageContent(image_base64=img_b64)]
             except Exception as dl_err:
                 logger.warning(f"Failed to download source image: {dl_err}")
 
@@ -3163,7 +3163,7 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
             f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
             f"Photorealistic, 4K detail."
         )
-        msg = UserMessage(text=prompt, images=img_contents if img_contents else None)
+        msg = UserMessage(text=prompt, file_contents=img_contents if img_contents else None)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
         if images and len(images) > 0:

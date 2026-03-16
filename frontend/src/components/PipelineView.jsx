@@ -892,7 +892,7 @@ export default function PipelineView({ context }) {
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null);
-  const [avatarSourceType, setAvatarSourceType] = useState('photo'); // 'photo' | 'video'
+  const [avatarSourceType, setAvatarSourceType] = useState('video'); // 'photo' | 'video'
   const [avatarVideoUploading, setAvatarVideoUploading] = useState(false);
   const [avatarExtractedAudio, setAvatarExtractedAudio] = useState(null); // { url }
   const [masteringVoice, setMasteringVoice] = useState(false);
@@ -1163,7 +1163,7 @@ export default function PipelineView({ context }) {
   const resetAvatarModal = () => {
     setShowAvatarModal(false);
     setAvatarSourcePhoto(null);
-    setAvatarSourceType('photo');
+    setAvatarSourceType('video');
     setAvatarVideoUploading(false);
     setAvatarExtractedAudio(null);
     setAvatarStage('upload');
@@ -1928,17 +1928,18 @@ export default function PipelineView({ context }) {
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {avatarStage === 'upload' ? (
                   <>
-                    {/* Source Type Toggle */}
+                    {/* Source Type Toggle — Video first (recommended) */}
                     <div className="flex rounded-lg border border-[#1E1E1E] overflow-hidden">
-                      <button data-testid="avatar-source-photo" onClick={() => setAvatarSourceType('photo')}
-                        className={`flex-1 py-2 text-[10px] font-medium flex items-center justify-center gap-1.5 transition ${
-                          avatarSourceType === 'photo' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border-b-2 border-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>
-                        <Camera size={12} /> {t('studio.from_photo')}
-                      </button>
                       <button data-testid="avatar-source-video" onClick={() => setAvatarSourceType('video')}
                         className={`flex-1 py-2 text-[10px] font-medium flex items-center justify-center gap-1.5 transition ${
                           avatarSourceType === 'video' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border-b-2 border-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>
                         <Film size={12} /> {t('studio.from_video')}
+                        <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-[#C9A84C]/20 text-[7px] text-[#C9A84C] font-bold uppercase tracking-wide">{t('studio.recommended') || 'Best'}</span>
+                      </button>
+                      <button data-testid="avatar-source-photo" onClick={() => setAvatarSourceType('photo')}
+                        className={`flex-1 py-2 text-[10px] font-medium flex items-center justify-center gap-1.5 transition ${
+                          avatarSourceType === 'photo' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border-b-2 border-[#C9A84C]' : 'text-[#444] hover:text-[#666]'}`}>
+                        <Camera size={12} /> {t('studio.from_photo')}
                       </button>
                     </div>
 
@@ -2008,6 +2009,24 @@ export default function PipelineView({ context }) {
                         {avatarSourceType === 'video' && (
                           <p className="text-[8px] text-[#555] italic">{t('studio.video_hint')}</p>
                         )}
+                        <div className="mt-2 rounded-lg bg-[#111]/60 border border-[#1E1E1E] px-3 py-2 text-left">
+                          <p className="text-[8px] text-[#666] font-semibold uppercase tracking-wider mb-1">{t('studio.specs') || 'Specs'}</p>
+                          {avatarSourceType === 'video' ? (
+                            <ul className="text-[8px] text-[#555] space-y-0.5">
+                              <li>MP4, MOV, WebM</li>
+                              <li>{t('studio.video_spec_duration') || '10-30s, person speaking naturally'}</li>
+                              <li>{t('studio.video_spec_quality') || 'Good lighting, face clearly visible'}</li>
+                              <li>{t('studio.video_spec_size') || 'Max 100MB'}</li>
+                            </ul>
+                          ) : (
+                            <ul className="text-[8px] text-[#555] space-y-0.5">
+                              <li>PNG, JPG, WebP</li>
+                              <li>{t('studio.photo_spec_res') || 'Min 512x512px, ideal 1024x1024'}</li>
+                              <li>{t('studio.photo_spec_quality') || 'Clear face, good lighting'}</li>
+                              <li>{t('studio.photo_spec_size') || 'Max 10MB'}</li>
+                            </ul>
+                          )}
+                        </div>
                       </div>
                     )}
                   </>
