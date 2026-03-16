@@ -31,6 +31,8 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - [x] Compact uploads: Logo + Reference side by side in a single row
 - [x] Fixed button-in-button HTML nesting
 - [x] **Avatar Studio UI Refactor (P0 COMPLETE)**: Dedicated "Avatar do Apresentador" section created outside the company form. Features: photo upload, AI-powered full-body avatar generation (Gemini), large preview, regenerate/remove controls. Backend uses GPT Image 1 via Emergent LLM Key. Tested: iteration_44 (100% pass)
+- [x] **Avatar Generation Bug Fix**: Fixed `UserMessage.__init__() got an unexpected keyword argument 'image_url'` - now downloads image and passes as `FileContent`. Tested: iteration_45 (100% pass)
+- [x] **Company Edit Feature**: Added edit button (pencil icon) on company cards. Clicking opens form pre-filled with company data. "Atualizar Empresa" saves changes. Tested: iteration_45 (100% pass)
 
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
@@ -51,4 +53,5 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - iteration_42: Avatar + Video Mode
 - iteration_43: Video bug fixes (ffprobe, 12s, variants)
 - iteration_44: Avatar Studio UI Refactor (100% pass)
+- iteration_45: Avatar bug fix + Company edit (100% pass)
 - iteration_43: Video variants + clone fix (100% pass)
