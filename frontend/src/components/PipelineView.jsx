@@ -907,8 +907,14 @@ export default function PipelineView({ context }) {
   const [companies, setCompanies] = useState([]);
   const [activeCompanyId, setActiveCompanyId] = useState(null);
   const [showAddCompany, setShowAddCompany] = useState(false);
-  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', avatar_url: '' });
+  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+
+  // Avatar Studio (standalone)
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null); // { url, preview }
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
+  const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
+  const avatarInputRef = useRef(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('agentzz_companies');
@@ -934,7 +940,7 @@ export default function PipelineView({ context }) {
     const updated = [...companies, co];
     saveCompanies(updated);
     setActiveCompanyId(co.id);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', avatar_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
     setShowAddCompany(false);
     toast.success('Empresa cadastrada!');
   };
@@ -952,6 +958,54 @@ export default function PipelineView({ context }) {
   };
 
   const activeCompany = companies.find(c => c.id === activeCompanyId) || null;
+
+  // Load avatar from active company on change
+  useEffect(() => {
+    if (activeCompany?.avatar_url && !avatarUrl) {
+      setAvatarUrl(activeCompany.avatar_url);
+    }
+  }, [activeCompanyId]);
+
+  const uploadAvatarPhoto = async (files) => {
+    if (!files?.length) return;
+    const file = files[0];
+    if (!file.type?.startsWith('image/')) { toast.error('Arquivo deve ser uma imagem'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error('Imagem excede 10MB'); return; }
+    setAvatarPhotoUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('asset_type', 'avatar_source');
+      const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, form);
+      setAvatarSourcePhoto({ url: data.url, preview: URL.createObjectURL(file) });
+      toast.success('Foto carregada! Agora gere o avatar.');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao enviar foto');
+    }
+    setAvatarPhotoUploading(false);
+  };
+
+  const generateAvatarFromPhoto = async () => {
+    setGeneratingAvatar(true);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar`, {
+        source_image_url: avatarSourcePhoto?.url || '',
+        company_name: activeCompany?.name || '',
+      });
+      if (data.avatar_url) {
+        setAvatarUrl(data.avatar_url);
+        // Save avatar back to active company
+        if (activeCompany) {
+          const updated = companies.map(c => c.id === activeCompanyId ? { ...c, avatar_url: data.avatar_url } : c);
+          saveCompanies(updated);
+        }
+        toast.success('Avatar gerado com sucesso!');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao gerar avatar. Tente novamente.');
+    }
+    setGeneratingAvatar(false);
+  };
 
   useEffect(() => {
     loadPipelines();
@@ -1117,7 +1171,7 @@ export default function PipelineView({ context }) {
         selected_music: selectedMusic || '',
         skip_video: skipVideo,
         video_mode: skipVideo ? 'none' : videoMode,
-        avatar_url: activeCompany?.avatar_url || '',
+        avatar_url: avatarUrl || activeCompany?.avatar_url || '',
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1430,7 +1484,7 @@ export default function PipelineView({ context }) {
               </div>
               {/* Avatar / Presenter - REMOVED from company form, now separate section below */}
               <div className="flex gap-2 pt-1">
-                <button onClick={() => { setShowAddCompany(false); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', avatar_url: '' }); }}
+                <button onClick={() => { setShowAddCompany(false); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' }); }}
                   className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666] hover:text-white transition">
                   Cancelar
                 </button>
@@ -1446,6 +1500,113 @@ export default function PipelineView({ context }) {
               <Plus size={12} /> {companies.length === 0 ? 'Cadastrar Empresa' : 'Adicionar Outra Empresa'}
             </button>
           )}
+        </div>
+
+        {/* Avatar Studio */}
+        <div data-testid="avatar-studio-section" className="rounded-xl border border-[#1E1E1E] bg-[#0A0A0A] overflow-hidden">
+          <div className="px-3 py-2.5 border-b border-[#151515] flex items-center justify-between">
+            <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles size={10} className="text-[#C9A84C]" /> Avatar do Apresentador
+            </label>
+            {avatarUrl && (
+              <button data-testid="avatar-clear-btn" onClick={() => { setAvatarUrl(''); setAvatarSourcePhoto(null); }}
+                className="text-[8px] text-[#555] hover:text-red-400 flex items-center gap-0.5 transition">
+                <Trash2 size={8} /> Remover
+              </button>
+            )}
+          </div>
+          <div className="p-3">
+            {avatarUrl ? (
+              /* Avatar generated - show large preview */
+              <div className="space-y-2.5">
+                <div data-testid="avatar-preview-large" className="relative rounded-xl overflow-hidden border border-[#C9A84C]/20 bg-[#111]">
+                  <img src={resolveImageUrl(avatarUrl)} alt="Avatar" className="w-full max-h-[320px] object-contain" />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
+                      className="h-7 w-7 rounded-lg bg-black/60 border border-white/15 flex items-center justify-center hover:bg-black/80 transition">
+                      <Download size={12} className="text-white" />
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-1.5">
+                    <Check size={10} className="text-green-400" />
+                    <span className="text-[9px] text-green-400 font-medium">Avatar pronto</span>
+                  </div>
+                  <button data-testid="avatar-regenerate-btn"
+                    onClick={() => { if (avatarSourcePhoto) generateAvatarFromPhoto(); else { setAvatarUrl(''); } }}
+                    disabled={generatingAvatar}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#C9A84C]/20 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/10 transition disabled:opacity-40">
+                    <RefreshCw size={9} /> Gerar Novo
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* No avatar yet - show creation flow */
+              <div className="space-y-3">
+                {/* Step 1: Upload photo */}
+                <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp"
+                  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+                  onChange={e => { uploadAvatarPhoto(e.target.files); e.target.value = ''; }} />
+
+                {avatarSourcePhoto ? (
+                  <div className="flex items-start gap-3">
+                    <div className="relative shrink-0">
+                      <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Foto"
+                        className="h-20 w-20 rounded-xl object-cover border border-[#C9A84C]/30" />
+                      <button onClick={() => setAvatarSourcePhoto(null)}
+                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+                        <X size={8} className="text-white" />
+                      </button>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <p className="text-[9px] text-[#888]">Foto carregada. Clique para gerar um avatar profissional de corpo inteiro baseado nesta foto.</p>
+                      <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
+                        disabled={generatingAvatar}
+                        className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[11px] font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                        {generatingAvatar ? (
+                          <><Loader2 size={13} className="animate-spin" /> Gerando avatar...</>
+                        ) : (
+                          <><Sparkles size={13} /> Gerar Avatar com IA</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-3 space-y-2.5">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#C9A84C]/5 border border-[#C9A84C]/15">
+                      <Upload size={20} className="text-[#C9A84C]" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-white font-medium">Envie uma foto para criar seu avatar</p>
+                      <p className="text-[8px] text-[#555] mt-0.5">A IA gera um retrato profissional de corpo inteiro</p>
+                    </div>
+                    <button data-testid="avatar-upload-btn" onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarPhotoUploading}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-dashed border-[#C9A84C]/30 text-[10px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition disabled:opacity-40">
+                      {avatarPhotoUploading ? (
+                        <><Loader2 size={11} className="animate-spin" /> Enviando...</>
+                      ) : (
+                        <><Upload size={11} /> Selecionar Foto</>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {generatingAvatar && (
+                  <div data-testid="avatar-generating-indicator" className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3">
+                    <div className="flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                      <div>
+                        <p className="text-[10px] text-[#C9A84C] font-medium">Gerando avatar...</p>
+                        <p className="text-[8px] text-[#555]">Isso pode levar 15-30 segundos</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Campaign Name */}
@@ -1834,9 +1995,9 @@ export default function PipelineView({ context }) {
               <p className="text-[7px] text-[#555]">Avatar falante</p>
             </button>
           </div>
-          {!skipVideo && videoMode === 'presenter' && !activeCompany?.avatar_url && (
+          {!skipVideo && videoMode === 'presenter' && !avatarUrl && !activeCompany?.avatar_url && (
             <p className="text-[8px] text-amber-400/80 mt-1.5 flex items-center gap-1">
-              <AlertTriangle size={9} /> Cadastre um avatar na empresa para usar o modo apresentador
+              <AlertTriangle size={9} /> Crie um avatar acima para usar o modo apresentador
             </p>
           )}
         </div>
