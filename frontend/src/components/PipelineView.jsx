@@ -786,18 +786,22 @@ function AssetUploader({ assets, onAssetsChange }) {
         onChange={e => { handleUpload(e.target.files, type); e.target.value = ''; }} />
       {items.length > 0 ? (
         <div className="flex gap-1.5 flex-wrap items-center">
-          {items.map((a, i) => (
-            <div key={i} className="relative group">
-              <img src={a.preview || resolveImageUrl(a.url)} alt={type}
-                className={`h-10 w-10 rounded-lg object-cover border ${type === 'exact' ? 'border-[#10B981]/30' : 'border-[#1E1E1E]'}`} />
-              <button onClick={() => removeAsset(assets.indexOf(a))}
-                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                <X size={8} className="text-white" />
-              </button>
-            </div>
-          ))}
+          {items.map((a, i) => {
+            const imgSrc = a.preview || resolveImageUrl(a.url);
+            return (
+              <div key={i} className="relative group">
+                <img src={imgSrc} alt=""
+                  onError={(e) => { if (a.url && e.target.src !== resolveImageUrl(a.url)) { e.target.src = resolveImageUrl(a.url); } }}
+                  className={`h-14 w-14 rounded-lg object-cover border ${type === 'exact' ? 'border-[#10B981]/30' : 'border-[#1E1E1E]'}`} />
+                <button onClick={() => removeAsset(assets.indexOf(a))}
+                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                  <X size={8} className="text-white" />
+                </button>
+              </div>
+            );
+          })}
           <button onClick={() => inputRef.current?.click()} disabled={uploading}
-            className={`h-10 w-10 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[${color}]/40 transition disabled:opacity-40`}>
+            className={`h-14 w-14 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[${color}]/40 transition disabled:opacity-40`}>
             <Upload size={10} className="text-[#555]" />
           </button>
         </div>
