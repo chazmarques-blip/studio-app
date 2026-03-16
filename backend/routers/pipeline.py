@@ -3710,7 +3710,13 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
     async def _regen():
         try:
             avatar_voice_regen = pipeline.get("result", {}).get("avatar_voice", None)
-            video_url = await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override=user_music, voice_config=avatar_voice_regen)
+            video_mode = pipeline.get("result", {}).get("video_mode", "narration")
+            avatar_url = pipeline.get("result", {}).get("avatar_url", "")
+
+            if video_mode == "presenter" and avatar_url:
+                video_url = await _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size, user_music, voice_config=avatar_voice_regen)
+            else:
+                video_url = await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override=user_music, voice_config=avatar_voice_regen)
             steps["marcos_video"]["video_url"] = video_url
             steps["marcos_video"]["status"] = "completed"
             supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
@@ -3922,6 +3928,9 @@ async def clone_pipeline_language(pipeline_id: str, data: CloneLanguageRequest, 
             "skip_video": orig_result.get("skip_video", False),
             "video_mode": orig_result.get("video_mode", "narration"),
             "avatar_url": orig_result.get("avatar_url", ""),
+            "avatar_voice": orig_result.get("avatar_voice", None),
+            "apply_brand": orig_result.get("apply_brand", False),
+            "brand_data": orig_result.get("brand_data", None),
             "cloned_from": pipeline_id,
         },
     }
