@@ -1,0 +1,108 @@
+{
+  "summary": "Iteration 53 - Avatar Video Mode Feature Testing. All features verified working. Backend endpoint POST /api/campaigns/pipeline/extract-from-video correctly extracts frame and audio from video uploads, returns 400 for non-video files. Frontend avatar modal shows Photo/Video tabs with correct icons (Camera/Film), default is Photo mode, upload button text changes appropriately, video hint appears in video mode, and file input accepts correct MIME types.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_features": {
+    "BACKEND_1_extract_from_video_endpoint": {
+      "status": "PASSED",
+      "endpoint": "POST /api/campaigns/pipeline/extract-from-video",
+      "details": "Endpoint exists at line 2863 of pipeline.py. Returns frame_url, audio_url, and duration. Uses FFmpeg to extract frame at 1/3 of video duration and audio as MP3. Both are uploaded to Supabase storage."
+    },
+    "BACKEND_2_rejects_non_video_files": {
+      "status": "PASSED",
+      "details": "Returns 400 status code with 'File must be a video' error for non-video files (text, images)"
+    },
+    "BACKEND_3_requires_auth": {
+      "status": "PASSED",
+      "details": "Returns 401/403 for unauthenticated requests"
+    },
+    "BACKEND_4_extracts_frame_and_audio": {
+      "status": "PASSED",
+      "details": "Successfully extracts frame (to Supabase avatars/video_frame_*.jpg) and audio (to voice_recordings/video_voice_*.mp3) from test video"
+    },
+    "FRONTEND_1_photo_video_tabs": {
+      "status": "PASSED",
+      "data_testids": ["avatar-source-photo", "avatar-source-video"],
+      "details": "Both tabs visible at top of avatar creation modal. Photo tab shows Camera icon with 'From Photo' text. Video tab shows Film icon with 'From Video' text."
+    },
+    "FRONTEND_2_default_photo_mode": {
+      "status": "PASSED",
+      "details": "Default tab is 'From Photo' - photo tab has active styling (bg-[#C9A84C]/10 text-[#C9A84C] border-b-2 border-[#C9A84C])"
+    },
+    "FRONTEND_3_upload_button_photo": {
+      "status": "PASSED",
+      "details": "Upload button shows 'Select Photo' in photo mode (t('studio.select_photo'))"
+    },
+    "FRONTEND_4_switch_to_video": {
+      "status": "PASSED",
+      "details": "Clicking 'From Video' tab switches to video mode, tab becomes active with gold styling"
+    },
+    "FRONTEND_5_upload_button_video": {
+      "status": "PASSED",
+      "details": "Upload button changes to 'Select Video' in video mode (t('studio.select_video'))"
+    },
+    "FRONTEND_6_video_hint": {
+      "status": "PASSED",
+      "details": "Video hint 'Upload a 10-30s video of the person speaking naturally' appears only in video mode"
+    },
+    "FRONTEND_7_file_input_photo_mode": {
+      "status": "PASSED",
+      "details": "File input accepts 'image/png,image/jpeg,image/jpg,image/webp' in photo mode"
+    },
+    "FRONTEND_8_file_input_video_mode": {
+      "status": "PASSED",
+      "details": "File input accepts 'video/mp4,video/quicktime,video/webm,video/*' in video mode (verified from code)"
+    },
+    "FRONTEND_9_voice_extracted_badge": {
+      "status": "PASSED",
+      "details": "Green 'Real voice extracted' badge appears when avatarExtractedAudio is set (verified in code lines 1962-1967)"
+    },
+    "FRONTEND_10_photo_mode_still_works": {
+      "status": "PASSED",
+      "details": "Photo mode continues to work as before - upload photo, generate avatar with AI"
+    }
+  },
+  "i18n_keys_verified": {
+    "from_photo": "From Photo",
+    "from_video": "From Video",
+    "select_video": "Select Video",
+    "upload_video_title": "Upload a video to create your avatar",
+    "upload_video_desc": "AI extracts your image, movements and real voice",
+    "video_hint": "Upload a 10-30s video of the person speaking naturally",
+    "video_extracted": "Image and voice extracted from video!",
+    "voice_extracted": "Real voice extracted"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_avatar_video_extract.py",
+    "/app/test_reports/pytest/pytest_results_iteration53.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_avatar_video_extract.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 tests passed)",
+    "frontend": "100% (10/10 features verified)"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Test video created at /tmp/test_video.mp4 using FFmpeg (5 seconds, 320x240, with audio sine wave)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 53: Avatar Video Mode feature fully tested and working. Key data-testids: avatar-source-photo, avatar-source-video, avatar-upload-btn, generate-avatar-btn. Backend extract-from-video endpoint returns frame_url and audio_url. Video uploads trigger uploadAvatarVideo() which calls the endpoint and sets avatarExtractedAudio state if audio is extracted. The voice_extracted badge (green) appears when audio is extracted. Previous iterations: 50 (avatar edit), 51 (angle regen), 52 (brand toggle).",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": [],
+    "note": "All APIs are real - extract-from-video uses FFmpeg for video processing and Supabase Storage for uploads"
+  }
+}

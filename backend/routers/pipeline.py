@@ -2860,6 +2860,86 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
 
 
 
+@router.post("/extract-from-video")
+async def extract_from_video(file: UploadFile = File(...), user=Depends(get_current_user)):
+    """Extract best frame (image) and audio from an uploaded video for avatar creation.
+    Returns: { frame_url, audio_url, duration }"""
+    if not file.content_type or not file.content_type.startswith("video/"):
+        raise HTTPException(status_code=400, detail="File must be a video")
+    try:
+        video_bytes = await file.read()
+        if len(video_bytes) > 50 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Video exceeds 50MB limit")
+
+        uid = uuid.uuid4().hex[:8]
+        video_path = f"/tmp/avatar_video_{uid}.mp4"
+        with open(video_path, "wb") as f:
+            f.write(video_bytes)
+
+        # Get video duration
+        duration = _ffprobe_duration(video_path) or 10.0
+
+        # Extract best frame at 1/3 of video (person usually well-positioned)
+        frame_time = min(duration / 3, 5.0)
+        frame_path = f"/tmp/avatar_frame_{uid}.jpg"
+        r = subprocess.run(
+            [FFMPEG_PATH, "-y", "-ss", str(frame_time), "-i", video_path,
+             "-vframes", "1", "-q:v", "2", frame_path],
+            capture_output=True, timeout=30
+        )
+        if r.returncode != 0 or not os.path.exists(frame_path):
+            # Fallback: try frame at 0s
+            subprocess.run(
+                [FFMPEG_PATH, "-y", "-i", video_path, "-vframes", "1", "-q:v", "2", frame_path],
+                capture_output=True, timeout=30
+            )
+
+        # Extract audio
+        audio_path = f"/tmp/avatar_audio_{uid}.mp3"
+        r2 = subprocess.run(
+            [FFMPEG_PATH, "-y", "-i", video_path, "-vn",
+             "-acodec", "libmp3lame", "-ab", "192k", "-ar", "44100", audio_path],
+            capture_output=True, timeout=60
+        )
+        audio_url = None
+        if r2.returncode == 0 and os.path.exists(audio_path) and os.path.getsize(audio_path) > 500:
+            with open(audio_path, "rb") as af:
+                audio_bytes_data = af.read()
+            audio_filename = f"voice_recordings/video_voice_{uid}.mp3"
+            audio_url = _upload_to_storage(audio_bytes_data, audio_filename, "audio/mpeg")
+            logger.info(f"Extracted audio from video: {audio_filename} ({len(audio_bytes_data)/1024:.0f}KB)")
+
+        # Upload frame
+        frame_url = None
+        if os.path.exists(frame_path) and os.path.getsize(frame_path) > 500:
+            with open(frame_path, "rb") as ff:
+                frame_bytes = ff.read()
+            frame_filename = f"avatars/video_frame_{uid}.jpg"
+            frame_url = _upload_to_storage(frame_bytes, frame_filename, "image/jpeg")
+            logger.info(f"Extracted frame from video: {frame_filename}")
+
+        # Cleanup
+        for p in [video_path, frame_path, audio_path]:
+            if os.path.exists(p):
+                try: os.remove(p)
+                except: pass
+
+        if not frame_url:
+            raise HTTPException(status_code=500, detail="Could not extract frame from video")
+
+        return {
+            "frame_url": frame_url,
+            "audio_url": audio_url,
+            "duration": round(duration, 1),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Video extraction failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 class VoicePreviewRequest(BaseModel):
     voice_id: str = "alloy"
     text: str = "Hello! This is a preview of my voice. I can be the presenter for your marketing campaigns."
