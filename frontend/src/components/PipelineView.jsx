@@ -734,7 +734,7 @@ function AssetUploader({ assets, onAssetsChange }) {
   const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(null);
-  const logoRef = useRef(null);
+  const exactRef = useRef(null);
   const refRef = useRef(null);
 
   const handleUpload = async (files, type) => {
@@ -775,93 +775,63 @@ function AssetUploader({ assets, onAssetsChange }) {
     onAssetsChange(assets.filter((_, i) => i !== idx));
   };
 
-  const logos = assets.filter(a => a.type === 'logo');
+  const exacts = assets.filter(a => a.type === 'exact');
   const refs = assets.filter(a => a.type === 'reference');
+
+  const UploadColumn = ({ type, items, inputRef, color, icon: Icon, label, testId }) => (
+    <div>
+      <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">{label}</p>
+      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+        onChange={e => { handleUpload(e.target.files, type); e.target.value = ''; }} />
+      {items.length > 0 ? (
+        <div className="flex gap-1.5 flex-wrap items-center">
+          {items.map((a, i) => (
+            <div key={i} className="relative group">
+              <img src={a.preview || resolveImageUrl(a.url)} alt={type}
+                className={`h-10 w-10 rounded-lg object-cover border ${type === 'exact' ? 'border-[#10B981]/30' : 'border-[#1E1E1E]'}`} />
+              <button onClick={() => removeAsset(assets.indexOf(a))}
+                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                <X size={8} className="text-white" />
+              </button>
+            </div>
+          ))}
+          <button onClick={() => inputRef.current?.click()} disabled={uploading}
+            className={`h-10 w-10 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[${color}]/40 transition disabled:opacity-40`}>
+            <Upload size={10} className="text-[#555]" />
+          </button>
+        </div>
+      ) : (
+        <button data-testid={testId}
+          onClick={() => inputRef.current?.click()}
+          onDrop={e => handleDrop(e, type)}
+          onDragOver={e => handleDragOver(e, type)}
+          onDragLeave={handleDragLeave}
+          disabled={uploading}
+          className={`w-full rounded-xl border border-dashed py-3 flex flex-col items-center gap-1 transition disabled:opacity-40 cursor-pointer ${
+            dragOver === type ? `border-[${color}] bg-[${color}]/5` : `border-[#1E1E1E] hover:border-[${color}]/30`
+          }`}>
+          <Icon size={14} style={{ color }} />
+          <span className="text-[8px] font-medium" style={{ color }}>{label}</span>
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div data-testid="asset-uploader" className="space-y-3">
-      <label className="text-[9px] text-[#555] uppercase tracking-wider block">{t('studio.brand_ref_images')}</label>
+      <label className="text-[9px] text-[#555] uppercase tracking-wider block">{t('studio.product_images')}</label>
 
-      {/* Logo + Reference Images — side by side compact */}
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">Logo</p>
-          <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
-            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
-            onChange={e => { handleUpload(e.target.files, 'logo'); e.target.value = ''; }} />
-
-          {logos.length > 0 ? (
-            <div className="flex gap-1.5 flex-wrap items-center">
-              {logos.map((a, i) => (
-                <div key={i} className="relative group">
-                  <img src={a.preview || resolveImageUrl(a.url)} alt="Logo"
-                    className="h-10 w-10 rounded-lg object-cover border border-[#C9A84C]/30" />
-                  <button onClick={() => removeAsset(assets.indexOf(a))}
-                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
-                    <X size={8} className="text-white" />
-                  </button>
-                </div>
-              ))}
-              <button onClick={() => logoRef.current?.click()} disabled={uploading}
-                className="h-10 w-10 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[#C9A84C]/40 transition disabled:opacity-40">
-                <Upload size={10} className="text-[#555]" />
-              </button>
-            </div>
-          ) : (
-            <button data-testid="upload-logo-btn"
-              onClick={() => logoRef.current?.click()}
-              onDrop={e => handleDrop(e, 'logo')}
-              onDragOver={e => handleDragOver(e, 'logo')}
-              onDragLeave={handleDragLeave}
-              disabled={uploading}
-              className={`w-full rounded-xl border border-dashed py-3 flex flex-col items-center gap-1 transition disabled:opacity-40 cursor-pointer ${
-                dragOver === 'logo' ? 'border-[#C9A84C] bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#C9A84C]/30'
-              }`}>
-              <Upload size={14} className="text-[#C9A84C]" />
-              <span className="text-[8px] text-[#C9A84C] font-medium">{t('studio.upload_logo')}</span>
-            </button>
-          )}
-        </div>
-
-        <div>
-          <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">Referencia</p>
-          <input ref={refRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
-            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
-            onChange={e => { handleUpload(e.target.files, 'reference'); e.target.value = ''; }} />
-
-          {refs.length > 0 ? (
-            <div className="flex gap-1.5 flex-wrap items-center">
-              {refs.map((a, i) => (
-                <div key={i} className="relative group">
-                  <img src={a.preview || resolveImageUrl(a.url)} alt="Ref"
-                    className="h-10 w-10 rounded-lg object-cover border border-[#1E1E1E]" />
-                  <button onClick={() => removeAsset(assets.indexOf(a))}
-                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
-                    <X size={8} className="text-white" />
-                  </button>
-                </div>
-              ))}
-              <button onClick={() => refRef.current?.click()} disabled={uploading}
-                className="h-10 w-10 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[#7CB9E8]/40 transition disabled:opacity-40">
-                <Upload size={10} className="text-[#555]" />
-              </button>
-            </div>
-          ) : (
-            <button data-testid="upload-ref-btn"
-              onClick={() => refRef.current?.click()}
-              onDrop={e => handleDrop(e, 'reference')}
-              onDragOver={e => handleDragOver(e, 'reference')}
-              onDragLeave={handleDragLeave}
-              disabled={uploading}
-              className={`w-full rounded-xl border border-dashed py-3 flex flex-col items-center gap-1 transition disabled:opacity-40 cursor-pointer ${
-                dragOver === 'reference' ? 'border-[#7CB9E8] bg-[#7CB9E8]/5' : 'border-[#1E1E1E] hover:border-[#7CB9E8]/30'
-              }`}>
-              <Image size={14} className="text-[#7CB9E8]" />
-              <span className="text-[8px] text-[#7CB9E8] font-medium">{refs.length > 0 ? t('studio.add_more') : t('studio.upload_ref')}</span>
-            </button>
-          )}
-        </div>
+        <UploadColumn type="exact" items={exacts} inputRef={exactRef} color="#10B981"
+          icon={Eye} label={t('studio.exact_photos')} testId="upload-exact-btn" />
+        <UploadColumn type="reference" items={refs} inputRef={refRef} color="#7CB9E8"
+          icon={Image} label={t('studio.ref_photos')} testId="upload-ref-btn" />
       </div>
+
+      {exacts.length > 0 && (
+        <p className="text-[8px] text-[#10B981]/70 italic px-1">{t('studio.exact_photos_hint')}</p>
+      )}
 
       {uploading && (
         <div className="flex items-center gap-2 p-2 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/20">
@@ -893,12 +863,11 @@ export default function PipelineView({ context }) {
   const [expandedSteps, setExpandedSteps] = useState({});
   const [showHistory, setShowHistory] = useState(false);
   const [contactInfo, setContactInfo] = useState({ phone: '', website: '', email: '', address: '' });
-  const [showContact, setShowContact] = useState(false);
+  const [applyBrandData, setApplyBrandData] = useState(true);
   const [uploadedAssets, setUploadedAssets] = useState([]);
   const [showFinalPreview, setShowFinalPreview] = useState(false);
   const [skipVideo, setSkipVideo] = useState(false);
   const [videoMode, setVideoMode] = useState('narration'); // 'narration' | 'presenter'
-  const [savedLogos, setSavedLogos] = useState([]);
   const [savedBriefings, setSavedBriefings] = useState([]);
   const [musicLibrary, setMusicLibrary] = useState([]);
   const [selectedMusic, setSelectedMusic] = useState('');
@@ -1335,19 +1304,9 @@ export default function PipelineView({ context }) {
   };
 
 
-  const deleteSavedLogo = async (url) => {
-    try {
-      await axios.delete(`${API}/campaigns/pipeline/saved/logo?url=${encodeURIComponent(url)}`);
-      setSavedLogos(prev => prev.filter(l => l.url !== url));
-      setUploadedAssets(prev => prev.filter(a => !(a.url === url && a.type === 'logo')));
-      toast.success('Logo removed');
-    } catch { toast.error('Erro ao remover logo'); }
-  };
-
   const loadSavedHistory = async () => {
     try {
       const { data } = await axios.get(`${API}/campaigns/pipeline/saved/history`);
-      setSavedLogos(data.logos || []);
       setSavedBriefings(data.briefings || []);
     } catch (err) {
       console.error('Failed to load saved history:', err?.response?.status, err?.response?.data, err?.message);
@@ -1449,18 +1408,23 @@ export default function PipelineView({ context }) {
       const { data } = await axios.post(`${API}/campaigns/pipeline`, {
         briefing: effectiveBriefing.trim(), campaign_name: campaignName.trim(), mode, platforms,
         campaign_language: campaignLang || '',
+        apply_brand: applyBrandData,
+        brand_data: applyBrandData && activeCompany ? {
+          company_name: activeCompany.name,
+          logo_url: activeCompany.logo_url || '',
+          phone: activeCompany.phone || '',
+          website_url: activeCompany.website_url || '',
+          is_whatsapp: activeCompany.is_whatsapp,
+        } : null,
         context: {
           ...(context || {}),
           ...(activeCompany ? { company: activeCompany.name, website_url: activeCompany.website_url } : {}),
         },
-        contact_info: {
-          ...contactInfo,
-          ...(activeCompany ? {
-            phone: activeCompany.phone || contactInfo.phone,
-            website: activeCompany.website_url || contactInfo.website,
-            is_whatsapp: activeCompany.is_whatsapp,
-          } : {}),
-        },
+        contact_info: applyBrandData && activeCompany ? {
+          phone: activeCompany.phone || '',
+          website: activeCompany.website_url || '',
+          is_whatsapp: activeCompany.is_whatsapp,
+        } : contactInfo,
         uploaded_assets: assetPayload,
         media_formats: mediaFormats,
         selected_music: selectedMusic || '',
@@ -2474,70 +2438,39 @@ export default function PipelineView({ context }) {
           </div>
         </div>
 
-        {/* Saved Logos + Asset Upload */}
-        <div>
-          {savedLogos.length > 0 && (
-            <div className="mb-2">
-              <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.saved_logos') || 'Saved Logos'}</label>
-              <div className="flex gap-2 flex-wrap">
-                {savedLogos.map((logo, i) => {
-                  const isSelected = uploadedAssets.some(a => a.url === logo.url && a.type === 'logo');
-                  return (
-                    <div key={i} className="relative group">
-                      <button onClick={() => {
-                        if (isSelected) {
-                          setUploadedAssets(prev => prev.filter(a => !(a.url === logo.url && a.type === 'logo')));
-                        } else {
-                          setUploadedAssets(prev => [...prev.filter(a => a.type !== 'logo'), { url: logo.url, type: 'logo', filename: logo.filename }]);
-                        }
-                      }}
-                        className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.3)]' : 'border-[#1E1E1E] opacity-60 hover:opacity-100'}`}>
-                        <img src={resolveImageUrl(logo.url)} alt={logo.filename} className="w-full h-full object-contain bg-black" />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); deleteSavedLogo(logo.url); }}
-                        className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[8px] font-bold hover:bg-red-500">
-                        X
-                      </button>
-                    </div>
-                  );
-                })}
+        {/* Brand Data Toggle */}
+        {activeCompany && (
+          <div data-testid="brand-data-toggle">
+            <button data-testid="brand-data-btn" onClick={() => setApplyBrandData(!applyBrandData)}
+              className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-3 transition ${
+                applyBrandData ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition ${
+                applyBrandData ? 'bg-[#C9A84C] border-[#C9A84C]' : 'border-[#555]'}`}>
+                {applyBrandData && <Check size={10} className="text-black" />}
               </div>
-            </div>
-          )}
-          <AssetUploader assets={uploadedAssets} onAssetsChange={setUploadedAssets} />
-        </div>
+              {activeCompany.logo_url ? (
+                <img src={resolveImageUrl(activeCompany.logo_url)} alt="" className="h-8 w-8 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-[#1E1E1E] flex items-center justify-center shrink-0">
+                  <Building2 size={12} className="text-[#555]" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-[9px] text-white font-medium truncate">{activeCompany.name}</p>
+                <p className="text-[7px] text-[#555] truncate">
+                  {[activeCompany.phone, activeCompany.website_url].filter(Boolean).join(' · ') || t('studio.brand_no_extra_info')}
+                </p>
+              </div>
+              <span className="text-[8px] text-[#555] uppercase tracking-wider shrink-0">{t('studio.apply_brand')}</span>
+            </button>
+            {applyBrandData && (
+              <p className="text-[7px] text-[#C9A84C]/50 mt-1 px-1">{t('studio.brand_applied_hint')}</p>
+            )}
+          </div>
+        )}
 
-        {/* Contact Info */}
-        <div>
-          <button onClick={() => setShowContact(!showContact)} className="flex items-center gap-1.5 text-[9px] text-[#555] uppercase tracking-wider mb-1.5 hover:text-[#888] transition">
-            {showContact ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-            <Phone size={10} /> {t('studio.contact_data') || 'Contact Data (optional)'}
-          </button>
-          {showContact && (
-            <div data-testid="contact-info-section" className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-[#0D0D0D] rounded-xl border border-[#1A1A1A] p-3">
-              <div>
-                <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Phone size={8} /> {t('studio.phone') || 'Phone'}</label>
-                <input data-testid="contact-phone" value={contactInfo.phone} onChange={e => setContactInfo(p => ({ ...p, phone: e.target.value }))}
-                  placeholder="+1 (555) 123-4567" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
-              </div>
-              <div>
-                <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Globe size={8} /> Website</label>
-                <input data-testid="contact-website" value={contactInfo.website} onChange={e => setContactInfo(p => ({ ...p, website: e.target.value }))}
-                  placeholder="www.yourcompany.com" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
-              </div>
-              <div>
-                <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><Mail size={8} /> Email</label>
-                <input data-testid="contact-email" value={contactInfo.email} onChange={e => setContactInfo(p => ({ ...p, email: e.target.value }))}
-                  placeholder="contact@company.com" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
-              </div>
-              <div>
-                <label className="text-[8px] text-[#555] uppercase flex items-center gap-1 mb-0.5"><MapPin size={8} /> {t('studio.address') || 'Address'}</label>
-                <input data-testid="contact-address" value={contactInfo.address} onChange={e => setContactInfo(p => ({ ...p, address: e.target.value }))}
-                  placeholder="123 Main St, City, State" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Product Images: Exact + Reference */}
+        <AssetUploader assets={uploadedAssets} onAssetsChange={setUploadedAssets} />
 
         {/* Music Library - Compact with Genre Tabs */}
         {musicLibrary.length > 0 && (
