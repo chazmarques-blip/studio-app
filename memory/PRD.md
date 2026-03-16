@@ -82,6 +82,15 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
   - `lucas_design` prompt: Instructs Stefan to write EDITING instructions for exact photos (not new product descriptions)
   - Tested: Backend lint clean, upload endpoint verified
 
+- [x] **Avatar from Video Upload (COMPLETE)**:
+  - Photo/Video toggle in avatar creation modal (Camera/Film icons)
+  - Backend: POST /api/campaigns/pipeline/extract-from-video extracts best frame + audio via FFmpeg
+  - Auto-sets extracted voice as custom voice for the avatar
+  - Green "Real voice extracted" badge when audio is found
+  - Video hint: "Upload a 10-30s video of the person speaking naturally"
+  - i18n: 12 new keys in all 3 locales
+  - Tested: iteration_53 (100% pass - 15/15 features)
+
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
 - FFmpeg logo overlay sometimes fails (low priority)
