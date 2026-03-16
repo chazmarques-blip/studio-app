@@ -1365,9 +1365,9 @@ export default function PipelineView({ context }) {
           {companies.length > 0 && (
             <div className="space-y-1.5 mb-2">
               {companies.map(co => (
-                <button key={co.id} data-testid={`company-${co.id}`}
+                <div key={co.id} data-testid={`company-${co.id}`} role="button" tabIndex={0}
                   onClick={() => setActiveCompanyId(co.id)}
-                  className={`w-full text-left rounded-xl border px-3 py-2 transition group ${activeCompanyId === co.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+                  className={`w-full text-left rounded-xl border px-3 py-2 transition group cursor-pointer ${activeCompanyId === co.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
                   <div className="flex items-center gap-2">
                     <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
                       {co.avatar_url ? (
@@ -1397,7 +1397,7 @@ export default function PipelineView({ context }) {
                       </button>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
