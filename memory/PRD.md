@@ -54,23 +54,33 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
   - Microfone com detecção de MIME type e error handling detalhado
   - Tested: iteration_49 (100% pass - 17/17 backend + frontend verified)
 
+- [x] **Avatar Edit & Clone (P0 COMPLETE)**:
+  - Edit button (pen icon) on hover for each avatar in gallery
+  - Opens customization modal pre-populated with avatar's data (image, clothing, voice, angles)
+  - Modal title: "Edit Avatar" when editing vs "Customize Avatar" for new
+  - Dual footer buttons: "Update" (saves over existing) + "Save as New" (clones)
+  - i18n keys added for all 3 locales (en, pt, es)
+  - Tested: iteration_50 (100% pass - 9/9 features)
+
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
 - FFmpeg logo overlay sometimes fails (low priority)
 
 ### Upcoming Tasks
 1. P1: Ask user for FAL_KEY to enable Presenter video mode
-2. P1: Agent renaming
-3. P2: Sandbox, Landing Page Redesign
-4. P3: WhatsApp MVP
+2. P1: pipeline.py refactoring (~3800 lines)
+3. P2: Agent renaming
+4. P3: Sandbox, Landing Page Redesign
+5. P4: WhatsApp MVP
 
 ### Future
-- AutoFlow, Unified Inbox, Social Publishing, Stripe, Admin, pipeline.py refactoring
+- AutoFlow, Unified Inbox, Social Publishing, Stripe, Admin
 
 ## Test Reports
 - iteration_40: Agent Details Drawer
 - iteration_41: Company management + defaults
 - iteration_42: Avatar + Video Mode
+- iteration_50: Avatar Edit & Clone (100% pass - 9/9 features)
 - iteration_43: Video bug fixes (ffprobe, 12s, variants)
 - iteration_44: Avatar Studio UI Refactor (100% pass)
 - iteration_45: Avatar bug fix + Company edit (100% pass)
