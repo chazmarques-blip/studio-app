@@ -53,6 +53,7 @@ const PLATFORMS = [
 
 /* ── Progress Timer ── */
 function ProgressTimer({ startedAt, estimatedSec, color }) {
+  const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (!startedAt) return;
@@ -68,8 +69,8 @@ function ProgressTimer({ startedAt, estimatedSec, color }) {
   return (
     <div className="mt-1.5 px-1">
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[8px] text-[#555]">{elapsed}s decorridos</span>
-        <span className="text-[8px] text-[#555]">{fmt} restante</span>
+        <span className="text-[8px] text-[#555]">{elapsed}s {t('studio.elapsed')}</span>
+        <span className="text-[8px] text-[#555]">{fmt} {t('studio.remaining')}</span>
       </div>
       <div className="h-1 rounded-full bg-[#1A1A1A] overflow-hidden">
         <div className="h-full rounded-full transition-all duration-1000 ease-linear" style={{ width: `${pct}%`, backgroundColor: color }} />
@@ -126,11 +127,11 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
           <div className="flex gap-2">
             <a href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
-              <Download size={12} /> Baixar
+              <Download size={12} /> {t('studio.download')}
             </a>
             <button onClick={() => setShowAdjust(!showAdjust)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[11px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
-              <MessageSquare size={12} /> Pedir Ajuste
+              <MessageSquare size={12} /> {t('studio.request_adjust')}
             </button>
           </div>
         </div>
@@ -201,17 +202,17 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
         <div className="flex-1 text-left min-w-0">
           <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#555] font-normal">- {meta.role}</span></p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `Revisando (${revisionRound}/1)` : 'Processando...'}</span>}
+            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `${t('studio.revising')} (${revisionRound}/1)` : t('studio.processing')}</span>}
             {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />{t('studio.generating_images') || 'Generating images...'}</span>}
             {isGeneratingVideo && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400"><Film size={8} className="animate-spin" />{t('studio.generating_video') || 'Generating commercial video...'}</span>}
             {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">{t('studio.status_completed') || 'Completed'}</span>}
             {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />{t('studio.status_waiting') || 'Waiting Approval'}</span>}
-            {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">Pendente</span>}
+            {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">{t('studio.pending')}</span>}
             {isFailed && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{t('studio.status_failed') || 'Failed'}</span>}
             {requiresUpgrade && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><Crown size={8} /> Upgrade Necessario</span>}
             {reviewerRevisionCount > 0 && (step === 'ana_review_copy' || step === 'rafael_review_design') && (
               <span className="inline-flex items-center gap-1 text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400">
-                <RotateCcw size={7} />{reviewerRevisionCount} revisao(oes)
+                <RotateCcw size={7} />{reviewerRevisionCount} {t('studio.revision')}
               </span>
             )}
           </div>
@@ -228,7 +229,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
       {/* Revision feedback banner */}
       {revisionFeedback && status === 'running' && (
         <div className="mx-3 mb-2 px-3 py-2 rounded-lg bg-purple-500/5 border border-purple-500/20">
-          <p className="text-[8px] text-purple-400 uppercase tracking-wider font-semibold mb-0.5">Feedback do Revisor</p>
+          <p className="text-[8px] text-purple-400 uppercase tracking-wider font-semibold mb-0.5">{t('studio.reviewer_feedback')}</p>
           <p className="text-[9px] text-purple-300/80 line-clamp-3">{revisionFeedback}</p>
         </div>
       )}
@@ -243,6 +244,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
 }
 
 function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval, requiresUpgrade, onApprove, pipelineId, onRefresh }) {
+  const { t } = useTranslation();
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [showStepVideoLightbox, setShowStepVideoLightbox] = useState(false);
   const images = (data?.image_urls || []).filter(u => u);
@@ -256,7 +258,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
       )}
       {hasVideo && data.video_url && (
         <div className="mt-2">
-          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={10} className="text-red-400" /> Video Comercial Gerado</p>
+          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={10} className="text-red-400" /> {t('studio.video_commercial')}</p>
           <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowStepVideoLightbox(true)}>
             <video
               data-testid="pipeline-video-player"
@@ -277,11 +279,11 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
             <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded capitalize">{data.video_format || 'vertical'}</span>
             <button onClick={() => setShowStepVideoLightbox(true)} data-testid="step-video-expand-text"
               className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-              <Maximize2 size={9} /> Expandir
+              <Maximize2 size={9} /> {t('studio.expand')}
             </button>
             <a href={data.video_url} target="_blank" rel="noopener noreferrer"
               className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
-              <Download size={10} /> Baixar Video
+              <Download size={10} /> {t('studio.download_video')}
             </a>
           </div>
           {showStepVideoLightbox && (
@@ -298,7 +300,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
                   <span className="text-[9px] text-[#555] bg-[#111] px-2 py-1 rounded">Sora 2</span>
                   <a href={data.video_url} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
-                    <Download size={12} /> Baixar Video
+                    <Download size={12} /> {t('studio.download')} Video
                   </a>
                 </div>
               </div>
@@ -308,7 +310,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
       )}
       {hasImages && (
         <div className="mt-2">
-          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">Imagens Geradas — clique para ver em tamanho completo</p>
+          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{t('studio.images_generated')}</p>
           <div className="grid grid-cols-3 gap-2">
             {data.image_urls.map((url, i) => url && (
               <button key={i} onClick={() => setLightboxIndex(i)}
@@ -326,7 +328,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
           {/* Platform variant badges */}
           {data.platform_variants && Object.keys(data.platform_variants).length > 0 && (
             <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-              <span className="text-[8px] text-[#555]">Formatos:</span>
+              <span className="text-[8px] text-[#555]">{t('studio.formats')}:</span>
               {Object.keys(data.platform_variants).map(p => {
                 const AR_LABELS = { tiktok: '9:16', google_ads: '16:9', instagram: '1:1', facebook: '1:1', whatsapp: '1:1', email: '16:9' };
                 return (
@@ -376,13 +378,14 @@ function CopyApproval({ data, onApprove }) {
       <button data-testid="approve-copy-btn" onClick={handleApprove} disabled={submitting}
         className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
         {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-        {submitting ? 'Enviando...' : 'Aprovar e Continuar'}
+        {submitting ? t('studio.sending') : t('studio.approve_continue')}
       </button>
     </div>
   );
 }
 
 function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
+  const { t } = useTranslation();
   const autoSels = data?.auto_selections || {};
   const [selections, setSelections] = useState(autoSels);
   const [submitting, setSubmitting] = useState(false);
@@ -391,7 +394,7 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
   const handleApprove = async () => { setSubmitting(true); await onApprove({ selections: Object.keys(selections).length > 0 ? selections : { default: 1 } }); setSubmitting(false); };
   return (
     <div data-testid="design-approval" className="mt-3 space-y-2.5 bg-amber-500/5 rounded-lg p-3 border border-amber-500/20">
-      <p className="text-[11px] text-amber-200 font-semibold">Revise os designs e escolha por plataforma:</p>
+      <p className="text-[11px] text-amber-200 font-semibold">{t('studio.review_designs')}</p>
 
       {/* Image preview thumbnails with click to enlarge */}
       {images && images.length > 0 && (
@@ -434,7 +437,7 @@ function DesignApproval({ data, onApprove, images, pipelineId, onRefresh }) {
       <button data-testid="approve-design-btn" onClick={handleApprove} disabled={submitting}
         className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(201,168,76,0.2)]">
         {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-        {submitting ? 'Enviando...' : 'Aprovar e Continuar'}
+        {submitting ? t('studio.sending') : t('studio.approve_continue')}
       </button>
     </div>
   );
@@ -568,7 +571,7 @@ function CompletedSummary({ pipeline }) {
             )}
             {videoUrl && (
               <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1 flex items-center gap-1"><Film size={9} className="text-red-400" /> Video Comercial</p>
+                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1 flex items-center gap-1"><Film size={9} className="text-red-400" /> {t('studio.video_commercial')}</p>
                 <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
                   <video src={videoUrl} controls playsInline className="w-full max-h-[250px]" data-testid="summary-video-player" onClick={e => e.stopPropagation()} />
                   <button data-testid="summary-video-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
@@ -618,7 +621,7 @@ function CompletedSummary({ pipeline }) {
         )}
         {activeTab === 'video' && videoUrl && (
           <div>
-            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={9} className="text-red-400" /> Video Comercial (12s)</p>
+            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={9} className="text-red-400" /> {t('studio.video_commercial')}</p>
             <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
               <video src={videoUrl} controls playsInline autoPlay muted className="w-full max-h-[400px]" data-testid="summary-video-tab-player" onClick={e => e.stopPropagation()} />
               <button data-testid="video-tab-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
@@ -631,11 +634,11 @@ function CompletedSummary({ pipeline }) {
               <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
               <button onClick={() => setShowVideoLightbox(true)} data-testid="video-tab-expand-text"
                 className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                <Maximize2 size={9} /> Expandir
+                <Maximize2 size={9} /> {t('studio.expand')}
               </button>
               <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                 className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
-                <Download size={10} /> Baixar Video
+                <Download size={10} /> {t('studio.download_video')}
               </a>
             </div>
           </div>
@@ -669,7 +672,7 @@ function CompletedSummary({ pipeline }) {
               <span className="text-[9px] text-[#555] bg-[#111] px-2 py-1 rounded">Sora 2</span>
               <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
-                <Download size={12} /> Baixar Video
+                <Download size={12} /> {t('studio.download')} Video
               </a>
             </div>
           </div>
@@ -728,6 +731,7 @@ function HistoryCard({ pipeline, onSelect, onDelete }) {
 
 /* ── Asset Upload ── */
 function AssetUploader({ assets, onAssetsChange }) {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(null);
   const logoRef = useRef(null);
@@ -738,8 +742,8 @@ function AssetUploader({ assets, onAssetsChange }) {
     setUploading(true);
     const newAssets = [...assets];
     for (const file of Array.from(files)) {
-      if (!file.type || !file.type.startsWith('image/')) { toast.error(`"${file.name}" nao e uma imagem valida`); continue; }
-      if (file.size > 10 * 1024 * 1024) { toast.error(`"${file.name}" excede 10MB`); continue; }
+      if (!file.type || !file.type.startsWith('image/')) { toast.error(`"${file.name}" is not a valid image`); continue; }
+      if (file.size > 10 * 1024 * 1024) { toast.error(`"${file.name}" exceeds 10MB`); continue; }
       try {
         const form = new FormData();
         form.append('file', file);
@@ -776,7 +780,7 @@ function AssetUploader({ assets, onAssetsChange }) {
 
   return (
     <div data-testid="asset-uploader" className="space-y-3">
-      <label className="text-[9px] text-[#555] uppercase tracking-wider block">Brand & Reference Images</label>
+      <label className="text-[9px] text-[#555] uppercase tracking-wider block">{t('studio.brand_ref_images')}</label>
 
       {/* Logo + Reference Images — side by side compact */}
       <div className="grid grid-cols-2 gap-2">
@@ -814,7 +818,7 @@ function AssetUploader({ assets, onAssetsChange }) {
                 dragOver === 'logo' ? 'border-[#C9A84C] bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#C9A84C]/30'
               }`}>
               <Upload size={14} className="text-[#C9A84C]" />
-              <span className="text-[8px] text-[#C9A84C] font-medium">Upload logo</span>
+              <span className="text-[8px] text-[#C9A84C] font-medium">{t('studio.upload_logo')}</span>
             </button>
           )}
         </div>
@@ -853,7 +857,7 @@ function AssetUploader({ assets, onAssetsChange }) {
                 dragOver === 'reference' ? 'border-[#7CB9E8] bg-[#7CB9E8]/5' : 'border-[#1E1E1E] hover:border-[#7CB9E8]/30'
               }`}>
               <Image size={14} className="text-[#7CB9E8]" />
-              <span className="text-[8px] text-[#7CB9E8] font-medium">{refs.length > 0 ? 'Add more' : 'Upload ref'}</span>
+              <span className="text-[8px] text-[#7CB9E8] font-medium">{refs.length > 0 ? t('studio.add_more') : t('studio.upload_ref')}</span>
             </button>
           )}
         </div>
@@ -862,7 +866,7 @@ function AssetUploader({ assets, onAssetsChange }) {
       {uploading && (
         <div className="flex items-center gap-2 p-2 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/20">
           <Loader2 size={12} className="animate-spin text-[#C9A84C]" />
-          <span className="text-[10px] text-[#C9A84C]">Enviando arquivo...</span>
+          <span className="text-[10px] text-[#C9A84C]">{t('studio.uploading')}</span>
         </div>
       )}
     </div>
@@ -906,13 +910,15 @@ export default function PipelineView({ context }) {
   // Company management
   const [companies, setCompanies] = useState([]);
   const [activeCompanyId, setActiveCompanyId] = useState(null);
-  const [showAddCompany, setShowAddCompany] = useState(false);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState(null);
   const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '' });
 
-  // Avatar Studio (standalone)
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null); // { url, preview }
+  // Avatar Gallery (standalone, multiple avatars)
+  const [avatars, setAvatars] = useState([]); // [{ id, url, name, source_photo_url }]
+  const [selectedAvatarId, setSelectedAvatarId] = useState(null);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null);
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
   const avatarInputRef = useRef(null);
@@ -926,6 +932,14 @@ export default function PipelineView({ context }) {
         const primary = parsed.find(c => c.is_primary);
         if (primary) setActiveCompanyId(primary.id);
         else if (parsed.length) setActiveCompanyId(parsed[0].id);
+      } catch {}
+    }
+    const savedAvatars = localStorage.getItem('agentzz_avatars');
+    if (savedAvatars) {
+      try {
+        const parsed = JSON.parse(savedAvatars);
+        setAvatars(parsed);
+        if (parsed.length) setSelectedAvatarId(parsed[0].id);
       } catch {}
     }
   }, []);
@@ -942,8 +956,9 @@ export default function PipelineView({ context }) {
     saveCompanies(updated);
     setActiveCompanyId(co.id);
     setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
-    setShowAddCompany(false);
-    toast.success('Empresa cadastrada!');
+    setShowCompanyModal(false);
+    setEditingCompanyId(null);
+    toast.success(t('studio.company_saved'));
   };
 
   const removeCompany = (id) => {
@@ -956,7 +971,7 @@ export default function PipelineView({ context }) {
   const startEditCompany = (co) => {
     setEditingCompanyId(co.id);
     setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '' });
-    setShowAddCompany(true);
+    setShowCompanyModal(true);
   };
 
   const saveEditCompany = () => {
@@ -965,12 +980,12 @@ export default function PipelineView({ context }) {
     saveCompanies(updated);
     setEditingCompanyId(null);
     setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
-    setShowAddCompany(false);
-    toast.success('Empresa atualizada!');
+    setShowCompanyModal(false);
+    toast.success(t('studio.company_updated'));
   };
 
   const cancelCompanyForm = () => {
-    setShowAddCompany(false);
+    setShowCompanyModal(false);
     setEditingCompanyId(null);
     setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
   };
@@ -981,19 +996,18 @@ export default function PipelineView({ context }) {
   };
 
   const activeCompany = companies.find(c => c.id === activeCompanyId) || null;
+  const selectedAvatar = avatars.find(a => a.id === selectedAvatarId) || null;
 
-  // Load avatar from active company on change
-  useEffect(() => {
-    if (activeCompany?.avatar_url && !avatarUrl) {
-      setAvatarUrl(activeCompany.avatar_url);
-    }
-  }, [activeCompanyId]);
+  const saveAvatars = (list) => {
+    setAvatars(list);
+    localStorage.setItem('agentzz_avatars', JSON.stringify(list));
+  };
 
   const uploadAvatarPhoto = async (files) => {
     if (!files?.length) return;
     const file = files[0];
-    if (!file.type?.startsWith('image/')) { toast.error('Arquivo deve ser uma imagem'); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error('Imagem excede 10MB'); return; }
+    if (!file.type?.startsWith('image/')) { toast.error(t('studio.err_generic')); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error('File exceeds 10MB'); return; }
     setAvatarPhotoUploading(true);
     try {
       const form = new FormData();
@@ -1001,9 +1015,9 @@ export default function PipelineView({ context }) {
       form.append('asset_type', 'avatar_source');
       const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, form);
       setAvatarSourcePhoto({ url: data.url, preview: URL.createObjectURL(file) });
-      toast.success('Foto carregada! Agora gere o avatar.');
+      toast.success(t('studio.photo_uploaded_toast'));
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Erro ao enviar foto');
+      toast.error(e.response?.data?.detail || t('studio.err_generic'));
     }
     setAvatarPhotoUploading(false);
   };
@@ -1016,18 +1030,30 @@ export default function PipelineView({ context }) {
         company_name: activeCompany?.name || '',
       });
       if (data.avatar_url) {
-        setAvatarUrl(data.avatar_url);
-        // Save avatar back to active company
-        if (activeCompany) {
-          const updated = companies.map(c => c.id === activeCompanyId ? { ...c, avatar_url: data.avatar_url } : c);
-          saveCompanies(updated);
-        }
-        toast.success('Avatar gerado com sucesso!');
+        const newAvatar = {
+          id: Date.now().toString(),
+          url: data.avatar_url,
+          name: `Avatar ${avatars.length + 1}`,
+          source_photo_url: avatarSourcePhoto?.url || '',
+          created_at: new Date().toISOString(),
+        };
+        const updated = [...avatars, newAvatar];
+        saveAvatars(updated);
+        setSelectedAvatarId(newAvatar.id);
+        setAvatarSourcePhoto(null);
+        setShowAvatarModal(false);
+        toast.success(t('studio.avatar_generated'));
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Erro ao gerar avatar. Tente novamente.');
+      toast.error(e.response?.data?.detail || t('studio.err_generic'));
     }
     setGeneratingAvatar(false);
+  };
+
+  const removeAvatar = (id) => {
+    const updated = avatars.filter(a => a.id !== id);
+    saveAvatars(updated);
+    if (selectedAvatarId === id) setSelectedAvatarId(updated[0]?.id || null);
   };
 
   useEffect(() => {
@@ -1194,7 +1220,7 @@ export default function PipelineView({ context }) {
         selected_music: selectedMusic || '',
         skip_video: skipVideo,
         video_mode: skipVideo ? 'none' : videoMode,
-        avatar_url: avatarUrl || activeCompany?.avatar_url || '',
+        avatar_url: selectedAvatar?.url || '',
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1388,10 +1414,10 @@ export default function PipelineView({ context }) {
           <div className="px-3 py-3 border-t border-[#111] bg-red-500/5">
             <div className="flex items-center gap-2">
               <AlertTriangle size={18} className="text-red-400" />
-              <p className="text-xs font-semibold text-red-400 flex-1">Uma etapa falhou. Tente novamente.</p>
+              <p className="text-xs font-semibold text-red-400 flex-1">A step has failed. Try again.</p>
               <button onClick={retryPipeline}
                 className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5">
-                <RefreshCw size={12} /> Tentar Novamente
+                <RefreshCw size={12} /> Retry
               </button>
             </div>
           </div>
@@ -1401,8 +1427,8 @@ export default function PipelineView({ context }) {
             <div className="flex items-center gap-2">
               <Crown size={18} className="text-[#C9A84C]" />
               <div className="flex-1">
-                <p className="text-xs font-bold text-[#C9A84C]">Upgrade para Enterprise</p>
-                <p className="text-[9px] text-[#888]">Sua campanha esta pronta! Faca upgrade para publicar.</p>
+                <p className="text-xs font-bold text-[#C9A84C]">Upgrade to Enterprise</p>
+                <p className="text-[9px] text-[#888]">Your campaign is ready! Upgrade to publish.</p>
               </div>
               <button onClick={() => navigate('/upgrade')}
                 className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(201,168,76,0.2)]">
@@ -1432,30 +1458,31 @@ export default function PipelineView({ context }) {
           <p className="text-[9px] text-[#555] mt-1.5">David &rarr; Lee &rarr; Stefan &rarr; George &rarr; Ridley &rarr; Roger &rarr; Gary</p>
         </div>
 
-        {/* Company / Advertiser */}
+        {/* Company / Advertiser — selectable list with "+" in header */}
         <div>
-          <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1 mb-1.5">
-            <Building2 size={10} /> Empresa Anunciante
-          </label>
-
-          {companies.length > 0 && (
-            <div className="space-y-1.5 mb-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1">
+              <Building2 size={10} /> {t('studio.advertiser_company')}
+            </label>
+            <button data-testid="add-company-btn" onClick={() => { setEditingCompanyId(null); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' }); setShowCompanyModal(true); }}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+              <Plus size={10} />
+            </button>
+          </div>
+          {companies.length > 0 ? (
+            <div className="space-y-1.5">
               {companies.map(co => (
                 <div key={co.id} data-testid={`company-${co.id}`} role="button" tabIndex={0}
                   onClick={() => setActiveCompanyId(co.id)}
                   className={`w-full text-left rounded-xl border px-3 py-2 transition group cursor-pointer ${activeCompanyId === co.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
                   <div className="flex items-center gap-2">
                     <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
-                      {co.avatar_url ? (
-                        <img src={co.avatar_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#555]'} />
-                      )}
+                      <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#555]'} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] font-semibold text-white truncate">{co.name}</span>
-                        {co.is_primary && <span className="text-[7px] text-[#C9A84C] bg-[#C9A84C]/10 px-1 py-0.5 rounded-full font-bold shrink-0">PRINCIPAL</span>}
+                        {co.is_primary && <span className="text-[7px] text-[#C9A84C] bg-[#C9A84C]/10 px-1 py-0.5 rounded-full font-bold shrink-0">{t('studio.primary_label')}</span>}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         {co.phone && <span className="text-[8px] text-[#555] flex items-center gap-0.5"><Phone size={7} />{co.phone}{co.is_whatsapp && <span className="text-[#25D366]">WA</span>}</span>}
@@ -1463,15 +1490,15 @@ export default function PipelineView({ context }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
-                      <button onClick={e => { e.stopPropagation(); startEditCompany(co); }} title="Editar" data-testid={`edit-company-${co.id}`} className="p-1 rounded hover:bg-[#1A1A1A]">
+                      <button onClick={e => { e.stopPropagation(); startEditCompany(co); }} title={t('studio.edit_company')} data-testid={`edit-company-${co.id}`} className="p-1 rounded hover:bg-[#1A1A1A]">
                         <PenTool size={10} className="text-[#555] hover:text-[#C9A84C]" />
                       </button>
                       {!co.is_primary && (
-                        <button onClick={e => { e.stopPropagation(); setPrimaryCompany(co.id); }} title="Tornar principal" className="p-1 rounded hover:bg-[#1A1A1A]">
+                        <button onClick={e => { e.stopPropagation(); setPrimaryCompany(co.id); }} title={t('studio.make_primary')} className="p-1 rounded hover:bg-[#1A1A1A]">
                           <Star size={10} className="text-[#555] hover:text-[#C9A84C]" />
                         </button>
                       )}
-                      <button onClick={e => { e.stopPropagation(); removeCompany(co.id); }} title="Remover" className="p-1 rounded hover:bg-red-500/10">
+                      <button onClick={e => { e.stopPropagation(); removeCompany(co.id); }} title={t('studio.remove')} className="p-1 rounded hover:bg-red-500/10">
                         <X size={10} className="text-[#555] hover:text-red-400" />
                       </button>
                     </div>
@@ -1479,161 +1506,165 @@ export default function PipelineView({ context }) {
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-[9px] text-[#444] text-center py-2">{t('studio.register_company')}</p>
           )}
+        </div>
 
-          {showAddCompany ? (
-            <div data-testid="add-company-form" className="rounded-xl border border-[#C9A84C]/20 bg-[#0A0A0A] p-3 space-y-2">
-              <p className="text-[9px] text-[#C9A84C] font-medium">{editingCompanyId ? 'Editar Empresa' : 'Nova Empresa'}</p>
-              <div>
-                <label className="text-[8px] text-[#555] uppercase mb-0.5 block">Nome da Empresa *</label>
-                <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Ex: AgentZZ, Minha Empresa..." className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+        {/* Presenter Avatar — selectable gallery with "+" in header */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1">
+              <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.presenter_avatar')}
+            </label>
+            <button data-testid="add-avatar-btn" onClick={() => { setAvatarSourcePhoto(null); setShowAvatarModal(true); }}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+              <Plus size={10} />
+            </button>
+          </div>
+          {avatars.length > 0 ? (
+            <div className="flex gap-2 flex-wrap">
+              {avatars.map(av => (
+                <div key={av.id} data-testid={`avatar-${av.id}`} role="button" tabIndex={0}
+                  onClick={() => setSelectedAvatarId(av.id)}
+                  className={`relative rounded-xl overflow-hidden border-2 transition cursor-pointer group ${selectedAvatarId === av.id ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+                  <img src={resolveImageUrl(av.url)} alt={av.name} className="h-16 w-16 object-cover" />
+                  {selectedAvatarId === av.id && (
+                    <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                      <Check size={8} className="text-black" />
+                    </div>
+                  )}
+                  <button onClick={e => { e.stopPropagation(); removeAvatar(av.id); }}
+                    className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                    <X size={8} className="text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[9px] text-[#444] text-center py-2">{t('studio.no_avatar_yet')}</p>
+          )}
+        </div>
+
+        {/* Company Modal */}
+        {showCompanyModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={cancelCompanyForm}>
+            <div data-testid="company-modal" className="w-full max-w-md rounded-2xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-5 space-y-3" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-white font-semibold">{editingCompanyId ? t('studio.edit_company') : t('studio.new_company')}</p>
+                <button onClick={cancelCompanyForm} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#555]" /></button>
               </div>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
+              <div>
+                <label className="text-[9px] text-[#555] uppercase mb-1 block">{t('studio.company_name_label')} *</label>
+                <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
+                  placeholder="E.g.: AgentZZ, My Company..."
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+              </div>
+              <div className="grid grid-cols-[1fr_auto] gap-3">
                 <div>
-                  <label className="text-[8px] text-[#555] uppercase mb-0.5 block">Telefone</label>
+                  <label className="text-[9px] text-[#555] uppercase mb-1 block">{t('studio.company_phone')}</label>
                   <input data-testid="new-company-phone" value={newCompany.phone} onChange={e => setNewCompany(p => ({ ...p, phone: e.target.value }))}
-                    placeholder="+55 11 99999-0000" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                    placeholder="+1 555 123-4567"
+                    className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
                 </div>
                 <div className="flex items-end pb-0.5">
                   <button data-testid="new-company-whatsapp-toggle" onClick={() => setNewCompany(p => ({ ...p, is_whatsapp: !p.is_whatsapp }))}
-                    className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 text-[9px] font-medium transition ${newCompany.is_whatsapp ? 'border-[#25D366]/40 bg-[#25D366]/10 text-[#25D366]' : 'border-[#1E1E1E] text-[#555]'}`}>
-                    <MessageSquare size={9} /> WhatsApp
+                    className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-[10px] font-medium transition ${newCompany.is_whatsapp ? 'border-[#25D366]/40 bg-[#25D366]/10 text-[#25D366]' : 'border-[#1E1E1E] text-[#555]'}`}>
+                    <MessageSquare size={10} /> WhatsApp
                   </button>
                 </div>
               </div>
               <div>
-                <label className="text-[8px] text-[#555] uppercase mb-0.5 flex items-center gap-1">
-                  <Globe size={8} /> URL do Site (fonte de consulta p/ IA)
+                <label className="text-[9px] text-[#555] uppercase mb-1 flex items-center gap-1">
+                  <Globe size={9} /> {t('studio.company_website')}
                 </label>
                 <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
-                  placeholder="https://www.suaempresa.com.br" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+                  placeholder="https://www.yourcompany.com"
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2 pt-2">
                 <button onClick={cancelCompanyForm}
-                  className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666] hover:text-white transition">
-                  Cancelar
+                  className="flex-1 rounded-lg border border-[#1E1E1E] py-2 text-xs text-[#666] hover:text-white transition">
+                  {t('studio.cancel')}
                 </button>
                 <button data-testid="save-company-btn" onClick={editingCompanyId ? saveEditCompany : addCompany} disabled={!newCompany.name.trim()}
-                  className="flex-1 rounded-lg bg-[#C9A84C]/15 border border-[#C9A84C]/30 py-1.5 text-[10px] font-semibold text-[#C9A84C] hover:bg-[#C9A84C]/25 disabled:opacity-30 transition">
-                  {editingCompanyId ? 'Atualizar Empresa' : 'Salvar Empresa'}
+                  className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-xs font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
+                  {editingCompanyId ? t('studio.update_company') : t('studio.save_company')}
                 </button>
               </div>
             </div>
-          ) : (
-            <button data-testid="add-company-btn" onClick={() => setShowAddCompany(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-dashed border-[#2A2A2A] px-3 py-2 text-[10px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition w-full justify-center">
-              <Plus size={12} /> {companies.length === 0 ? 'Cadastrar Empresa' : 'Adicionar Outra Empresa'}
-            </button>
-          )}
-        </div>
-
-        {/* Avatar Studio */}
-        <div data-testid="avatar-studio-section" className="rounded-xl border border-[#1E1E1E] bg-[#0A0A0A] overflow-hidden">
-          <div className="px-3 py-2.5 border-b border-[#151515] flex items-center justify-between">
-            <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles size={10} className="text-[#C9A84C]" /> Avatar do Apresentador
-            </label>
-            {avatarUrl && (
-              <button data-testid="avatar-clear-btn" onClick={() => { setAvatarUrl(''); setAvatarSourcePhoto(null); }}
-                className="text-[8px] text-[#555] hover:text-red-400 flex items-center gap-0.5 transition">
-                <Trash2 size={8} /> Remover
-              </button>
-            )}
           </div>
-          <div className="p-3">
-            {avatarUrl ? (
-              /* Avatar generated - show large preview */
-              <div className="space-y-2.5">
-                <div data-testid="avatar-preview-large" className="relative rounded-xl overflow-hidden border border-[#C9A84C]/20 bg-[#111]">
-                  <img src={resolveImageUrl(avatarUrl)} alt="Avatar" className="w-full max-h-[320px] object-contain" />
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
-                      className="h-7 w-7 rounded-lg bg-black/60 border border-white/15 flex items-center justify-center hover:bg-black/80 transition">
-                      <Download size={12} className="text-white" />
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-1.5">
-                    <Check size={10} className="text-green-400" />
-                    <span className="text-[9px] text-green-400 font-medium">Avatar pronto</span>
-                  </div>
-                  <button data-testid="avatar-regenerate-btn"
-                    onClick={() => { if (avatarSourcePhoto) generateAvatarFromPhoto(); else { setAvatarUrl(''); } }}
-                    disabled={generatingAvatar}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#C9A84C]/20 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/10 transition disabled:opacity-40">
-                    <RefreshCw size={9} /> Gerar Novo
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* No avatar yet - show creation flow */
-              <div className="space-y-3">
-                {/* Step 1: Upload photo */}
-                <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp"
-                  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
-                  onChange={e => { uploadAvatarPhoto(e.target.files); e.target.value = ''; }} />
+        )}
 
-                {avatarSourcePhoto ? (
-                  <div className="flex items-start gap-3">
+        {/* Avatar Creation Modal */}
+        {showAvatarModal && (
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { if (!generatingAvatar) { setShowAvatarModal(false); setAvatarSourcePhoto(null); } }}>
+            <div data-testid="avatar-modal" className="w-full max-w-md rounded-2xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-5 space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-white font-semibold">{t('studio.create_avatar')}</p>
+                <button onClick={() => { if (!generatingAvatar) { setShowAvatarModal(false); setAvatarSourcePhoto(null); } }} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#555]" /></button>
+              </div>
+
+              <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp"
+                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+                onChange={e => { uploadAvatarPhoto(e.target.files); e.target.value = ''; }} />
+
+              {avatarSourcePhoto ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-4">
                     <div className="relative shrink-0">
-                      <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Foto"
-                        className="h-20 w-20 rounded-xl object-cover border border-[#C9A84C]/30" />
+                      <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Source"
+                        className="h-24 w-24 rounded-xl object-cover border border-[#C9A84C]/30" />
                       <button onClick={() => setAvatarSourcePhoto(null)}
-                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
-                        <X size={8} className="text-white" />
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center">
+                        <X size={10} className="text-white" />
                       </button>
                     </div>
                     <div className="flex-1 space-y-2">
-                      <p className="text-[9px] text-[#888]">Foto carregada. Clique para gerar um avatar profissional de corpo inteiro baseado nesta foto.</p>
-                      <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
-                        disabled={generatingAvatar}
-                        className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[11px] font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
-                        {generatingAvatar ? (
-                          <><Loader2 size={13} className="animate-spin" /> Gerando avatar...</>
-                        ) : (
-                          <><Sparkles size={13} /> Gerar Avatar com IA</>
-                        )}
-                      </button>
+                      <p className="text-[10px] text-[#888]">{t('studio.photo_uploaded')}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center py-3 space-y-2.5">
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#C9A84C]/5 border border-[#C9A84C]/15">
-                      <Upload size={20} className="text-[#C9A84C]" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-white font-medium">Envie uma foto para criar seu avatar</p>
-                      <p className="text-[8px] text-[#555] mt-0.5">A IA gera um retrato profissional de corpo inteiro</p>
-                    </div>
-                    <button data-testid="avatar-upload-btn" onClick={() => avatarInputRef.current?.click()}
-                      disabled={avatarPhotoUploading}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-dashed border-[#C9A84C]/30 text-[10px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition disabled:opacity-40">
-                      {avatarPhotoUploading ? (
-                        <><Loader2 size={11} className="animate-spin" /> Enviando...</>
-                      ) : (
-                        <><Upload size={11} /> Selecionar Foto</>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {generatingAvatar && (
-                  <div data-testid="avatar-generating-indicator" className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3">
-                    <div className="flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
-                      <div>
-                        <p className="text-[10px] text-[#C9A84C] font-medium">Gerando avatar...</p>
-                        <p className="text-[8px] text-[#555]">Isso pode levar 15-30 segundos</p>
+                  <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
+                    disabled={generatingAvatar}
+                    className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                    {generatingAvatar ? (
+                      <><Loader2 size={14} className="animate-spin" /> {t('studio.generating_avatar')}</>
+                    ) : (
+                      <><Sparkles size={14} /> {t('studio.generate_avatar_ai')}</>
+                    )}
+                  </button>
+                  {generatingAvatar && (
+                    <div className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3">
+                      <div className="flex items-center gap-2">
+                        <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                        <p className="text-[9px] text-[#555]">{t('studio.avatar_gen_time')}</p>
                       </div>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-6 space-y-3">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A84C]/5 border border-[#C9A84C]/15">
+                    <Upload size={24} className="text-[#C9A84C]" />
                   </div>
-                )}
-              </div>
-            )}
+                  <div>
+                    <p className="text-xs text-white font-medium">{t('studio.upload_photo_title')}</p>
+                    <p className="text-[9px] text-[#555] mt-0.5">{t('studio.upload_photo_desc')}</p>
+                  </div>
+                  <button data-testid="avatar-upload-btn" onClick={() => avatarInputRef.current?.click()}
+                    disabled={avatarPhotoUploading}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-dashed border-[#C9A84C]/30 text-[11px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition disabled:opacity-40">
+                    {avatarPhotoUploading ? (
+                      <><Loader2 size={12} className="animate-spin" /> {t('studio.uploading')}</>
+                    ) : (
+                      <><Upload size={12} /> {t('studio.select_photo')}</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Campaign Name */}
         <div>
@@ -1999,31 +2030,31 @@ export default function PipelineView({ context }) {
         {/* Video Mode */}
         <div>
           <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1 mb-1.5">
-            <Film size={10} /> Modo de Video
+            <Film size={10} /> {t('studio.video_mode')}
           </label>
           <div className="grid grid-cols-3 gap-1.5">
             <button data-testid="video-mode-none" onClick={() => { setSkipVideo(true); setVideoMode('none'); }}
               className={`rounded-xl border p-2 text-center transition ${skipVideo ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <X size={14} className={`mx-auto mb-1 ${skipVideo ? 'text-[#C9A84C]' : 'text-[#555]'}`} />
-              <p className="text-[9px] font-semibold text-white">Sem Video</p>
-              <p className="text-[7px] text-[#555]">Mais rapido</p>
+              <p className="text-[9px] font-semibold text-white">{t('studio.no_video')}</p>
+              <p className="text-[7px] text-[#555]">{t('studio.faster')}</p>
             </button>
             <button data-testid="video-mode-narration" onClick={() => { setSkipVideo(false); setVideoMode('narration'); }}
               className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'narration' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <MessageSquare size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'narration' ? 'text-[#C9A84C]' : 'text-[#555]'}`} />
-              <p className="text-[9px] font-semibold text-white">Narracao</p>
-              <p className="text-[7px] text-[#555]">Voz + cenas</p>
+              <p className="text-[9px] font-semibold text-white">{t('studio.narration')}</p>
+              <p className="text-[7px] text-[#555]">{t('studio.voice_scenes')}</p>
             </button>
             <button data-testid="video-mode-presenter" onClick={() => { setSkipVideo(false); setVideoMode('presenter'); }}
               className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'presenter' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <Eye size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'presenter' ? 'text-[#C9A84C]' : 'text-[#555]'}`} />
-              <p className="text-[9px] font-semibold text-white">Apresentador</p>
-              <p className="text-[7px] text-[#555]">Avatar falante</p>
+              <p className="text-[9px] font-semibold text-white">{t('studio.presenter')}</p>
+              <p className="text-[7px] text-[#555]">{t('studio.talking_avatar')}</p>
             </button>
           </div>
-          {!skipVideo && videoMode === 'presenter' && !avatarUrl && !activeCompany?.avatar_url && (
+          {!skipVideo && videoMode === 'presenter' && !selectedAvatar && (
             <p className="text-[8px] text-amber-400/80 mt-1.5 flex items-center gap-1">
-              <AlertTriangle size={9} /> Crie um avatar acima para usar o modo apresentador
+              <AlertTriangle size={9} /> {t('studio.presenter_warning')}
             </p>
           )}
         </div>
@@ -2051,7 +2082,7 @@ export default function PipelineView({ context }) {
             <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-history"
               className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
               {showHistory ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-              {pipelines.length} pipeline{pipelines.length > 1 ? 's' : ''} anterior{pipelines.length > 1 ? 'es' : ''}
+              {pipelines.length} {t('studio.previous_pipelines')}
             </button>
             {showHistory && (
               <div className="mt-1.5 space-y-1.5">

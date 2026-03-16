@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Zap, Star, GraduationCap, Briefcase, Award, Brain, Target, Sparkles, MessageCircle, Lightbulb, ChevronDown, ChevronUp, Crown, Bot } from 'lucide-react';
 import { getAgentAvatar } from '../data/agentAvatars';
 
 const TYPE_LABELS = {
-  sales: 'Vendas', support: 'Suporte', scheduling: 'Agenda',
-  sac: 'SAC', onboarding: 'Onboarding', personal: 'Pessoal',
+  en: { sales: 'Sales', support: 'Support', scheduling: 'Scheduling', sac: 'SAC', onboarding: 'Onboarding', personal: 'Personal' },
+  pt: { sales: 'Vendas', support: 'Suporte', scheduling: 'Agenda', sac: 'SAC', onboarding: 'Onboarding', personal: 'Pessoal' },
+  es: { sales: 'Ventas', support: 'Soporte', scheduling: 'Agenda', sac: 'SAC', onboarding: 'Onboarding', personal: 'Personal' },
+};
+
+const SECTION_LABELS = {
+  en: { skills: 'Skills', personality: 'Personality' },
+  pt: { skills: 'Habilidades', personality: 'Personalidade' },
+  es: { skills: 'Habilidades', personality: 'Personalidad' },
 };
 
 function SkillBar({ name, level, delay }) {
@@ -51,12 +59,16 @@ function Section({ icon: Icon, title, children, defaultOpen = true }) {
 }
 
 export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
+  const { i18n } = useTranslation();
+  const lang = i18n.language || 'en';
   if (!open || !agent) return null;
 
   const avatar = getAgentAvatar(agent.name);
   const profile = agent.profile || {};
   const bg = profile.background || {};
   const isPersonal = agent.is_personal;
+  const typeLabels = TYPE_LABELS[lang] || TYPE_LABELS.en;
+  const sectionLabels = SECTION_LABELS[lang] || SECTION_LABELS.en;
 
   return (
     <div className="fixed inset-0 z-50" data-testid="agent-details-drawer">
@@ -105,7 +117,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
             )}
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/20 px-2 py-0.5 text-[8px] font-bold text-[#C9A84C] uppercase tracking-wider">
-                {TYPE_LABELS[agent.type] || agent.type}
+                {typeLabels[agent.type] || agent.type}
               </span>
               {agent.category && agent.category !== 'general' && (
                 <span className="rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-2 py-0.5 text-[8px] font-medium text-[#777] capitalize">
@@ -125,7 +137,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
 
             {/* Skills */}
             {profile.skills?.length > 0 && (
-              <Section icon={Target} title="Habilidades" defaultOpen={true}>
+              <Section icon={Target} title={sectionLabels.skills} defaultOpen={true}>
                 <div className="space-y-2.5">
                   {profile.skills.map((s, i) => (
                     <SkillBar key={s.name} name={s.name} level={s.level} delay={i} />
@@ -192,7 +204,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
 
             {/* Personality Traits */}
             {profile.personality_traits?.length > 0 && (
-              <Section icon={Sparkles} title="Personalidade" defaultOpen={false}>
+              <Section icon={Sparkles} title={sectionLabels.personality} defaultOpen={false}>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.personality_traits.map((t, i) => (
                     <span key={i} className="rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-2 py-0.5 text-[9px] text-[#aaa]">

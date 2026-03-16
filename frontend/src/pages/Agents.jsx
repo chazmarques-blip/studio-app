@@ -10,9 +10,9 @@ import AgentDetailsDrawer from '../components/AgentDetailsDrawer';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const TYPE_FILTERS = [
-  { id: 'all', l: 'Todos' }, { id: 'sales', l: 'Vendas' }, { id: 'support', l: 'Suporte' },
-  { id: 'scheduling', l: 'Agenda' }, { id: 'sac', l: 'SAC' }, { id: 'onboarding', l: 'Onboarding' },
-  { id: 'personal', l: 'Pessoal' },
+  { id: 'all', k: 'agents.all' }, { id: 'sales', k: 'agents.sales' }, { id: 'support', k: 'agents.support' },
+  { id: 'scheduling', k: 'agents.scheduling' }, { id: 'sac', k: 'agents.sac' }, { id: 'onboarding', k: 'agents.onboarding' },
+  { id: 'personal', k: 'agents.personal' },
 ];
 
 function AgentCard({ agent, onDeploy, onDetails, isPersonal, lang }) {
@@ -74,7 +74,7 @@ function MyAgentCard({ agent }) {
 
 export default function Agents() {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lang = i18n.language || 'pt';
   const [tab, setTab] = useState('marketplace');
   const [filter, setFilter] = useState('all');
@@ -127,17 +127,17 @@ export default function Agents() {
           <button data-testid="create-agent-btn" onClick={() => navigate('/agents/builder')}
             className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#B89A40] pl-1.5 pr-3 py-1.5 text-[10px] font-bold text-[#0A0A0A] transition-all hover:shadow-[0_0_20px_rgba(201,168,76,0.2)] active:scale-[0.97]">
             <img src={DEFAULT_AVATAR} alt="" className="h-6 w-6 rounded-lg object-cover" />
-            Criar Agente
+            {t('agents.builder_title') || 'Create Agent'}
           </button>
         </div>
 
         {/* Tabs */}
         <div className="flex rounded-lg border border-[#1A1A1A] bg-[#0D0D0D] p-0.5 mb-2.5">
-          {[{ id: 'marketplace', l: `Marketplace (${marketplace.length})` }, { id: 'my', l: `Meus (${myAgents.length})` }].map(t => (
-            <button key={t.id} data-testid={`tab-${t.id}`} onClick={() => setTab(t.id)}
+          {[{ id: 'marketplace', label: `Marketplace (${marketplace.length})` }, { id: 'my', label: `${t('agents.my_agents') || 'My Agents'} (${myAgents.length})` }].map(tb => (
+            <button key={tb.id} data-testid={`tab-${tb.id}`} onClick={() => setTab(tb.id)}
               className={`flex-1 rounded-md py-2 text-[10px] font-semibold transition-all ${
-                tab === t.id ? 'bg-gradient-to-r from-[#C9A84C] to-[#B89A40] text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.1)]' : 'text-[#555] hover:text-[#999]'}`}>
-              {t.l}
+                tab === tb.id ? 'bg-gradient-to-r from-[#C9A84C] to-[#B89A40] text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.1)]' : 'text-[#555] hover:text-[#999]'}`}>
+              {tb.label}
             </button>
           ))}
         </div>
@@ -147,7 +147,7 @@ export default function Agents() {
         <div className="px-4">
           <div className="relative mb-2">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#444]" />
-            <input data-testid="agent-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar agentes..."
+            <input data-testid="agent-search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('agents.search_placeholder') || "Search agents..."}
               className="w-full rounded-lg border border-[#1A1A1A] bg-[#0D0D0D] pl-8 pr-3 py-2 text-[10px] text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/30" />
           </div>
           <div className="flex gap-1 overflow-x-auto no-scrollbar mb-3 pb-0.5">
@@ -155,7 +155,7 @@ export default function Agents() {
               <button key={f.id} data-testid={`filter-${f.id}`} onClick={() => setFilter(f.id)}
                 className={`shrink-0 rounded-md px-2.5 py-1 text-[9px] font-semibold transition-all ${
                   filter === f.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1A1A1A] text-[#555] hover:text-[#999]'}`}>
-                {f.l}
+                {t(f.k) || f.id}
               </button>
             ))}
           </div>
@@ -190,7 +190,7 @@ export default function Agents() {
           {filtered.length === 0 && !loading && (
             <div className="text-center py-10">
               <Bot size={28} className="text-[#333] mx-auto mb-2" />
-              <p className="text-xs text-[#555]">Nenhum agente encontrado</p>
+              <p className="text-xs text-[#555]">{t('agents.no_agents_found') || 'No agents found'}</p>
             </div>
           )}
         </div>
@@ -201,10 +201,10 @@ export default function Agents() {
           {myAgents.length === 0 && !loading ? (
             <div className="text-center py-10">
               <Bot size={28} className="text-[#333] mx-auto mb-2" />
-              <p className="text-xs text-[#555] mb-3">Nenhum agente ainda</p>
+              <p className="text-xs text-[#555] mb-3">{t('agents.no_agents_yet') || 'No agents yet'}</p>
               <button onClick={() => navigate('/agents/builder')}
                 className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#B89A40] px-4 py-2 text-[10px] font-bold text-[#0A0A0A] active:scale-[0.97] transition-all">
-                Criar Primeiro Agente
+                {t('agents.create_first') || 'Create First Agent'}
               </button>
             </div>
           ) : myAgents.map(a => <MyAgentCard key={a.id} agent={a} />)}
