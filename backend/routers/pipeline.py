@@ -18,10 +18,47 @@ from PIL import Image
 from io import BytesIO
 import subprocess
 import urllib.request
+import litellm
 
 from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
 
 router = APIRouter(prefix="/api/campaigns/pipeline", tags=["pipeline"])
+
+# Emergent proxy URL for LLM calls
+EMERGENT_PROXY_URL = "https://integrations.emergentagent.com/llm"
+
+async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: str = "image/png") -> list:
+    """Send text+image in the SAME multimodal message to Gemini for image editing.
+    Returns list of image dicts [{mime_type, data}]."""
+    messages = [
+        {"role": "system", "content": system_msg},
+        {"role": "user", "content": [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}}
+        ]}
+    ]
+    params = {
+        "model": "gemini/gemini-3-pro-image-preview",
+        "messages": messages,
+        "api_key": EMERGENT_KEY,
+        "api_base": EMERGENT_PROXY_URL,
+        "custom_llm_provider": "openai",
+        "modalities": ["image", "text"],
+    }
+    response = litellm.completion(**params)
+    images = []
+    if response.choices and response.choices[0].message:
+        msg = response.choices[0].message
+        if hasattr(msg, 'images') and msg.images:
+            for img_data in msg.images:
+                if 'image_url' in img_data and 'url' in img_data['image_url']:
+                    url = img_data['image_url']['url']
+                    if 'data:' in url and ';base64,' in url:
+                        parts = url.split(';base64,', 1)
+                        m_type = parts[0].replace('data:', '')
+                        b64 = parts[1]
+                        images.append({"mime_type": m_type, "data": b64})
+    return images
 
 # FFmpeg binary path - from imageio_ffmpeg package
 try:
@@ -771,15 +808,8 @@ async def _edit_exact_image(source_image_url, edit_prompt, pipeline_id, index):
             elif source_image_url.lower().endswith(".webp"):
                 mime = "image/webp"
 
-            chat = LlmChat(
-                api_key=EMERGENT_KEY,
-                session_id=f"edit-{pipeline_id}-{index}-{uuid.uuid4().hex[:6]}-{attempt}",
-                system_message="You are an expert product photographer and image editor. Edit the provided product photo with professional quality. Keep the EXACT product — do NOT replace it with a different or fictional version. Apply professional editing: clean background, studio lighting, color correction, and commercial-grade composition."
-            )
-            chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
-
-            msg = UserMessage(
-                text=f"""Edit this EXACT product photo for a marketing campaign. 
+            system_msg = "You are an expert product photographer and image editor. Edit the provided product photo with professional quality. Keep the EXACT product — do NOT replace it with a different or fictional version. Apply professional editing: clean background, studio lighting, color correction, and commercial-grade composition."
+            prompt = f"""Edit this EXACT product photo for a marketing campaign. 
 CRITICAL: Keep the REAL product exactly as it is — same model, same color, same details. Do NOT generate a different product.
 
 Editing instructions:
@@ -787,11 +817,9 @@ Editing instructions:
 
 Apply: professional studio lighting, clean/upgraded background, commercial-grade color grading, marketing-ready composition.
 Output: A polished, campaign-ready version of this EXACT product. Square 1080x1080 format.
-DO NOT add any text, logos, or watermarks to the image.""",
-                file_contents=[ImageContent(image_base64=img_b64)]
-            )
-            text_response, images = await chat.send_message_multimodal_response(msg)
+DO NOT add any text, logos, or watermarks to the image."""
 
+            images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
             if images and len(images) > 0:
                 img_bytes = base64.b64decode(images[0]['data'])
                 filename = f"{pipeline_id}_exact_{index}_{uuid.uuid4().hex[:6]}.png"
@@ -2806,18 +2834,15 @@ async def upload_pipeline_asset(
 async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_user)):
     """Generate a full-body professional avatar from an uploaded photo using AI."""
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"avatar-{uuid.uuid4().hex[:8]}",
-            system_message=(
-                "You are an expert portrait photographer. You create stunning full-body professional photos. "
-                "CRITICAL: Always output VERTICAL portrait format (taller than wide, approximately 3:5 ratio). "
-                "When given a reference photo, preserve the person's EXACT identity — same face, features, skin tone, hair."
-            )
+        system_msg = (
+            "You are an expert portrait photographer. You create stunning full-body professional photos. "
+            "CRITICAL: Always output VERTICAL portrait format (taller than wide, approximately 3:5 ratio). "
+            "When given a reference photo, preserve the person's EXACT identity — same face, features, skin tone, hair."
         )
 
-        img_contents = []
         if req.source_image_url:
+            img_b64 = None
+            mime = "image/png"
             try:
                 img_req = urllib.request.Request(req.source_image_url, headers={"User-Agent": "Mozilla/5.0"})
                 with urllib.request.urlopen(img_req, timeout=15) as resp:
@@ -2825,7 +2850,6 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                     img_b64 = base64.b64encode(img_data).decode("utf-8")
                     content_type = resp.headers.get("Content-Type", "image/png")
                     mime = content_type if content_type.startswith("image/") else "image/png"
-                img_contents = [ImageContent(image_base64=img_b64)]
             except Exception as dl_err:
                 logger.warning(f"Failed to download source image: {dl_err}")
 
@@ -2837,17 +2861,31 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                 "Clean minimal background. Photorealistic, 4K detail. "
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             )
-        else:
-            prompt = (
-                f"Professional full-body portrait of a confident business presenter"
-                f"{' for ' + req.company_name if req.company_name else ''}. "
-                "Standing in a modern studio, professional attire, warm smile, looking at camera. "
-                "Full body visible from head to feet. Clean minimal background. "
-                "Photorealistic, 4K detail. "
-                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
-            )
 
-        msg = UserMessage(text=prompt, file_contents=img_contents if img_contents else None)
+            if img_b64:
+                # Use direct multimodal call with text+image in SAME message
+                images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
+                if images:
+                    img_bytes = base64.b64decode(images[0]['data'])
+                    filename = f"avatars/avatar_{uuid.uuid4().hex[:8]}.png"
+                    public_url = _upload_to_storage(img_bytes, filename, "image/png")
+                    return {"avatar_url": public_url}
+
+        # Fallback: no source image or image download failed
+        prompt = (
+            f"Professional full-body portrait of a confident business presenter"
+            f"{' for ' + req.company_name if req.company_name else ''}. "
+            "Standing in a modern studio, professional attire, warm smile, looking at camera. "
+            "Full body visible from head to feet. Clean minimal background. "
+            "Photorealistic, 4K detail. "
+            "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+        )
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"avatar-{uuid.uuid4().hex[:8]}",
+            system_message=system_msg
+        )
+        msg = UserMessage(text=prompt)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
 
@@ -3124,31 +3162,14 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
     clothing_desc = CLOTHING_MAP.get(req.clothing, CLOTHING_MAP["business_formal"])
     angle_desc = ANGLE_MAP.get(req.angle, ANGLE_MAP["front"])
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"avatar-var-{uuid.uuid4().hex[:8]}",
-            system_message=(
-                "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
-                "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
-                "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
-                "same body build. Do NOT generate a different person. Do NOT change their appearance. "
-                "Only change their clothing and camera angle as instructed. "
-                "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
-            )
+        system_msg = (
+            "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
+            "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
+            "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
+            "same body build. Do NOT generate a different person. Do NOT change their appearance. "
+            "Only change their clothing and camera angle as instructed. "
+            "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
         )
-        img_contents = []
-        if req.source_image_url:
-            try:
-                img_req = urllib.request.Request(req.source_image_url, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(img_req, timeout=15) as resp:
-                    img_data = resp.read()
-                    img_b64 = base64.b64encode(img_data).decode("utf-8")
-                    content_type = resp.headers.get("Content-Type", "image/png")
-                    mime = content_type if content_type.startswith("image/") else "image/png"
-                img_contents = [ImageContent(image_base64=img_b64)]
-            except Exception as dl_err:
-                logger.warning(f"Failed to download source image: {dl_err}")
-
         prompt = (
             f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
             f"CHANGE ONLY:\n"
@@ -3163,7 +3184,35 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
             f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
             f"Photorealistic, 4K detail."
         )
-        msg = UserMessage(text=prompt, file_contents=img_contents if img_contents else None)
+
+        if req.source_image_url:
+            img_b64 = None
+            mime = "image/png"
+            try:
+                img_req = urllib.request.Request(req.source_image_url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(img_req, timeout=15) as resp:
+                    img_data = resp.read()
+                    img_b64 = base64.b64encode(img_data).decode("utf-8")
+                    content_type = resp.headers.get("Content-Type", "image/png")
+                    mime = content_type if content_type.startswith("image/") else "image/png"
+            except Exception as dl_err:
+                logger.warning(f"Failed to download source image: {dl_err}")
+
+            if img_b64:
+                images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
+                if images:
+                    img_bytes = base64.b64decode(images[0]['data'])
+                    filename = f"avatars/avatar_var_{uuid.uuid4().hex[:8]}.png"
+                    public_url = _upload_to_storage(img_bytes, filename, "image/png")
+                    return {"avatar_url": public_url, "clothing": req.clothing, "angle": req.angle}
+
+        # Fallback without image reference
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"avatar-var-{uuid.uuid4().hex[:8]}",
+            system_message=system_msg
+        )
+        msg = UserMessage(text=prompt)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
         if images and len(images) > 0:
