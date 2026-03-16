@@ -59,8 +59,9 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
   - Opens customization modal pre-populated with avatar's data (image, clothing, voice, angles)
   - Modal title: "Edit Avatar" when editing vs "Customize Avatar" for new
   - Dual footer buttons: "Update" (saves over existing) + "Save as New" (clones)
+  - 360° angles editable: regenerate button (refresh icon) on hover for each existing angle
   - i18n keys added for all 3 locales (en, pt, es)
-  - Tested: iteration_50 (100% pass - 9/9 features)
+  - Tested: iteration_50 (9/9), iteration_51 (6/6 angle regen) - 100% pass
 
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
