@@ -1431,6 +1431,7 @@ export default function PipelineView({ context }) {
         skip_video: skipVideo,
         video_mode: skipVideo ? 'none' : videoMode,
         avatar_url: selectedAvatar?.url || '',
+        avatar_voice: selectedAvatar?.voice || null,
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);

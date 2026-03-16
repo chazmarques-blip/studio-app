@@ -125,7 +125,8 @@ def _recover_orphaned_pipelines():
                             sz = {"vertical": "720x1280", "horizontal": "1280x720"}.get(vf, "1280x720")
                             p_data = supabase.table("pipelines").select("result").eq("id", pid).single().execute()
                             user_music = (p_data.data or {}).get("result", {}).get("selected_music", "")
-                            video_url = loop.run_until_complete(_generate_commercial_video(pid, marcos_out, sz, selected_music_override=user_music))
+                            av_voice = (p_data.data or {}).get("result", {}).get("avatar_voice", None)
+                            video_url = loop.run_until_complete(_generate_commercial_video(pid, marcos_out, sz, selected_music_override=user_music, voice_config=av_voice))
                             steps_ref[retry_step]["video_url"] = video_url
                             steps_ref[retry_step]["status"] = "completed"
                             supabase.table("pipelines").update({"steps": steps_ref, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", pid).execute()
@@ -651,6 +652,7 @@ class PipelineCreate(BaseModel):
     skip_video: Optional[bool] = False
     video_mode: Optional[str] = "narration"  # 'none' | 'narration' | 'presenter'
     avatar_url: Optional[str] = ""  # Presenter avatar URL for lip-sync video
+    avatar_voice: Optional[dict] = None  # Voice config from avatar studio {type, voice_id, url}
 
 
 class AvatarGenerateRequest(BaseModel):
@@ -1096,14 +1098,22 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
     return None
 
 
-async def _generate_narration(text, pipeline_id, max_duration=19.0):
-    """Generate commercial narration with OpenAI TTS HD - energetic commercial voice.
+async def _generate_narration(text, pipeline_id, max_duration=19.0, voice_config=None):
+    """Generate commercial narration with OpenAI TTS HD.
+    Uses avatar voice if configured, otherwise defaults to 'onyx' (male) voice.
     Ensures narration fits within max_duration by speeding up if needed."""
     try:
+        # Determine voice from avatar config
+        tts_voice = "onyx"  # default: deep male voice
+        if voice_config and isinstance(voice_config, dict):
+            if voice_config.get("type") == "openai" and voice_config.get("voice_id"):
+                tts_voice = voice_config["voice_id"]
+                logger.info(f"Using avatar voice: {tts_voice}")
+        
         tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
         audio_bytes = await tts.generate_speech(
             text=text, model="tts-1-hd",
-            voice="nova", speed=1.08, response_format="mp3"
+            voice=tts_voice, speed=1.08, response_format="mp3"
         )
         if audio_bytes:
             raw_path = f"/tmp/{pipeline_id}_narration_raw.mp3"
@@ -1384,7 +1394,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
     return None
 
 
-async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720", selected_music_override=""):
+async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720", selected_music_override="", voice_config=None):
     """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo + CTA"""
     # Parse Marcos's structured output
     clip1_prompt = ""
@@ -1466,7 +1476,7 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     # 1. Generate narration (fast, ~5-10s)
     audio_path = None
     if narration_text:
-        audio_path = await _generate_narration(narration_text, pipeline_id)
+        audio_path = await _generate_narration(narration_text, pipeline_id, voice_config=voice_config)
 
     # 2. Generate both video clips (slow, ~3min each)
     clip1_path = _generate_video_clip_sync(clip1_prompt, pipeline_id, "clip1", size)
@@ -1526,7 +1536,7 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood)
 
 
-async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override=""):
+async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override="", voice_config=None):
     """Generate a talking-head presenter video using fal.ai Kling Avatar v2.
     1. Parse narration from marcos_output
     2. Generate TTS audio
@@ -1582,7 +1592,7 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
         logger.info(f"Presenter video: brand={brand_name}, tagline={tagline}, cta={contact_cta}, music={music_mood}")
 
         # 1. Generate TTS audio (18s max for presenter)
-        audio_path = await _generate_narration(narration_text, pipeline_id, max_duration=18.0)
+        audio_path = await _generate_narration(narration_text, pipeline_id, max_duration=18.0, voice_config=voice_config)
         if not audio_path:
             logger.error(f"TTS failed for presenter video {pipeline_id}")
             return None
@@ -1597,7 +1607,7 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
         fal_key = os.environ.get("FAL_KEY")
         if not fal_key:
             logger.warning("FAL_KEY not set. Falling back to narration mode.")
-            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override, voice_config=voice_config)
 
         import fal_client
         os.environ["FAL_KEY"] = fal_key
@@ -1615,7 +1625,7 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
 
         if not presenter_video_url:
             logger.warning("fal.ai presenter video returned no URL, falling back to narration mode")
-            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override, voice_config=voice_config)
 
         # 4. Download presenter video and add brand ending + background music
         presenter_path = f"/tmp/{pipeline_id}_presenter.mp4"
@@ -1623,7 +1633,7 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
 
         if not os.path.exists(presenter_path) or os.path.getsize(presenter_path) < 1000:
             logger.error("Downloaded presenter video is empty or missing")
-            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override, voice_config=voice_config)
 
         # Get duration of presenter video
         pres_duration = _ffprobe_duration(presenter_path) or 20.0
@@ -1678,7 +1688,7 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
         logger.error(f"Presenter video generation failed: {e}")
         # Fallback to narration mode
         try:
-            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override, voice_config=voice_config)
         except Exception:
             pass
     return None
@@ -2059,6 +2069,43 @@ DIRECTOR'S FEEDBACK:
 
 IMPORTANT: Address EVERY point in the director's feedback. Maintain the same output format."""
 
+        # Get avatar and brand info for video scene composition
+        avatar_url = pipeline.get("result", {}).get("avatar_url", "")
+        video_mode = pipeline.get("result", {}).get("video_mode", "narration")
+        brand_data = pipeline.get("result", {}).get("brand_data", None)
+        apply_brand = pipeline.get("result", {}).get("apply_brand", False)
+        uploaded_assets = pipeline.get("result", {}).get("uploaded_assets", [])
+        exact_photos = [a for a in uploaded_assets if a.get("type") == "exact"]
+
+        avatar_instruction = ""
+        if avatar_url:
+            avatar_instruction = f"""
+AVATAR/PRESENTER INSTRUCTION:
+- An avatar/presenter has been created for this campaign. Image: {avatar_url}
+- The video MUST feature this person as the main character/presenter in the scenes
+- Show the avatar ACTIVELY INTERACTING: demonstrating the product, talking to customers, presenting services
+- The avatar should be IN the scene (not just standing still) — walking, gesturing, showcasing
+- Make the scenes dynamic: the avatar engages with the environment and products naturally"""
+
+        exact_photos_instruction = ""
+        if exact_photos:
+            photo_urls = [a.get("url", "") for a in exact_photos[:3]]
+            exact_photos_instruction = f"""
+EXACT PRODUCT PHOTOS:
+- The client provided exact product photos that MUST appear in the video scenes: {', '.join(photo_urls)}
+- These are real products — the video must showcase EXACTLY these items (not generic versions)
+- Show the products being used, demonstrated, or displayed prominently in the commercial scenes"""
+
+        brand_overlay_instruction = ""
+        if apply_brand and brand_data:
+            brand_overlay_instruction = f"""
+BRAND OVERLAY:
+- Company: {brand_data.get('company_name', '')}
+- Logo URL: {brand_data.get('logo_url', '')}
+- Phone: {brand_data.get('phone', '')} {'(WhatsApp)' if brand_data.get('is_whatsapp') else ''}
+- Website: {brand_data.get('website_url', '')}
+- Use this brand info in the CTA ending sequence"""
+
         return f"""Create a 24-second commercial video (TWO 12-second clips with perfect continuity) for this campaign.
 
 Brand/Company: {campaign_name}
@@ -2070,6 +2117,9 @@ Contact info for CTA: {contact_details or contact_str}
 Original briefing: {briefing}
 {vid_format_note}
 {lang_instruction}
+{avatar_instruction}
+{exact_photos_instruction}
+{brand_overlay_instruction}
 {revision_info}
 
 REQUIREMENTS:
@@ -2079,6 +2129,7 @@ REQUIREMENTS:
 4. Choose the right MUSIC MOOD that amplifies the commercial's emotional arc
 5. The narration and all text must be in the SAME LANGUAGE as the campaign copy above
 6. Include the contact info in the CTA SEQUENCE for the video ending overlay
+7. If an avatar/presenter is provided, they MUST be the main character in every scene — actively interacting, not just standing
 
 Output EXACTLY in the format specified in your instructions."""
 
@@ -2449,13 +2500,14 @@ async def _execute_step(pipeline_id, step):
                 user_music = pipeline.get("result", {}).get("selected_music", "")
                 video_mode = pipeline.get("result", {}).get("video_mode", "narration")
                 avatar_url = pipeline.get("result", {}).get("avatar_url", "")
+                avatar_voice = pipeline.get("result", {}).get("avatar_voice", None)
 
                 if video_mode == "presenter" and avatar_url:
                     # Presenter mode: talking head with lip-sync via fal.ai
-                    video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music)
+                    video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=avatar_voice)
                 else:
                     # Narration mode: 2 Sora clips + TTS narration (original behavior)
-                    video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music)
+                    video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music, voice_config=avatar_voice)
                 steps[step]["video_url"] = video_url
                 steps[step]["video_format"] = video_format
                 steps[step]["video_duration"] = 24
@@ -2823,6 +2875,7 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
             "skip_video": data.skip_video or False,
             "video_mode": data.video_mode or "narration",
             "avatar_url": data.avatar_url or "",
+            "avatar_voice": data.avatar_voice or None,
         },
     }
 
@@ -3494,7 +3547,8 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
     # Generate in background
     async def _regen():
         try:
-            video_url = await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override=user_music)
+            avatar_voice_regen = pipeline.get("result", {}).get("avatar_voice", None)
+            video_url = await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override=user_music, voice_config=avatar_voice_regen)
             steps["marcos_video"]["video_url"] = video_url
             steps["marcos_video"]["status"] = "completed"
             supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
