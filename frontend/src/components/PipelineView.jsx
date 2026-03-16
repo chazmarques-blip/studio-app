@@ -895,6 +895,9 @@ export default function PipelineView({ context }) {
   const [avatarSourceType, setAvatarSourceType] = useState('photo'); // 'photo' | 'video'
   const [avatarVideoUploading, setAvatarVideoUploading] = useState(false);
   const [avatarExtractedAudio, setAvatarExtractedAudio] = useState(null); // { url }
+  const [masteringVoice, setMasteringVoice] = useState(false);
+  const [generatingPreviewVideo, setGeneratingPreviewVideo] = useState(false);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
@@ -2213,16 +2216,44 @@ export default function PipelineView({ context }) {
                             </p>
                             {recordedAudioUrl && (
                               <div className="space-y-2">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[8px] text-[#C9A84C] font-medium uppercase tracking-wider">
+                                    {avatarExtractedAudio ? t('studio.original_voice') : t('studio.recorded_voice')}
+                                  </span>
+                                </div>
                                 <audio src={recordedAudioUrl} controls className="w-full h-8" style={{ filter: 'invert(1) hue-rotate(180deg)' }} />
-                                <button data-testid="save-recording-btn" onClick={saveRecordingAsVoice}
-                                  disabled={uploadingRecording}
-                                  className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-[10px] font-bold text-black flex items-center justify-center gap-1.5 disabled:opacity-50">
-                                  {uploadingRecording ? (
-                                    <><Loader2 size={11} className="animate-spin" /> {t('studio.uploading_recording')}</>
-                                  ) : (
-                                    <><Check size={11} /> {t('studio.use') || 'Use this recording'}</>
-                                  )}
-                                </button>
+                                <div className="flex gap-1.5">
+                                  <button data-testid="master-voice-btn" onClick={async () => {
+                                    const voiceUrl = recordedAudioUrl || tempAvatar?.voice?.url;
+                                    if (!voiceUrl) return;
+                                    setMasteringVoice(true);
+                                    try {
+                                      const { data } = await axios.post(`${API}/campaigns/pipeline/master-voice`, { audio_url: voiceUrl });
+                                      if (data.audio_url) {
+                                        setRecordedAudioUrl(data.audio_url);
+                                        setTempAvatar(p => ({ ...p, voice: { ...p?.voice, url: data.audio_url, mastered: true } }));
+                                        toast.success(t('studio.voice_mastered'));
+                                      }
+                                    } catch (e) { toast.error(t('studio.err_generic')); }
+                                    setMasteringVoice(false);
+                                  }}
+                                    disabled={masteringVoice || tempAvatar?.voice?.mastered}
+                                    className={`flex-1 rounded-lg border py-2 text-[9px] font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-40 ${
+                                      tempAvatar?.voice?.mastered ? 'border-[#10B981]/30 text-[#10B981] bg-[#10B981]/5' : 'border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/5'}`}>
+                                    {masteringVoice ? <><Loader2 size={10} className="animate-spin" /> {t('studio.mastering')}</> :
+                                     tempAvatar?.voice?.mastered ? <><Check size={10} /> {t('studio.mastered')}</> :
+                                     <><Sparkles size={10} /> {t('studio.master_voice')}</>}
+                                  </button>
+                                  <button data-testid="save-recording-btn" onClick={saveRecordingAsVoice}
+                                    disabled={uploadingRecording}
+                                    className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-[9px] font-bold text-black flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                    {uploadingRecording ? (
+                                      <><Loader2 size={10} className="animate-spin" /> {t('studio.uploading_recording')}</>
+                                    ) : (
+                                      <><Check size={10} /> {t('studio.use') || 'Use'}</>
+                                    )}
+                                  </button>
+                                </div>
                               </div>
                             )}
                             {tempAvatar?.voice?.type === 'custom' && (
@@ -2243,6 +2274,34 @@ export default function PipelineView({ context }) {
                   </>
                 )}
               </div>
+
+              {/* Video Preview Button */}
+              {avatarStage === 'customize' && tempAvatar?.url && (
+                <div className="px-5 py-2 border-t border-[#151515]/50 shrink-0">
+                  {previewVideoUrl ? (
+                    <div className="space-y-1.5">
+                      <p className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.video_preview')}</p>
+                      <video src={previewVideoUrl} controls autoPlay muted loop
+                        className="w-full rounded-xl border border-[#1E1E1E] max-h-32 object-cover" />
+                    </div>
+                  ) : (
+                    <button data-testid="generate-preview-video-btn"
+                      onClick={async () => {
+                        setGeneratingPreviewVideo(true);
+                        try {
+                          const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, { avatar_url: tempAvatar.url }, { timeout: 300000 });
+                          if (data.video_url) { setPreviewVideoUrl(data.video_url); toast.success(t('studio.preview_generated')); }
+                        } catch (e) { toast.error(t('studio.err_generic')); }
+                        setGeneratingPreviewVideo(false);
+                      }}
+                      disabled={generatingPreviewVideo}
+                      className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
+                      {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
+                       <><Play size={10} /> {t('studio.generate_video_preview')}</>}
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Footer */}
               {avatarStage === 'customize' && (

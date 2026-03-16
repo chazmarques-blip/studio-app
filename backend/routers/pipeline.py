@@ -1135,18 +1135,18 @@ NO logos, NO brand names, NO website URLs."""
     return image_urls, prompts
 
 
-def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x720"):
-    """Generate a single 12-second video clip with Sora 2"""
+def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x720", duration=12):
+    """Generate a video clip with Sora 2"""
     max_retries = 2
     for attempt in range(max_retries):
         try:
             video_gen = OpenAIVideoGeneration(api_key=EMERGENT_KEY)
-            logger.info(f"Sora 2 {clip_name} started (attempt {attempt+1}): size={size}, key={EMERGENT_KEY[:15]}...")
+            logger.info(f"Sora 2 {clip_name} started (attempt {attempt+1}): size={size}, duration={duration}s, key={EMERGENT_KEY[:15]}...")
 
             # Step 1: Initiate generation
             operation_id = video_gen._generate_video(
                 prompt=prompt_text, model="sora-2",
-                size=size, duration=12
+                size=size, duration=duration
             )
             if not operation_id:
                 logger.error(f"Sora 2 {clip_name}: _generate_video returned None (no operation_id)")
@@ -2988,6 +2988,102 @@ async def upload_voice_recording(file: UploadFile = File(...), user=Depends(get_
     except Exception as e:
         logger.error(f"Voice upload failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class MasterVoiceRequest(BaseModel):
+    audio_url: str
+
+@router.post("/master-voice")
+async def master_voice(req: MasterVoiceRequest, user=Depends(get_current_user)):
+    """Masterize voice: noise reduction, EQ, compression, normalization — keeps original character."""
+    try:
+        # Download original audio
+        audio_data = urllib.request.urlopen(req.audio_url, timeout=30).read()
+        if not audio_data or len(audio_data) < 500:
+            raise HTTPException(status_code=400, detail="Could not download audio")
+
+        uid = uuid.uuid4().hex[:8]
+        input_path = f"/tmp/voice_raw_{uid}.mp3"
+        output_path = f"/tmp/voice_master_{uid}.mp3"
+        with open(input_path, "wb") as f:
+            f.write(audio_data)
+
+        # FFmpeg mastering chain:
+        # 1. highpass=80 — remove low rumble/hum
+        # 2. lowpass=12000 — remove high freq hiss
+        # 3. afftdn — adaptive noise reduction
+        # 4. acompressor — gentle compression for consistent volume
+        # 5. equalizer — boost presence (2-4kHz) for clarity
+        # 6. loudnorm — normalize loudness to broadcast standard
+        filter_chain = (
+            "highpass=f=80,"
+            "lowpass=f=12000,"
+            "afftdn=nf=-25:nr=10:nt=w,"
+            "acompressor=threshold=-20dB:ratio=3:attack=5:release=50:makeup=2,"
+            "equalizer=f=3000:t=q:w=1.5:g=3,"
+            "loudnorm=I=-16:TP=-1.5:LRA=11"
+        )
+        r = subprocess.run(
+            [FFMPEG_PATH, "-y", "-i", input_path, "-af", filter_chain,
+             "-acodec", "libmp3lame", "-ab", "192k", "-ar", "44100", output_path],
+            capture_output=True, text=True, timeout=60
+        )
+        if r.returncode != 0 or not os.path.exists(output_path):
+            logger.warning(f"Voice mastering failed: {r.stderr[:300] if r.stderr else ''}")
+            raise HTTPException(status_code=500, detail="Mastering failed")
+
+        with open(output_path, "rb") as f:
+            mastered_bytes = f.read()
+        filename = f"voice_recordings/mastered_{uid}.mp3"
+        public_url = _upload_to_storage(mastered_bytes, filename, "audio/mpeg")
+        logger.info(f"Voice mastered: {len(audio_data)/1024:.0f}KB → {len(mastered_bytes)/1024:.0f}KB")
+
+        # Cleanup
+        for p in [input_path, output_path]:
+            try: os.remove(p)
+            except: pass
+
+        return {"audio_url": public_url, "original_size": len(audio_data), "mastered_size": len(mastered_bytes)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice mastering error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class AvatarVideoPreviewRequest(BaseModel):
+    avatar_url: str
+
+@router.post("/avatar-video-preview")
+async def avatar_video_preview(req: AvatarVideoPreviewRequest, user=Depends(get_current_user)):
+    """Generate a 5-second vertical video preview of the avatar with natural movement."""
+    try:
+        prompt = (
+            f"A confident professional person standing in a modern studio, "
+            f"making natural gestures and slight head movements as if presenting. "
+            f"Subtle body sway, warm smile, engaging eye contact with camera. "
+            f"Soft studio lighting, clean minimal background. "
+            f"Vertical portrait format, cinematic quality, smooth natural motion."
+        )
+        clip_path = _generate_video_clip_sync(prompt, f"preview_{uuid.uuid4().hex[:6]}", "preview", "1024x1792", duration=4)
+        if not clip_path or not os.path.exists(clip_path):
+            raise HTTPException(status_code=500, detail="Video preview generation failed")
+
+        with open(clip_path, "rb") as f:
+            video_bytes = f.read()
+        filename = f"avatars/preview_{uuid.uuid4().hex[:8]}.mp4"
+        public_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+
+        try: os.remove(clip_path)
+        except: pass
+
+        return {"video_url": public_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar video preview failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 class AvatarVariantRequest(BaseModel):
     source_image_url: str = ""

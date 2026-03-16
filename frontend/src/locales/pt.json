@@ -558,6 +558,16 @@
     "voice_shimmer": "Shimmer — Clara, elegante",
     "uploading_recording": "Enviando gravação...",
     "recording_saved": "Gravação salva!",
+    "original_voice": "Voz Original",
+    "recorded_voice": "Voz Gravada",
+    "master_voice": "Masterizar",
+    "mastering": "Masterizando...",
+    "mastered": "Masterizada",
+    "voice_mastered": "Voz masterizada com clareza!",
+    "video_preview": "Preview do Vídeo",
+    "generate_video_preview": "Gerar Preview de 4s",
+    "generating_preview": "Gerando preview...",
+    "preview_generated": "Preview gerado!",
     "loading_preview": "Carregando preview...",
     "no_voice": "Sem voz"
   }
