@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -894,6 +894,7 @@ export default function PipelineView({ context }) {
   const [uploadedAssets, setUploadedAssets] = useState([]);
   const [showFinalPreview, setShowFinalPreview] = useState(false);
   const [skipVideo, setSkipVideo] = useState(false);
+  const [videoMode, setVideoMode] = useState('narration'); // 'narration' | 'presenter'
   const [savedLogos, setSavedLogos] = useState([]);
   const [savedBriefings, setSavedBriefings] = useState([]);
   const [musicLibrary, setMusicLibrary] = useState([]);
@@ -907,7 +908,8 @@ export default function PipelineView({ context }) {
   const [companies, setCompanies] = useState([]);
   const [activeCompanyId, setActiveCompanyId] = useState(null);
   const [showAddCompany, setShowAddCompany] = useState(false);
-  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', avatar_url: '' });
+  const [generatingAvatar, setGeneratingAvatar] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('agentzz_companies');
@@ -933,7 +935,7 @@ export default function PipelineView({ context }) {
     const updated = [...companies, co];
     saveCompanies(updated);
     setActiveCompanyId(co.id);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', avatar_url: '' });
     setShowAddCompany(false);
     toast.success('Empresa cadastrada!');
   };
@@ -1115,6 +1117,8 @@ export default function PipelineView({ context }) {
         media_formats: mediaFormats,
         selected_music: selectedMusic || '',
         skip_video: skipVideo,
+        video_mode: skipVideo ? 'none' : videoMode,
+        avatar_url: activeCompany?.avatar_url || '',
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1365,8 +1369,12 @@ export default function PipelineView({ context }) {
                   onClick={() => setActiveCompanyId(co.id)}
                   className={`w-full text-left rounded-xl border px-3 py-2 transition group ${activeCompanyId === co.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
                   <div className="flex items-center gap-2">
-                    <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
-                      <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#555]'} />
+                    <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
+                      {co.avatar_url ? (
+                        <img src={co.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#555]'} />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -1421,8 +1429,58 @@ export default function PipelineView({ context }) {
                 <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
                   placeholder="https://www.suaempresa.com.br" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
               </div>
+              {/* Avatar / Presenter */}
+              <div>
+                <label className="text-[8px] text-[#555] uppercase mb-1 flex items-center gap-1">
+                  <Eye size={8} /> Avatar / Apresentador (para videos)
+                </label>
+                <div className="flex items-center gap-2">
+                  {newCompany.avatar_url ? (
+                    <div className="relative">
+                      <img src={newCompany.avatar_url} alt="Avatar" className="h-14 w-14 rounded-xl object-cover ring-1 ring-[#C9A84C]/30" />
+                      <button onClick={() => setNewCompany(p => ({ ...p, avatar_url: '' }))} className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500/80 flex items-center justify-center">
+                        <X size={8} className="text-white" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="h-14 w-14 rounded-xl border border-dashed border-[#2A2A2A] flex items-center justify-center">
+                      <Eye size={16} className="text-[#333]" />
+                    </div>
+                  )}
+                  <div className="flex-1 space-y-1">
+                    <label data-testid="avatar-upload-btn" className="flex items-center gap-1 rounded-lg border border-[#1E1E1E] px-2 py-1.5 text-[9px] text-[#888] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 cursor-pointer transition">
+                      <Upload size={9} /> Upload Foto
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        try {
+                          const { data } = await axios.post(`${API}/campaigns/pipeline/upload-asset`, formData);
+                          if (data.url) setNewCompany(p => ({ ...p, avatar_url: data.url }));
+                          toast.success('Foto carregada!');
+                        } catch { toast.error('Erro ao carregar foto'); }
+                      }} />
+                    </label>
+                    <button data-testid="avatar-generate-btn" disabled={generatingAvatar || !newCompany.name}
+                      onClick={async () => {
+                        setGeneratingAvatar(true);
+                        try {
+                          const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar`, { company_name: newCompany.name });
+                          if (data.avatar_url) setNewCompany(p => ({ ...p, avatar_url: data.avatar_url }));
+                          toast.success('Avatar gerado!');
+                        } catch { toast.error('Erro ao gerar avatar'); }
+                        setGeneratingAvatar(false);
+                      }}
+                      className="flex items-center gap-1 rounded-lg border border-[#C9A84C]/20 bg-[#C9A84C]/5 px-2 py-1.5 text-[9px] font-medium text-[#C9A84C]/80 hover:bg-[#C9A84C]/10 disabled:opacity-30 transition w-full">
+                      {generatingAvatar ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+                      {generatingAvatar ? 'Gerando...' : 'Gerar com IA'}
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-2 pt-1">
-                <button onClick={() => { setShowAddCompany(false); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '' }); }}
+                <button onClick={() => { setShowAddCompany(false); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', avatar_url: '' }); }}
                   className="flex-1 rounded-lg border border-[#1E1E1E] py-1.5 text-[10px] text-[#666] hover:text-white transition">
                   Cancelar
                 </button>
@@ -1801,20 +1859,36 @@ export default function PipelineView({ context }) {
           </div>
         </div>
 
-        {/* Video Option */}
-        <div className="flex items-center gap-2 py-1">
-          <button
-            data-testid="skip-video-toggle"
-            onClick={() => setSkipVideo(!skipVideo)}
-            className={`w-8 h-4 rounded-full transition-all relative ${skipVideo ? 'bg-[#C9A84C]/40' : 'bg-[#1E1E1E]'}`}>
-            <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${skipVideo ? 'right-0.5 bg-[#C9A84C]' : 'left-0.5 bg-[#555]'}`} />
-          </button>
-          <span className="text-[10px] text-[#888]">
-            {skipVideo
-              ? (i18n.language === 'pt' ? 'Campanha sem video (mais rapido)' : i18n.language === 'es' ? 'Campana sin video (mas rapido)' : 'Campaign without video (faster)')
-              : (i18n.language === 'pt' ? 'Gerar video comercial' : i18n.language === 'es' ? 'Generar video comercial' : 'Generate commercial video')
-            }
-          </span>
+        {/* Video Mode */}
+        <div>
+          <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1 mb-1.5">
+            <Film size={10} /> Modo de Video
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button data-testid="video-mode-none" onClick={() => { setSkipVideo(true); setVideoMode('none'); }}
+              className={`rounded-xl border p-2 text-center transition ${skipVideo ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <X size={14} className={`mx-auto mb-1 ${skipVideo ? 'text-[#C9A84C]' : 'text-[#555]'}`} />
+              <p className="text-[9px] font-semibold text-white">Sem Video</p>
+              <p className="text-[7px] text-[#555]">Mais rapido</p>
+            </button>
+            <button data-testid="video-mode-narration" onClick={() => { setSkipVideo(false); setVideoMode('narration'); }}
+              className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'narration' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <MessageSquare size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'narration' ? 'text-[#C9A84C]' : 'text-[#555]'}`} />
+              <p className="text-[9px] font-semibold text-white">Narracao</p>
+              <p className="text-[7px] text-[#555]">Voz + cenas</p>
+            </button>
+            <button data-testid="video-mode-presenter" onClick={() => { setSkipVideo(false); setVideoMode('presenter'); }}
+              className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'presenter' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <Eye size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'presenter' ? 'text-[#C9A84C]' : 'text-[#555]'}`} />
+              <p className="text-[9px] font-semibold text-white">Apresentador</p>
+              <p className="text-[7px] text-[#555]">Avatar falante</p>
+            </button>
+          </div>
+          {!skipVideo && videoMode === 'presenter' && !activeCompany?.avatar_url && (
+            <p className="text-[8px] text-amber-400/80 mt-1.5 flex items-center gap-1">
+              <AlertTriangle size={9} /> Cadastre um avatar na empresa para usar o modo apresentador
+            </p>
+          )}
         </div>
 
         {/* Mode */}

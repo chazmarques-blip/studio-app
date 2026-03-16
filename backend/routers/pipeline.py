@@ -511,13 +511,13 @@ NARRATION SCRIPT RULES:
 - Voice style: EXCITED, TRIUMPHANT, like celebrating a massive achievement. NOT calm or narrative. Think sports announcer meets motivational speaker.
 - Energy arc: Start with intrigue → build momentum → PEAK excitement at the transformation → EXPLOSIVE CTA
 - Rhythm: Short PUNCHY sentences. Rhetorical questions. Power words. Dramatic pauses for impact.
-- CRITICAL TIMING: The narration MUST be SHORT and PUNCHY. Maximum 50-60 words total. The spoken audio MUST finish by second 19 AT THE LATEST. The last 4 seconds (19-23s) are SILENT — only music and brand logo/CTA on screen. This is NON-NEGOTIABLE.
+- CRITICAL TIMING: The narration MUST be SHORT and PUNCHY. Maximum 40-50 words total (STRICTLY COUNTED — count every word before submitting). The spoken audio MUST finish by second 18 AT THE LATEST. The last 5 seconds (18-23s) are SILENT — only music and brand logo/CTA on screen. This is NON-NEGOTIABLE. If your script exceeds 50 words, CUT IT DOWN. FEWER words = MORE impact.
 - Structure with TIMING MARKS:
-  [0-5s]: The HOOK — Grab attention IMMEDIATELY. Bold statement or provocative question.
-  [5-10s]: The SOLUTION — Fast, exciting, benefits. Energy RISING.
-  [10-16s]: The TRANSFORMATION — Proof, triumph, the dream becoming reality. PEAK excitement.
-  [16-19s]: The CTA — SHORT, URGENT, one powerful sentence with contact method + tagline. Then STOP.
-  [19-23s]: SILENCE — Music only. Brand logo + tagline + contact info on screen.
+  [0-4s]: The HOOK — Grab attention IMMEDIATELY. Bold statement or provocative question.
+  [4-9s]: The SOLUTION — Fast, exciting, benefits. Energy RISING.
+  [9-14s]: The TRANSFORMATION — Proof, triumph, the dream becoming reality. PEAK excitement.
+  [14-18s]: The CTA — ONE short powerful sentence with contact method + tagline. Then STOP.
+  [18-23s]: SILENCE — Music only. Brand logo + tagline + contact info on screen.
 - End ALWAYS with the video tagline from Sofia's brief
 - Write in the SAME LANGUAGE as the campaign copy
 
@@ -614,8 +614,14 @@ class PipelineCreate(BaseModel):
     contact_info: Optional[dict] = {}
     uploaded_assets: Optional[list] = []
     media_formats: Optional[dict] = {}
-    selected_music: Optional[str] = ""  # mood key: upbeat, energetic, emotional, cinematic, corporate
-    skip_video: Optional[bool] = False  # Flag to skip video generation (faster campaign creation)
+    selected_music: Optional[str] = ""
+    skip_video: Optional[bool] = False
+    video_mode: Optional[str] = "narration"  # 'none' | 'narration' | 'presenter'
+    avatar_url: Optional[str] = ""  # Presenter avatar URL for lip-sync video
+
+
+class AvatarGenerateRequest(BaseModel):
+    company_name: str
 
 
 class PipelineApprove(BaseModel):
@@ -1059,8 +1065,9 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
     return None
 
 
-async def _generate_narration(text, pipeline_id):
-    """Generate commercial narration with OpenAI TTS HD - energetic commercial voice"""
+async def _generate_narration(text, pipeline_id, max_duration=19.0):
+    """Generate commercial narration with OpenAI TTS HD - energetic commercial voice.
+    Ensures narration fits within max_duration by speeding up if needed."""
     try:
         tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
         audio_bytes = await tts.generate_speech(
@@ -1068,11 +1075,37 @@ async def _generate_narration(text, pipeline_id):
             voice="nova", speed=1.08, response_format="mp3"
         )
         if audio_bytes:
-            path = f"/tmp/{pipeline_id}_narration.mp3"
-            with open(path, "wb") as f:
+            raw_path = f"/tmp/{pipeline_id}_narration_raw.mp3"
+            final_path = f"/tmp/{pipeline_id}_narration.mp3"
+            with open(raw_path, "wb") as f:
                 f.write(audio_bytes)
-            logger.info(f"Narration generated: {len(audio_bytes)/1024:.0f}KB")
-            return path
+
+            # Check duration and speed up if it exceeds max_duration
+            probe = subprocess.run(
+                f"ffprobe -v error -show_entries format=duration -of csv=p=0 {raw_path}",
+                shell=True, capture_output=True, text=True, timeout=10
+            )
+            audio_dur = float(probe.stdout.strip()) if probe.stdout.strip() else 0
+            logger.info(f"Narration raw duration: {audio_dur:.1f}s (max: {max_duration}s)")
+
+            if audio_dur > max_duration and audio_dur > 0:
+                speed_factor = min(audio_dur / max_duration, 1.35)  # Cap at 1.35x to avoid unnatural speech
+                logger.info(f"Narration too long ({audio_dur:.1f}s), speeding up by {speed_factor:.2f}x")
+                # Use atempo filter (supports 0.5-2.0 range)
+                subprocess.run(
+                    [FFMPEG_PATH, "-y", "-i", raw_path, "-filter:a", f"atempo={speed_factor}", "-vn", final_path],
+                    capture_output=True, timeout=30
+                )
+                if os.path.exists(final_path) and os.path.getsize(final_path) > 100:
+                    logger.info(f"Narration adjusted to fit {max_duration}s")
+                else:
+                    shutil.copy2(raw_path, final_path)
+                    logger.warning("Atempo failed, using original audio")
+            else:
+                shutil.copy2(raw_path, final_path)
+
+            logger.info(f"Narration generated: {os.path.getsize(final_path)/1024:.0f}KB")
+            return final_path
     except Exception as e:
         logger.warning(f"TTS narration failed: {e}")
     return None
@@ -1243,7 +1276,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                     music_files = [f for f in os.listdir(music_dir) if f.endswith(('.mp3', '.wav', '.aac'))]
                     if music_files:
                         bg_music_path = os.path.join(music_dir, music_files[0])
-                logger.info(f"Fallback music selected")
+                logger.info("Fallback music selected")
 
         if audio_path and os.path.exists(audio_path) and bg_music_path:
             # Resample both to 44100Hz stereo before mixing
@@ -1402,13 +1435,13 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     clip2_path = _generate_video_clip_sync(clip2_prompt, pipeline_id, "clip2", size)
     if not clip2_path:
         # Retry clip2 with simplified prompt before giving up
-        logger.warning(f"Clip 2 first attempt failed, retrying with simplified prompt...")
+        logger.warning("Clip 2 first attempt failed, retrying with simplified prompt...")
         simplified_clip2 = f"Cinematic commercial continuation: {clip2_prompt[:200]}. Professional lighting, smooth camera movement."
         clip2_path = _generate_video_clip_sync(simplified_clip2, pipeline_id, "clip2", size)
 
     if not clip2_path:
         # Last resort: duplicate clip1 to maintain 24-second duration
-        logger.warning(f"Clip 2 failed completely. Duplicating clip1 to maintain 24s duration.")
+        logger.warning("Clip 2 failed completely. Duplicating clip1 to maintain 24s duration.")
         clip2_path = f"/tmp/{pipeline_id}_clip2.mp4"
         # Create a reversed version of clip1 for visual variation
         r = subprocess.run(
@@ -1449,6 +1482,168 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
 
     # 4. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration + music
     return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood)
+
+
+async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override=""):
+    """Generate a talking-head presenter video using fal.ai Kling Avatar v2.
+    1. Parse narration from marcos_output
+    2. Generate TTS audio
+    3. Send avatar photo + audio to fal.ai for lip-sync video
+    4. Add brand ending + background music
+    """
+    try:
+        # Parse narration text from Marcos's structured output
+        narration_text = ""
+        brand_name = ""
+        tagline = ""
+        contact_cta = ""
+        music_mood = "corporate"
+
+        narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===MUSIC DIRECTION===', marcos_output, re.IGNORECASE)
+        if not narr_match:
+            narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===(?:BRAND NAME|CTA SEQUENCE|VIDEO FORMAT)===', marcos_output, re.IGNORECASE)
+        if narr_match:
+            narration_text = narr_match.group(1).strip()
+            narration_text = re.sub(r'\[\d+-\d+s?\]:\s*', '', narration_text)
+            narration_text = re.sub(r'\[.*?SILENCE.*?\]', '', narration_text, flags=re.IGNORECASE)
+            narration_text = re.sub(r'\[.*?music\s+only.*?\]', '', narration_text, flags=re.IGNORECASE)
+            narration_text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', narration_text, flags=re.IGNORECASE)
+            narration_text = re.sub(r'\[(?:COMPLETE|TOTAL|FULL)?\s*(?:SILENCE|QUIET|PAUSE|NO NARRATION).*?\]', '', narration_text, flags=re.IGNORECASE)
+            narration_text = re.sub(r'\n{2,}', '\n', narration_text).strip()
+
+        cta_match = re.search(r'===CTA SEQUENCE===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
+        if cta_match:
+            cta_block = cta_match.group(1)
+            bl = re.search(r'Brand\s*name:\s*(.+)', cta_block, re.IGNORECASE)
+            if bl:
+                brand_name = bl.group(1).strip()
+            tl = re.search(r'Tagline:\s*(.+)', cta_block, re.IGNORECASE)
+            if tl:
+                tagline = tl.group(1).strip()
+            cl = re.search(r'Contact:\s*(.+)', cta_block, re.IGNORECASE)
+            if cl:
+                contact_cta = cl.group(1).strip()
+
+        music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===CTA SEQUENCE===', marcos_output, re.IGNORECASE)
+        if music_match:
+            ml = re.search(r'Mood:\s*(\w+)', music_match.group(1), re.IGNORECASE)
+            if ml:
+                music_mood = ml.group(1).strip().lower()
+
+        if selected_music_override:
+            music_mood = selected_music_override
+
+        if not narration_text:
+            logger.warning(f"No narration text found for presenter video {pipeline_id}")
+            return None
+
+        logger.info(f"Presenter video: brand={brand_name}, tagline={tagline}, cta={contact_cta}, music={music_mood}")
+
+        # 1. Generate TTS audio (18s max for presenter)
+        audio_path = await _generate_narration(narration_text, pipeline_id, max_duration=18.0)
+        if not audio_path:
+            logger.error(f"TTS failed for presenter video {pipeline_id}")
+            return None
+
+        # 2. Upload audio to Supabase storage for fal.ai to access
+        with open(audio_path, "rb") as f:
+            audio_bytes = f.read()
+        audio_filename = f"presenter_audio/{pipeline_id}_narration.mp3"
+        audio_public_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+
+        # 3. Generate talking head with fal.ai Kling Avatar v2
+        fal_key = os.environ.get("FAL_KEY")
+        if not fal_key:
+            logger.warning("FAL_KEY not set. Falling back to narration mode.")
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+
+        import fal_client
+        os.environ["FAL_KEY"] = fal_key
+        logger.info(f"Generating presenter video: avatar={avatar_url[:60]}..., audio={audio_public_url[:60]}...")
+
+        handler = await fal_client.submit_async(
+            "fal-ai/kling-video/ai-avatar/v2/standard",
+            arguments={
+                "image_url": avatar_url,
+                "audio_url": audio_public_url,
+            }
+        )
+        result = await handler.get()
+        presenter_video_url = result.get("video", {}).get("url") if result else None
+
+        if not presenter_video_url:
+            logger.warning("fal.ai presenter video returned no URL, falling back to narration mode")
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+
+        # 4. Download presenter video and add brand ending + background music
+        presenter_path = f"/tmp/{pipeline_id}_presenter.mp4"
+        urllib.request.urlretrieve(presenter_video_url, presenter_path)
+
+        if not os.path.exists(presenter_path) or os.path.getsize(presenter_path) < 1000:
+            logger.error("Downloaded presenter video is empty or missing")
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+
+        # Get duration of presenter video
+        probe = subprocess.run(
+            f"ffprobe -v error -show_entries format=duration -of csv=p=0 {presenter_path}",
+            shell=True, capture_output=True, text=True, timeout=10
+        )
+        pres_duration = float(probe.stdout.strip()) if probe.stdout.strip() else 20.0
+
+        # Add background music (soft) to the presenter video
+        music_dir = "/app/backend/assets/music"
+        bg_music_path = None
+        if os.path.isdir(music_dir):
+            mood_map = {
+                "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "emotional": "emotional.mp3",
+                "cinematic": "cinematic.mp3", "corporate": "corporate.mp3", "luxury": "jazz_smooth.mp3",
+                "modern": "electronic_chill.mp3", "fun": "pop_dance.mp3",
+            }
+            mood_file = mood_map.get(music_mood, "corporate.mp3")
+            candidate = os.path.join(music_dir, mood_file)
+            bg_music_path = candidate if os.path.exists(candidate) else os.path.join(music_dir, "corporate.mp3")
+            if not os.path.exists(bg_music_path):
+                bg_music_path = None
+
+        output_path = f"/tmp/{pipeline_id}_commercial.mp4"
+
+        if bg_music_path:
+            # Mix presenter audio with soft background music
+            music_resampled = f"/tmp/{pipeline_id}_pres_music.wav"
+            subprocess.run(
+                f"{FFMPEG_PATH} -y -i {bg_music_path} -af volume=0.06 -ar 44100 -ac 2 -t {pres_duration} {music_resampled}",
+                shell=True, capture_output=True, timeout=30
+            )
+            mix_cmd = [
+                FFMPEG_PATH, "-y", "-i", presenter_path, "-i", music_resampled,
+                "-filter_complex", "[0:a]volume=1.3[voice];[1:a]afade=t=in:d=2,afade=t=out:st=" + str(max(pres_duration-2, 10)) + ":d=2[music];[voice][music]amix=inputs=2:duration=first:normalize=0[out]",
+                "-map", "0:v", "-map", "[out]",
+                "-c:v", "copy", "-c:a", "aac", "-b:a", "256k",
+                output_path
+            ]
+            r = subprocess.run(mix_cmd, capture_output=True, text=True, timeout=60)
+            if r.returncode != 0:
+                logger.warning(f"Music mix failed for presenter: {r.stderr[:200] if r.stderr else ''}")
+                shutil.copy2(presenter_path, output_path)
+        else:
+            shutil.copy2(presenter_path, output_path)
+
+        if os.path.exists(output_path):
+            with open(output_path, "rb") as f:
+                video_bytes = f.read()
+            filename = f"videos/{pipeline_id}_presenter.mp4"
+            public_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+            logger.info(f"Presenter video uploaded: {filename} ({len(video_bytes)/1024:.0f}KB)")
+            return public_url
+
+    except Exception as e:
+        logger.error(f"Presenter video generation failed: {e}")
+        # Fallback to narration mode
+        try:
+            return await _generate_commercial_video(pipeline_id, marcos_output, size, selected_music_override)
+        except Exception:
+            pass
+    return None
 
 
 def _parse_ana_copy_selection(text):
@@ -2211,9 +2406,17 @@ async def _execute_step(pipeline_id, step):
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }).eq("id", pipeline_id).execute()
 
-                # Generate the full commercial (2 clips + narration + crossfade + brand logo)
+                # Generate the full commercial
                 user_music = pipeline.get("result", {}).get("selected_music", "")
-                video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music)
+                video_mode = pipeline.get("result", {}).get("video_mode", "narration")
+                avatar_url = pipeline.get("result", {}).get("avatar_url", "")
+
+                if video_mode == "presenter" and avatar_url:
+                    # Presenter mode: talking head with lip-sync via fal.ai
+                    video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music)
+                else:
+                    # Narration mode: 2 Sora clips + TTS narration (original behavior)
+                    video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music)
                 steps[step]["video_url"] = video_url
                 steps[step]["video_format"] = video_format
                 steps[step]["video_duration"] = 24
@@ -2346,6 +2549,72 @@ async def upload_pipeline_asset(
     return {"url": public_url, "filename": filename, "type": asset_type, "size": len(content)}
 
 
+@router.post("/generate-avatar")
+async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_user)):
+    """Generate a professional business avatar/presenter using AI image generation."""
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"avatar-{uuid.uuid4().hex[:8]}",
+            system_message="You are an expert AI image generator specializing in professional headshot portraits."
+        )
+        prompt = (
+            f"Professional headshot portrait of a confident, friendly business presenter for the company '{req.company_name}'. "
+            "Clean studio background, professional attire, warm natural smile, looking directly at camera. "
+            "Photorealistic, high quality, well-lit, corporate headshot style. "
+            "The person should appear trustworthy, approachable, and professional."
+        )
+        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+        msg = UserMessage(text=prompt)
+        text_response, images = await chat.send_message_multimodal_response(msg)
+
+        if images and len(images) > 0:
+            img_bytes = base64.b64decode(images[0]['data'])
+            filename = f"avatars/avatar_{uuid.uuid4().hex[:8]}.png"
+            public_url = _upload_to_storage(img_bytes, filename, "image/png")
+            return {"avatar_url": public_url}
+        raise HTTPException(status_code=500, detail="Failed to generate avatar image")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate-presenter-video")
+async def generate_presenter_video_endpoint(
+    pipeline_id: str = Form(""),
+    avatar_url: str = Form(""),
+    audio_url: str = Form(""),
+    user=Depends(get_current_user)
+):
+    """Generate a talking-head presenter video using fal.ai Kling Avatar v2.
+    Requires FAL_KEY in environment."""
+    fal_key = os.environ.get("FAL_KEY")
+    if not fal_key:
+        raise HTTPException(status_code=503, detail="Presenter video requires FAL_KEY configuration. Contact admin.")
+    try:
+        import fal_client
+        os.environ["FAL_KEY"] = fal_key
+        handler = await fal_client.submit_async(
+            "fal-ai/kling-video/ai-avatar/v2/standard",
+            arguments={
+                "image_url": avatar_url,
+                "audio_url": audio_url,
+            }
+        )
+        result = await handler.get()
+        video_url = result.get("video", {}).get("url") if result else None
+        if video_url:
+            return {"video_url": video_url}
+        raise HTTPException(status_code=500, detail="Presenter video generation returned no video")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Presenter video generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/list")
 async def list_pipelines(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
@@ -2378,6 +2647,8 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
             "media_formats": data.media_formats or {},
             "selected_music": data.selected_music or "",
             "skip_video": data.skip_video or False,
+            "video_mode": data.video_mode or "narration",
+            "avatar_url": data.avatar_url or "",
         },
     }
 

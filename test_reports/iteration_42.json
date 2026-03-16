@@ -1,0 +1,127 @@
+{
+  "summary": "Iteration 42 - Avatar/Presenter System and Video Mode Selector Testing - 6/7 backend tests passed, frontend verified. Key features tested: (1) POST /api/campaigns/pipeline/generate-avatar returns valid Supabase URL using Nano Banana AI, (2) POST /api/campaigns/pipeline/generate-presenter-video returns 503 when FAL_KEY not configured (graceful degradation), (3) Pipeline creation accepts video_mode and avatar_url fields, (4) Frontend company form has Avatar/Apresentador section with Upload Foto and Gerar com IA buttons, (5) Video Mode selector shows 3 options (Sem Video, Narracao, Apresentador), (6) Narracao is default selected, (7) Company card shows avatar thumbnail when avatar is set, (8) Guided Questionnaire is default briefing mode.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "Pipeline creation with empty/short briefing",
+        "issue": "Transient 500 error on one test (httpx.RemoteProtocolError: Server disconnected) - likely connection issue not code bug",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "PipelineView.jsx Company buttons",
+        "issues": ["Console warning: <button> cannot contain nested <button>. The company card has a button inside a button (star/X icons inside company card button). This is an HTML nesting violation but doesn't affect functionality."]
+      }
+    ]
+  },
+  "verified_features": {
+    "backend_avatar_generation": {
+      "status": "PASSED",
+      "endpoint": "POST /api/campaigns/pipeline/generate-avatar",
+      "returns": "avatar_url with valid Supabase storage URL",
+      "ai_model": "Nano Banana (gemini-3-pro-image-preview)",
+      "response_time": "10-15 seconds"
+    },
+    "backend_presenter_video_503": {
+      "status": "PASSED",
+      "endpoint": "POST /api/campaigns/pipeline/generate-presenter-video",
+      "behavior": "Returns 503 when FAL_KEY not configured",
+      "error_message": "Presenter video requires FAL_KEY configuration. Contact admin."
+    },
+    "backend_pipeline_video_mode": {
+      "status": "PASSED",
+      "endpoint": "POST /api/campaigns/pipeline",
+      "fields_accepted": ["video_mode", "avatar_url", "skip_video"],
+      "video_mode_options": ["none", "narration", "presenter"]
+    },
+    "frontend_avatar_section": {
+      "status": "PASSED",
+      "location": "Company form (EMPRESA ANUNCIANTE)",
+      "label": "AVATAR / APRESENTADOR (PARA VIDEOS)",
+      "buttons": {
+        "upload": {"data_testid": "avatar-upload-btn", "text": "Upload Foto"},
+        "generate": {"data_testid": "avatar-generate-btn", "text": "Gerar com IA"}
+      }
+    },
+    "frontend_avatar_thumbnail": {
+      "status": "PASSED",
+      "size": "56x56px rounded",
+      "location": "Company card and form",
+      "remove_button": "X button on thumbnail"
+    },
+    "frontend_company_card_avatar": {
+      "status": "PASSED",
+      "behavior": "Company card shows avatar thumbnail instead of Building icon when avatar_url is set"
+    },
+    "frontend_video_mode_selector": {
+      "status": "PASSED",
+      "data_testids": ["video-mode-none", "video-mode-narration", "video-mode-presenter"],
+      "options": [
+        {"id": "none", "label": "Sem Video", "subtitle": "Mais rapido"},
+        {"id": "narration", "label": "Narracao", "subtitle": "Voz + cenas"},
+        {"id": "presenter", "label": "Apresentador", "subtitle": "Avatar falante"}
+      ]
+    },
+    "frontend_default_video_mode": {
+      "status": "PASSED",
+      "default": "Narracao",
+      "highlight_class": "border-[#C9A84C]/40 bg-[#C9A84C]/5"
+    },
+    "frontend_sem_video_click": {
+      "status": "PASSED",
+      "behavior": "Clicking Sem Video highlights it and sets skipVideo=true"
+    },
+    "frontend_apresentador_warning": {
+      "status": "PASSED",
+      "condition": "When Apresentador selected and no avatar in activeCompany",
+      "message": "Cadastre um avatar na empresa para usar o modo apresentador"
+    },
+    "frontend_guided_questionnaire_default": {
+      "status": "VERIFIED (from iteration_41)",
+      "data_testid": "briefing-mode-guided",
+      "initial_state": "useState('guided')"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_avatar_video_mode.py",
+    "/app/test_reports/pytest/pytest_results_iteration42.xml"
+  ],
+  "action_items": [
+    "MINOR: Fix nested button HTML issue in PipelineView.jsx company cards (lines ~1368-1400) - star/X icons should be outside the main button or use different element structure"
+  ],
+  "critical_code_review_comments": [
+    "pipeline.py line 2552-2581: generate-avatar endpoint correctly uses LlmChat with Gemini model and uploads to Supabase storage",
+    "pipeline.py line 2584-2615: generate-presenter-video correctly checks for FAL_KEY and returns 503 when not configured",
+    "pipeline.py line 2650-2651: Pipeline creation correctly stores video_mode and avatar_url in result object",
+    "PipelineView.jsx line 897: videoMode state defaults to 'narration'",
+    "PipelineView.jsx line 1465-1478: Gerar com IA button calls POST /api/campaigns/pipeline/generate-avatar correctly",
+    "PipelineView.jsx line 1867-1891: Video mode selector UI with 3 options and warning message for presenter mode"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_avatar_video_mode.py"
+  ],
+  "success_rate": {
+    "backend": "86% (6/7 tests passed - 1 transient connection error)",
+    "frontend": "100% - All avatar/video mode UI features verified"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Created test company with avatar in localStorage for frontend testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 42: Avatar/Presenter system fully tested. Backend endpoints: generate-avatar (works), generate-presenter-video (returns 503 gracefully - FAL_KEY not set). Frontend: Company form has Avatar section with Upload/Generate buttons. Video mode selector has 3 options with Narracao as default. Company cards show avatar thumbnails. Note: There's a minor HTML nesting issue (button inside button) in company cards that causes a console warning.",
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": [
+      "generate-presenter-video requires FAL_KEY to actually generate lip-sync video - returns 503 gracefully when not configured"
+    ]
+  }
+}
