@@ -63,6 +63,18 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
   - i18n keys added for all 3 locales (en, pt, es)
   - Tested: iteration_50 (9/9), iteration_51 (6/6 angle regen) - 100% pass
 
+- [x] **Brand Data Toggle & Exact Photos (P0 COMPLETE)**:
+  - Removed logo upload from campaign form (logo comes from company data)
+  - Removed Saved Logos section and Contact Data section (all from company now)
+  - Added brand data toggle: checkbox with company logo, name, phone, website preview
+  - Toggle ON by default: applies logo + company data to videos and campaign texts
+  - Replaced "Brand & Reference Images" with "Product Images" (Exact Photos + Reference)
+  - "Exact Photos" (green): AI uses exact product with professional editing/treatment
+  - "Reference" (blue): Inspiration/reference images for AI
+  - Pipeline payload now sends `apply_brand` flag and `brand_data` object
+  - i18n: 8 new keys in all 3 locales
+  - Tested: iteration_52 (100% pass - 11/11 features)
+
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
 - FFmpeg logo overlay sometimes fails (low priority)
@@ -90,3 +102,4 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - iteration_48: Avatar Studio Advanced - Clothing, 360°, Voice (100% pass - 11/11 tests)
 - iteration_49: Avatar Studio Bug Fixes - Portrait preview, angles, gallery, mic (100% pass - 17/17)
 - iteration_43: Video variants + clone fix (100% pass)
+- iteration_52: Brand Data Toggle & Exact Photos (100% pass - 11/11 features)
