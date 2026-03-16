@@ -47,6 +47,12 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
   - Each avatar saved with its selected voice. Gallery shows voice indicator
   - Backend: 3 new endpoints (/voice-preview, /upload-voice-recording, /generate-avatar-variant)
   - Tested: iteration_48 (100% pass - 11/11 tests)
+- [x] **Avatar Studio Bug Fixes**: 
+  - Preview retangular (portrait) em vez de quadrado
+  - Ângulos 360° Left/Right com prompts distintos no backend
+  - Galeria interna de roupas (variações armazenadas, seleção instantânea do cache)
+  - Microfone com detecção de MIME type e error handling detalhado
+  - Tested: iteration_49 (100% pass - 17/17 backend + frontend verified)
 
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
@@ -71,4 +77,5 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - iteration_46: i18n refactor + UI reorganization (100% pass - 13/13 features)
 - iteration_47: Company logo upload + Avatar zoom preview (100% pass - 10/10 features)
 - iteration_48: Avatar Studio Advanced - Clothing, 360°, Voice (100% pass - 11/11 tests)
+- iteration_49: Avatar Studio Bug Fixes - Portrait preview, angles, gallery, mic (100% pass - 17/17)
 - iteration_43: Video variants + clone fix (100% pass)
