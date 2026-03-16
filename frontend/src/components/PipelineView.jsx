@@ -1454,8 +1454,9 @@ export default function PipelineView({ context }) {
                         if (!file) return;
                         const formData = new FormData();
                         formData.append('file', file);
+                        formData.append('asset_type', 'logo');
                         try {
-                          const { data } = await axios.post(`${API}/campaigns/pipeline/upload-asset`, formData);
+                          const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, formData);
                           if (data.url) setNewCompany(p => ({ ...p, avatar_url: data.url }));
                           toast.success('Foto carregada!');
                         } catch { toast.error('Erro ao carregar foto'); }
