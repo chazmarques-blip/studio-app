@@ -30,13 +30,14 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - [x] Clone now preserves skip_video, video_mode, avatar_url
 - [x] Compact uploads: Logo + Reference side by side in a single row
 - [x] Fixed button-in-button HTML nesting
+- [x] **Avatar Studio UI Refactor (P0 COMPLETE)**: Dedicated "Avatar do Apresentador" section created outside the company form. Features: photo upload, AI-powered full-body avatar generation (Gemini), large preview, regenerate/remove controls. Backend uses GPT Image 1 via Emergent LLM Key. Tested: iteration_44 (100% pass)
 
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
 - FFmpeg logo overlay sometimes fails (low priority)
 
 ### Upcoming Tasks
-1. P0: Configure FAL_KEY for presenter lip-sync
+1. P1: Ask user for FAL_KEY to enable Presenter video mode
 2. P1: Agent renaming
 3. P2: Sandbox, Landing Page Redesign
 4. P3: WhatsApp MVP
@@ -48,4 +49,6 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - iteration_40: Agent Details Drawer
 - iteration_41: Company management + defaults
 - iteration_42: Avatar + Video Mode
+- iteration_43: Video bug fixes (ffprobe, 12s, variants)
+- iteration_44: Avatar Studio UI Refactor (100% pass)
 - iteration_43: Video variants + clone fix (100% pass)
