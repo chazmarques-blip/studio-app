@@ -14,17 +14,18 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 8. **Dark Luxury Theme** - Monochrome gold/black/white/gray
 
 ## Tech Stack
-- **Frontend:** React, Tailwind CSS, shadcn-ui, Lucide Icons, Framer Motion, recharts, react-i18next
-- **Backend:** FastAPI (Python), Supabase (PostgreSQL), MongoDB
-- **3rd Party:** Sora 2, Claude/Gemini, GPT Image 1, OpenAI TTS, FFmpeg
+- Frontend: React, Tailwind CSS, shadcn-ui, Lucide Icons, Framer Motion, recharts, react-i18next
+- Backend: FastAPI (Python), Supabase (PostgreSQL), MongoDB
+- 3rd Party: Sora 2, Claude/Gemini, GPT Image 1, OpenAI TTS, FFmpeg, litellm
 
 ## What's Implemented
 - Full i18n (EN, PT, ES)
 - Company and Avatar creation modals
 - Advanced Avatar Studio (photo/video source, clothing, 360 angles, voice bank, recording, video-extracted voice)
 - Avatar editing and cloning
-- Voice Mastering via FFmpeg (noise reduction, EQ, compression, normalization)
-- Avatar Video Preview (4s Sora 2 clip with async polling pattern)
+- Voice Mastering via FFmpeg
+- Avatar Video Preview (4s Sora 2 clip with async polling)
+- Automatic 360° generation (all 4 angles auto-generated after avatar creation or clothing change)
 - Sora-based Presenter Mode (avatar in scene)
 - Brand Data toggle for campaigns
 - Multi-LLM fallback (Claude -> Gemini)
@@ -33,24 +34,26 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - Google Calendar/Sheets integration
 
 ## Completed - March 2026
-- [x] Voice Mastering endpoint (`/master-voice`) - FFmpeg audio enhancement
-- [x] Avatar Video Preview with async polling (`/avatar-video-preview`) - Sora 2, 720x1280
+- [x] Voice Mastering endpoint - FFmpeg audio enhancement
+- [x] Avatar Video Preview with async polling - Sora 2, 720x1280
 - [x] "Voz Original" label for extracted voices
-- [x] Fixed blob URL handling in masterize flow (auto-uploads before mastering)
-- [x] Fixed Sora 2 video sizes from invalid 1024x1792 to valid 720x1280 (3 places)
-- [x] Fixed voice URL consistency (recording_url -> url)
-- [x] Proxy timeout handled via async polling pattern
-- [x] **BUG FIX:** `UserMessage.__init__() got an unexpected keyword argument 'images'` - Fixed ImageContent/UserMessage API calls (image_base64 + file_contents)
-- [x] **UI:** Avatar modal tabs reordered - Video first (left) with "Best" badge, Photo second (dimmed)
-- [x] **UI:** Added specs/instructions for video (MP4/MOV/WebM, 10-30s, max 100MB) and photo (PNG/JPG/WebP, min 512x512, max 10MB)
-- [x] All tests passing (iteration_55.json - 9/9 backend, 6/6 frontend)
+- [x] Fixed blob URL handling in masterize flow
+- [x] Fixed Sora 2 video sizes (720x1280)
+- [x] Fixed voice URL consistency
+- [x] BUG FIX: UserMessage images kwarg - Fixed ImageContent/UserMessage API
+- [x] UI: Video tab first (left) with "Best" badge, Photo second (dimmed)
+- [x] UI: Added specs for video and photo uploads
+- [x] BUG FIX: Avatar zoom z-index (z-[80] above modal)
+- [x] BUG FIX: Avatar identity preservation - _gemini_edit_image sends text+image in SAME multimodal message via litellm
+- [x] Auto 360° generation: batch endpoint with polling, auto-triggered after avatar creation and clothing changes
+- [x] Progress bar for 360° generation
 
 ## Backlog
 
 ### P1 - Stabilization & Foundation
-- [ ] Refactor `pipeline.py` (>4000 lines) into modules (video.py, audio.py, avatar.py, etc.)
-- [ ] Refactor `PipelineView.jsx` (~2700 lines) into smaller components
-- [ ] Allow renaming pipeline agents ("Sofia", "Gary")
+- [ ] Refactor pipeline.py (>4000 lines) into modules
+- [ ] Refactor PipelineView.jsx (~2700 lines) into components
+- [ ] Allow renaming pipeline agents
 - [ ] Redesign Landing/Login page
 - [ ] Fix FFmpeg logo overlay (low priority)
 
@@ -59,7 +62,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - [ ] Kanban Visual board
 - [ ] Unified Inbox
 - [ ] WhatsApp MVP (Evolution API)
-- [ ] Omnichannel (Instagram, Facebook, Telegram, SMS)
+- [ ] Omnichannel integrations
 
 ### P3 - Intelligent Agents
 - [ ] Agent Tester (Sandbox)
