@@ -33,6 +33,9 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - [x] **Avatar Studio UI Refactor (P0 COMPLETE)**: Dedicated "Avatar do Apresentador" section created outside the company form. Features: photo upload, AI-powered full-body avatar generation (Gemini), large preview, regenerate/remove controls. Backend uses GPT Image 1 via Emergent LLM Key. Tested: iteration_44 (100% pass)
 - [x] **Avatar Generation Bug Fix**: Fixed `UserMessage.__init__() got an unexpected keyword argument 'image_url'` - now downloads image and passes as `FileContent`. Tested: iteration_45 (100% pass)
 - [x] **Company Edit Feature**: Added edit button (pencil icon) on company cards. Clicking opens form pre-filled with company data. "Atualizar Empresa" saves changes. Tested: iteration_45 (100% pass)
+- [x] **i18n Refactor**: All hardcoded PT strings in PipelineView.jsx, Agents.jsx, AgentDetailsDrawer.jsx replaced with `t()` calls. Added 66 studio keys and 11 agent keys to en.json, pt.json, es.json. Tested: iteration_46 (100% pass)
+- [x] **UI Reorganization**: Company/Avatar creation moved to modal dialogs triggered by "+" buttons in section headers. In the campaign flow, companies/avatars are selectable cards/thumbnails. Tested: iteration_46 (100% pass)
+- [x] **Multiple Avatars**: Avatars stored as separate list in localStorage (agentzz_avatars). Users can create multiple avatars via "+" button and select one for campaigns. Tested: iteration_46 (100% pass)
 
 ### Known Issues
 - Presenter video requires FAL_KEY (infrastructure ready)
@@ -54,4 +57,5 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
 - iteration_43: Video bug fixes (ffprobe, 12s, variants)
 - iteration_44: Avatar Studio UI Refactor (100% pass)
 - iteration_45: Avatar bug fix + Company edit (100% pass)
+- iteration_46: i18n refactor + UI reorganization (100% pass - 13/13 features)
 - iteration_43: Video variants + clone fix (100% pass)
