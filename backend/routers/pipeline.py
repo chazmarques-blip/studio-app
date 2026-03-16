@@ -3208,11 +3208,29 @@ async def approve_step(pipeline_id: str, data: PipelineApprove, user=Depends(get
     steps = pipeline.get("steps") or {}
 
     # Find the step that just completed and needs approval
+    # First, try using current_step - the pending step IS what needs to run next
+    current = pipeline.get("current_step", "")
     approval_step = None
-    for s in reversed(STEP_ORDER):
-        if steps.get(s, {}).get("status") == "completed" and s in PAUSE_AFTER:
-            approval_step = s
-            break
+
+    if current and steps.get(current, {}).get("status") == "pending":
+        # The current step is pending — find the previous completed step
+        idx = STEP_ORDER.index(current) if current in STEP_ORDER else -1
+        if idx > 0:
+            approval_step = STEP_ORDER[idx - 1]
+
+    # Fallback: search in reverse for any completed step at a pause point
+    if not approval_step:
+        for s in reversed(STEP_ORDER):
+            if steps.get(s, {}).get("status") == "completed" and s in PAUSE_AFTER:
+                approval_step = s
+                break
+
+    # Final fallback: find last completed step before first pending step
+    if not approval_step:
+        for i, s in enumerate(STEP_ORDER):
+            if steps.get(s, {}).get("status") == "pending" and i > 0:
+                approval_step = STEP_ORDER[i - 1]
+                break
 
     if not approval_step:
         raise HTTPException(status_code=400, detail="No step awaiting approval")
