@@ -519,6 +519,7 @@
     "angle_left": "Izquierda",
     "angle_right": "Derecha",
     "angle_back": "Espalda",
+    "regenerate_angle": "Regenerar ángulo",
     "generating_angle": "Generando...",
     "voice": "Voz",
     "voice_bank": "Banco de Voces IA",

@@ -1190,8 +1190,8 @@ export default function PipelineView({ context }) {
     setApplyingClothing(false);
   };
 
-  const generateAngle = async (angle) => {
-    if (!tempAvatar || angleImages[angle]) return;
+  const generateAngle = async (angle, forceRegenerate = false) => {
+    if (!tempAvatar || (angleImages[angle] && !forceRegenerate)) return;
     setGeneratingAngle(angle);
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
@@ -2073,24 +2073,35 @@ export default function PipelineView({ context }) {
                           { id: 'right_profile', label: t('studio.angle_right') },
                           { id: 'back', label: t('studio.angle_back') },
                         ].map(angle => (
-                          <button key={angle.id} data-testid={`angle-${angle.id}`}
-                            onClick={() => { if (angleImages[angle.id]) setTempAvatar(p => ({ ...p, url: angleImages[angle.id] })); else generateAngle(angle.id); }}
-                            disabled={generatingAngle === angle.id}
-                            className={`rounded-xl border overflow-hidden transition ${
+                          <div key={angle.id} data-testid={`angle-${angle.id}`}
+                            className={`relative rounded-xl border overflow-hidden transition group/angle ${
                               angleImages[angle.id] ? 'border-[#C9A84C]/30' : 'border-[#1E1E1E] border-dashed'}`}>
-                            {angleImages[angle.id] ? (
-                              <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full aspect-[3/4] object-cover" />
-                            ) : generatingAngle === angle.id ? (
-                              <div className="w-full aspect-[3/4] flex items-center justify-center bg-[#111]">
-                                <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
-                              </div>
-                            ) : (
-                              <div className="w-full aspect-[3/4] flex items-center justify-center bg-[#0A0A0A]">
-                                <RotateCw size={14} className="text-[#333]" />
-                              </div>
+                            <button
+                              onClick={() => { if (angleImages[angle.id]) setTempAvatar(p => ({ ...p, url: angleImages[angle.id] })); else generateAngle(angle.id); }}
+                              disabled={generatingAngle === angle.id}
+                              className="w-full">
+                              {angleImages[angle.id] ? (
+                                <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full aspect-[3/4] object-cover" />
+                              ) : generatingAngle === angle.id ? (
+                                <div className="w-full aspect-[3/4] flex items-center justify-center bg-[#111]">
+                                  <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                                </div>
+                              ) : (
+                                <div className="w-full aspect-[3/4] flex items-center justify-center bg-[#0A0A0A]">
+                                  <RotateCw size={14} className="text-[#333]" />
+                                </div>
+                              )}
+                            </button>
+                            {angleImages[angle.id] && generatingAngle !== angle.id && (
+                              <button data-testid={`regen-angle-${angle.id}`}
+                                onClick={(e) => { e.stopPropagation(); generateAngle(angle.id, true); }}
+                                className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center opacity-0 group-hover/angle:opacity-100 transition"
+                                title={t('studio.regenerate_angle')}>
+                                <RefreshCw size={9} className="text-[#C9A84C]" />
+                              </button>
                             )}
                             <p className="text-[8px] text-[#888] text-center py-1">{angle.label}</p>
-                          </button>
+                          </div>
                         ))}
                       </div>
                     )}
