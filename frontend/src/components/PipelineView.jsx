@@ -1822,7 +1822,7 @@ export default function PipelineView({ context }) {
 
         {/* Avatar Zoom Preview */}
         {avatarPreviewUrl && (
-          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6" onClick={() => setAvatarPreviewUrl(null)}>
+          <div className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-6" onClick={() => setAvatarPreviewUrl(null)}>
             <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
               <img src={resolveImageUrl(avatarPreviewUrl)} alt="Avatar Preview" className="w-full rounded-2xl border border-[#C9A84C]/20 shadow-2xl" />
               <button onClick={() => setAvatarPreviewUrl(null)}
