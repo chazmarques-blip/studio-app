@@ -928,6 +928,7 @@ export default function PipelineView({ context }) {
   const [tempAvatar, setTempAvatar] = useState(null); // { url, source_photo_url, clothing, voice }
   const [customizeTab, setCustomizeTab] = useState('clothing');
   const [applyingClothing, setApplyingClothing] = useState(false);
+  const [clothingVariants, setClothingVariants] = useState({}); // { business_formal: url, casual: url, ... }
   const [generatingAngle, setGeneratingAngle] = useState(null);
   const [angleImages, setAngleImages] = useState({});
   const [voiceTab, setVoiceTab] = useState('bank'); // 'bank' | 'record'
@@ -1075,6 +1076,7 @@ export default function PipelineView({ context }) {
         });
         setAvatarStage('customize');
         setAngleImages({ front: data.avatar_url });
+        setClothingVariants({ business_formal: data.avatar_url });
         toast.success(t('studio.avatar_generated'));
       }
     } catch (e) {
@@ -1108,12 +1110,18 @@ export default function PipelineView({ context }) {
     setTempAvatar(null);
     setCustomizeTab('clothing');
     setAngleImages({});
+    setClothingVariants({});
     setRecordedAudioUrl(null);
     setRecordedAudioBlob(null);
   };
 
   const applyClothing = async (style) => {
     if (!tempAvatar) return;
+    // If already generated this style, just select it
+    if (clothingVariants[style]) {
+      setTempAvatar(p => ({ ...p, url: clothingVariants[style], clothing: style }));
+      return;
+    }
     setApplyingClothing(true);
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
@@ -1123,9 +1131,9 @@ export default function PipelineView({ context }) {
         company_name: activeCompany?.name || '',
       });
       if (data.avatar_url) {
+        setClothingVariants(p => ({ ...p, [style]: data.avatar_url }));
         setTempAvatar(p => ({ ...p, url: data.avatar_url, clothing: style }));
         setAngleImages(p => ({ ...p, front: data.avatar_url }));
-        toast.success(t('studio.adjustment_requested'));
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error');
@@ -1175,21 +1183,37 @@ export default function PipelineView({ context }) {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Your browser does not support audio recording');
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         setRecordedAudioBlob(blob);
         setRecordedAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach(track => track.stop());
       };
-      recorder.start();
+      recorder.start(100); // collect data every 100ms
       setIsRecording(true);
+      setRecordedAudioUrl(null);
+      setRecordedAudioBlob(null);
     } catch (e) {
-      toast.error('Microphone access denied');
+      console.error('Recording error:', e);
+      if (e.name === 'NotAllowedError') {
+        toast.error('Microphone permission denied. Please allow access in your browser settings.');
+      } else if (e.name === 'NotFoundError') {
+        toast.error('No microphone found on this device.');
+      } else {
+        toast.error(`Recording error: ${e.message}`);
+      }
     }
   };
 
@@ -1204,8 +1228,9 @@ export default function PipelineView({ context }) {
     if (!recordedAudioBlob) return;
     setUploadingRecording(true);
     try {
+      const ext = recordedAudioBlob.type.includes('mp4') ? 'mp4' : 'webm';
       const form = new FormData();
-      form.append('file', recordedAudioBlob, 'recording.webm');
+      form.append('file', recordedAudioBlob, `recording.${ext}`);
       const { data } = await axios.post(`${API}/campaigns/pipeline/upload-voice-recording`, form);
       if (data.audio_url) {
         setTempAvatar(p => ({ ...p, voice: { type: 'custom', recording_url: data.audio_url } }));
@@ -1894,11 +1919,11 @@ export default function PipelineView({ context }) {
                 ) : (
                   /* CUSTOMIZE STAGE */
                   <>
-                    {/* Avatar Preview */}
+                    {/* Avatar Preview - Portrait rectangle */}
                     <div className="flex justify-center">
                       <div className="relative">
                         <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                          className="h-40 w-40 rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
+                          className="w-44 max-h-[280px] rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
                         {applyingClothing && (
                           <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
                             <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
@@ -1925,24 +1950,54 @@ export default function PipelineView({ context }) {
 
                     {/* Clothing Tab */}
                     {customizeTab === 'clothing' && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { id: 'business_formal', label: t('studio.clothing_business'), icon: '👔' },
-                          { id: 'casual', label: t('studio.clothing_casual'), icon: '👕' },
-                          { id: 'streetwear', label: t('studio.clothing_streetwear'), icon: '🧥' },
-                          { id: 'creative', label: t('studio.clothing_creative'), icon: '🎨' },
-                        ].map(style => (
-                          <button key={style.id} data-testid={`clothing-${style.id}`}
-                            onClick={() => applyClothing(style.id)}
-                            disabled={applyingClothing}
-                            className={`rounded-xl border p-3 text-left transition ${
-                              tempAvatar?.clothing === style.id ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'} disabled:opacity-40`}>
-                            <p className="text-lg mb-1">{style.icon}</p>
-                            <p className="text-[10px] text-white font-medium">{style.label}</p>
-                          </button>
-                        ))}
+                      <div className="space-y-3">
+                        {/* Clothing gallery of generated variants */}
+                        {Object.keys(clothingVariants).length > 1 && (
+                          <div>
+                            <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">{t('studio.my_avatars')}</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {Object.entries(clothingVariants).map(([style, url]) => (
+                                <button key={style} onClick={() => setTempAvatar(p => ({ ...p, url, clothing: style }))}
+                                  className={`relative rounded-xl overflow-hidden border-2 transition ${
+                                    tempAvatar?.clothing === style ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+                                  <img src={resolveImageUrl(url)} alt={style} className="w-14 h-20 object-cover" />
+                                  {tempAvatar?.clothing === style && (
+                                    <div className="absolute top-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                                      <Check size={7} className="text-black" />
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* Clothing style buttons */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'business_formal', label: t('studio.clothing_business'), icon: '👔' },
+                            { id: 'casual', label: t('studio.clothing_casual'), icon: '👕' },
+                            { id: 'streetwear', label: t('studio.clothing_streetwear'), icon: '🧥' },
+                            { id: 'creative', label: t('studio.clothing_creative'), icon: '🎨' },
+                          ].map(style => (
+                            <button key={style.id} data-testid={`clothing-${style.id}`}
+                              onClick={() => applyClothing(style.id)}
+                              disabled={applyingClothing}
+                              className={`rounded-xl border p-3 text-left transition ${
+                                tempAvatar?.clothing === style.id ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'} disabled:opacity-40`}>
+                              <div className="flex items-center gap-2">
+                                <p className="text-lg">{style.icon}</p>
+                                <div>
+                                  <p className="text-[10px] text-white font-medium">{style.label}</p>
+                                  {clothingVariants[style.id] && (
+                                    <p className="text-[7px] text-green-400">{t('studio.avatar_ready')}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                         {applyingClothing && (
-                          <div className="col-span-2 text-center py-2">
+                          <div className="text-center py-2">
                             <p className="text-[9px] text-[#C9A84C] flex items-center justify-center gap-1.5">
                               <Loader2 size={10} className="animate-spin" /> {t('studio.applying_style')}
                             </p>
@@ -1966,13 +2021,13 @@ export default function PipelineView({ context }) {
                             className={`rounded-xl border overflow-hidden transition ${
                               angleImages[angle.id] ? 'border-[#C9A84C]/30' : 'border-[#1E1E1E] border-dashed'}`}>
                             {angleImages[angle.id] ? (
-                              <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full h-20 object-cover" />
+                              <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full h-24 object-cover" />
                             ) : generatingAngle === angle.id ? (
-                              <div className="h-20 flex items-center justify-center bg-[#111]">
+                              <div className="h-24 flex items-center justify-center bg-[#111]">
                                 <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
                               </div>
                             ) : (
-                              <div className="h-20 flex items-center justify-center bg-[#0A0A0A]">
+                              <div className="h-24 flex items-center justify-center bg-[#0A0A0A]">
                                 <RotateCw size={14} className="text-[#333]" />
                               </div>
                             )}

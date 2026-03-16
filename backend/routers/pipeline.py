@@ -2704,10 +2704,10 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
         "creative": "wearing an artistic creative outfit, colorful patterns, unique accessories",
     }
     ANGLE_MAP = {
-        "front": "facing directly towards the camera, front view",
-        "left_profile": "turned to show their left side profile, looking slightly towards camera",
-        "right_profile": "turned to show their right side profile, looking slightly towards camera",
-        "back": "turned away from camera showing their back, looking slightly over their shoulder",
+        "front": "facing directly towards the camera, front view, looking straight at the viewer",
+        "left_profile": "body and face turned to THEIR LEFT, showing the LEFT side of the face and body in profile view, camera positioned to their right capturing the left cheek",
+        "right_profile": "body and face turned to THEIR RIGHT, showing the RIGHT side of the face and body in profile view, camera positioned to their left capturing the right cheek",
+        "back": "turned completely away from camera showing their back, we see the back of their head and body, looking slightly over their right shoulder",
     }
     clothing_desc = CLOTHING_MAP.get(req.clothing, CLOTHING_MAP["business_formal"])
     angle_desc = ANGLE_MAP.get(req.angle, ANGLE_MAP["front"])
