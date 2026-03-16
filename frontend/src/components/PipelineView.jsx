@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -923,6 +923,23 @@ export default function PipelineView({ context }) {
   const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  // Avatar customization stage
+  const [avatarStage, setAvatarStage] = useState('upload'); // 'upload' | 'customize'
+  const [tempAvatar, setTempAvatar] = useState(null); // { url, source_photo_url, clothing, voice }
+  const [customizeTab, setCustomizeTab] = useState('clothing');
+  const [applyingClothing, setApplyingClothing] = useState(false);
+  const [generatingAngle, setGeneratingAngle] = useState(null);
+  const [angleImages, setAngleImages] = useState({});
+  const [voiceTab, setVoiceTab] = useState('bank'); // 'bank' | 'record'
+  const [loadingVoicePreview, setLoadingVoicePreview] = useState(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
+  const [recordedAudioBlob, setRecordedAudioBlob] = useState(null);
+  const [uploadingRecording, setUploadingRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioPlayerRef = useRef(null);
   const avatarInputRef = useRef(null);
   const logoInputRef = useRef(null);
 
@@ -1050,24 +1067,154 @@ export default function PipelineView({ context }) {
         company_name: activeCompany?.name || '',
       });
       if (data.avatar_url) {
-        const newAvatar = {
-          id: Date.now().toString(),
+        setTempAvatar({
           url: data.avatar_url,
-          name: `Avatar ${avatars.length + 1}`,
           source_photo_url: avatarSourcePhoto?.url || '',
-          created_at: new Date().toISOString(),
-        };
-        const updated = [...avatars, newAvatar];
-        saveAvatars(updated);
-        setSelectedAvatarId(newAvatar.id);
-        setAvatarSourcePhoto(null);
-        setShowAvatarModal(false);
+          clothing: 'business_formal',
+          voice: null,
+        });
+        setAvatarStage('customize');
+        setAngleImages({ front: data.avatar_url });
         toast.success(t('studio.avatar_generated'));
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || t('studio.err_generic'));
     }
     setGeneratingAvatar(false);
+  };
+
+  const saveAvatarAndClose = () => {
+    if (!tempAvatar) return;
+    const newAv = {
+      id: Date.now().toString(),
+      url: tempAvatar.url,
+      name: `Avatar ${avatars.length + 1}`,
+      source_photo_url: tempAvatar.source_photo_url,
+      clothing: tempAvatar.clothing,
+      voice: tempAvatar.voice,
+      angles: angleImages,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [...avatars, newAv];
+    saveAvatars(updated);
+    setSelectedAvatarId(newAv.id);
+    resetAvatarModal();
+  };
+
+  const resetAvatarModal = () => {
+    setShowAvatarModal(false);
+    setAvatarSourcePhoto(null);
+    setAvatarStage('upload');
+    setTempAvatar(null);
+    setCustomizeTab('clothing');
+    setAngleImages({});
+    setRecordedAudioUrl(null);
+    setRecordedAudioBlob(null);
+  };
+
+  const applyClothing = async (style) => {
+    if (!tempAvatar) return;
+    setApplyingClothing(true);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
+        source_image_url: tempAvatar.source_photo_url || tempAvatar.url,
+        clothing: style,
+        angle: 'front',
+        company_name: activeCompany?.name || '',
+      });
+      if (data.avatar_url) {
+        setTempAvatar(p => ({ ...p, url: data.avatar_url, clothing: style }));
+        setAngleImages(p => ({ ...p, front: data.avatar_url }));
+        toast.success(t('studio.adjustment_requested'));
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error');
+    }
+    setApplyingClothing(false);
+  };
+
+  const generateAngle = async (angle) => {
+    if (!tempAvatar || angleImages[angle]) return;
+    setGeneratingAngle(angle);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
+        source_image_url: tempAvatar.source_photo_url || tempAvatar.url,
+        clothing: tempAvatar.clothing || 'business_formal',
+        angle,
+        company_name: activeCompany?.name || '',
+      });
+      if (data.avatar_url) {
+        setAngleImages(p => ({ ...p, [angle]: data.avatar_url }));
+      }
+    } catch (e) {
+      toast.error('Error generating angle');
+    }
+    setGeneratingAngle(null);
+  };
+
+  const previewVoice = async (voiceId) => {
+    setLoadingVoicePreview(voiceId);
+    try {
+      const { data } = await axios.post(`${API}/campaigns/pipeline/voice-preview`, {
+        voice_id: voiceId,
+        text: t('studio.voice_preview_text') || 'Hello! This is a preview of my voice. I can be the presenter for your marketing campaigns.',
+      });
+      if (data.audio_url) {
+        if (audioPlayerRef.current) { audioPlayerRef.current.pause(); }
+        const audio = new Audio(data.audio_url);
+        audioPlayerRef.current = audio;
+        setPlayingVoiceId(voiceId);
+        audio.onended = () => setPlayingVoiceId(null);
+        audio.play();
+      }
+    } catch (e) {
+      toast.error('Error loading preview');
+    }
+    setLoadingVoicePreview(null);
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setRecordedAudioBlob(blob);
+        setRecordedAudioUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach(t => t.stop());
+      };
+      recorder.start();
+      setIsRecording(true);
+    } catch (e) {
+      toast.error('Microphone access denied');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const saveRecordingAsVoice = async () => {
+    if (!recordedAudioBlob) return;
+    setUploadingRecording(true);
+    try {
+      const form = new FormData();
+      form.append('file', recordedAudioBlob, 'recording.webm');
+      const { data } = await axios.post(`${API}/campaigns/pipeline/upload-voice-recording`, form);
+      if (data.audio_url) {
+        setTempAvatar(p => ({ ...p, voice: { type: 'custom', recording_url: data.audio_url } }));
+        toast.success(t('studio.recording_saved'));
+      }
+    } catch (e) {
+      toast.error('Upload error');
+    }
+    setUploadingRecording(false);
   };
 
   const removeAvatar = (id) => {
@@ -1541,7 +1688,7 @@ export default function PipelineView({ context }) {
             <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1">
               <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.presenter_avatar')}
             </label>
-            <button data-testid="add-avatar-btn" onClick={() => { setAvatarSourcePhoto(null); setShowAvatarModal(true); }}
+            <button data-testid="add-avatar-btn" onClick={() => { resetAvatarModal(); setShowAvatarModal(true); }}
               className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
               <Plus size={10} />
             </button>
@@ -1556,6 +1703,11 @@ export default function PipelineView({ context }) {
                   {selectedAvatarId === av.id && (
                     <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
                       <Check size={8} className="text-black" />
+                    </div>
+                  )}
+                  {av.voice && (
+                    <div className="absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full bg-black/70 flex items-center justify-center">
+                      <Volume2 size={7} className="text-[#C9A84C]" />
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center pointer-events-none">
@@ -1669,69 +1821,275 @@ export default function PipelineView({ context }) {
           </div>
         )}
 
-        {/* Avatar Creation Modal */}
+        {/* Avatar Creation / Customization Modal */}
         {showAvatarModal && (
-          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { if (!generatingAvatar) { setShowAvatarModal(false); setAvatarSourcePhoto(null); } }}>
-            <div data-testid="avatar-modal" className="w-full max-w-md rounded-2xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-5 space-y-4" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-white font-semibold">{t('studio.create_avatar')}</p>
-                <button onClick={() => { if (!generatingAvatar) { setShowAvatarModal(false); setAvatarSourcePhoto(null); } }} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#555]" /></button>
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
+            <div data-testid="avatar-modal" className="w-full max-w-lg rounded-2xl border border-[#C9A84C]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
+                <p className="text-sm text-white font-semibold">
+                  {avatarStage === 'customize' ? t('studio.customize_avatar') : t('studio.create_avatar')}
+                </p>
+                <button onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#555]" /></button>
               </div>
 
-              <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp"
-                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
-                onChange={e => { uploadAvatarPhoto(e.target.files); e.target.value = ''; }} />
-
-              {avatarSourcePhoto ? (
-                <div className="space-y-3">
-                  <div className="flex items-start gap-4">
-                    <div className="relative shrink-0">
-                      <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Source"
-                        className="h-24 w-24 rounded-xl object-cover border border-[#C9A84C]/30" />
-                      <button onClick={() => setAvatarSourcePhoto(null)}
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center">
-                        <X size={10} className="text-white" />
-                      </button>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="text-[10px] text-[#888]">{t('studio.photo_uploaded')}</p>
-                    </div>
-                  </div>
-                  <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
-                    disabled={generatingAvatar}
-                    className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
-                    {generatingAvatar ? (
-                      <><Loader2 size={14} className="animate-spin" /> {t('studio.generating_avatar')}</>
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {avatarStage === 'upload' ? (
+                  <>
+                    <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp"
+                      style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+                      onChange={e => { uploadAvatarPhoto(e.target.files); e.target.value = ''; }} />
+                    {avatarSourcePhoto ? (
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-4">
+                          <div className="relative shrink-0">
+                            <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Source"
+                              className="h-24 w-24 rounded-xl object-cover border border-[#C9A84C]/30" />
+                            <button onClick={() => setAvatarSourcePhoto(null)}
+                              className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center">
+                              <X size={10} className="text-white" />
+                            </button>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[10px] text-[#888]">{t('studio.photo_uploaded')}</p>
+                          </div>
+                        </div>
+                        <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
+                          disabled={generatingAvatar}
+                          className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                          {generatingAvatar ? (
+                            <><Loader2 size={14} className="animate-spin" /> {t('studio.generating_avatar')}</>
+                          ) : (
+                            <><Sparkles size={14} /> {t('studio.generate_avatar_ai')}</>
+                          )}
+                        </button>
+                        {generatingAvatar && (
+                          <div className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3 flex items-center gap-2">
+                            <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                            <p className="text-[9px] text-[#555]">{t('studio.avatar_gen_time')}</p>
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <><Sparkles size={14} /> {t('studio.generate_avatar_ai')}</>
+                      <div className="text-center py-6 space-y-3">
+                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A84C]/5 border border-[#C9A84C]/15">
+                          <Upload size={24} className="text-[#C9A84C]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white font-medium">{t('studio.upload_photo_title')}</p>
+                          <p className="text-[9px] text-[#555] mt-0.5">{t('studio.upload_photo_desc')}</p>
+                        </div>
+                        <button data-testid="avatar-upload-btn" onClick={() => avatarInputRef.current?.click()}
+                          disabled={avatarPhotoUploading}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-dashed border-[#C9A84C]/30 text-[11px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition disabled:opacity-40">
+                          {avatarPhotoUploading ? (
+                            <><Loader2 size={12} className="animate-spin" /> {t('studio.uploading')}</>
+                          ) : (
+                            <><Upload size={12} /> {t('studio.select_photo')}</>
+                          )}
+                        </button>
+                      </div>
                     )}
-                  </button>
-                  {generatingAvatar && (
-                    <div className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3">
-                      <div className="flex items-center gap-2">
-                        <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
-                        <p className="text-[9px] text-[#555]">{t('studio.avatar_gen_time')}</p>
+                  </>
+                ) : (
+                  /* CUSTOMIZE STAGE */
+                  <>
+                    {/* Avatar Preview */}
+                    <div className="flex justify-center">
+                      <div className="relative">
+                        <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
+                          className="h-40 w-40 rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
+                        {applyingClothing && (
+                          <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
+                            <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-6 space-y-3">
-                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A84C]/5 border border-[#C9A84C]/15">
-                    <Upload size={24} className="text-[#C9A84C]" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-white font-medium">{t('studio.upload_photo_title')}</p>
-                    <p className="text-[9px] text-[#555] mt-0.5">{t('studio.upload_photo_desc')}</p>
-                  </div>
-                  <button data-testid="avatar-upload-btn" onClick={() => avatarInputRef.current?.click()}
-                    disabled={avatarPhotoUploading}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-dashed border-[#C9A84C]/30 text-[11px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition disabled:opacity-40">
-                    {avatarPhotoUploading ? (
-                      <><Loader2 size={12} className="animate-spin" /> {t('studio.uploading')}</>
-                    ) : (
-                      <><Upload size={12} /> {t('studio.select_photo')}</>
+
+                    {/* Tabs */}
+                    <div className="flex rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-0.5">
+                      {[
+                        { id: 'clothing', icon: Shirt, label: t('studio.clothing') },
+                        { id: 'view360', icon: RotateCw, label: t('studio.view_360') },
+                        { id: 'voice', icon: Volume2, label: t('studio.voice') },
+                      ].map(tab => (
+                        <button key={tab.id} data-testid={`avatar-tab-${tab.id}`}
+                          onClick={() => setCustomizeTab(tab.id)}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-[10px] font-semibold transition ${
+                            customizeTab === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>
+                          <tab.icon size={12} /> {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Clothing Tab */}
+                    {customizeTab === 'clothing' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: 'business_formal', label: t('studio.clothing_business'), icon: '👔' },
+                          { id: 'casual', label: t('studio.clothing_casual'), icon: '👕' },
+                          { id: 'streetwear', label: t('studio.clothing_streetwear'), icon: '🧥' },
+                          { id: 'creative', label: t('studio.clothing_creative'), icon: '🎨' },
+                        ].map(style => (
+                          <button key={style.id} data-testid={`clothing-${style.id}`}
+                            onClick={() => applyClothing(style.id)}
+                            disabled={applyingClothing}
+                            className={`rounded-xl border p-3 text-left transition ${
+                              tempAvatar?.clothing === style.id ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'} disabled:opacity-40`}>
+                            <p className="text-lg mb-1">{style.icon}</p>
+                            <p className="text-[10px] text-white font-medium">{style.label}</p>
+                          </button>
+                        ))}
+                        {applyingClothing && (
+                          <div className="col-span-2 text-center py-2">
+                            <p className="text-[9px] text-[#C9A84C] flex items-center justify-center gap-1.5">
+                              <Loader2 size={10} className="animate-spin" /> {t('studio.applying_style')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     )}
+
+                    {/* 360° View Tab */}
+                    {customizeTab === 'view360' && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { id: 'front', label: t('studio.angle_front') },
+                          { id: 'left_profile', label: t('studio.angle_left') },
+                          { id: 'right_profile', label: t('studio.angle_right') },
+                          { id: 'back', label: t('studio.angle_back') },
+                        ].map(angle => (
+                          <button key={angle.id} data-testid={`angle-${angle.id}`}
+                            onClick={() => { if (angleImages[angle.id]) setTempAvatar(p => ({ ...p, url: angleImages[angle.id] })); else generateAngle(angle.id); }}
+                            disabled={generatingAngle === angle.id}
+                            className={`rounded-xl border overflow-hidden transition ${
+                              angleImages[angle.id] ? 'border-[#C9A84C]/30' : 'border-[#1E1E1E] border-dashed'}`}>
+                            {angleImages[angle.id] ? (
+                              <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full h-20 object-cover" />
+                            ) : generatingAngle === angle.id ? (
+                              <div className="h-20 flex items-center justify-center bg-[#111]">
+                                <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                              </div>
+                            ) : (
+                              <div className="h-20 flex items-center justify-center bg-[#0A0A0A]">
+                                <RotateCw size={14} className="text-[#333]" />
+                              </div>
+                            )}
+                            <p className="text-[8px] text-[#888] text-center py-1">{angle.label}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Voice Tab */}
+                    {customizeTab === 'voice' && (
+                      <div className="space-y-3">
+                        {/* Voice sub-tabs */}
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setVoiceTab('bank')}
+                            className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${voiceTab === 'bank' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
+                            {t('studio.voice_bank')}
+                          </button>
+                          <button onClick={() => setVoiceTab('record')}
+                            className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${voiceTab === 'record' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
+                            {t('studio.custom_recording')}
+                          </button>
+                        </div>
+
+                        {voiceTab === 'bank' ? (
+                          <div className="space-y-1.5">
+                            {[
+                              { id: 'alloy', key: 'voice_alloy' },
+                              { id: 'echo', key: 'voice_echo' },
+                              { id: 'fable', key: 'voice_fable' },
+                              { id: 'onyx', key: 'voice_onyx' },
+                              { id: 'nova', key: 'voice_nova' },
+                              { id: 'shimmer', key: 'voice_shimmer' },
+                            ].map(v => (
+                              <div key={v.id} data-testid={`voice-${v.id}`}
+                                className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition ${
+                                  tempAvatar?.voice?.type === 'openai' && tempAvatar?.voice?.voice_id === v.id
+                                    ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}
+                                onClick={() => setTempAvatar(p => ({ ...p, voice: { type: 'openai', voice_id: v.id } }))}>
+                                <div className="flex-1">
+                                  <p className="text-[10px] text-white font-medium capitalize">{v.id}</p>
+                                  <p className="text-[8px] text-[#555]">{t(`studio.${v.key}`)}</p>
+                                </div>
+                                <button onClick={e => { e.stopPropagation(); previewVoice(v.id); }}
+                                  disabled={loadingVoicePreview === v.id}
+                                  className="h-7 w-7 rounded-lg border border-[#2A2A2A] flex items-center justify-center hover:bg-[#1A1A1A] transition disabled:opacity-40">
+                                  {loadingVoicePreview === v.id ? (
+                                    <Loader2 size={10} className="animate-spin text-[#C9A84C]" />
+                                  ) : playingVoiceId === v.id ? (
+                                    <Volume2 size={10} className="text-[#C9A84C]" />
+                                  ) : (
+                                    <Play size={10} className="text-[#555]" />
+                                  )}
+                                </button>
+                                {tempAvatar?.voice?.type === 'openai' && tempAvatar?.voice?.voice_id === v.id && (
+                                  <Check size={12} className="text-[#C9A84C] shrink-0" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-center gap-3 py-4">
+                              {isRecording ? (
+                                <button data-testid="stop-recording-btn" onClick={stopRecording}
+                                  className="h-16 w-16 rounded-full bg-red-500 flex items-center justify-center animate-pulse hover:bg-red-600 transition">
+                                  <Square size={20} className="text-white" />
+                                </button>
+                              ) : (
+                                <button data-testid="start-recording-btn" onClick={startRecording}
+                                  className="h-16 w-16 rounded-full border-2 border-[#C9A84C]/40 bg-[#C9A84C]/10 flex items-center justify-center hover:bg-[#C9A84C]/20 transition">
+                                  <Mic size={24} className="text-[#C9A84C]" />
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[9px] text-center text-[#555]">
+                              {isRecording ? t('studio.recording_in_progress') : recordedAudioUrl ? t('studio.play_preview') : t('studio.record')}
+                            </p>
+                            {recordedAudioUrl && (
+                              <div className="space-y-2">
+                                <audio src={recordedAudioUrl} controls className="w-full h-8" style={{ filter: 'invert(1) hue-rotate(180deg)' }} />
+                                <button data-testid="save-recording-btn" onClick={saveRecordingAsVoice}
+                                  disabled={uploadingRecording}
+                                  className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-[10px] font-bold text-black flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                  {uploadingRecording ? (
+                                    <><Loader2 size={11} className="animate-spin" /> {t('studio.uploading_recording')}</>
+                                  ) : (
+                                    <><Check size={11} /> {t('studio.use') || 'Use this recording'}</>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                            {tempAvatar?.voice?.type === 'custom' && (
+                              <div className="flex items-center gap-1.5 text-[9px] text-green-400">
+                                <Check size={10} /> {t('studio.recording_saved')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {/* No voice option */}
+                        <button onClick={() => setTempAvatar(p => ({ ...p, voice: null }))}
+                          className={`w-full rounded-lg border px-3 py-2 text-[9px] text-center transition ${
+                            !tempAvatar?.voice ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:border-[#2A2A2A]'}`}>
+                          {t('studio.no_voice')}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              {avatarStage === 'customize' && (
+                <div className="px-5 py-3 border-t border-[#151515] shrink-0">
+                  <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
+                    className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
+                    <Check size={14} /> {t('studio.save_avatar')}
                   </button>
                 </div>
               )}

@@ -2644,6 +2644,116 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+class VoicePreviewRequest(BaseModel):
+    voice_id: str = "alloy"
+    text: str = "Hello! This is a preview of my voice. I can be the presenter for your marketing campaigns."
+
+@router.post("/voice-preview")
+async def voice_preview(req: VoicePreviewRequest, user=Depends(get_current_user)):
+    """Generate a short voice preview using OpenAI TTS."""
+    valid_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    if req.voice_id not in valid_voices:
+        raise HTTPException(status_code=400, detail=f"Invalid voice. Choose from: {', '.join(valid_voices)}")
+    try:
+        tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
+        audio_bytes = await tts.generate_speech(
+            text=req.text[:200], model="tts-1-hd",
+            voice=req.voice_id, speed=1.0, response_format="mp3"
+        )
+        filename = f"voice_previews/preview_{req.voice_id}_{uuid.uuid4().hex[:6]}.mp3"
+        public_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
+        return {"audio_url": public_url, "voice_id": req.voice_id}
+    except Exception as e:
+        logger.error(f"Voice preview failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/upload-voice-recording")
+async def upload_voice_recording(file: UploadFile = File(...), user=Depends(get_current_user)):
+    """Upload a custom voice recording."""
+    if not file.content_type or not file.content_type.startswith("audio/"):
+        raise HTTPException(status_code=400, detail="File must be an audio file")
+    try:
+        audio_bytes = await file.read()
+        if len(audio_bytes) > 20 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File exceeds 20MB limit")
+        ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "webm"
+        filename = f"voice_recordings/recording_{uuid.uuid4().hex[:8]}.{ext}"
+        content_type = file.content_type or "audio/webm"
+        public_url = _upload_to_storage(audio_bytes, filename, content_type)
+        return {"audio_url": public_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice upload failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class AvatarVariantRequest(BaseModel):
+    source_image_url: str = ""
+    clothing: str = "business_formal"
+    angle: str = "front"
+    company_name: str = ""
+
+@router.post("/generate-avatar-variant")
+async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_current_user)):
+    """Generate an avatar variant with different clothing or angle."""
+    CLOTHING_MAP = {
+        "business_formal": "wearing a tailored dark navy business suit, white dress shirt, elegant tie",
+        "casual": "wearing a casual smart outfit, clean jeans, stylish blazer over a t-shirt",
+        "streetwear": "wearing trendy streetwear, designer hoodie, sneakers, modern urban style",
+        "creative": "wearing an artistic creative outfit, colorful patterns, unique accessories",
+    }
+    ANGLE_MAP = {
+        "front": "facing directly towards the camera, front view",
+        "left_profile": "turned to show their left side profile, looking slightly towards camera",
+        "right_profile": "turned to show their right side profile, looking slightly towards camera",
+        "back": "turned away from camera showing their back, looking slightly over their shoulder",
+    }
+    clothing_desc = CLOTHING_MAP.get(req.clothing, CLOTHING_MAP["business_formal"])
+    angle_desc = ANGLE_MAP.get(req.angle, ANGLE_MAP["front"])
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"avatar-var-{uuid.uuid4().hex[:8]}",
+            system_message="You are an expert portrait photographer. Generate photorealistic portraits."
+        )
+        file_contents = []
+        if req.source_image_url:
+            try:
+                img_req = urllib.request.Request(req.source_image_url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(img_req, timeout=15) as resp:
+                    img_data = resp.read()
+                    img_b64 = base64.b64encode(img_data).decode("utf-8")
+                    content_type = resp.headers.get("Content-Type", "image/png")
+                file_contents = [FileContent(content_type=content_type, file_content_base64=img_b64)]
+            except Exception as dl_err:
+                logger.warning(f"Failed to download source image: {dl_err}")
+
+        prompt = (
+            f"Based on this reference photo, create a FULL-BODY professional portrait of this EXACT SAME person. "
+            f"The person must look IDENTICAL — same face, same features, same skin tone, same hair. "
+            f"They are {clothing_desc}. "
+            f"They are {angle_desc}. "
+            f"Full body visible from head to feet in a modern photo studio with soft professional lighting. "
+            f"Clean minimal background. Photorealistic, high quality, 4K detail."
+        )
+        msg = UserMessage(text=prompt, file_contents=file_contents if file_contents else None)
+        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+        text_response, images = await chat.send_message_multimodal_response(msg)
+        if images and len(images) > 0:
+            img_bytes = base64.b64decode(images[0]['data'])
+            filename = f"avatars/avatar_var_{uuid.uuid4().hex[:8]}.png"
+            public_url = _upload_to_storage(img_bytes, filename, "image/png")
+            return {"avatar_url": public_url, "clothing": req.clothing, "angle": req.angle}
+        raise HTTPException(status_code=500, detail="AI failed to generate image. Try again.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar variant generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 @router.post("/generate-presenter-video")
 async def generate_presenter_video_endpoint(
     pipeline_id: str = Form(""),
