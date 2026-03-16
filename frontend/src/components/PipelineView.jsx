@@ -2010,11 +2010,14 @@ export default function PipelineView({ context }) {
                 ) : (
                   /* CUSTOMIZE STAGE */
                   <>
-                    {/* Avatar Preview - Portrait rectangle */}
+                    {/* Avatar Preview - Always vertical portrait with zoom */}
                     <div className="flex justify-center">
-                      <div className="relative">
+                      <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
                         <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                          className="w-44 max-h-[280px] rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
+                          className="w-40 aspect-[3/5] rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
+                        <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
+                          <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                        </div>
                         {applyingClothing && (
                           <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
                             <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
@@ -2114,13 +2117,13 @@ export default function PipelineView({ context }) {
                               disabled={generatingAngle === angle.id}
                               className="w-full">
                               {angleImages[angle.id] ? (
-                                <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full aspect-[3/4] object-cover" />
+                                <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full aspect-[3/5] object-cover" />
                               ) : generatingAngle === angle.id ? (
-                                <div className="w-full aspect-[3/4] flex items-center justify-center bg-[#111]">
+                                <div className="w-full aspect-[3/5] flex items-center justify-center bg-[#111]">
                                   <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
                                 </div>
                               ) : (
-                                <div className="w-full aspect-[3/4] flex items-center justify-center bg-[#0A0A0A]">
+                                <div className="w-full aspect-[3/5] flex items-center justify-center bg-[#0A0A0A]">
                                   <RotateCw size={14} className="text-[#333]" />
                                 </div>
                               )}

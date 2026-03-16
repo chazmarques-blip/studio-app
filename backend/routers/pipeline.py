@@ -2810,29 +2810,33 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
         chat = LlmChat(
             api_key=EMERGENT_KEY,
             session_id=f"avatar-{uuid.uuid4().hex[:8]}",
-            system_message="You are an expert portrait and fashion photographer. You create stunning full-body professional photos."
+            system_message=(
+                "You are an expert portrait photographer. You create stunning full-body professional photos. "
+                "CRITICAL: Always output VERTICAL portrait format (taller than wide, approximately 3:5 ratio). "
+                "When given a reference photo, preserve the person's EXACT identity — same face, features, skin tone, hair."
+            )
         )
 
-        file_contents = []
+        img_contents = []
         if req.source_image_url:
-            # Download source image and convert to base64
             try:
                 img_req = urllib.request.Request(req.source_image_url, headers={"User-Agent": "Mozilla/5.0"})
                 with urllib.request.urlopen(img_req, timeout=15) as resp:
                     img_data = resp.read()
                     img_b64 = base64.b64encode(img_data).decode("utf-8")
                     content_type = resp.headers.get("Content-Type", "image/png")
-                file_contents = [FileContent(content_type=content_type, file_content_base64=img_b64)]
+                    mime = content_type if content_type.startswith("image/") else "image/png"
+                img_contents = [ImageContent(base64_data=img_b64, media_type=mime)]
             except Exception as dl_err:
                 logger.warning(f"Failed to download source image: {dl_err}")
 
             prompt = (
-                "Based on this reference photo, create a FULL-BODY professional portrait of this EXACT SAME person. "
-                "The person must look IDENTICAL — same face, same features, same skin tone, same hair. "
+                "EDIT this photo to create a FULL-BODY professional portrait of this EXACT SAME person. "
+                "Do NOT generate a different person. Preserve their EXACT face, features, skin tone, and hair. "
                 "Show them standing confidently in a modern studio with soft lighting. "
                 "Professional business attire. Full body visible from head to feet. "
-                "Clean minimal background. Photorealistic, high quality, 4K detail. "
-                "The face and likeness MUST be preserved exactly as in the reference photo."
+                "Clean minimal background. Photorealistic, 4K detail. "
+                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             )
         else:
             prompt = (
@@ -2840,10 +2844,11 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                 f"{' for ' + req.company_name if req.company_name else ''}. "
                 "Standing in a modern studio, professional attire, warm smile, looking at camera. "
                 "Full body visible from head to feet. Clean minimal background. "
-                "Photorealistic, high quality, 4K detail."
+                "Photorealistic, 4K detail. "
+                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             )
 
-        msg = UserMessage(text=prompt, file_contents=file_contents if file_contents else None)
+        msg = UserMessage(text=prompt, images=img_contents if img_contents else None)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
 
@@ -3011,9 +3016,16 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
         chat = LlmChat(
             api_key=EMERGENT_KEY,
             session_id=f"avatar-var-{uuid.uuid4().hex[:8]}",
-            system_message="You are an expert portrait photographer. Generate photorealistic portraits."
+            system_message=(
+                "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
+                "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
+                "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
+                "same body build. Do NOT generate a different person. Do NOT change their appearance. "
+                "Only change their clothing and camera angle as instructed. "
+                "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
+            )
         )
-        file_contents = []
+        img_contents = []
         if req.source_image_url:
             try:
                 img_req = urllib.request.Request(req.source_image_url, headers={"User-Agent": "Mozilla/5.0"})
@@ -3021,19 +3033,26 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
                     img_data = resp.read()
                     img_b64 = base64.b64encode(img_data).decode("utf-8")
                     content_type = resp.headers.get("Content-Type", "image/png")
-                file_contents = [FileContent(content_type=content_type, file_content_base64=img_b64)]
+                    mime = content_type if content_type.startswith("image/") else "image/png"
+                img_contents = [ImageContent(base64_data=img_b64, media_type=mime)]
             except Exception as dl_err:
                 logger.warning(f"Failed to download source image: {dl_err}")
 
         prompt = (
-            f"Based on this reference photo, create a FULL-BODY professional portrait of this EXACT SAME person. "
-            f"The person must look IDENTICAL — same face, same features, same skin tone, same hair. "
-            f"They are {clothing_desc}. "
-            f"They are {angle_desc}. "
-            f"Full body visible from head to feet in a modern photo studio with soft professional lighting. "
-            f"Clean minimal background. Photorealistic, high quality, 4K detail."
+            f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
+            f"CHANGE ONLY:\n"
+            f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+            f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
+            f"KEEP EXACTLY THE SAME:\n"
+            f"- Their face (every detail — eyes, nose, mouth, jawline, eyebrows)\n"
+            f"- Their skin tone and complexion\n"
+            f"- Their hair color, style, and length\n"
+            f"- Their body build and proportions\n\n"
+            f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
+            f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
+            f"Photorealistic, 4K detail."
         )
-        msg = UserMessage(text=prompt, file_contents=file_contents if file_contents else None)
+        msg = UserMessage(text=prompt, images=img_contents if img_contents else None)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
         if images and len(images) > 0:
