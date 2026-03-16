@@ -122,7 +122,7 @@ def _recover_orphaned_pipelines():
                         try:
                             fmt = re.search(r'Format:\s*(horizontal|vertical)', marcos_out, re.IGNORECASE)
                             vf = fmt.group(1).lower() if fmt else "horizontal"
-                            sz = {"vertical": "1024x1792", "horizontal": "1280x720"}.get(vf, "1280x720")
+                            sz = {"vertical": "720x1280", "horizontal": "1280x720"}.get(vf, "1280x720")
                             p_data = supabase.table("pipelines").select("result").eq("id", pid).single().execute()
                             user_music = (p_data.data or {}).get("result", {}).get("selected_music", "")
                             av_voice = (p_data.data or {}).get("result", {}).get("avatar_voice", None)
@@ -2642,8 +2642,7 @@ async def _execute_step(pipeline_id, step):
 
                 platforms = pipeline.get("platforms") or []
                 # Sora 2 valid sizes: 720x1280, 1280x720
-                # Sora 2 valid sizes: 1280x720, 1792x1024, 1024x1792, 1024x1024
-                FORMAT_MAP = {"vertical": "1024x1792", "horizontal": "1280x720"}
+                FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
                 if not format_match:
                     if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
                         video_format = "vertical"
@@ -3054,35 +3053,51 @@ async def master_voice(req: MasterVoiceRequest, user=Depends(get_current_user)):
 class AvatarVideoPreviewRequest(BaseModel):
     avatar_url: str
 
-@router.post("/avatar-video-preview")
-async def avatar_video_preview(req: AvatarVideoPreviewRequest, user=Depends(get_current_user)):
-    """Generate a 5-second vertical video preview of the avatar with natural movement."""
+# In-memory store for preview generation jobs
+_preview_jobs = {}
+
+def _run_preview_generation(job_id: str):
+    """Background thread to generate avatar video preview."""
     try:
         prompt = (
-            f"A confident professional person standing in a modern studio, "
-            f"making natural gestures and slight head movements as if presenting. "
-            f"Subtle body sway, warm smile, engaging eye contact with camera. "
-            f"Soft studio lighting, clean minimal background. "
-            f"Vertical portrait format, cinematic quality, smooth natural motion."
+            "A confident professional person standing in a modern studio, "
+            "making natural gestures and slight head movements as if presenting. "
+            "Subtle body sway, warm smile, engaging eye contact with camera. "
+            "Soft studio lighting, clean minimal background. "
+            "Vertical portrait format, cinematic quality, smooth natural motion."
         )
-        clip_path = _generate_video_clip_sync(prompt, f"preview_{uuid.uuid4().hex[:6]}", "preview", "1024x1792", duration=4)
+        clip_path = _generate_video_clip_sync(prompt, f"preview_{job_id}", "preview", "720x1280", duration=4)
         if not clip_path or not os.path.exists(clip_path):
-            raise HTTPException(status_code=500, detail="Video preview generation failed")
+            _preview_jobs[job_id] = {"status": "failed", "error": "Video generation failed"}
+            return
 
         with open(clip_path, "rb") as f:
             video_bytes = f.read()
         filename = f"avatars/preview_{uuid.uuid4().hex[:8]}.mp4"
         public_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-
         try: os.remove(clip_path)
         except: pass
-
-        return {"video_url": public_url}
-    except HTTPException:
-        raise
+        _preview_jobs[job_id] = {"status": "completed", "video_url": public_url}
     except Exception as e:
         logger.error(f"Avatar video preview failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        _preview_jobs[job_id] = {"status": "failed", "error": str(e)}
+
+@router.post("/avatar-video-preview")
+async def avatar_video_preview(req: AvatarVideoPreviewRequest, user=Depends(get_current_user)):
+    """Start avatar video preview generation in background. Returns job_id for polling."""
+    job_id = uuid.uuid4().hex[:10]
+    _preview_jobs[job_id] = {"status": "processing"}
+    thread = threading.Thread(target=_run_preview_generation, args=(job_id,), daemon=True)
+    thread.start()
+    return {"job_id": job_id, "status": "processing"}
+
+@router.get("/avatar-video-preview/{job_id}")
+async def get_avatar_video_preview(job_id: str, user=Depends(get_current_user)):
+    """Poll for avatar video preview generation status."""
+    job = _preview_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Preview job not found")
+    return job
 
 
 class AvatarVariantRequest(BaseModel):

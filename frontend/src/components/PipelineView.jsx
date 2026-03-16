@@ -1299,7 +1299,8 @@ export default function PipelineView({ context }) {
       form.append('file', recordedAudioBlob, `recording.${ext}`);
       const { data } = await axios.post(`${API}/campaigns/pipeline/upload-voice-recording`, form);
       if (data.audio_url) {
-        setTempAvatar(p => ({ ...p, voice: { type: 'custom', recording_url: data.audio_url } }));
+        setRecordedAudioUrl(data.audio_url);
+        setTempAvatar(p => ({ ...p, voice: { type: 'custom', url: data.audio_url } }));
         toast.success(t('studio.recording_saved'));
       }
     } catch (e) {
@@ -2224,10 +2225,22 @@ export default function PipelineView({ context }) {
                                 <audio src={recordedAudioUrl} controls className="w-full h-8" style={{ filter: 'invert(1) hue-rotate(180deg)' }} />
                                 <div className="flex gap-1.5">
                                   <button data-testid="master-voice-btn" onClick={async () => {
-                                    const voiceUrl = recordedAudioUrl || tempAvatar?.voice?.url;
+                                    let voiceUrl = tempAvatar?.voice?.url || recordedAudioUrl;
                                     if (!voiceUrl) return;
                                     setMasteringVoice(true);
                                     try {
+                                      // If still a blob URL, upload first
+                                      if (voiceUrl.startsWith('blob:') && recordedAudioBlob) {
+                                        const ext = recordedAudioBlob.type.includes('mp4') ? 'mp4' : 'webm';
+                                        const form = new FormData();
+                                        form.append('file', recordedAudioBlob, `recording.${ext}`);
+                                        const uploadRes = await axios.post(`${API}/campaigns/pipeline/upload-voice-recording`, form);
+                                        if (uploadRes.data.audio_url) {
+                                          voiceUrl = uploadRes.data.audio_url;
+                                          setRecordedAudioUrl(voiceUrl);
+                                          setTempAvatar(p => ({ ...p, voice: { type: 'custom', url: voiceUrl } }));
+                                        } else { throw new Error('Upload failed'); }
+                                      }
                                       const { data } = await axios.post(`${API}/campaigns/pipeline/master-voice`, { audio_url: voiceUrl });
                                       if (data.audio_url) {
                                         setRecordedAudioUrl(data.audio_url);
@@ -2289,10 +2302,29 @@ export default function PipelineView({ context }) {
                       onClick={async () => {
                         setGeneratingPreviewVideo(true);
                         try {
-                          const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, { avatar_url: tempAvatar.url }, { timeout: 300000 });
-                          if (data.video_url) { setPreviewVideoUrl(data.video_url); toast.success(t('studio.preview_generated')); }
-                        } catch (e) { toast.error(t('studio.err_generic')); }
-                        setGeneratingPreviewVideo(false);
+                          const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, { avatar_url: tempAvatar.url });
+                          if (data.job_id) {
+                            // Poll for completion
+                            const pollInterval = setInterval(async () => {
+                              try {
+                                const { data: status } = await axios.get(`${API}/campaigns/pipeline/avatar-video-preview/${data.job_id}`);
+                                if (status.status === 'completed' && status.video_url) {
+                                  clearInterval(pollInterval);
+                                  setPreviewVideoUrl(status.video_url);
+                                  setGeneratingPreviewVideo(false);
+                                  toast.success(t('studio.preview_generated'));
+                                } else if (status.status === 'failed') {
+                                  clearInterval(pollInterval);
+                                  setGeneratingPreviewVideo(false);
+                                  toast.error(status.error || t('studio.err_generic'));
+                                }
+                              } catch { /* keep polling */ }
+                            }, 5000);
+                          }
+                        } catch (e) {
+                          toast.error(t('studio.err_generic'));
+                          setGeneratingPreviewVideo(false);
+                        }
                       }}
                       disabled={generatingPreviewVideo}
                       className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
