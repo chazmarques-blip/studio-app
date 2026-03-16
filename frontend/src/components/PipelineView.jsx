@@ -926,6 +926,7 @@ export default function PipelineView({ context }) {
   // Avatar customization stage
   const [avatarStage, setAvatarStage] = useState('upload'); // 'upload' | 'customize'
   const [tempAvatar, setTempAvatar] = useState(null); // { url, source_photo_url, clothing, voice }
+  const [editingAvatarId, setEditingAvatarId] = useState(null); // null = new, string = editing existing
   const [customizeTab, setCustomizeTab] = useState('clothing');
   const [applyingClothing, setApplyingClothing] = useState(false);
   const [clothingVariants, setClothingVariants] = useState({}); // { business_formal: url, casual: url, ... }
@@ -1087,6 +1088,34 @@ export default function PipelineView({ context }) {
 
   const saveAvatarAndClose = () => {
     if (!tempAvatar) return;
+    if (editingAvatarId) {
+      // Update existing avatar
+      const updated = avatars.map(a => a.id === editingAvatarId ? {
+        ...a, url: tempAvatar.url, clothing: tempAvatar.clothing,
+        voice: tempAvatar.voice, angles: angleImages,
+      } : a);
+      saveAvatars(updated);
+    } else {
+      // Save new avatar
+      const newAv = {
+        id: Date.now().toString(),
+        url: tempAvatar.url,
+        name: `Avatar ${avatars.length + 1}`,
+        source_photo_url: tempAvatar.source_photo_url,
+        clothing: tempAvatar.clothing,
+        voice: tempAvatar.voice,
+        angles: angleImages,
+        created_at: new Date().toISOString(),
+      };
+      const updated = [...avatars, newAv];
+      saveAvatars(updated);
+      setSelectedAvatarId(newAv.id);
+    }
+    resetAvatarModal();
+  };
+
+  const saveAvatarAsNew = () => {
+    if (!tempAvatar) return;
     const newAv = {
       id: Date.now().toString(),
       url: tempAvatar.url,
@@ -1101,6 +1130,25 @@ export default function PipelineView({ context }) {
     saveAvatars(updated);
     setSelectedAvatarId(newAv.id);
     resetAvatarModal();
+    toast.success('Avatar saved as new!');
+  };
+
+  const openAvatarForEdit = (av) => {
+    setEditingAvatarId(av.id);
+    setTempAvatar({
+      url: av.url,
+      source_photo_url: av.source_photo_url || '',
+      clothing: av.clothing || 'business_formal',
+      voice: av.voice || null,
+    });
+    setAngleImages(av.angles || { front: av.url });
+    // Rebuild clothing variants from angles if available
+    const variants = {};
+    if (av.clothing && av.url) variants[av.clothing] = av.url;
+    setClothingVariants(variants);
+    setAvatarStage('customize');
+    setCustomizeTab('clothing');
+    setShowAvatarModal(true);
   };
 
   const resetAvatarModal = () => {
@@ -1108,6 +1156,7 @@ export default function PipelineView({ context }) {
     setAvatarSourcePhoto(null);
     setAvatarStage('upload');
     setTempAvatar(null);
+    setEditingAvatarId(null);
     setCustomizeTab('clothing');
     setAngleImages({});
     setClothingVariants({});
