@@ -92,18 +92,87 @@ No-code SaaS platform for SMB owners to deploy AI agents on social media with in
   - Tested: iteration_53 (100% pass - 15/15 features)
 
 ### Known Issues
-- Presenter video requires FAL_KEY (infrastructure ready)
 - FFmpeg logo overlay sometimes fails (low priority)
 
-### Upcoming Tasks
-1. P1: Ask user for FAL_KEY to enable Presenter video mode
-2. P1: pipeline.py refactoring (~3800 lines)
-3. P2: Agent renaming
-4. P3: Sandbox, Landing Page Redesign
-5. P4: WhatsApp MVP
+---
+
+## ROADMAP COMPLETO
+
+### FASE 1 — Estabilização & Refatoração (Técnico)
+| # | Tarefa | Detalhe | Depende de |
+|---|--------|---------|-----------|
+| 1.1 | **Refatoração pipeline.py** | Quebrar ~4000 linhas em módulos: `video.py`, `audio.py`, `avatar.py`, `ai_services.py`, `steps.py` | — |
+| 1.2 | **Renomear agentes** | Permitir que o usuário renomeie os agentes do pipeline | — |
+| 1.3 | **Redesign Landing/Login** | Página de entrada profissional, conversão de novos usuários | — |
+
+### FASE 2 — CRM & Infraestrutura de Comunicação
+| # | Tarefa | Detalhe | Depende de |
+|---|--------|---------|-----------|
+| 2.1 | **CRM / Base de Leads** | Importação de contatos (CSV, manual), tags, histórico de interação | — |
+| 2.2 | **Kanban Visual** | Board visual de pipeline de vendas, colunas customizáveis, drag & drop | 2.1 |
+| 2.3 | **Unified Inbox** | Inbox unificado para todos os canais (WhatsApp, Instagram, Telegram, SMS, Email) | 2.4 |
+| 2.4 | **WhatsApp MVP** | Integração básica com Evolution API — enviar/receber mensagens | — |
+| 2.5 | **Integrações Omnichannel** | Instagram DM, Facebook Messenger, Telegram, SMS (Twilio) | 2.4 |
+
+### FASE 3 — Agentes Inteligentes
+| # | Tarefa | Detalhe | Depende de |
+|---|--------|---------|-----------|
+| 3.1 | **Agente Testador (Sandbox)** | Chat interno entre Agente Testador (simula cliente) e Agente Alvo. Split-screen: chat à esquerda, config à direita. Ajuste em tempo real. Cenários: "cliente irritado", "dúvida técnica", "pedido de preço". Score automático de coerência e assertividade | — |
+| 3.2 | **Agente Gestor de Chats (Supervisor)** | Analisa todas as conversas dos agentes. Avalia coerência, tom, informações corretas, oportunidades perdidas. Relatório por agente com nota, pontos fortes e melhorias. Alertas automáticos. Sugestões de melhoria de prompt | 2.3 |
+| 3.3 | **Agente Gestor de Kanban** | Move leads automaticamente entre colunas baseado no status do chat. Regras inteligentes ("pediu proposta → Negociação"). Cria tarefas de follow-up. Priorização por score de qualificação. Notificações ao dono | 2.2, 3.2 |
+
+### FASE 4 — Campanhas & Nurturing
+| # | Tarefa | Detalhe | Depende de |
+|---|--------|---------|-----------|
+| 4.1 | **Campanhas para Leads** | Segmentação por tags, status no Kanban, histórico. Criar campanha direcionada ("Re-engajar leads frios 30 dias"). Agendamento de disparo (WhatsApp, SMS, Email). Dashboard de performance por segmento | 2.1, 2.4 |
+| 4.2 | **AutoFlow (Visual Workflow Builder)** | Builder drag & drop para fluxos de automação: triggers → condições → ações. Templates pré-prontos | 2.3 |
+| 4.3 | **Social Publishing** | Publicação direta de campanhas nas redes sociais (Instagram, Facebook, etc.) | — |
+
+### FASE 5 — Monetização & Escala
+| # | Tarefa | Detalhe | Depende de |
+|---|--------|---------|-----------|
+| 5.1 | **Stripe / Pagamentos** | Gateway de pagamento, planos Freemium/Pro/Enterprise, cobrança recorrente | — |
+| 5.2 | **Sistema Admin** | Dashboard administrativo: gestão de usuários, planos, métricas da plataforma, logs | 5.1 |
+| 5.3 | **Analytics & Relatórios** | Relatórios de performance de campanhas, agentes, conversões, ROI por canal | 2.1, 3.2 |
+| 5.4 | **Termos de Uso & LGPD** | Páginas legais, consentimento, gestão de dados pessoais | — |
+
+---
+
+## ORDEM DE EXECUÇÃO RECOMENDADA
+
+```
+IMEDIATO (próximas sessões):
+  1.1 Refatoração pipeline.py
+  1.2 Renomear agentes
+  3.1 Agente Testador (Sandbox) ← não depende de nada externo
+
+CURTO PRAZO:
+  1.3 Redesign Landing/Login
+  2.1 CRM / Base de Leads
+  2.2 Kanban Visual
+  2.4 WhatsApp MVP
+
+MÉDIO PRAZO:
+  2.3 Unified Inbox
+  3.2 Agente Gestor de Chats
+  3.3 Agente Gestor de Kanban
+  4.1 Campanhas para Leads
+
+LONGO PRAZO:
+  2.5 Integrações Omnichannel
+  4.2 AutoFlow
+  4.3 Social Publishing
+  5.1 Stripe
+  5.2 Admin
+  5.3 Analytics
+  5.4 LGPD
+```
 
 ### Future
-- AutoFlow, Unified Inbox, Social Publishing, Stripe, Admin
+- Marketplace de agentes pré-configurados por nicho
+- API pública para integrações externas
+- White-label para revendedores
+- App mobile nativo
 
 ## Test Reports
 - iteration_40: Agent Details Drawer
