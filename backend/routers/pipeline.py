@@ -62,7 +62,7 @@ async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: s
         ]}
     ]
     params = {
-        "model": "gemini/gemini-3.1-flash-image-preview",
+        "model": "gemini/gemini-3-pro-image-preview",
         "messages": messages,
         "api_key": EMERGENT_KEY,
         "api_base": EMERGENT_PROXY_URL,
@@ -868,7 +868,7 @@ async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None)
                 session_id=f"img-{pipeline_id}-{index}-{uuid.uuid4().hex[:6]}-{attempt}",
                 system_message="You are an expert AI image generator. Generate exactly the image described. Focus on photorealistic quality, professional lighting, and magazine-quality composition."
             )
-            chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+            chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
 
             msg = UserMessage(text=prompt_text)
             text_response, images = await chat.send_message_multimodal_response(msg)
@@ -2891,15 +2891,17 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
                 person_desc = await _describe_person(img_b64, mime)
 
                 prompt = (
-                    "EDIT this photo to create a FULL-BODY professional portrait of this EXACT SAME person. "
-                    "Do NOT generate a different person. Preserve their EXACT face, features, skin tone, and hair. "
+                    "FOCUS ONLY ON THE PERSON in this photo. IGNORE the background, other people, and scenery completely. "
+                    "Create a FULL-BODY professional portrait of this EXACT SAME person. "
+                    "Do NOT generate a different person. Preserve their EXACT face, features, skin tone, facial hair, and hair. "
                     "Show them standing confidently in a modern studio with soft lighting. "
                     "Professional business attire. Full body visible from head to feet. "
-                    "Clean minimal background. Photorealistic, 4K detail. "
+                    "REPLACE the background with a clean, minimal studio background. "
+                    "Photorealistic, 4K detail. "
                     "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
                 )
                 if person_desc:
-                    prompt = f"PERSON IDENTITY (must match EXACTLY): {person_desc}\n\n{prompt}"
+                    prompt = f"PERSON TO FOCUS ON (ignore background and other people): {person_desc}\n\n{prompt}"
 
                 # Step 2: Use direct multimodal call with text+image in SAME message
                 images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
@@ -2924,7 +2926,7 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
             system_message=system_msg
         )
         msg = UserMessage(text=prompt)
-        chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
 
         if images and len(images) > 0:
@@ -3256,7 +3258,7 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
             system_message=system_msg
         )
         msg = UserMessage(text=prompt)
-        chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
         if images and len(images) > 0:
             img_bytes = base64.b64decode(images[0]['data'])
