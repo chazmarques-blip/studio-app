@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera, Bot, ScanEye, ShieldCheck } from 'lucide-react';
