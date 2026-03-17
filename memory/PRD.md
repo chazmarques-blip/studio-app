@@ -28,43 +28,38 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - Automatic 360 generation
 - Sora-based Presenter Mode
 - Multi-language support (EN, PT, ES)
-- **Manual Campaign Sharing** - Share Bar with image selector, text editor, and deep links for WhatsApp, Facebook, Telegram, Instagram, Email
+- **Unified Share Area** - Select media (images + video), edit text, share as FILE (blob) via Web Share API to WhatsApp, Instagram, Facebook, Telegram, Email
 
 ## Completed - March 2026
-- [x] Data persistence migrated from localStorage to Supabase
-- [x] Dual Upload (Photo + Video) for enhanced identity accuracy
-- [x] Image Accuracy Agent with visual Agent Timeline
-- [x] Default "Company Uniform" outfit
-- [x] Fixed Critic JSON parsing bug - regex-first score extraction
-- [x] Lowered accuracy threshold from 8 to 7
-- [x] Real logo compositing - company logo via PIL + numpy background removal
-- [x] logo_url parameter added to all 3 avatar endpoints
-- [x] EDIT-based generation prompt for better identity preservation (9/10 similarity)
-- [x] **Share Bar** - "Compartilhar Agora" with image selector, editable text, copy button, and 5 platform share buttons
+- [x] Avatar generation fix (JSON parsing, threshold 7, EDIT-based prompt, 9/10 similarity)
+- [x] Real logo compositing via PIL + numpy background removal
+- [x] **Unified Share Area** replacing old separate sections:
+  - Selectable media gallery (images + video) with gold check indicator
+  - Editable text area with copy button
+  - 5 platform share buttons using Web Share API with file blobs for native mobile sharing
+  - Fallback to deep links on desktop
 
 ## Backlog (Priority Order)
 ### P1 - Technical Debt
-- [ ] Refactor pipeline.py (>4800 lines) into modules: avatar.py, video.py, audio.py, steps.py
+- [ ] Refactor pipeline.py (>4800 lines) into modules
 - [ ] Refactor PipelineView.jsx (~3100 lines) into smaller components
 
 ### P2 - Features
+- [ ] Automated campaign sharing (scheduling)
 - [ ] Rename AI agents in pipeline
 - [ ] Redesign Landing/Login page
-- [ ] AI Marketing Studio campaigns (Phase 7)
-- [ ] Automated campaign sharing (scheduling)
 
 ### P3 - Future
 - [ ] CRM with Kanban board
-- [ ] Omnichannel integrations (WhatsApp, Instagram, Facebook, Telegram, SMS)
+- [ ] Omnichannel integrations
 - [ ] Admin Management System
-- [ ] Payment gateway (Stripe)
-- [ ] Legal pages (Terms, Privacy)
+- [ ] Payment gateway
+- [ ] Legal pages
 
 ## Key API Endpoints
-- POST /api/campaigns/pipeline/generate-avatar-with-accuracy (logo_url, video_frame_urls)
-- GET /api/campaigns/pipeline/generate-avatar-with-accuracy/{job_id}
-- POST /api/campaigns/pipeline/generate-avatar-variant (logo_url)
-- POST /api/campaigns/pipeline/generate-avatar-360 (logo_url)
+- POST /api/campaigns/pipeline/generate-avatar-with-accuracy
+- POST /api/campaigns/pipeline/generate-avatar-variant
+- POST /api/campaigns/pipeline/generate-avatar-360
 - GET/POST /api/data/companies
 - GET/POST /api/data/avatars
 - GET /api/campaigns
