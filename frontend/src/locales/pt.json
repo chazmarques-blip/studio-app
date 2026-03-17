@@ -586,6 +586,11 @@
     "photo_tab": "Foto",
     "video_tab": "Vídeo",
     "accuracy_evolution": "Evolução",
-    "regenerate_preview": "Regenerar Preview"
+    "regenerate_preview": "Regenerar Preview",
+    "clothing_uniform": "Uniforme",
+    "agent_scanner": "Analisando",
+    "agent_artist": "Gerando",
+    "agent_critic": "Avaliando",
+    "avatars_cleared": "Avatares limpos"
   }
 }

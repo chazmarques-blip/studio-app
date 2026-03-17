@@ -3057,6 +3057,13 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: s
             "When given a reference photo, preserve the person's EXACT identity — same face, features, skin tone, hair."
         )
 
+        # Agent pipeline names for visual timeline
+        AGENTS = [
+            {"name": "Scanner", "role": "Analyzing reference"},
+            {"name": "Artist", "role": "Generating avatar"},
+            {"name": "Critic", "role": "Evaluating accuracy"},
+        ]
+
         iterations = []
         extra_feedback = ""
 
@@ -3066,6 +3073,8 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: s
                 "progress": f"Generating avatar (attempt {attempt + 1}/{max_iterations})...",
                 "iteration": attempt + 1,
                 "iterations": iterations,
+                "agents": AGENTS,
+                "active_agent": "Artist" if attempt == 0 else "Artist",
             }
 
             prompt = (
@@ -3073,7 +3082,9 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: s
                 "Create a FULL-BODY professional portrait of this EXACT SAME person. "
                 "Do NOT generate a different person. Preserve their EXACT face, features, skin tone, facial hair, and hair. "
                 "Show them standing confidently in a modern studio with soft lighting. "
-                "Professional business attire. Full body visible from head to feet. "
+                "CLOTHING: Dress them in a crisp white polo shirt with a small company logo embroidered on the left chest, "
+                "fitted black dress pants, and clean white sneakers (sapatênis). "
+                "Full body visible from head to feet. "
                 "REPLACE the background with a clean, minimal studio background. "
                 "Photorealistic, 4K detail. "
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
@@ -3097,6 +3108,7 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: s
 
             # Accuracy comparison
             _accuracy_jobs[job_id]["progress"] = f"Evaluating accuracy (attempt {attempt + 1})..."
+            _accuracy_jobs[job_id]["active_agent"] = "Critic"
             comparison = loop.run_until_complete(_accuracy_compare(img_b64, mime, gen_b64, gen_mime))
 
             iteration_result = {
@@ -3117,6 +3129,8 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: s
                     "avatar_url": avatar_url,
                     "iterations": iterations,
                     "final_score": comparison["score"],
+                    "agents": AGENTS,
+                    "active_agent": None,
                 }
                 return
 
@@ -3442,7 +3456,7 @@ async def get_avatar_video_preview(job_id: str, user=Depends(get_current_user)):
 
 class AvatarVariantRequest(BaseModel):
     source_image_url: str = ""
-    clothing: str = "business_formal"
+    clothing: str = "company_uniform"
     angle: str = "front"
     company_name: str = ""
 
@@ -3450,6 +3464,7 @@ class AvatarVariantRequest(BaseModel):
 async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_current_user)):
     """Generate an avatar variant with different clothing or angle."""
     CLOTHING_MAP = {
+        "company_uniform": "wearing a crisp white polo shirt with a small company logo embroidered on the left chest, fitted black dress pants, and clean white sneakers (sapatênis style)",
         "business_formal": "wearing a tailored dark navy business suit, white dress shirt, elegant tie",
         "casual": "wearing a casual smart outfit, clean jeans, stylish blazer over a t-shirt",
         "streetwear": "wearing trendy streetwear, designer hoodie, sneakers, modern urban style",
@@ -3461,7 +3476,7 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
         "right_profile": "body and face turned to THEIR RIGHT, showing the RIGHT side of the face and body in profile view, camera positioned to their left capturing the right cheek",
         "back": "turned completely away from camera showing their back, we see the back of their head and body, looking slightly over their right shoulder",
     }
-    clothing_desc = CLOTHING_MAP.get(req.clothing, CLOTHING_MAP["business_formal"])
+    clothing_desc = CLOTHING_MAP.get(req.clothing, CLOTHING_MAP["company_uniform"])
     angle_desc = ANGLE_MAP.get(req.angle, ANGLE_MAP["front"])
     try:
         system_msg = (
@@ -3537,7 +3552,7 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
 
 class AvatarBatch360Request(BaseModel):
     source_image_url: str = ""
-    clothing: str = "business_formal"
+    clothing: str = "company_uniform"
 
 # In-memory store for batch 360 jobs
 _batch360_jobs = {}
@@ -3546,6 +3561,7 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str):
     """Background thread to generate all 4 angles for an avatar."""
     import asyncio
     CLOTHING_MAP = {
+        "company_uniform": "wearing a crisp white polo shirt with a small company logo embroidered on the left chest, fitted black dress pants, and clean white sneakers (sapatênis style)",
         "business_formal": "wearing a tailored dark navy business suit, white dress shirt, elegant tie",
         "casual": "wearing a casual smart outfit, clean jeans, stylish blazer over a t-shirt",
         "streetwear": "wearing trendy streetwear, designer hoodie, sneakers, modern urban style",
@@ -3557,7 +3573,7 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str):
         "right_profile": "body and face turned to THEIR RIGHT, showing the RIGHT side profile view",
         "back": "turned completely away from camera showing their back, looking slightly over shoulder",
     }
-    clothing_desc = CLOTHING_MAP.get(clothing, CLOTHING_MAP["business_formal"])
+    clothing_desc = CLOTHING_MAP.get(clothing, CLOTHING_MAP["company_uniform"])
     system_msg = (
         "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
         "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "

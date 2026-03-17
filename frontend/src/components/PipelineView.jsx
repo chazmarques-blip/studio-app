@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera, Bot, ScanEye, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -912,7 +912,7 @@ export default function PipelineView({ context }) {
   const [editingAvatarId, setEditingAvatarId] = useState(null); // null = new, string = editing existing
   const [customizeTab, setCustomizeTab] = useState('clothing');
   const [applyingClothing, setApplyingClothing] = useState(false);
-  const [clothingVariants, setClothingVariants] = useState({}); // { business_formal: url, casual: url, ... }
+  const [clothingVariants, setClothingVariants] = useState({}); // { company_uniform: url, casual: url, ... }
   const [generatingAngle, setGeneratingAngle] = useState(null);
   const [angleImages, setAngleImages] = useState({});
   const [auto360Progress, setAuto360Progress] = useState(null); // null | { completed: number, total: 4 }
@@ -1070,7 +1070,7 @@ export default function PipelineView({ context }) {
     setAvatarVideoUploading(false);
   };
 
-  const startAuto360 = async (sourceUrl, clothing = 'business_formal') => {
+  const startAuto360 = async (sourceUrl, clothing = 'company_uniform') => {
     setAuto360Progress({ completed: 0, total: 4 });
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-360`, {
@@ -1122,6 +1122,8 @@ export default function PipelineView({ context }) {
                 iteration: status.iteration || 0,
                 progress: status.progress || '',
                 iterations: status.iterations || [],
+                active_agent: status.active_agent || null,
+                agents: status.agents || [],
               });
             }
             if (status.status === 'completed' && status.avatar_url) {
@@ -1130,7 +1132,7 @@ export default function PipelineView({ context }) {
               setTempAvatar({
                 url: status.avatar_url,
                 source_photo_url: avatarSourcePhoto?.url || '',
-                clothing: 'business_formal',
+                clothing: 'company_uniform',
                 voice: autoVoice,
                 accuracy_iterations: status.iterations || [],
               });
@@ -1145,7 +1147,7 @@ export default function PipelineView({ context }) {
               setGeneratingAvatar(false);
               toast.success(`${t('studio.avatar_generated')} (Score: ${status.final_score || '?'}/10)`);
               // Auto-generate 360° angles
-              startAuto360(avatarSourcePhoto?.url || status.avatar_url, 'business_formal');
+              startAuto360(avatarSourcePhoto?.url || status.avatar_url, 'company_uniform');
             } else if (status.status === 'failed') {
               clearInterval(pollInterval);
               setAccuracyProgress(null);
@@ -1217,7 +1219,7 @@ export default function PipelineView({ context }) {
     setTempAvatar({
       url: av.url,
       source_photo_url: av.source_photo_url || '',
-      clothing: av.clothing || 'business_formal',
+      clothing: av.clothing || 'company_uniform',
       voice: av.voice || null,
     });
     setAvatarName(av.name || '');
@@ -1289,7 +1291,7 @@ export default function PipelineView({ context }) {
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
         source_image_url: tempAvatar.source_photo_url || tempAvatar.url,
-        clothing: tempAvatar.clothing || 'business_formal',
+        clothing: tempAvatar.clothing || 'company_uniform',
         angle,
         company_name: activeCompany?.name || '',
       });
@@ -1857,10 +1859,18 @@ export default function PipelineView({ context }) {
             <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1">
               <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.presenter_avatar')}
             </label>
-            <button data-testid="add-avatar-btn" onClick={() => { resetAvatarModal(); setShowAvatarModal(true); }}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
-              <Plus size={10} />
-            </button>
+            <div className="flex items-center gap-1">
+              {avatars.length > 0 && (
+                <button data-testid="clear-all-avatars-btn" onClick={() => { saveAvatars([]); setSelectedAvatarId(null); toast.success(t('studio.avatars_cleared') || 'Avatars cleared'); }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition" title="Clear all">
+                  <Trash2 size={9} />
+                </button>
+              )}
+              <button data-testid="add-avatar-btn" onClick={() => { resetAvatarModal(); setShowAvatarModal(true); }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                <Plus size={10} />
+              </button>
+            </div>
           </div>
           {avatars.length > 0 ? (
             <div className="flex gap-2 flex-wrap">
@@ -2063,33 +2073,76 @@ export default function PipelineView({ context }) {
                           )}
                         </button>
                         {generatingAvatar && (
-                          <div className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3 space-y-2">
+                          <div className="rounded-xl bg-[#0A0A0A] border border-[#1E1E1E] p-4 space-y-3">
+                            {/* Agent Timeline Header */}
+                            <div className="flex items-center gap-2 pb-2 border-b border-[#1A1A1A]">
+                              <div className="flex items-center gap-1.5">
+                                {[
+                                  { name: 'Scanner', icon: ScanEye, role: t('studio.agent_scanner') || 'Analyzing' },
+                                  { name: 'Artist', icon: Bot, role: t('studio.agent_artist') || 'Generating' },
+                                  { name: 'Critic', icon: ShieldCheck, role: t('studio.agent_critic') || 'Evaluating' },
+                                ].map((agent, idx) => {
+                                  const isActive = accuracyProgress?.active_agent === agent.name;
+                                  const isDone = accuracyProgress?.iteration > 0 && (
+                                    (agent.name === 'Scanner') ||
+                                    (agent.name === 'Artist' && accuracyProgress?.iterations?.length > 0) ||
+                                    (agent.name === 'Critic' && accuracyProgress?.iterations?.some(it => it.score > 0))
+                                  );
+                                  return (
+                                    <React.Fragment key={agent.name}>
+                                      {idx > 0 && <div className={`w-4 h-px ${isDone ? 'bg-[#C9A84C]' : 'bg-[#1E1E1E]'}`} />}
+                                      <div className={`flex items-center gap-1 px-2 py-1 rounded-lg transition ${
+                                        isActive ? 'bg-[#C9A84C]/15 border border-[#C9A84C]/30' :
+                                        isDone ? 'bg-green-500/10 border border-green-500/20' :
+                                        'bg-[#111] border border-[#1A1A1A]'}`}>
+                                        <agent.icon size={10} className={isActive ? 'text-[#C9A84C] animate-pulse' : isDone ? 'text-green-400' : 'text-[#444]'} />
+                                        <span className={`text-[7px] font-bold uppercase tracking-wider ${
+                                          isActive ? 'text-[#C9A84C]' : isDone ? 'text-green-400' : 'text-[#444]'}`}>
+                                          {agent.name}
+                                        </span>
+                                      </div>
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Progress info */}
                             <div className="flex items-center gap-2">
-                              <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                              <Loader2 size={12} className="animate-spin text-[#C9A84C] shrink-0" />
                               <p className="text-[9px] text-[#888]">
                                 {accuracyProgress?.progress || t('studio.avatar_gen_time')}
                               </p>
                             </div>
+
+                            {/* Iteration progress bar */}
                             {accuracyProgress?.iteration > 0 && (
                               <div className="flex items-center gap-1.5">
-                                <div className="flex-1 h-1 bg-[#1E1E1E] rounded-full overflow-hidden">
-                                  <div className="h-full bg-[#C9A84C] transition-all duration-500 rounded-full" style={{width: `${(accuracyProgress.iteration / 3) * 100}%`}} />
+                                <div className="flex-1 h-1.5 bg-[#1E1E1E] rounded-full overflow-hidden">
+                                  <div className="h-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-700 rounded-full"
+                                    style={{width: `${(accuracyProgress.iteration / 3) * 100}%`}} />
                                 </div>
-                                <span className="text-[8px] text-[#555]">{accuracyProgress.iteration}/3</span>
+                                <span className="text-[8px] text-[#555] font-mono">{accuracyProgress.iteration}/3</span>
                               </div>
                             )}
-                            {/* Show evolution thumbnails */}
+
+                            {/* Evolution thumbnails with scores */}
                             {accuracyProgress?.iterations?.length > 0 && (
-                              <div className="space-y-1.5">
+                              <div className="space-y-1.5 pt-1 border-t border-[#1A1A1A]">
                                 <p className="text-[7px] text-[#555] uppercase tracking-wider">{t('studio.accuracy_evolution') || 'Evolution'}</p>
-                                <div className="flex gap-1.5">
+                                <div className="flex gap-2">
                                   {accuracyProgress.iterations.map((it, idx) => (
-                                    it.url && <div key={idx} className="relative">
+                                    it.url && <div key={idx} className="relative group/evo">
                                       <img src={resolveImageUrl(it.url)} alt={`v${idx+1}`}
-                                        className="h-16 w-12 rounded-lg object-cover border border-[#1E1E1E]" />
-                                      <div className={`absolute -top-1 -right-1 h-4 min-w-4 px-0.5 rounded-full text-[7px] font-bold flex items-center justify-center ${
-                                        it.passed ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                        className={`h-20 w-14 rounded-xl object-cover border-2 transition ${
+                                          it.passed ? 'border-green-500/40' : 'border-red-500/30'}`} />
+                                      <div className={`absolute -top-1.5 -right-1.5 h-5 min-w-5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center shadow-lg ${
+                                        it.passed ? 'bg-green-500 text-white' : 'bg-red-500/80 text-white'}`}>
                                         {it.score}
+                                      </div>
+                                      <div className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[6px] font-bold ${
+                                        it.passed ? 'bg-green-500/90 text-white' : 'bg-red-500/70 text-white'}`}>
+                                        {it.passed ? 'OK' : 'REDO'}
                                       </div>
                                     </div>
                                   ))}
@@ -2249,9 +2302,10 @@ export default function PipelineView({ context }) {
                         {/* Clothing style buttons */}
                         <div className="grid grid-cols-2 gap-2">
                           {[
+                            { id: 'company_uniform', label: t('studio.clothing_uniform'), icon: '👕' },
                             { id: 'business_formal', label: t('studio.clothing_business'), icon: '👔' },
-                            { id: 'casual', label: t('studio.clothing_casual'), icon: '👕' },
-                            { id: 'streetwear', label: t('studio.clothing_streetwear'), icon: '🧥' },
+                            { id: 'casual', label: t('studio.clothing_casual'), icon: '🧥' },
+                            { id: 'streetwear', label: t('studio.clothing_streetwear'), icon: '🏙' },
                             { id: 'creative', label: t('studio.clothing_creative'), icon: '🎨' },
                           ].map(style => (
                             <button key={style.id} data-testid={`clothing-${style.id}`}
