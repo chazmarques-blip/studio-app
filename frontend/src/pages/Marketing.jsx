@@ -421,6 +421,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [cloneLoading, setCloneLoading] = useState(false);
   const [shareImgIdx, setShareImgIdx] = useState(0);
   const [shareText, setShareText] = useState('');
+  const [shareIsVideo, setShareIsVideo] = useState(false);
 
   const cloneCampaign = async (targetLang) => {
     if (!pipelineId) return;
@@ -870,173 +871,27 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 })()}
               </div>
 
-              {/* ── SHARE BAR ── Manual sharing to selected platform */}
-              <div data-testid="share-bar" className="max-w-[340px] mx-auto mt-3">
-                <div className="rounded-xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-3">
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <Send size={12} className="text-[#C9A84C]" />
-                    <p className="text-[10px] font-bold text-white flex-1">Compartilhar Agora</p>
-                  </div>
+              {/* ── UNIFIED SHARE AREA ── Select media + text + share */}
 
-                  {/* Image selector */}
-                  {(() => {
-                    const allImgs = (stats.platform_variants?.[selectedChannel] || images);
-                    return allImgs.length > 0 && (
-                      <div className="mb-2.5">
-                        <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">Imagem</p>
-                        <div className="flex gap-1.5">
-                          {allImgs.map((u, i) => (
-                            <button key={i} data-testid={`share-img-${i}`}
-                              onClick={() => setShareImgIdx(i)}
-                              className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${shareImgIdx === i ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.3)]' : 'border-[#222] opacity-60 hover:opacity-100'}`}>
-                              <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Text preview (editable) */}
-                  <div className="mb-2.5">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-[8px] text-[#555] uppercase tracking-wider">Texto</p>
-                      <button data-testid="share-copy-text" onClick={() => {
-                        const t = shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '');
-                        navigator.clipboard?.writeText(t).then(() => toast.success(labels.copied)).catch(() => {
-                          const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-                          toast.success(labels.copied);
-                        });
-                      }} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                        <Copy size={8} /> Copiar
-                      </button>
-                    </div>
-                    <textarea data-testid="share-text-editor"
-                      value={shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '')}
-                      onChange={e => setShareText(e.target.value)}
-                      className="w-full text-[9px] bg-[#111] border border-[#1A1A1A] rounded-lg p-2 text-[#ccc] placeholder-[#555] resize-none focus:border-[#C9A84C]/30 focus:outline-none"
-                      rows={3} />
-                  </div>
-
-                  {/* Share buttons */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { id: 'whatsapp', label: 'WhatsApp', color: '#25D366', getUrl: (txt) => `https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}` },
-                      { id: 'instagram', label: 'Instagram', color: '#E4405F', getUrl: null },
-                      { id: 'facebook', label: 'Facebook', color: '#1877F2', getUrl: (txt) => `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(txt)}` },
-                      { id: 'telegram', label: 'Telegram', color: '#26A5E4', getUrl: (txt) => `https://t.me/share/url?text=${encodeURIComponent(txt)}` },
-                      { id: 'email', label: 'Email', color: '#C9A84C', getUrl: (txt) => `mailto:?subject=${encodeURIComponent(campaign.name)}&body=${encodeURIComponent(txt)}` },
-                    ].map(p => (
-                      <button key={p.id} data-testid={`share-to-${p.id}`}
-                        onClick={() => {
-                          const txt = shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '');
-                          const allImgs = stats.platform_variants?.[selectedChannel] || images;
-                          const imgUrl = allImgs[shareImgIdx] || allImgs[0];
-                          // Try Web Share API first (mobile native)
-                          if (navigator.share && p.id !== 'email') {
-                            const shareData = { text: txt, title: campaign.name };
-                            if (imgUrl) shareData.url = resolveImageUrl(imgUrl);
-                            navigator.share(shareData).catch(() => {});
-                          } else if (p.id === 'instagram') {
-                            // Instagram: copy text + download image
-                            navigator.clipboard?.writeText(txt);
-                            if (imgUrl) {
-                              const a = document.createElement('a'); a.href = resolveImageUrl(imgUrl); a.download = `campaign_${campaign.name.replace(/\s+/g, '_')}.png`; a.target = '_blank'; a.click();
-                            }
-                            toast.success('Texto copiado! Imagem baixada. Cole no Instagram.');
-                          } else if (p.getUrl) {
-                            window.open(p.getUrl(txt), '_blank');
-                          }
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all hover:scale-[1.02] active:scale-95"
-                        style={{ borderColor: `${p.color}30`, backgroundColor: `${p.color}08` }}>
-                        <ChannelIcon channel={p.id} active size={14} />
-                        <span className="text-[9px] font-semibold" style={{ color: p.color }}>{p.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Video Commercial */}
-              {videoUrl && (
-                <div data-testid="content-video-section">
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.videoCommercial}</p>
-                  <div className="max-w-[340px] mx-auto rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
-                    <video src={videoUrl} controls playsInline controlsList="nodownload" className="w-full" data-testid="content-video-player" style={{ maxHeight: '400px' }} onClick={e => e.stopPropagation()} />
-                    <button data-testid="video-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
-                      className="absolute top-2 right-2 h-8 w-8 rounded-lg bg-black/60 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80 z-10">
-                      <Maximize2 size={14} className="text-white" />
-                    </button>
-                  </div>
-                  <div className="max-w-[340px] mx-auto flex items-center gap-2 mt-1.5">
-                    <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
-                    <button onClick={() => setShowVideoLightbox(true)} data-testid="video-expand-text-btn"
-                      className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                      <Maximize2 size={9} /> Expandir
-                    </button>
-                    <a href={videoUrl} target="_blank" rel="noopener noreferrer"
-                      className="ml-auto text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                      <Download size={9} /> {labels.download}
-                    </a>
-                  </div>
-                </div>
-              )}
-              {showVideoLightbox && videoUrl && (
-                <VideoLightbox videoUrl={videoUrl} onClose={() => setShowVideoLightbox(false)} labels={labels} />
-              )}
-
-              {/* Generate Video Button - when no video but pipeline exists */}
-              {!videoUrl && pipelineId && campaign.type === 'ai_pipeline' && (
-                <div data-testid="content-generate-video-section" className="max-w-[340px] mx-auto">
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.videoCommercial}</p>
-                  <button
-                    data-testid="regenerate-video-btn"
-                    onClick={regenerateVideo}
-                    disabled={regenLoading}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-[#C9A84C]/30 bg-[#C9A84C]/5 hover:bg-[#C9A84C]/10 transition text-[#C9A84C] disabled:opacity-50"
-                  >
-                    {regenLoading ? (
-                      <>
-                        <RefreshCw size={14} className="animate-spin" />
-                        <span className="text-[10px] font-semibold">{labels.regenerating}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Film size={14} />
-                        <span className="text-[10px] font-semibold">{labels.regenVideo}</span>
-                      </>
-                    )}
-                  </button>
-                  {regenLoading && (
-                    <p className="text-[8px] text-[#555] text-center mt-1.5">Sora 2 + TTS + FFmpeg (~5 min)</p>
-                  )}
-                </div>
-              )}
-
-              {/* Download All Images */}
-              {images.length > 0 && (
-                <div>
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.downloadArts}</p>
+              {/* Media Selector - Images & Video */}
+              {(images.length > 0 || videoUrl) && (
+                <div data-testid="share-media-selector">
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">Selecionar Midia</p>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((url, i) => (
-                      <div key={i} className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group">
-                        <button onClick={() => setLightboxIdx(i)} className="w-full text-left">
-                          <img src={resolveImageUrl(url)} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                            <Maximize2 size={16} className="text-white" />
-                          </div>
-                        </button>
-                        {/* Regeneration loading overlay */}
-                        {regenImageLoading && regenImageIdx === null && (
-                          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10">
-                            <RefreshCw size={16} className="text-[#C9A84C] animate-spin mb-1" />
-                            {regenCountdown > 0 && (
-                              <span className="text-[10px] text-[#C9A84C] font-bold">{regenCountdown}s</span>
-                            )}
+                      <button key={`img-${i}`} data-testid={`share-media-img-${i}`}
+                        onClick={() => { setShareImgIdx(i); setShareIsVideo(false); }}
+                        className={`rounded-xl overflow-hidden border-2 transition-all relative group ${!shareIsVideo && shareImgIdx === i
+                          ? 'border-[#C9A84C] shadow-[0_0_12px_rgba(201,168,76,0.25)] scale-[1.02]'
+                          : 'border-[#1A1A1A] opacity-70 hover:opacity-100 hover:border-[#333]'}`}>
+                        <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" />
+                        {/* Selection indicator */}
+                        {!shareIsVideo && shareImgIdx === i && (
+                          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                            <Check size={10} className="text-black" />
                           </div>
                         )}
+                        {/* Regen button */}
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
                           <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
                           <div className="flex items-center gap-1.5">
@@ -1059,33 +914,74 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                               className="w-full text-[9px] bg-[#1A1A1A] border border-[#333] rounded-lg p-2 text-white placeholder-[#555] resize-none"
                               rows={2} />
                             <div className="flex gap-1.5 mt-1.5 w-full">
-                              <button onClick={() => setRegenImageIdx(null)}
+                              <button onClick={(e) => { e.stopPropagation(); setRegenImageIdx(null); }}
                                 className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
                                 {labels.cancelEdit}
                               </button>
-                              <button data-testid={`regen-image-confirm-${i}`} onClick={() => regenerateImage(i)} disabled={regenImageLoading}
+                              <button data-testid={`regen-image-confirm-${i}`} onClick={(e) => { e.stopPropagation(); regenerateImage(i); }} disabled={regenImageLoading}
                                 className="flex-1 text-[8px] py-1 rounded-lg bg-[#C9A84C] text-black font-bold hover:bg-[#D4B85C] transition disabled:opacity-50">
                                 {regenImageLoading ? <RefreshCw size={10} className="animate-spin mx-auto" /> : labels.regenImage}
                               </button>
                             </div>
                           </div>
                         )}
-                      </div>
+                        {regenImageLoading && regenImageIdx === null && (
+                          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10">
+                            <RefreshCw size={16} className="text-[#C9A84C] animate-spin mb-1" />
+                            {regenCountdown > 0 && <span className="text-[10px] text-[#C9A84C] font-bold">{regenCountdown}s</span>}
+                          </div>
+                        )}
+                      </button>
                     ))}
+                    {/* Video thumbnail */}
+                    {videoUrl && (
+                      <button data-testid="share-media-video"
+                        onClick={() => setShareIsVideo(true)}
+                        className={`rounded-xl overflow-hidden border-2 transition-all relative ${shareIsVideo
+                          ? 'border-[#C9A84C] shadow-[0_0_12px_rgba(201,168,76,0.25)] scale-[1.02]'
+                          : 'border-[#1A1A1A] opacity-70 hover:opacity-100 hover:border-[#333]'}`}>
+                        <video src={videoUrl} className="w-full aspect-square object-cover" muted />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
+                            <Play size={14} className="text-white ml-0.5" fill="white" />
+                          </div>
+                        </div>
+                        {shareIsVideo && (
+                          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                            <Check size={10} className="text-black" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
+                          <span className="text-[8px] text-white font-bold flex items-center gap-1"><Film size={8} /> Video</span>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Copy texts for manual posting */}
-              <div>
+              {/* Text Area - Editable */}
+              <div data-testid="share-text-area">
                 <div className="flex items-center justify-between mb-1.5">
                   <p className="text-[9px] text-[#555] uppercase tracking-wider">{labels.copyText}</p>
-                  {pipelineId && !editingCopy && (
-                    <button data-testid="edit-copy-btn" onClick={startEditCopy}
-                      className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-1">
-                      <FileText size={9} /> {labels.editCopy}
+                  <div className="flex items-center gap-2">
+                    {pipelineId && !editingCopy && (
+                      <button data-testid="edit-copy-btn" onClick={startEditCopy}
+                        className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-1">
+                        <FileText size={9} /> {labels.editCopy}
+                      </button>
+                    )}
+                    <button data-testid="share-copy-text" onClick={() => {
+                      const t = shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '');
+                      navigator.clipboard?.writeText(t).then(() => toast.success(labels.copied)).catch(() => {
+                        const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                        toast.success(labels.copied);
+                      });
+                    }} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+                      <Copy size={8} /> Copiar
                     </button>
-                  )}
+                  </div>
                 </div>
                 {editingCopy ? (
                   <div data-testid="copy-editor" className="rounded-lg bg-[#111] border border-[#C9A84C]/30 p-3">
@@ -1096,7 +992,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                     <textarea data-testid="copy-editor-textarea"
                       value={editCopyText} onChange={e => setEditCopyText(e.target.value)}
                       className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg p-3 text-[10px] text-[#ccc] font-sans leading-relaxed resize-none focus:border-[#C9A84C]/50 focus:outline-none"
-                      rows={16} />
+                      rows={12} />
                     <div className="flex gap-2 mt-2 justify-end">
                       <button data-testid="copy-cancel-btn" onClick={() => setEditingCopy(false)}
                         className="px-3 py-1.5 rounded-lg border border-[#333] text-[9px] text-[#888] hover:text-white transition">
@@ -1110,23 +1006,89 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                     </div>
                   </div>
                 ) : (
-                  <>
-                    {messages.map((m, i) => (
-                      <div key={i} className="mb-2 rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] font-semibold capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>
-                            {m.channel === 'multi' ? labels.allNetworks : m.channel}
-                          </span>
-                          <button onClick={() => copyText(m.content)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                            <Copy size={8} /> {labels.copy}
-                          </button>
-                        </div>
-                        <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{cleanCampaignText(m.content)}</pre>
-                      </div>
-                    ))}
-                    {messages.length === 0 && <p className="text-[10px] text-[#444] text-center py-4">{labels.noMessages}</p>}
-                  </>
+                  <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[9px] font-semibold text-[#888]">
+                        {messages.find(m => m.channel === selectedChannel)?.channel === 'multi' ? labels.allNetworks : selectedChannel}
+                      </span>
+                    </div>
+                    <textarea data-testid="share-text-editor"
+                      value={shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '')}
+                      onChange={e => setShareText(e.target.value)}
+                      className="w-full bg-transparent text-[10px] text-[#ccc] leading-relaxed font-sans resize-none focus:outline-none"
+                      rows={8} />
+                  </div>
                 )}
+              </div>
+
+              {/* ── SHARE BUTTONS ── */}
+              <div data-testid="share-bar" className="rounded-xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <Send size={12} className="text-[#C9A84C]" />
+                  <p className="text-[10px] font-bold text-white">Compartilhar</p>
+                  <span className="text-[8px] text-[#555] ml-auto">
+                    {shareIsVideo ? 'Video selecionado' : `Design ${shareImgIdx + 1} selecionado`}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'whatsapp', label: 'WhatsApp', color: '#25D366' },
+                    { id: 'instagram', label: 'Instagram', color: '#E4405F' },
+                    { id: 'facebook', label: 'Facebook', color: '#1877F2' },
+                    { id: 'telegram', label: 'Telegram', color: '#26A5E4' },
+                    { id: 'email', label: 'Email', color: '#C9A84C' },
+                  ].map(p => (
+                    <button key={p.id} data-testid={`share-to-${p.id}`}
+                      onClick={async () => {
+                        const txt = shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '');
+                        const mediaUrl = shareIsVideo ? videoUrl : (images[shareImgIdx] || images[0]);
+                        const resolvedUrl = resolveImageUrl(mediaUrl);
+
+                        // Try native share with FILE (mobile)
+                        if (navigator.canShare && mediaUrl) {
+                          try {
+                            const resp = await fetch(resolvedUrl);
+                            const blob = await resp.blob();
+                            const ext = shareIsVideo ? 'mp4' : 'png';
+                            const mimeType = shareIsVideo ? 'video/mp4' : 'image/png';
+                            const file = new File([blob], `campaign_${campaign.name.replace(/[^a-zA-Z0-9]/g, '_')}.${ext}`, { type: mimeType });
+                            const shareData = { files: [file], text: txt, title: campaign.name };
+                            if (navigator.canShare(shareData)) {
+                              await navigator.share(shareData);
+                              return;
+                            }
+                          } catch (err) {
+                            if (err.name === 'AbortError') return;
+                            console.log('File share failed, using fallback:', err.message);
+                          }
+                        }
+
+                        // Fallback: platform deep links
+                        if (p.id === 'whatsapp') {
+                          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}`, '_blank');
+                        } else if (p.id === 'facebook') {
+                          window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(txt)}`, '_blank');
+                        } else if (p.id === 'telegram') {
+                          window.open(`https://t.me/share/url?text=${encodeURIComponent(txt)}`, '_blank');
+                        } else if (p.id === 'email') {
+                          window.open(`mailto:?subject=${encodeURIComponent(campaign.name)}&body=${encodeURIComponent(txt)}`, '_blank');
+                        } else if (p.id === 'instagram') {
+                          navigator.clipboard?.writeText(txt);
+                          if (mediaUrl) {
+                            const a = document.createElement('a'); a.href = resolvedUrl;
+                            a.download = `campaign_${campaign.name.replace(/\s+/g, '_')}.${shareIsVideo ? 'mp4' : 'png'}`;
+                            a.click();
+                          }
+                          toast.success('Texto copiado! Midia baixada. Cole no Instagram.');
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-95"
+                      style={{ borderColor: `${p.color}30`, backgroundColor: `${p.color}08` }}>
+                      <ChannelIcon channel={p.id} active size={16} />
+                      <span className="text-[10px] font-semibold" style={{ color: p.color }}>{p.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </>
           )}
