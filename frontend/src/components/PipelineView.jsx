@@ -931,29 +931,31 @@ export default function PipelineView({ context }) {
   const logoInputRef = useRef(null);
 
   useEffect(() => {
-    // Load companies and avatars from server (MongoDB)
+    // Load companies and avatars from Supabase (source of truth)
     const loadUserData = async () => {
       try {
         const [companiesRes, avatarsRes] = await Promise.all([
           axios.get(`${API}/data/companies`),
           axios.get(`${API}/data/avatars`),
         ]);
-        if (companiesRes.data?.length) {
-          setCompanies(companiesRes.data);
-          const primary = companiesRes.data.find(c => c.is_primary);
-          if (primary) setActiveCompanyId(primary.id);
-          else setActiveCompanyId(companiesRes.data[0].id);
+        // API is source of truth — always use server data, clear stale localStorage
+        const serverCompanies = companiesRes.data || [];
+        const serverAvatars = avatarsRes.data || [];
+        setCompanies(serverCompanies);
+        setAvatars(serverAvatars);
+        localStorage.setItem('agentzz_companies', JSON.stringify(serverCompanies));
+        localStorage.setItem('agentzz_avatars', JSON.stringify(serverAvatars));
+        if (serverCompanies.length) {
+          const primary = serverCompanies.find(c => c.is_primary);
+          setActiveCompanyId(primary ? primary.id : serverCompanies[0].id);
         }
-        if (avatarsRes.data?.length) {
-          setAvatars(avatarsRes.data);
-          setSelectedAvatarId(avatarsRes.data[0].id);
+        if (serverAvatars.length) {
+          setSelectedAvatarId(serverAvatars[0].id);
         }
-      } catch (e) {
-        // Fallback to localStorage if not authenticated yet
-        const saved = localStorage.getItem('agentzz_companies');
-        if (saved) { try { const p = JSON.parse(saved); setCompanies(p); const pr = p.find(c => c.is_primary); if (pr) setActiveCompanyId(pr.id); else if (p.length) setActiveCompanyId(p[0].id); } catch {} }
-        const savedAv = localStorage.getItem('agentzz_avatars');
-        if (savedAv) { try { const p = JSON.parse(savedAv); setAvatars(p); if (p.length) setSelectedAvatarId(p[0].id); } catch {} }
+      } catch {
+        // Fallback to localStorage ONLY if API fails (e.g. not authenticated)
+        try { const p = JSON.parse(localStorage.getItem('agentzz_companies') || '[]'); setCompanies(p); const pr = p.find(c => c.is_primary); if (pr) setActiveCompanyId(pr.id); else if (p.length) setActiveCompanyId(p[0].id); } catch {}
+        try { const p = JSON.parse(localStorage.getItem('agentzz_avatars') || '[]'); setAvatars(p); if (p.length) setSelectedAvatarId(p[0].id); } catch {}
       }
     };
     loadUserData();
@@ -1050,8 +1052,11 @@ export default function PipelineView({ context }) {
 
   const persistAvatarToServer = async (avatar) => {
     try {
-      await axios.post(`${API}/data/avatars`, avatar);
-    } catch {}
+      const { data } = await axios.post(`${API}/data/avatars`, avatar);
+      return data;
+    } catch {
+      return null;
+    }
   };
 
   const uploadAvatarPhoto = async (files) => {
