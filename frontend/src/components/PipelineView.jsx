@@ -1048,12 +1048,8 @@ export default function PipelineView({ context }) {
   // Auto-fill campaign name and briefing product when company changes
   useEffect(() => {
     if (activeCompany) {
-      if (activeCompany.name && !campaignName) {
-        setCampaignName(activeCompany.name);
-      }
-      if (activeCompany.product_description) {
-        setQuestionnaire(q => ({ ...q, product: q.product || activeCompany.product_description }));
-      }
+      setCampaignName(activeCompany.name || '');
+      setQuestionnaire(q => ({ ...q, product: activeCompany.product_description || '' }));
     }
   }, [activeCompanyId]); // eslint-disable-line react-hooks/exhaustive-deps
 
