@@ -4493,6 +4493,9 @@ class RegenerateStyleRequest(BaseModel):
     style: str = "professional"
     prompt_override: str = ""
     campaign_name: str = ""
+    campaign_copy: str = ""
+    product_description: str = ""
+    language: str = "pt"
 
 @router.post("/regenerate-single-image")
 async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get_current_user)):
@@ -4500,20 +4503,34 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
     await _get_tenant(user)
 
     STYLE_PROMPTS = {
-        "minimalist": "Ultra minimalist composition. Single powerful focal element against vast negative space. Muted, desaturated palette with one accent color. Zen-like simplicity. Think Apple product photography, Muji campaigns, Aesop still life.",
-        "vibrant": "Explosion of saturated colors and dynamic energy. Bold complementary color clashes, motion blur effects, dramatic perspective. Youthful, electric atmosphere. Think Nike campaign photography, Spotify visual identity.",
-        "luxury": "Premium luxury photography. Rich dark backgrounds, dramatic studio lighting with gold/warm highlights, silk textures, shallow depth of field. Ultra-sophisticated mood. Think Chanel parfum ads, Rolex macro photography.",
-        "corporate": "Editorial business photography. Clean natural lighting, professional environment, confident subjects or pristine product shots. Trustworthy blue-gray color grading. Think Bloomberg editorial, McKinsey reports.",
-        "playful": "Joyful, whimsical visual storytelling. Bright candy colors, unexpected perspectives, playful subjects in dynamic poses. Warm, inviting, fun. Think Google campaigns, Mailchimp illustrations.",
-        "bold": "High-impact, stop-the-scroll photography. Extreme contrast, dramatic shadows, close-up details, powerful visual tension. Fearless composition. Think Nike Just Do It, Supreme drops.",
-        "organic": "Warm, natural, earthy photography. Golden hour lighting, natural textures (wood, linen, stone), warm earth tones, authentic lifestyle moments. Think Patagonia campaigns, artisanal brand photography.",
-        "tech": "Futuristic, sleek technology aesthetic. Dark environment with neon accent lighting, reflective surfaces, geometric precision, blue-purple color palette. Think Tesla reveal photography, SpaceX launch visuals.",
-        "professional": "High-end commercial photography. Studio-quality lighting, professional color grading, clean background, sharp focus on subject with natural bokeh. Magazine-cover quality."
+        "minimalist": "Ultra minimalist composition. Single powerful focal element against vast negative space. Muted, desaturated palette with one accent color. Zen-like simplicity. Think Apple product photography.",
+        "vibrant": "Explosion of saturated colors and dynamic energy. Bold complementary color clashes, motion blur effects, dramatic perspective. Youthful, electric atmosphere.",
+        "luxury": "Premium luxury photography. Rich dark backgrounds, dramatic studio lighting with gold/warm highlights, silk textures, shallow depth of field. Ultra-sophisticated mood.",
+        "corporate": "Editorial business photography. Clean natural lighting, professional environment, confident subjects or pristine product shots. Trustworthy blue-gray color grading.",
+        "playful": "Joyful, whimsical visual storytelling. Bright candy colors, unexpected perspectives, playful subjects in dynamic poses. Warm, inviting, fun.",
+        "bold": "High-impact, stop-the-scroll photography. Extreme contrast, dramatic shadows, close-up details, powerful visual tension. Fearless composition.",
+        "organic": "Warm, natural, earthy photography. Golden hour lighting, natural textures (wood, linen, stone), warm earth tones, authentic lifestyle moments.",
+        "tech": "Futuristic, sleek technology aesthetic. Dark environment with neon accent lighting, reflective surfaces, geometric precision, blue-purple color palette.",
+        "professional": "High-end commercial photography. Studio-quality lighting, professional color grading, clean background, sharp focus on subject with natural bokeh."
     }
 
+    LANG_MAP = {"pt": "Portuguese", "es": "Spanish", "en": "English"}
+    lang_name = LANG_MAP.get(body.language, "Portuguese")
+
     style_desc = STYLE_PROMPTS.get(body.style, STYLE_PROMPTS["professional"])
-    prompt = body.prompt_override.strip() if body.prompt_override.strip() else f"Create a stunning visual for a marketing campaign about '{body.campaign_name or 'brand'}'. Focus on powerful visual storytelling through imagery."
-    prompt += f"\n\nVISUAL STYLE: {style_desc}\n\nINCLUDE one short impactful headline text (3-7 words) in bold clean typography. No logos or brand names. 1080x1080 square format."
+
+    if body.prompt_override.strip():
+        prompt = body.prompt_override.strip()
+    else:
+        context = body.product_description or body.campaign_name or "brand"
+        copy_hint = body.campaign_copy[:200] if body.campaign_copy else ""
+        prompt = f"Create a stunning marketing visual for: {context}."
+        if copy_hint:
+            prompt += f" Campaign message: {copy_hint}"
+
+    prompt += f"\n\nVISUAL STYLE: {style_desc}"
+    prompt += f"\n\nINCLUDE one short impactful headline text (3-7 words) in {lang_name} language, in bold clean typography. No logos or brand names. 1080x1080 square format."
+    prompt += f"\nALL text in the image MUST be in {lang_name}."
 
     pid = f"single-{uuid.uuid4().hex[:8]}"
     url = await _generate_image(prompt, pid, 1)

@@ -168,7 +168,7 @@ function GoogleAdsMockup({ copy, image, brandName }) {
 
 /* ── Main Final Preview Component ── */
 export default function FinalPreview({ pipeline, onClose, onPublish }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const steps = pipeline?.steps || {};
   const approvedCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
   const images = steps.lucas_design?.image_urls?.filter(u => u) || [];
@@ -233,11 +233,15 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
     setRegenerating(true);
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/regenerate-single-image`, {
-        style, campaign_name: campaignName,
+        style,
+        campaign_name: campaignName,
+        campaign_copy: displayCopy || '',
+        product_description: brandName || campaignName || '',
+        language: i18n?.language || 'pt',
       });
       if (data.image_url) {
         setCustomImages(prev => [...prev, { url: data.image_url, name: `${style}-${Date.now()}` }]);
-        setSelectedImage(allImages.length); // Select the new image
+        setSelectedImage(allImages.length);
         toast.success(`Imagem "${style}" gerada!`);
       }
     } catch (e) { toast.error('Erro ao gerar imagem'); }
