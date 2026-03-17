@@ -1045,10 +1045,15 @@ export default function PipelineView({ context }) {
   const activeCompany = companies.find(c => c.id === activeCompanyId) || null;
   const selectedAvatar = avatars.find(a => a.id === selectedAvatarId) || null;
 
-  // Auto-fill briefing product field when company changes
+  // Auto-fill campaign name and briefing product when company changes
   useEffect(() => {
-    if (activeCompany?.product_description) {
-      setQuestionnaire(q => ({ ...q, product: q.product || activeCompany.product_description }));
+    if (activeCompany) {
+      if (activeCompany.name && !campaignName) {
+        setCampaignName(activeCompany.name);
+      }
+      if (activeCompany.product_description) {
+        setQuestionnaire(q => ({ ...q, product: q.product || activeCompany.product_description }));
+      }
     }
   }, [activeCompanyId]); // eslint-disable-line react-hooks/exhaustive-deps
 
