@@ -1675,6 +1675,7 @@ export default function PipelineView({ context }) {
     return (
       <FinalPreview
         pipeline={activePipeline}
+        campaignLang={campaignLang}
         onClose={() => setShowFinalPreview(false)}
         onPublish={async (editedCopy) => {
           try {

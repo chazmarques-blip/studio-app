@@ -167,7 +167,7 @@ function GoogleAdsMockup({ copy, image, brandName }) {
 }
 
 /* ── Main Final Preview Component ── */
-export default function FinalPreview({ pipeline, onClose, onPublish }) {
+export default function FinalPreview({ pipeline, campaignLang, onClose, onPublish }) {
   const { t, i18n } = useTranslation();
   const steps = pipeline?.steps || {};
   const approvedCopy = steps.ana_review_copy?.approved_content || steps.sofia_copy?.output || '';
@@ -237,7 +237,7 @@ export default function FinalPreview({ pipeline, onClose, onPublish }) {
         campaign_name: campaignName,
         campaign_copy: displayCopy || '',
         product_description: brandName || campaignName || '',
-        language: i18n?.language || 'pt',
+        language: campaignLang || i18n?.language || 'pt',
       });
       if (data.image_url) {
         setCustomImages(prev => [...prev, { url: data.image_url, name: `${style}-${Date.now()}` }]);
