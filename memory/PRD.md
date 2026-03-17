@@ -16,7 +16,7 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - Google Calendar/Sheets integration in Agent Config
 - Data persistence in Supabase (companies, avatars in tenants.settings JSONB)
 - Dual-source avatar generation (photo + video)
-- Iterative AI Accuracy Agent (Describer → Artist → Critic loop)
+- Iterative AI Accuracy Agent (Describer -> Artist -> Critic loop)
 - EDIT-based generation prompt (identity preservation)
 - Real company logo compositing via PIL (black background auto-removal with numpy)
 - logo_url parameter on all 3 avatar endpoints (accuracy, variant, 360)
@@ -25,21 +25,22 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - Default "Company Uniform" outfit
 - Voice Mastering, Voice Bank (TTS), Custom Recording
 - Avatar Video Preview (5s lip-sync via fal.ai)
-- Automatic 360° generation
+- Automatic 360 generation
 - Sora-based Presenter Mode
 - Multi-language support (EN, PT, ES)
+- **Manual Campaign Sharing** - Share Bar with image selector, text editor, and deep links for WhatsApp, Facebook, Telegram, Instagram, Email
 
 ## Completed - March 2026
 - [x] Data persistence migrated from localStorage to Supabase
 - [x] Dual Upload (Photo + Video) for enhanced identity accuracy
 - [x] Image Accuracy Agent with visual Agent Timeline
 - [x] Default "Company Uniform" outfit
-- [x] Fixed Critic JSON parsing bug — regex-first score extraction
+- [x] Fixed Critic JSON parsing bug - regex-first score extraction
 - [x] Lowered accuracy threshold from 8 to 7
-- [x] Real logo compositing — company logo from saved logo_url via PIL + numpy background removal
+- [x] Real logo compositing - company logo via PIL + numpy background removal
 - [x] logo_url parameter added to all 3 avatar endpoints
-- [x] EDIT-based generation prompt for better identity preservation (9/10 similarity achieved)
-- [x] Cleaned prompts — removed "company logo" text from AI generation prompts
+- [x] EDIT-based generation prompt for better identity preservation (9/10 similarity)
+- [x] **Share Bar** - "Compartilhar Agora" with image selector, editable text, copy button, and 5 platform share buttons
 
 ## Backlog (Priority Order)
 ### P1 - Technical Debt
@@ -50,6 +51,7 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [ ] Rename AI agents in pipeline
 - [ ] Redesign Landing/Login page
 - [ ] AI Marketing Studio campaigns (Phase 7)
+- [ ] Automated campaign sharing (scheduling)
 
 ### P3 - Future
 - [ ] CRM with Kanban board
@@ -65,6 +67,8 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - POST /api/campaigns/pipeline/generate-avatar-360 (logo_url)
 - GET/POST /api/data/companies
 - GET/POST /api/data/avatars
+- GET /api/campaigns
+- GET /api/dashboard/stats
 
 ## Credentials
 - Email: test@agentflow.com / Password: password123
