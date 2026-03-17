@@ -28,11 +28,25 @@ router = APIRouter(prefix="/api/campaigns/pipeline", tags=["pipeline"])
 EMERGENT_PROXY_URL = "https://integrations.emergentagent.com/llm"
 
 async def _describe_person(img_b64: str, mime: str = "image/png") -> str:
-    """Use Gemini Vision to get a detailed description of a person from their photo."""
+    """Use Gemini Vision to get an extremely detailed description of a person."""
     try:
         messages = [
             {"role": "user", "content": [
-                {"type": "text", "text": "Write a concise physical description (max 100 words) of this person for an AI portrait generator. Include: ethnicity/skin tone, face shape, eyes, nose, mouth, facial hair details, hair color/style/length, body build, approximate age. Be precise and factual."},
+                {"type": "text", "text": (
+                    "You are an expert forensic artist. Write an EXTREMELY DETAILED physical description "
+                    "(max 200 words) of this person for an AI portrait generator that must recreate them EXACTLY. "
+                    "Be PRECISE about:\n"
+                    "- FACE: exact shape (oval/round/square/heart/oblong), jawline (sharp/soft/wide), chin shape\n"
+                    "- EYES: exact shape, size, color, spacing, eyelids, eyebrows (shape, thickness, arch)\n"
+                    "- NOSE: exact shape (straight/hooked/button/wide/narrow), bridge width, tip shape\n"
+                    "- MOUTH: lip thickness (upper vs lower), width, any asymmetry\n"
+                    "- SKIN: exact tone (use Fitzpatrick scale), texture, any marks/moles/freckles\n"
+                    "- HAIR: exact color (use hex if possible), texture (straight/wavy/curly/coily), length, style, hairline\n"
+                    "- FACIAL HAIR: exact pattern, length, density, color (if present)\n"
+                    "- BODY: build (slim/athletic/stocky/heavy), estimated height, shoulder width\n"
+                    "- UNIQUE FEATURES: glasses, piercings, dimples, scars, wrinkles, age estimate\n"
+                    "This description will be used to verify identity - be as specific as a police sketch artist."
+                )},
                 {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}}
             ]}
         ]
@@ -42,7 +56,7 @@ async def _describe_person(img_b64: str, mime: str = "image/png") -> str:
             api_key=EMERGENT_KEY,
             api_base=EMERGENT_PROXY_URL,
             custom_llm_provider="openai",
-            max_tokens=200,
+            max_tokens=350,
         )
         desc = response.choices[0].message.content or ""
         logger.info(f"Person description: {desc[:100]}...")
@@ -53,26 +67,30 @@ async def _describe_person(img_b64: str, mime: str = "image/png") -> str:
 
 
 async def _accuracy_compare(source_b64: str, source_mime: str, avatar_b64: str, avatar_mime: str) -> dict:
-    """Compare source photo with generated avatar using Gemini Vision.
-    Returns { score: int (1-10), feedback: str, passed: bool }."""
+    """Compare source photo with generated avatar. STRICT: requires score >= 8 to pass."""
     try:
         messages = [
             {"role": "user", "content": [
                 {"type": "text", "text": (
-                    "You are an expert identity verification specialist. Compare these two images:\n"
-                    "IMAGE 1 (left/first): The ORIGINAL reference photo of a real person.\n"
-                    "IMAGE 2 (right/second): An AI-generated avatar that should look like the SAME person.\n\n"
-                    "Rate the identity preservation on a scale of 1-10 based on:\n"
-                    "- Face shape and structure (jawline, cheekbones)\n"
-                    "- Eyes (shape, color, spacing)\n"
-                    "- Nose (shape, size)\n"
-                    "- Mouth and lips\n"
-                    "- Skin tone and complexion\n"
-                    "- Hair color, style, and length\n"
-                    "- Facial hair (beard, mustache) if present\n"
-                    "- Body build\n\n"
-                    "Respond ONLY in this exact JSON format (no markdown, no extra text):\n"
-                    '{"score": <1-10>, "feedback": "<specific issues to fix, max 80 words>", "passed": <true if score >= 7, false otherwise>}'
+                    "You are an ULTRA-STRICT forensic identity specialist. Be HARSH and CRITICAL.\n\n"
+                    "IMAGE 1: ORIGINAL photo of a real person.\n"
+                    "IMAGE 2: AI-generated avatar that MUST look IDENTICAL.\n\n"
+                    "Rate 1-10 comparing EACH feature:\n"
+                    "- Face shape, jawline, cheekbones (exact match?)\n"
+                    "- Eyes shape, color, spacing, eyelids, brows\n"
+                    "- Nose shape, width, bridge, tip\n"
+                    "- Mouth, lip thickness, shape\n"
+                    "- Skin tone (exact Fitzpatrick match?)\n"
+                    "- Hair color, style, texture, length\n"
+                    "- Facial hair pattern, density, color\n"
+                    "- Body build, proportions\n"
+                    "- Would someone INSTANTLY recognize this as the same person?\n\n"
+                    "SCORING: 1-5=wrong person, 6-7=similar but different, 8=same person with minor differences, "
+                    "9=nearly identical, 10=perfect.\n"
+                    "ONLY score 8+ if CONFIDENT it's recognizably the same person.\n"
+                    "If score < 8, give SPECIFIC corrections.\n\n"
+                    "JSON only (no markdown):\n"
+                    '{"score": <1-10>, "feedback": "<corrections needed, 100 words max>", "passed": <true ONLY if score >= 8>}'
                 )},
                 {"type": "image_url", "image_url": {"url": f"data:{source_mime};base64,{source_b64}"}},
                 {"type": "image_url", "image_url": {"url": f"data:{avatar_mime};base64,{avatar_b64}"}}
@@ -84,44 +102,45 @@ async def _accuracy_compare(source_b64: str, source_mime: str, avatar_b64: str, 
             api_key=EMERGENT_KEY,
             api_base=EMERGENT_PROXY_URL,
             custom_llm_provider="openai",
-            max_tokens=200,
+            max_tokens=250,
         )
         raw = response.choices[0].message.content or ""
-        logger.info(f"Accuracy comparison raw: {raw[:200]}")
-        # Parse JSON from response - robust extraction
+        logger.info(f"Accuracy raw full: {raw}")
         import json
         import re
         clean = raw.strip()
-        if clean.startswith("```"): clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-        # Try direct parse first
+        # Remove markdown code blocks
+        if clean.startswith("```"):
+            clean = re.sub(r'^```\w*\n?', '', clean)
+            clean = re.sub(r'\n?```$', '', clean)
+            clean = clean.strip()
+        # Remove any text before { or after }
+        start = clean.find('{')
+        end = clean.rfind('}')
+        if start >= 0 and end > start:
+            clean = clean[start:end + 1]
+        # Fix common JSON issues: replace newlines in strings
+        clean = re.sub(r'(?<=\w)\n(?=\w)', ' ', clean)
         try:
             result = json.loads(clean)
         except json.JSONDecodeError:
-            # Try to extract JSON object with regex
-            m = re.search(r'\{[^{}]+\}', clean, re.DOTALL)
-            if m:
-                try:
-                    result = json.loads(m.group())
-                except json.JSONDecodeError:
-                    # Last resort: extract score with regex
-                    score_m = re.search(r'"score"\s*:\s*(\d+)', clean)
-                    passed_m = re.search(r'"passed"\s*:\s*(true|false)', clean, re.IGNORECASE)
-                    feedback_m = re.search(r'"feedback"\s*:\s*"([^"]*)"', clean)
-                    result = {
-                        "score": int(score_m.group(1)) if score_m else 5,
-                        "feedback": feedback_m.group(1) if feedback_m else "",
-                        "passed": passed_m.group(1).lower() == "true" if passed_m else True,
-                    }
-            else:
-                result = {"score": 5, "feedback": "", "passed": True}
-        return {
-            "score": int(result.get("score", 5)),
-            "feedback": str(result.get("feedback", "")),
-            "passed": bool(result.get("passed", False))
-        }
+            # Try with escaped newlines removed
+            try:
+                result = json.loads(clean.replace('\n', ' ').replace('\r', ''))
+            except json.JSONDecodeError:
+                score_m = re.search(r'"score"\s*:\s*(\d+)', raw)
+                feedback_m = re.search(r'"feedback"\s*:\s*"((?:[^"\\]|\\.)*)"', raw, re.DOTALL)
+                score = int(score_m.group(1)) if score_m else 4
+                result = {"score": score, "feedback": feedback_m.group(1)[:200] if feedback_m else "Parse failed", "passed": score >= 8}
+                logger.info(f"Regex fallback: score={score}")
+        # ENFORCE strict threshold
+        score = int(result.get("score", 4))
+        feedback = str(result.get("feedback", ""))[:200]
+        logger.info(f"Critic verdict: score={score}, passed={score >= 8}, feedback={feedback[:80]}")
+        return {"score": score, "feedback": feedback, "passed": score >= 8}
     except Exception as e:
         logger.warning(f"Accuracy comparison failed: {e}")
-        return {"score": 5, "feedback": "", "passed": True}  # Pass on error to not block
+        return {"score": 4, "feedback": "Error - regenerating", "passed": False}
 
 
 async def _describe_person_from_video(frames: list) -> str:
@@ -3133,16 +3152,24 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_url
             }
 
             prompt = (
-                "FOCUS ONLY ON THE PERSON in this photo. IGNORE the background, other people, and scenery completely. "
-                "Create a FULL-BODY professional portrait of this EXACT SAME person. "
-                "Do NOT generate a different person. Preserve their EXACT face, features, skin tone, facial hair, and hair. "
-                "Show them standing confidently in a modern studio with soft lighting. "
-                "CLOTHING: Dress them in a crisp white polo shirt with a small company logo embroidered on the left chest, "
-                "fitted black dress pants, and clean white sneakers (sapatênis). "
-                "Full body visible from head to feet. "
-                "REPLACE the background with a clean, minimal studio background. "
-                "Photorealistic, 4K detail. "
-                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+                "CRITICAL TASK: Create a photorealistic FULL-BODY portrait of the EXACT SAME person in this reference photo. "
+                "This is NOT about creating a 'similar looking' person — it MUST BE the same individual.\n\n"
+                "IDENTITY RULES (non-negotiable):\n"
+                "- FACE: Reproduce the EXACT same face shape, jawline, cheekbones, forehead\n"
+                "- EYES: Same shape, color, size, spacing, eyelids, brow shape\n"
+                "- NOSE: Same shape, width, bridge, tip — this is a key identifier\n"
+                "- MOUTH: Same lip thickness, width, shape\n"
+                "- SKIN: EXACT same tone and complexion — no lightening or darkening\n"
+                "- HAIR: Same color, texture, style, length, hairline\n"
+                "- FACIAL HAIR: If present, reproduce EXACT same pattern, density, color, length\n"
+                "- BODY: Same build, proportions, height\n"
+                "- AGE: Same apparent age — no aging or de-aging\n\n"
+                "OUTFIT: Crisp white polo shirt with a small company logo embroidered on the left chest, "
+                "fitted black dress pants, and clean white sneakers (sapatênis style).\n\n"
+                "POSE: Standing confidently, slight natural smile, arms relaxed at sides.\n"
+                "BACKGROUND: Clean minimal studio, soft professional lighting.\n"
+                "FORMAT: VERTICAL portrait (3:5 ratio), full body from head to feet.\n"
+                "QUALITY: Photorealistic, 4K detail, studio photography quality."
             )
             if person_desc:
                 prompt = f"PERSON TO FOCUS ON (ignore background and other people): {person_desc}\n\n{prompt}"
