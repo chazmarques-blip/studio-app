@@ -123,6 +123,40 @@ async def _accuracy_compare(source_b64: str, source_mime: str, avatar_b64: str, 
         logger.warning(f"Accuracy comparison failed: {e}")
         return {"score": 5, "feedback": "", "passed": True}  # Pass on error to not block
 
+
+async def _describe_person_from_video(frames: list) -> str:
+    """Use Gemini Vision to describe a person from multiple video frames for enhanced identity capture."""
+    try:
+        content = [
+            {"type": "text", "text": (
+                "You are looking at multiple video frames of the SAME person. "
+                "Write a DETAILED physical description (max 150 words) combining all frames. "
+                "Focus on: exact skin tone, face shape, jawline, cheekbones, eye shape/color/spacing, "
+                "nose shape/size, lip shape, facial hair details (beard pattern, length, color), "
+                "hair color/texture/style/length, body build, height estimation, posture, "
+                "and any distinctive features (moles, scars, dimples, glasses). "
+                "Be extremely precise — this will be used to recreate this exact person."
+            )}
+        ]
+        for frame in frames[:3]:
+            content.append({"type": "image_url", "image_url": {"url": f"data:{frame['mime']};base64,{frame['data']}"}})
+
+        messages = [{"role": "user", "content": content}]
+        response = litellm.completion(
+            model="gemini/gemini-2.5-flash",
+            messages=messages,
+            api_key=EMERGENT_KEY,
+            api_base=EMERGENT_PROXY_URL,
+            custom_llm_provider="openai",
+            max_tokens=250,
+        )
+        desc = response.choices[0].message.content or ""
+        logger.info(f"Video frames description: {desc[:100]}...")
+        return desc.strip()
+    except Exception as e:
+        logger.warning(f"Video frames description failed: {e}")
+        return ""
+
 async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: str = "image/png") -> list:
     """Send text+image in the SAME multimodal message to Gemini for image editing.
     Returns list of image dicts [{mime_type, data}]."""
@@ -3016,19 +3050,20 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
 
 class AvatarAccuracyRequest(BaseModel):
     source_image_url: str
+    video_frame_urls: list = []  # Additional frames from video for richer reference
     company_name: str = ""
     max_iterations: int = 3
 
 # In-memory store for accuracy generation jobs
 _accuracy_jobs = {}
 
-def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: str, max_iterations: int):
+def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_urls: list, company_name: str, max_iterations: int):
     """Background thread: generate avatar with accuracy agent feedback loop."""
     import asyncio
     import json
     loop = asyncio.new_event_loop()
     try:
-        # Download source image
+        # Download source image (primary reference)
         img_b64 = None
         mime = "image/png"
         try:
@@ -3047,22 +3082,42 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: s
             _accuracy_jobs[job_id] = {"status": "failed", "error": "Could not read source image"}
             return
 
-        # Step 1: Get vision description of the person
-        _accuracy_jobs[job_id] = {"status": "processing", "progress": "Analyzing reference...", "iteration": 0, "iterations": []}
+        # Download video frames for additional reference
+        extra_frames_b64 = []
+        for frame_url in (video_frame_urls or [])[:3]:
+            try:
+                freq = urllib.request.Request(frame_url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(freq, timeout=10) as fresp:
+                    fdata = fresp.read()
+                    fb64 = base64.b64encode(fdata).decode("utf-8")
+                    fct = fresp.headers.get("Content-Type", "image/png")
+                    fmime = fct if fct.startswith("image/") else "image/png"
+                    extra_frames_b64.append({"data": fb64, "mime": fmime})
+            except Exception as fe:
+                logger.warning(f"Failed to download video frame: {fe}")
+
+        # Step 1: Get vision description — use photo as primary
+        AGENTS = [
+            {"name": "Scanner", "role": "Analyzing reference"},
+            {"name": "Artist", "role": "Generating avatar"},
+            {"name": "Critic", "role": "Evaluating accuracy"},
+        ]
+        _accuracy_jobs[job_id] = {"status": "processing", "progress": "Analyzing reference photo...", "iteration": 0, "iterations": [], "agents": AGENTS, "active_agent": "Scanner"}
         person_desc = loop.run_until_complete(_describe_person(img_b64, mime))
+
+        # Enhance description with video frames if available
+        if extra_frames_b64:
+            _accuracy_jobs[job_id]["progress"] = "Analyzing video frames for enhanced identity..."
+            video_desc = loop.run_until_complete(_describe_person_from_video(extra_frames_b64))
+            if video_desc:
+                person_desc = f"{person_desc}\nADDITIONAL DETAILS FROM VIDEO: {video_desc}"
+                logger.info(f"Enhanced desc with video: {video_desc[:100]}...")
 
         system_msg = (
             "You are an expert portrait photographer. You create stunning full-body professional photos. "
             "CRITICAL: Always output VERTICAL portrait format (taller than wide, approximately 3:5 ratio). "
             "When given a reference photo, preserve the person's EXACT identity — same face, features, skin tone, hair."
         )
-
-        # Agent pipeline names for visual timeline
-        AGENTS = [
-            {"name": "Scanner", "role": "Analyzing reference"},
-            {"name": "Artist", "role": "Generating avatar"},
-            {"name": "Critic", "role": "Evaluating accuracy"},
-        ]
 
         iterations = []
         extra_feedback = ""
@@ -3165,7 +3220,7 @@ async def generate_avatar_with_accuracy(req: AvatarAccuracyRequest, user=Depends
     _accuracy_jobs[job_id] = {"status": "processing", "progress": "Starting...", "iteration": 0, "iterations": []}
     thread = threading.Thread(
         target=_run_accuracy_generation,
-        args=(job_id, req.source_image_url, req.company_name, min(req.max_iterations, 3)),
+        args=(job_id, req.source_image_url, req.video_frame_urls, req.company_name, min(req.max_iterations, 3)),
         daemon=True
     )
     thread.start()
@@ -3215,6 +3270,30 @@ async def extract_from_video(file: UploadFile = File(...), user=Depends(get_curr
                 capture_output=True, timeout=30
             )
 
+        # Extract additional frames at different times for enhanced identity
+        extra_frame_urls = []
+        frame_times = [max(0.5, duration * 0.15), max(1.0, duration * 0.5), max(1.5, duration * 0.75)]
+        for i, ft in enumerate(frame_times):
+            if ft >= duration:
+                continue
+            ef_path = f"/tmp/avatar_frame_{uid}_extra_{i}.jpg"
+            ef_r = subprocess.run(
+                [FFMPEG_PATH, "-y", "-ss", str(ft), "-i", video_path,
+                 "-vframes", "1", "-q:v", "2", ef_path],
+                capture_output=True, timeout=15
+            )
+            if ef_r.returncode == 0 and os.path.exists(ef_path) and os.path.getsize(ef_path) > 500:
+                with open(ef_path, "rb") as ef:
+                    ef_bytes = ef.read()
+                ef_filename = f"avatars/video_frame_{uid}_extra_{i}.jpg"
+                ef_url = _upload_to_storage(ef_bytes, ef_filename, "image/jpeg")
+                extra_frame_urls.append(ef_url)
+            if os.path.exists(ef_path):
+                try:
+                    os.remove(ef_path)
+                except Exception:
+                    pass
+
         # Extract audio
         audio_path = f"/tmp/avatar_audio_{uid}.mp3"
         r2 = subprocess.run(
@@ -3252,6 +3331,7 @@ async def extract_from_video(file: UploadFile = File(...), user=Depends(get_curr
             "frame_url": frame_url,
             "audio_url": audio_url,
             "duration": round(duration, 1),
+            "extra_frame_urls": extra_frame_urls,
         }
     except HTTPException:
         raise

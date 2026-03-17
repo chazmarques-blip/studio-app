@@ -591,6 +591,14 @@
     "agent_scanner": "Analisando",
     "agent_artist": "Gerando",
     "agent_critic": "Avaliando",
-    "avatars_cleared": "Avatares limpos"
+    "avatars_cleared": "Avatares limpos",
+    "photo_reference": "Referência - Foto",
+    "video_reference": "Referência - Vídeo",
+    "required": "Obrigatório",
+    "photo_desc_detail": "Referência facial em alta resolução",
+    "video_processed": "Vídeo processado",
+    "extra_frames": "frames",
+    "video_adds_accuracy": "Adiciona corpo, voz e expressões para maior precisão",
+    "enhanced_accuracy": "Precisão aprimorada: foto + vídeo ativos"
   }
 }

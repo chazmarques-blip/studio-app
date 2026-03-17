@@ -892,9 +892,10 @@ export default function PipelineView({ context }) {
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null);
-  const [avatarSourceType, setAvatarSourceType] = useState('video'); // 'photo' | 'video'
+  const [avatarSourceType, setAvatarSourceType] = useState('video'); // 'photo' | 'video' (current upload mode)
   const [avatarVideoUploading, setAvatarVideoUploading] = useState(false);
   const [avatarExtractedAudio, setAvatarExtractedAudio] = useState(null); // { url }
+  const [avatarVideoFrames, setAvatarVideoFrames] = useState([]); // extra frame URLs from video
   const [masteringVoice, setMasteringVoice] = useState(false);
   const [generatingPreviewVideo, setGeneratingPreviewVideo] = useState(false);
   const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
@@ -1084,6 +1085,10 @@ export default function PipelineView({ context }) {
       const { data } = await axios.post(`${API}/campaigns/pipeline/extract-from-video`, form, { timeout: 120000 });
       if (data.frame_url) {
         setAvatarSourcePhoto({ url: data.frame_url, preview: data.frame_url });
+        // Store extra frames for enhanced identity matching
+        if (data.extra_frame_urls?.length) {
+          setAvatarVideoFrames(data.extra_frame_urls);
+        }
         if (data.audio_url) {
           setAvatarExtractedAudio({ url: data.audio_url });
           toast.success(t('studio.video_extracted'));
@@ -1136,6 +1141,7 @@ export default function PipelineView({ context }) {
       // Use accuracy agent endpoint with polling
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-with-accuracy`, {
         source_image_url: avatarSourcePhoto?.url || '',
+        video_frame_urls: avatarVideoFrames || [],
         company_name: activeCompany?.name || '',
         max_iterations: 3,
       });
@@ -1271,6 +1277,7 @@ export default function PipelineView({ context }) {
     setAvatarSourceType('video');
     setAvatarVideoUploading(false);
     setAvatarExtractedAudio(null);
+    setAvatarVideoFrames([]);
     setAvatarStage('upload');
     setTempAvatar(null);
     setEditingAvatarId(null);
@@ -2050,21 +2057,7 @@ export default function PipelineView({ context }) {
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {avatarStage === 'upload' ? (
                   <>
-                    {/* Source Type Toggle — Video first (recommended) */}
-                    <div className="flex rounded-lg border border-[#1E1E1E] overflow-hidden">
-                      <button data-testid="avatar-source-video" onClick={() => setAvatarSourceType('video')}
-                        className={`flex-1 py-2 text-[10px] font-medium flex items-center justify-center gap-1.5 transition ${
-                          avatarSourceType === 'video' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border-b-2 border-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>
-                        <Film size={12} /> {t('studio.from_video')}
-                        <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-[#C9A84C]/20 text-[7px] text-[#C9A84C] font-bold uppercase tracking-wide">{t('studio.recommended') || 'Best'}</span>
-                      </button>
-                      <button data-testid="avatar-source-photo" onClick={() => setAvatarSourceType('photo')}
-                        className={`flex-1 py-2 text-[10px] font-medium flex items-center justify-center gap-1.5 transition ${
-                          avatarSourceType === 'photo' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border-b-2 border-[#C9A84C]' : 'text-[#444] hover:text-[#666]'}`}>
-                        <Camera size={12} /> {t('studio.from_photo')}
-                      </button>
-                    </div>
-
+                    {/* Dual upload: Photo + Video for maximum accuracy */}
                     <input ref={avatarInputRef} type="file" accept={avatarSourceType === 'video' ? 'video/mp4,video/quicktime,video/webm,video/*' : 'image/png,image/jpeg,image/jpg,image/webp'}
                       style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
                       onChange={e => {
@@ -2072,28 +2065,106 @@ export default function PipelineView({ context }) {
                         else uploadAvatarPhoto(e.target.files);
                         e.target.value = '';
                       }} />
-                    {avatarSourcePhoto ? (
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-4">
+
+                    {/* Photo Upload Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Camera size={12} className="text-[#C9A84C]" />
+                        <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
+                        {!avatarSourcePhoto && <span className="text-[7px] text-red-400/70 uppercase">*{t('studio.required') || 'Required'}</span>}
+                      </div>
+                      {avatarSourcePhoto ? (
+                        <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
                           <div className="relative shrink-0">
                             <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Source"
                               onError={(e) => { if (avatarSourcePhoto.url) e.target.src = resolveImageUrl(avatarSourcePhoto.url); }}
-                              className="h-24 w-24 rounded-xl object-cover border border-[#C9A84C]/30" />
-                            <button onClick={() => { setAvatarSourcePhoto(null); setAvatarExtractedAudio(null); }}
-                              className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center">
-                              <X size={10} className="text-white" />
+                              className="h-16 w-16 rounded-lg object-cover border border-[#C9A84C]/30" />
+                            <button onClick={() => { setAvatarSourcePhoto(null); }}
+                              className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+                              <X size={8} className="text-white" />
                             </button>
                           </div>
-                          <div className="flex-1 space-y-1">
-                            <p className="text-[10px] text-[#888]">{avatarSourceType === 'video' ? t('studio.frame_from_video') : t('studio.photo_uploaded')}</p>
-                            {avatarExtractedAudio && (
-                              <div className="flex items-center gap-1.5 mt-1 px-2 py-1 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20">
-                                <Volume2 size={10} className="text-[#10B981]" />
-                                <span className="text-[8px] text-[#10B981] font-medium">{t('studio.voice_extracted')}</span>
-                              </div>
-                            )}
+                          <div>
+                            <p className="text-[9px] text-[#888]">{t('studio.photo_uploaded') || 'Photo uploaded'}</p>
+                            <p className="text-[7px] text-[#444]">{t('studio.photo_desc_detail') || 'High-resolution facial reference'}</p>
                           </div>
+                          <Check size={14} className="text-green-400 ml-auto" />
                         </div>
+                      ) : (
+                        <button data-testid="upload-photo-btn" onClick={() => { setAvatarSourceType('photo'); setTimeout(() => avatarInputRef.current?.click(), 100); }}
+                          disabled={avatarPhotoUploading}
+                          className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
+                          {avatarPhotoUploading ? (
+                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-[9px] text-[#555]">{t('studio.uploading')}</span></div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-2">
+                              <Upload size={14} className="text-[#444] group-hover:text-[#C9A84C] transition" />
+                              <span className="text-[9px] text-[#555] group-hover:text-[#C9A84C] transition">{t('studio.select_photo') || 'Select photo'}</span>
+                            </div>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Video Upload Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Film size={12} className="text-[#C9A84C]" />
+                        <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.video_reference') || 'Video Reference'}</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-[6px] text-[#C9A84C] font-bold uppercase">{t('studio.recommended') || 'Recommended'}</span>
+                      </div>
+                      {avatarExtractedAudio || avatarVideoFrames.length > 0 ? (
+                        <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
+                          {avatarVideoFrames.length > 0 && (
+                            <div className="flex -space-x-2 shrink-0">
+                              {avatarVideoFrames.slice(0, 3).map((url, i) => (
+                                <img key={i} src={resolveImageUrl(url)} alt={`frame ${i}`}
+                                  className="h-10 w-10 rounded-lg object-cover border-2 border-[#0A0A0A]" />
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex-1 space-y-0.5">
+                            <p className="text-[9px] text-[#888]">{t('studio.video_processed') || 'Video processed'}</p>
+                            <div className="flex items-center gap-2">
+                              {avatarVideoFrames.length > 0 && (
+                                <span className="text-[7px] text-[#555]">{avatarVideoFrames.length} {t('studio.extra_frames') || 'frames'}</span>
+                              )}
+                              {avatarExtractedAudio && (
+                                <span className="flex items-center gap-1 text-[7px] text-[#10B981]"><Volume2 size={8} /> {t('studio.voice_extracted')}</span>
+                              )}
+                            </div>
+                          </div>
+                          <button onClick={() => { setAvatarExtractedAudio(null); setAvatarVideoFrames([]); }}
+                            className="p-1 rounded hover:bg-[#1A1A1A]"><X size={12} className="text-[#555]" /></button>
+                        </div>
+                      ) : (
+                        <button data-testid="upload-video-btn" onClick={() => { setAvatarSourceType('video'); setTimeout(() => avatarInputRef.current?.click(), 100); }}
+                          disabled={avatarVideoUploading}
+                          className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
+                          {avatarVideoUploading ? (
+                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-[9px] text-[#555]">{t('studio.extracting_video')}</span></div>
+                          ) : (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-center gap-2">
+                                <Upload size={14} className="text-[#444] group-hover:text-[#C9A84C] transition" />
+                                <span className="text-[9px] text-[#555] group-hover:text-[#C9A84C] transition">{t('studio.select_video') || 'Select video'}</span>
+                              </div>
+                              <p className="text-[7px] text-[#333]">{t('studio.video_adds_accuracy') || 'Adds body, voice & expression data for higher accuracy'}</p>
+                            </div>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Generate Button (requires photo) */}
+                    {avatarSourcePhoto && (
+                      <div className="space-y-2 pt-2">
+                        {avatarVideoFrames.length > 0 && (
+                          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-green-500/5 border border-green-500/15">
+                            <ShieldCheck size={10} className="text-green-400" />
+                            <span className="text-[7px] text-green-400">{t('studio.enhanced_accuracy') || 'Enhanced accuracy: photo + video references active'}</span>
+                          </div>
+                        )}
                         <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
                           disabled={generatingAvatar}
                           className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
@@ -2182,46 +2253,6 @@ export default function PipelineView({ context }) {
                             )}
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 space-y-3">
-                        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A84C]/5 border border-[#C9A84C]/15">
-                          {avatarSourceType === 'video' ? <Film size={24} className="text-[#C9A84C]" /> : <Upload size={24} className="text-[#C9A84C]" />}
-                        </div>
-                        <div>
-                          <p className="text-xs text-white font-medium">{avatarSourceType === 'video' ? t('studio.upload_video_title') : t('studio.upload_photo_title')}</p>
-                          <p className="text-[9px] text-[#555] mt-0.5">{avatarSourceType === 'video' ? t('studio.upload_video_desc') : t('studio.upload_photo_desc')}</p>
-                        </div>
-                        <button data-testid="avatar-upload-btn" onClick={() => avatarInputRef.current?.click()}
-                          disabled={avatarPhotoUploading || avatarVideoUploading}
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-dashed border-[#C9A84C]/30 text-[11px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition disabled:opacity-40">
-                          {(avatarPhotoUploading || avatarVideoUploading) ? (
-                            <><Loader2 size={12} className="animate-spin" /> {avatarVideoUploading ? t('studio.extracting_video') : t('studio.uploading')}</>
-                          ) : (
-                            <><Upload size={12} /> {avatarSourceType === 'video' ? t('studio.select_video') : t('studio.select_photo')}</>
-                          )}
-                        </button>
-                        {avatarSourceType === 'video' && (
-                          <p className="text-[8px] text-[#555] italic">{t('studio.video_hint')}</p>
-                        )}
-                        <div className="mt-2 rounded-lg bg-[#111]/60 border border-[#1E1E1E] px-3 py-2 text-left">
-                          <p className="text-[8px] text-[#666] font-semibold uppercase tracking-wider mb-1">{t('studio.specs') || 'Specs'}</p>
-                          {avatarSourceType === 'video' ? (
-                            <ul className="text-[8px] text-[#555] space-y-0.5">
-                              <li>MP4, MOV, WebM</li>
-                              <li>{t('studio.video_spec_duration') || '10-30s, person speaking naturally'}</li>
-                              <li>{t('studio.video_spec_quality') || 'Good lighting, face clearly visible'}</li>
-                              <li>{t('studio.video_spec_size') || 'Max 100MB'}</li>
-                            </ul>
-                          ) : (
-                            <ul className="text-[8px] text-[#555] space-y-0.5">
-                              <li>PNG, JPG, WebP</li>
-                              <li>{t('studio.photo_spec_res') || 'Min 512x512px, ideal 1024x1024'}</li>
-                              <li>{t('studio.photo_spec_quality') || 'Clear face, good lighting'}</li>
-                              <li>{t('studio.photo_spec_size') || 'Max 10MB'}</li>
-                            </ul>
-                          )}
-                        </div>
                       </div>
                     )}
                   </>
