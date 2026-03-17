@@ -1253,8 +1253,8 @@ async def _generate_design_images(pipeline_id, lucas_output, platforms):
 
     exact_photos = [a for a in uploaded_assets if a.get("type") == "exact"]
 
-    LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
-    lang_name = LANG_NAMES.get(campaign_language, "Portuguese")
+    LANG_NAMES = {"pt": "Portuguese (Português)", "en": "English", "es": "Spanish (Español)", "fr": "French (Français)", "ht": "Haitian Creole"}
+    lang_name = LANG_NAMES.get(campaign_language, "Portuguese (Português)")
     LANG_HEADLINES = {
         "pt": "O headline DEVE ser em Português do Brasil.",
         "en": "The headline MUST be in English.",
@@ -4514,23 +4514,33 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
         "professional": "High-end commercial photography. Studio-quality lighting, professional color grading, clean background, sharp focus on subject with natural bokeh."
     }
 
-    LANG_MAP = {"pt": "Portuguese", "es": "Spanish", "en": "English"}
-    lang_name = LANG_MAP.get(body.language, "Portuguese")
+    LANG_MAP = {"pt": "Portuguese (Português)", "es": "Spanish (Español)", "en": "English"}
+    lang_name = LANG_MAP.get(body.language, "Portuguese (Português)")
+    lang_code = body.language or "pt"
 
     style_desc = STYLE_PROMPTS.get(body.style, STYLE_PROMPTS["professional"])
 
+    # Build prompt with LANGUAGE as the FIRST and DOMINANT instruction
+    lang_header = f"""⚠️ ABSOLUTE MANDATORY LANGUAGE RULE — OVERRIDES EVERYTHING BELOW:
+ALL text, headlines, words, phrases visible in this image MUST be written EXCLUSIVELY in {lang_name}.
+DO NOT use English or any other language. If any text would naturally be in English, TRANSLATE it to {lang_name}.
+This is NON-NEGOTIABLE. Any text not in {lang_name} makes the image UNUSABLE.
+"""
+
     if body.prompt_override.strip():
-        prompt = body.prompt_override.strip()
+        content_prompt = body.prompt_override.strip()
     else:
         context = body.product_description or body.campaign_name or "brand"
         copy_hint = body.campaign_copy[:200] if body.campaign_copy else ""
-        prompt = f"Create a stunning marketing visual for: {context}."
+        content_prompt = f"Create a stunning marketing visual for: {context}."
         if copy_hint:
-            prompt += f" Campaign message: {copy_hint}"
+            content_prompt += f" The campaign message (use this as reference for the headline language and tone): {copy_hint}"
 
+    prompt = lang_header
+    prompt += f"\n{content_prompt}"
     prompt += f"\n\nVISUAL STYLE: {style_desc}"
-    prompt += f"\n\nINCLUDE one short impactful headline text (3-7 words) in {lang_name} language, in bold clean typography. No logos or brand names. 1080x1080 square format."
-    prompt += f"\nALL text in the image MUST be in {lang_name}."
+    prompt += f"\n\nINCLUDE one short impactful headline text (3-7 words) written in {lang_name}, in bold clean typography. No logos or brand names. 1080x1080 square format."
+    prompt += f"\n\n🚨 FINAL CHECK: Every single word visible in the generated image MUST be in {lang_name}. Zero exceptions."
 
     pid = f"single-{uuid.uuid4().hex[:8]}"
     url = await _generate_image(prompt, pid, 1)
@@ -4756,15 +4766,21 @@ async def regenerate_pipeline_image(pipeline_id: str, data: RegenerateImageReque
     # Get pipeline context for image generation
     pipeline_result = pipeline.get("result") or {}
     campaign_language = pipeline_result.get("campaign_language", "en")
-    lang_name = {"en": "English", "pt": "Portuguese", "es": "Spanish", "fr": "French", "de": "German", "it": "Italian"}.get(campaign_language, "English")
+    lang_name = {"en": "English", "pt": "Portuguese (Português)", "es": "Spanish (Español)", "fr": "French (Français)", "de": "German", "it": "Italian", "ht": "Haitian Creole"}.get(campaign_language, "English")
     platforms = pipeline.get("platforms") or ["instagram"]
 
     # Build enhanced prompt with feedback
     sofia_output = steps.get("sofia_copy", {}).get("output", "")
     briefing = pipeline.get("briefing", "")
 
+    lang_header = f"""⚠️ ABSOLUTE MANDATORY LANGUAGE RULE — OVERRIDES EVERYTHING BELOW:
+ALL text, headlines, words, phrases visible in this image MUST be written EXCLUSIVELY in {lang_name}.
+DO NOT use English or any other language. If any text would naturally be in English, TRANSLATE it to {lang_name}.
+This is NON-NEGOTIABLE. Any text not in {lang_name} makes the image UNUSABLE.
+"""
+
     base_prompt = f"""Create a professional marketing image for: {briefing[:300]}
-Campaign copy context: {sofia_output[:200]}
+Campaign copy context (use as reference for tone and language): {sofia_output[:200]}
 Target platforms: {', '.join(platforms)}"""
 
     if data.feedback:
@@ -4773,16 +4789,15 @@ USER FEEDBACK: {data.feedback}
 
 Based on this feedback, create a NEW and IMPROVED image.
 Original context: {briefing[:300]}
-Campaign copy context: {sofia_output[:200]}
+Campaign copy context (use as reference for tone and language): {sofia_output[:200]}
 Target platforms: {', '.join(platforms)}"""
 
-    enhanced_prompt = f"""ABSOLUTE LANGUAGE REQUIREMENT: ALL text in the image MUST be in {lang_name}.
-
+    enhanced_prompt = f"""{lang_header}
 {base_prompt}
 
 Technical: Ultra high-quality, 4K, professional color grading. Square 1080x1080.
 NO logos, NO brand names, NO website URLs.
-ALL visible text MUST be in {lang_name}."""
+🚨 FINAL CHECK: Every single word visible in the generated image MUST be in {lang_name}. Zero exceptions."""
 
     async def _regen_image():
         try:
