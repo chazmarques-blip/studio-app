@@ -51,6 +51,78 @@ async def _describe_person(img_b64: str, mime: str = "image/png") -> str:
         logger.warning(f"Vision description failed: {e}")
         return ""
 
+
+async def _accuracy_compare(source_b64: str, source_mime: str, avatar_b64: str, avatar_mime: str) -> dict:
+    """Compare source photo with generated avatar using Gemini Vision.
+    Returns { score: int (1-10), feedback: str, passed: bool }."""
+    try:
+        messages = [
+            {"role": "user", "content": [
+                {"type": "text", "text": (
+                    "You are an expert identity verification specialist. Compare these two images:\n"
+                    "IMAGE 1 (left/first): The ORIGINAL reference photo of a real person.\n"
+                    "IMAGE 2 (right/second): An AI-generated avatar that should look like the SAME person.\n\n"
+                    "Rate the identity preservation on a scale of 1-10 based on:\n"
+                    "- Face shape and structure (jawline, cheekbones)\n"
+                    "- Eyes (shape, color, spacing)\n"
+                    "- Nose (shape, size)\n"
+                    "- Mouth and lips\n"
+                    "- Skin tone and complexion\n"
+                    "- Hair color, style, and length\n"
+                    "- Facial hair (beard, mustache) if present\n"
+                    "- Body build\n\n"
+                    "Respond ONLY in this exact JSON format (no markdown, no extra text):\n"
+                    '{"score": <1-10>, "feedback": "<specific issues to fix, max 80 words>", "passed": <true if score >= 7, false otherwise>}'
+                )},
+                {"type": "image_url", "image_url": {"url": f"data:{source_mime};base64,{source_b64}"}},
+                {"type": "image_url", "image_url": {"url": f"data:{avatar_mime};base64,{avatar_b64}"}}
+            ]}
+        ]
+        response = litellm.completion(
+            model="gemini/gemini-2.5-flash",
+            messages=messages,
+            api_key=EMERGENT_KEY,
+            api_base=EMERGENT_PROXY_URL,
+            custom_llm_provider="openai",
+            max_tokens=200,
+        )
+        raw = response.choices[0].message.content or ""
+        logger.info(f"Accuracy comparison raw: {raw[:200]}")
+        # Parse JSON from response - robust extraction
+        import json
+        import re
+        clean = raw.strip()
+        if clean.startswith("```"): clean = clean.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        # Try direct parse first
+        try:
+            result = json.loads(clean)
+        except json.JSONDecodeError:
+            # Try to extract JSON object with regex
+            m = re.search(r'\{[^{}]+\}', clean, re.DOTALL)
+            if m:
+                try:
+                    result = json.loads(m.group())
+                except json.JSONDecodeError:
+                    # Last resort: extract score with regex
+                    score_m = re.search(r'"score"\s*:\s*(\d+)', clean)
+                    passed_m = re.search(r'"passed"\s*:\s*(true|false)', clean, re.IGNORECASE)
+                    feedback_m = re.search(r'"feedback"\s*:\s*"([^"]*)"', clean)
+                    result = {
+                        "score": int(score_m.group(1)) if score_m else 5,
+                        "feedback": feedback_m.group(1) if feedback_m else "",
+                        "passed": passed_m.group(1).lower() == "true" if passed_m else True,
+                    }
+            else:
+                result = {"score": 5, "feedback": "", "passed": True}
+        return {
+            "score": int(result.get("score", 5)),
+            "feedback": str(result.get("feedback", "")),
+            "passed": bool(result.get("passed", False))
+        }
+    except Exception as e:
+        logger.warning(f"Accuracy comparison failed: {e}")
+        return {"score": 5, "feedback": "", "passed": True}  # Pass on error to not block
+
 async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: str = "image/png") -> list:
     """Send text+image in the SAME multimodal message to Gemini for image editing.
     Returns list of image dicts [{mime_type, data}]."""
@@ -2942,6 +3014,158 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class AvatarAccuracyRequest(BaseModel):
+    source_image_url: str
+    company_name: str = ""
+    max_iterations: int = 3
+
+# In-memory store for accuracy generation jobs
+_accuracy_jobs = {}
+
+def _run_accuracy_generation(job_id: str, source_image_url: str, company_name: str, max_iterations: int):
+    """Background thread: generate avatar with accuracy agent feedback loop."""
+    import asyncio
+    import json
+    loop = asyncio.new_event_loop()
+    try:
+        # Download source image
+        img_b64 = None
+        mime = "image/png"
+        try:
+            img_req = urllib.request.Request(source_image_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(img_req, timeout=15) as resp:
+                img_data = resp.read()
+                img_b64 = base64.b64encode(img_data).decode("utf-8")
+                content_type = resp.headers.get("Content-Type", "image/png")
+                mime = content_type if content_type.startswith("image/") else "image/png"
+        except Exception as dl_err:
+            logger.warning(f"Failed to download source image: {dl_err}")
+            _accuracy_jobs[job_id] = {"status": "failed", "error": f"Failed to download source: {dl_err}"}
+            return
+
+        if not img_b64:
+            _accuracy_jobs[job_id] = {"status": "failed", "error": "Could not read source image"}
+            return
+
+        # Step 1: Get vision description of the person
+        _accuracy_jobs[job_id] = {"status": "processing", "progress": "Analyzing reference...", "iteration": 0, "iterations": []}
+        person_desc = loop.run_until_complete(_describe_person(img_b64, mime))
+
+        system_msg = (
+            "You are an expert portrait photographer. You create stunning full-body professional photos. "
+            "CRITICAL: Always output VERTICAL portrait format (taller than wide, approximately 3:5 ratio). "
+            "When given a reference photo, preserve the person's EXACT identity — same face, features, skin tone, hair."
+        )
+
+        iterations = []
+        extra_feedback = ""
+
+        for attempt in range(max_iterations):
+            _accuracy_jobs[job_id] = {
+                "status": "processing",
+                "progress": f"Generating avatar (attempt {attempt + 1}/{max_iterations})...",
+                "iteration": attempt + 1,
+                "iterations": iterations,
+            }
+
+            prompt = (
+                "FOCUS ONLY ON THE PERSON in this photo. IGNORE the background, other people, and scenery completely. "
+                "Create a FULL-BODY professional portrait of this EXACT SAME person. "
+                "Do NOT generate a different person. Preserve their EXACT face, features, skin tone, facial hair, and hair. "
+                "Show them standing confidently in a modern studio with soft lighting. "
+                "Professional business attire. Full body visible from head to feet. "
+                "REPLACE the background with a clean, minimal studio background. "
+                "Photorealistic, 4K detail. "
+                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+            )
+            if person_desc:
+                prompt = f"PERSON TO FOCUS ON (ignore background and other people): {person_desc}\n\n{prompt}"
+            if extra_feedback:
+                prompt += f"\n\nCRITICAL CORRECTIONS FROM PREVIOUS ATTEMPT:\n{extra_feedback}"
+
+            images = loop.run_until_complete(_gemini_edit_image(system_msg, prompt, img_b64, mime))
+            if not images:
+                iterations.append({"attempt": attempt + 1, "url": None, "score": 0, "feedback": "Generation failed", "passed": False})
+                continue
+
+            # Upload generated avatar
+            gen_bytes = base64.b64decode(images[0]['data'])
+            gen_b64 = images[0]['data']
+            gen_mime = images[0].get('mime_type', 'image/png')
+            filename = f"avatars/avatar_acc_{uuid.uuid4().hex[:8]}.png"
+            avatar_url = _upload_to_storage(gen_bytes, filename, "image/png")
+
+            # Accuracy comparison
+            _accuracy_jobs[job_id]["progress"] = f"Evaluating accuracy (attempt {attempt + 1})..."
+            comparison = loop.run_until_complete(_accuracy_compare(img_b64, mime, gen_b64, gen_mime))
+
+            iteration_result = {
+                "attempt": attempt + 1,
+                "url": avatar_url,
+                "score": comparison["score"],
+                "feedback": comparison["feedback"],
+                "passed": comparison["passed"],
+            }
+            iterations.append(iteration_result)
+
+            _accuracy_jobs[job_id]["iterations"] = iterations
+
+            if comparison["passed"]:
+                logger.info(f"Accuracy agent APPROVED avatar on attempt {attempt + 1} (score: {comparison['score']}/10)")
+                _accuracy_jobs[job_id] = {
+                    "status": "completed",
+                    "avatar_url": avatar_url,
+                    "iterations": iterations,
+                    "final_score": comparison["score"],
+                }
+                return
+
+            # Not passed - prepare feedback for next iteration
+            extra_feedback = comparison["feedback"]
+            logger.info(f"Accuracy agent REJECTED attempt {attempt + 1} (score: {comparison['score']}/10): {extra_feedback}")
+
+        # All iterations exhausted - return best one
+        best = max(iterations, key=lambda x: x.get("score", 0)) if iterations else None
+        if best and best.get("url"):
+            _accuracy_jobs[job_id] = {
+                "status": "completed",
+                "avatar_url": best["url"],
+                "iterations": iterations,
+                "final_score": best["score"],
+                "note": "best_of_attempts",
+            }
+        else:
+            _accuracy_jobs[job_id] = {"status": "failed", "error": "All generation attempts failed", "iterations": iterations}
+
+    except Exception as e:
+        logger.error(f"Accuracy avatar generation failed: {e}")
+        _accuracy_jobs[job_id] = {"status": "failed", "error": str(e), "iterations": _accuracy_jobs.get(job_id, {}).get("iterations", [])}
+    finally:
+        loop.close()
+
+
+@router.post("/generate-avatar-with-accuracy")
+async def generate_avatar_with_accuracy(req: AvatarAccuracyRequest, user=Depends(get_current_user)):
+    """Start avatar generation with accuracy agent feedback loop. Returns job_id for polling."""
+    job_id = uuid.uuid4().hex[:10]
+    _accuracy_jobs[job_id] = {"status": "processing", "progress": "Starting...", "iteration": 0, "iterations": []}
+    thread = threading.Thread(
+        target=_run_accuracy_generation,
+        args=(job_id, req.source_image_url, req.company_name, min(req.max_iterations, 3)),
+        daemon=True
+    )
+    thread.start()
+    return {"job_id": job_id, "status": "processing"}
+
+
+@router.get("/generate-avatar-with-accuracy/{job_id}")
+async def get_avatar_accuracy_status(job_id: str, user=Depends(get_current_user)):
+    """Poll for avatar accuracy generation status."""
+    job = _accuracy_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Accuracy job not found")
+    return job
+
 
 @router.post("/extract-from-video")
 async def extract_from_video(file: UploadFile = File(...), user=Depends(get_current_user)):
@@ -3138,9 +3362,9 @@ class AvatarVideoPreviewRequest(BaseModel):
 _preview_jobs = {}
 
 PREVIEW_TEXTS = {
-    "pt": "Olá! Eu sou seu apresentador virtual. Estou pronto para representar sua marca em campanhas incríveis. Vamos criar algo extraordinário juntos!",
-    "en": "Hello! I'm your virtual presenter. I'm ready to represent your brand in amazing campaigns. Let's create something extraordinary together!",
-    "es": "¡Hola! Soy tu presentador virtual. Estoy listo para representar tu marca en campañas increíbles. ¡Vamos a crear algo extraordinario juntos!",
+    "pt": "Olá! Sou seu apresentador virtual, pronto para representar sua marca!",
+    "en": "Hello! I'm your virtual presenter, ready to represent your brand!",
+    "es": "Hola! Soy tu presentador virtual, listo para representar tu marca!",
 }
 
 def _run_preview_generation(job_id: str, avatar_url: str, voice_url: str, voice_id: str, language: str):

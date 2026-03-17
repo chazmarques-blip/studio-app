@@ -900,6 +900,8 @@ export default function PipelineView({ context }) {
   const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
   const [previewLanguage, setPreviewLanguage] = useState('pt');
   const [avatarName, setAvatarName] = useState('');
+  const [avatarMediaTab, setAvatarMediaTab] = useState('photo'); // 'photo' | 'video'
+  const [accuracyProgress, setAccuracyProgress] = useState(null); // { iteration, progress, iterations }
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
@@ -1102,34 +1104,62 @@ export default function PipelineView({ context }) {
 
   const generateAvatarFromPhoto = async () => {
     setGeneratingAvatar(true);
+    setAccuracyProgress(null);
     try {
-      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar`, {
+      // Use accuracy agent endpoint with polling
+      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-with-accuracy`, {
         source_image_url: avatarSourcePhoto?.url || '',
         company_name: activeCompany?.name || '',
+        max_iterations: 3,
       });
-      if (data.avatar_url) {
-        const autoVoice = avatarExtractedAudio ? { type: 'custom', url: avatarExtractedAudio.url } : null;
-        setTempAvatar({
-          url: data.avatar_url,
-          source_photo_url: avatarSourcePhoto?.url || '',
-          clothing: 'business_formal',
-          voice: autoVoice,
-        });
-        setAvatarStage('customize');
-        setAngleImages({});
-        setClothingVariants({});
-        if (autoVoice) {
-          setRecordedAudioUrl(avatarExtractedAudio.url);
-          setVoiceTab('record');
-        }
-        toast.success(t('studio.avatar_generated'));
-        // Auto-generate 360° angles
-        startAuto360(avatarSourcePhoto?.url || data.avatar_url, 'business_formal');
+      if (data.job_id) {
+        const pollInterval = setInterval(async () => {
+          try {
+            const { data: status } = await axios.get(`${API}/campaigns/pipeline/generate-avatar-with-accuracy/${data.job_id}`);
+            // Update progress for UI
+            if (status.iteration || status.iterations) {
+              setAccuracyProgress({
+                iteration: status.iteration || 0,
+                progress: status.progress || '',
+                iterations: status.iterations || [],
+              });
+            }
+            if (status.status === 'completed' && status.avatar_url) {
+              clearInterval(pollInterval);
+              const autoVoice = avatarExtractedAudio ? { type: 'custom', url: avatarExtractedAudio.url } : null;
+              setTempAvatar({
+                url: status.avatar_url,
+                source_photo_url: avatarSourcePhoto?.url || '',
+                clothing: 'business_formal',
+                voice: autoVoice,
+                accuracy_iterations: status.iterations || [],
+              });
+              setAvatarStage('customize');
+              setAngleImages({});
+              setClothingVariants({});
+              if (autoVoice) {
+                setRecordedAudioUrl(avatarExtractedAudio.url);
+                setVoiceTab('record');
+              }
+              setAccuracyProgress(null);
+              setGeneratingAvatar(false);
+              toast.success(`${t('studio.avatar_generated')} (Score: ${status.final_score || '?'}/10)`);
+              // Auto-generate 360° angles
+              startAuto360(avatarSourcePhoto?.url || status.avatar_url, 'business_formal');
+            } else if (status.status === 'failed') {
+              clearInterval(pollInterval);
+              setAccuracyProgress(null);
+              setGeneratingAvatar(false);
+              toast.error(status.error || t('studio.err_generic'));
+            }
+          } catch { /* keep polling */ }
+        }, 4000);
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || t('studio.err_generic'));
+      setAccuracyProgress(null);
+      setGeneratingAvatar(false);
     }
-    setGeneratingAvatar(false);
   };
 
   const saveAvatarAndClose = () => {
@@ -1139,6 +1169,7 @@ export default function PipelineView({ context }) {
       const updated = avatars.map(a => a.id === editingAvatarId ? {
         ...a, url: tempAvatar.url, clothing: tempAvatar.clothing,
         voice: tempAvatar.voice, angles: angleImages, name,
+        video_url: previewVideoUrl || a.video_url || null,
       } : a);
       saveAvatars(updated);
     } else {
@@ -1150,6 +1181,7 @@ export default function PipelineView({ context }) {
         clothing: tempAvatar.clothing,
         voice: tempAvatar.voice,
         angles: angleImages,
+        video_url: previewVideoUrl || null,
         created_at: new Date().toISOString(),
       };
       const updated = [...avatars, newAv];
@@ -1170,6 +1202,7 @@ export default function PipelineView({ context }) {
       clothing: tempAvatar.clothing,
       voice: tempAvatar.voice,
       angles: angleImages,
+      video_url: previewVideoUrl || null,
       created_at: new Date().toISOString(),
     };
     const updated = [...avatars, newAv];
@@ -1188,6 +1221,8 @@ export default function PipelineView({ context }) {
       voice: av.voice || null,
     });
     setAvatarName(av.name || '');
+    setPreviewVideoUrl(av.video_url || null);
+    setAvatarMediaTab(av.video_url ? 'photo' : 'photo');
     setAngleImages(av.angles || { front: av.url });
     // Rebuild clothing variants from angles if available
     const variants = {};
@@ -1216,6 +1251,8 @@ export default function PipelineView({ context }) {
     setPreviewVideoUrl(null);
     setPreviewLanguage('pt');
     setAvatarName('');
+    setAvatarMediaTab('photo');
+    setAccuracyProgress(null);
   };
 
   const applyClothing = async (style) => {
@@ -2026,9 +2063,39 @@ export default function PipelineView({ context }) {
                           )}
                         </button>
                         {generatingAvatar && (
-                          <div className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3 flex items-center gap-2">
-                            <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
-                            <p className="text-[9px] text-[#555]">{t('studio.avatar_gen_time')}</p>
+                          <div className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                              <p className="text-[9px] text-[#888]">
+                                {accuracyProgress?.progress || t('studio.avatar_gen_time')}
+                              </p>
+                            </div>
+                            {accuracyProgress?.iteration > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex-1 h-1 bg-[#1E1E1E] rounded-full overflow-hidden">
+                                  <div className="h-full bg-[#C9A84C] transition-all duration-500 rounded-full" style={{width: `${(accuracyProgress.iteration / 3) * 100}%`}} />
+                                </div>
+                                <span className="text-[8px] text-[#555]">{accuracyProgress.iteration}/3</span>
+                              </div>
+                            )}
+                            {/* Show evolution thumbnails */}
+                            {accuracyProgress?.iterations?.length > 0 && (
+                              <div className="space-y-1.5">
+                                <p className="text-[7px] text-[#555] uppercase tracking-wider">{t('studio.accuracy_evolution') || 'Evolution'}</p>
+                                <div className="flex gap-1.5">
+                                  {accuracyProgress.iterations.map((it, idx) => (
+                                    it.url && <div key={idx} className="relative">
+                                      <img src={resolveImageUrl(it.url)} alt={`v${idx+1}`}
+                                        className="h-16 w-12 rounded-lg object-cover border border-[#1E1E1E]" />
+                                      <div className={`absolute -top-1 -right-1 h-4 min-w-4 px-0.5 rounded-full text-[7px] font-bold flex items-center justify-center ${
+                                        it.passed ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                        {it.score}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2089,17 +2156,52 @@ export default function PipelineView({ context }) {
                       />
                     </div>
 
-                    {/* Avatar Preview - Always vertical portrait with zoom */}
-                    <div className="flex justify-center">
-                      <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
-                        <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                          className="w-40 aspect-[3/5] rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
-                        <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
-                          <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                    {/* Avatar Preview - Photo/Video selector */}
+                    <div className="flex flex-col items-center gap-2">
+                      {/* Photo / Video toggle */}
+                      {(previewVideoUrl || generatingPreviewVideo) && (
+                        <div className="flex rounded-md border border-[#1E1E1E] overflow-hidden">
+                          <button data-testid="media-tab-photo" onClick={() => setAvatarMediaTab('photo')}
+                            className={`px-4 py-1 text-[9px] font-semibold flex items-center gap-1 transition ${
+                              avatarMediaTab === 'photo' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>
+                            <Camera size={10} /> {t('studio.photo_tab') || 'Photo'}
+                          </button>
+                          <button data-testid="media-tab-video" onClick={() => setAvatarMediaTab('video')}
+                            className={`px-4 py-1 text-[9px] font-semibold flex items-center gap-1 transition ${
+                              avatarMediaTab === 'video' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>
+                            <Film size={10} /> {t('studio.video_tab') || 'Video'}
+                          </button>
                         </div>
-                        {applyingClothing && (
-                          <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
-                            <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
+                      )}
+
+                      {/* Media Display */}
+                      <div className="relative w-40 aspect-[3/5]">
+                        {avatarMediaTab === 'video' && previewVideoUrl ? (
+                          <video
+                            data-testid="avatar-preview-video"
+                            src={previewVideoUrl}
+                            controls autoPlay loop playsInline
+                            className="w-full h-full rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg bg-black"
+                          />
+                        ) : (
+                          <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
+                            <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
+                              className="w-full h-full rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
+                            <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
+                              <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                            </div>
+                            {applyingClothing && (
+                              <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
+                                <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {/* Generating video overlay */}
+                        {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
+                          <div className="absolute inset-0 rounded-2xl bg-black/80 border-2 border-[#C9A84C]/30 flex flex-col items-center justify-center gap-2">
+                            <Loader2 size={20} className="animate-spin text-[#C9A84C]" />
+                            <p className="text-[8px] text-[#C9A84C]">{t('studio.generating_preview')}</p>
                           </div>
                         )}
                       </div>
@@ -2374,73 +2476,69 @@ export default function PipelineView({ context }) {
                 )}
               </div>
 
-              {/* Video Preview with Lip-Sync */}
+              {/* Video Preview Controls */}
               {avatarStage === 'customize' && tempAvatar?.url && (
-                <div className="px-5 py-2 border-t border-[#151515]/50 shrink-0">
-                  {previewVideoUrl ? (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.video_preview')}</p>
-                        <button onClick={() => setPreviewVideoUrl(null)} className="text-[8px] text-[#C9A84C] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
-                      </div>
-                      <video src={previewVideoUrl} controls autoPlay loop
-                        className="w-full rounded-xl border border-[#1E1E1E] max-h-40 object-cover" />
+                <div className="px-5 py-2 border-t border-[#151515]/50 shrink-0 space-y-2">
+                  {/* Language Selector + Generate/Regenerate */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.test_language') || 'Language'}:</span>
+                    <div className="flex gap-1">
+                      {[{id:'pt',label:'PT'},{id:'en',label:'EN'},{id:'es',label:'ES'}].map(lang => (
+                        <button key={lang.id} onClick={() => setPreviewLanguage(lang.id)}
+                          className={`px-2 py-0.5 rounded text-[8px] font-bold transition ${
+                            previewLanguage === lang.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] border border-[#1E1E1E] hover:border-[#333]'}`}>
+                          {lang.label}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {/* Language Selector */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.test_language') || 'Language'}:</span>
-                        <div className="flex gap-1">
-                          {[{id:'pt',label:'PT'},{id:'en',label:'EN'},{id:'es',label:'ES'}].map(lang => (
-                            <button key={lang.id} onClick={() => setPreviewLanguage(lang.id)}
-                              className={`px-2 py-0.5 rounded text-[8px] font-bold transition ${
-                                previewLanguage === lang.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] border border-[#1E1E1E] hover:border-[#333]'}`}>
-                              {lang.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <button data-testid="generate-preview-video-btn"
-                        onClick={async () => {
-                          setGeneratingPreviewVideo(true);
-                          try {
-                            const voice = tempAvatar?.voice;
-                            const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, {
-                              avatar_url: tempAvatar.url,
-                              voice_url: voice?.url || '',
-                              voice_id: voice?.voice_id || '',
-                              language: previewLanguage,
-                            });
-                            if (data.job_id) {
-                              const pollInterval = setInterval(async () => {
-                                try {
-                                  const { data: status } = await axios.get(`${API}/campaigns/pipeline/avatar-video-preview/${data.job_id}`);
-                                  if (status.status === 'completed' && status.video_url) {
-                                    clearInterval(pollInterval);
-                                    setPreviewVideoUrl(status.video_url);
-                                    setGeneratingPreviewVideo(false);
-                                    toast.success(t('studio.preview_generated'));
-                                  } else if (status.status === 'failed') {
-                                    clearInterval(pollInterval);
-                                    setGeneratingPreviewVideo(false);
-                                    toast.error(status.error || t('studio.err_generic'));
-                                  }
-                                } catch { /* keep polling */ }
-                              }, 5000);
-                            }
-                          } catch (e) {
-                            toast.error(t('studio.err_generic'));
-                            setGeneratingPreviewVideo(false);
-                          }
-                        }}
-                        disabled={generatingPreviewVideo}
-                        className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
-                        {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
-                         <><Play size={10} /> {t('studio.generate_video_preview')}</>}
-                      </button>
-                    </div>
-                  )}
+                    {previewVideoUrl && (
+                      <button onClick={() => { setPreviewVideoUrl(null); setAvatarMediaTab('photo'); }}
+                        className="ml-auto text-[8px] text-[#C9A84C] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
+                    )}
+                  </div>
+                  <button data-testid="generate-preview-video-btn"
+                    onClick={async () => {
+                      setGeneratingPreviewVideo(true);
+                      setAvatarMediaTab('video');
+                      try {
+                        const voice = tempAvatar?.voice;
+                        const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, {
+                          avatar_url: tempAvatar.url,
+                          voice_url: voice?.url || '',
+                          voice_id: voice?.voice_id || '',
+                          language: previewLanguage,
+                        });
+                        if (data.job_id) {
+                          const pollInterval = setInterval(async () => {
+                            try {
+                              const { data: status } = await axios.get(`${API}/campaigns/pipeline/avatar-video-preview/${data.job_id}`);
+                              if (status.status === 'completed' && status.video_url) {
+                                clearInterval(pollInterval);
+                                setPreviewVideoUrl(status.video_url);
+                                setGeneratingPreviewVideo(false);
+                                setAvatarMediaTab('video');
+                                toast.success(t('studio.preview_generated'));
+                              } else if (status.status === 'failed') {
+                                clearInterval(pollInterval);
+                                setGeneratingPreviewVideo(false);
+                                setAvatarMediaTab('photo');
+                                toast.error(status.error || t('studio.err_generic'));
+                              }
+                            } catch { /* keep polling */ }
+                          }, 5000);
+                        }
+                      } catch (e) {
+                        toast.error(t('studio.err_generic'));
+                        setGeneratingPreviewVideo(false);
+                        setAvatarMediaTab('photo');
+                      }
+                    }}
+                    disabled={generatingPreviewVideo}
+                    className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
+                    {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
+                     previewVideoUrl ? <><Play size={10} /> {t('studio.regenerate_preview') || 'Regenerate Preview'}</> :
+                     <><Play size={10} /> {t('studio.generate_video_preview')}</>}
+                  </button>
                 </div>
               )}
 

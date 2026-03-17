@@ -578,10 +578,14 @@
     "mastered": "Masterized",
     "voice_mastered": "Voice masterized with clarity!",
     "video_preview": "Video Preview",
-    "generate_video_preview": "Generate 4s Video Preview",
+    "generate_video_preview": "Generate 5s Video Preview",
     "generating_preview": "Generating preview...",
     "preview_generated": "Preview generated!",
     "loading_preview": "Loading preview...",
-    "no_voice": "No voice"
+    "no_voice": "No voice",
+    "photo_tab": "Photo",
+    "video_tab": "Video",
+    "accuracy_evolution": "Evolution",
+    "regenerate_preview": "Regenerate Preview"
   }
 }

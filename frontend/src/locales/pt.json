@@ -578,10 +578,14 @@
     "mastered": "Masterizada",
     "voice_mastered": "Voz masterizada com clareza!",
     "video_preview": "Preview do Vídeo",
-    "generate_video_preview": "Gerar Preview de 4s",
+    "generate_video_preview": "Gerar Preview de 5s",
     "generating_preview": "Gerando preview...",
     "preview_generated": "Preview gerado!",
     "loading_preview": "Carregando preview...",
-    "no_voice": "Sem voz"
+    "no_voice": "Sem voz",
+    "photo_tab": "Foto",
+    "video_tab": "Vídeo",
+    "accuracy_evolution": "Evolução",
+    "regenerate_preview": "Regenerar Preview"
   }
 }
