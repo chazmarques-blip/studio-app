@@ -600,6 +600,21 @@
     "video_processed": "Video processed",
     "extra_frames": "frames",
     "video_adds_accuracy": "Adds body, voice & expression data for higher accuracy",
-    "enhanced_accuracy": "Enhanced accuracy: photo + video references active"
+    "enhanced_accuracy": "Enhanced accuracy: photo + video references active",
+    "image_label": "Image:",
+    "generate_new_style": "Generate new image with style",
+    "style_minimalist": "Minimalist",
+    "style_vibrant": "Vibrant",
+    "style_luxury": "Luxury",
+    "style_corporate": "Corporate",
+    "style_playful": "Playful",
+    "style_bold": "Bold",
+    "style_organic": "Organic",
+    "style_tech": "Tech",
+    "style_professional": "Professional",
+    "image_generated": "image generated!",
+    "text_updated": "Text updated!",
+    "only_images": "Only images accepted",
+    "err_generate_image": "Error generating image"
   }
 }

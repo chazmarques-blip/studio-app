@@ -39,6 +39,7 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
   - 5 platform share buttons using Web Share API with file blobs for native mobile sharing
   - Fallback to deep links on desktop
 - [x] **Fix: Image regeneration language enforcement** — Strengthened language instructions in all image generation/regeneration prompts. Language instruction now appears as FIRST/DOMINANT rule in the prompt, preventing AI from defaulting to English when campaign is in Spanish/Portuguese/etc. Fixed in: `/regenerate-single-image`, `/{pipeline_id}/regenerate-image`, and `_generate_design_images`.
+- [x] **Fix: i18n for FinalPreview** — Replaced all hardcoded Portuguese labels ("IMAGEM:", "GERAR NOVA IMAGEM COM ESTILO", "Minimalista", "Vibrante", etc.) with i18n translation keys. Now correctly displays in EN/PT/ES based on user's platform language setting.
 
 ## Backlog (Priority Order)
 ### P1 - Technical Debt

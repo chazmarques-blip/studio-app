@@ -600,6 +600,21 @@
     "video_processed": "Vídeo processado",
     "extra_frames": "frames",
     "video_adds_accuracy": "Adiciona corpo, voz e expressões para maior precisão",
-    "enhanced_accuracy": "Precisão aprimorada: foto + vídeo ativos"
+    "enhanced_accuracy": "Precisão aprimorada: foto + vídeo ativos",
+    "image_label": "Imagem:",
+    "generate_new_style": "Gerar nova imagem com estilo",
+    "style_minimalist": "Minimalista",
+    "style_vibrant": "Vibrante",
+    "style_luxury": "Luxo",
+    "style_corporate": "Corporativo",
+    "style_playful": "Divertido",
+    "style_bold": "Ousado",
+    "style_organic": "Orgânico",
+    "style_tech": "Tech",
+    "style_professional": "Profissional",
+    "image_generated": "imagem gerada!",
+    "text_updated": "Texto atualizado!",
+    "only_images": "Apenas imagens são aceitas",
+    "err_generate_image": "Erro ao gerar imagem"
   }
 }

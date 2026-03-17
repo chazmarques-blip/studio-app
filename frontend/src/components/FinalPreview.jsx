@@ -181,7 +181,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
   const videoUrl = steps.marcos_video?.video_url || '';
 
   // Derive brand name from campaign name first, then context
-  const brandName = campaignName || contextData.company || 'Campanha';
+  const brandName = campaignName || contextData.company || t('studio.campaign_default') || 'Campaign';
 
   // Derive brand logo from uploaded assets
   const logoAsset = assets.find(a => a.type === 'logo');
@@ -214,14 +214,14 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
   const displayCopy = editedCopy !== null ? editedCopy : cleanText(approvedCopy);
 
   const handleStartEdit = () => { setEditedCopy(displayCopy); setIsEditing(true); };
-  const handleSaveEdit = () => { setIsEditing(false); toast.success('Texto atualizado!'); };
+  const handleSaveEdit = () => { setIsEditing(false); toast.success(t('studio.text_updated') || 'Text updated!'); };
   const handleCancelEdit = () => { setIsEditing(false); };
 
   // Custom image upload
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
     files.forEach(file => {
-      if (!file.type.startsWith('image/')) { toast.error('Apenas imagens sao aceitas'); return; }
+      if (!file.type.startsWith('image/')) { toast.error(t('studio.only_images') || 'Only images accepted'); return; }
       const blobUrl = URL.createObjectURL(file);
       setCustomImages(prev => [...prev, { url: blobUrl, name: file.name }]);
     });
@@ -242,9 +242,9 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
       if (data.image_url) {
         setCustomImages(prev => [...prev, { url: data.image_url, name: `${style}-${Date.now()}` }]);
         setSelectedImage(allImages.length);
-        toast.success(`Imagem "${style}" gerada!`);
+        toast.success(`${style} ${t('studio.image_generated')}`);
       }
-    } catch (e) { toast.error('Erro ao gerar imagem'); }
+    } catch (e) { toast.error(t('studio.err_generate_image') || 'Error generating image'); }
     setRegenerating(false);
   };
 
@@ -309,7 +309,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
 
           {/* Image Selector + Upload */}
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[8px] text-[#555] uppercase tracking-wider">Imagem:</p>
+            <p className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.image_label')}</p>
             {allImages.map((url, i) => {
               const isCustom = i >= images.length;
               return (
@@ -337,19 +337,19 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           <div className="w-full max-w-[320px]">
             <div className="flex items-center gap-1.5 mb-1.5">
               <RefreshCw size={10} className="text-[#555]" />
-              <p className="text-[8px] text-[#555] uppercase tracking-wider">Gerar nova imagem com estilo</p>
+              <p className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.generate_new_style')}</p>
               {regenerating && <Loader2 size={10} className="text-[#C9A84C] animate-spin" />}
             </div>
             <div className="flex flex-wrap gap-1">
               {[
-                { key: 'minimalist', label: 'Minimalista' },
-                { key: 'vibrant', label: 'Vibrante' },
-                { key: 'luxury', label: 'Luxo' },
-                { key: 'corporate', label: 'Corporativo' },
-                { key: 'playful', label: 'Divertido' },
-                { key: 'bold', label: 'Ousado' },
-                { key: 'organic', label: 'Organico' },
-                { key: 'tech', label: 'Tech' },
+                { key: 'minimalist', label: t('studio.style_minimalist') },
+                { key: 'vibrant', label: t('studio.style_vibrant') },
+                { key: 'luxury', label: t('studio.style_luxury') },
+                { key: 'corporate', label: t('studio.style_corporate') },
+                { key: 'playful', label: t('studio.style_playful') },
+                { key: 'bold', label: t('studio.style_bold') },
+                { key: 'organic', label: t('studio.style_organic') },
+                { key: 'tech', label: t('studio.style_tech') },
               ].map(s => (
                 <button key={s.key} disabled={regenerating}
                   onClick={() => { setSelectedStyle(s.key); handleRegenerateImage(s.key); }}
