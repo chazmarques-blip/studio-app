@@ -23,6 +23,11 @@ class CompanyIn(BaseModel):
     website_url: str = ""
     logo_url: str = ""
     is_primary: bool = False
+    product_description: str = ""
+    profile_type: str = "company"
+    facebook_url: str = ""
+    instagram_url: str = ""
+    tiktok_url: str = ""
 
 class AvatarIn(BaseModel):
     id: Optional[str] = None
@@ -75,6 +80,11 @@ async def upsert_company(data: CompanyIn, user=Depends(get_current_user), tenant
         "website_url": data.website_url,
         "logo_url": data.logo_url,
         "is_primary": data.is_primary,
+        "product_description": data.product_description,
+        "profile_type": data.profile_type,
+        "facebook_url": data.facebook_url,
+        "instagram_url": data.instagram_url,
+        "tiktok_url": data.tiktok_url,
         "updated_at": now,
     }
 
