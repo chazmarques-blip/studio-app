@@ -1113,6 +1113,7 @@ export default function PipelineView({ context }) {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-360`, {
         source_image_url: sourceUrl,
         clothing,
+        logo_url: activeCompany?.logo_url || '',
       });
       if (data.job_id) {
         const pollInterval = setInterval(async () => {
@@ -1148,6 +1149,7 @@ export default function PipelineView({ context }) {
         source_image_url: avatarSourcePhoto?.url || '',
         video_frame_urls: avatarVideoFrames || [],
         company_name: activeCompany?.name || '',
+        logo_url: activeCompany?.logo_url || '',
         max_iterations: 3,
       });
       if (data.job_id) {
@@ -1313,6 +1315,7 @@ export default function PipelineView({ context }) {
         clothing: style,
         angle: 'front',
         company_name: activeCompany?.name || '',
+        logo_url: activeCompany?.logo_url || '',
       });
       if (data.avatar_url) {
         setClothingVariants(p => ({ ...p, [style]: data.avatar_url }));
@@ -1336,6 +1339,7 @@ export default function PipelineView({ context }) {
         clothing: tempAvatar.clothing || 'company_uniform',
         angle,
         company_name: activeCompany?.name || '',
+        logo_url: activeCompany?.logo_url || '',
       });
       if (data.avatar_url) {
         setAngleImages(p => ({ ...p, [angle]: data.avatar_url }));

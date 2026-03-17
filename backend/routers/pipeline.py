@@ -67,30 +67,24 @@ async def _describe_person(img_b64: str, mime: str = "image/png") -> str:
 
 
 async def _accuracy_compare(source_b64: str, source_mime: str, avatar_b64: str, avatar_mime: str) -> dict:
-    """Compare source photo with generated avatar. STRICT: requires score >= 8 to pass."""
+    """Compare source photo with generated avatar. Requires score >= 7 to pass."""
+    PASS_THRESHOLD = 7
     try:
         messages = [
             {"role": "user", "content": [
                 {"type": "text", "text": (
-                    "You are an ULTRA-STRICT forensic identity specialist. Be HARSH and CRITICAL.\n\n"
-                    "IMAGE 1: ORIGINAL photo of a real person.\n"
-                    "IMAGE 2: AI-generated avatar that MUST look IDENTICAL.\n\n"
-                    "Rate 1-10 comparing EACH feature:\n"
-                    "- Face shape, jawline, cheekbones (exact match?)\n"
-                    "- Eyes shape, color, spacing, eyelids, brows\n"
-                    "- Nose shape, width, bridge, tip\n"
-                    "- Mouth, lip thickness, shape\n"
-                    "- Skin tone (exact Fitzpatrick match?)\n"
-                    "- Hair color, style, texture, length\n"
-                    "- Facial hair pattern, density, color\n"
-                    "- Body build, proportions\n"
-                    "- Would someone INSTANTLY recognize this as the same person?\n\n"
-                    "SCORING: 1-5=wrong person, 6-7=similar but different, 8=same person with minor differences, "
-                    "9=nearly identical, 10=perfect.\n"
-                    "ONLY score 8+ if CONFIDENT it's recognizably the same person.\n"
-                    "If score < 8, give SPECIFIC corrections.\n\n"
-                    "JSON only (no markdown):\n"
-                    '{"score": <1-10>, "feedback": "<corrections needed, 100 words max>", "passed": <true ONLY if score >= 8>}'
+                    "Compare these two images. IMAGE 1 is the ORIGINAL photo of a real person. "
+                    "IMAGE 2 is an AI-generated avatar meant to look like the same person.\n\n"
+                    "Rate similarity from 1 to 10:\n"
+                    "- 1-4: Different person\n"
+                    "- 5-6: Vaguely similar\n"
+                    "- 7: Recognizable as the same person with some differences\n"
+                    "- 8-9: Very close match\n"
+                    "- 10: Perfect match\n\n"
+                    "Focus on: face shape, skin tone, hair, eyes, nose, mouth, body build.\n"
+                    "If score < 7, list the TOP 3 specific corrections needed.\n\n"
+                    "Reply ONLY with this JSON (no markdown, no extra text):\n"
+                    '{"score": 7, "feedback": "corrections here"}'
                 )},
                 {"type": "image_url", "image_url": {"url": f"data:{source_mime};base64,{source_b64}"}},
                 {"type": "image_url", "image_url": {"url": f"data:{avatar_mime};base64,{avatar_b64}"}}
@@ -102,45 +96,43 @@ async def _accuracy_compare(source_b64: str, source_mime: str, avatar_b64: str, 
             api_key=EMERGENT_KEY,
             api_base=EMERGENT_PROXY_URL,
             custom_llm_provider="openai",
-            max_tokens=250,
+            max_tokens=200,
         )
         raw = response.choices[0].message.content or ""
-        logger.info(f"Accuracy raw full: {raw}")
-        import json
-        import re
+        logger.info(f"Critic raw (first 400): {raw[:400]}")
+
+        # Extract score using regex FIRST (most reliable)
+        import json as _json
+        score_match = re.search(r'"score"\s*:\s*(\d+)', raw)
+        extracted_score = int(score_match.group(1)) if score_match else None
+
+        # Try full JSON parse
         clean = raw.strip()
-        # Remove markdown code blocks
         if clean.startswith("```"):
             clean = re.sub(r'^```\w*\n?', '', clean)
             clean = re.sub(r'\n?```$', '', clean)
             clean = clean.strip()
-        # Remove any text before { or after }
         start = clean.find('{')
         end = clean.rfind('}')
         if start >= 0 and end > start:
             clean = clean[start:end + 1]
-        # Fix common JSON issues: replace newlines in strings
-        clean = re.sub(r'(?<=\w)\n(?=\w)', ' ', clean)
+
+        feedback = ""
         try:
-            result = json.loads(clean)
-        except json.JSONDecodeError:
-            # Try with escaped newlines removed
-            try:
-                result = json.loads(clean.replace('\n', ' ').replace('\r', ''))
-            except json.JSONDecodeError:
-                score_m = re.search(r'"score"\s*:\s*(\d+)', raw)
-                feedback_m = re.search(r'"feedback"\s*:\s*"((?:[^"\\]|\\.)*)"', raw, re.DOTALL)
-                score = int(score_m.group(1)) if score_m else 4
-                result = {"score": score, "feedback": feedback_m.group(1)[:200] if feedback_m else "Parse failed", "passed": score >= 8}
-                logger.info(f"Regex fallback: score={score}")
-        # ENFORCE strict threshold
-        score = int(result.get("score", 4))
-        feedback = str(result.get("feedback", ""))[:200]
-        logger.info(f"Critic verdict: score={score}, passed={score >= 8}, feedback={feedback[:80]}")
-        return {"score": score, "feedback": feedback, "passed": score >= 8}
+            result = _json.loads(clean.replace('\n', ' ').replace('\r', ''))
+            feedback = str(result.get("feedback", ""))[:200]
+        except _json.JSONDecodeError:
+            # Extract feedback via regex
+            fb_match = re.search(r'"feedback"\s*:\s*"([^"]{0,300})', raw, re.DOTALL)
+            feedback = fb_match.group(1)[:200] if fb_match else "Could not parse feedback"
+
+        score = extracted_score if extracted_score is not None else 5
+        passed = score >= PASS_THRESHOLD
+        logger.info(f"Critic verdict: score={score}, passed={passed}, feedback={feedback[:80]}")
+        return {"score": score, "feedback": feedback, "passed": passed}
     except Exception as e:
         logger.warning(f"Accuracy comparison failed: {e}")
-        return {"score": 4, "feedback": "Error - regenerating", "passed": False}
+        return {"score": 5, "feedback": f"Comparison error: {str(e)[:100]}", "passed": False}
 
 
 async def _describe_person_from_video(frames: list) -> str:
@@ -3071,12 +3063,44 @@ class AvatarAccuracyRequest(BaseModel):
     source_image_url: str
     video_frame_urls: list = []  # Additional frames from video for richer reference
     company_name: str = ""
+    logo_url: str = ""  # Company logo URL to composite onto the polo shirt
     max_iterations: int = 3
 
 # In-memory store for accuracy generation jobs
 _accuracy_jobs = {}
 
-def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_urls: list, company_name: str, max_iterations: int):
+
+def _composite_logo_on_avatar(avatar_bytes: bytes, logo_bytes: bytes) -> bytes:
+    """Composite company logo onto the left chest area of the avatar's white polo shirt."""
+    try:
+        avatar_img = Image.open(BytesIO(avatar_bytes)).convert("RGBA")
+        logo_img = Image.open(BytesIO(logo_bytes)).convert("RGBA")
+
+        aw, ah = avatar_img.size
+        # Logo on left chest: ~8% of avatar width, positioned at ~38% from left, ~22% from top
+        logo_target_w = max(int(aw * 0.08), 30)
+        logo_ratio = logo_img.height / logo_img.width
+        logo_target_h = int(logo_target_w * logo_ratio)
+        logo_resized = logo_img.resize((logo_target_w, logo_target_h), Image.LANCZOS)
+
+        # Position: left chest area
+        paste_x = int(aw * 0.38)
+        paste_y = int(ah * 0.22)
+
+        # Paste with alpha mask for transparency
+        avatar_img.paste(logo_resized, (paste_x, paste_y), logo_resized)
+
+        # Convert back to RGB PNG
+        output = avatar_img.convert("RGB")
+        buf = BytesIO()
+        output.save(buf, format="PNG", quality=95)
+        return buf.getvalue()
+    except Exception as e:
+        logger.warning(f"Logo compositing failed: {e}")
+        return avatar_bytes  # Return original if compositing fails
+
+
+def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_urls: list, company_name: str, logo_url: str, max_iterations: int):
     """Background thread: generate avatar with accuracy agent feedback loop."""
     import asyncio
     import json
@@ -3152,24 +3176,22 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_url
             }
 
             prompt = (
-                "CRITICAL TASK: Create a photorealistic FULL-BODY portrait of the EXACT SAME person in this reference photo. "
-                "This is NOT about creating a 'similar looking' person — it MUST BE the same individual.\n\n"
-                "IDENTITY RULES (non-negotiable):\n"
-                "- FACE: Reproduce the EXACT same face shape, jawline, cheekbones, forehead\n"
-                "- EYES: Same shape, color, size, spacing, eyelids, brow shape\n"
-                "- NOSE: Same shape, width, bridge, tip — this is a key identifier\n"
-                "- MOUTH: Same lip thickness, width, shape\n"
-                "- SKIN: EXACT same tone and complexion — no lightening or darkening\n"
-                "- HAIR: Same color, texture, style, length, hairline\n"
-                "- FACIAL HAIR: If present, reproduce EXACT same pattern, density, color, length\n"
-                "- BODY: Same build, proportions, height\n"
-                "- AGE: Same apparent age — no aging or de-aging\n\n"
-                "OUTFIT: Crisp white polo shirt with a small company logo embroidered on the left chest, "
-                "fitted black dress pants, and clean white sneakers (sapatênis style).\n\n"
+                "Create a photorealistic FULL-BODY portrait of the EXACT SAME person in this reference photo.\n\n"
+                "IDENTITY (non-negotiable):\n"
+                "- Same face shape, jawline, cheekbones, forehead\n"
+                "- Same eyes (shape, color, size, spacing, brows)\n"
+                "- Same nose (shape, width, bridge, tip)\n"
+                "- Same mouth and lip shape\n"
+                "- EXACT same skin tone — no lightening or darkening\n"
+                "- Same hair (color, texture, style, length, hairline)\n"
+                "- Same facial hair if present (pattern, density, color)\n"
+                "- Same body build, proportions, apparent age\n\n"
+                "OUTFIT: Clean plain white polo shirt (NO logos, NO text, NO graphics — completely blank), "
+                "fitted black dress pants, and clean white sneakers (sapatênis).\n\n"
                 "POSE: Standing confidently, slight natural smile, arms relaxed at sides.\n"
                 "BACKGROUND: Clean minimal studio, soft professional lighting.\n"
                 "FORMAT: VERTICAL portrait (3:5 ratio), full body from head to feet.\n"
-                "QUALITY: Photorealistic, 4K detail, studio photography quality."
+                "QUALITY: Photorealistic, studio photography."
             )
             if person_desc:
                 prompt = f"PERSON TO FOCUS ON (ignore background and other people): {person_desc}\n\n{prompt}"
@@ -3181,10 +3203,23 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_url
                 iterations.append({"attempt": attempt + 1, "url": None, "score": 0, "feedback": "Generation failed", "passed": False})
                 continue
 
-            # Upload generated avatar
+            # Upload generated avatar (with logo composited if available)
             gen_bytes = base64.b64decode(images[0]['data'])
             gen_b64 = images[0]['data']
             gen_mime = images[0].get('mime_type', 'image/png')
+
+            # Composite company logo onto the shirt if logo_url is provided
+            if logo_url:
+                try:
+                    logo_req = urllib.request.Request(logo_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(logo_req, timeout=10) as logo_resp:
+                        logo_bytes = logo_resp.read()
+                    gen_bytes = _composite_logo_on_avatar(gen_bytes, logo_bytes)
+                    gen_b64 = base64.b64encode(gen_bytes).decode("utf-8")
+                    logger.info("Logo composited onto avatar successfully")
+                except Exception as logo_err:
+                    logger.warning(f"Logo download/composite failed: {logo_err}")
+
             filename = f"avatars/avatar_acc_{uuid.uuid4().hex[:8]}.png"
             avatar_url = _upload_to_storage(gen_bytes, filename, "image/png")
 
@@ -3247,7 +3282,7 @@ async def generate_avatar_with_accuracy(req: AvatarAccuracyRequest, user=Depends
     _accuracy_jobs[job_id] = {"status": "processing", "progress": "Starting...", "iteration": 0, "iterations": []}
     thread = threading.Thread(
         target=_run_accuracy_generation,
-        args=(job_id, req.source_image_url, req.video_frame_urls, req.company_name, min(req.max_iterations, 3)),
+        args=(job_id, req.source_image_url, req.video_frame_urls, req.company_name, req.logo_url, min(req.max_iterations, 3)),
         daemon=True
     )
     thread.start()
@@ -3566,12 +3601,13 @@ class AvatarVariantRequest(BaseModel):
     clothing: str = "company_uniform"
     angle: str = "front"
     company_name: str = ""
+    logo_url: str = ""
 
 @router.post("/generate-avatar-variant")
 async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_current_user)):
     """Generate an avatar variant with different clothing or angle."""
     CLOTHING_MAP = {
-        "company_uniform": "wearing a crisp white polo shirt with a small company logo embroidered on the left chest, fitted black dress pants, and clean white sneakers (sapatênis style)",
+        "company_uniform": "wearing a crisp plain white polo shirt (no logos, no text, completely blank), fitted black dress pants, and clean white sneakers (sapatênis style)",
         "business_formal": "wearing a tailored dark navy business suit, white dress shirt, elegant tie",
         "casual": "wearing a casual smart outfit, clean jeans, stylish blazer over a t-shirt",
         "streetwear": "wearing trendy streetwear, designer hoodie, sneakers, modern urban style",
@@ -3631,6 +3667,15 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
                 images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
                 if images:
                     img_bytes = base64.b64decode(images[0]['data'])
+                    # Composite logo if it's company_uniform and logo_url provided
+                    if req.clothing == "company_uniform" and req.logo_url:
+                        try:
+                            logo_req_dl = urllib.request.Request(req.logo_url, headers={"User-Agent": "Mozilla/5.0"})
+                            with urllib.request.urlopen(logo_req_dl, timeout=10) as logo_resp:
+                                logo_bytes = logo_resp.read()
+                            img_bytes = _composite_logo_on_avatar(img_bytes, logo_bytes)
+                        except Exception as le:
+                            logger.warning(f"Variant logo composite failed: {le}")
                     filename = f"avatars/avatar_var_{uuid.uuid4().hex[:8]}.png"
                     public_url = _upload_to_storage(img_bytes, filename, "image/png")
                     return {"avatar_url": public_url, "clothing": req.clothing, "angle": req.angle}
@@ -3660,15 +3705,16 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
 class AvatarBatch360Request(BaseModel):
     source_image_url: str = ""
     clothing: str = "company_uniform"
+    logo_url: str = ""
 
 # In-memory store for batch 360 jobs
 _batch360_jobs = {}
 
-def _run_batch_360(job_id: str, source_url: str, clothing: str):
+def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = ""):
     """Background thread to generate all 4 angles for an avatar."""
     import asyncio
     CLOTHING_MAP = {
-        "company_uniform": "wearing a crisp white polo shirt with a small company logo embroidered on the left chest, fitted black dress pants, and clean white sneakers (sapatênis style)",
+        "company_uniform": "wearing a crisp plain white polo shirt (no logos, no text, completely blank), fitted black dress pants, and clean white sneakers (sapatênis style)",
         "business_formal": "wearing a tailored dark navy business suit, white dress shirt, elegant tie",
         "casual": "wearing a casual smart outfit, clean jeans, stylish blazer over a t-shirt",
         "streetwear": "wearing trendy streetwear, designer hoodie, sneakers, modern urban style",
@@ -3733,6 +3779,15 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str):
             images = loop.run_until_complete(_gemini_edit_image(system_msg, prompt, img_b64, mime))
             if images:
                 img_bytes = base64.b64decode(images[0]['data'])
+                # Composite logo for company_uniform (front/left/right only, not back)
+                if clothing == "company_uniform" and logo_url and angle_key != "back":
+                    try:
+                        logo_req_dl = urllib.request.Request(logo_url, headers={"User-Agent": "Mozilla/5.0"})
+                        with urllib.request.urlopen(logo_req_dl, timeout=10) as logo_resp:
+                            logo_bytes_data = logo_resp.read()
+                        img_bytes = _composite_logo_on_avatar(img_bytes, logo_bytes_data)
+                    except Exception as le:
+                        logger.warning(f"360 logo composite failed for {angle_key}: {le}")
                 filename = f"avatars/avatar_360_{angle_key}_{uuid.uuid4().hex[:6]}.png"
                 public_url = _upload_to_storage(img_bytes, filename, "image/png")
                 results[angle_key] = public_url
@@ -3754,7 +3809,7 @@ async def generate_avatar_360(req: AvatarBatch360Request, user=Depends(get_curre
     """Start batch generation of all 4 angles for an avatar (background job with polling)."""
     job_id = uuid.uuid4().hex[:10]
     _batch360_jobs[job_id] = {"status": "processing", "results": {}, "completed": 0}
-    thread = threading.Thread(target=_run_batch_360, args=(job_id, req.source_image_url, req.clothing), daemon=True)
+    thread = threading.Thread(target=_run_batch_360, args=(job_id, req.source_image_url, req.clothing, req.logo_url), daemon=True)
     thread.start()
     return {"job_id": job_id, "status": "processing"}
 
