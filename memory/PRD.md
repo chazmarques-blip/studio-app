@@ -20,71 +20,53 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 
 ## Data Architecture
 - **ALL data** stored in **Supabase** (user's paid account connected via GitHub)
-- Companies & Avatars: stored in `tenants.settings` JSONB column as `studio_companies` and `studio_avatars` arrays
-- Users, Tenants, Agents, Pipelines: standard Supabase tables
-- Frontend loads from API on mount, localStorage as fallback only
+- Companies & Avatars: `tenants.settings` JSONB → `studio_companies` and `studio_avatars`
 - CRUD endpoints: `/api/data/companies`, `/api/data/avatars`
 
 ## What's Implemented
 - Full i18n (EN, PT, ES)
-- Company and Avatar creation modals
-- **Persistent data storage in Supabase** (companies & avatars survive browser cache clears)
-- Advanced Avatar Studio (photo/video source, clothing, 360 angles, voice bank, recording, video-extracted voice)
-- Image Accuracy Agent (Scanner -> Artist -> Critic) with visual timeline and up to 3 iterations
-- Default "Company Uniform" outfit (white polo + company logo + black pants + white sneakers)
-- Avatar editing, cloning, and naming
-- Voice Mastering via FFmpeg
-- Avatar Video Preview (5s lip-sync via fal.ai Kling Avatar v2)
-- Automatic 360 generation
+- **Dual Upload for Avatar Creation** (photo required + video optional for maximum accuracy)
+- **Multi-image identity analysis**: Gemini Vision analyzes photo + multiple video frames
+- **Enhanced `_describe_person_from_video`**: dedicated multi-frame description function
+- **Image Accuracy Agent** (Scanner → Artist → Critic) with visual timeline, up to 3 iterations
+- Default "Company Uniform" outfit (white polo + logo + black pants + white sneakers)
+- Data persistence in Supabase (companies & avatars survive cache clear)
 - Photo/Video selector in avatar frame
-- Clear All Avatars button
-- Sora-based Presenter Mode (avatar in scene)
-- Dashboard with recharts
-- Agent Marketplace with plan gating
-- Google Calendar/Sheets integration
+- Avatar naming, editing, cloning
+- Voice Mastering, Voice Bank (TTS), Custom Recording, Video-extracted voice
+- Avatar Video Preview (5s lip-sync via fal.ai Kling Avatar v2)
+- Automatic 360° generation
+- Sora-based Presenter Mode
+- Dashboard, Agent Marketplace, Google Calendar/Sheets integration
 
 ## Completed - March 2026
-- [x] Voice Mastering endpoint
-- [x] Avatar Video Preview (fal.ai Kling Avatar v2)
-- [x] Avatar identity preservation (gemini-3-pro-image-preview)
-- [x] Automatic 360° View Generation
-- [x] Avatar Naming & Lip-Sync Preview with language selector
-- [x] Image Accuracy Agent with visual timeline (Scanner/Artist/Critic)
+- [x] Voice Mastering, Avatar Video Preview, Auto 360°, Avatar Naming
+- [x] Image Accuracy Agent with visual Agent Timeline
 - [x] Default "Company Uniform" outfit
-- [x] Photo/Video selector in avatar preview frame
-- [x] **Data persistence migrated from localStorage to Supabase**
-- [x] CRUD API for companies and avatars (`/api/data/*`)
-- [x] Clear All Avatars with server-side deletion
-- [x] 5 clothing styles: Company Uniform, Business Formal, Casual, Streetwear, Creative
+- [x] Data persistence migrated from localStorage to Supabase
+- [x] **Dual Upload (Photo + Video)** for enhanced identity accuracy
+- [x] Multi-frame video analysis with `_describe_person_from_video`
+- [x] `extract-from-video` now returns `extra_frame_urls`
+- [x] `generate-avatar-with-accuracy` accepts `video_frame_urls`
+- [x] Photo/Video selector, Clear All Avatars, 5 clothing styles
 
 ## Backlog
 
 ### P1 - Stabilization & Foundation
-- [ ] Refactor pipeline.py (>4600 lines) into modules (avatar.py, video.py, audio.py, steps.py)
-- [ ] Refactor PipelineView.jsx (~3000 lines) into components
+- [ ] Refactor pipeline.py (>4700 lines) into modules
+- [ ] Refactor PipelineView.jsx (~3100 lines) into components
 - [ ] Allow renaming pipeline agents
 - [ ] Redesign Landing/Login page
-- [ ] Fix FFmpeg logo overlay (low priority)
 
 ### P2 - CRM & Communication
-- [ ] CRM / Lead Database
-- [ ] Kanban Visual board
-- [ ] Unified Inbox
-- [ ] WhatsApp MVP (Evolution API)
-- [ ] Omnichannel integrations
+- [ ] CRM / Lead Database, Kanban, Unified Inbox
+- [ ] WhatsApp MVP (Evolution API), Omnichannel integrations
 
 ### P3 - Intelligent Agents
-- [ ] Agent Tester (Sandbox)
-- [ ] Chat Supervisor Agent
-- [ ] Kanban Manager Agent
+- [ ] Agent Tester, Chat Supervisor, Kanban Manager
 
 ### P4 - Campaigns & Automation
-- [ ] Campaigns for Leads
-- [ ] AutoFlow visual workflow builder
-- [ ] Social Publishing
+- [ ] Campaigns for Leads, AutoFlow, Social Publishing
 
 ### P5 - Monetization & Scale
-- [ ] Stripe Integration
-- [ ] Admin System
-- [ ] Analytics Dashboard
-- [ ] Legal & Compliance
+- [ ] Stripe, Admin System, Analytics, Legal
