@@ -3130,42 +3130,80 @@ async def master_voice(req: MasterVoiceRequest, user=Depends(get_current_user)):
 
 class AvatarVideoPreviewRequest(BaseModel):
     avatar_url: str
+    voice_url: str = ""  # Custom voice URL (recorded/extracted)
+    voice_id: str = ""   # TTS voice ID (alloy, onyx, etc.)
+    language: str = "pt"  # Language for test text
 
 # In-memory store for preview generation jobs
 _preview_jobs = {}
 
-def _run_preview_generation(job_id: str):
-    """Background thread to generate avatar video preview."""
+PREVIEW_TEXTS = {
+    "pt": "Olá! Eu sou seu apresentador virtual. Estou pronto para representar sua marca em campanhas incríveis. Vamos criar algo extraordinário juntos!",
+    "en": "Hello! I'm your virtual presenter. I'm ready to represent your brand in amazing campaigns. Let's create something extraordinary together!",
+    "es": "¡Hola! Soy tu presentador virtual. Estoy listo para representar tu marca en campañas increíbles. ¡Vamos a crear algo extraordinario juntos!",
+}
+
+def _run_preview_generation(job_id: str, avatar_url: str, voice_url: str, voice_id: str, language: str):
+    """Background thread: generate TTS audio (if needed) then lip-sync video with Kling Avatar."""
+    import asyncio
+    loop = asyncio.new_event_loop()
     try:
-        prompt = (
-            "A confident professional person standing in a modern studio, "
-            "making natural gestures and slight head movements as if presenting. "
-            "Subtle body sway, warm smile, engaging eye contact with camera. "
-            "Soft studio lighting, clean minimal background. "
-            "Vertical portrait format, cinematic quality, smooth natural motion."
-        )
-        clip_path = _generate_video_clip_sync(prompt, f"preview_{job_id}", "preview", "720x1280", duration=4)
-        if not clip_path or not os.path.exists(clip_path):
-            _preview_jobs[job_id] = {"status": "failed", "error": "Video generation failed"}
+        text = PREVIEW_TEXTS.get(language, PREVIEW_TEXTS["pt"])
+        audio_url = voice_url  # Use custom voice if available
+
+        # If no custom voice, generate TTS audio
+        if not audio_url:
+            tts_voice = voice_id if voice_id in ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] else "onyx"
+            tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
+            audio_bytes = loop.run_until_complete(tts.generate_speech(
+                text=text, model="tts-1-hd",
+                voice=tts_voice, speed=1.0, response_format="mp3"
+            ))
+            audio_filename = f"voice_previews/preview_tts_{uuid.uuid4().hex[:6]}.mp3"
+            audio_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+            logger.info(f"Preview TTS audio generated: {audio_filename}")
+
+        _preview_jobs[job_id] = {"status": "generating_video", "progress": "Lip-sync..."}
+
+        # Generate lip-sync video with Kling Avatar v2
+        fal_key = os.environ.get("FAL_KEY")
+        if not fal_key:
+            _preview_jobs[job_id] = {"status": "failed", "error": "FAL_KEY not configured"}
             return
 
-        with open(clip_path, "rb") as f:
-            video_bytes = f.read()
-        filename = f"avatars/preview_{uuid.uuid4().hex[:8]}.mp4"
-        public_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-        try: os.remove(clip_path)
-        except: pass
-        _preview_jobs[job_id] = {"status": "completed", "video_url": public_url}
+        import fal_client
+        os.environ["FAL_KEY"] = fal_key
+        handler = loop.run_until_complete(fal_client.submit_async(
+            "fal-ai/kling-video/ai-avatar/v2/standard",
+            arguments={
+                "image_url": avatar_url,
+                "audio_url": audio_url,
+            }
+        ))
+        result = loop.run_until_complete(handler.get())
+        video_url = result.get("video", {}).get("url") if result else None
+
+        if video_url:
+            _preview_jobs[job_id] = {"status": "completed", "video_url": video_url}
+            logger.info(f"Preview lip-sync video generated: {video_url}")
+        else:
+            _preview_jobs[job_id] = {"status": "failed", "error": "Kling returned no video"}
     except Exception as e:
         logger.error(f"Avatar video preview failed: {e}")
         _preview_jobs[job_id] = {"status": "failed", "error": str(e)}
+    finally:
+        loop.close()
 
 @router.post("/avatar-video-preview")
 async def avatar_video_preview(req: AvatarVideoPreviewRequest, user=Depends(get_current_user)):
-    """Start avatar video preview generation in background. Returns job_id for polling."""
+    """Start avatar video preview generation with lip-sync. Returns job_id for polling."""
     job_id = uuid.uuid4().hex[:10]
-    _preview_jobs[job_id] = {"status": "processing"}
-    thread = threading.Thread(target=_run_preview_generation, args=(job_id,), daemon=True)
+    _preview_jobs[job_id] = {"status": "processing", "progress": "Starting..."}
+    thread = threading.Thread(
+        target=_run_preview_generation,
+        args=(job_id, req.avatar_url, req.voice_url, req.voice_id, req.language),
+        daemon=True
+    )
     thread.start()
     return {"job_id": job_id, "status": "processing"}
 

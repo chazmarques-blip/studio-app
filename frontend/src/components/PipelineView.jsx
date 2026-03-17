@@ -898,6 +898,8 @@ export default function PipelineView({ context }) {
   const [masteringVoice, setMasteringVoice] = useState(false);
   const [generatingPreviewVideo, setGeneratingPreviewVideo] = useState(false);
   const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
+  const [previewLanguage, setPreviewLanguage] = useState('pt');
+  const [avatarName, setAvatarName] = useState('');
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
@@ -1132,19 +1134,18 @@ export default function PipelineView({ context }) {
 
   const saveAvatarAndClose = () => {
     if (!tempAvatar) return;
+    const name = avatarName.trim() || `Avatar ${avatars.length + 1}`;
     if (editingAvatarId) {
-      // Update existing avatar
       const updated = avatars.map(a => a.id === editingAvatarId ? {
         ...a, url: tempAvatar.url, clothing: tempAvatar.clothing,
-        voice: tempAvatar.voice, angles: angleImages,
+        voice: tempAvatar.voice, angles: angleImages, name,
       } : a);
       saveAvatars(updated);
     } else {
-      // Save new avatar
       const newAv = {
         id: Date.now().toString(),
         url: tempAvatar.url,
-        name: `Avatar ${avatars.length + 1}`,
+        name,
         source_photo_url: tempAvatar.source_photo_url,
         clothing: tempAvatar.clothing,
         voice: tempAvatar.voice,
@@ -1160,10 +1161,11 @@ export default function PipelineView({ context }) {
 
   const saveAvatarAsNew = () => {
     if (!tempAvatar) return;
+    const name = avatarName.trim() || `Avatar ${avatars.length + 1}`;
     const newAv = {
       id: Date.now().toString(),
       url: tempAvatar.url,
-      name: `Avatar ${avatars.length + 1}`,
+      name,
       source_photo_url: tempAvatar.source_photo_url,
       clothing: tempAvatar.clothing,
       voice: tempAvatar.voice,
@@ -1185,6 +1187,7 @@ export default function PipelineView({ context }) {
       clothing: av.clothing || 'business_formal',
       voice: av.voice || null,
     });
+    setAvatarName(av.name || '');
     setAngleImages(av.angles || { front: av.url });
     // Rebuild clothing variants from angles if available
     const variants = {};
@@ -1210,6 +1213,9 @@ export default function PipelineView({ context }) {
     setAuto360Progress(null);
     setRecordedAudioUrl(null);
     setRecordedAudioBlob(null);
+    setPreviewVideoUrl(null);
+    setPreviewLanguage('pt');
+    setAvatarName('');
   };
 
   const applyClothing = async (style) => {
@@ -2071,6 +2077,18 @@ export default function PipelineView({ context }) {
                 ) : (
                   /* CUSTOMIZE STAGE */
                   <>
+                    {/* Avatar Name */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        data-testid="avatar-name-input"
+                        type="text"
+                        value={avatarName}
+                        onChange={(e) => setAvatarName(e.target.value)}
+                        placeholder={t('studio.avatar_name_placeholder') || 'Name your avatar...'}
+                        className="flex-1 bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#444] focus:border-[#C9A84C]/50 focus:outline-none"
+                      />
+                    </div>
+
                     {/* Avatar Preview - Always vertical portrait with zoom */}
                     <div className="flex justify-center">
                       <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
@@ -2356,49 +2374,72 @@ export default function PipelineView({ context }) {
                 )}
               </div>
 
-              {/* Video Preview Button */}
+              {/* Video Preview with Lip-Sync */}
               {avatarStage === 'customize' && tempAvatar?.url && (
                 <div className="px-5 py-2 border-t border-[#151515]/50 shrink-0">
                   {previewVideoUrl ? (
                     <div className="space-y-1.5">
-                      <p className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.video_preview')}</p>
-                      <video src={previewVideoUrl} controls autoPlay muted loop
-                        className="w-full rounded-xl border border-[#1E1E1E] max-h-32 object-cover" />
+                      <div className="flex items-center justify-between">
+                        <p className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.video_preview')}</p>
+                        <button onClick={() => setPreviewVideoUrl(null)} className="text-[8px] text-[#C9A84C] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
+                      </div>
+                      <video src={previewVideoUrl} controls autoPlay loop
+                        className="w-full rounded-xl border border-[#1E1E1E] max-h-40 object-cover" />
                     </div>
                   ) : (
-                    <button data-testid="generate-preview-video-btn"
-                      onClick={async () => {
-                        setGeneratingPreviewVideo(true);
-                        try {
-                          const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, { avatar_url: tempAvatar.url });
-                          if (data.job_id) {
-                            // Poll for completion
-                            const pollInterval = setInterval(async () => {
-                              try {
-                                const { data: status } = await axios.get(`${API}/campaigns/pipeline/avatar-video-preview/${data.job_id}`);
-                                if (status.status === 'completed' && status.video_url) {
-                                  clearInterval(pollInterval);
-                                  setPreviewVideoUrl(status.video_url);
-                                  setGeneratingPreviewVideo(false);
-                                  toast.success(t('studio.preview_generated'));
-                                } else if (status.status === 'failed') {
-                                  clearInterval(pollInterval);
-                                  setGeneratingPreviewVideo(false);
-                                  toast.error(status.error || t('studio.err_generic'));
-                                }
-                              } catch { /* keep polling */ }
-                            }, 5000);
+                    <div className="space-y-2">
+                      {/* Language Selector */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.test_language') || 'Language'}:</span>
+                        <div className="flex gap-1">
+                          {[{id:'pt',label:'PT'},{id:'en',label:'EN'},{id:'es',label:'ES'}].map(lang => (
+                            <button key={lang.id} onClick={() => setPreviewLanguage(lang.id)}
+                              className={`px-2 py-0.5 rounded text-[8px] font-bold transition ${
+                                previewLanguage === lang.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] border border-[#1E1E1E] hover:border-[#333]'}`}>
+                              {lang.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button data-testid="generate-preview-video-btn"
+                        onClick={async () => {
+                          setGeneratingPreviewVideo(true);
+                          try {
+                            const voice = tempAvatar?.voice;
+                            const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, {
+                              avatar_url: tempAvatar.url,
+                              voice_url: voice?.url || '',
+                              voice_id: voice?.voice_id || '',
+                              language: previewLanguage,
+                            });
+                            if (data.job_id) {
+                              const pollInterval = setInterval(async () => {
+                                try {
+                                  const { data: status } = await axios.get(`${API}/campaigns/pipeline/avatar-video-preview/${data.job_id}`);
+                                  if (status.status === 'completed' && status.video_url) {
+                                    clearInterval(pollInterval);
+                                    setPreviewVideoUrl(status.video_url);
+                                    setGeneratingPreviewVideo(false);
+                                    toast.success(t('studio.preview_generated'));
+                                  } else if (status.status === 'failed') {
+                                    clearInterval(pollInterval);
+                                    setGeneratingPreviewVideo(false);
+                                    toast.error(status.error || t('studio.err_generic'));
+                                  }
+                                } catch { /* keep polling */ }
+                              }, 5000);
+                            }
+                          } catch (e) {
+                            toast.error(t('studio.err_generic'));
+                            setGeneratingPreviewVideo(false);
                           }
-                        } catch (e) {
-                          toast.error(t('studio.err_generic'));
-                          setGeneratingPreviewVideo(false);
-                        }
-                      }}
-                      disabled={generatingPreviewVideo}
-                      className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
-                      {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
-                       <><Play size={10} /> {t('studio.generate_video_preview')}</>}
-                    </button>
+                        }}
+                        disabled={generatingPreviewVideo}
+                        className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
+                        {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
+                         <><Play size={10} /> {t('studio.generate_video_preview')}</>}
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
