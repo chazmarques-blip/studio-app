@@ -201,6 +201,41 @@ async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: s
                         images.append({"mime_type": m_type, "data": b64})
     return images
 
+
+async def _gemini_edit_multi_ref(system_msg: str, prompt: str, primary_b64: str, primary_mime: str, extra_refs: list = None) -> list:
+    """Send text + MULTIPLE reference images to Gemini for better identity preservation.
+    extra_refs: list of {"data": b64, "mime": mime_type}"""
+    content = [{"type": "text", "text": prompt}]
+    content.append({"type": "image_url", "image_url": {"url": f"data:{primary_mime};base64,{primary_b64}"}})
+    for ref in (extra_refs or [])[:5]:
+        content.append({"type": "image_url", "image_url": {"url": f"data:{ref['mime']};base64,{ref['data']}"}})
+    messages = [
+        {"role": "system", "content": system_msg},
+        {"role": "user", "content": content}
+    ]
+    params = {
+        "model": "gemini/gemini-3-pro-image-preview",
+        "messages": messages,
+        "api_key": EMERGENT_KEY,
+        "api_base": EMERGENT_PROXY_URL,
+        "custom_llm_provider": "openai",
+        "modalities": ["image", "text"],
+    }
+    response = litellm.completion(**params)
+    images = []
+    if response.choices and response.choices[0].message:
+        msg = response.choices[0].message
+        if hasattr(msg, 'images') and msg.images:
+            for img_data in msg.images:
+                if 'image_url' in img_data and 'url' in img_data['image_url']:
+                    url = img_data['image_url']['url']
+                    if 'data:' in url and ';base64,' in url:
+                        parts = url.split(';base64,', 1)
+                        m_type = parts[0].replace('data:', '')
+                        b64 = parts[1]
+                        images.append({"mime_type": m_type, "data": b64})
+    return images
+
 # FFmpeg binary path - from imageio_ffmpeg package
 try:
     import imageio_ffmpeg
@@ -3071,14 +3106,28 @@ _accuracy_jobs = {}
 
 
 def _composite_logo_on_avatar(avatar_bytes: bytes, logo_bytes: bytes) -> bytes:
-    """Composite company logo onto the left chest area of the avatar's white polo shirt."""
+    """Composite company logo onto the left chest area of the avatar's white polo shirt.
+    Automatically removes black/dark backgrounds from the logo."""
     try:
         avatar_img = Image.open(BytesIO(avatar_bytes)).convert("RGBA")
         logo_img = Image.open(BytesIO(logo_bytes)).convert("RGBA")
 
+        # Remove black/dark background from logo
+        import numpy as np
+        logo_arr = np.array(logo_img)
+        # Detect dark pixels (R<50, G<50, B<50) and make them transparent
+        dark_mask = (logo_arr[:, :, 0] < 50) & (logo_arr[:, :, 1] < 50) & (logo_arr[:, :, 2] < 50)
+        logo_arr[dark_mask, 3] = 0  # Set alpha to 0 for dark pixels
+        logo_img = Image.fromarray(logo_arr, "RGBA")
+
+        # Crop to non-transparent bounding box to remove excess space
+        bbox = logo_img.getbbox()
+        if bbox:
+            logo_img = logo_img.crop(bbox)
+
         aw, ah = avatar_img.size
-        # Logo on left chest: ~8% of avatar width, positioned at ~38% from left, ~22% from top
-        logo_target_w = max(int(aw * 0.08), 30)
+        # Logo on left chest: ~10% of avatar width, positioned at ~38% from left, ~22% from top
+        logo_target_w = max(int(aw * 0.10), 40)
         logo_ratio = logo_img.height / logo_img.width
         logo_target_h = int(logo_target_w * logo_ratio)
         logo_resized = logo_img.resize((logo_target_w, logo_target_h), Image.LANCZOS)
@@ -3094,6 +3143,7 @@ def _composite_logo_on_avatar(avatar_bytes: bytes, logo_bytes: bytes) -> bytes:
         output = avatar_img.convert("RGB")
         buf = BytesIO()
         output.save(buf, format="PNG", quality=95)
+        logger.info(f"Logo composited: {logo_target_w}x{logo_target_h} at ({paste_x},{paste_y})")
         return buf.getvalue()
     except Exception as e:
         logger.warning(f"Logo compositing failed: {e}")
@@ -3157,9 +3207,10 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_url
                 logger.info(f"Enhanced desc with video: {video_desc[:100]}...")
 
         system_msg = (
-            "You are an expert portrait photographer. You create stunning full-body professional photos. "
-            "CRITICAL: Always output VERTICAL portrait format (taller than wide, approximately 3:5 ratio). "
-            "When given a reference photo, preserve the person's EXACT identity — same face, features, skin tone, hair."
+            "You are a professional photo editor. You edit existing photos of real people. "
+            "ABSOLUTE RULE: The person in the output MUST be IDENTICAL to the person in the input photo. "
+            "You only change clothing, background, and pose. The face, body, skin, and hair stay EXACTLY the same. "
+            "Output VERTICAL format (taller than wide, 3:5 ratio)."
         )
 
         iterations = []
@@ -3172,32 +3223,35 @@ def _run_accuracy_generation(job_id: str, source_image_url: str, video_frame_url
                 "iteration": attempt + 1,
                 "iterations": iterations,
                 "agents": AGENTS,
-                "active_agent": "Artist" if attempt == 0 else "Artist",
+                "active_agent": "Artist",
             }
 
             prompt = (
-                "Create a photorealistic FULL-BODY portrait of the EXACT SAME person in this reference photo.\n\n"
-                "IDENTITY (non-negotiable):\n"
-                "- Same face shape, jawline, cheekbones, forehead\n"
-                "- Same eyes (shape, color, size, spacing, brows)\n"
-                "- Same nose (shape, width, bridge, tip)\n"
-                "- Same mouth and lip shape\n"
-                "- EXACT same skin tone — no lightening or darkening\n"
-                "- Same hair (color, texture, style, length, hairline)\n"
-                "- Same facial hair if present (pattern, density, color)\n"
-                "- Same body build, proportions, apparent age\n\n"
-                "OUTFIT: Clean plain white polo shirt (NO logos, NO text, NO graphics — completely blank), "
-                "fitted black dress pants, and clean white sneakers (sapatênis).\n\n"
-                "POSE: Standing confidently, slight natural smile, arms relaxed at sides.\n"
-                "BACKGROUND: Clean minimal studio, soft professional lighting.\n"
-                "FORMAT: VERTICAL portrait (3:5 ratio), full body from head to feet.\n"
-                "QUALITY: Photorealistic, studio photography."
+                "EDIT this photo of this person. Do NOT create a new person. Keep THIS EXACT person.\n\n"
+                "CHANGES TO MAKE:\n"
+                "1. CLOTHING: Change to a clean plain white polo shirt (completely blank, no logos), "
+                "black dress pants, white sneakers\n"
+                "2. BACKGROUND: Change to a clean professional photo studio with soft lighting\n"
+                "3. POSE: Standing full body, slight smile, arms relaxed\n"
+                "4. FRAMING: Full body head to feet, VERTICAL portrait format\n\n"
+                "DO NOT CHANGE:\n"
+                "- The person's face (every detail must stay identical)\n"
+                "- Skin tone and complexion\n"
+                "- Hair color, style, and length\n"
+                "- Facial hair pattern\n"
+                "- Body build and proportions\n"
+                "- Remove sunglasses if worn, showing the person's natural eyes"
             )
-            if person_desc:
-                prompt = f"PERSON TO FOCUS ON (ignore background and other people): {person_desc}\n\n{prompt}"
+            if person_desc and attempt == 0:
+                # Include key identity features in the prompt
+                prompt += f"\n\nIMPORTANT - Person identity details to preserve: {person_desc[:400]}"
+            elif person_desc:
+                # On retry, include a shorter reminder
+                prompt += f"\n\nPerson: {person_desc[:200]}"
             if extra_feedback:
-                prompt += f"\n\nCRITICAL CORRECTIONS FROM PREVIOUS ATTEMPT:\n{extra_feedback}"
+                prompt += f"\n\nFIX THESE ISSUES: {extra_feedback}"
 
+            # Use primary photo as the ONLY visual reference (video frames enhance text description only)
             images = loop.run_until_complete(_gemini_edit_image(system_msg, prompt, img_b64, mime))
             if not images:
                 iterations.append({"attempt": attempt + 1, "url": None, "score": 0, "feedback": "Generation failed", "passed": False})
