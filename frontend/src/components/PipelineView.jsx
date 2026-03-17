@@ -930,24 +930,32 @@ export default function PipelineView({ context }) {
   const logoInputRef = useRef(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('agentzz_companies');
-    if (saved) {
+    // Load companies and avatars from server (MongoDB)
+    const loadUserData = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        setCompanies(parsed);
-        const primary = parsed.find(c => c.is_primary);
-        if (primary) setActiveCompanyId(primary.id);
-        else if (parsed.length) setActiveCompanyId(parsed[0].id);
-      } catch {}
-    }
-    const savedAvatars = localStorage.getItem('agentzz_avatars');
-    if (savedAvatars) {
-      try {
-        const parsed = JSON.parse(savedAvatars);
-        setAvatars(parsed);
-        if (parsed.length) setSelectedAvatarId(parsed[0].id);
-      } catch {}
-    }
+        const [companiesRes, avatarsRes] = await Promise.all([
+          axios.get(`${API}/data/companies`),
+          axios.get(`${API}/data/avatars`),
+        ]);
+        if (companiesRes.data?.length) {
+          setCompanies(companiesRes.data);
+          const primary = companiesRes.data.find(c => c.is_primary);
+          if (primary) setActiveCompanyId(primary.id);
+          else setActiveCompanyId(companiesRes.data[0].id);
+        }
+        if (avatarsRes.data?.length) {
+          setAvatars(avatarsRes.data);
+          setSelectedAvatarId(avatarsRes.data[0].id);
+        }
+      } catch (e) {
+        // Fallback to localStorage if not authenticated yet
+        const saved = localStorage.getItem('agentzz_companies');
+        if (saved) { try { const p = JSON.parse(saved); setCompanies(p); const pr = p.find(c => c.is_primary); if (pr) setActiveCompanyId(pr.id); else if (p.length) setActiveCompanyId(p[0].id); } catch {} }
+        const savedAv = localStorage.getItem('agentzz_avatars');
+        if (savedAv) { try { const p = JSON.parse(savedAv); setAvatars(p); if (p.length) setSelectedAvatarId(p[0].id); } catch {} }
+      }
+    };
+    loadUserData();
   }, []);
 
   const saveCompanies = (list) => {
@@ -955,23 +963,31 @@ export default function PipelineView({ context }) {
     localStorage.setItem('agentzz_companies', JSON.stringify(list));
   };
 
-  const addCompany = () => {
+  const addCompany = async () => {
     if (!newCompany.name.trim()) return;
     const co = { ...newCompany, id: Date.now().toString(), is_primary: companies.length === 0 };
-    const updated = [...companies, co];
-    saveCompanies(updated);
-    setActiveCompanyId(co.id);
+    try {
+      const { data } = await axios.post(`${API}/data/companies`, co);
+      const updated = [...companies, data || co];
+      setCompanies(updated);
+      setActiveCompanyId((data || co).id);
+    } catch {
+      const updated = [...companies, co];
+      saveCompanies(updated);
+      setActiveCompanyId(co.id);
+    }
     setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
     setShowCompanyModal(false);
     setEditingCompanyId(null);
     toast.success(t('studio.company_saved'));
   };
 
-  const removeCompany = (id) => {
+  const removeCompany = async (id) => {
     const updated = companies.filter(c => c.id !== id);
     if (updated.length && !updated.some(c => c.is_primary)) updated[0].is_primary = true;
-    saveCompanies(updated);
+    setCompanies(updated);
     if (activeCompanyId === id) setActiveCompanyId(updated[0]?.id || null);
+    try { await axios.delete(`${API}/data/companies/${id}`); } catch {}
   };
 
   const startEditCompany = (co) => {
@@ -980,10 +996,14 @@ export default function PipelineView({ context }) {
     setShowCompanyModal(true);
   };
 
-  const saveEditCompany = () => {
+  const saveEditCompany = async () => {
     if (!newCompany.name.trim()) return;
+    const updatedCo = { ...newCompany, id: editingCompanyId };
+    try {
+      await axios.post(`${API}/data/companies`, updatedCo);
+    } catch {}
     const updated = companies.map(c => c.id === editingCompanyId ? { ...c, ...newCompany } : c);
-    saveCompanies(updated);
+    setCompanies(updated);
     setEditingCompanyId(null);
     setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
     setShowCompanyModal(false);
@@ -1013,9 +1033,10 @@ export default function PipelineView({ context }) {
     setLogoUploading(false);
   };
 
-  const setPrimaryCompany = (id) => {
+  const setPrimaryCompany = async (id) => {
     const updated = companies.map(c => ({ ...c, is_primary: c.id === id }));
-    saveCompanies(updated);
+    setCompanies(updated);
+    try { await axios.post(`${API}/data/companies/primary/${id}`); } catch {}
   };
 
   const activeCompany = companies.find(c => c.id === activeCompanyId) || null;
@@ -1024,6 +1045,12 @@ export default function PipelineView({ context }) {
   const saveAvatars = (list) => {
     setAvatars(list);
     localStorage.setItem('agentzz_avatars', JSON.stringify(list));
+  };
+
+  const persistAvatarToServer = async (avatar) => {
+    try {
+      await axios.post(`${API}/data/avatars`, avatar);
+    } catch {}
   };
 
   const uploadAvatarPhoto = async (files) => {
@@ -1168,12 +1195,15 @@ export default function PipelineView({ context }) {
     if (!tempAvatar) return;
     const name = avatarName.trim() || `Avatar ${avatars.length + 1}`;
     if (editingAvatarId) {
-      const updated = avatars.map(a => a.id === editingAvatarId ? {
-        ...a, url: tempAvatar.url, clothing: tempAvatar.clothing,
+      const editedAvatar = {
+        id: editingAvatarId, url: tempAvatar.url, clothing: tempAvatar.clothing,
         voice: tempAvatar.voice, angles: angleImages, name,
-        video_url: previewVideoUrl || a.video_url || null,
-      } : a);
+        source_photo_url: tempAvatar.source_photo_url || '',
+        video_url: previewVideoUrl || null,
+      };
+      const updated = avatars.map(a => a.id === editingAvatarId ? { ...a, ...editedAvatar } : a);
       saveAvatars(updated);
+      persistAvatarToServer(editedAvatar);
     } else {
       const newAv = {
         id: Date.now().toString(),
@@ -1184,11 +1214,11 @@ export default function PipelineView({ context }) {
         voice: tempAvatar.voice,
         angles: angleImages,
         video_url: previewVideoUrl || null,
-        created_at: new Date().toISOString(),
       };
       const updated = [...avatars, newAv];
       saveAvatars(updated);
       setSelectedAvatarId(newAv.id);
+      persistAvatarToServer(newAv);
     }
     resetAvatarModal();
   };
@@ -1205,11 +1235,11 @@ export default function PipelineView({ context }) {
       voice: tempAvatar.voice,
       angles: angleImages,
       video_url: previewVideoUrl || null,
-      created_at: new Date().toISOString(),
     };
     const updated = [...avatars, newAv];
     saveAvatars(updated);
     setSelectedAvatarId(newAv.id);
+    persistAvatarToServer(newAv);
     resetAvatarModal();
     toast.success('Avatar saved as new!');
   };
@@ -1392,10 +1422,11 @@ export default function PipelineView({ context }) {
     setUploadingRecording(false);
   };
 
-  const removeAvatar = (id) => {
+  const removeAvatar = async (id) => {
     const updated = avatars.filter(a => a.id !== id);
     saveAvatars(updated);
     if (selectedAvatarId === id) setSelectedAvatarId(updated[0]?.id || null);
+    try { await axios.delete(`${API}/data/avatars/${id}`); } catch {}
   };
 
   useEffect(() => {
@@ -1861,7 +1892,7 @@ export default function PipelineView({ context }) {
             </label>
             <div className="flex items-center gap-1">
               {avatars.length > 0 && (
-                <button data-testid="clear-all-avatars-btn" onClick={() => { saveAvatars([]); setSelectedAvatarId(null); toast.success(t('studio.avatars_cleared') || 'Avatars cleared'); }}
+                <button data-testid="clear-all-avatars-btn" onClick={async () => { saveAvatars([]); setSelectedAvatarId(null); try { await axios.delete(`${API}/data/avatars`); } catch {} toast.success(t('studio.avatars_cleared') || 'Avatars cleared'); }}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition" title="Clear all">
                   <Trash2 size={9} />
                 </button>
