@@ -1044,6 +1044,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         const mediaUrl = shareIsVideo ? videoUrl : (images[shareImgIdx] || images[0]);
                         const resolvedUrl = resolveImageUrl(mediaUrl);
 
+                        // Always copy text to clipboard first
+                        try {
+                          await navigator.clipboard?.writeText(txt);
+                        } catch { /* ignore */ }
+
                         // Try native share with FILE (mobile)
                         if (navigator.canShare && mediaUrl) {
                           try {
@@ -1054,16 +1059,17 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             const file = new File([blob], `campaign_${campaign.name.replace(/[^a-zA-Z0-9]/g, '_')}.${ext}`, { type: mimeType });
                             const shareData = { files: [file], text: txt, title: campaign.name };
                             if (navigator.canShare(shareData)) {
+                              toast.success('Texto copiado! Cole na publicacao.');
                               await navigator.share(shareData);
                               return;
                             }
                           } catch (err) {
                             if (err.name === 'AbortError') return;
-                            console.log('File share failed, using fallback:', err.message);
                           }
                         }
 
-                        // Fallback: platform deep links
+                        // Fallback: platform deep links + copy text
+                        toast.success('Texto copiado! Cole na publicacao.');
                         if (p.id === 'whatsapp') {
                           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}`, '_blank');
                         } else if (p.id === 'facebook') {
@@ -1073,7 +1079,6 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         } else if (p.id === 'email') {
                           window.open(`mailto:?subject=${encodeURIComponent(campaign.name)}&body=${encodeURIComponent(txt)}`, '_blank');
                         } else if (p.id === 'instagram') {
-                          navigator.clipboard?.writeText(txt);
                           if (mediaUrl) {
                             const a = document.createElement('a'); a.href = resolvedUrl;
                             a.download = `campaign_${campaign.name.replace(/\s+/g, '_')}.${shareIsVideo ? 'mp4' : 'png'}`;
