@@ -419,6 +419,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   // Clone language state
   const [showCloneModal, setShowCloneModal] = useState(false);
   const [cloneLoading, setCloneLoading] = useState(false);
+  const [shareImgIdx, setShareImgIdx] = useState(0);
+  const [shareText, setShareText] = useState('');
 
   const cloneCampaign = async (targetLang) => {
     if (!pipelineId) return;
@@ -866,6 +868,95 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* ── SHARE BAR ── Manual sharing to selected platform */}
+              <div data-testid="share-bar" className="max-w-[340px] mx-auto mt-3">
+                <div className="rounded-xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-3">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <Send size={12} className="text-[#C9A84C]" />
+                    <p className="text-[10px] font-bold text-white flex-1">Compartilhar Agora</p>
+                  </div>
+
+                  {/* Image selector */}
+                  {(() => {
+                    const allImgs = (stats.platform_variants?.[selectedChannel] || images);
+                    return allImgs.length > 0 && (
+                      <div className="mb-2.5">
+                        <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">Imagem</p>
+                        <div className="flex gap-1.5">
+                          {allImgs.map((u, i) => (
+                            <button key={i} data-testid={`share-img-${i}`}
+                              onClick={() => setShareImgIdx(i)}
+                              className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition-all ${shareImgIdx === i ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.3)]' : 'border-[#222] opacity-60 hover:opacity-100'}`}>
+                              <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Text preview (editable) */}
+                  <div className="mb-2.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[8px] text-[#555] uppercase tracking-wider">Texto</p>
+                      <button data-testid="share-copy-text" onClick={() => {
+                        const t = shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '');
+                        navigator.clipboard?.writeText(t).then(() => toast.success(labels.copied)).catch(() => {
+                          const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                          toast.success(labels.copied);
+                        });
+                      }} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+                        <Copy size={8} /> Copiar
+                      </button>
+                    </div>
+                    <textarea data-testid="share-text-editor"
+                      value={shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '')}
+                      onChange={e => setShareText(e.target.value)}
+                      className="w-full text-[9px] bg-[#111] border border-[#1A1A1A] rounded-lg p-2 text-[#ccc] placeholder-[#555] resize-none focus:border-[#C9A84C]/30 focus:outline-none"
+                      rows={3} />
+                  </div>
+
+                  {/* Share buttons */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'whatsapp', label: 'WhatsApp', color: '#25D366', getUrl: (txt) => `https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}` },
+                      { id: 'instagram', label: 'Instagram', color: '#E4405F', getUrl: null },
+                      { id: 'facebook', label: 'Facebook', color: '#1877F2', getUrl: (txt) => `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(txt)}` },
+                      { id: 'telegram', label: 'Telegram', color: '#26A5E4', getUrl: (txt) => `https://t.me/share/url?text=${encodeURIComponent(txt)}` },
+                      { id: 'email', label: 'Email', color: '#C9A84C', getUrl: (txt) => `mailto:?subject=${encodeURIComponent(campaign.name)}&body=${encodeURIComponent(txt)}` },
+                    ].map(p => (
+                      <button key={p.id} data-testid={`share-to-${p.id}`}
+                        onClick={() => {
+                          const txt = shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '');
+                          const allImgs = stats.platform_variants?.[selectedChannel] || images;
+                          const imgUrl = allImgs[shareImgIdx] || allImgs[0];
+                          // Try Web Share API first (mobile native)
+                          if (navigator.share && p.id !== 'email') {
+                            const shareData = { text: txt, title: campaign.name };
+                            if (imgUrl) shareData.url = resolveImageUrl(imgUrl);
+                            navigator.share(shareData).catch(() => {});
+                          } else if (p.id === 'instagram') {
+                            // Instagram: copy text + download image
+                            navigator.clipboard?.writeText(txt);
+                            if (imgUrl) {
+                              const a = document.createElement('a'); a.href = resolveImageUrl(imgUrl); a.download = `campaign_${campaign.name.replace(/\s+/g, '_')}.png`; a.target = '_blank'; a.click();
+                            }
+                            toast.success('Texto copiado! Imagem baixada. Cole no Instagram.');
+                          } else if (p.getUrl) {
+                            window.open(p.getUrl(txt), '_blank');
+                          }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all hover:scale-[1.02] active:scale-95"
+                        style={{ borderColor: `${p.color}30`, backgroundColor: `${p.color}08` }}>
+                        <ChannelIcon channel={p.id} active size={14} />
+                        <span className="text-[9px] font-semibold" style={{ color: p.color }}>{p.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Video Commercial */}
