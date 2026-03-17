@@ -1006,31 +1006,31 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
+                  <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-semibold text-[#888]">
+                      <span className="text-[8px] font-semibold text-[#888]">
                         {messages.find(m => m.channel === selectedChannel)?.channel === 'multi' ? labels.allNetworks : selectedChannel}
                       </span>
                     </div>
                     <textarea data-testid="share-text-editor"
                       value={shareText || cleanCampaignText(messages.find(m => m.channel === selectedChannel)?.content || messages[0]?.content || '')}
                       onChange={e => setShareText(e.target.value)}
-                      className="w-full bg-transparent text-[10px] text-[#ccc] leading-relaxed font-sans resize-none focus:outline-none"
-                      rows={8} />
+                      className="w-full bg-transparent text-[9px] text-[#ccc] leading-relaxed font-sans resize-none focus:outline-none"
+                      rows={5} />
                   </div>
                 )}
               </div>
 
               {/* ── SHARE BUTTONS ── */}
-              <div data-testid="share-bar" className="rounded-xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <Send size={12} className="text-[#C9A84C]" />
-                  <p className="text-[10px] font-bold text-white">Compartilhar</p>
-                  <span className="text-[8px] text-[#555] ml-auto">
-                    {shareIsVideo ? 'Video selecionado' : `Design ${shareImgIdx + 1} selecionado`}
+              <div data-testid="share-bar" className="rounded-xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-2.5 -mt-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Send size={10} className="text-[#C9A84C]" />
+                  <p className="text-[9px] font-bold text-white">Compartilhar</p>
+                  <span className="text-[7px] text-[#555] ml-auto">
+                    {shareIsVideo ? 'Video' : `Design ${shareImgIdx + 1}`}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-1.5">
                   {[
                     { id: 'whatsapp', label: 'WhatsApp', color: '#25D366' },
                     { id: 'instagram', label: 'Instagram', color: '#E4405F' },
@@ -1082,10 +1082,10 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           toast.success('Texto copiado! Midia baixada. Cole no Instagram.');
                         }
                       }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all hover:scale-[1.02] active:scale-95"
-                      style={{ borderColor: `${p.color}30`, backgroundColor: `${p.color}08` }}>
-                      <ChannelIcon channel={p.id} active size={16} />
-                      <span className="text-[10px] font-semibold" style={{ color: p.color }}>{p.label}</span>
+                      className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition-all hover:scale-[1.03] active:scale-95"
+                      style={{ borderColor: `${p.color}25`, backgroundColor: `${p.color}08` }}>
+                      <ChannelIcon channel={p.id} active size={14} />
+                      <span className="text-[7px] font-semibold" style={{ color: p.color }}>{p.label}</span>
                     </button>
                   ))}
                 </div>
