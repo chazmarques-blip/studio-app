@@ -946,15 +946,14 @@ export default function PipelineView({ context }) {
         localStorage.setItem('agentzz_companies', JSON.stringify(serverCompanies));
         localStorage.setItem('agentzz_avatars', JSON.stringify(serverAvatars));
         if (serverCompanies.length) {
-          const primary = serverCompanies.find(c => c.is_primary);
-          setActiveCompanyId(primary ? primary.id : serverCompanies[0].id);
+          // Don't auto-select - let user choose or create generic campaign
         }
         if (serverAvatars.length) {
           setSelectedAvatarId(serverAvatars[0].id);
         }
       } catch {
         // Fallback to localStorage ONLY if API fails (e.g. not authenticated)
-        try { const p = JSON.parse(localStorage.getItem('agentzz_companies') || '[]'); setCompanies(p); const pr = p.find(c => c.is_primary); if (pr) setActiveCompanyId(pr.id); else if (p.length) setActiveCompanyId(p[0].id); } catch {}
+        try { const p = JSON.parse(localStorage.getItem('agentzz_companies') || '[]'); setCompanies(p); } catch {}
         try { const p = JSON.parse(localStorage.getItem('agentzz_avatars') || '[]'); setAvatars(p); if (p.length) setSelectedAvatarId(p[0].id); } catch {}
       }
     };
@@ -1050,6 +1049,9 @@ export default function PipelineView({ context }) {
     if (activeCompany) {
       setCampaignName(activeCompany.name || '');
       setQuestionnaire(q => ({ ...q, product: activeCompany.product_description || '' }));
+    } else {
+      setCampaignName('');
+      setQuestionnaire(q => ({ ...q, product: '' }));
     }
   }, [activeCompanyId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1868,7 +1870,7 @@ export default function PipelineView({ context }) {
             <div className="space-y-1.5">
               {companies.map(co => (
                 <div key={co.id} data-testid={`company-${co.id}`} role="button" tabIndex={0}
-                  onClick={() => setActiveCompanyId(co.id)}
+                  onClick={() => setActiveCompanyId(activeCompanyId === co.id ? null : co.id)}
                   className={`w-full text-left rounded-xl border px-3 py-2 transition group cursor-pointer ${activeCompanyId === co.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
                   <div className="flex items-center gap-2">
                     <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
