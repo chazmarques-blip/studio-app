@@ -1,29 +1,16 @@
 """
-Data persistence router — Companies & Avatars stored in MongoDB.
-Replaces localStorage with server-side persistence.
+Data persistence router — Companies & Avatars stored in Supabase.
+Uses the tenants table's 'settings' JSONB column for structured storage.
 """
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
-from pymongo import MongoClient
-import os
 import uuid
 
-from core.deps import get_current_user, logger
+from core.deps import supabase, get_current_user, get_current_tenant, logger
 
 router = APIRouter(prefix="/api/data", tags=["data"])
-
-MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
-DB_NAME = os.environ.get("DB_NAME", "agentzz")
-_mongo = MongoClient(MONGO_URL)
-_db = _mongo[DB_NAME]
-companies_col = _db["companies"]
-avatars_col = _db["avatars"]
-
-# Ensure indexes
-companies_col.create_index("user_id")
-avatars_col.create_index("user_id")
 
 
 # ── Models ──
@@ -48,26 +35,40 @@ class AvatarIn(BaseModel):
     video_url: Optional[str] = None
 
 
+def _get_settings(tenant_id: str) -> dict:
+    """Read current settings from tenant."""
+    r = supabase.table("tenants").select("settings").eq("id", tenant_id).single().execute()
+    return r.data.get("settings", {}) if r.data else {}
+
+
+def _save_settings(tenant_id: str, settings: dict):
+    """Save settings to tenant."""
+    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+    supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
+
+
 # ── Companies CRUD ──
 
 @router.get("/companies")
-async def list_companies(user=Depends(get_current_user)):
-    docs = list(companies_col.find({"user_id": user["id"]}, {"_id": 0}))
-    return docs
+async def list_companies(user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    return settings.get("studio_companies", [])
+
 
 @router.post("/companies")
-async def upsert_company(data: CompanyIn, user=Depends(get_current_user)):
-    uid = user["id"]
+async def upsert_company(data: CompanyIn, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    companies = settings.get("studio_companies", [])
     now = datetime.now(timezone.utc).isoformat()
     doc_id = data.id or uuid.uuid4().hex[:12]
 
     # If setting as primary, unset others
     if data.is_primary:
-        companies_col.update_many({"user_id": uid}, {"$set": {"is_primary": False}})
+        for c in companies:
+            c["is_primary"] = False
 
     doc = {
         "id": doc_id,
-        "user_id": uid,
         "name": data.name,
         "phone": data.phone,
         "is_whatsapp": data.is_whatsapp,
@@ -77,46 +78,57 @@ async def upsert_company(data: CompanyIn, user=Depends(get_current_user)):
         "updated_at": now,
     }
 
-    existing = companies_col.find_one({"id": doc_id, "user_id": uid})
-    if existing:
-        companies_col.update_one({"id": doc_id, "user_id": uid}, {"$set": doc})
+    existing_idx = next((i for i, c in enumerate(companies) if c.get("id") == doc_id), None)
+    if existing_idx is not None:
+        doc["created_at"] = companies[existing_idx].get("created_at", now)
+        companies[existing_idx] = doc
     else:
         doc["created_at"] = now
-        companies_col.insert_one(doc)
+        companies.append(doc)
 
-    # Return without _id
-    result = companies_col.find_one({"id": doc_id, "user_id": uid}, {"_id": 0})
-    return result
+    settings["studio_companies"] = companies
+    _save_settings(tenant["id"], settings)
+    return doc
+
 
 @router.post("/companies/primary/{company_id}")
-async def set_primary_company(company_id: str, user=Depends(get_current_user)):
-    uid = user["id"]
-    companies_col.update_many({"user_id": uid}, {"$set": {"is_primary": False}})
-    companies_col.update_one({"id": company_id, "user_id": uid}, {"$set": {"is_primary": True}})
+async def set_primary_company(company_id: str, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    companies = settings.get("studio_companies", [])
+    for c in companies:
+        c["is_primary"] = (c.get("id") == company_id)
+    settings["studio_companies"] = companies
+    _save_settings(tenant["id"], settings)
     return {"status": "ok"}
 
+
 @router.delete("/companies/{company_id}")
-async def delete_company(company_id: str, user=Depends(get_current_user)):
-    companies_col.delete_one({"id": company_id, "user_id": user["id"]})
+async def delete_company(company_id: str, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    companies = settings.get("studio_companies", [])
+    companies = [c for c in companies if c.get("id") != company_id]
+    settings["studio_companies"] = companies
+    _save_settings(tenant["id"], settings)
     return {"status": "ok"}
 
 
 # ── Avatars CRUD ──
 
 @router.get("/avatars")
-async def list_avatars(user=Depends(get_current_user)):
-    docs = list(avatars_col.find({"user_id": user["id"]}, {"_id": 0}))
-    return docs
+async def list_avatars(user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    return settings.get("studio_avatars", [])
+
 
 @router.post("/avatars")
-async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user)):
-    uid = user["id"]
+async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    avatars = settings.get("studio_avatars", [])
     now = datetime.now(timezone.utc).isoformat()
     doc_id = data.id or uuid.uuid4().hex[:12]
 
     doc = {
         "id": doc_id,
-        "user_id": uid,
         "url": data.url,
         "name": data.name,
         "source_photo_url": data.source_photo_url,
@@ -127,22 +139,33 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user)):
         "updated_at": now,
     }
 
-    existing = avatars_col.find_one({"id": doc_id, "user_id": uid})
-    if existing:
-        avatars_col.update_one({"id": doc_id, "user_id": uid}, {"$set": doc})
+    existing_idx = next((i for i, a in enumerate(avatars) if a.get("id") == doc_id), None)
+    if existing_idx is not None:
+        doc["created_at"] = avatars[existing_idx].get("created_at", now)
+        avatars[existing_idx] = doc
     else:
         doc["created_at"] = now
-        avatars_col.insert_one(doc)
+        avatars.append(doc)
 
-    result = avatars_col.find_one({"id": doc_id, "user_id": uid}, {"_id": 0})
-    return result
+    settings["studio_avatars"] = avatars
+    _save_settings(tenant["id"], settings)
+    return doc
+
 
 @router.delete("/avatars/{avatar_id}")
-async def delete_avatar(avatar_id: str, user=Depends(get_current_user)):
-    avatars_col.delete_one({"id": avatar_id, "user_id": user["id"]})
+async def delete_avatar(avatar_id: str, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    avatars = settings.get("studio_avatars", [])
+    avatars = [a for a in avatars if a.get("id") != avatar_id]
+    settings["studio_avatars"] = avatars
+    _save_settings(tenant["id"], settings)
     return {"status": "ok"}
 
+
 @router.delete("/avatars")
-async def delete_all_avatars(user=Depends(get_current_user)):
-    result = avatars_col.delete_many({"user_id": user["id"]})
-    return {"status": "ok", "deleted": result.deleted_count}
+async def delete_all_avatars(user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    settings = _get_settings(tenant["id"])
+    count = len(settings.get("studio_avatars", []))
+    settings["studio_avatars"] = []
+    _save_settings(tenant["id"], settings)
+    return {"status": "ok", "deleted": count}

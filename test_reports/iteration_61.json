@@ -1,0 +1,67 @@
+{
+  "summary": "Iteration 61 - Supabase Data CRUD Testing: All 31 backend tests passed (100%). Verified companies and avatars are stored in Supabase tenants.settings JSONB column. AgentZZ company exists and persists across sessions.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration61_supabase_data_crud.py",
+    "/app/backend/tests/test_iteration60_data_persistence.py",
+    "/app/test_reports/pytest/pytest_results_iteration61_supabase.xml",
+    "/app/test_reports/pytest/pytest_results_iteration61.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration61_supabase_data_crud.py"
+  ],
+  "success_rate": {
+    "backend": "100% (31/31 tests passed - 13 from iteration60 + 18 from iteration61)"
+  },
+  "seed_data_creation": "Multiple TEST_ prefixed companies created during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Data persistence now uses Supabase (not MongoDB). Companies and avatars stored in tenants.settings JSONB column as studio_companies and studio_avatars arrays. Previous iteration_60 report incorrectly mentioned MongoDB - architecture has changed to Supabase.",
+  "features_verified": {
+    "backend": {
+      "GET /api/data/companies": "Returns array from tenants.settings.studio_companies - PASSED",
+      "POST /api/data/companies (create)": "Creates company with auto-generated 12-char hex ID, adds timestamps - PASSED",
+      "POST /api/data/companies (update)": "Updates by id, preserves created_at timestamp - PASSED",
+      "POST /api/data/companies/primary/{id}": "Sets company as primary, unsets others - PASSED",
+      "DELETE /api/data/companies/{id}": "Removes company from JSONB array - PASSED",
+      "GET /api/data/avatars": "Returns array from tenants.settings.studio_avatars - PASSED",
+      "POST /api/data/avatars (create)": "Creates avatar with all fields (url, voice, angles, video_url) - PASSED",
+      "POST /api/data/avatars (update)": "Updates existing avatar by id - PASSED",
+      "DELETE /api/data/avatars/{id}": "Deletes specific avatar from array - PASSED",
+      "DELETE /api/data/avatars": "Deletes all avatars, returns count - PASSED",
+      "Authentication required": "All endpoints return 401/422 without valid auth - PASSED",
+      "AgentZZ company exists": "Pre-seeded company found in database - PASSED",
+      "Data persistence across sessions": "Data persists in Supabase, readable in new sessions - PASSED"
+    }
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123",
+    "auth_field": "access_token"
+  },
+  "data_architecture": {
+    "storage": "Supabase tenants table",
+    "column": "settings (JSONB)",
+    "companies_path": "settings.studio_companies",
+    "avatars_path": "settings.studio_avatars",
+    "tenant_resolution": "get_current_tenant dependency resolves tenant from authenticated user"
+  },
+  "verified_agentzz_company": {
+    "id": "cb3145286438",
+    "name": "AgentZZ",
+    "phone": "+5511999999999",
+    "website_url": "https://agentzz.com",
+    "is_whatsapp": true,
+    "is_primary": false
+  }
+}

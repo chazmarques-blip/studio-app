@@ -60,3 +60,8 @@ async def get_tenant(user):
     if not tenant.data:
         raise HTTPException(status_code=404, detail="No tenant found. Create one first.")
     return tenant.data[0]
+
+
+async def get_current_tenant(user=Depends(get_current_user)):
+    """Dependency version: resolves user then gets tenant."""
+    return await get_tenant(user)
