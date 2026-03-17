@@ -29,7 +29,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - **Multi-image identity analysis**: Gemini Vision analyzes photo + multiple video frames
 - **Enhanced `_describe_person_from_video`**: dedicated multi-frame description function
 - **Image Accuracy Agent** (Scanner → Artist → Critic) with visual timeline, up to 3 iterations
-- Default "Company Uniform" outfit (white polo + logo + black pants + white sneakers)
+- Default "Company Uniform" outfit (white polo + real company logo composited via PIL + black pants + white sneakers)
 - Data persistence in Supabase (companies & avatars survive cache clear)
 - Photo/Video selector in avatar frame
 - Avatar naming, editing, cloning
@@ -49,6 +49,11 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - [x] `extract-from-video` now returns `extra_frame_urls`
 - [x] `generate-avatar-with-accuracy` accepts `video_frame_urls`
 - [x] Photo/Video selector, Clear All Avatars, 5 clothing styles
+- [x] **Fixed Critic JSON parsing bug** - regex-first score extraction (was defaulting to 4 when model returns 7)
+- [x] **Lowered accuracy threshold from 8 to 7** - more pragmatic for AI generation
+- [x] **Real logo compositing** - company logo from saved `logo_url` composited via PIL (not AI-generated)
+- [x] **logo_url parameter** added to all 3 avatar endpoints (accuracy, variant, 360)
+- [x] **Cleaned prompts** - removed "company logo" text from AI generation prompts
 
 ## Backlog
 
