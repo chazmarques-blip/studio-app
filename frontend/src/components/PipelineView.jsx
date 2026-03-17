@@ -1048,7 +1048,7 @@ export default function PipelineView({ context }) {
   useEffect(() => {
     if (activeCompany) {
       setCampaignName(activeCompany.name || '');
-      setQuestionnaire(q => ({ ...q, product: activeCompany.product_description || '' }));
+      setQuestionnaire(q => ({ ...q, product: activeCompany.product_description || activeCompany.name || '' }));
     } else {
       setCampaignName('');
       setQuestionnaire(q => ({ ...q, product: '' }));
