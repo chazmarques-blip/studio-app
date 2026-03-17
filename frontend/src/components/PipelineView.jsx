@@ -2075,6 +2075,27 @@ export default function PipelineView({ context }) {
                   rows={2}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 resize-none" />
               </div>
+              {/* Social Links */}
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[8px] text-[#555] uppercase mb-1 flex items-center gap-1"><span style={{color:'#1877F2'}}>f</span> Facebook</label>
+                  <input data-testid="new-company-facebook" value={newCompany.facebook_url || ''} onChange={e => setNewCompany(p => ({ ...p, facebook_url: e.target.value }))}
+                    placeholder="facebook.com/..."
+                    className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#1877F2]/30" />
+                </div>
+                <div>
+                  <label className="text-[8px] text-[#555] uppercase mb-1 flex items-center gap-1"><span style={{color:'#E4405F'}}>@</span> Instagram</label>
+                  <input data-testid="new-company-instagram" value={newCompany.instagram_url || ''} onChange={e => setNewCompany(p => ({ ...p, instagram_url: e.target.value }))}
+                    placeholder="instagram.com/..."
+                    className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#E4405F]/30" />
+                </div>
+                <div>
+                  <label className="text-[8px] text-[#555] uppercase mb-1 flex items-center gap-1"><span style={{color:'#fff'}}>T</span> TikTok</label>
+                  <input data-testid="new-company-tiktok" value={newCompany.tiktok_url || ''} onChange={e => setNewCompany(p => ({ ...p, tiktok_url: e.target.value }))}
+                    placeholder="tiktok.com/@..."
+                    className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#fff]/20" />
+                </div>
+              </div>
               <div className="flex gap-2 pt-2">
                 <button onClick={cancelCompanyForm}
                   className="flex-1 rounded-lg border border-[#1E1E1E] py-2 text-xs text-[#666] hover:text-white transition">
