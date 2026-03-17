@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera, Bot, ScanEye, ShieldCheck } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera, Bot, ScanEye, ShieldCheck, Briefcase, User } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -885,7 +885,7 @@ export default function PipelineView({ context }) {
   const [activeCompanyId, setActiveCompanyId] = useState(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState(null);
-  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
+  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
 
   // Avatar Gallery (standalone, multiple avatars)
   const [avatars, setAvatars] = useState([]); // [{ id, url, name, source_photo_url }]
@@ -979,7 +979,7 @@ export default function PipelineView({ context }) {
       saveCompanies(updated);
       setActiveCompanyId(co.id);
     }
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
     setShowCompanyModal(false);
     setEditingCompanyId(null);
     toast.success(t('studio.company_saved'));
@@ -995,7 +995,7 @@ export default function PipelineView({ context }) {
 
   const startEditCompany = (co) => {
     setEditingCompanyId(co.id);
-    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '', logo_url: co.logo_url || '', product_description: co.product_description || '' });
+    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '', logo_url: co.logo_url || '', product_description: co.product_description || '', profile_type: co.profile_type || 'company' });
     setShowCompanyModal(true);
   };
 
@@ -1008,7 +1008,7 @@ export default function PipelineView({ context }) {
     const updated = companies.map(c => c.id === editingCompanyId ? { ...c, ...newCompany } : c);
     setCompanies(updated);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
     setShowCompanyModal(false);
     toast.success(t('studio.company_updated'));
   };
@@ -1016,7 +1016,7 @@ export default function PipelineView({ context }) {
   const cancelCompanyForm = () => {
     setShowCompanyModal(false);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
   };
 
   const uploadCompanyLogo = async (files) => {
@@ -1863,7 +1863,7 @@ export default function PipelineView({ context }) {
             <label className="text-[9px] text-[#555] uppercase tracking-wider flex items-center gap-1">
               <Building2 size={10} /> {t('studio.advertiser_company')}
             </label>
-            <button data-testid="add-company-btn" onClick={() => { setEditingCompanyId(null); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' }); setShowCompanyModal(true); }}
+            <button data-testid="add-company-btn" onClick={() => { setEditingCompanyId(null); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' }); setShowCompanyModal(true); }}
               className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#555] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
               <Plus size={10} />
             </button>
@@ -1999,7 +1999,24 @@ export default function PipelineView({ context }) {
                 <p className="text-sm text-white font-semibold">{editingCompanyId ? t('studio.edit_company') : t('studio.new_company')}</p>
                 <button onClick={cancelCompanyForm} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#555]" /></button>
               </div>
-              {/* Logo Upload */}
+              {/* Profile Type Selector */}
+              <div className="flex gap-1.5">
+                {[
+                  { id: 'company', label: 'Empresa', icon: Building2 },
+                  { id: 'professional', label: 'Profissional', icon: Briefcase },
+                  { id: 'personal', label: 'Pessoal', icon: User },
+                ].map(pt => (
+                  <button key={pt.id} data-testid={`profile-type-${pt.id}`}
+                    onClick={() => setNewCompany(p => ({ ...p, profile_type: pt.id }))}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[10px] font-semibold transition ${newCompany.profile_type === pt.id
+                      ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]'
+                      : 'border-[#1E1E1E] text-[#555] hover:text-[#888] hover:border-[#333]'}`}>
+                    <pt.icon size={12} />
+                    {pt.label}
+                  </button>
+                ))}
+              </div>
+              {/* Logo / Photo Upload */}
               <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
                 style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
                 onChange={e => { uploadCompanyLogo(e.target.files); e.target.value = ''; }} />
@@ -2016,7 +2033,7 @@ export default function PipelineView({ context }) {
                   )}
                 </button>
                 <div className="flex-1">
-                  <p className="text-[10px] text-white font-medium">Logo</p>
+                  <p className="text-[10px] text-white font-medium">{newCompany.profile_type === 'personal' ? 'Foto' : newCompany.profile_type === 'professional' ? 'Foto / Logo' : 'Logo'}</p>
                   <p className="text-[8px] text-[#555]">{newCompany.logo_url ? t('studio.click_to_change') || 'Click to change' : t('studio.upload_logo')}</p>
                   {newCompany.logo_url && (
                     <button onClick={() => setNewCompany(p => ({ ...p, logo_url: '' }))} className="text-[8px] text-red-400 hover:text-red-300 mt-0.5">{t('studio.remove')}</button>
@@ -2024,7 +2041,7 @@ export default function PipelineView({ context }) {
                 </div>
               </div>
               <div>
-                <label className="text-[9px] text-[#555] uppercase mb-1 block">{t('studio.company_name_label')} *</label>
+                <label className="text-[9px] text-[#555] uppercase mb-1 block">{newCompany.profile_type === 'personal' ? 'Nome' : newCompany.profile_type === 'professional' ? 'Nome Profissional' : t('studio.company_name_label')} *</label>
                 <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
                   placeholder="E.g.: AgentZZ, My Company..."
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
