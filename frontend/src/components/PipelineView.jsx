@@ -1114,8 +1114,8 @@ export default function PipelineView({ context }) {
           voice: autoVoice,
         });
         setAvatarStage('customize');
-        setAngleImages({ front: data.avatar_url });
-        setClothingVariants({ business_formal: data.avatar_url });
+        setAngleImages({});
+        setClothingVariants({});
         if (autoVoice) {
           setRecordedAudioUrl(avatarExtractedAudio.url);
           setVoiceTab('record');
