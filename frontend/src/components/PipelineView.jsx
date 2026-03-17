@@ -885,7 +885,7 @@ export default function PipelineView({ context }) {
   const [activeCompanyId, setActiveCompanyId] = useState(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState(null);
-  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
+  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
 
   // Avatar Gallery (standalone, multiple avatars)
   const [avatars, setAvatars] = useState([]); // [{ id, url, name, source_photo_url }]
@@ -979,7 +979,7 @@ export default function PipelineView({ context }) {
       saveCompanies(updated);
       setActiveCompanyId(co.id);
     }
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
     setShowCompanyModal(false);
     setEditingCompanyId(null);
     toast.success(t('studio.company_saved'));
@@ -995,7 +995,7 @@ export default function PipelineView({ context }) {
 
   const startEditCompany = (co) => {
     setEditingCompanyId(co.id);
-    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '', logo_url: co.logo_url || '' });
+    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '', logo_url: co.logo_url || '', product_description: co.product_description || '' });
     setShowCompanyModal(true);
   };
 
@@ -1008,7 +1008,7 @@ export default function PipelineView({ context }) {
     const updated = companies.map(c => c.id === editingCompanyId ? { ...c, ...newCompany } : c);
     setCompanies(updated);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
     setShowCompanyModal(false);
     toast.success(t('studio.company_updated'));
   };
@@ -1016,7 +1016,7 @@ export default function PipelineView({ context }) {
   const cancelCompanyForm = () => {
     setShowCompanyModal(false);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '' });
+    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '' });
   };
 
   const uploadCompanyLogo = async (files) => {
@@ -1044,6 +1044,14 @@ export default function PipelineView({ context }) {
 
   const activeCompany = companies.find(c => c.id === activeCompanyId) || null;
   const selectedAvatar = avatars.find(a => a.id === selectedAvatarId) || null;
+
+  // Auto-fill briefing product field when company changes
+  useEffect(() => {
+    if (activeCompany?.product_description) {
+      setQuestionnaire(q => ({ ...q, product: q.product || activeCompany.product_description }));
+    }
+  }, [activeCompanyId]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const saveAvatars = (list) => {
     setAvatars(list);
@@ -1589,6 +1597,7 @@ export default function PipelineView({ context }) {
           phone: activeCompany.phone || '',
           website_url: activeCompany.website_url || '',
           is_whatsapp: activeCompany.is_whatsapp,
+          product_description: activeCompany.product_description || '',
         } : null,
         context: {
           ...(context || {}),
@@ -2036,6 +2045,13 @@ export default function PipelineView({ context }) {
                 <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
                   placeholder="https://www.yourcompany.com"
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30" />
+              </div>
+              <div>
+                <label className="text-[9px] text-[#555] uppercase mb-1 block">{t('studio.product_service') || 'Produto / Servico'}</label>
+                <textarea data-testid="new-company-product" value={newCompany.product_description} onChange={e => setNewCompany(p => ({ ...p, product_description: e.target.value }))}
+                  placeholder="Ex: Plataforma de agentes IA para atendimento ao cliente, Loja de roupas femininas..."
+                  rows={2}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 resize-none" />
               </div>
               <div className="flex gap-2 pt-2">
                 <button onClick={cancelCompanyForm}
