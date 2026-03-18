@@ -1011,7 +1011,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                                 campaign_name: campaign.name || '',
                                 campaign_copy: fullCopy.slice(0, 300),
                                 product_description: campaign.name || '',
-                                language: campaign.language || 'en',
+                                language: campaign.language || stats.campaign_language || 'pt',
                                 pipeline_id: pipelineId,
                               });
                               if (data.image_url) {

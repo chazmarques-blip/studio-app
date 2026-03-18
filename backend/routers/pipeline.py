@@ -3022,11 +3022,13 @@ async def _execute_step(pipeline_id, step):
                 ctx = pipeline.get("result", {}).get("context", {})
                 user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
                 campaign_name = user_campaign_name or ctx.get("company", "") or pipeline.get("briefing", "")[:50]
+                camp_lang = pipeline.get("result", {}).get("campaign_language", "pt")
                 supabase.table("campaigns").insert({
                     "tenant_id": pipeline["tenant_id"],
                     "name": campaign_name,
                     "status": "draft",
                     "goal": "ai_pipeline",
+                    "language": camp_lang,
                     "metrics": {
                         "type": "ai_pipeline",
                         "target_segment": {"platforms": pipeline.get("platforms", [])},
@@ -3039,6 +3041,7 @@ async def _execute_step(pipeline_id, step):
                             "video_url": video_url,
                             "video_variants": steps.get("marcos_video", {}).get("video_variants", {}),
                             "pipeline_id": pipeline_id,
+                            "campaign_language": camp_lang,
                         },
                         "created_by": pipeline.get("tenant_id"),
                     },
@@ -4628,9 +4631,23 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
         "professional": "High-end commercial photography. Studio-quality lighting, professional color grading, clean background, sharp focus on subject with natural bokeh."
     }
 
-    LANG_MAP = {"pt": "Portuguese (Português)", "es": "Spanish (Español)", "en": "English"}
-    lang_name = LANG_MAP.get(body.language, "Portuguese (Português)")
-    lang_code = body.language or "pt"
+    LANG_MAP = {"pt": "Portuguese (Português)", "es": "Spanish (Español)", "en": "English", "fr": "French (Français)", "de": "German", "it": "Italian"}
+
+    # If pipeline_id is provided and language not explicitly set, fetch from pipeline
+    actual_lang = body.language
+    if body.pipeline_id and (not actual_lang or actual_lang == "pt"):
+        try:
+            p = supabase.table("pipelines").select("result").eq("id", body.pipeline_id).execute()
+            if p.data:
+                pipeline_lang = (p.data[0].get("result") or {}).get("campaign_language", "")
+                if pipeline_lang:
+                    actual_lang = pipeline_lang
+                    logger.info(f"Using pipeline language: {actual_lang}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch pipeline language: {e}")
+
+    lang_name = LANG_MAP.get(actual_lang, "Portuguese (Português)")
+    lang_code = actual_lang or "pt"
 
     style_desc = STYLE_PROMPTS.get(body.style, STYLE_PROMPTS["professional"])
 
@@ -4664,13 +4681,30 @@ This is NON-NEGOTIABLE. Any text not in {lang_name} makes the image UNUSABLE.
     # Save image to pipeline gallery if pipeline_id provided
     if body.pipeline_id:
         try:
-            p = supabase.table("pipelines").select("steps, tenant_id").eq("id", body.pipeline_id).eq("tenant_id", tenant["id"]).execute()
+            p = supabase.table("pipelines").select("steps, tenant_id, platforms").eq("id", body.pipeline_id).eq("tenant_id", tenant["id"]).execute()
             if p.data:
                 steps = p.data[0].get("steps", {})
+                platforms = p.data[0].get("platforms", [])
                 lucas_step = steps.get("lucas_design", {})
                 existing_images = lucas_step.get("images", [])
                 existing_images.append(url)
                 lucas_step["images"] = existing_images
+
+                # Generate platform variants for this new image
+                if platforms:
+                    try:
+                        new_img_idx = len(existing_images) - 1
+                        new_variants = await _create_platform_variants(body.pipeline_id, [url], platforms)
+                        existing_variants = lucas_step.get("platform_variants", {})
+                        for platform_key, variant_list in new_variants.items():
+                            if platform_key not in existing_variants:
+                                existing_variants[platform_key] = []
+                            existing_variants[platform_key].extend(variant_list)
+                        lucas_step["platform_variants"] = existing_variants
+                        logger.info(f"Created platform variants for new image across {len(new_variants)} platforms")
+                    except Exception as pv_err:
+                        logger.warning(f"Failed to create platform variants for new image: {pv_err}")
+
                 steps["lucas_design"] = lucas_step
                 supabase.table("pipelines").update({"steps": steps}).eq("id", body.pipeline_id).execute()
                 logger.info(f"Saved new style image to pipeline {body.pipeline_id} gallery ({len(existing_images)} total)")
@@ -4682,9 +4716,10 @@ This is NON-NEGOTIABLE. Any text not in {lang_name} makes the image UNUSABLE.
                     s = m.get("stats") or {}
                     if s.get("pipeline_id") == body.pipeline_id:
                         s["images"] = existing_images
+                        s["platform_variants"] = lucas_step.get("platform_variants", {})
                         m["stats"] = s
                         supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                        logger.info(f"Updated campaign {c['id']} images ({len(existing_images)} total)")
+                        logger.info(f"Updated campaign {c['id']} images + variants ({len(existing_images)} total)")
                         break
         except Exception as e:
             logger.warning(f"Failed to save image to pipeline gallery: {e}")
