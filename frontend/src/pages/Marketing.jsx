@@ -848,9 +848,10 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">{labels.selectMedia || 'Select Media'}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((url, i) => (
-                      <button key={`img-${i}`} data-testid={`share-media-img-${i}`}
+                      <div key={`img-${i}`} data-testid={`share-media-img-${i}`}
                         onClick={() => { setShareImgIdx(i); setShareIsVideo(false); }}
-                        className={`rounded-xl overflow-hidden border-2 transition-all relative group ${!shareIsVideo && shareImgIdx === i
+                        role="button" tabIndex={0}
+                        className={`rounded-xl overflow-hidden border-2 transition-all relative group cursor-pointer ${!shareIsVideo && shareImgIdx === i
                           ? 'border-[#C9A84C] shadow-[0_0_12px_rgba(201,168,76,0.25)] scale-[1.02]'
                           : 'border-[#1A1A1A] opacity-70 hover:opacity-100 hover:border-[#333]'}`}>
                         <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" />
@@ -949,7 +950,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             {regenCountdown > 0 && <span className="text-[10px] text-[#C9A84C] font-bold">{regenCountdown}s</span>}
                           </div>
                         )}
-                      </button>
+                      </div>
                     ))}
                     {/* Video thumbnail */}
                     {videoUrl && (
