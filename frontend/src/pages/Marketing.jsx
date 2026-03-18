@@ -316,6 +316,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [regenLoading, setRegenLoading] = useState(false);
   const [showVideoLightbox, setShowVideoLightbox] = useState(false);
   const [showChannelVideo, setShowChannelVideo] = useState(false);
+  const [detailTab, setDetailTab] = useState('content');
 
   const refreshCampaign = () => {
     axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/${initialCampaign.id}`)
@@ -534,15 +535,26 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
           )}
         </div>
 
-        {/* ── Body: Content (left) + Results (right) side by side ── */}
-        <div className="flex-1 overflow-hidden flex">
-          {/* LEFT: Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 border-r border-[#111]">
-            {/* Content label */}
-            <div className="flex items-center gap-1.5">
-              <Image size={11} className="text-[#C9A84C]" />
-              <p className="text-[10px] font-bold text-white uppercase tracking-wider">{labels.content}</p>
-            </div>
+        {/* ── Tab switcher: Content | Results ── */}
+        <div className="px-4 py-1.5 border-b border-[#111] shrink-0 flex gap-1">
+          {[
+            { id: 'content', icon: Image, label: labels.content },
+            { id: 'results', icon: BarChart3, label: labels.results },
+          ].map(tab => (
+            <button key={tab.id} data-testid={`tab-${tab.id}`}
+              onClick={() => setDetailTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition ${detailTab === tab.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] hover:text-white border border-transparent'}`}>
+              <tab.icon size={10} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Body ── */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
+          {detailTab === 'content' && (
+            <>
+            {/* Content section */}
 
             <>
               {/* Channel Selector Header with Format Badges */}
@@ -1094,17 +1106,14 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               </div>
             </>
 
-          </div>
+          </>
+          )}
 
-          {/* RIGHT: Results */}
-          <div className="w-[320px] shrink-0 overflow-y-auto p-4 space-y-3 pb-24">
-            <div className="flex items-center gap-1.5 mb-1">
-              <BarChart3 size={11} className="text-[#C9A84C]" />
-              <p className="text-[10px] font-bold text-white uppercase tracking-wider">{labels.results}</p>
-            </div>
+          {detailTab === 'results' && (
+            <>
 
             {/* Results Summary */}
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
                 <p className="text-[8px] text-[#555] uppercase">{labels.totalSent}</p>
                 <p className="text-base font-bold text-white">{stats.sent || 0}</p>
@@ -1135,16 +1144,16 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
             <div>
               <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">{labels.performanceByChannel}</p>
               {(channels.length > 0 ? channels : ['whatsapp']).map(ch => (
-                <div key={ch} className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2 mb-1">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <ChannelIcon channel={ch} active size={10} />
-                    <span className="text-[9px] font-bold capitalize" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
+                <div key={ch} className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3 mb-1.5">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <ChannelIcon channel={ch} active size={12} />
+                    <span className="text-[10px] font-bold capitalize" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1">
-                    <div><p className="text-[7px] text-[#555]">{labels.sends}</p><p className="text-[9px] font-bold text-white">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
-                    <div><p className="text-[7px] text-[#555]">{labels.opens}</p><p className="text-[9px] font-bold text-white">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
-                    <div><p className="text-[7px] text-[#555]">{labels.clicks}</p><p className="text-[9px] font-bold text-white">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
-                    <div><p className="text-[7px] text-[#555]">CPL</p><p className="text-[9px] font-bold text-white">$ {stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</p></div>
+                  <div className="grid grid-cols-4 gap-3">
+                    <div><p className="text-[8px] text-[#555]">{labels.sends}</p><p className="text-sm font-bold text-white">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
+                    <div><p className="text-[8px] text-[#555]">{labels.opens}</p><p className="text-sm font-bold text-white">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
+                    <div><p className="text-[8px] text-[#555]">{labels.clicks}</p><p className="text-sm font-bold text-white">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
+                    <div><p className="text-[8px] text-[#555]">CPL</p><p className="text-sm font-bold text-white">$ {stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</p></div>
                   </div>
                 </div>
               ))}
@@ -1181,7 +1190,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 </div>
               </div>
             )}
-          </div>
+          </>
+          )}
         </div>
 
         {/* Lightbox */}
