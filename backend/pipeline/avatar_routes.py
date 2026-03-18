@@ -28,7 +28,7 @@ from pipeline.utils import (
     _upload_to_storage, _describe_person,
     _accuracy_compare, _describe_person_from_video,
     _gemini_edit_image, _gemini_edit_multi_ref,
-    _ffprobe_duration,
+    _ffprobe_duration, FFMPEG_PATH,
 )
 from pipeline.media import _composite_logo_on_avatar
 from pipeline.engine import _accuracy_jobs, _preview_jobs, _batch360_jobs
