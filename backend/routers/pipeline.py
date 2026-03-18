@@ -1057,8 +1057,9 @@ PLATFORM_ASPECT_RATIOS = {
 
 
 def _resize_image_for_platform(img_bytes: bytes, target_w: int, target_h: int) -> bytes:
-    """Resize/crop an image to a target aspect ratio using PIL center-crop + resize"""
-    img = Image.open(BytesIO(img_bytes))
+    """Resize an image to a target aspect ratio using scale-to-fit + black padding.
+    This preserves ALL content without cropping."""
+    img = Image.open(BytesIO(img_bytes)).convert("RGBA")
     src_w, src_h = img.size
     target_ratio = target_w / target_h
     src_ratio = src_w / src_h
@@ -1066,20 +1067,27 @@ def _resize_image_for_platform(img_bytes: bytes, target_w: int, target_h: int) -
     if abs(src_ratio - target_ratio) < 0.05:
         # Already close to target ratio, just resize
         img = img.resize((target_w, target_h), Image.LANCZOS)
-    elif src_ratio > target_ratio:
-        # Source is wider — crop sides
-        new_w = int(src_h * target_ratio)
-        left = (src_w - new_w) // 2
-        img = img.crop((left, 0, left + new_w, src_h))
-        img = img.resize((target_w, target_h), Image.LANCZOS)
     else:
-        # Source is taller — crop top/bottom
-        new_h = int(src_w / target_ratio)
-        top = (src_h - new_h) // 2
-        img = img.crop((0, top, src_w, top + new_h))
-        img = img.resize((target_w, target_h), Image.LANCZOS)
+        # Scale to fit inside target, then pad with black
+        if src_ratio > target_ratio:
+            # Source is wider — fit by width, pad top/bottom
+            new_w = target_w
+            new_h = int(target_w / src_ratio)
+        else:
+            # Source is taller — fit by height, pad left/right
+            new_h = target_h
+            new_w = int(target_h * src_ratio)
+
+        img = img.resize((new_w, new_h), Image.LANCZOS)
+        # Create black canvas and paste centered
+        canvas = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 255))
+        paste_x = (target_w - new_w) // 2
+        paste_y = (target_h - new_h) // 2
+        canvas.paste(img, (paste_x, paste_y))
+        img = canvas
 
     buf = BytesIO()
+    img = img.convert("RGB")
     img.save(buf, format="PNG", quality=95)
     return buf.getvalue()
 
@@ -1199,16 +1207,9 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
         if abs(master_ratio - target_ratio) < 0.05:
             # Same ratio, just scale
             vf = f"scale={tw}:{th}"
-        elif master_ratio > target_ratio:
-            # Master is wider → crop sides (e.g., 16:9 → 9:16 or 1:1)
-            crop_w = int(master_h * target_ratio)
-            crop_x = (master_w - crop_w) // 2
-            vf = f"crop={crop_w}:{master_h}:{crop_x}:0,scale={tw}:{th}"
         else:
-            # Master is taller → crop top/bottom
-            crop_h = int(master_w / target_ratio)
-            crop_y = (master_h - crop_h) // 2
-            vf = f"crop={master_w}:{crop_h}:0:{crop_y},scale={tw}:{th}"
+            # Scale to fit inside target + pad with black (NO cropping)
+            vf = f"scale={tw}:{th}:force_original_aspect_ratio=decrease,pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:black"
 
         cmd = [
             FFMPEG_PATH, "-y", "-i", master_path,
