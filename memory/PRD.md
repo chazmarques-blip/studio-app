@@ -44,6 +44,10 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] **Fix: Video format per channel** — Videos now display correctly per channel format (WhatsApp 1:1, Instagram 1:1, Facebook 16:9, TikTok 9:16) using `object-contain` instead of `object-cover` (which was cropping). Backend `regenerate-video` endpoint now also creates per-platform video variants.
 - [x] **P0: Video Adjustments UI** — Added "VIDEO ADJUSTMENTS" section with textarea for user feedback and "Regenerate Video" button. Also added "Update Formats" button for campaigns missing video_variants.
 - [x] **Fix: i18n for all Campaign Detail labels** — Replaced all remaining hardcoded PT labels (Imagem, Video, Curtir, Comentar, Compartilhar, Selecionar Midia, Copiar) with i18n labels in EN/PT/ES.
+- [x] **ElevenLabs TTS Integration** — Integrated ElevenLabs as primary TTS engine for video narration with OpenAI TTS as fallback. Features: multilingual v2 model, voice selection (6 voice types), tone control (energetic/calm/warm/dramatic), stability/style parameters auto-configured by AI director "Ridley". Added `===NARRATION TONE===` section to Ridley's output format.
+- [x] **Fix: Image/Video format scaling** — Changed from crop-based resizing to scale-to-fit + black padding for both images (PIL) and videos (FFmpeg). All content is now preserved without cropping when converting between aspect ratios (1:1, 9:16, 16:9).
+- [x] **Fix: Video variants on regeneration** — The `regenerate-video` endpoint now creates per-platform video variants (was only saving master URL before).
+- [x] **All 8 platforms selected by default** — New campaigns now default to all platforms (WhatsApp, Instagram, Facebook, TikTok, Google Ads, Telegram, Email, SMS).
 
 ## Backlog (Priority Order)
 ### P1 - Technical Debt

@@ -812,6 +812,11 @@ Format your output EXACTLY like this:
 Mood: [choose ONE: luxury/elegant/sophisticated/calm/peaceful/relaxing/upbeat/happy/fun/energetic/exciting/powerful/cinematic/dramatic/epic/corporate/professional/clean/modern/tech/innovation/warm/friendly/cozy/urban/street/edgy/tropical/festive/party/soulful/groovy/indie/creative/emotional/inspirational]
 Description: [2-3 sentences describing the musical arc: instruments, tempo changes, energy progression]
 
+===NARRATION TONE===
+Voice: [choose ONE: deep_male/confident_male/warm_female/energetic_female/neutral/authoritative]
+Tone: [choose ONE or TWO: energetic/excited/urgent/calm/professional/warm/friendly/dramatic/inspirational/playful]
+Pace: [choose ONE: fast/moderate/slow]
+
 ===CTA SEQUENCE===
 Brand name: [company/brand name for logo]
 Tagline: [the powerful phrase from Sofia's VIDEO BRIEF]
@@ -1388,52 +1393,123 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
 
 
 async def _generate_narration(text, pipeline_id, max_duration=19.0, voice_config=None):
-    """Generate commercial narration with OpenAI TTS HD.
-    Uses avatar voice if configured, otherwise defaults to 'onyx' (male) voice.
+    """Generate commercial narration. Uses ElevenLabs (primary) or OpenAI TTS HD (fallback).
     Ensures narration fits within max_duration by speeding up if needed."""
+    raw_path = f"/tmp/{pipeline_id}_narration_raw.mp3"
+    final_path = f"/tmp/{pipeline_id}_narration.mp3"
+
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    audio_bytes = None
+
+    # ── ElevenLabs TTS (Primary) ──
+    if elevenlabs_key:
+        try:
+            from elevenlabs import ElevenLabs as ELClient, VoiceSettings
+
+            el_client = ELClient(api_key=elevenlabs_key)
+
+            # Voice selection based on config or AI director instructions
+            el_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel (default female)
+            stability = 0.45
+            similarity = 0.78
+            style = 0.35
+
+            if voice_config and isinstance(voice_config, dict):
+                if voice_config.get("type") == "elevenlabs" and voice_config.get("voice_id"):
+                    el_voice_id = voice_config["voice_id"]
+                elif voice_config.get("type") == "openai":
+                    # Map OpenAI voices to ElevenLabs equivalents
+                    OPENAI_TO_EL = {
+                        "onyx": "TX3LPaxmHKxFdv7VOQHJ",   # Liam (deep male)
+                        "nova": "21m00Tcm4TlvDq8ikWAM",   # Rachel (female)
+                        "echo": "29vD33N1CtxCmqQRPOHJ",   # Drew (male)
+                        "alloy": "EXAVITQu4vr4xnSDxMaL",  # Bella (neutral)
+                        "shimmer": "MF3mGyEYCl7XYWbV9V6O", # Elli (soft female)
+                        "fable": "jBpfuIE2acCO8z3wKNLl",   # Gigi (animated)
+                    }
+                    ov = voice_config.get("voice_id", "onyx")
+                    el_voice_id = OPENAI_TO_EL.get(ov, el_voice_id)
+
+                # Apply tone/style from AI director
+                tone = (voice_config.get("tone") or "").lower()
+                if "energetic" in tone or "excited" in tone or "urgent" in tone:
+                    stability = 0.3
+                    style = 0.6
+                elif "calm" in tone or "professional" in tone:
+                    stability = 0.7
+                    style = 0.15
+                elif "warm" in tone or "friendly" in tone:
+                    stability = 0.5
+                    style = 0.4
+
+            voice_settings = VoiceSettings(
+                stability=stability,
+                similarity_boost=similarity,
+                style=style,
+                use_speaker_boost=True
+            )
+
+            audio_gen = el_client.text_to_speech.convert(
+                text=text,
+                voice_id=el_voice_id,
+                model_id="eleven_multilingual_v2",
+                voice_settings=voice_settings
+            )
+            audio_bytes = b""
+            for chunk in audio_gen:
+                audio_bytes += chunk
+            logger.info(f"ElevenLabs narration generated: {len(audio_bytes)/1024:.0f}KB, voice={el_voice_id}")
+        except Exception as e:
+            logger.warning(f"ElevenLabs TTS failed, falling back to OpenAI: {e}")
+            audio_bytes = None
+
+    # ── OpenAI TTS Fallback ──
+    if not audio_bytes:
+        try:
+            tts_voice = "onyx"
+            if voice_config and isinstance(voice_config, dict):
+                if voice_config.get("type") == "openai" and voice_config.get("voice_id"):
+                    tts_voice = voice_config["voice_id"]
+            tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
+            audio_bytes = await tts.generate_speech(
+                text=text, model="tts-1-hd",
+                voice=tts_voice, speed=1.0, response_format="mp3"
+            )
+            logger.info(f"OpenAI TTS fallback: {len(audio_bytes)/1024:.0f}KB, voice={tts_voice}")
+        except Exception as e:
+            logger.warning(f"OpenAI TTS also failed: {e}")
+            return None
+
+    if not audio_bytes:
+        return None
+
     try:
-        # Determine voice from avatar config
-        tts_voice = "onyx"  # default: deep male voice
-        if voice_config and isinstance(voice_config, dict):
-            if voice_config.get("type") == "openai" and voice_config.get("voice_id"):
-                tts_voice = voice_config["voice_id"]
-                logger.info(f"Using avatar voice: {tts_voice}")
-        
-        tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
-        audio_bytes = await tts.generate_speech(
-            text=text, model="tts-1-hd",
-            voice=tts_voice, speed=1.0, response_format="mp3"
-        )
-        if audio_bytes:
-            raw_path = f"/tmp/{pipeline_id}_narration_raw.mp3"
-            final_path = f"/tmp/{pipeline_id}_narration.mp3"
-            with open(raw_path, "wb") as f:
-                f.write(audio_bytes)
+        with open(raw_path, "wb") as f:
+            f.write(audio_bytes)
 
-            # Check duration and speed up if it exceeds max_duration
-            audio_dur = _ffprobe_duration(raw_path)
-            logger.info(f"Narration raw duration: {audio_dur:.1f}s (max: {max_duration}s)")
+        # Check duration and speed up if it exceeds max_duration
+        audio_dur = _ffprobe_duration(raw_path)
+        logger.info(f"Narration raw duration: {audio_dur:.1f}s (max: {max_duration}s)")
 
-            if audio_dur > max_duration and audio_dur > 0:
-                speed_factor = min(audio_dur / max_duration, 1.35)  # Cap at 1.35x to avoid unnatural speech
-                logger.info(f"Narration too long ({audio_dur:.1f}s), speeding up by {speed_factor:.2f}x")
-                # Use atempo filter (supports 0.5-2.0 range)
-                subprocess.run(
-                    [FFMPEG_PATH, "-y", "-i", raw_path, "-filter:a", f"atempo={speed_factor}", "-vn", final_path],
-                    capture_output=True, timeout=30
-                )
-                if os.path.exists(final_path) and os.path.getsize(final_path) > 100:
-                    logger.info(f"Narration adjusted to fit {max_duration}s")
-                else:
-                    shutil.copy2(raw_path, final_path)
-                    logger.warning("Atempo failed, using original audio")
+        if audio_dur > max_duration and audio_dur > 0:
+            speed_factor = min(audio_dur / max_duration, 1.35)
+            logger.info(f"Narration too long ({audio_dur:.1f}s), speeding up by {speed_factor:.2f}x")
+            subprocess.run(
+                [FFMPEG_PATH, "-y", "-i", raw_path, "-filter:a", f"atempo={speed_factor}", "-vn", final_path],
+                capture_output=True, timeout=30
+            )
+            if os.path.exists(final_path) and os.path.getsize(final_path) > 100:
+                logger.info(f"Narration adjusted to fit {max_duration}s")
             else:
                 shutil.copy2(raw_path, final_path)
+                logger.warning("Atempo failed, using original audio")
+        else:
+            shutil.copy2(raw_path, final_path)
 
-            logger.info(f"Narration generated: {os.path.getsize(final_path)/1024:.0f}KB")
-            return final_path
+        logger.info(f"Narration generated: {os.path.getsize(final_path)/1024:.0f}KB")
+        return final_path
     except Exception as e:
-        logger.warning(f"TTS narration failed: {e}")
+        logger.warning(f"Narration post-processing failed: {e}")
     return None
 
 
@@ -1739,7 +1815,7 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
             brand_name = old_brand.group(1).strip()
 
     # Parse music mood
-    music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===CTA SEQUENCE===', marcos_output, re.IGNORECASE)
+    music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===(?:NARRATION TONE|CTA SEQUENCE)===', marcos_output, re.IGNORECASE)
     if music_match:
         mood_line = re.search(r'Mood:\s*(\w+)', music_match.group(1), re.IGNORECASE)
         if mood_line:
@@ -1749,6 +1825,42 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     if selected_music_override:
         music_mood = selected_music_override
         logger.info(f"Using user-selected music: {music_mood}")
+
+    # Parse narration tone for ElevenLabs
+    narration_tone = ""
+    narration_voice_type = ""
+    tone_match = re.search(r'===NARRATION TONE===([\s\S]*?)===(?:CTA SEQUENCE|VIDEO FORMAT|$)', marcos_output, re.IGNORECASE)
+    if tone_match:
+        tone_section = tone_match.group(1)
+        voice_line = re.search(r'Voice:\s*(.+)', tone_section, re.IGNORECASE)
+        tone_line = re.search(r'Tone:\s*(.+)', tone_section, re.IGNORECASE)
+        if voice_line:
+            narration_voice_type = voice_line.group(1).strip().lower()
+        if tone_line:
+            narration_tone = tone_line.group(1).strip().lower()
+        logger.info(f"Narration tone: voice={narration_voice_type}, tone={narration_tone}")
+
+    # Merge AI director's voice/tone preferences into voice_config
+    if narration_tone or narration_voice_type:
+        if not voice_config:
+            voice_config = {}
+        if not isinstance(voice_config, dict):
+            voice_config = {}
+        voice_config["tone"] = narration_tone or voice_config.get("tone", "")
+        # Map voice type to ElevenLabs voice ID
+        VOICE_TYPE_MAP = {
+            "deep_male": "TX3LPaxmHKxFdv7VOQHJ",      # Liam
+            "confident_male": "29vD33N1CtxCmqQRPOHJ",   # Drew
+            "warm_female": "21m00Tcm4TlvDq8ikWAM",      # Rachel
+            "energetic_female": "EXAVITQu4vr4xnSDxMaL",  # Bella
+            "neutral": "MF3mGyEYCl7XYWbV9V6O",          # Elli
+            "authoritative": "TX3LPaxmHKxFdv7VOQHJ",    # Liam
+        }
+        if narration_voice_type and not voice_config.get("voice_id"):
+            el_voice = VOICE_TYPE_MAP.get(narration_voice_type)
+            if el_voice:
+                voice_config["type"] = "elevenlabs"
+                voice_config["voice_id"] = el_voice
 
     # Fallback: if parsing fails, use old single-prompt format
     if not clip1_prompt:
@@ -1883,7 +1995,7 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
             cl = re.search(r'Contact:\s*(.+)', cta_block, re.IGNORECASE)
             if cl: contact_cta = cl.group(1).strip()
 
-        music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===CTA SEQUENCE===', marcos_output, re.IGNORECASE)
+        music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===(?:NARRATION TONE|CTA SEQUENCE)===', marcos_output, re.IGNORECASE)
         if music_match:
             ml = re.search(r'Mood:\s*(\w+)', music_match.group(1), re.IGNORECASE)
             if ml: music_mood = ml.group(1).strip().lower()
@@ -4283,7 +4395,7 @@ async def remix_audio(pipeline_id: str, user=Depends(get_current_user)):
 
     # Parse music mood from marcos output
     music_mood = "corporate"
-    music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===CTA SEQUENCE===', marcos_output, re.IGNORECASE)
+    music_match = re.search(r'===MUSIC DIRECTION===([\s\S]*?)===(?:NARRATION TONE|CTA SEQUENCE)===', marcos_output, re.IGNORECASE)
     if music_match:
         mood_line = re.search(r'Mood:\s*(\w+)', music_match.group(1), re.IGNORECASE)
         if mood_line:
