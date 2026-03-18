@@ -1224,6 +1224,7 @@ export default function PipelineView({ context }) {
         voice: tempAvatar.voice, angles: angleImages, name,
         source_photo_url: tempAvatar.source_photo_url || '',
         video_url: previewVideoUrl || null,
+        language: previewLanguage,
       };
       const updated = avatars.map(a => a.id === editingAvatarId ? { ...a, ...editedAvatar } : a);
       saveAvatars(updated);
@@ -1238,6 +1239,7 @@ export default function PipelineView({ context }) {
         voice: tempAvatar.voice,
         angles: angleImages,
         video_url: previewVideoUrl || null,
+        language: previewLanguage,
       };
       const updated = [...avatars, newAv];
       saveAvatars(updated);
@@ -1259,6 +1261,7 @@ export default function PipelineView({ context }) {
       voice: tempAvatar.voice,
       angles: angleImages,
       video_url: previewVideoUrl || null,
+      language: previewLanguage,
     };
     const updated = [...avatars, newAv];
     saveAvatars(updated);
@@ -1280,6 +1283,15 @@ export default function PipelineView({ context }) {
     setPreviewVideoUrl(av.video_url || null);
     setAvatarMediaTab(av.video_url ? 'photo' : 'photo');
     setAngleImages(av.angles || { front: av.url });
+    // Load saved language
+    setPreviewLanguage(av.language || 'pt');
+    // Restore audio from saved voice
+    if (av.voice?.url) {
+      setRecordedAudioUrl(av.voice.url);
+      setVoiceTab('record');
+    } else if (av.voice?.voice_id) {
+      setVoiceTab('bank');
+    }
     // Rebuild clothing variants from angles if available
     const variants = {};
     if (av.clothing && av.url) variants[av.clothing] = av.url;

@@ -38,6 +38,7 @@ class AvatarIn(BaseModel):
     voice: Optional[dict] = None
     angles: Optional[dict] = None
     video_url: Optional[str] = None
+    language: str = "pt"
 
 
 def _get_settings(tenant_id: str) -> dict:
@@ -146,6 +147,7 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
         "voice": data.voice,
         "angles": data.angles,
         "video_url": data.video_url,
+        "language": data.language,
         "updated_at": now,
     }
 
