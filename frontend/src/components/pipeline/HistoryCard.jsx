@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Trash2, Clock, Film, Image, Play, Check, AlertTriangle, RotateCcw, ArrowRight, Zap } from 'lucide-react';
 import { STEP_META, STEP_ORDER } from './constants';
+import { resolveImageUrl } from '../../utils/resolveImageUrl';
 
 function HistoryCard({ pipeline, onSelect, onDelete }) {
   const { t } = useTranslation();

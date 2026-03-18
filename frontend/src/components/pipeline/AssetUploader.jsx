@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Upload, X, Image, Loader2, Maximize2, Camera, Eye } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { resolveImageUrl } from '../../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

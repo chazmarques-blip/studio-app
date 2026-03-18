@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2, CheckCircle, AlertTriangle, ArrowRight, Maximize2, X, Film, Image } from 'lucide-react';
 import { cleanDisplayText } from './constants';
+import { resolveImageUrl } from '../../utils/resolveImageUrl';
 
 function CopyApproval({ data, onApprove }) {
   const { t } = useTranslation();

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { STEP_META, STEP_ORDER, cleanDisplayText } from './constants';
 import { ProgressTimer } from './ProgressTimer';
 import { ImageLightbox } from './ImageLightbox';
+import { resolveImageUrl } from '../../utils/resolveImageUrl';
 
 function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, onToggle, pipelineId, onRefresh }) {
   const { t } = useTranslation();
