@@ -7,7 +7,8 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - Frontend: React + Tailwind + shadcn-ui + Framer Motion
 - Backend: FastAPI (Python)
 - Database: Supabase (PostgreSQL) + MongoDB
-- AI: Gemini 3 Pro (image), Gemini 2.5 Flash (vision/critic), OpenAI TTS, fal.ai Kling (lip-sync)
+- AI: Gemini 3 Pro (image), Gemini 2.5 Flash (vision/critic), OpenAI TTS, fal.ai Kling (lip-sync), ElevenLabs TTS
+- Video: Sora 2 (via Emergent Integrations)
 - Storage: Supabase Storage (pipeline-assets bucket)
 
 ## Key Features Implemented
@@ -28,40 +29,54 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - Automatic 360 generation
 - Sora-based Presenter Mode
 - Multi-language support (EN, PT, ES)
-- **Unified Share Area** - Select media (images + video), edit text, share as FILE (blob) via Web Share API to WhatsApp, Instagram, Facebook, Telegram, Email
+- Unified Share Area - Select media (images + video), edit text, share as FILE (blob)
+- ElevenLabs TTS Integration for video narration
+- Scale-to-fit + padding for image/video format conversion (no cropping)
+- Two-tab campaign detail (Content | Results)
+- Per-platform video variants (WhatsApp 1:1, Instagram 1:1, Facebook 16:9, TikTok 9:16)
 
-## Completed - March 2026
-- [x] Avatar generation fix (JSON parsing, threshold 7, EDIT-based prompt, 9/10 similarity)
-- [x] Real logo compositing via PIL + numpy background removal
-- [x] **Unified Share Area** replacing old separate sections:
-  - Selectable media gallery (images + video) with gold check indicator
-  - Editable text area with copy button
-  - 5 platform share buttons using Web Share API with file blobs for native mobile sharing
-  - Fallback to deep links on desktop
-- [x] **Fix: Image regeneration language enforcement** — Strengthened language instructions in all image generation/regeneration prompts. Language instruction now appears as FIRST/DOMINANT rule in the prompt, preventing AI from defaulting to English when campaign is in Spanish/Portuguese/etc. Fixed in: `/regenerate-single-image`, `/{pipeline_id}/regenerate-image`, and `_generate_design_images`.
-- [x] **Fix: i18n for FinalPreview** — Replaced all hardcoded Portuguese labels ("IMAGEM:", "GERAR NOVA IMAGEM COM ESTILO", "Minimalista", "Vibrante", etc.) with i18n translation keys. Now correctly displays in EN/PT/ES based on user's platform language setting.
-- [x] **Layout Redesign: Campaign Detail Modal** — Eliminated the 3-tab layout (Overview/Content/Results). Overview KPIs are now a compact inline strip in the header. Content and Results are displayed side-by-side in a split-panel layout. Schedule and Message Flow moved to the Results panel. Modal widened to max-w-5xl for the two-column view.
-- [x] **Fix: Video format per channel** — Videos now display correctly per channel format (WhatsApp 1:1, Instagram 1:1, Facebook 16:9, TikTok 9:16) using `object-contain` instead of `object-cover` (which was cropping). Backend `regenerate-video` endpoint now also creates per-platform video variants.
-- [x] **P0: Video Adjustments UI** — Added "VIDEO ADJUSTMENTS" section with textarea for user feedback and "Regenerate Video" button. Also added "Update Formats" button for campaigns missing video_variants.
-- [x] **Fix: i18n for all Campaign Detail labels** — Replaced all remaining hardcoded PT labels (Imagem, Video, Curtir, Comentar, Compartilhar, Selecionar Midia, Copiar) with i18n labels in EN/PT/ES.
-- [x] **ElevenLabs TTS Integration** — Integrated ElevenLabs as primary TTS engine for video narration with OpenAI TTS as fallback. Features: multilingual v2 model, voice selection (6 voice types), tone control (energetic/calm/warm/dramatic), stability/style parameters auto-configured by AI director "Ridley". Added `===NARRATION TONE===` section to Ridley's output format.
-- [x] **Fix: Image/Video format scaling** — Changed from crop-based resizing to scale-to-fit + black padding for both images (PIL) and videos (FFmpeg). All content is now preserved without cropping when converting between aspect ratios (1:1, 9:16, 16:9).
-- [x] **Fix: Video variants on regeneration** — The `regenerate-video` endpoint now creates per-platform video variants (was only saving master URL before).
-- [x] **All 8 platforms selected by default** — New campaigns now default to all platforms (WhatsApp, Instagram, Facebook, TikTok, Google Ads, Telegram, Email, SMS).
-- [x] **Ridley prompt overhaul** — Separated NARRATION SCRIPT (spoken words only) from VISUAL DIRECTIONS (CTA SEQUENCE). Added strict word count limit (40 words max). Added ElevenLabs voice direction section (voice character, emotional arc, pacing, language authenticity). Reduced narration window to 16s with 8s music-only finale.
-- [x] **Narration cleanup hardened** — Added 6 additional regex patterns to strip stage directions from TTS text ("silêncio", "apenas música", "logo na tela", "fade to black", "TOTAL WORD COUNT", etc.)
-- [x] **Audio speed cap reduced** — From 1.35x to 1.15x maximum (barely noticeable) to prevent unnatural acceleration.
-- [x] **Roger prompt enhanced** — Added V2 (narration vs visual separation check), V3 (word count check), V4 (voice/tone match) as CRITICAL criteria that trigger AUTOMATIC REJECTION.
+## Completed - March 18, 2026 (Latest Session)
+- [x] **Bug Fix: Campaign auto-save failure** — Removed `language` field from Supabase campaigns INSERT. The `language` column doesn't exist in the campaigns table schema, causing ALL auto-saves to fail silently. Campaign language is now correctly stored in `stats.campaign_language` (JSONB field).
+- [x] **Bug Fix: Image regeneration language regression** — Replaced English-language prompt template ("Create a stunning marketing visual for:") with language-specific templates (PT/ES/EN). Now extracts headline from campaign copy and instructs the model to use it exactly. Tested: regenerated image correctly shows Portuguese text "Força e Fé: Dose diária de inspiração".
+- [x] **Bug Fix: FinalPreview i18n key** — Fixed wrong i18n key `studio.video_generating` to correct `studio.generating_video` in FinalPreview.jsx.
+- [x] **Published orphaned campaign** — The "Amigas na luta" pipeline (dea6ebbb) had no campaign entry due to the auto-save bug. Manually published to create campaign 068141ee with campaign_language: pt.
+- [x] **Added campaign_language to publish endpoint stats** — Ensured the publish endpoint saves campaign_language in stats for future regenerations.
+
+## Previous Session Completions
+- Avatar generation fix (JSON parsing, threshold 7, EDIT-based prompt, 9/10 similarity)
+- Real logo compositing via PIL + numpy background removal
+- Unified Share Area with Web Share API
+- Image regeneration language enforcement
+- i18n for FinalPreview and Campaign Detail
+- Layout Redesign: Campaign Detail Modal (2-tab)
+- Video format per channel
+- Video Adjustments UI
+- ElevenLabs TTS Integration
+- Image/Video format scaling (scale-to-fit + padding)
+- Video variants on regeneration
+- All 8 platforms selected by default
+- Ridley prompt overhaul (narration vs visual separation)
+- Narration cleanup hardened
+- Audio speed cap reduced (1.15x max)
+- Roger prompt enhanced (V2-V4 criteria)
+
+## Known Issues
+- **Sora 2 Video Generation API DOWN** — Returns 500 Server Error. External service issue, not our code. Videos cannot be generated until the API is restored.
 
 ## Backlog (Priority Order)
+### P0 - Current
+- [ ] Create new test campaign to validate full pipeline end-to-end (blocked by Sora 2 API)
+- [ ] Verify video branding (logo/contact overlay) once Sora 2 API is back
+
 ### P1 - Technical Debt
-- [ ] Refactor pipeline.py (>4800 lines) into modules
+- [ ] Refactor pipeline.py (>5100 lines) into modules
 - [ ] Refactor PipelineView.jsx (~3100 lines) into smaller components
 
 ### P2 - Features
 - [ ] Automated campaign sharing (scheduling)
 - [ ] Rename AI agents in pipeline
 - [ ] Redesign Landing/Login page
+- [ ] Ultra-Realistic Avatar Integration (HeyGen)
 
 ### P3 - Future
 - [ ] CRM with Kanban board
@@ -74,6 +89,9 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - POST /api/campaigns/pipeline/generate-avatar-with-accuracy
 - POST /api/campaigns/pipeline/generate-avatar-variant
 - POST /api/campaigns/pipeline/generate-avatar-360
+- POST /api/campaigns/pipeline/regenerate-single-image
+- POST /api/campaigns/pipeline/{id}/regenerate-video
+- POST /api/campaigns/pipeline/{id}/publish
 - GET/POST /api/data/companies
 - GET/POST /api/data/avatars
 - GET /api/campaigns
