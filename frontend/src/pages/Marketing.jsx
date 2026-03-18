@@ -36,7 +36,8 @@ const L = (lang) => {
       totalSent: 'Total Enviado', openings: 'Aberturas', avgCpl: 'CPL Medio', performanceByChannel: 'Performance por Canal', selectMedia: 'Selecionar Midia',
       regenVideo: 'Gerar Video', regenVideoDesc: 'Clique para gerar o video comercial desta campanha', regenerating: 'Gerando video...', videoGenStarted: 'Geracao de video iniciada!',
       videoAdjustments: 'Ajustes do Video', videoAdjustmentsPlaceholder: 'Descreva as mudancas que deseja no video (ex: mais foco no produto, mudar cena final, mais dinamico...)', regenerateVideo: 'Regenerar Video', regenVariants: 'Atualizar Formatos',
-      generateNewImage: 'Gerar Nova Imagem', styleMinimalist: 'Minimalista', styleVibrant: 'Vibrante', styleLuxury: 'Luxo', styleCorporate: 'Corporativo', stylePlayful: 'Divertido', styleBold: 'Ousado', styleOrganic: 'Organico', styleTech: 'Tech', generatingImage: 'Gerando...', imageAdded: 'Imagem adicionada a galeria!',
+      generateNewImage: 'Gerar Nova Imagem', styleMinimalist: 'Minimalista', styleVibrant: 'Vibrante', styleLuxury: 'Luxo', styleCorporate: 'Corporativo', stylePlayful: 'Divertido', styleBold: 'Ousado', styleOrganic: 'Organico', styleTech: 'Tech', styleCartoon: 'Cartoon', styleIllustration: 'Ilustracao', styleWatercolor: 'Aquarela', styleNeon: 'Neon', styleRetro: 'Retro', styleFlat: 'Flat Design', generatingImage: 'Gerando...', imageAdded: 'Imagem adicionada a galeria!',
+      editImageText: 'Editar Texto da Imagem', imageTextPlaceholder: 'Digite o novo texto para a imagem...', updatingImageText: 'Atualizando texto...', imageTextUpdated: 'Imagem atualizada com novo texto!',
       cta: 'Comece Agora', learnMore: 'Saiba mais sobre',
       sponsored: 'Patrocinado', format: 'Formato', fbLike: 'Curtir', fbComment: 'Comentar', fbShare: 'Compartilhar', shareLabel: 'Compartilhar',
       editCopy: 'Editar Texto', saveCopy: 'Salvar', cancelEdit: 'Cancelar', copyUpdated: 'Texto atualizado!',
@@ -68,7 +69,8 @@ const L = (lang) => {
       totalSent: 'Total Sent', openings: 'Opens', avgCpl: 'Average CPL', performanceByChannel: 'Performance by Channel', selectMedia: 'Select Media',
       regenVideo: 'Generate Video', regenVideoDesc: 'Click to generate the commercial video for this campaign', regenerating: 'Generating video...', videoGenStarted: 'Video generation started!',
       videoAdjustments: 'Video Adjustments', videoAdjustmentsPlaceholder: 'Describe changes you want in the video (e.g., more focus on product, change final scene, more dynamic...)', regenerateVideo: 'Regenerate Video', regenVariants: 'Update Formats',
-      generateNewImage: 'Generate New Image', styleMinimalist: 'Minimalist', styleVibrant: 'Vibrant', styleLuxury: 'Luxury', styleCorporate: 'Corporate', stylePlayful: 'Playful', styleBold: 'Bold', styleOrganic: 'Organic', styleTech: 'Tech', generatingImage: 'Generating...', imageAdded: 'Image added to gallery!',
+      generateNewImage: 'Generate New Image', styleMinimalist: 'Minimalist', styleVibrant: 'Vibrant', styleLuxury: 'Luxury', styleCorporate: 'Corporate', stylePlayful: 'Playful', styleBold: 'Bold', styleOrganic: 'Organic', styleTech: 'Tech', styleCartoon: 'Cartoon', styleIllustration: 'Illustration', styleWatercolor: 'Watercolor', styleNeon: 'Neon', styleRetro: 'Retro', styleFlat: 'Flat Design', generatingImage: 'Generating...', imageAdded: 'Image added to gallery!',
+      editImageText: 'Edit Image Text', imageTextPlaceholder: 'Enter new text for the image...', updatingImageText: 'Updating text...', imageTextUpdated: 'Image updated with new text!',
       cta: 'Start Now', learnMore: 'Learn more about',
       sponsored: 'Sponsored', format: 'Format', fbLike: 'Like', fbComment: 'Comment', fbShare: 'Share', shareLabel: 'Share',
       editCopy: 'Edit Copy', saveCopy: 'Save', cancelEdit: 'Cancel', copyUpdated: 'Copy updated!',
@@ -100,7 +102,8 @@ const L = (lang) => {
       totalSent: 'Total Enviado', openings: 'Aperturas', avgCpl: 'CPL Promedio', performanceByChannel: 'Performance por Canal', selectMedia: 'Seleccionar Medios',
       regenVideo: 'Generar Video', regenVideoDesc: 'Haga clic para generar el video comercial de esta campana', regenerating: 'Generando video...', videoGenStarted: 'Generacion de video iniciada!',
       videoAdjustments: 'Ajustes del Video', videoAdjustmentsPlaceholder: 'Describa los cambios que desea en el video (ej: mas enfoque en el producto, cambiar escena final, mas dinamico...)', regenerateVideo: 'Regenerar Video', regenVariants: 'Actualizar Formatos',
-      generateNewImage: 'Generar Nueva Imagen', styleMinimalist: 'Minimalista', styleVibrant: 'Vibrante', styleLuxury: 'Lujo', styleCorporate: 'Corporativo', stylePlayful: 'Divertido', styleBold: 'Audaz', styleOrganic: 'Organico', styleTech: 'Tech', generatingImage: 'Generando...', imageAdded: 'Imagen agregada a la galeria!',
+      generateNewImage: 'Generar Nueva Imagen', styleMinimalist: 'Minimalista', styleVibrant: 'Vibrante', styleLuxury: 'Lujo', styleCorporate: 'Corporativo', stylePlayful: 'Divertido', styleBold: 'Audaz', styleOrganic: 'Organico', styleTech: 'Tech', styleCartoon: 'Caricatura', styleIllustration: 'Ilustracion', styleWatercolor: 'Acuarela', styleNeon: 'Neon', styleRetro: 'Retro', styleFlat: 'Flat Design', generatingImage: 'Generando...', imageAdded: 'Imagen agregada a la galeria!',
+      editImageText: 'Editar Texto de Imagen', imageTextPlaceholder: 'Ingrese el nuevo texto para la imagen...', updatingImageText: 'Actualizando texto...', imageTextUpdated: 'Imagen actualizada con nuevo texto!',
       cta: 'Empieza Ahora', learnMore: 'Mas informacion sobre',
       sponsored: 'Patrocinado', format: 'Formato', fbLike: 'Me gusta', fbComment: 'Comentar', fbShare: 'Compartir', shareLabel: 'Compartir',
       editCopy: 'Editar Texto', saveCopy: 'Guardar', cancelEdit: 'Cancelar', copyUpdated: 'Texto actualizado!',
@@ -430,6 +433,9 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [regenVariantsLoading, setRegenVariantsLoading] = useState(false);
   const [styleRegenLoading, setStyleRegenLoading] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
+  const [editImageTextIdx, setEditImageTextIdx] = useState(null);
+  const [editImageTextValue, setEditImageTextValue] = useState('');
+  const [editImageTextLoading, setEditImageTextLoading] = useState(false);
 
   const cloneCampaign = async (targetLang) => {
     if (!pipelineId) return;
@@ -858,6 +864,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
                           <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
                           <div className="flex items-center gap-1.5">
+                            <button onClick={e => { e.stopPropagation(); setEditImageTextIdx(i); setEditImageTextValue(''); }}
+                              data-testid={`edit-text-${i}`}
+                              className="text-[#60A5FA] hover:text-[#93C5FD] transition" title={labels.editImageText}>
+                              <FileText size={10} />
+                            </button>
                             <button onClick={e => { e.stopPropagation(); setRegenImageIdx(i); setRegenImageFeedback(''); }}
                               data-testid={`regen-image-${i}`}
                               className="text-[#C9A84C] hover:text-[#D4B85C] transition" title={labels.regenImage}>
@@ -868,6 +879,50 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             </a>
                           </div>
                         </div>
+                        {/* Edit Image Text Overlay */}
+                        {editImageTextIdx === i && (
+                          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
+                            <p className="text-[8px] text-[#60A5FA] font-bold mb-1.5">{labels.editImageText}</p>
+                            <textarea data-testid={`edit-image-text-input-${i}`}
+                              value={editImageTextValue} onChange={e => setEditImageTextValue(e.target.value)}
+                              placeholder={labels.imageTextPlaceholder}
+                              className="w-full text-[9px] bg-[#1A1A1A] border border-[#444] rounded-lg p-2 text-white placeholder-[#555] resize-none"
+                              rows={2} />
+                            <div className="flex gap-1.5 mt-1.5 w-full">
+                              <button onClick={(e) => { e.stopPropagation(); setEditImageTextIdx(null); }}
+                                className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                                {labels.cancelEdit}
+                              </button>
+                              <button data-testid={`edit-image-text-confirm-${i}`}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!editImageTextValue.trim()) return;
+                                  setEditImageTextLoading(true);
+                                  try {
+                                    const { data: res } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/edit-image-text`, {
+                                      pipeline_id: pipelineId,
+                                      image_index: i,
+                                      new_text: editImageTextValue.trim(),
+                                      language: stats.campaign_language || 'pt',
+                                    });
+                                    if (res.image_url) {
+                                      toast.success(labels.imageTextUpdated);
+                                      setEditImageTextIdx(null);
+                                      refreshCampaign();
+                                    }
+                                  } catch (err) {
+                                    toast.error(err.response?.data?.detail || labels.error);
+                                  } finally {
+                                    setEditImageTextLoading(false);
+                                  }
+                                }}
+                                disabled={editImageTextLoading || !editImageTextValue.trim()}
+                                className="flex-1 text-[8px] py-1 rounded-lg bg-[#60A5FA] text-black font-bold hover:bg-[#93C5FD] transition disabled:opacity-50">
+                                {editImageTextLoading ? <RefreshCw size={10} className="animate-spin mx-auto" /> : labels.editImageText}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                         {regenImageIdx === i && (
                           <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
                             <p className="text-[8px] text-[#C9A84C] font-bold mb-1.5">{labels.regenImage}</p>
@@ -997,6 +1052,12 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         { key: 'bold', label: labels.styleBold },
                         { key: 'organic', label: labels.styleOrganic },
                         { key: 'tech', label: labels.styleTech },
+                        { key: 'cartoon', label: labels.styleCartoon },
+                        { key: 'illustration', label: labels.styleIllustration },
+                        { key: 'watercolor', label: labels.styleWatercolor },
+                        { key: 'neon', label: labels.styleNeon },
+                        { key: 'retro', label: labels.styleRetro },
+                        { key: 'flat', label: labels.styleFlat },
                       ].map(s => (
                         <button
                           key={s.key}
@@ -1011,7 +1072,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                                 campaign_name: campaign.name || '',
                                 campaign_copy: fullCopy.slice(0, 300),
                                 product_description: campaign.name || '',
-                                language: campaign.language || stats.campaign_language || 'pt',
+                                language: stats.campaign_language || 'pt',
                                 pipeline_id: pipelineId,
                               });
                               if (data.image_url) {

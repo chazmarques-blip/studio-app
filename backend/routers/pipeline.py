@@ -370,7 +370,13 @@ def _recover_orphaned_pipelines():
                     }).eq("id", pipeline_id).execute()
                     _start_step_bg(pipeline_id, retry_step)
             else:
-                logger.warning(f"RECOVERY: Pipeline {pipeline_id} is running but no stuck step found at {current_step}")
+                # Check if current_step is pending but pipeline is running (step never started)
+                current_step_status = steps.get(current_step, {}).get("status", "")
+                if current_step_status == "pending" and current_step in STEP_ORDER:
+                    logger.info(f"RECOVERY: Starting pending step {current_step} for pipeline {pipeline_id}")
+                    _start_step_bg(pipeline_id, current_step)
+                else:
+                    logger.warning(f"RECOVERY: Pipeline {pipeline_id} is running but no stuck step found at {current_step}")
     except Exception as e:
         logger.error(f"Pipeline recovery failed: {e}")
 
@@ -3049,7 +3055,7 @@ async def _execute_step(pipeline_id, step):
             try:
                 approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
                 clean_copy = _clean_copy_text(approved_copy)
-                image_urls = steps.get("lucas_design", {}).get("image_urls", [])
+                image_urls = steps.get("lucas_design", {}).get("images", []) or steps.get("lucas_design", {}).get("image_urls", [])
                 platform_variants = steps.get("lucas_design", {}).get("platform_variants", {})
                 video_url = steps.get("marcos_video", {}).get("video_url", "")
                 schedule_text = steps.get("pedro_publish", {}).get("output", "")
@@ -4065,6 +4071,11 @@ async def generate_presenter_video_endpoint(
 async def list_pipelines(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
     result = supabase.table("pipelines").select("*").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
+    # Trigger recovery for stuck pipelines in background
+    try:
+        _recover_orphaned_pipelines()
+    except Exception:
+        pass
     return {"pipelines": result.data or []}
 
 
@@ -4168,7 +4179,39 @@ async def get_pipeline(pipeline_id: str, user=Depends(get_current_user)):
     result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Pipeline not found")
-    return result.data[0]
+    pipeline = result.data[0]
+    # Auto-recover stuck pipelines on get
+    if pipeline.get("status") == "running":
+        current = pipeline.get("current_step", "")
+        step_data = pipeline.get("steps", {}).get(current, {})
+        step_status = step_data.get("status", "")
+        
+        should_recover = False
+        if step_status == "pending" and current in STEP_ORDER and pipeline["id"] not in _active_pipelines:
+            should_recover = True
+        elif step_status == "running" and current in STEP_ORDER and pipeline["id"] not in _active_pipelines:
+            # Check if stuck for more than 3 minutes
+            started = step_data.get("started_at", "")
+            if started:
+                try:
+                    from datetime import datetime, timezone
+                    started_dt = datetime.fromisoformat(started.replace("Z", "+00:00"))
+                    age = (datetime.now(timezone.utc) - started_dt).total_seconds()
+                    if age > 180:
+                        should_recover = True
+                        # Reset the step to pending before restarting
+                        steps = pipeline.get("steps", {})
+                        steps[current]["status"] = "pending"
+                        steps[current]["started_at"] = None
+                        supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline["id"]).execute()
+                        pipeline["steps"] = steps
+                except Exception:
+                    pass
+        
+        if should_recover:
+            logger.info(f"GET auto-recovery: Starting step {current} for pipeline {pipeline_id}")
+            _start_step_bg(pipeline_id, current)
+    return pipeline
 
 
 @router.post("/{pipeline_id}/approve")
@@ -4661,6 +4704,12 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
         "bold": "High-impact, stop-the-scroll photography. Extreme contrast, dramatic shadows, close-up details, powerful visual tension. Fearless composition.",
         "organic": "Warm, natural, earthy photography. Golden hour lighting, natural textures (wood, linen, stone), warm earth tones, authentic lifestyle moments.",
         "tech": "Futuristic, sleek technology aesthetic. Dark environment with neon accent lighting, reflective surfaces, geometric precision, blue-purple color palette.",
+        "cartoon": "Fun cartoon illustration style. Bold outlines, flat vibrant colors, exaggerated proportions, comic book feel. Characters with expressive faces and dynamic poses. Clean vector-like aesthetics.",
+        "illustration": "Beautiful hand-drawn illustration. Detailed artistic strokes, warm color palette, editorial magazine quality. Elegant and refined artistic interpretation with depth and texture.",
+        "watercolor": "Soft watercolor painting style. Flowing transparent washes of color, gentle gradients, organic paint drips and splashes. Dreamy, artistic, elegant feel with muted pastels.",
+        "neon": "Vibrant neon glow aesthetic. Dark background with electric neon colors (pink, cyan, purple). Glowing text effects, cyberpunk atmosphere, high contrast between dark and bright elements.",
+        "retro": "Vintage retro style. 70s/80s color palette with warm oranges, browns and teals. Film grain texture, rounded typography, nostalgic feel. Groovy patterns and vintage photography effects.",
+        "flat": "Modern flat design illustration. Clean geometric shapes, limited color palette, no gradients or shadows. Bold solid colors, simple icons, contemporary minimalist graphic design.",
         "professional": "High-end commercial photography. Studio-quality lighting, professional color grading, clean background, sharp focus on subject with natural bokeh."
     }
 
@@ -4668,7 +4717,7 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
 
     # If pipeline_id is provided and language not explicitly set, fetch from pipeline
     actual_lang = body.language
-    if body.pipeline_id and (not actual_lang or actual_lang == "pt"):
+    if body.pipeline_id and not actual_lang:
         try:
             p = supabase.table("pipelines").select("result").eq("id", body.pipeline_id).execute()
             if p.data:
@@ -4779,6 +4828,107 @@ No logos or brand names. 1080x1080 square format.
     return {"status": "generated", "image_url": url, "style": body.style}
 
 
+class EditImageTextRequest(BaseModel):
+    pipeline_id: str
+    image_index: int
+    new_text: str
+    language: str = "pt"
+
+@router.post("/edit-image-text")
+async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_user)):
+    """Regenerate an image with new text while keeping the same visual style"""
+    tenant = await _get_tenant(user)
+
+    LANG_MAP = {"pt": "Portuguese (Português)", "es": "Spanish (Español)", "en": "English", "fr": "French (Français)", "de": "German", "it": "Italian"}
+    lang_name = LANG_MAP.get(body.language, "Portuguese (Português)")
+
+    # Get pipeline data
+    p = supabase.table("pipelines").select("steps, tenant_id, platforms, result").eq("id", body.pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not p.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline = p.data[0]
+    steps = pipeline.get("steps", {})
+    lucas_step = steps.get("lucas_design", {})
+    existing_images = lucas_step.get("images", [])
+    platforms = pipeline.get("platforms", [])
+
+    if body.image_index >= len(existing_images):
+        raise HTTPException(status_code=400, detail="Image index out of range")
+
+    original_url = existing_images[body.image_index]
+
+    # Use vision to describe the current image's style
+    style_description = ""
+    try:
+        img_resp = httpx.get(original_url, timeout=15)
+        if img_resp.status_code == 200:
+            img_b64 = base64.b64encode(img_resp.content).decode()
+            mime = "image/png" if ".png" in original_url else "image/jpeg"
+            style_description = await _describe_person(img_b64, mime)
+    except Exception as e:
+        logger.warning(f"Failed to analyze original image for text edit: {e}")
+
+    # Generate new image with same style but new text
+    prompt = f"""⚠️ MANDATORY: ALL visible text in this image MUST be in {lang_name}. ZERO English text allowed.
+
+Recreate a marketing image with the EXACT same visual style, colors, composition and mood as described below, but with DIFFERENT text.
+
+STYLE REFERENCE: {style_description[:500] if style_description else 'Professional marketing image with bold typography'}
+
+THE HEADLINE TEXT MUST BE EXACTLY: "{body.new_text}"
+Write this text in large, bold, clean typography that fits the visual style.
+
+Keep the same color palette, art style, and general composition. Only change the text content.
+1080x1080 square format. No logos or brand names.
+🚨 The text "{body.new_text}" MUST appear prominently in the image in {lang_name}."""
+
+    pid = f"textedit-{uuid.uuid4().hex[:8]}"
+    new_url = await _generate_image(prompt, pid, 1)
+    if not new_url:
+        raise HTTPException(status_code=500, detail="Image generation failed")
+
+    # Replace the image at the same index
+    existing_images[body.image_index] = new_url
+    lucas_step["images"] = existing_images
+
+    # Generate platform variants for the replacement image
+    if platforms:
+        try:
+            new_variants = await _create_platform_variants(body.pipeline_id, [new_url], platforms)
+            existing_variants = lucas_step.get("platform_variants", {})
+            for platform_key, variant_list in new_variants.items():
+                if platform_key in existing_variants and body.image_index < len(existing_variants[platform_key]):
+                    existing_variants[platform_key][body.image_index] = variant_list[0] if variant_list else existing_variants[platform_key][body.image_index]
+                elif platform_key not in existing_variants:
+                    existing_variants[platform_key] = variant_list
+            lucas_step["platform_variants"] = existing_variants
+        except Exception as pv_err:
+            logger.warning(f"Failed to create platform variants for text edit: {pv_err}")
+
+    steps["lucas_design"] = lucas_step
+    supabase.table("pipelines").update({"steps": steps}).eq("id", body.pipeline_id).execute()
+    logger.info(f"Replaced image {body.image_index} with text-edited version in pipeline {body.pipeline_id}")
+
+    # Update linked campaign
+    try:
+        campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+        for c in campaigns:
+            m = c.get("metrics") or {}
+            s = m.get("stats") or {}
+            if s.get("pipeline_id") == body.pipeline_id:
+                s["images"] = existing_images
+                s["platform_variants"] = lucas_step.get("platform_variants", {})
+                m["stats"] = s
+                supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+                logger.info(f"Updated campaign {c['id']} with text-edited image")
+                break
+    except Exception as e:
+        logger.warning(f"Failed to update campaign with text-edited image: {e}")
+
+    return {"status": "updated", "image_url": new_url, "image_index": body.image_index}
+
+
 
 
 
@@ -4812,8 +4962,10 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
     steps = pipeline.get("steps") or {}
     approved_copy = body.edited_copy or steps.get("ana_review_copy", {}).get("approved_content", "")
     clean_copy = _clean_copy_text(approved_copy)
-    image_urls = steps.get("lucas_design", {}).get("image_urls", [])
-    platform_variants = steps.get("lucas_design", {}).get("platform_variants", {})
+    lucas_step = steps.get("lucas_design", {})
+    # Use 'images' (includes regenerated) with fallback to 'image_urls' (originals only)
+    image_urls = lucas_step.get("images", []) or lucas_step.get("image_urls", [])
+    platform_variants = lucas_step.get("platform_variants", {})
     video_url = steps.get("marcos_video", {}).get("video_url", "")
     schedule_text = steps.get("pedro_publish", {}).get("output", "")
     user_campaign_name = pipeline.get("result", {}).get("campaign_name", "")
