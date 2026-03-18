@@ -862,7 +862,7 @@ export default function PipelineView({ context }) {
   });
   const [campaignLang, setCampaignLang] = useState('');
   const [mode, setMode] = useState('semi_auto');
-  const [platforms, setPlatforms] = useState(['whatsapp', 'instagram', 'facebook']);
+  const [platforms, setPlatforms] = useState(['whatsapp', 'instagram', 'facebook', 'tiktok', 'google_ads', 'telegram', 'email', 'sms']);
   const [creating, setCreating] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState({});
   const [showHistory, setShowHistory] = useState(false);
