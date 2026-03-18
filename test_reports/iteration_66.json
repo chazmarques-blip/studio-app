@@ -1,0 +1,95 @@
+{
+  "summary": "Iteration 66 - Bug Fix Verification: All tests PASSED. Verified fixes for 3 reported bugs: (1) 'language' column error in publish endpoint - FIXED, (2) Image regeneration now uses Portuguese language templates - VERIFIED, (3) Campaign 'Amigas na luta' shows Portuguese content correctly. Video generation via Sora 2 API is DOWN (500 error) - external service issue, not a code bug.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "Sora 2 Video API",
+        "issue": "500 Server Error when generating videos - external service issue, not a code bug",
+        "priority": "INFO"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Marketing Campaign Detail",
+        "issues": ["Minor React hydration warning: button cannot be a descendant of button - cosmetic, no functional impact"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration66_bugs.py",
+    "/app/test_reports/pytest/pytest_results_iteration66.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration66_bugs.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all verified flows working)"
+  },
+  "seed_data_creation": "None - used existing 'Amigas na luta' campaign (ID: 068141ee-0f89-40ae-8a27-617c1d5db4ae)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fixes verified. The 'Amigas na luta' campaign has campaign_language: 'pt' and shows Portuguese content correctly. The regenerate-single-image endpoint correctly uses language='pt' when specified. The publish endpoint no longer has the 'language' column error. Sora 2 video API is returning 500 errors - this is an external service issue.",
+  "features_verified": {
+    "backend": {
+      "Login API": "PASSED - /api/auth/login returns access_token",
+      "Campaigns List API": "PASSED - /api/campaigns returns {campaigns: [...]}",
+      "Campaign Detail API": "PASSED - /api/campaigns/:id returns campaign with stats.campaign_language",
+      "Pipeline List API": "PASSED - /api/campaigns/pipeline/list returns {pipelines: [...]}",
+      "Pipeline Detail API": "PASSED - /api/campaigns/pipeline/:id returns pipeline with result.campaign_language",
+      "Regenerate Single Image API": "PASSED - /api/campaigns/pipeline/regenerate-single-image accepts language='pt' parameter",
+      "Publish Endpoint": "PASSED - /api/campaigns/pipeline/:id/publish works without 'language' column error"
+    },
+    "frontend": {
+      "Login Flow": "PASSED - test@agentflow.com / password123",
+      "Marketing Page": "PASSED - Shows 45 campaigns including 'Amigas na luta'",
+      "Campaign Detail Modal": "PASSED - Opens with correct data",
+      "Content Tab": "PASSED - Shows WhatsApp preview with Portuguese text",
+      "WhatsApp Preview": "PASSED - Shows 'Força & Fé: Sua Dose Diária de Inspiração!' (Portuguese)",
+      "Campaign Images": "PASSED - Show Portuguese headlines ('Força & Fé', 'Perseverança')",
+      "Results Tab": "PASSED - Shows performance metrics by channel",
+      "Channel Selector": "PASSED - All 8 channels available (WhatsApp, Instagram, Facebook, TikTok, Google Ads, Telegram, Email, SMS)"
+    }
+  },
+  "bugs_verified_fixed": {
+    "bug_1_language_column_error": {
+      "status": "FIXED",
+      "description": "Removed 'language' field from campaigns INSERT (Supabase table doesn't have this column)",
+      "verification": "Publish endpoint now works without error"
+    },
+    "bug_2_image_regeneration_language": {
+      "status": "FIXED",
+      "description": "Improved image regeneration prompts to use language-specific templates",
+      "verification": "regenerate-single-image endpoint accepts and uses language='pt' parameter"
+    },
+    "bug_3_i18n_key_fix": {
+      "status": "FIXED",
+      "description": "Fixed i18n key in FinalPreview.jsx from 'studio.video_generating' to 'studio.generating_video'",
+      "verification": "Component uses correct translation key"
+    },
+    "bug_4_sora_video_generation": {
+      "status": "EXTERNAL_SERVICE_ISSUE",
+      "description": "Sora 2 API is returning 500 Server Error",
+      "verification": "Not a code bug - external API service is down"
+    }
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123",
+    "auth_field": "access_token"
+  },
+  "campaign_data": {
+    "campaign_id": "068141ee-0f89-40ae-8a27-617c1d5db4ae",
+    "pipeline_id": "dea6ebbb-d626-4ad8-a53a-6d9889e6a1ae",
+    "campaign_name": "Amigas na luta",
+    "campaign_language": "pt",
+    "content_language_verified": "Portuguese (Força & Fé: Sua Dose Diária de Inspiração!)"
+  }
+}

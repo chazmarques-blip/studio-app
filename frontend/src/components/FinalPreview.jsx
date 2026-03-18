@@ -417,7 +417,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
               <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial</p>
               <div className="rounded-xl border border-dashed border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4 text-center">
                 <Film size={18} className="mx-auto mb-1 text-[#C9A84C]/60" />
-                <p className="text-[9px] text-[#666]">{t('studio.video_generating') || 'Video will appear here once generated'}</p>
+                <p className="text-[9px] text-[#666]">{t('studio.generating_video') || 'Video will appear here once generated'}</p>
               </div>
             </div>
           )}

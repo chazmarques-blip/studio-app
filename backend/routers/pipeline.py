@@ -3062,7 +3062,6 @@ async def _execute_step(pipeline_id, step):
                     "name": campaign_name,
                     "status": "draft",
                     "goal": "ai_pipeline",
-                    "language": camp_lang,
                     "metrics": {
                         "type": "ai_pipeline",
                         "target_segment": {"platforms": pipeline.get("platforms", [])},
@@ -4685,27 +4684,46 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
 
     style_desc = STYLE_PROMPTS.get(body.style, STYLE_PROMPTS["professional"])
 
+    # Extract a headline from the campaign copy to use as the EXACT text in the image
+    copy_hint = body.campaign_copy[:300] if body.campaign_copy else ""
+    extracted_headline = ""
+    if copy_hint:
+        # Try to extract the title/first line as the headline
+        lines = [l.strip() for l in copy_hint.split('\n') if l.strip() and not l.strip().startswith('#')]
+        if lines:
+            first_line = lines[0]
+            # Use the first meaningful line as headline (strip emoji, limit to 7 words)
+            headline_words = re.sub(r'[^\w\s]', '', first_line).split()[:7]
+            extracted_headline = ' '.join(headline_words)
+
     # Build prompt with LANGUAGE as the FIRST and DOMINANT instruction
-    lang_header = f"""⚠️ ABSOLUTE MANDATORY LANGUAGE RULE — OVERRIDES EVERYTHING BELOW:
-ALL text, headlines, words, phrases visible in this image MUST be written EXCLUSIVELY in {lang_name}.
-DO NOT use English or any other language. If any text would naturally be in English, TRANSLATE it to {lang_name}.
-This is NON-NEGOTIABLE. Any text not in {lang_name} makes the image UNUSABLE.
-"""
+    LANG_PROMPT_TEMPLATES = {
+        "pt": "Crie uma imagem de marketing impressionante para: {context}. A mensagem da campanha é: {copy}",
+        "es": "Crea una imagen de marketing impresionante para: {context}. El mensaje de la campaña es: {copy}",
+        "en": "Create a stunning marketing visual for: {context}. The campaign message is: {copy}",
+    }
 
     if body.prompt_override.strip():
         content_prompt = body.prompt_override.strip()
     else:
         context = body.product_description or body.campaign_name or "brand"
-        copy_hint = body.campaign_copy[:200] if body.campaign_copy else ""
-        content_prompt = f"Create a stunning marketing visual for: {context}."
-        if copy_hint:
-            content_prompt += f" The campaign message (use this as reference for the headline language and tone): {copy_hint}"
+        template = LANG_PROMPT_TEMPLATES.get(lang_code, LANG_PROMPT_TEMPLATES["pt"])
+        content_prompt = template.format(context=context, copy=copy_hint[:200] if copy_hint else context)
 
-    prompt = lang_header
-    prompt += f"\n{content_prompt}"
-    prompt += f"\n\nVISUAL STYLE: {style_desc}"
-    prompt += f"\n\nINCLUDE one short impactful headline text (3-7 words) written in {lang_name}, in bold clean typography. No logos or brand names. 1080x1080 square format."
-    prompt += f"\n\n🚨 FINAL CHECK: Every single word visible in the generated image MUST be in {lang_name}. Zero exceptions."
+    # Use the extracted headline or generate one based on campaign name
+    headline_instruction = ""
+    if extracted_headline:
+        headline_instruction = f'\nTHE HEADLINE TEXT IN THE IMAGE MUST BE EXACTLY: "{extracted_headline}" (or a short variation of it, MAX 7 words, in {lang_name}). DO NOT translate this headline to English.'
+    else:
+        headline_instruction = f"\nINCLUDE one short impactful headline text (3-7 words) written in {lang_name}, in bold clean typography."
+
+    prompt = f"""⚠️ MANDATORY: ALL visible text in this image MUST be in {lang_name}. ZERO English text allowed.
+{content_prompt}
+
+VISUAL STYLE: {style_desc}
+{headline_instruction}
+No logos or brand names. 1080x1080 square format.
+🚨 EVERY word visible in the image MUST be in {lang_name}. If you write ANY English text, the image is REJECTED."""
 
     pid = f"single-{uuid.uuid4().hex[:8]}"
     url = await _generate_image(prompt, pid, 1)
@@ -4812,6 +4830,7 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
             campaign_id = c["id"]
             break
 
+    camp_lang = pipeline.get("result", {}).get("campaign_language", "pt")
     campaign_data = {
         "name": campaign_name,
         "status": "created",
@@ -4826,7 +4845,9 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
                 "images": [u for u in image_urls if u],
                 "platform_variants": platform_variants,
                 "video_url": video_url,
+                "video_variants": steps.get("marcos_video", {}).get("video_variants", {}),
                 "pipeline_id": pipeline_id,
+                "campaign_language": camp_lang,
             },
         },
     }
