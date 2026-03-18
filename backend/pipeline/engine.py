@@ -13,11 +13,12 @@ from pipeline.prompts import _build_prompt
 from pipeline.utils import (
     _parse_review_decision, _parse_ana_copy_selection,
     _parse_rafael_design_selections, _extract_revision_feedback,
-    _next_step,
+    _next_step, _clean_copy_text,
 )
 from pipeline.media import (
     _generate_design_images, _generate_commercial_video,
     _generate_presenter_video, _create_platform_variants,
+    _create_video_variants,
 )
 
 # ── Shared mutable state ──
