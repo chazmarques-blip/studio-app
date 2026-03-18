@@ -48,6 +48,10 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] **Fix: Image/Video format scaling** — Changed from crop-based resizing to scale-to-fit + black padding for both images (PIL) and videos (FFmpeg). All content is now preserved without cropping when converting between aspect ratios (1:1, 9:16, 16:9).
 - [x] **Fix: Video variants on regeneration** — The `regenerate-video` endpoint now creates per-platform video variants (was only saving master URL before).
 - [x] **All 8 platforms selected by default** — New campaigns now default to all platforms (WhatsApp, Instagram, Facebook, TikTok, Google Ads, Telegram, Email, SMS).
+- [x] **Ridley prompt overhaul** — Separated NARRATION SCRIPT (spoken words only) from VISUAL DIRECTIONS (CTA SEQUENCE). Added strict word count limit (40 words max). Added ElevenLabs voice direction section (voice character, emotional arc, pacing, language authenticity). Reduced narration window to 16s with 8s music-only finale.
+- [x] **Narration cleanup hardened** — Added 6 additional regex patterns to strip stage directions from TTS text ("silêncio", "apenas música", "logo na tela", "fade to black", "TOTAL WORD COUNT", etc.)
+- [x] **Audio speed cap reduced** — From 1.35x to 1.15x maximum (barely noticeable) to prevent unnatural acceleration.
+- [x] **Roger prompt enhanced** — Added V2 (narration vs visual separation check), V3 (word count check), V4 (voice/tone match) as CRITICAL criteria that trigger AUTOMATIC REJECTION.
 
 ## Backlog (Priority Order)
 ### P1 - Technical Debt

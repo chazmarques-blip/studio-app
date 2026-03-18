@@ -655,28 +655,32 @@ ALWAYS write in the SAME language the user writes to you.""",
 
     "rafael_review_video": """You are Roger, a Senior Creative Director and Video Quality Reviewer. You review the VIDEO component of campaigns with the eye of a Cannes Lions judge.
 
-You receive Marcos's video script output containing:
+You receive Ridley's video script output containing:
 - Clip descriptions (what Sora 2 will generate)
-- Narration script (what will be spoken via TTS)
+- Narration script (SPOKEN TEXT ONLY — no stage directions)
+- Voice direction (ElevenLabs voice type, tone, and pace)
 - Music direction
 - CTA and brand information
 
 YOUR VIDEO REVIEW CRITERIA:
 
 V1. NARRATION QUALITY (1-10): Is the narration script natural, compelling, and persuasive? Does it flow smoothly when read aloud? Does it avoid robotic phrasing?
-V2. CLIP RELEVANCE (1-10): Do the clip descriptions accurately represent the product/service? Are they visually compelling and brand-appropriate?
-V3. EMOTIONAL ARC (1-10): Does the video have a clear narrative arc? Hook → Story → CTA?
-V4. TIMING & PACING (1-10): Is the timing appropriate? 24 seconds total (12s per clip). Is the narration length appropriate for the duration?
-V5. BRAND CONSISTENCY (1-10): Does the video match the campaign's visual style and tone? Is the CTA clear?
-V6. LANGUAGE CORRECTNESS (CRITICAL): Is the narration script in the CORRECT campaign language? Is any text that will appear in the video in the correct language? WRONG LANGUAGE = AUTOMATIC REJECTION.
+V2. NARRATION vs VISUAL SEPARATION (CRITICAL): Does the NARRATION SCRIPT contain ONLY spoken words? Are there ANY stage directions mixed in (like "silence", "music only", "logo on screen", "fade to black")? If YES = AUTOMATIC REJECTION. Stage directions belong ONLY in the CTA SEQUENCE section.
+V3. WORD COUNT CHECK (CRITICAL): Is the narration under 40 words? Count every word. If over 40 words, the TTS will be too fast. OVER 40 WORDS = AUTOMATIC REJECTION with instruction to cut down.
+V4. VOICE & TONE MATCH (1-10): Does the chosen voice type match the brand? Is the tone appropriate? (e.g., luxury brand should NOT have energetic/excited tone, youth brand should NOT have calm/professional tone)
+V5. CLIP RELEVANCE (1-10): Do the clip descriptions accurately represent the product/service? Are they visually compelling and brand-appropriate?
+V6. EMOTIONAL ARC (1-10): Does the video have a clear narrative arc? Hook → Story → CTA?
+V7. TIMING & PACING (1-10): Is the timing appropriate? 24 seconds total. Narration stops by second 16. Last 8 seconds = music + brand only.
+V8. BRAND CONSISTENCY (1-10): Does the video match the campaign's visual style and tone? Is the CTA clear?
+V9. LANGUAGE CORRECTNESS (CRITICAL): Is the narration script in the CORRECT campaign language? WRONG LANGUAGE = AUTOMATIC REJECTION.
 
-If AVERAGE score >= 7 AND no critical language errors:
+If AVERAGE score >= 7 AND no critical errors (V2, V3, V9):
 DECISION: APPROVED
 VIDEO_NOTES: [brief notes on what was good]
 
-If AVERAGE score < 7 OR language errors:
+If AVERAGE score < 7 OR any critical error:
 DECISION: REVISION_NEEDED
-REVISION_FEEDBACK: [specific, actionable bullet points for Marcos to fix the video script]
+REVISION_FEEDBACK: [specific, actionable bullet points for Ridley to fix]
 
 WARNING: You MUST include "DECISION: APPROVED" or "DECISION: REVISION_NEEDED" as a separate line. This is mandatory for the pipeline to function correctly.
 
@@ -758,20 +762,34 @@ NARRATION SCRIPT RULES:
 - Voice style: EXCITED, TRIUMPHANT, like celebrating a massive achievement. NOT calm or narrative. Think sports announcer meets motivational speaker.
 - Energy arc: Start with intrigue → build momentum → PEAK excitement at the transformation → EXPLOSIVE CTA
 - Rhythm: Short PUNCHY sentences. Rhetorical questions. Power words. Dramatic pauses for impact.
-- CRITICAL TIMING: The narration MUST be SHORT and PUNCHY. Maximum 40-50 words total (STRICTLY COUNTED — count every word before submitting). The spoken audio MUST finish by second 18 AT THE LATEST. The last 5 seconds (18-23s) are SILENT — only music and brand logo/CTA on screen. This is NON-NEGOTIABLE. If your script exceeds 50 words, CUT IT DOWN. FEWER words = MORE impact.
-- Structure with TIMING MARKS:
-  [0-4s]: The HOOK — Grab attention IMMEDIATELY. Bold statement or provocative question.
-  [4-9s]: The SOLUTION — Fast, exciting, benefits. Energy RISING.
-  [9-14s]: The TRANSFORMATION — Proof, triumph, the dream becoming reality. PEAK excitement.
-  [14-18s]: The CTA — ONE short powerful sentence with contact method + tagline. Then STOP.
-  [18-23s]: SILENCE — Music only. Brand logo + tagline + contact info on screen.
-- End ALWAYS with the video tagline from Sofia's brief
+- CRITICAL TIMING: The narration MUST be SHORT and PUNCHY. Maximum 35-40 words total (STRICTLY COUNTED — count every word before submitting). The spoken audio MUST finish by second 16 AT THE LATEST. The last 8 seconds (16-24s) are MUSIC ONLY — NO SPOKEN WORDS. This is NON-NEGOTIABLE. If your script exceeds 40 words, CUT IT DOWN. FEWER words = MORE impact.
+
+⚠️ CRITICAL — SEPARATING SPOKEN TEXT FROM VISUAL DIRECTIONS:
+The ===NARRATION SCRIPT=== section contains ONLY words that will be spoken aloud by the voice actor via Text-to-Speech.
+NEVER include visual/design directions like "silence", "music only", "logo appears", "fade to black" in the narration script.
+These are VISUAL INSTRUCTIONS and belong ONLY in the ===CTA SEQUENCE=== section.
+If the TTS reads "silence, just music and logo on screen" — that is a CATASTROPHIC ERROR.
+
+- Structure (SPOKEN TEXT ONLY — no stage directions):
+  [0-4s]: The HOOK — Grab attention. Bold statement or provocative question.
+  [4-10s]: The SOLUTION + TRANSFORMATION — Benefits, energy rising, triumph.
+  [10-16s]: The CTA — ONE powerful sentence. Brand name + action. Then STOP SPEAKING.
+  [16-24s]: <<<NO SPOKEN WORDS — THIS SECTION IS EMPTY — MUSIC AND VISUALS ONLY>>>
+- End the spoken part ALWAYS with the video tagline from Sofia's brief
 - Write in the SAME LANGUAGE as the campaign copy
 
+ELEVENLABS VOICE DIRECTION:
+You have access to a professional AI voice studio (ElevenLabs). Think about the PERFECT voice for this specific campaign:
+- VOICE CHARACTER: Choose the voice that best represents the brand personality. A luxury brand needs a refined, deep voice. A youth brand needs an energetic, vibrant voice. A family brand needs warmth.
+- EMOTIONAL ARC: The voice should mirror the video's emotional arc. Start intriguing → build excitement → peak celebration → powerful close.
+- PACING: Natural pacing. Do NOT cram too many words. Silence between sentences creates IMPACT. Pauses are your friend.
+- LANGUAGE AUTHENTICITY: The voice must sound native in the campaign's language. Portuguese narration must FEEL Portuguese, not translated.
+
 MUSIC DIRECTION:
-- Choose the PERFECT background music for this commercial from the available options
-- The music sets the emotional rhythm. It builds with the narrative.
-- Choose the most appropriate mood keyword that matches both the industry and the emotional arc
+- Choose the PERFECT background music for this commercial
+- The music sets the emotional rhythm and builds with the narrative
+- Music should be PROMINENT during the final 8 seconds when there's no narration
+- Choose the most appropriate mood keyword
 
 AVAILABLE MUSIC MOODS (choose ONE from the Mood field):
 - luxury, elegant, sophisticated → For premium brands, fashion, real estate
@@ -802,11 +820,11 @@ Format your output EXACTLY like this:
 [80-120 words. Seconds 12-24. INCLUDE the full character description again. Start at the transition moment. Build to emotional peak. Final 2 seconds: clean/simple frame for logo overlay.]
 
 ===NARRATION SCRIPT===
-[0-5s]: [Hook — bold, attention-grabbing, ENERGETIC]
-[5-10s]: [Solution — exciting, benefits, energy RISING]
-[10-16s]: [Transformation — triumph, peak excitement, CELEBRATING]
-[16-19s]: [CTA — ONE short powerful sentence. Contact + tagline. Then STOP.]
-[19-23s]: [SILENCE — music only, logo on screen]
+[Write ONLY the words to be spoken aloud. NO visual directions. NO "silence". NO "music only". NO "logo appears". ONLY spoken words.]
+[0-4s]: [Hook — spoken words only]
+[4-10s]: [Solution + Transformation — spoken words only]
+[10-16s]: [CTA — ONE powerful sentence, brand + action. LAST SPOKEN WORDS.]
+[TOTAL WORD COUNT: XX words — must be under 40]
 
 ===MUSIC DIRECTION===
 Mood: [choose ONE: luxury/elegant/sophisticated/calm/peaceful/relaxing/upbeat/happy/fun/energetic/exciting/powerful/cinematic/dramatic/epic/corporate/professional/clean/modern/tech/innovation/warm/friendly/cozy/urban/street/edgy/tropical/festive/party/soulful/groovy/indie/creative/emotional/inspirational]
@@ -816,12 +834,15 @@ Description: [2-3 sentences describing the musical arc: instruments, tempo chang
 Voice: [choose ONE: deep_male/confident_male/warm_female/energetic_female/neutral/authoritative]
 Tone: [choose ONE or TWO: energetic/excited/urgent/calm/professional/warm/friendly/dramatic/inspirational/playful]
 Pace: [choose ONE: fast/moderate/slow]
+Reasoning: [1 sentence explaining WHY this voice+tone fits this specific brand/campaign]
 
 ===CTA SEQUENCE===
+[VISUAL INSTRUCTIONS for the final 8 seconds — NOT spoken, only shown on screen]
 Brand name: [company/brand name for logo]
 Tagline: [the powerful phrase from Sofia's VIDEO BRIEF]
 Contact: [WhatsApp/phone/website/email for CTA overlay]
-Visual: [How the final 3 seconds should look: e.g., "fade to black, white logo centered, tagline below, WhatsApp number in gold"]
+Visual: [How the final 8 seconds should look: e.g., "fade to black, white logo centered, tagline below, WhatsApp number in gold"]
+Audio: [MUSIC ONLY — no narration during CTA sequence]
 
 ===VIDEO FORMAT===
 Format: [vertical/horizontal]
@@ -1392,7 +1413,7 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
     return None
 
 
-async def _generate_narration(text, pipeline_id, max_duration=19.0, voice_config=None):
+async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config=None):
     """Generate commercial narration. Uses ElevenLabs (primary) or OpenAI TTS HD (fallback).
     Ensures narration fits within max_duration by speeding up if needed."""
     raw_path = f"/tmp/{pipeline_id}_narration_raw.mp3"
@@ -1418,20 +1439,21 @@ async def _generate_narration(text, pipeline_id, max_duration=19.0, voice_config
                 if voice_config.get("type") == "elevenlabs" and voice_config.get("voice_id"):
                     el_voice_id = voice_config["voice_id"]
                 elif voice_config.get("type") == "openai":
-                    # Map OpenAI voices to ElevenLabs equivalents
                     OPENAI_TO_EL = {
-                        "onyx": "TX3LPaxmHKxFdv7VOQHJ",   # Liam (deep male)
-                        "nova": "21m00Tcm4TlvDq8ikWAM",   # Rachel (female)
-                        "echo": "29vD33N1CtxCmqQRPOHJ",   # Drew (male)
-                        "alloy": "EXAVITQu4vr4xnSDxMaL",  # Bella (neutral)
-                        "shimmer": "MF3mGyEYCl7XYWbV9V6O", # Elli (soft female)
-                        "fable": "jBpfuIE2acCO8z3wKNLl",   # Gigi (animated)
+                        "onyx": "TX3LPaxmHKxFdv7VOQHJ",
+                        "nova": "21m00Tcm4TlvDq8ikWAM",
+                        "echo": "29vD33N1CtxCmqQRPOHJ",
+                        "alloy": "EXAVITQu4vr4xnSDxMaL",
+                        "shimmer": "MF3mGyEYCl7XYWbV9V6O",
+                        "fable": "jBpfuIE2acCO8z3wKNLl",
                     }
                     ov = voice_config.get("voice_id", "onyx")
                     el_voice_id = OPENAI_TO_EL.get(ov, el_voice_id)
 
-                # Apply tone/style from AI director
                 tone = (voice_config.get("tone") or "").lower()
+                pace = (voice_config.get("pace") or "moderate").lower()
+
+                # Adjust stability/style based on tone
                 if "energetic" in tone or "excited" in tone or "urgent" in tone:
                     stability = 0.3
                     style = 0.6
@@ -1441,6 +1463,9 @@ async def _generate_narration(text, pipeline_id, max_duration=19.0, voice_config
                 elif "warm" in tone or "friendly" in tone:
                     stability = 0.5
                     style = 0.4
+                elif "dramatic" in tone or "inspirational" in tone:
+                    stability = 0.35
+                    style = 0.55
 
             voice_settings = VoiceSettings(
                 stability=stability,
@@ -1487,22 +1512,23 @@ async def _generate_narration(text, pipeline_id, max_duration=19.0, voice_config
         with open(raw_path, "wb") as f:
             f.write(audio_bytes)
 
-        # Check duration and speed up if it exceeds max_duration
         audio_dur = _ffprobe_duration(raw_path)
         logger.info(f"Narration raw duration: {audio_dur:.1f}s (max: {max_duration}s)")
 
         if audio_dur > max_duration and audio_dur > 0:
-            speed_factor = min(audio_dur / max_duration, 1.35)
-            logger.info(f"Narration too long ({audio_dur:.1f}s), speeding up by {speed_factor:.2f}x")
-            subprocess.run(
-                [FFMPEG_PATH, "-y", "-i", raw_path, "-filter:a", f"atempo={speed_factor}", "-vn", final_path],
-                capture_output=True, timeout=30
-            )
-            if os.path.exists(final_path) and os.path.getsize(final_path) > 100:
-                logger.info(f"Narration adjusted to fit {max_duration}s")
+            speed_factor = min(audio_dur / max_duration, 1.15)  # Max 1.15x — barely noticeable
+            if speed_factor > 1.05:
+                logger.info(f"Narration slightly long ({audio_dur:.1f}s), gentle speed-up: {speed_factor:.2f}x")
+                subprocess.run(
+                    [FFMPEG_PATH, "-y", "-i", raw_path, "-filter:a", f"atempo={speed_factor}", "-vn", final_path],
+                    capture_output=True, timeout=30
+                )
+                if os.path.exists(final_path) and os.path.getsize(final_path) > 100:
+                    logger.info(f"Narration gently adjusted to fit {max_duration}s")
+                else:
+                    shutil.copy2(raw_path, final_path)
             else:
                 shutil.copy2(raw_path, final_path)
-                logger.warning("Atempo failed, using original audio")
         else:
             shutil.copy2(raw_path, final_path)
 
@@ -1785,14 +1811,22 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
         narration_text = narr_match.group(1).strip()
         # Clean timing marks from narration for TTS
         narration_text = re.sub(r'\[\d+-\d+s?\]:\s*', '', narration_text)
-        # Remove SILENCE instructions and any bracketed stage directions (NOT spoken content)
+        # Remove ALL bracketed stage directions (SILENCE, music only, logo, fade, etc.)
         narration_text = re.sub(r'\[.*?SILENCE.*?\]', '', narration_text, flags=re.IGNORECASE)
         narration_text = re.sub(r'\[.*?music\s+only.*?\]', '', narration_text, flags=re.IGNORECASE)
         narration_text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', narration_text, flags=re.IGNORECASE)
-        # Remove any remaining bracketed stage directions
         narration_text = re.sub(r'\[(?:COMPLETE|TOTAL|FULL)?\s*(?:SILENCE|QUIET|PAUSE|NO NARRATION).*?\]', '', narration_text, flags=re.IGNORECASE)
+        # Remove any remaining visual/stage directions (anything in brackets that isn't spoken)
+        narration_text = re.sub(r'\[.*?(?:fade|black|screen|visual|music|logo|brand|overlay|transition|cut to).*?\]', '', narration_text, flags=re.IGNORECASE)
+        # Remove standalone sentences that are clearly directions, not narration
+        narration_text = re.sub(r'(?:^|\n).*?(?:sil[eê]ncio|apenas m[uú]sica|logo na tela|music only|fade to|no narration|no spoken|TOTAL WORD COUNT).*?(?:\n|$)', '\n', narration_text, flags=re.IGNORECASE)
+        # Remove "WORD COUNT" lines
+        narration_text = re.sub(r'\[?TOTAL WORD COUNT.*', '', narration_text, flags=re.IGNORECASE)
         # Clean up extra whitespace
         narration_text = re.sub(r'\n{2,}', '\n', narration_text).strip()
+        # Final safety: if narration ends with stage direction-like text, strip it
+        narration_text = re.sub(r'[.\s]*(sil[eê]ncio|apenas m[uú]sica|music only|logo|fade).*$', '.', narration_text, flags=re.IGNORECASE).strip()
+        logger.info(f"Cleaned narration: {len(narration_text)} chars, ~{len(narration_text.split())} words")
 
     # Parse CTA Sequence
     cta_match = re.search(r'===CTA SEQUENCE===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
