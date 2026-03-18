@@ -40,6 +40,7 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
   - Fallback to deep links on desktop
 - [x] **Fix: Image regeneration language enforcement** — Strengthened language instructions in all image generation/regeneration prompts. Language instruction now appears as FIRST/DOMINANT rule in the prompt, preventing AI from defaulting to English when campaign is in Spanish/Portuguese/etc. Fixed in: `/regenerate-single-image`, `/{pipeline_id}/regenerate-image`, and `_generate_design_images`.
 - [x] **Fix: i18n for FinalPreview** — Replaced all hardcoded Portuguese labels ("IMAGEM:", "GERAR NOVA IMAGEM COM ESTILO", "Minimalista", "Vibrante", etc.) with i18n translation keys. Now correctly displays in EN/PT/ES based on user's platform language setting.
+- [x] **Layout Redesign: Campaign Detail Modal** — Eliminated the 3-tab layout (Overview/Content/Results). Overview KPIs are now a compact inline strip in the header. Content and Results are displayed side-by-side in a split-panel layout. Schedule and Message Flow moved to the Results panel. Modal widened to max-w-5xl for the two-column view.
 
 ## Backlog (Priority Order)
 ### P1 - Technical Debt

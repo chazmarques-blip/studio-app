@@ -306,7 +306,6 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const channels = segment.platforms || (messages.length > 0 ? [...new Set(messages.map(m => m.channel))] : []);
   const type = TYPE_META[campaign.type] || TYPE_META.nurture;
   const status = STATUS_META[campaign.status] || STATUS_META.draft;
-  const [tab, setTab] = useState('overview');
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState(channels[0] || 'whatsapp');
   const videoUrl = stats.video_url || '';
@@ -397,14 +396,12 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
       toast.success(labels.regenImageStarted);
       setRegenImageIdx(null);
       setRegenImageFeedback('');
-      // Countdown timer
       const countdownInterval = setInterval(() => {
         setRegenCountdown(prev => {
           if (prev <= 1) { clearInterval(countdownInterval); return 0; }
           return prev - 1;
         });
       }, 1000);
-      // Poll for updated image
       const pollInterval = setInterval(() => {
         refreshCampaign();
       }, 5000);
@@ -427,7 +424,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
     if (!pipelineId) return;
     setCloneLoading(true);
     try {
-      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/clone-language`, { target_language: targetLang });
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/clone-language`, { target_language: targetLang });
       const langLabel = { pt: 'Portugues', en: 'English', es: 'Espanol', fr: 'Francais', de: 'Deutsch' }[targetLang] || targetLang;
       toast.success(`${labels.cloneStarted} ${langLabel}!`);
       setShowCloneModal(false);
@@ -441,14 +438,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
   const startDate = schedule.start_date || campaign.created_at?.split('T')[0];
   const endDate = schedule.end_date || null;
-  const cplWhatsapp = stats.sent > 0 ? (Math.random() * 3 + 0.5).toFixed(2) : '0.00';
-  const cplInstagram = stats.sent > 0 ? (Math.random() * 5 + 1).toFixed(2) : '0.00';
-  const cplFacebook = stats.sent > 0 ? (Math.random() * 4 + 0.8).toFixed(2) : '0.00';
   const openRate = stats.sent > 0 ? Math.round((stats.opened / stats.sent) * 100) : 0;
   const convRate = stats.sent > 0 ? Math.round((stats.converted / stats.sent) * 100) : 0;
   const deliveryRate = stats.sent > 0 ? Math.round(((stats.delivered || stats.sent) / stats.sent) * 100) : 0;
 
-  const copyText = (text) => {
+  const copyTextFn = (text) => {
     try {
       const ta = document.createElement('textarea');
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
@@ -460,26 +454,55 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-3" onClick={onClose}>
-      <div data-testid="campaign-detail-modal" className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-[#111] shrink-0">
-          <div className="flex items-center gap-2 mb-1">
+      <div data-testid="campaign-detail-modal" className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* ── Compact Header with KPIs ── */}
+        <div className="px-4 py-2.5 border-b border-[#111] shrink-0">
+          <div className="flex items-center gap-2">
             <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: type.color, backgroundColor: `${type.color}15` }}>{metaLabel(type, labels)}</span>
             <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: status.color, backgroundColor: `${status.color}15` }}>{metaLabel(status, labels)}</span>
-            <span className="ml-auto text-[#555] hover:text-white cursor-pointer" onClick={onClose}><X size={16} /></span>
-          </div>
-          <h2 className="text-base font-bold text-white">{campaign.name}</h2>
-          <div className="flex items-center gap-3 mt-1.5">
-            {startDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />{labels.start}: {new Date(startDate).toLocaleDateString()}</span>}
-            {endDate && <span className="text-[9px] text-[#555] flex items-center gap-1"><CalendarDays size={9} />{labels.end}: {new Date(endDate).toLocaleDateString()}</span>}
-            {!endDate && <span className="text-[9px] text-[#444]">{labels.noEndDate}</span>}
+            <h2 className="text-sm font-bold text-white flex-1 truncate ml-1">{campaign.name}</h2>
+            {startDate && <span className="text-[8px] text-[#444] flex items-center gap-0.5 shrink-0"><CalendarDays size={8} />{new Date(startDate).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}</span>}
             {pipelineId && (
               <button data-testid="clone-language-btn" onClick={() => setShowCloneModal(!showCloneModal)}
-                className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] font-semibold hover:bg-[#C9A84C]/10 transition">
-                <Globe size={10} /> {labels.cloneLanguage}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] font-semibold hover:bg-[#C9A84C]/10 transition shrink-0">
+                <Globe size={9} /> {labels.cloneLanguage}
               </button>
             )}
+            <button className="text-[#555] hover:text-white cursor-pointer shrink-0 ml-1" onClick={onClose}><X size={16} /></button>
           </div>
+
+          {/* Inline KPI Strip */}
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+              <Send size={9} className="text-[#555]" />
+              <span className="text-[11px] font-bold text-white">{stats.sent || 0}</span>
+              <span className="text-[7px] text-[#555]">{labels.sent}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+              <TrendingUp size={9} className="text-[#C9A84C]" />
+              <span className="text-[11px] font-bold text-white">{deliveryRate}%</span>
+              <span className="text-[7px] text-[#555]">{labels.delivered}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+              <Eye size={9} className="text-[#C9A84C]" />
+              <span className="text-[11px] font-bold text-[#C9A84C]">{openRate}%</span>
+              <span className="text-[7px] text-[#555]">{labels.opens}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+              <Users size={9} className="text-green-400" />
+              <span className="text-[11px] font-bold text-green-400">{convRate}%</span>
+              <span className="text-[7px] text-[#555]">{labels.conversion}</span>
+            </div>
+            {/* CPL by channel - compact */}
+            {channels.slice(0, 4).map(ch => (
+              <div key={ch} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+                <ChannelIcon channel={ch} active size={10} />
+                <span className="text-[7px] text-[#555]">CPL</span>
+                <span className="text-[9px] font-bold text-white">${stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</span>
+              </div>
+            ))}
+          </div>
+
           {/* Clone Language Modal */}
           {showCloneModal && (
             <div data-testid="clone-language-modal" className="mt-2 p-3 rounded-xl bg-[#111] border border-[#C9A84C]/20">
@@ -504,100 +527,18 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               </div>
             </div>
           )}
-          {/* Tabs */}
-          <div className="flex gap-1 mt-2.5">
-            {[
-              { id: 'overview', label: labels.overview },
-              { id: 'content', label: labels.content },
-              { id: 'results', label: labels.results },
-            ].map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)} data-testid={`detail-tab-${t.id}`}
-                className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition ${tab === t.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] hover:text-white border border-transparent'}`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
-          {tab === 'overview' && (
-            <>
-              {/* KPI Grid */}
-              <div className="grid grid-cols-4 gap-2">
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
-                  <p className="text-lg font-bold text-white">{stats.sent || 0}</p>
-                  <p className="text-[8px] text-[#555]">{labels.sent}</p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
-                  <p className="text-lg font-bold text-white">{deliveryRate}%</p>
-                  <p className="text-[8px] text-[#555]">{labels.delivered}</p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
-                  <p className="text-lg font-bold text-[#C9A84C]">{openRate}%</p>
-                  <p className="text-[8px] text-[#555]">{labels.opens}</p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 text-center">
-                  <p className="text-lg font-bold text-green-400">{convRate}%</p>
-                  <p className="text-[8px] text-[#555]">{labels.conversion}</p>
-                </div>
-              </div>
+        {/* ── Body: Content (left) + Results (right) side by side ── */}
+        <div className="flex-1 overflow-hidden flex">
+          {/* LEFT: Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 border-r border-[#111]">
+            {/* Content label */}
+            <div className="flex items-center gap-1.5">
+              <Image size={11} className="text-[#C9A84C]" />
+              <p className="text-[10px] font-bold text-white uppercase tracking-wider">{labels.content}</p>
+            </div>
 
-              {/* Cost per Lead by Channel */}
-              <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.cplByChannel}</p>
-                <div className="space-y-1">
-                  {(channels.length > 0 ? channels : ['whatsapp', 'instagram', 'facebook']).map(ch => {
-                    const cpls = { whatsapp: cplWhatsapp, instagram: cplInstagram, facebook: cplFacebook };
-                    const cpl = cpls[ch] || (Math.random() * 4 + 0.5).toFixed(2);
-                    return (
-                      <div key={ch} className="flex items-center gap-2 rounded-lg bg-[#111] border border-[#1A1A1A] px-3 py-2">
-                        <span className="text-[10px] font-medium capitalize w-20" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
-                        <div className="flex-1 h-1.5 rounded-full bg-[#1A1A1A] overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${Math.min(parseFloat(cpl) * 15, 100)}%`, backgroundColor: CHANNEL_COLORS[ch] || '#888' }} />
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                          <DollarSign size={10} className="text-[#555]" />
-                          <span className="text-[11px] font-bold text-white">{cpl}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Schedule */}
-              {schedule.schedule_text && (
-                <div>
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1">{labels.schedule}</p>
-                  <pre className="text-[10px] text-[#999] whitespace-pre-wrap font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A] max-h-[200px] overflow-y-auto">{schedule.schedule_text}</pre>
-                </div>
-              )}
-
-              {/* Steps/Messages Timeline */}
-              {messages.length > 0 && (
-                <div>
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.messageFlow}</p>
-                  <div className="space-y-1.5">
-                    {messages.map((m, i) => (
-                      <div key={i} className="flex items-start gap-2 rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg shrink-0 text-[9px] font-bold text-black" style={{ backgroundColor: CHANNEL_COLORS[m.channel] || '#888' }}>{i + 1}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-medium capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>{m.channel}</span>
-                            <span className="text-[8px] text-[#444]">{m.delay_hours === 0 ? labels.immediate : `+${m.delay_hours}h`}</span>
-                          </div>
-                          <p className="text-[10px] text-[#999] mt-0.5 line-clamp-2">{cleanCampaignText(m.content)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {tab === 'content' && (
             <>
               {/* Channel Selector Header with Format Badges */}
               <div data-testid="channel-selector-header">
@@ -1096,61 +1037,95 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 </div>
               </div>
             </>
-          )}
 
-          {tab === 'results' && (
-            <>
-              {/* Results Summary */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.totalSent}</p>
-                  <p className="text-xl font-bold text-white">{stats.sent || 0}</p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.delivered}</p>
-                  <p className="text-xl font-bold text-white">{stats.delivered || stats.sent || 0}</p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.openings}</p>
-                  <p className="text-xl font-bold text-[#C9A84C]">{stats.opened || 0} <span className="text-sm text-[#555]">({openRate}%)</span></p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.clicks}</p>
-                  <p className="text-xl font-bold text-blue-400">{stats.clicked || 0}</p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.conversions}</p>
-                  <p className="text-xl font-bold text-green-400">{stats.converted || 0} <span className="text-sm text-[#555]">({convRate}%)</span></p>
-                </div>
-                <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
-                  <p className="text-[9px] text-[#555] uppercase mb-1">{labels.avgCpl}</p>
-                  <p className="text-xl font-bold text-white">R$ {stats.sent > 0 ? (Math.random() * 3 + 1).toFixed(2) : '0.00'}</p>
-                </div>
+          </div>
+
+          {/* RIGHT: Results */}
+          <div className="w-[320px] shrink-0 overflow-y-auto p-4 space-y-3 pb-24">
+            <div className="flex items-center gap-1.5 mb-1">
+              <BarChart3 size={11} className="text-[#C9A84C]" />
+              <p className="text-[10px] font-bold text-white uppercase tracking-wider">{labels.results}</p>
+            </div>
+
+            {/* Results Summary */}
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+                <p className="text-[8px] text-[#555] uppercase">{labels.totalSent}</p>
+                <p className="text-base font-bold text-white">{stats.sent || 0}</p>
               </div>
+              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+                <p className="text-[8px] text-[#555] uppercase">{labels.delivered}</p>
+                <p className="text-base font-bold text-white">{stats.delivered || stats.sent || 0}</p>
+              </div>
+              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+                <p className="text-[8px] text-[#555] uppercase">{labels.openings}</p>
+                <p className="text-base font-bold text-[#C9A84C]">{stats.opened || 0} <span className="text-[10px] text-[#555]">({openRate}%)</span></p>
+              </div>
+              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+                <p className="text-[8px] text-[#555] uppercase">{labels.clicks}</p>
+                <p className="text-base font-bold text-blue-400">{stats.clicked || 0}</p>
+              </div>
+              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+                <p className="text-[8px] text-[#555] uppercase">{labels.conversions}</p>
+                <p className="text-base font-bold text-green-400">{stats.converted || 0} <span className="text-[10px] text-[#555]">({convRate}%)</span></p>
+              </div>
+              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+                <p className="text-[8px] text-[#555] uppercase">{labels.avgCpl}</p>
+                <p className="text-base font-bold text-white">$ {stats.sent > 0 ? (Math.random() * 3 + 1).toFixed(2) : '0.00'}</p>
+              </div>
+            </div>
 
-              {/* Channel Breakdown */}
-              <div>
-                <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{labels.performanceByChannel}</p>
-                {(channels.length > 0 ? channels : ['whatsapp']).map(ch => (
-                  <div key={ch} className="flex items-center gap-3 rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5 mb-1">
-                    <span className="text-[10px] font-bold capitalize w-20" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
-                    <div className="flex-1 grid grid-cols-4 gap-2">
-                      <div><p className="text-[8px] text-[#555]">{labels.sends}</p><p className="text-[10px] font-bold text-white">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
-                      <div><p className="text-[8px] text-[#555]">{labels.opens}</p><p className="text-[10px] font-bold text-white">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
-                      <div><p className="text-[8px] text-[#555]">{labels.clicks}</p><p className="text-[10px] font-bold text-white">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
-                      <div><p className="text-[8px] text-[#555]">CPL</p><p className="text-[10px] font-bold text-white">R$ {stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</p></div>
-                    </div>
+            {/* Channel Breakdown */}
+            <div>
+              <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1.5">{labels.performanceByChannel}</p>
+              {(channels.length > 0 ? channels : ['whatsapp']).map(ch => (
+                <div key={ch} className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2 mb-1">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <ChannelIcon channel={ch} active size={10} />
+                    <span className="text-[9px] font-bold capitalize" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
                   </div>
-                ))}
-              </div>
-
-              {stats.sent === 0 && (
-                <div className="text-center py-4">
-                  <p className="text-[11px] text-[#444]">{labels.notSent}</p>
+                  <div className="grid grid-cols-4 gap-1">
+                    <div><p className="text-[7px] text-[#555]">{labels.sends}</p><p className="text-[9px] font-bold text-white">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
+                    <div><p className="text-[7px] text-[#555]">{labels.opens}</p><p className="text-[9px] font-bold text-white">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
+                    <div><p className="text-[7px] text-[#555]">{labels.clicks}</p><p className="text-[9px] font-bold text-white">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
+                    <div><p className="text-[7px] text-[#555]">CPL</p><p className="text-[9px] font-bold text-white">$ {stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</p></div>
+                  </div>
                 </div>
-              )}
-            </>
-          )}
+              ))}
+            </div>
+
+            {stats.sent === 0 && (
+              <div className="text-center py-3 rounded-lg bg-[#111] border border-[#1A1A1A]">
+                <p className="text-[10px] text-[#444]">{labels.notSent}</p>
+              </div>
+            )}
+
+            {/* Schedule (compact) */}
+            {schedule.schedule_text && (
+              <div>
+                <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">{labels.schedule}</p>
+                <pre className="text-[9px] text-[#777] whitespace-pre-wrap font-sans bg-[#111] rounded-lg p-2 border border-[#1A1A1A] max-h-[120px] overflow-y-auto">{schedule.schedule_text}</pre>
+              </div>
+            )}
+
+            {/* Message Flow (compact) */}
+            {messages.length > 0 && (
+              <div>
+                <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">{labels.messageFlow}</p>
+                <div className="space-y-1">
+                  {messages.slice(0, 5).map((m, i) => (
+                    <div key={i} className="flex items-center gap-1.5 rounded-lg bg-[#111] border border-[#1A1A1A] px-2 py-1.5">
+                      <div className="flex h-5 w-5 items-center justify-center rounded shrink-0 text-[7px] font-bold text-black" style={{ backgroundColor: CHANNEL_COLORS[m.channel] || '#888' }}>{i + 1}</div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[8px] font-medium capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>{m.channel}</span>
+                        <p className="text-[8px] text-[#666] line-clamp-1">{cleanCampaignText(m.content)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Lightbox */}
