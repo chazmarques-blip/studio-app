@@ -30,13 +30,14 @@ const L = (lang) => {
       created: 'Campanha criada!', activated: 'Campanha ativada!', paused_toast: 'Campanha pausada',
       deleted: 'Campanha excluida!', loadError: 'Erro ao carregar templates', error: 'Erro',
       testCreated: 'Dados de teste criados!', env: 'env', conv: 'conv',
-      byChannel: 'Por Canal', video: 'Video',
+      byChannel: 'Por Canal', video: 'Video', imageLabel: 'Imagem',
       videoCommercial: 'Video Comercial', download: 'Baixar', downloadArts: 'Download das Artes',
       copyText: 'Texto para Copiar', allNetworks: 'Todas as Redes', copy: 'Copiar', noMessages: 'Sem mensagens',
-      totalSent: 'Total Enviado', openings: 'Aberturas', avgCpl: 'CPL Medio', performanceByChannel: 'Performance por Canal',
+      totalSent: 'Total Enviado', openings: 'Aberturas', avgCpl: 'CPL Medio', performanceByChannel: 'Performance por Canal', selectMedia: 'Selecionar Midia',
       regenVideo: 'Gerar Video', regenVideoDesc: 'Clique para gerar o video comercial desta campanha', regenerating: 'Gerando video...', videoGenStarted: 'Geracao de video iniciada!',
+      videoAdjustments: 'Ajustes do Video', videoAdjustmentsPlaceholder: 'Descreva as mudancas que deseja no video (ex: mais foco no produto, mudar cena final, mais dinamico...)', regenerateVideo: 'Regenerar Video', regenVariants: 'Atualizar Formatos',
       cta: 'Comece Agora', learnMore: 'Saiba mais sobre',
-      sponsored: 'Patrocinado', format: 'Formato',
+      sponsored: 'Patrocinado', format: 'Formato', fbLike: 'Curtir', fbComment: 'Comentar', fbShare: 'Compartilhar', shareLabel: 'Compartilhar',
       editCopy: 'Editar Texto', saveCopy: 'Salvar', cancelEdit: 'Cancelar', copyUpdated: 'Texto atualizado!',
       regenImage: 'Regenerar Imagem', regenImageFeedback: 'Descreva o ajuste desejado...', regenImageStarted: 'Regenerando imagem...',
       cloneLanguage: 'Clonar em outro idioma', cloneStarted: 'Campanha clonada! Gerando em', selectLanguage: 'Selecione o idioma',
@@ -60,13 +61,14 @@ const L = (lang) => {
       created: 'Campaign created!', activated: 'Campaign activated!', paused_toast: 'Campaign paused',
       deleted: 'Campaign deleted!', loadError: 'Error loading templates', error: 'Error',
       testCreated: 'Test data created!', env: 'sent', conv: 'conv',
-      byChannel: 'By Channel', video: 'Video',
+      byChannel: 'By Channel', video: 'Video', imageLabel: 'Image',
       videoCommercial: 'Commercial Video', download: 'Download', downloadArts: 'Download Creatives',
       copyText: 'Copy Text', allNetworks: 'All Networks', copy: 'Copy', noMessages: 'No messages',
-      totalSent: 'Total Sent', openings: 'Opens', avgCpl: 'Average CPL', performanceByChannel: 'Performance by Channel',
+      totalSent: 'Total Sent', openings: 'Opens', avgCpl: 'Average CPL', performanceByChannel: 'Performance by Channel', selectMedia: 'Select Media',
       regenVideo: 'Generate Video', regenVideoDesc: 'Click to generate the commercial video for this campaign', regenerating: 'Generating video...', videoGenStarted: 'Video generation started!',
+      videoAdjustments: 'Video Adjustments', videoAdjustmentsPlaceholder: 'Describe changes you want in the video (e.g., more focus on product, change final scene, more dynamic...)', regenerateVideo: 'Regenerate Video', regenVariants: 'Update Formats',
       cta: 'Start Now', learnMore: 'Learn more about',
-      sponsored: 'Sponsored', format: 'Format',
+      sponsored: 'Sponsored', format: 'Format', fbLike: 'Like', fbComment: 'Comment', fbShare: 'Share', shareLabel: 'Share',
       editCopy: 'Edit Copy', saveCopy: 'Save', cancelEdit: 'Cancel', copyUpdated: 'Copy updated!',
       regenImage: 'Regenerate Image', regenImageFeedback: 'Describe the adjustment...', regenImageStarted: 'Regenerating image...',
       cloneLanguage: 'Clone to another language', cloneStarted: 'Campaign cloned! Generating in', selectLanguage: 'Select language',
@@ -90,13 +92,14 @@ const L = (lang) => {
       created: 'Campana creada!', activated: 'Campana activada!', paused_toast: 'Campana pausada',
       deleted: 'Campana eliminada!', loadError: 'Error al cargar plantillas', error: 'Error',
       testCreated: 'Datos de prueba creados!', env: 'env', conv: 'conv',
-      byChannel: 'Por Canal', video: 'Video',
+      byChannel: 'Por Canal', video: 'Video', imageLabel: 'Imagen',
       videoCommercial: 'Video Comercial', download: 'Descargar', downloadArts: 'Descargar Artes',
       copyText: 'Texto para Copiar', allNetworks: 'Todas las Redes', copy: 'Copiar', noMessages: 'Sin mensajes',
-      totalSent: 'Total Enviado', openings: 'Aperturas', avgCpl: 'CPL Promedio', performanceByChannel: 'Performance por Canal',
+      totalSent: 'Total Enviado', openings: 'Aperturas', avgCpl: 'CPL Promedio', performanceByChannel: 'Performance por Canal', selectMedia: 'Seleccionar Medios',
       regenVideo: 'Generar Video', regenVideoDesc: 'Haga clic para generar el video comercial de esta campana', regenerating: 'Generando video...', videoGenStarted: 'Generacion de video iniciada!',
+      videoAdjustments: 'Ajustes del Video', videoAdjustmentsPlaceholder: 'Describa los cambios que desea en el video (ej: mas enfoque en el producto, cambiar escena final, mas dinamico...)', regenerateVideo: 'Regenerar Video', regenVariants: 'Actualizar Formatos',
       cta: 'Empieza Ahora', learnMore: 'Mas informacion sobre',
-      sponsored: 'Patrocinado', format: 'Formato',
+      sponsored: 'Patrocinado', format: 'Formato', fbLike: 'Me gusta', fbComment: 'Comentar', fbShare: 'Compartir', shareLabel: 'Compartir',
       editCopy: 'Editar Texto', saveCopy: 'Guardar', cancelEdit: 'Cancelar', copyUpdated: 'Texto actualizado!',
       regenImage: 'Regenerar Imagen', regenImageFeedback: 'Describe el ajuste...', regenImageStarted: 'Regenerando imagen...',
       cloneLanguage: 'Clonar en otro idioma', cloneStarted: 'Campana clonada! Generando en', selectLanguage: 'Seleccione idioma',
@@ -419,6 +422,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [shareImgIdx, setShareImgIdx] = useState(0);
   const [shareText, setShareText] = useState('');
   const [shareIsVideo, setShareIsVideo] = useState(false);
+  const [videoAdjText, setVideoAdjText] = useState('');
+  const [regenVariantsLoading, setRegenVariantsLoading] = useState(false);
 
   const cloneCampaign = async (targetLang) => {
     if (!pipelineId) return;
@@ -586,8 +591,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   // Toggle for image/video
                   const MediaToggle = () => (channelVideo && imgSrc) ? (
                     <div className="flex gap-1 mb-2 max-w-[340px] mx-auto">
-                      <button onClick={() => setShowChannelVideo(false)} className={`text-[8px] px-2 py-1 rounded ${!showChannelVideo ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'bg-[#111] text-[#555] border border-[#1A1A1A]'}`} data-testid={`toggle-image-${channel}`}>Imagem</button>
-                      <button onClick={() => setShowChannelVideo(true)} className={`text-[8px] px-2 py-1 rounded ${showChannelVideo ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'bg-[#111] text-[#555] border border-[#1A1A1A]'}`} data-testid={`toggle-video-${channel}`}>Video</button>
+                      <button onClick={() => setShowChannelVideo(false)} className={`text-[8px] px-2 py-1 rounded ${!showChannelVideo ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'bg-[#111] text-[#555] border border-[#1A1A1A]'}`} data-testid={`toggle-image-${channel}`}>{labels.imageLabel}</button>
+                      <button onClick={() => setShowChannelVideo(true)} className={`text-[8px] px-2 py-1 rounded ${showChannelVideo ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'bg-[#111] text-[#555] border border-[#1A1A1A]'}`} data-testid={`toggle-video-${channel}`}>{labels.video}</button>
                     </div>
                   ) : null;
                   // Format badge for channel
@@ -609,7 +614,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         <div className="bg-[#0B141A] px-2.5 py-3 min-h-[200px] rounded-b-xl">
                           <div className="max-w-[85%] ml-auto">
                             {showChannelVideo && channelVideo ? (
-                              <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-1 aspect-square object-cover" data-testid="whatsapp-video" />
+                              <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-1 aspect-square bg-black" data-testid="whatsapp-video" style={{objectFit: 'contain'}} />
                             ) : imgSrc ? (
                               <img src={imgSrc} alt="" className="w-full rounded-lg mb-1 aspect-square object-cover" />
                             ) : null}
@@ -636,7 +641,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           <MoreHorizontal size={12} className="text-white/50" />
                         </div>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full aspect-square object-cover" data-testid="instagram-video" />
+                          <video src={channelVideo} controls playsInline className="w-full aspect-square bg-black" data-testid="instagram-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full aspect-square object-cover" />
                         ) : null}
@@ -663,14 +668,14 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         </div>
                         <p className="px-3 pb-2 text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-4">{copyText_ch}</p>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full aspect-video object-cover" data-testid="facebook-video" />
+                          <video src={channelVideo} controls playsInline className="w-full aspect-video bg-black" data-testid="facebook-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full aspect-video object-cover" />
                         ) : null}
                         <div className="px-3 py-2 border-t border-[#3A3B3C] flex items-center justify-around">
-                          <span className="text-[9px] text-[#B0B3B8]">Curtir</span>
-                          <span className="text-[9px] text-[#B0B3B8]">Comentar</span>
-                          <span className="text-[9px] text-[#B0B3B8] flex items-center gap-0.5"><Share2 size={10} /> Compartilhar</span>
+                          <span className="text-[9px] text-[#B0B3B8]">{labels.fbLike}</span>
+                          <span className="text-[9px] text-[#B0B3B8]">{labels.fbComment}</span>
+                          <span className="text-[9px] text-[#B0B3B8] flex items-center gap-0.5"><Share2 size={10} /> {labels.fbShare}</span>
                         </div>
                       </div>
                       <p className="text-center text-[7px] text-[#444] mt-1">{FORMAT_SIZES.facebook}</p>
@@ -682,7 +687,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <MediaToggle />
                       <div className="w-full max-w-[240px] mx-auto bg-black rounded-2xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16'}}>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full h-full object-cover absolute inset-0" data-testid="tiktok-video" />
+                          <video src={channelVideo} controls playsInline className="w-full h-full bg-black absolute inset-0" data-testid="tiktok-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full h-full object-cover absolute inset-0" />
                         ) : null}
@@ -719,7 +724,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         </div>
                         <div className="bg-white rounded-xl overflow-hidden border border-[#ddd]">
                           {showChannelVideo && channelVideo ? (
-                            <video src={channelVideo} controls playsInline className="w-full aspect-[1.91/1] object-cover" data-testid="google-ads-video" />
+                            <video src={channelVideo} controls playsInline className="w-full aspect-[1.91/1] bg-black" data-testid="google-ads-video" style={{objectFit: 'contain'}} />
                           ) : imgSrc ? (
                             <img src={imgSrc} alt="" className="w-full aspect-[1.91/1] object-cover" />
                           ) : null}
@@ -747,7 +752,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         </div>
                         <div className="bg-[#0E1621] px-2.5 py-3 rounded-b-xl">
                           {showChannelVideo && channelVideo ? (
-                            <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-2 aspect-video object-cover" data-testid="telegram-video" />
+                            <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-2 aspect-video bg-black" data-testid="telegram-video" style={{objectFit: 'contain'}} />
                           ) : imgSrc ? (
                             <img src={imgSrc} alt="" className="w-full rounded-lg mb-2 aspect-video object-cover" />
                           ) : null}
@@ -770,7 +775,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           <p className="text-[10px] font-semibold text-[#202124] mt-0.5">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
                         </div>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full aspect-video object-cover" data-testid="email-video" />
+                          <video src={channelVideo} controls playsInline className="w-full aspect-video bg-black" data-testid="email-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full aspect-video object-cover" />
                         ) : null}
@@ -817,7 +822,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               {/* Media Selector - Images & Video */}
               {(images.length > 0 || videoUrl) && (
                 <div data-testid="share-media-selector">
-                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">Selecionar Midia</p>
+                  <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">{labels.selectMedia || 'Select Media'}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((url, i) => (
                       <button key={`img-${i}`} data-testid={`share-media-img-${i}`}
@@ -901,6 +906,57 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 </div>
               )}
 
+              {/* Video Adjustments Section */}
+              {pipelineId && videoUrl && (
+                <div data-testid="video-adjustments" className="rounded-xl bg-[#111] border border-[#1A1A1A] p-3 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Film size={10} className="text-[#C9A84C]" />
+                    <p className="text-[9px] font-bold text-white uppercase tracking-wider">{labels.videoAdjustments}</p>
+                  </div>
+                  <textarea
+                    data-testid="video-adjustments-textarea"
+                    value={videoAdjText}
+                    onChange={e => setVideoAdjText(e.target.value)}
+                    placeholder={labels.videoAdjustmentsPlaceholder}
+                    className="w-full text-[10px] text-[#ccc] bg-[#0A0A0A] border border-[#222] rounded-lg p-2 resize-none placeholder-[#444] focus:border-[#C9A84C]/30 focus:outline-none"
+                    rows={2}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      data-testid="regenerate-video-btn"
+                      onClick={regenerateVideo}
+                      disabled={regenLoading}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[9px] text-[#C9A84C] font-semibold hover:bg-[#C9A84C]/20 transition disabled:opacity-50"
+                    >
+                      {regenLoading ? <RefreshCw size={10} className="animate-spin" /> : <Film size={10} />}
+                      {regenLoading ? labels.regenerating : labels.regenerateVideo}
+                    </button>
+                    {(!stats.video_variants || Object.keys(stats.video_variants).length === 0) && (
+                      <button
+                        data-testid="regen-variants-btn"
+                        onClick={async () => {
+                          setRegenVariantsLoading(true);
+                          try {
+                            await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/regenerate-video-variants`);
+                            toast.success(labels.regenVariants + ' OK!');
+                            refreshCampaign();
+                          } catch (e) {
+                            toast.error(e.response?.data?.detail || labels.error);
+                          } finally {
+                            setRegenVariantsLoading(false);
+                          }
+                        }}
+                        disabled={regenVariantsLoading}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#111] border border-[#222] text-[9px] text-[#888] font-semibold hover:text-white hover:border-[#444] transition disabled:opacity-50"
+                      >
+                        {regenVariantsLoading ? <RefreshCw size={10} className="animate-spin" /> : <Target size={10} />}
+                        {labels.regenVariants}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Text Area - Editable */}
               <div data-testid="share-text-area">
                 <div className="flex items-center justify-between mb-1.5">
@@ -920,7 +976,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         toast.success(labels.copied);
                       });
                     }} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
-                      <Copy size={8} /> Copiar
+                      <Copy size={8} /> {labels.copy}
                     </button>
                   </div>
                 </div>
@@ -966,7 +1022,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               <div data-testid="share-bar" className="rounded-xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-2.5 -mt-1">
                 <div className="flex items-center gap-2 mb-2">
                   <Send size={10} className="text-[#C9A84C]" />
-                  <p className="text-[9px] font-bold text-white">Compartilhar</p>
+                  <p className="text-[9px] font-bold text-white">{labels.shareLabel}</p>
                   <span className="text-[7px] text-[#555] ml-auto">
                     {shareIsVideo ? 'Video' : `Design ${shareImgIdx + 1}`}
                   </span>

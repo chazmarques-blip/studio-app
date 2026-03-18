@@ -41,6 +41,9 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] **Fix: Image regeneration language enforcement** — Strengthened language instructions in all image generation/regeneration prompts. Language instruction now appears as FIRST/DOMINANT rule in the prompt, preventing AI from defaulting to English when campaign is in Spanish/Portuguese/etc. Fixed in: `/regenerate-single-image`, `/{pipeline_id}/regenerate-image`, and `_generate_design_images`.
 - [x] **Fix: i18n for FinalPreview** — Replaced all hardcoded Portuguese labels ("IMAGEM:", "GERAR NOVA IMAGEM COM ESTILO", "Minimalista", "Vibrante", etc.) with i18n translation keys. Now correctly displays in EN/PT/ES based on user's platform language setting.
 - [x] **Layout Redesign: Campaign Detail Modal** — Eliminated the 3-tab layout (Overview/Content/Results). Overview KPIs are now a compact inline strip in the header. Content and Results are displayed side-by-side in a split-panel layout. Schedule and Message Flow moved to the Results panel. Modal widened to max-w-5xl for the two-column view.
+- [x] **Fix: Video format per channel** — Videos now display correctly per channel format (WhatsApp 1:1, Instagram 1:1, Facebook 16:9, TikTok 9:16) using `object-contain` instead of `object-cover` (which was cropping). Backend `regenerate-video` endpoint now also creates per-platform video variants.
+- [x] **P0: Video Adjustments UI** — Added "VIDEO ADJUSTMENTS" section with textarea for user feedback and "Regenerate Video" button. Also added "Update Formats" button for campaigns missing video_variants.
+- [x] **Fix: i18n for all Campaign Detail labels** — Replaced all remaining hardcoded PT labels (Imagem, Video, Curtir, Comentar, Compartilhar, Selecionar Midia, Copiar) with i18n labels in EN/PT/ES.
 
 ## Backlog (Priority Order)
 ### P1 - Technical Debt

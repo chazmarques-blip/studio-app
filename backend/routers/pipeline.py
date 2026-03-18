@@ -4248,16 +4248,16 @@ async def regenerate_video_variants(pipeline_id: str, user=Depends(get_current_u
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }).eq("id", pipeline_id).execute()
             # Also update campaign stats
-            campaign_id = p.get("campaign_id")
-            if campaign_id:
-                try:
-                    campaign = supabase.table("campaigns").select("stats").eq("id", campaign_id).execute().data
-                    if campaign:
-                        stats = campaign[0].get("stats", {})
-                        stats["video_variants"] = variants
-                        supabase.table("campaigns").update({"stats": stats}).eq("id", campaign_id).execute()
-                except Exception as ce:
-                    logger.warning(f"Failed to update campaign video_variants: {ce}")
+            campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+            for c in campaigns:
+                m = c.get("metrics") or {}
+                s = m.get("stats") or {}
+                if s.get("pipeline_id") == pipeline_id:
+                    s["video_variants"] = variants
+                    m["stats"] = s
+                    supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+                    logger.info(f"Updated campaign {c['id']} with {len(variants)} video variants")
+                    break
             return {"status": "success", "variants": variants, "count": len(variants)}
         return {"status": "no_variants_generated"}
     except Exception as e:
@@ -4677,15 +4677,27 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
 
             # Auto-update associated campaign
             if video_url:
+                # Create video variants for each platform
+                video_variants = {}
+                try:
+                    platforms = pipeline.get("platforms", [])
+                    video_variants = await _create_video_variants(pipeline_id, video_url, video_format, platforms)
+                    steps["marcos_video"]["video_variants"] = video_variants
+                    supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+                    logger.info(f"Regenerated video variants for {len(video_variants)} platforms")
+                except Exception as vv_err:
+                    logger.warning(f"Failed to create video variants during regen: {vv_err}")
+
                 campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
                 for c in campaigns:
                     m = c.get("metrics") or {}
                     s = m.get("stats") or {}
                     if s.get("pipeline_id") == pipeline_id:
                         s["video_url"] = video_url
+                        s["video_variants"] = video_variants
                         m["stats"] = s
                         supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                        logger.info(f"Auto-updated campaign {c['id']} with video {video_url}")
+                        logger.info(f"Auto-updated campaign {c['id']} with video + {len(video_variants)} variants")
                         break
         except Exception as e:
             logger.error(f"Video regeneration failed: {e}")
