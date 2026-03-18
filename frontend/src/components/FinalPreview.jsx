@@ -238,6 +238,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
         campaign_copy: displayCopy || '',
         product_description: brandName || campaignName || '',
         language: campaignLang || i18n?.language || 'pt',
+        pipeline_id: pipeline?.id || '',
       });
       if (data.image_url) {
         setCustomImages(prev => [...prev, { url: data.image_url, name: `${style}-${Date.now()}` }]);

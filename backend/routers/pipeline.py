@@ -4609,11 +4609,12 @@ class RegenerateStyleRequest(BaseModel):
     campaign_copy: str = ""
     product_description: str = ""
     language: str = "pt"
+    pipeline_id: str = ""  # If provided, save image to this pipeline's gallery
 
 @router.post("/regenerate-single-image")
 async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get_current_user)):
     """Generate a single image with a specific visual style, without needing a full pipeline"""
-    await _get_tenant(user)
+    tenant = await _get_tenant(user)
 
     STYLE_PROMPTS = {
         "minimalist": "Ultra minimalist composition. Single powerful focal element against vast negative space. Muted, desaturated palette with one accent color. Zen-like simplicity. Think Apple product photography.",
@@ -4659,6 +4660,35 @@ This is NON-NEGOTIABLE. Any text not in {lang_name} makes the image UNUSABLE.
     url = await _generate_image(prompt, pid, 1)
     if not url:
         raise HTTPException(status_code=500, detail="Image generation failed after retries")
+
+    # Save image to pipeline gallery if pipeline_id provided
+    if body.pipeline_id:
+        try:
+            p = supabase.table("pipelines").select("steps, tenant_id").eq("id", body.pipeline_id).eq("tenant_id", tenant["id"]).execute()
+            if p.data:
+                steps = p.data[0].get("steps", {})
+                lucas_step = steps.get("lucas_design", {})
+                existing_images = lucas_step.get("images", [])
+                existing_images.append(url)
+                lucas_step["images"] = existing_images
+                steps["lucas_design"] = lucas_step
+                supabase.table("pipelines").update({"steps": steps}).eq("id", body.pipeline_id).execute()
+                logger.info(f"Saved new style image to pipeline {body.pipeline_id} gallery ({len(existing_images)} total)")
+
+                # Also update linked campaign
+                campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+                for c in campaigns:
+                    m = c.get("metrics") or {}
+                    s = m.get("stats") or {}
+                    if s.get("pipeline_id") == body.pipeline_id:
+                        s["images"] = existing_images
+                        m["stats"] = s
+                        supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+                        logger.info(f"Updated campaign {c['id']} images ({len(existing_images)} total)")
+                        break
+        except Exception as e:
+            logger.warning(f"Failed to save image to pipeline gallery: {e}")
+
     return {"status": "generated", "image_url": url, "style": body.style}
 
 

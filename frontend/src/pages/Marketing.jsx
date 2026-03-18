@@ -36,6 +36,7 @@ const L = (lang) => {
       totalSent: 'Total Enviado', openings: 'Aberturas', avgCpl: 'CPL Medio', performanceByChannel: 'Performance por Canal', selectMedia: 'Selecionar Midia',
       regenVideo: 'Gerar Video', regenVideoDesc: 'Clique para gerar o video comercial desta campanha', regenerating: 'Gerando video...', videoGenStarted: 'Geracao de video iniciada!',
       videoAdjustments: 'Ajustes do Video', videoAdjustmentsPlaceholder: 'Descreva as mudancas que deseja no video (ex: mais foco no produto, mudar cena final, mais dinamico...)', regenerateVideo: 'Regenerar Video', regenVariants: 'Atualizar Formatos',
+      generateNewImage: 'Gerar Nova Imagem', styleMinimalist: 'Minimalista', styleVibrant: 'Vibrante', styleLuxury: 'Luxo', styleCorporate: 'Corporativo', stylePlayful: 'Divertido', styleBold: 'Ousado', styleOrganic: 'Organico', styleTech: 'Tech', generatingImage: 'Gerando...', imageAdded: 'Imagem adicionada a galeria!',
       cta: 'Comece Agora', learnMore: 'Saiba mais sobre',
       sponsored: 'Patrocinado', format: 'Formato', fbLike: 'Curtir', fbComment: 'Comentar', fbShare: 'Compartilhar', shareLabel: 'Compartilhar',
       editCopy: 'Editar Texto', saveCopy: 'Salvar', cancelEdit: 'Cancelar', copyUpdated: 'Texto atualizado!',
@@ -67,6 +68,7 @@ const L = (lang) => {
       totalSent: 'Total Sent', openings: 'Opens', avgCpl: 'Average CPL', performanceByChannel: 'Performance by Channel', selectMedia: 'Select Media',
       regenVideo: 'Generate Video', regenVideoDesc: 'Click to generate the commercial video for this campaign', regenerating: 'Generating video...', videoGenStarted: 'Video generation started!',
       videoAdjustments: 'Video Adjustments', videoAdjustmentsPlaceholder: 'Describe changes you want in the video (e.g., more focus on product, change final scene, more dynamic...)', regenerateVideo: 'Regenerate Video', regenVariants: 'Update Formats',
+      generateNewImage: 'Generate New Image', styleMinimalist: 'Minimalist', styleVibrant: 'Vibrant', styleLuxury: 'Luxury', styleCorporate: 'Corporate', stylePlayful: 'Playful', styleBold: 'Bold', styleOrganic: 'Organic', styleTech: 'Tech', generatingImage: 'Generating...', imageAdded: 'Image added to gallery!',
       cta: 'Start Now', learnMore: 'Learn more about',
       sponsored: 'Sponsored', format: 'Format', fbLike: 'Like', fbComment: 'Comment', fbShare: 'Share', shareLabel: 'Share',
       editCopy: 'Edit Copy', saveCopy: 'Save', cancelEdit: 'Cancel', copyUpdated: 'Copy updated!',
@@ -98,6 +100,7 @@ const L = (lang) => {
       totalSent: 'Total Enviado', openings: 'Aperturas', avgCpl: 'CPL Promedio', performanceByChannel: 'Performance por Canal', selectMedia: 'Seleccionar Medios',
       regenVideo: 'Generar Video', regenVideoDesc: 'Haga clic para generar el video comercial de esta campana', regenerating: 'Generando video...', videoGenStarted: 'Generacion de video iniciada!',
       videoAdjustments: 'Ajustes del Video', videoAdjustmentsPlaceholder: 'Describa los cambios que desea en el video (ej: mas enfoque en el producto, cambiar escena final, mas dinamico...)', regenerateVideo: 'Regenerar Video', regenVariants: 'Actualizar Formatos',
+      generateNewImage: 'Generar Nueva Imagen', styleMinimalist: 'Minimalista', styleVibrant: 'Vibrante', styleLuxury: 'Lujo', styleCorporate: 'Corporativo', stylePlayful: 'Divertido', styleBold: 'Audaz', styleOrganic: 'Organico', styleTech: 'Tech', generatingImage: 'Generando...', imageAdded: 'Imagen agregada a la galeria!',
       cta: 'Empieza Ahora', learnMore: 'Mas informacion sobre',
       sponsored: 'Patrocinado', format: 'Formato', fbLike: 'Me gusta', fbComment: 'Comentar', fbShare: 'Compartir', shareLabel: 'Compartir',
       editCopy: 'Editar Texto', saveCopy: 'Guardar', cancelEdit: 'Cancelar', copyUpdated: 'Texto actualizado!',
@@ -425,6 +428,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [shareIsVideo, setShareIsVideo] = useState(false);
   const [videoAdjText, setVideoAdjText] = useState('');
   const [regenVariantsLoading, setRegenVariantsLoading] = useState(false);
+  const [styleRegenLoading, setStyleRegenLoading] = useState(false);
+  const [showStylePicker, setShowStylePicker] = useState(false);
 
   const cloneCampaign = async (targetLang) => {
     if (!pipelineId) return;
@@ -966,6 +971,66 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       </button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Generate New Image with Style */}
+              {pipelineId && (
+                <div data-testid="image-style-gen" className="rounded-xl bg-[#111] border border-[#1A1A1A] p-3 space-y-2">
+                  <button
+                    data-testid="toggle-style-picker"
+                    onClick={() => setShowStylePicker(!showStylePicker)}
+                    className="flex items-center gap-1.5 w-full"
+                  >
+                    <Sparkles size={10} className="text-[#C9A84C]" />
+                    <p className="text-[9px] font-bold text-white uppercase tracking-wider flex-1 text-left">{labels.generateNewImage}</p>
+                    <ChevronLeft size={10} className={`text-[#555] transition-transform ${showStylePicker ? '-rotate-90' : ''}`} />
+                  </button>
+                  {showStylePicker && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {[
+                        { key: 'minimalist', label: labels.styleMinimalist },
+                        { key: 'vibrant', label: labels.styleVibrant },
+                        { key: 'luxury', label: labels.styleLuxury },
+                        { key: 'corporate', label: labels.styleCorporate },
+                        { key: 'playful', label: labels.stylePlayful },
+                        { key: 'bold', label: labels.styleBold },
+                        { key: 'organic', label: labels.styleOrganic },
+                        { key: 'tech', label: labels.styleTech },
+                      ].map(s => (
+                        <button
+                          key={s.key}
+                          data-testid={`style-${s.key}`}
+                          disabled={styleRegenLoading}
+                          onClick={async () => {
+                            setStyleRegenLoading(true);
+                            try {
+                              const fullCopy = stats.full_copy || messages.map(m => m.content).join('\n\n');
+                              const { data } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/regenerate-single-image`, {
+                                style: s.key,
+                                campaign_name: campaign.name || '',
+                                campaign_copy: fullCopy.slice(0, 300),
+                                product_description: campaign.name || '',
+                                language: campaign.language || 'en',
+                                pipeline_id: pipelineId,
+                              });
+                              if (data.image_url) {
+                                toast.success(labels.imageAdded);
+                                refreshCampaign();
+                              }
+                            } catch (e) {
+                              toast.error(e.response?.data?.detail || labels.error);
+                            } finally {
+                              setStyleRegenLoading(false);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg border border-[#222] bg-[#0A0A0A] text-[9px] text-[#999] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition disabled:opacity-50"
+                        >
+                          {styleRegenLoading ? labels.generatingImage : s.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
