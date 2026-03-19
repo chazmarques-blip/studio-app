@@ -1528,12 +1528,12 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
   );
 }
 
-/* ── Global Art Gallery ── */
+/* ── Global Art Gallery (Fixed Player + Scrollable Grid) ── */
 function GlobalArtGallery({ campaigns, labels }) {
   const [typeFilter, setTypeFilter] = useState('all');
   const [campaignFilter, setCampaignFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
-  const [expandedKey, setExpandedKey] = useState(null);
+  const [selectedAsset, setSelectedAsset] = useState(null);
   const [previewChannel, setPreviewChannel] = useState('original');
 
   const CHANNEL_MOCKUPS = [
@@ -1579,10 +1579,59 @@ function GlobalArtGallery({ campaigns, labels }) {
   const imgCount = allAssets.filter(a => a.type === 'image').length;
   const vidCount = allAssets.filter(a => a.type === 'video').length;
 
+  /* Device mockup renderer */
+  const renderDeviceMockup = (asset, ch) => {
+    if (!ch) return null;
+    const isVertical = ch.aspect === '9/16';
+    const isFeed = ch.aspect === '4/5';
+    const isWide = ch.aspect === '16/9';
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <div className={`relative bg-[#111] border-[3px] border-[#333] overflow-hidden ${
+          isVertical ? 'w-[160px] rounded-[22px]' : isFeed ? 'w-[220px] rounded-[18px]' : 'w-[360px] rounded-xl'}`}
+          style={{ aspectRatio: ch.aspect || '1/1' }}>
+          {(isVertical || isFeed) && (
+            <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-3 py-1 bg-gradient-to-b from-black/60 to-transparent">
+              <span className="text-[6px] text-white/70">9:41</span>
+              <div className="w-12 h-3 bg-black rounded-full" />
+              <div className="flex gap-0.5"><div className="w-2.5 h-1.5 bg-white/60 rounded-sm" /><div className="w-2.5 h-1.5 bg-white/60 rounded-sm" /></div>
+            </div>
+          )}
+          {asset.type === 'image' ? (
+            <img src={resolveImageUrl(asset.url)} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" autoPlay loop playsInline controls />
+          )}
+          {(isVertical || isFeed) && (
+            <div className="absolute bottom-0 inset-x-0 z-10 p-2 bg-gradient-to-t from-black/70 to-transparent">
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-5 rounded-full bg-[#C9A84C]/30" />
+                <span className="text-[7px] text-white font-semibold">{asset.campaign}</span>
+              </div>
+              {ch.id === 'tiktok' && (
+                <div className="absolute right-2 bottom-8 flex flex-col items-center gap-2">
+                  <Heart size={12} className="text-white" /><MessageCircle size={12} className="text-white" /><Share2 size={12} className="text-white" />
+                </div>
+              )}
+            </div>
+          )}
+          {isWide && (
+            <div className="absolute bottom-0 inset-x-0 z-10 px-3 py-1.5 bg-gradient-to-t from-black/60 to-transparent flex items-center gap-2">
+              <Play size={10} className="text-white" />
+              <div className="flex-1 h-0.5 bg-white/20 rounded"><div className="h-full w-1/3 bg-[#C9A84C] rounded" /></div>
+              <span className="text-[7px] text-white/60">0:15</span>
+            </div>
+          )}
+        </div>
+        <p className="text-[8px] text-[#555]">{ch.label} {ch.aspect ? `· ${ch.aspect.replace('/', ':')}` : ''}</p>
+      </div>
+    );
+  };
+
   return (
     <div data-testid="global-art-gallery" className="flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
-      {/* Fixed header/filters */}
-      <div className="shrink-0 pb-2.5 space-y-2">
+      {/* ── Fixed Filter Bar ── */}
+      <div className="shrink-0 pb-2 space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex gap-1">
             {[
@@ -1619,152 +1668,112 @@ function GlobalArtGallery({ campaigns, labels }) {
         </div>
       </div>
 
-      {/* Scrollable grid with visible scrollbar */}
+      {/* ── Fixed Player Area ── */}
+      {selectedAsset ? (
+        <div data-testid="gallery-player" className="shrink-0 mb-2.5 rounded-xl border border-[#C9A84C]/20 bg-[#0A0A0A] overflow-hidden">
+          {/* Channel tabs + asset info */}
+          <div className="flex items-center gap-1 px-3 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex items-center gap-1.5 mr-2 shrink-0">
+              {selectedAsset.type === 'video' ? <Film size={10} className="text-[#C9A84C]" /> : <Image size={10} className="text-[#C9A84C]" />}
+              <span className="text-[9px] text-white font-medium truncate max-w-[140px]">{selectedAsset.campaign}</span>
+            </div>
+            <div className="w-px h-3.5 bg-[#222] shrink-0" />
+            {CHANNEL_MOCKUPS.map(ch => {
+              const Icon = ch.icon;
+              return (
+                <button key={ch.id} data-testid={`preview-ch-${ch.id}`} onClick={() => setPreviewChannel(ch.id)}
+                  className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition ${
+                    previewChannel === ch.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] border border-transparent hover:text-white'}`}>
+                  <Icon size={9} /> {ch.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Player area */}
+          <div className="flex items-center justify-center py-3 px-4 bg-[#080808]" style={{ minHeight: '220px', maxHeight: '360px' }}>
+            {previewChannel === 'original' ? (
+              <div className="w-full max-w-2xl">
+                {selectedAsset.type === 'image' ? (
+                  <img src={resolveImageUrl(selectedAsset.url)} alt="" className="w-full rounded-lg" style={{ maxHeight: '320px', objectFit: 'contain' }} />
+                ) : (
+                  <video key={selectedAsset.key} src={resolveImageUrl(selectedAsset.url)} controls autoPlay
+                    className="w-full rounded-lg" style={{ maxHeight: '320px' }} data-testid="gallery-player-video" />
+                )}
+              </div>
+            ) : (
+              renderDeviceMockup(selectedAsset, CHANNEL_MOCKUPS.find(c => c.id === previewChannel))
+            )}
+          </div>
+
+          {/* Action bar */}
+          <div className="flex items-center justify-between px-3 py-1.5 bg-[#0D0D0D] border-t border-[#1A1A1A]">
+            <span className="text-[8px] text-[#444]">
+              {previewChannel !== 'original' ? CHANNEL_MOCKUPS.find(c => c.id === previewChannel)?.label : 'Original'}
+              {previewChannel !== 'original' && ` · ${CHANNEL_MOCKUPS.find(c => c.id === previewChannel)?.aspect?.replace('/', ':') || ''}`}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <a href={resolveImageUrl(selectedAsset.url)} target="_blank" rel="noopener noreferrer" data-testid="gallery-download"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                <Download size={9} /> {labels.download || 'Download'}
+              </a>
+              <button data-testid="gallery-share" onClick={() => { navigator.clipboard.writeText(resolveImageUrl(selectedAsset.url)); toast.success('Link copiado!'); }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                <Share2 size={9} /> {labels.share || 'Compartilhar'}
+              </button>
+              <button data-testid="gallery-use-in-campaign" onClick={() => toast.success(labels.assetCopied || 'Asset pronto para usar!')}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+                <Plus size={9} /> {labels.useCampaign || 'Usar'}
+              </button>
+              <button data-testid="gallery-close-player" onClick={() => { setSelectedAsset(null); setPreviewChannel('original'); }}
+                className="flex items-center px-1.5 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#888] hover:text-white transition">
+                <X size={10} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Placeholder when no asset selected */
+        <div className="shrink-0 mb-2.5 rounded-xl border border-dashed border-[#1A1A1A] bg-[#080808] py-5 text-center">
+          <Play size={18} className="mx-auto mb-1 text-[#222]" />
+          <p className="text-[9px] text-[#333]">{labels.gallerySelectHint || 'Selecione um asset para visualizar'}</p>
+        </div>
+      )}
+
+      {/* ── Scrollable Thumbnail Grid ── */}
       <div className="flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#333 #0A0A0A' }}>
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
             {filtered.map((asset, i) => {
-              const isExpanded = expandedKey === asset.key;
+              const isSelected = selectedAsset?.key === asset.key;
               return (
-                <div key={asset.key} data-testid={`gallery-asset-${i}`}
-                  className={`transition-all duration-300 ${isExpanded ? 'col-span-2 sm:col-span-3 md:col-span-4' : ''}`}>
-                  {!isExpanded ? (
-                    /* Thumbnail card */
-                    <button onClick={() => setExpandedKey(asset.key)}
-                      className="w-full rounded-xl overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-[#C9A84C]/30 transition bg-[#0A0A0A]">
-                      {asset.type === 'image' ? (
-                        <img src={resolveImageUrl(asset.url)} alt="" className="w-full aspect-square object-cover" />
-                      ) : (
-                        <div className="w-full aspect-square bg-[#111] relative">
-                          <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" muted preload="metadata" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="h-10 w-10 rounded-full bg-black/60 flex items-center justify-center"><Play size={16} className="text-[#C9A84C] ml-0.5" /></div>
-                          </div>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                        <Maximize2 size={18} className="text-white" />
-                      </div>
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
-                        <div className="flex items-center gap-1">
-                          {asset.type === 'video' ? <Film size={8} className="text-[#C9A84C]" /> : <Image size={8} className="text-[#C9A84C]" />}
-                          <span className="text-[8px] text-white/80 truncate">{asset.campaign}</span>
-                        </div>
-                      </div>
-                    </button>
+                <button key={asset.key} data-testid={`gallery-asset-${i}`}
+                  onClick={() => { setSelectedAsset(asset); setPreviewChannel('original'); }}
+                  className={`rounded-xl overflow-hidden relative group text-left transition-all ${
+                    isSelected ? 'border-2 border-[#C9A84C] ring-2 ring-[#C9A84C]/20' : 'border border-[#1E1E1E] hover:border-[#C9A84C]/30'} bg-[#0A0A0A]`}>
+                  {asset.type === 'image' ? (
+                    <img src={resolveImageUrl(asset.url)} alt="" className="w-full aspect-square object-cover" />
                   ) : (
-                    /* Expanded view with Channel Preview */
-                    <div className="rounded-xl border border-[#C9A84C]/30 bg-[#0A0A0A] overflow-hidden">
-                      {/* Channel tabs */}
-                      <div className="flex items-center gap-1 px-3 py-2 bg-[#0D0D0D] border-b border-[#1A1A1A] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-                        {CHANNEL_MOCKUPS.map(ch => {
-                          const Icon = ch.icon;
-                          return (
-                            <button key={ch.id} data-testid={`preview-ch-${ch.id}`} onClick={() => setPreviewChannel(ch.id)}
-                              className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition ${
-                                previewChannel === ch.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] border border-transparent hover:text-white'}`}>
-                              <Icon size={9} /> {ch.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Preview area */}
-                      <div className="flex items-center justify-center py-4 px-4 min-h-[200px] bg-[#080808]">
-                        {previewChannel === 'original' ? (
-                          /* Original full-width */
-                          <div className="w-full max-w-2xl">
-                            {asset.type === 'image' ? (
-                              <img src={resolveImageUrl(asset.url)} alt="" className="w-full rounded-lg" />
-                            ) : (
-                              <video src={resolveImageUrl(asset.url)} controls autoPlay className="w-full rounded-lg" />
-                            )}
-                          </div>
-                        ) : (
-                          /* Device mockup */
-                          (() => {
-                            const ch = CHANNEL_MOCKUPS.find(c => c.id === previewChannel);
-                            const isVertical = ch?.aspect === '9/16';
-                            const isFeed = ch?.aspect === '4/5';
-                            const isWide = ch?.aspect === '16/9';
-                            return (
-                              <div className="flex flex-col items-center gap-2">
-                                {/* Device frame */}
-                                <div className={`relative bg-[#111] border-[3px] border-[#333] overflow-hidden ${
-                                  isVertical ? 'w-[180px] rounded-[24px]' : isFeed ? 'w-[240px] rounded-[20px]' : 'w-[380px] rounded-xl'}`}
-                                  style={{ aspectRatio: ch?.aspect || '1/1' }}>
-                                  {/* Status bar for phone mockups */}
-                                  {(isVertical || isFeed) && (
-                                    <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-3 py-1 bg-gradient-to-b from-black/60 to-transparent">
-                                      <span className="text-[6px] text-white/70">9:41</span>
-                                      <div className="w-12 h-3 bg-black rounded-full" />
-                                      <div className="flex gap-0.5">
-                                        <div className="w-2.5 h-1.5 bg-white/60 rounded-sm" />
-                                        <div className="w-2.5 h-1.5 bg-white/60 rounded-sm" />
-                                      </div>
-                                    </div>
-                                  )}
-                                  {/* Content */}
-                                  {asset.type === 'image' ? (
-                                    <img src={resolveImageUrl(asset.url)} alt="" className="w-full h-full object-cover" />
-                                  ) : (
-                                    <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" autoPlay loop playsInline controls />
-                                  )}
-                                  {/* Platform UI overlay */}
-                                  {(isVertical || isFeed) && (
-                                    <div className="absolute bottom-0 inset-x-0 z-10 p-2 bg-gradient-to-t from-black/70 to-transparent">
-                                      <div className="flex items-center gap-1.5">
-                                        <div className="w-5 h-5 rounded-full bg-[#C9A84C]/30" />
-                                        <span className="text-[7px] text-white font-semibold">{asset.campaign}</span>
-                                      </div>
-                                      {previewChannel === 'tiktok' && (
-                                        <div className="absolute right-2 bottom-8 flex flex-col items-center gap-2">
-                                          <Heart size={12} className="text-white" />
-                                          <MessageCircle size={12} className="text-white" />
-                                          <Share2 size={12} className="text-white" />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                  {isWide && (
-                                    <div className="absolute bottom-0 inset-x-0 z-10 px-3 py-1.5 bg-gradient-to-t from-black/60 to-transparent flex items-center gap-2">
-                                      <Play size={10} className="text-white" />
-                                      <div className="flex-1 h-0.5 bg-white/20 rounded"><div className="h-full w-1/3 bg-[#C9A84C] rounded" /></div>
-                                      <span className="text-[7px] text-white/60">0:15</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <p className="text-[9px] text-[#555]">{ch?.label} · {ch?.aspect?.replace('/', ':')}</p>
-                              </div>
-                            );
-                          })()
-                        )}
-                      </div>
-
-                      {/* Action bar */}
-                      <div className="flex items-center justify-between px-3 py-2 bg-[#0D0D0D] border-t border-[#1A1A1A]">
-                        <div className="flex items-center gap-2">
-                          {asset.type === 'video' ? <Film size={10} className="text-[#C9A84C]" /> : <Image size={10} className="text-[#C9A84C]" />}
-                          <span className="text-[10px] text-[#888]">{asset.campaign}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <button data-testid="gallery-share" onClick={() => { navigator.clipboard.writeText(resolveImageUrl(asset.url)); toast.success('Link copiado!'); }}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
-                            <Share2 size={10} /> {labels.share || 'Compartilhar'}
-                          </button>
-                          <button data-testid="gallery-use-in-campaign" onClick={() => { toast.success(labels.assetCopied || 'Asset pronto para usar na campanha!'); setExpandedKey(null); }}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
-                            <Plus size={10} /> {labels.useCampaign || 'Usar em Campanha'}
-                          </button>
-                          <button data-testid="gallery-close-expanded" onClick={() => { setExpandedKey(null); setPreviewChannel('original'); }}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
-                            <X size={10} /> {labels.close || 'Fechar'}
-                          </button>
-                        </div>
+                    <div className="w-full aspect-square bg-[#111] relative">
+                      <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" muted preload="metadata" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-full bg-black/60 flex items-center justify-center"><Play size={12} className="text-[#C9A84C] ml-0.5" /></div>
                       </div>
                     </div>
                   )}
-                </div>
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition" />
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-5">
+                    <div className="flex items-center gap-1">
+                      {asset.type === 'video' ? <Film size={7} className="text-[#C9A84C]" /> : <Image size={7} className="text-[#C9A84C]" />}
+                      <span className="text-[7px] text-white/80 truncate">{asset.campaign}</span>
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5">
+                      <div className="h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center"><Check size={9} className="text-black" /></div>
+                    </div>
+                  )}
+                </button>
               );
             })}
           </div>

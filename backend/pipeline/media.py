@@ -217,8 +217,102 @@ async def _create_platform_variants(pipeline_id: str, base_image_urls: list, pla
 
 
 
+async def _ai_analyze_video_for_crops(pipeline_id: str, master_path: str, master_w: int, master_h: int, platforms: list) -> dict:
+    """AI Image Director: analyze master video keyframes and suggest optimal crop regions per platform.
+    Returns dict: { "tiktok": {"x": int, "y": int, "w": int, "h": int}, ... }
+    """
+    # Extract 3 keyframes at 25%, 50%, 75% of video duration
+    duration = _ffprobe_duration(master_path)
+    if duration <= 0:
+        duration = 10
+    timestamps = [duration * 0.25, duration * 0.5, duration * 0.75]
+    keyframes = []
+    for i, ts in enumerate(timestamps):
+        frame_path = f"/tmp/{pipeline_id}_kf_{i}.jpg"
+        cmd = [FFMPEG_PATH, "-y", "-ss", str(ts), "-i", master_path, "-vframes", "1", "-q:v", "3", frame_path]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if r.returncode == 0 and os.path.exists(frame_path):
+            with open(frame_path, "rb") as f:
+                keyframes.append(ImageContent(image_base64=base64.b64encode(f.read()).decode()))
+            os.remove(frame_path)
+    if not keyframes:
+        logger.warning("AI Director: no keyframes extracted")
+        return {}
+
+    # Build platform info for the prompt
+    platform_lines = []
+    for p in platforms:
+        fmt = VIDEO_PLATFORM_FORMATS.get(p)
+        if fmt:
+            platform_lines.append(f"- {p}: target {fmt['w']}x{fmt['h']} (aspect {fmt['w']/fmt['h']:.3f})")
+
+    prompt = f"""You are an expert video editor and visual composition director.
+
+Analyze these {len(keyframes)} keyframes from a marketing video.
+Master video: {master_w}x{master_h} pixels.
+
+For each target platform, determine the OPTIMAL CROP REGION from the master frame that:
+1. Keeps the main subject (person/product/text) centered and fully visible
+2. Maintains the target aspect ratio EXACTLY
+3. Maximizes the usable area (largest possible crop)
+4. Avoids cutting faces, important text, or key product details
+
+Target platforms:
+{chr(10).join(platform_lines)}
+
+RESPOND in this EXACT format for each platform (one per line, no extra text):
+PLATFORM:[name] CROP:[x],[y],[width],[height]
+
+Rules:
+- x + width <= {master_w}, y + height <= {master_h}
+- width/height must equal the target aspect ratio
+- If master aspect matches target, use: CROP:0,0,{master_w},{master_h}
+- Prefer center-weighted crops when subjects are centered
+- For vertical crops from horizontal video, focus on the center third"""
+
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"ai-director-{pipeline_id}-{int(time.time())}",
+            system_message="You are a professional video editor specializing in social media content optimization."
+        ).with_model("gemini", "gemini-2.0-flash")
+
+        msg = UserMessage(text=prompt, file_contents=keyframes)
+        response = await asyncio.wait_for(chat.send_message(msg), timeout=30)
+
+        # Parse response into crop parameters
+        crops = {}
+        for line in response.split('\n'):
+            line = line.strip()
+            if not line.startswith('PLATFORM:'):
+                continue
+            try:
+                parts = line.split('CROP:')
+                if len(parts) != 2:
+                    continue
+                plat = parts[0].replace('PLATFORM:', '').strip().lower().rstrip(':').strip()
+                coords = parts[1].strip().split(',')
+                x, y, w, h = [int(c.strip()) for c in coords[:4]]
+                # Validate: must fit inside master and have reasonable size
+                x = max(0, min(x, master_w - 50))
+                y = max(0, min(y, master_h - 50))
+                w = min(w, master_w - x)
+                h = min(h, master_h - y)
+                if w >= 100 and h >= 100:
+                    crops[plat] = {"x": x, "y": y, "w": w, "h": h}
+            except (ValueError, IndexError):
+                continue
+
+        logger.info(f"AI Director: analyzed {len(keyframes)} frames -> crops for {list(crops.keys())}")
+        return crops
+
+    except Exception as e:
+        logger.warning(f"AI Director analysis failed (will use generic): {e}")
+        return {}
+
+
 async def _create_video_variants(pipeline_id: str, master_video_url: str, master_format: str, platforms: list) -> dict:
-    """Create platform-specific video variants by cropping/resizing the master video.
+    """Create platform-specific video variants using AI-directed crops when available.
     Returns dict: { "tiktok": "url", "instagram": "url", "instagram_reels": "url", ... }
     """
     import urllib.request as urlreq
@@ -235,7 +329,6 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
             expanded.extend(SUB_FORMATS[p])
         else:
             expanded.append(p)
-    # Deduplicate while preserving order
     seen = set()
     expanded_unique = []
     for p in expanded:
@@ -257,9 +350,17 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
         logger.warning("Could not determine master video dimensions")
         return {}
 
+    # ── AI Image Director: get smart crop suggestions ──
+    ai_crops = {}
+    try:
+        ai_crops = await _ai_analyze_video_for_crops(pipeline_id, master_path, master_w, master_h, expanded_unique)
+        if ai_crops:
+            logger.info(f"AI Director provided smart crops for: {list(ai_crops.keys())}")
+    except Exception as e:
+        logger.warning(f"AI Director skipped, using generic: {e}")
+
     variants = {}
-    # Group by unique target size to avoid duplicate processing
-    done_sizes = {}  # "WxH" -> url
+    done_sizes = {}  # "WxH" -> url (only for generic resizes, AI crops are unique)
 
     for platform in expanded_unique:
         fmt = VIDEO_PLATFORM_FORMATS.get(platform)
@@ -275,21 +376,27 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
             variants[platform] = master_video_url
             continue
 
-        # Reuse if already generated this size
-        if size_key in done_sizes:
+        # Check if AI Director provided a crop for this platform
+        ai_crop = ai_crops.get(platform)
+
+        # If no AI crop and we already have this size from generic resize, reuse
+        if not ai_crop and size_key in done_sizes:
             variants[platform] = done_sizes[size_key]
             continue
 
-        # Create variant via FFmpeg crop + scale
+        # Build FFmpeg video filter
         output_path = f"/tmp/{pipeline_id}_vid_{platform}.mp4"
         target_ratio = tw / th
         master_ratio = master_w / master_h
 
-        if abs(master_ratio - target_ratio) < 0.05:
-            # Same ratio, just scale
+        if ai_crop:
+            # AI-directed: smart crop then scale to target
+            cx, cy, cw, ch = ai_crop["x"], ai_crop["y"], ai_crop["w"], ai_crop["h"]
+            vf = f"crop={cw}:{ch}:{cx}:{cy},scale={tw}:{th}"
+            logger.info(f"AI Director crop for {platform}: {cx},{cy},{cw}x{ch} -> {tw}x{th}")
+        elif abs(master_ratio - target_ratio) < 0.05:
             vf = f"scale={tw}:{th}"
         else:
-            # Scale to fit inside target + pad with black (NO cropping)
             vf = f"scale={tw}:{th}:force_original_aspect_ratio=decrease,pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:black"
 
         cmd = [
@@ -304,11 +411,13 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
         if r.returncode == 0 and os.path.exists(output_path):
             with open(output_path, "rb") as f:
                 video_bytes = f.read()
-            filename = f"videos/{pipeline_id}_{platform}_{size_key}.mp4"
+            suffix = "ai" if ai_crop else "gen"
+            filename = f"videos/{pipeline_id}_{platform}_{size_key}_{suffix}.mp4"
             url = _upload_to_storage(video_bytes, filename, "video/mp4")
             variants[platform] = url
-            done_sizes[size_key] = url
-            logger.info(f"Created video variant: {platform} ({size_key})")
+            if not ai_crop:
+                done_sizes[size_key] = url
+            logger.info(f"Video variant: {platform} ({size_key}) [{'AI-directed' if ai_crop else 'generic'}]")
             os.remove(output_path)
         else:
             variants[platform] = master_video_url
