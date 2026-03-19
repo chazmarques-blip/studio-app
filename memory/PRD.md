@@ -86,6 +86,21 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] Per-campaign gallery button (Image icon) on campaign cards
 - [x] i18n labels for PT, EN, ES
 
+### Art Gallery Channel Preview (March 19, 2026)
+- [x] Device mockups for 8 channels: Original, IG Feed, IG Reels, TikTok, Facebook, YouTube, WhatsApp, Stories
+- [x] Phone frame (9:16) with status bar, notch, social UI overlays
+- [x] Widescreen frame (16:9) with video player bar
+- [x] Feed frame (4:5) with profile badge
+
+### Avatar Creator Enhancement (March 19, 2026)
+- [x] 3 creation modes: Photo (existing), By Prompt (AI text-to-avatar), 3D Animated (Cartoon/Pixar)
+- [x] Backend endpoint: POST /generate-avatar-from-prompt using Gemini 3 Pro Image Preview
+- [x] Supports styles: realistic, 3d_cartoon, 3d_pixar
+- [x] Generated avatars uploaded to Supabase storage + optional logo branding
+- [x] All avatar types work as video presenters (Fase 3 via existing presenter mode)
+- [x] Avatar cards show creation mode badge (AI / 3D)
+- [x] Tested: 11/12 backend, 13/13 frontend (iteration_71)
+
 ### Video Format & Branding Update (March 19, 2026)
 - [x] Updated VIDEO_PLATFORM_FORMATS with industry-standard dimensions:
   - TikTok: 1080x1920 (9:16), Instagram Feed: 1080x1350 (4:5), Instagram Reels: 1080x1920 (9:16)
