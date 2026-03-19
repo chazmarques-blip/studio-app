@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw, Target } from 'lucide-react';
+import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw, Target, GalleryHorizontalEnd, Filter } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -43,7 +43,8 @@ const L = (lang) => {
       editCopy: 'Editar Texto', saveCopy: 'Salvar', cancelEdit: 'Cancelar', copyUpdated: 'Texto atualizado!',
       regenImage: 'Regenerar Imagem', regenImageFeedback: 'Descreva o ajuste desejado...', regenImageStarted: 'Regenerando imagem...',
       cloneLanguage: 'Clonar em outro idioma', cloneStarted: 'Campanha clonada! Gerando em', selectLanguage: 'Selecione o idioma',
-      editing: 'Editando', artGallery: 'Galeria de Artes', allArts: 'Todas as Artes',
+      editing: 'Editando', artGallery: 'Art Gallery', allArts: 'Todas as Artes',
+      galleryAll: 'Tudo', galleryImages: 'Imagens', galleryVideos: 'Videos', galleryFilterCampaign: 'Campanha', galleryNoAssets: 'Nenhuma arte encontrada', galleryFromCampaign: 'de',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -77,6 +78,7 @@ const L = (lang) => {
       regenImage: 'Regenerate Image', regenImageFeedback: 'Describe the adjustment...', regenImageStarted: 'Regenerating image...',
       cloneLanguage: 'Clone to another language', cloneStarted: 'Campaign cloned! Generating in', selectLanguage: 'Select language',
       editing: 'Editing', artGallery: 'Art Gallery', allArts: 'All Creatives',
+      galleryAll: 'All', galleryImages: 'Images', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaign', galleryNoAssets: 'No assets found', galleryFromCampaign: 'from',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -109,7 +111,8 @@ const L = (lang) => {
       editCopy: 'Editar Texto', saveCopy: 'Guardar', cancelEdit: 'Cancelar', copyUpdated: 'Texto actualizado!',
       regenImage: 'Regenerar Imagen', regenImageFeedback: 'Describe el ajuste...', regenImageStarted: 'Regenerando imagen...',
       cloneLanguage: 'Clonar en otro idioma', cloneStarted: 'Campana clonada! Generando en', selectLanguage: 'Seleccione idioma',
-      editing: 'Editando', artGallery: 'Galeria de Artes', allArts: 'Todas las Artes',
+      editing: 'Editando', artGallery: 'Galería de Artes', allArts: 'Todas las Artes',
+      galleryAll: 'Todo', galleryImages: 'Imágenes', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaña', galleryNoAssets: 'Ningún arte encontrado', galleryFromCampaign: 'de',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -1523,6 +1526,157 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
   );
 }
 
+/* ── Global Art Gallery ── */
+function GlobalArtGallery({ campaigns, labels }) {
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'image' | 'video'
+  const [campaignFilter, setCampaignFilter] = useState('all');
+  const [lightboxAsset, setLightboxAsset] = useState(null);
+
+  // Collect all assets from all campaigns
+  const allAssets = campaigns.flatMap(c => {
+    const stats = c.stats || {};
+    const imgs = (stats.images || []).map((url, i) => ({
+      type: 'image', url, campaign: c.name, campaignId: c.id, date: c.created_at, idx: i,
+    }));
+    const vids = [];
+    if (stats.video_url) {
+      vids.push({ type: 'video', url: stats.video_url, campaign: c.name, campaignId: c.id, date: c.created_at, idx: 0 });
+    }
+    const videoVariants = stats.video_variants || {};
+    Object.values(videoVariants).forEach((vUrl, i) => {
+      if (vUrl && vUrl !== stats.video_url) {
+        vids.push({ type: 'video', url: vUrl, campaign: c.name, campaignId: c.id, date: c.created_at, idx: i + 1 });
+      }
+    });
+    return [...imgs, ...vids];
+  });
+
+  // Unique campaign names for filter
+  const campaignNames = [...new Set(allAssets.map(a => a.campaign))];
+
+  // Apply filters
+  const filtered = allAssets.filter(a => {
+    if (typeFilter !== 'all' && a.type !== typeFilter) return false;
+    if (campaignFilter !== 'all' && a.campaignId !== campaignFilter) return false;
+    return true;
+  });
+
+  const imgCount = allAssets.filter(a => a.type === 'image').length;
+  const vidCount = allAssets.filter(a => a.type === 'video').length;
+
+  return (
+    <div data-testid="global-art-gallery" className="space-y-3">
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex gap-1">
+          {[
+            { key: 'all', label: `${labels.galleryAll} (${allAssets.length})` },
+            { key: 'image', label: `${labels.galleryImages} (${imgCount})` },
+            { key: 'video', label: `${labels.galleryVideos} (${vidCount})` },
+          ].map(f => (
+            <button key={f.key} data-testid={`gallery-type-${f.key}`} onClick={() => setTypeFilter(f.key)}
+              className={`px-2 py-1 rounded-lg text-[9px] font-medium transition flex items-center gap-1 ${
+                typeFilter === f.key ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] border border-[#1A1A1A] hover:text-white'}`}>
+              {f.key === 'image' && <Image size={9} />}
+              {f.key === 'video' && <Film size={9} />}
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="w-px h-4 bg-[#222]" />
+        <select data-testid="gallery-campaign-filter" value={campaignFilter}
+          onChange={e => setCampaignFilter(e.target.value)}
+          className="bg-[#111] border border-[#1A1A1A] rounded-lg text-[9px] text-[#888] px-2 py-1 outline-none focus:border-[#C9A84C]/30">
+          <option value="all">{labels.galleryFilterCampaign}: {labels.galleryAll}</option>
+          {campaignNames.map(name => {
+            const cId = campaigns.find(c => c.name === name)?.id;
+            return <option key={cId} value={cId}>{name}</option>;
+          })}
+        </select>
+        <span className="text-[9px] text-[#444] ml-auto">{filtered.length} assets</span>
+      </div>
+
+      {/* Grid */}
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+          {filtered.map((asset, i) => (
+            <button key={`${asset.campaignId}-${asset.type}-${asset.idx}`} data-testid={`gallery-asset-${i}`}
+              onClick={() => setLightboxAsset(asset)}
+              className="rounded-xl overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-[#C9A84C]/30 transition bg-[#0A0A0A]">
+              {asset.type === 'image' ? (
+                <img src={resolveImageUrl(asset.url)} alt="" className="w-full aspect-square object-cover" />
+              ) : (
+                <div className="w-full aspect-square bg-[#111] flex items-center justify-center relative">
+                  <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" muted preload="metadata" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-full bg-black/60 flex items-center justify-center"><Play size={16} className="text-[#C9A84C] ml-0.5" /></div>
+                  </div>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <Maximize2 size={18} className="text-white" />
+              </div>
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                <div className="flex items-center gap-1">
+                  {asset.type === 'video' ? <Film size={8} className="text-[#C9A84C]" /> : <Image size={8} className="text-[#C9A84C]" />}
+                  <span className="text-[8px] text-white/80 truncate">{asset.campaign}</span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center">
+          <GalleryHorizontalEnd size={28} className="mx-auto mb-2 text-[#222]" />
+          <p className="text-[11px] text-[#555]">{labels.galleryNoAssets}</p>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxAsset && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxAsset(null)}>
+          <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setLightboxAsset(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10">
+              <X size={14} className="text-white" />
+            </button>
+            {lightboxAsset.type === 'image' ? (
+              <img src={resolveImageUrl(lightboxAsset.url)} alt="" className="w-full rounded-xl" />
+            ) : (
+              <video src={resolveImageUrl(lightboxAsset.url)} controls autoPlay className="w-full rounded-xl" />
+            )}
+            <div className="mt-2 flex items-center gap-2 justify-center">
+              <span className="text-[10px] text-[#888]">{lightboxAsset.type === 'image' ? labels.galleryImages : labels.galleryVideos}</span>
+              <span className="text-[8px] text-[#444]">·</span>
+              <span className="text-[10px] text-[#555]">{labels.galleryFromCampaign} {lightboxAsset.campaign}</span>
+            </div>
+            {/* Nav through filtered assets */}
+            <div className="flex justify-center mt-2 gap-2">
+              <button onClick={() => {
+                const idx = filtered.findIndex(a => a === lightboxAsset);
+                if (idx > 0) setLightboxAsset(filtered[idx - 1]);
+              }} disabled={filtered.findIndex(a => a === lightboxAsset) === 0}
+                className="px-3 py-1 rounded-lg border border-[#333] text-[#888] hover:text-white disabled:opacity-30 transition">
+                <ChevronLeft size={14} />
+              </button>
+              <span className="text-[10px] text-[#555] flex items-center">
+                {filtered.findIndex(a => a === lightboxAsset) + 1} / {filtered.length}
+              </span>
+              <button onClick={() => {
+                const idx = filtered.findIndex(a => a === lightboxAsset);
+                if (idx < filtered.length - 1) setLightboxAsset(filtered[idx + 1]);
+              }} disabled={filtered.findIndex(a => a === lightboxAsset) === filtered.length - 1}
+                className="px-3 py-1 rounded-lg border border-[#333] text-[#888] hover:text-white disabled:opacity-30 transition">
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function Marketing() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
@@ -1541,6 +1695,7 @@ export default function Marketing() {
   const [previewCampaign, setPreviewCampaign] = useState(null);
   const [detailCampaign, setDetailCampaign] = useState(null);
   const [galleryCampaign, setGalleryCampaign] = useState(null);
+  const [showGallery, setShowGallery] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(null);
 
   useEffect(() => { loadData(); }, []);
@@ -1672,11 +1827,16 @@ export default function Marketing() {
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex gap-1">
             {['all', 'active', 'draft', 'paused'].map(f => (
-              <button key={f} data-testid={`filter-${f}`} onClick={() => setFilter(f)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition ${filter === f ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] hover:text-white border border-transparent'}`}>
+              <button key={f} data-testid={`filter-${f}`} onClick={() => { setFilter(f); setShowGallery(false); }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition ${!showGallery && filter === f ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] hover:text-white border border-transparent'}`}>
                 {f === 'all' ? labels.all : (labels[STATUS_META[f]?.label_key] || f)}
               </button>
             ))}
+            <div className="w-px h-4 bg-[#222] mx-0.5 self-center" />
+            <button data-testid="filter-gallery" onClick={() => setShowGallery(true)}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition flex items-center gap-1 ${showGallery ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] hover:text-white border border-transparent'}`}>
+              <GalleryHorizontalEnd size={11} /> {labels.artGallery}
+            </button>
           </div>
           <div className="flex items-center gap-1">
             <button onClick={loadTemplates} className="text-[9px] text-[#C9A84C] hover:underline mr-2">{labels.templates}</button>
@@ -1726,28 +1886,34 @@ export default function Marketing() {
           </div>
         )}
 
-        {/* Campaign List */}
-        <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-2' : 'space-y-2'}>
-          {filtered.map(c => (
-            <CampaignCard key={c.id} campaign={c} lang={lang} onAction={handleAction}
-              onPreview={setPreviewCampaign} onGallery={setGalleryCampaign} onDetail={setDetailCampaign}
-              confirmingDelete={confirmingDelete} setConfirmingDelete={setConfirmingDelete} labels={labels} />
-          ))}
-        </div>
-
-        {filtered.length === 0 && !showNew && (
-          <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center mt-2">
-            <Megaphone size={28} className="mx-auto mb-2 text-[#222]" />
-            <p className="text-[11px] text-[#666] mb-2">{labels.noCampaigns}</p>
-            <div className="flex gap-2 justify-center">
-              <button onClick={() => setShowNew(true)} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">
-                <Plus size={11} className="inline mr-1" />{labels.createCampaign}
-              </button>
-              <button onClick={seedTest} className="rounded-lg border border-[#1E1E1E] px-3 py-1.5 text-[10px] text-[#666] hover:text-white transition">
-                <Zap size={11} className="inline mr-1" />{labels.testData}
-              </button>
+        {/* Campaign List / Gallery View */}
+        {showGallery ? (
+          <GlobalArtGallery campaigns={campaigns} labels={labels} />
+        ) : (
+          <>
+            <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-2' : 'space-y-2'}>
+              {filtered.map(c => (
+                <CampaignCard key={c.id} campaign={c} lang={lang} onAction={handleAction}
+                  onPreview={setPreviewCampaign} onGallery={setGalleryCampaign} onDetail={setDetailCampaign}
+                  confirmingDelete={confirmingDelete} setConfirmingDelete={setConfirmingDelete} labels={labels} />
+              ))}
             </div>
-          </div>
+
+            {filtered.length === 0 && !showNew && (
+              <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center mt-2">
+                <Megaphone size={28} className="mx-auto mb-2 text-[#222]" />
+                <p className="text-[11px] text-[#666] mb-2">{labels.noCampaigns}</p>
+                <div className="flex gap-2 justify-center">
+                  <button onClick={() => setShowNew(true)} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">
+                    <Plus size={11} className="inline mr-1" />{labels.createCampaign}
+                  </button>
+                  <button onClick={seedTest} className="rounded-lg border border-[#1E1E1E] px-3 py-1.5 text-[10px] text-[#666] hover:text-white transition">
+                    <Zap size={11} className="inline mr-1" />{labels.testData}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

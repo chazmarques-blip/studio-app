@@ -79,9 +79,12 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 
 ### Marketing Page UI Improvements
 - [x] StatCard layout: icon + value + label aligned horizontally (reduced height)
-- [x] Art Gallery button added to campaign cards (Image icon next to Pause/Play)
-- [x] ArtGalleryModal: grid of all campaign arts with lightbox, navigation arrows, thumbnails
-- [x] i18n labels added for PT, EN, ES (artGallery, allArts)
+- [x] **Global Art Gallery**: unified view of ALL images (147) and videos (53) from all campaigns
+  - Filter by type (All/Images/Videos), by campaign (dropdown)
+  - Grid with 4 columns, lightbox with navigation arrows
+  - Accessible via "Art Gallery" button in filter bar (after All, Active, Draft, Paused)
+- [x] Per-campaign gallery button (Image icon) on campaign cards
+- [x] i18n labels for PT, EN, ES
 
 ## Known Issues
 - **Sora 2 Video Generation API** - Was down, now reported stable (needs re-verification)
