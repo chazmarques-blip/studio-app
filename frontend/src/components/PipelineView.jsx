@@ -78,6 +78,10 @@ export default function PipelineView({ context }) {
   const [logoUploading, setLogoUploading] = useState(false);
   // Avatar customization stage
   const [avatarStage, setAvatarStage] = useState('upload'); // 'upload' | 'customize'
+  const [avatarCreationMode, setAvatarCreationMode] = useState('photo'); // 'photo' | 'prompt' | '3d'
+  const [avatarPromptText, setAvatarPromptText] = useState('');
+  const [avatarPromptGender, setAvatarPromptGender] = useState('female');
+  const [avatarPromptStyle, setAvatarPromptStyle] = useState('realistic'); // 'realistic' | '3d_cartoon' | '3d_pixar'
   const [tempAvatar, setTempAvatar] = useState(null); // { url, source_photo_url, clothing, voice }
   const [editingAvatarId, setEditingAvatarId] = useState(null); // null = new, string = editing existing
   const [customizeTab, setCustomizeTab] = useState('clothing');
@@ -386,6 +390,42 @@ export default function PipelineView({ context }) {
     }
   };
 
+  const generateAvatarFromPrompt = async () => {
+    if (!avatarPromptText.trim()) { toast.error(t('studio.prompt_required') || 'Describe the avatar'); return; }
+    setGeneratingAvatar(true);
+    setAccuracyProgress({ progress: t('studio.generating_avatar') || 'Generating avatar from description...' });
+    try {
+      const style = avatarCreationMode === '3d' ? avatarPromptStyle : 'realistic';
+      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-prompt`, {
+        prompt: avatarPromptText,
+        gender: avatarPromptGender,
+        style,
+        company_name: activeCompany?.name || '',
+        logo_url: activeCompany?.logo_url || '',
+      });
+      if (data.avatar_url) {
+        setTempAvatar({
+          url: data.avatar_url,
+          source_photo_url: '',
+          clothing: 'company_uniform',
+          voice: null,
+          creation_mode: avatarCreationMode,
+        });
+        setAvatarStage('customize');
+        setAngleImages({});
+        setClothingVariants({});
+        setAccuracyProgress(null);
+        setGeneratingAvatar(false);
+        toast.success(t('studio.avatar_generated') || 'Avatar generated!');
+        startAuto360(data.avatar_url, 'company_uniform');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || t('studio.err_generic'));
+      setAccuracyProgress(null);
+      setGeneratingAvatar(false);
+    }
+  };
+
   const saveAvatarAndClose = () => {
     if (!tempAvatar) return;
     const name = avatarName.trim() || `Avatar ${avatars.length + 1}`;
@@ -433,6 +473,7 @@ export default function PipelineView({ context }) {
       angles: angleImages,
       video_url: previewVideoUrl || null,
       language: previewLanguage,
+      creation_mode: tempAvatar.creation_mode || 'photo',
     };
     const updated = [...avatars, newAv];
     saveAvatars(updated);
@@ -482,6 +523,10 @@ export default function PipelineView({ context }) {
     setAvatarExtractedAudio(null);
     setAvatarVideoFrames([]);
     setAvatarStage('upload');
+    setAvatarCreationMode('photo');
+    setAvatarPromptText('');
+    setAvatarPromptGender('female');
+    setAvatarPromptStyle('realistic');
     setTempAvatar(null);
     setEditingAvatarId(null);
     setCustomizeTab('clothing');
@@ -1158,6 +1203,11 @@ export default function PipelineView({ context }) {
                     className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                     <X size={8} className="text-white" />
                   </button>
+                  {av.creation_mode && av.creation_mode !== 'photo' && (
+                    <div className="absolute bottom-0.5 left-0.5 rounded-md bg-black/70 px-1 py-0.5">
+                      <span className="text-[6px] text-[#C9A84C] font-bold uppercase">{av.creation_mode === '3d' ? '3D' : 'AI'}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1319,14 +1369,31 @@ export default function PipelineView({ context }) {
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {avatarStage === 'upload' ? (
                   <>
-                    {/* Dual upload: Photo + Video for maximum accuracy */}
-                    <input ref={avatarInputRef} type="file" accept={avatarSourceType === 'video' ? 'video/mp4,video/quicktime,video/webm,video/*' : 'image/png,image/jpeg,image/jpg,image/webp'}
-                      style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
-                      onChange={e => {
-                        if (avatarSourceType === 'video') uploadAvatarVideo(e.target.files);
-                        else uploadAvatarPhoto(e.target.files);
-                        e.target.value = '';
-                      }} />
+                    {/* Avatar Type Tabs */}
+                    <div className="flex gap-1 mb-3">
+                      {[
+                        { id: 'photo', label: t('studio.photo_reference') || 'Photo', icon: Camera },
+                        { id: 'prompt', label: t('studio.by_prompt') || 'By Prompt', icon: PenTool },
+                        { id: '3d', label: '3D Animated', icon: Sparkles },
+                      ].map(tab => (
+                        <button key={tab.id} data-testid={`avatar-mode-${tab.id}`} onClick={() => setAvatarCreationMode(tab.id)}
+                          className={`flex-1 rounded-lg py-2 text-[9px] font-semibold transition flex items-center justify-center gap-1.5 ${
+                            avatarCreationMode === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555] hover:text-white'}`}>
+                          <tab.icon size={11} /> {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* MODE: Photo Reference (existing) */}
+                    {avatarCreationMode === 'photo' && (
+                      <>
+                        <input ref={avatarInputRef} type="file" accept={avatarSourceType === 'video' ? 'video/mp4,video/quicktime,video/webm,video/*' : 'image/png,image/jpeg,image/jpg,image/webp'}
+                          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+                          onChange={e => {
+                            if (avatarSourceType === 'video') uploadAvatarVideo(e.target.files);
+                            else uploadAvatarPhoto(e.target.files);
+                            e.target.value = '';
+                          }} />
 
                     {/* Photo Upload Section */}
                     <div className="space-y-2">
@@ -1515,6 +1582,95 @@ export default function PipelineView({ context }) {
                             )}
                           </div>
                         )}
+                      </div>
+                    )}
+                      </>
+                    )}
+
+                    {/* MODE: By Prompt */}
+                    {avatarCreationMode === 'prompt' && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <PenTool size={12} className="text-[#C9A84C]" />
+                            <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.describe_avatar') || 'Describe your avatar'}</span>
+                          </div>
+                          <textarea data-testid="avatar-prompt-input" value={avatarPromptText}
+                            onChange={e => setAvatarPromptText(e.target.value)}
+                            placeholder={t('studio.avatar_prompt_placeholder') || 'E.g.: Young professional woman, 28 years old, brown hair, confident smile, business attire'}
+                            className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 resize-none h-20" />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex-1 space-y-1">
+                            <span className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
+                            <div className="flex gap-1">
+                              {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
+                                <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
+                                  className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
+                                  {g.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <button data-testid="generate-avatar-prompt-btn" onClick={generateAvatarFromPrompt}
+                          disabled={generatingAvatar || !avatarPromptText.trim()}
+                          className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                          {generatingAvatar ? (
+                            <><Loader2 size={14} className="animate-spin" /> {accuracyProgress?.progress || t('studio.generating_avatar')}</>
+                          ) : (
+                            <><Sparkles size={14} /> {t('studio.generate_avatar_ai')}</>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* MODE: 3D Animated */}
+                    {avatarCreationMode === '3d' && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Sparkles size={12} className="text-[#C9A84C]" />
+                            <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">3D Avatar Description</span>
+                          </div>
+                          <textarea data-testid="avatar-3d-prompt-input" value={avatarPromptText}
+                            onChange={e => setAvatarPromptText(e.target.value)}
+                            placeholder={t('studio.avatar_3d_placeholder') || 'E.g.: Friendly 3D character, young man with glasses, wearing casual clothes, vibrant colors'}
+                            className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/30 resize-none h-20" />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex-1 space-y-1">
+                            <span className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
+                            <div className="flex gap-1">
+                              {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
+                                <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
+                                  className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
+                                  {g.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <span className="text-[8px] text-[#555] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
+                            <div className="flex gap-1">
+                              {[{id:'3d_cartoon', label:'Cartoon'}, {id:'3d_pixar', label:'Pixar'}].map(s => (
+                                <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
+                                  className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
+                                  {s.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <button data-testid="generate-avatar-3d-btn" onClick={generateAvatarFromPrompt}
+                          disabled={generatingAvatar || !avatarPromptText.trim()}
+                          className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                          {generatingAvatar ? (
+                            <><Loader2 size={14} className="animate-spin" /> {accuracyProgress?.progress || t('studio.generating_avatar')}</>
+                          ) : (
+                            <><Sparkles size={14} /> Generate 3D Avatar</>
+                          )}
+                        </button>
                       </div>
                     )}
                   </>

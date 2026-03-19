@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw, Target, GalleryHorizontalEnd, Filter, Search, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw, Target, GalleryHorizontalEnd, Filter, Search, ChevronDown, Smartphone, Monitor, Tablet } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -1534,6 +1534,18 @@ function GlobalArtGallery({ campaigns, labels }) {
   const [campaignFilter, setCampaignFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [expandedKey, setExpandedKey] = useState(null);
+  const [previewChannel, setPreviewChannel] = useState('original');
+
+  const CHANNEL_MOCKUPS = [
+    { id: 'original', label: 'Original', icon: Image, aspect: null },
+    { id: 'instagram_feed', label: 'IG Feed', icon: Smartphone, aspect: '4/5', w: 280 },
+    { id: 'instagram_reels', label: 'IG Reels', icon: Smartphone, aspect: '9/16', w: 200 },
+    { id: 'tiktok', label: 'TikTok', icon: Smartphone, aspect: '9/16', w: 200 },
+    { id: 'facebook', label: 'Facebook', icon: Monitor, aspect: '16/9', w: 400 },
+    { id: 'youtube', label: 'YouTube', icon: Monitor, aspect: '16/9', w: 400 },
+    { id: 'whatsapp', label: 'WhatsApp', icon: Smartphone, aspect: '9/16', w: 200 },
+    { id: 'stories', label: 'Stories', icon: Smartphone, aspect: '9/16', w: 200 },
+  ];
 
   // Collect all assets from all campaigns
   const allAssets = campaigns.flatMap(c => {
@@ -1641,13 +1653,95 @@ function GlobalArtGallery({ campaigns, labels }) {
                       </div>
                     </button>
                   ) : (
-                    /* Expanded view — in-place 100% */
+                    /* Expanded view with Channel Preview */
                     <div className="rounded-xl border border-[#C9A84C]/30 bg-[#0A0A0A] overflow-hidden">
-                      {asset.type === 'image' ? (
-                        <img src={resolveImageUrl(asset.url)} alt="" className="w-full rounded-t-xl" />
-                      ) : (
-                        <video src={resolveImageUrl(asset.url)} controls autoPlay className="w-full rounded-t-xl" />
-                      )}
+                      {/* Channel tabs */}
+                      <div className="flex items-center gap-1 px-3 py-2 bg-[#0D0D0D] border-b border-[#1A1A1A] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                        {CHANNEL_MOCKUPS.map(ch => {
+                          const Icon = ch.icon;
+                          return (
+                            <button key={ch.id} data-testid={`preview-ch-${ch.id}`} onClick={() => setPreviewChannel(ch.id)}
+                              className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition ${
+                                previewChannel === ch.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] border border-transparent hover:text-white'}`}>
+                              <Icon size={9} /> {ch.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Preview area */}
+                      <div className="flex items-center justify-center py-4 px-4 min-h-[200px] bg-[#080808]">
+                        {previewChannel === 'original' ? (
+                          /* Original full-width */
+                          <div className="w-full max-w-2xl">
+                            {asset.type === 'image' ? (
+                              <img src={resolveImageUrl(asset.url)} alt="" className="w-full rounded-lg" />
+                            ) : (
+                              <video src={resolveImageUrl(asset.url)} controls autoPlay className="w-full rounded-lg" />
+                            )}
+                          </div>
+                        ) : (
+                          /* Device mockup */
+                          (() => {
+                            const ch = CHANNEL_MOCKUPS.find(c => c.id === previewChannel);
+                            const isVertical = ch?.aspect === '9/16';
+                            const isFeed = ch?.aspect === '4/5';
+                            const isWide = ch?.aspect === '16/9';
+                            return (
+                              <div className="flex flex-col items-center gap-2">
+                                {/* Device frame */}
+                                <div className={`relative bg-[#111] border-[3px] border-[#333] overflow-hidden ${
+                                  isVertical ? 'w-[180px] rounded-[24px]' : isFeed ? 'w-[240px] rounded-[20px]' : 'w-[380px] rounded-xl'}`}
+                                  style={{ aspectRatio: ch?.aspect || '1/1' }}>
+                                  {/* Status bar for phone mockups */}
+                                  {(isVertical || isFeed) && (
+                                    <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-3 py-1 bg-gradient-to-b from-black/60 to-transparent">
+                                      <span className="text-[6px] text-white/70">9:41</span>
+                                      <div className="w-12 h-3 bg-black rounded-full" />
+                                      <div className="flex gap-0.5">
+                                        <div className="w-2.5 h-1.5 bg-white/60 rounded-sm" />
+                                        <div className="w-2.5 h-1.5 bg-white/60 rounded-sm" />
+                                      </div>
+                                    </div>
+                                  )}
+                                  {/* Content */}
+                                  {asset.type === 'image' ? (
+                                    <img src={resolveImageUrl(asset.url)} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                                  )}
+                                  {/* Platform UI overlay */}
+                                  {(isVertical || isFeed) && (
+                                    <div className="absolute bottom-0 inset-x-0 z-10 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="w-5 h-5 rounded-full bg-[#C9A84C]/30" />
+                                        <span className="text-[7px] text-white font-semibold">{asset.campaign}</span>
+                                      </div>
+                                      {previewChannel === 'tiktok' && (
+                                        <div className="absolute right-2 bottom-8 flex flex-col items-center gap-2">
+                                          <Heart size={12} className="text-white" />
+                                          <MessageCircle size={12} className="text-white" />
+                                          <Share2 size={12} className="text-white" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {isWide && (
+                                    <div className="absolute bottom-0 inset-x-0 z-10 px-3 py-1.5 bg-gradient-to-t from-black/60 to-transparent flex items-center gap-2">
+                                      <Play size={10} className="text-white" />
+                                      <div className="flex-1 h-0.5 bg-white/20 rounded"><div className="h-full w-1/3 bg-[#C9A84C] rounded" /></div>
+                                      <span className="text-[7px] text-white/60">0:15</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="text-[9px] text-[#555]">{ch?.label} · {ch?.aspect?.replace('/', ':')}</p>
+                              </div>
+                            );
+                          })()
+                        )}
+                      </div>
+
+                      {/* Action bar */}
                       <div className="flex items-center justify-between px-3 py-2 bg-[#0D0D0D] border-t border-[#1A1A1A]">
                         <div className="flex items-center gap-2">
                           {asset.type === 'video' ? <Film size={10} className="text-[#C9A84C]" /> : <Image size={10} className="text-[#C9A84C]" />}
@@ -1662,7 +1756,7 @@ function GlobalArtGallery({ campaigns, labels }) {
                             className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
                             <Plus size={10} /> {labels.useCampaign || 'Usar em Campanha'}
                           </button>
-                          <button data-testid="gallery-close-expanded" onClick={() => setExpandedKey(null)}
+                          <button data-testid="gallery-close-expanded" onClick={() => { setExpandedKey(null); setPreviewChannel('original'); }}
                             className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
                             <X size={10} /> {labels.close || 'Fechar'}
                           </button>

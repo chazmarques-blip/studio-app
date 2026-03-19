@@ -666,3 +666,11 @@ class RegenerateImageRequest(BaseModel):
 class CloneLanguageRequest(BaseModel):
     target_language: str = "pt"
 
+
+class AvatarFromPromptRequest(BaseModel):
+    prompt: str
+    gender: str = "female"
+    style: str = "realistic"  # 'realistic' | '3d_cartoon' | '3d_pixar'
+    company_name: str = ""
+    logo_url: str = ""
+

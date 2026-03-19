@@ -23,6 +23,7 @@ from pipeline.config import (
     AvatarVideoPreviewRequest, AvatarVariantRequest,
     AvatarBatch360Request, VoicePreviewRequest,
     MasterVoiceRequest, ELEVENLABS_VOICES,
+    AvatarFromPromptRequest,
 )
 from pipeline.utils import (
     _upload_to_storage, _describe_person,
@@ -120,6 +121,80 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
     except Exception as e:
         logger.error(f"Avatar generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate-avatar-from-prompt")
+async def generate_avatar_from_prompt(req: AvatarFromPromptRequest, user=Depends(get_current_user)):
+    """Generate an avatar from a text prompt (realistic, 3D cartoon, or 3D Pixar style)."""
+    try:
+        style_prompts = {
+            "realistic": (
+                f"Create a photorealistic FULL-BODY professional portrait of a {req.gender} person. "
+                f"Description: {req.prompt}. "
+                "Standing confidently in a modern studio with soft lighting. "
+                "Professional business attire. Full body visible from head to feet. "
+                "Clean minimal background. Photorealistic, 4K detail. "
+                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+            ),
+            "3d_cartoon": (
+                f"Create a 3D animated cartoon character. Full body, standing pose. "
+                f"Character is a {req.gender}. Description: {req.prompt}. "
+                "Style: Modern 3D cartoon animation like Pixar/Disney, vibrant colors, "
+                "smooth shading, large expressive eyes, friendly appearance. "
+                "Clean white/gradient studio background. "
+                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+            ),
+            "3d_pixar": (
+                f"Create a high-quality Pixar-style 3D animated character. Full body, standing pose. "
+                f"Character is a {req.gender}. Description: {req.prompt}. "
+                "Style: Ultra-polished Pixar animation quality with subsurface scattering on skin, "
+                "detailed hair strands, warm cinematic lighting, expressive face. "
+                "Clean studio background with soft gradient. "
+                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+            ),
+        }
+
+        prompt = style_prompts.get(req.style, style_prompts["realistic"])
+        if req.company_name:
+            prompt += f" The character works at {req.company_name}."
+
+        chat = LlmChat(
+            api_key=EMERGENT_KEY,
+            session_id=f"avatar-prompt-{uuid.uuid4().hex[:8]}",
+            system_message="You are an expert character designer. Create stunning full-body character portraits in VERTICAL format."
+        )
+        msg = UserMessage(text=prompt)
+        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+        text_response, images = await chat.send_message_multimodal_response(msg)
+        logger.info(f"Avatar prompt gen: text={text_response[:100] if text_response else 'None'}, images_count={len(images) if images else 0}")
+
+        if images and len(images) > 0:
+            raw_bytes = base64.b64decode(images[0]['data'])
+            fname = f"avatars/{user.get('id', 'anon')}/{uuid.uuid4().hex[:8]}_prompt_{req.style}.png"
+            avatar_url = _upload_to_storage(raw_bytes, fname, "image/png")
+
+            # Apply logo if available
+            if req.logo_url and avatar_url:
+                try:
+                    av_data = urllib.request.urlopen(avatar_url, timeout=15).read()
+                    branded = _composite_logo_on_avatar(av_data, req.logo_url)
+                    if branded:
+                        fname2 = f"avatars/{user.get('id', 'anon')}/{uuid.uuid4().hex[:8]}_branded.png"
+                        branded_url = _upload_to_storage(branded, fname2, "image/png")
+                        if branded_url:
+                            avatar_url = branded_url
+                except Exception as logo_err:
+                    logger.warning(f"Logo composite failed: {logo_err}")
+
+            return {"avatar_url": avatar_url, "style": req.style}
+
+        raise HTTPException(status_code=500, detail="AI failed to generate image. Try again.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar from prompt generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 _accuracy_jobs = {}
