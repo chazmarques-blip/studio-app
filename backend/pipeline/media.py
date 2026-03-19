@@ -280,19 +280,32 @@ Rules:
         msg = UserMessage(text=prompt, file_contents=keyframes)
         response = await asyncio.wait_for(chat.send_message(msg), timeout=30)
 
-        # Parse response into crop parameters
+        # Parse response with multiple format patterns (Gemini can vary)
         crops = {}
+        # Log raw response for debugging
+        logger.info(f"AI Director raw response ({len(response)} chars): {response[:200]}...")
+
         for line in response.split('\n'):
             line = line.strip()
-            if not line.startswith('PLATFORM:'):
+            if not line:
                 continue
             try:
-                parts = line.split('CROP:')
-                if len(parts) != 2:
+                # Pattern 1: "PLATFORM:name CROP:x,y,w,h"
+                m = re.match(r'PLATFORM:\s*(\S+)\s*CROP:\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', line, re.IGNORECASE)
+                if not m:
+                    # Pattern 2: "**platform**: CROP: x, y, w, h" (markdown bold)
+                    m = re.match(r'\*?\*?(\w[\w_]*)\*?\*?\s*:?\s*(?:CROP:?)?\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', line, re.IGNORECASE)
+                if not m:
+                    # Pattern 3: "- platform: x, y, w, h"
+                    m = re.match(r'-\s*(\w[\w_]*)\s*:\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', line, re.IGNORECASE)
+                if not m:
+                    # Pattern 4: "platform CROP x,y,width,height"
+                    m = re.match(r'(\w[\w_]*)\s+CROP\s*:?\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', line, re.IGNORECASE)
+                if not m:
                     continue
-                plat = parts[0].replace('PLATFORM:', '').strip().lower().rstrip(':').strip()
-                coords = parts[1].strip().split(',')
-                x, y, w, h = [int(c.strip()) for c in coords[:4]]
+
+                plat = m.group(1).strip().lower().rstrip(':').strip()
+                x, y, w, h = int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5))
                 # Validate: must fit inside master and have reasonable size
                 x = max(0, min(x, master_w - 50))
                 y = max(0, min(y, master_h - 50))
@@ -899,18 +912,39 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             narr_resampled = f"/tmp/{pipeline_id}_narr_44k.wav"
             music_resampled = f"/tmp/{pipeline_id}_music_44k.wav"
             subprocess.run(f"{FFMPEG_PATH} -y -i {audio_path} -ar 44100 -ac 2 {narr_resampled}", shell=True, capture_output=True, timeout=30)
-            # Trim music to video duration and apply heavy volume reduction during resample
-            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music_path} -af volume=0.08 -ar 44100 -ac 2 -t {vid_duration} {music_resampled}", shell=True, capture_output=True, timeout=30)
+            subprocess.run(f"{FFMPEG_PATH} -y -i {bg_music_path} -ar 44100 -ac 2 -t {vid_duration} {music_resampled}", shell=True, capture_output=True, timeout=30)
 
             mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.wav"
-            # Professional audio mixing:
-            # - Narration: slight boost + compressor for consistent voice level
-            # - Music: very low volume (pre-reduced to 0.08), gentle fade in/out
-            # - amix with normalize=0 to prevent auto-leveling artifacts
+
+            # ── Cinematic Audio Mixing (Murch/Zimmer method) ──
+            # Narration: presence boost (3kHz), compressor (broadcast), cut mud (<80Hz)
+            # Music: EQ carve (-8dB at 400Hz, -4dB at 2.5kHz), exponential fades
+            # Mix: Sidechain compressor — music auto-ducks when narration plays
+            fade_out_start = max(vid_duration - 3, 18)
+
+            narr_chain = (
+                "volume=1.3,"
+                "highpass=f=80,"
+                "equalizer=f=3000:t=h:w=1000:g=2.5,"
+                "acompressor=threshold=-18dB:ratio=3:attack=10:release=100"
+            )
+            music_chain = (
+                "equalizer=f=400:t=q:w=2:g=-8,"
+                "equalizer=f=2500:t=q:w=1.5:g=-4,"
+                f"afade=t=in:d=1.5:curve=exp,"
+                f"afade=t=out:st={fade_out_start}:d=3:curve=exp"
+            )
+            # Sidechain: narration signal controls music compression
+            # level_in=0.18 → music base level ~18% (cinematic bed)
+            # threshold=0.025 → duck when voice > ~-32dB
+            # ratio=8 → aggressive ducking
+            # attack=15ms → fast response, release=250ms → smooth return
+            sidechain = "sidechaincompress=threshold=0.025:ratio=8:attack=15:release=250:level_in=0.18:level_sc=1"
+
             mix_filter = (
-                f"[0:a]volume=1.5,acompressor=threshold=-20dB:ratio=4:attack=5:release=200[narr];"
-                f"[1:a]afade=t=in:d=2,afade=t=out:st={max(vid_duration-3, 18)}:d=3[music];"
-                f"[narr][music]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]"
+                f"[0:a]{narr_chain}[narr];"
+                f"[1:a]{music_chain}[music];"
+                f"[narr][music]{sidechain}[out]"
             )
             mix_cmd = [
                 FFMPEG_PATH, "-y",
@@ -925,10 +959,26 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             r = subprocess.run(mix_cmd, capture_output=True, text=True, timeout=60)
             if r.returncode == 0 and os.path.exists(mixed_audio):
                 final_audio = mixed_audio
-                logger.info("Mixed narration + background music (professional levels)")
+                logger.info("Cinematic audio mix: sidechain ducking + EQ carving + outro swell")
             else:
-                final_audio = audio_path
-                logger.warning(f"Audio mixing failed, using narration only: {r.stderr[:150] if r.stderr else ''}")
+                # Fallback to basic mix if cinematic filter fails
+                logger.warning(f"Cinematic mix failed ({r.stderr[:100] if r.stderr else ''}), trying basic mix")
+                basic_filter = (
+                    f"[0:a]volume=1.5,acompressor=threshold=-20dB:ratio=4:attack=5:release=200[narr];"
+                    f"[1:a]volume=0.08,afade=t=in:d=2,afade=t=out:st={max(vid_duration-3, 18)}:d=3[music];"
+                    f"[narr][music]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[out]"
+                )
+                r2 = subprocess.run([
+                    FFMPEG_PATH, "-y", "-i", narr_resampled, "-i", music_resampled,
+                    "-filter_complex", basic_filter, "-map", "[out]",
+                    "-t", str(vid_duration), "-ar", "44100", "-ac", "2", mixed_audio
+                ], capture_output=True, text=True, timeout=60)
+                if r2.returncode == 0 and os.path.exists(mixed_audio):
+                    final_audio = mixed_audio
+                    logger.info("Fallback basic mix succeeded")
+                else:
+                    final_audio = audio_path
+                    logger.warning("All audio mixing failed, narration only")
         elif audio_path and os.path.exists(audio_path):
             final_audio = audio_path
 

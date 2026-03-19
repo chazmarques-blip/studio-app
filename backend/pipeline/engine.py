@@ -23,7 +23,7 @@ from pipeline.media import (
 
 
 def _parse_dylan_audio(dylan_output):
-    """Parse Dylan Reed's audio direction output into voice_config dict."""
+    """Parse Dylan Reed's cinematic audio direction into voice_config dict."""
     config = {}
     if not dylan_output:
         return config
@@ -45,21 +45,32 @@ def _parse_dylan_audio(dylan_output):
     speed_match = re.search(r'Speed:\s*([\d.]+)', dylan_output, re.IGNORECASE)
     if speed_match:
         config["speed"] = float(speed_match.group(1))
-    # Parse tone from narration delivery
+    # Parse emotional arc as tone
     arc_match = re.search(r'Emotional Arc:\s*(.+)', dylan_output, re.IGNORECASE)
     if arc_match:
         config["tone"] = arc_match.group(1).strip().lower()[:80]
+    # Parse narration script text (the actual words between quotes)
+    narr_texts = re.findall(r'"([^"]{10,})"', dylan_output)
+    if narr_texts:
+        config["_narration_script"] = " ".join(narr_texts)
     # Parse music track key
     track_match = re.search(r'===MUSIC SELECTION===[\s\S]*?Track:\s*(\S+)', dylan_output, re.IGNORECASE)
     if track_match:
         config["_music_key"] = track_match.group(1).strip()
-    # Parse music mix volumes
+    # Parse music mix dynamic curve values
     narr_vol = re.search(r'Narration Volume:\s*(\d+)', dylan_output, re.IGNORECASE)
     if narr_vol:
         config["_music_narr_vol"] = int(narr_vol.group(1))
     outro_vol = re.search(r'Outro Volume:\s*(\d+)', dylan_output, re.IGNORECASE)
     if outro_vol:
         config["_music_outro_vol"] = int(outro_vol.group(1))
+    # Parse dynamic curve (new cinematic format: "4-16s: ... hold at [10-15]%")
+    duck_match = re.search(r'(?:4-16s|Duck|Narration bed).*?(\d+)[-–]?(\d+)?%', dylan_output, re.IGNORECASE)
+    if duck_match:
+        config["_music_duck_pct"] = int(duck_match.group(1))
+    swell_match = re.search(r'(?:18-21s|Afterglow|Swell).*?(\d+)[-–]?(\d+)?%', dylan_output, re.IGNORECASE)
+    if swell_match:
+        config["_music_swell_pct"] = int(swell_match.group(2) or swell_match.group(1))
     return config
 
 # ── Shared mutable state ──
