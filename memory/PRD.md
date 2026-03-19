@@ -112,6 +112,12 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] Branding enriched: logo from company brand_data, contact CTA from phone/website
 - [x] Presenter video now also gets brand ending (logo + name + contact)
 
+### Test Campaign: AgentZZ Super Hero (March 19, 2026)
+- [x] 3D Pixar super-hero avatar generated with company logo on chest
+- [x] Full campaign: 3 copy variations, 3 images, 24s video with ElevenLabs narration
+- [x] 8 video variants generated: tiktok, instagram, instagram_reels, facebook, facebook_stories, youtube, youtube_shorts, whatsapp
+- [x] Brand data (logo, phone, website) automatically applied
+
 ## Known Issues
 - **Sora 2 Video Generation API** - Was down, now reported stable (needs re-verification)
 - **Pipeline steps can get stuck** - Auto-recovery added (GET/LIST triggers)
