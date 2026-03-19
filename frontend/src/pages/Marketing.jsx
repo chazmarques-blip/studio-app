@@ -44,7 +44,7 @@ const L = (lang) => {
       regenImage: 'Regenerar Imagem', regenImageFeedback: 'Descreva o ajuste desejado...', regenImageStarted: 'Regenerando imagem...',
       cloneLanguage: 'Clonar em outro idioma', cloneStarted: 'Campanha clonada! Gerando em', selectLanguage: 'Selecione o idioma',
       editing: 'Editando', artGallery: 'Art Gallery', allArts: 'Todas as Artes',
-      galleryAll: 'Tudo', galleryImages: 'Imagens', galleryVideos: 'Videos', galleryFilterCampaign: 'Campanha', galleryNoAssets: 'Nenhuma arte encontrada', galleryFromCampaign: 'de', close: 'Fechar',
+      galleryAll: 'Tudo', galleryImages: 'Imagens', galleryVideos: 'Videos', galleryFilterCampaign: 'Campanha', galleryNoAssets: 'Nenhuma arte encontrada', galleryFromCampaign: 'de', close: 'Fechar', share: 'Compartilhar', useCampaign: 'Usar em Campanha', assetCopied: 'Asset pronto para usar na campanha!',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -78,7 +78,7 @@ const L = (lang) => {
       regenImage: 'Regenerate Image', regenImageFeedback: 'Describe the adjustment...', regenImageStarted: 'Regenerating image...',
       cloneLanguage: 'Clone to another language', cloneStarted: 'Campaign cloned! Generating in', selectLanguage: 'Select language',
       editing: 'Editing', artGallery: 'Art Gallery', allArts: 'All Creatives',
-      galleryAll: 'All', galleryImages: 'Images', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaign', galleryNoAssets: 'No assets found', galleryFromCampaign: 'from', close: 'Close',
+      galleryAll: 'All', galleryImages: 'Images', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaign', galleryNoAssets: 'No assets found', galleryFromCampaign: 'from', close: 'Close', share: 'Share', useCampaign: 'Use in Campaign', assetCopied: 'Asset ready to use in campaign!',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -112,7 +112,7 @@ const L = (lang) => {
       regenImage: 'Regenerar Imagen', regenImageFeedback: 'Describe el ajuste...', regenImageStarted: 'Regenerando imagen...',
       cloneLanguage: 'Clonar en otro idioma', cloneStarted: 'Campana clonada! Generando en', selectLanguage: 'Seleccione idioma',
       editing: 'Editando', artGallery: 'Galería de Artes', allArts: 'Todas las Artes',
-      galleryAll: 'Todo', galleryImages: 'Imágenes', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaña', galleryNoAssets: 'Ningún arte encontrado', galleryFromCampaign: 'de', close: 'Cerrar',
+      galleryAll: 'Todo', galleryImages: 'Imágenes', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaña', galleryNoAssets: 'Ningún arte encontrado', galleryFromCampaign: 'de', close: 'Cerrar', share: 'Compartir', useCampaign: 'Usar en Campaña', assetCopied: 'Asset listo para usar en campaña!',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -1651,10 +1651,20 @@ function GlobalArtGallery({ campaigns, labels }) {
                           {asset.type === 'video' ? <Film size={10} className="text-[#C9A84C]" /> : <Image size={10} className="text-[#C9A84C]" />}
                           <span className="text-[10px] text-[#888]">{asset.campaign}</span>
                         </div>
-                        <button data-testid="gallery-close-expanded" onClick={() => setExpandedKey(null)}
-                          className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
-                          <X size={10} /> {labels.close || 'Fechar'}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button data-testid="gallery-share" onClick={() => { navigator.clipboard.writeText(resolveImageUrl(asset.url)); toast.success('Link copiado!'); }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                            <Share2 size={10} /> {labels.share || 'Compartilhar'}
+                          </button>
+                          <button data-testid="gallery-use-in-campaign" onClick={() => { toast.success(labels.assetCopied || 'Asset pronto para usar na campanha!'); setExpandedKey(null); }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+                            <Plus size={10} /> {labels.useCampaign || 'Usar em Campanha'}
+                          </button>
+                          <button data-testid="gallery-close-expanded" onClick={() => setExpandedKey(null)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                            <X size={10} /> {labels.close || 'Fechar'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
