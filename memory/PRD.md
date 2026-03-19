@@ -55,8 +55,7 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - Unified Share Area
 - ElevenLabs TTS Integration for video narration
 - **ElevenLabs Premium Voices for Avatars** (backend + frontend complete)
-- Scale-to-fit + padding for image/video format conversion
-- Two-tab campaign detail (Content | Results)
+- Scale-to-fit + padding for image/video format conversion- Two-tab campaign detail (Content | Results)
 - Per-platform video variants (8 platforms)
 - 14 Image Generation Styles
 - Edit Image Text (change headline without regenerating)
@@ -77,6 +76,12 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] Frontend: ElevenLabs voice selection, preview playback, visual indicators (Crown icon)
 - [x] Frontend: Avatar edit auto-selects correct voice tab based on saved voice type
 - [x] All tested and verified (iteration_70: 10/10 backend tests passed)
+
+### Marketing Page UI Improvements
+- [x] StatCard layout: icon + value + label aligned horizontally (reduced height)
+- [x] Art Gallery button added to campaign cards (Image icon next to Pause/Play)
+- [x] ArtGalleryModal: grid of all campaign arts with lightbox, navigation arrows, thumbnails
+- [x] i18n labels added for PT, EN, ES (artGallery, allArts)
 
 ## Known Issues
 - **Sora 2 Video Generation API** - Was down, now reported stable (needs re-verification)

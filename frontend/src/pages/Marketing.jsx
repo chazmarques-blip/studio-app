@@ -43,7 +43,7 @@ const L = (lang) => {
       editCopy: 'Editar Texto', saveCopy: 'Salvar', cancelEdit: 'Cancelar', copyUpdated: 'Texto atualizado!',
       regenImage: 'Regenerar Imagem', regenImageFeedback: 'Descreva o ajuste desejado...', regenImageStarted: 'Regenerando imagem...',
       cloneLanguage: 'Clonar em outro idioma', cloneStarted: 'Campanha clonada! Gerando em', selectLanguage: 'Selecione o idioma',
-      editing: 'Editando',
+      editing: 'Editando', artGallery: 'Galeria de Artes', allArts: 'Todas as Artes',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -76,7 +76,7 @@ const L = (lang) => {
       editCopy: 'Edit Copy', saveCopy: 'Save', cancelEdit: 'Cancel', copyUpdated: 'Copy updated!',
       regenImage: 'Regenerate Image', regenImageFeedback: 'Describe the adjustment...', regenImageStarted: 'Regenerating image...',
       cloneLanguage: 'Clone to another language', cloneStarted: 'Campaign cloned! Generating in', selectLanguage: 'Select language',
-      editing: 'Editing',
+      editing: 'Editing', artGallery: 'Art Gallery', allArts: 'All Creatives',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -109,7 +109,7 @@ const L = (lang) => {
       editCopy: 'Editar Texto', saveCopy: 'Guardar', cancelEdit: 'Cancelar', copyUpdated: 'Texto actualizado!',
       regenImage: 'Regenerar Imagen', regenImageFeedback: 'Describe el ajuste...', regenImageStarted: 'Regenerando imagen...',
       cloneLanguage: 'Clonar en otro idioma', cloneStarted: 'Campana clonada! Generando en', selectLanguage: 'Seleccione idioma',
-      editing: 'Editando',
+      editing: 'Editando', artGallery: 'Galeria de Artes', allArts: 'Todas las Artes',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -188,15 +188,15 @@ function cleanCampaignText(raw) {
 
 function StatCard({ icon: Icon, value, label, trend }) {
   return (
-    <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C9A84C]/8">
-          <Icon size={13} className="text-[#C9A84C]" />
+    <div data-testid={`stat-${label?.toLowerCase().replace(/\s+/g, '-')}`} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-3 py-2">
+      <div className="flex items-center gap-2">
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#C9A84C]/8 shrink-0">
+          <Icon size={11} className="text-[#C9A84C]" />
         </div>
-        {trend && <span className="text-[9px] text-green-400 ml-auto">+{trend}%</span>}
+        <p className="text-base font-bold text-white leading-none">{value}</p>
+        {trend && <span className="text-[8px] text-green-400 ml-auto">+{trend}%</span>}
       </div>
-      <p className="text-lg font-bold text-white">{value}</p>
-      <p className="text-[9px] text-[#555]">{label}</p>
+      <p className="text-[8px] text-[#555] mt-0.5 ml-8">{label}</p>
     </div>
   );
 }
@@ -295,6 +295,77 @@ function PreviewModal({ campaign, onClose, labels }) {
                     <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Art Gallery Modal ── */
+function ArtGalleryModal({ campaign, onClose, labels }) {
+  const stats = campaign.stats || {};
+  const images = stats.images || [];
+  const [lightboxIdx, setLightboxIdx] = useState(null);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#0D0D0D] border border-[#1A1A1A] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-[#111] flex items-center gap-2">
+          <Image size={14} className="text-[#C9A84C]" />
+          <h3 className="text-sm font-bold text-white flex-1">{labels.artGallery}: {campaign.name}</h3>
+          <span className="text-[9px] text-[#555]">{images.length} {images.length === 1 ? 'art' : 'artes'}</span>
+          <button onClick={onClose} className="text-[#555] hover:text-white"><X size={16} /></button>
+        </div>
+        <div className="p-4 overflow-y-auto max-h-[75vh]">
+          {images.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {images.map((url, i) => (
+                <button key={i} data-testid={`gallery-art-${i}`} onClick={() => setLightboxIdx(i)}
+                  className="rounded-xl overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-[#C9A84C]/30 transition">
+                  <img src={resolveImageUrl(url)} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                    <Maximize2 size={18} className="text-white" />
+                  </div>
+                  <div className="absolute bottom-1.5 left-1.5 bg-black/60 rounded px-1.5 py-0.5">
+                    <span className="text-[8px] text-white font-medium">{i + 1}/{images.length}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-[#555] text-center py-8">{labels.noVisual}</p>
+          )}
+        </div>
+        {lightboxIdx !== null && (
+          <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
+            <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setLightboxIdx(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10">
+                <X size={14} className="text-white" />
+              </button>
+              <img src={resolveImageUrl(images[lightboxIdx])} alt="" className="w-full rounded-xl" />
+              <div className="flex gap-2 mt-3 justify-center flex-wrap">
+                {images.map((u, i) => (
+                  <button key={i} onClick={() => setLightboxIdx(i)}
+                    className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${i === lightboxIdx ? 'border-[#C9A84C]' : 'border-[#333] opacity-50 hover:opacity-80'}`}>
+                    <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-center mt-2 gap-2">
+                <button onClick={() => setLightboxIdx(Math.max(0, lightboxIdx - 1))}
+                  disabled={lightboxIdx === 0}
+                  className="px-3 py-1 rounded-lg border border-[#333] text-[10px] text-[#888] hover:text-white disabled:opacity-30 transition">
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="text-[10px] text-[#555] flex items-center">{lightboxIdx + 1} / {images.length}</span>
+                <button onClick={() => setLightboxIdx(Math.min(images.length - 1, lightboxIdx + 1))}
+                  disabled={lightboxIdx === images.length - 1}
+                  className="px-3 py-1 rounded-lg border border-[#333] text-[10px] text-[#888] hover:text-white disabled:opacity-30 transition">
+                  <ChevronRight size={14} />
+                </button>
               </div>
             </div>
           </div>
@@ -1336,7 +1407,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 }
 
 /* ── Enhanced Campaign Card ── */
-function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmingDelete, setConfirmingDelete, labels }) {
+function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail, confirmingDelete, setConfirmingDelete, labels }) {
   const type = TYPE_META[campaign.type] || TYPE_META.nurture;
   const status = STATUS_META[campaign.status] || STATUS_META.draft;
   const stats = campaign.stats || {};
@@ -1384,6 +1455,12 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onDetail, confirmin
 
         {/* Actions */}
         <div className="flex items-center gap-0.5 shrink-0">
+          {images.length > 0 && (
+            <button data-testid={`gallery-${campaign.id}`} onClick={() => onGallery(campaign)}
+              className="p-1.5 rounded-lg hover:bg-[#C9A84C]/10 text-[#555] hover:text-[#C9A84C] transition" title={labels.artGallery}>
+              <Image size={13} />
+            </button>
+          )}
           {images.length > 0 && (
             <button data-testid={`preview-${campaign.id}`} onClick={() => onPreview(campaign)}
               className="p-1.5 rounded-lg hover:bg-[#C9A84C]/10 text-[#555] hover:text-[#C9A84C] transition" title="Preview">
@@ -1463,6 +1540,7 @@ export default function Marketing() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [previewCampaign, setPreviewCampaign] = useState(null);
   const [detailCampaign, setDetailCampaign] = useState(null);
+  const [galleryCampaign, setGalleryCampaign] = useState(null);
   const [confirmingDelete, setConfirmingDelete] = useState(null);
 
   useEffect(() => { loadData(); }, []);
@@ -1652,7 +1730,7 @@ export default function Marketing() {
         <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-2' : 'space-y-2'}>
           {filtered.map(c => (
             <CampaignCard key={c.id} campaign={c} lang={lang} onAction={handleAction}
-              onPreview={setPreviewCampaign} onDetail={setDetailCampaign}
+              onPreview={setPreviewCampaign} onGallery={setGalleryCampaign} onDetail={setDetailCampaign}
               confirmingDelete={confirmingDelete} setConfirmingDelete={setConfirmingDelete} labels={labels} />
           ))}
         </div>
@@ -1676,6 +1754,7 @@ export default function Marketing() {
       {/* Modals */}
       {previewCampaign && <PreviewModal campaign={previewCampaign} onClose={() => setPreviewCampaign(null)} labels={labels} />}
       {detailCampaign && <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCampaign(null)} labels={labels} />}
+      {galleryCampaign && <ArtGalleryModal campaign={galleryCampaign} onClose={() => setGalleryCampaign(null)} labels={labels} />}
     </div>
   );
 }
