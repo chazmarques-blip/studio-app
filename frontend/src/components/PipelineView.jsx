@@ -86,9 +86,11 @@ export default function PipelineView({ context }) {
   const [generatingAngle, setGeneratingAngle] = useState(null);
   const [angleImages, setAngleImages] = useState({});
   const [auto360Progress, setAuto360Progress] = useState(null); // null | { completed: number, total: 4 }
-  const [voiceTab, setVoiceTab] = useState('bank'); // 'bank' | 'record'
+  const [voiceTab, setVoiceTab] = useState('bank'); // 'bank' | 'premium' | 'record'
   const [loadingVoicePreview, setLoadingVoicePreview] = useState(null);
   const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const [elevenLabsVoices, setElevenLabsVoices] = useState([]);
+  const [elevenLabsAvailable, setElevenLabsAvailable] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordedAudioBlob, setRecordedAudioBlob] = useState(null);
@@ -458,6 +460,8 @@ export default function PipelineView({ context }) {
     if (av.voice?.url) {
       setRecordedAudioUrl(av.voice.url);
       setVoiceTab('record');
+    } else if (av.voice?.type === 'elevenlabs' && av.voice?.voice_id) {
+      setVoiceTab('premium');
     } else if (av.voice?.voice_id) {
       setVoiceTab('bank');
     }
@@ -542,11 +546,12 @@ export default function PipelineView({ context }) {
     setGeneratingAngle(null);
   };
 
-  const previewVoice = async (voiceId) => {
+  const previewVoice = async (voiceId, voiceType = 'openai') => {
     setLoadingVoicePreview(voiceId);
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/voice-preview`, {
         voice_id: voiceId,
+        voice_type: voiceType,
         text: t('studio.voice_preview_text') || 'Hello! This is a preview of my voice. I can be the presenter for your marketing campaigns.',
       });
       if (data.audio_url) {
@@ -641,6 +646,7 @@ export default function PipelineView({ context }) {
     loadPipelines();
     loadSavedHistory();
     loadMusicLibrary();
+    loadElevenLabsVoices();
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
@@ -651,6 +657,14 @@ export default function PipelineView({ context }) {
     try {
       const { data } = await axios.get(`${API}/campaigns/pipeline/music-library`);
       setMusicLibrary(data.tracks || []);
+    } catch { /* ignore */ }
+  };
+
+  const loadElevenLabsVoices = async () => {
+    try {
+      const { data } = await axios.get(`${API}/campaigns/pipeline/elevenlabs-voices`);
+      setElevenLabsVoices(data.voices || []);
+      setElevenLabsAvailable(data.available || false);
     } catch { /* ignore */ }
   };
 
@@ -1126,8 +1140,8 @@ export default function PipelineView({ context }) {
                     </div>
                   )}
                   {av.voice && (
-                    <div className="absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full bg-black/70 flex items-center justify-center">
-                      <Volume2 size={7} className="text-[#C9A84C]" />
+                    <div className={`absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full flex items-center justify-center ${av.voice.type === 'elevenlabs' ? 'bg-[#C9A84C]/90' : 'bg-black/70'}`}>
+                      {av.voice.type === 'elevenlabs' ? <Crown size={7} className="text-black" /> : <Volume2 size={7} className="text-[#C9A84C]" />}
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-1 pointer-events-none">
@@ -1702,10 +1716,14 @@ export default function PipelineView({ context }) {
                     {customizeTab === 'voice' && (
                       <div className="space-y-3">
                         {/* Voice sub-tabs */}
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-1">
                           <button onClick={() => setVoiceTab('bank')}
                             className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${voiceTab === 'bank' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
                             {t('studio.voice_bank')}
+                          </button>
+                          <button onClick={() => setVoiceTab('premium')}
+                            className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition flex items-center justify-center gap-1 ${voiceTab === 'premium' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
+                            <Crown size={9} /> {t('studio.premium_voices')}
                           </button>
                           <button onClick={() => setVoiceTab('record')}
                             className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${voiceTab === 'record' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#555]'}`}>
@@ -1732,7 +1750,7 @@ export default function PipelineView({ context }) {
                                   <p className="text-[10px] text-white font-medium capitalize">{v.id}</p>
                                   <p className="text-[8px] text-[#555]">{t(`studio.${v.key}`)}</p>
                                 </div>
-                                <button onClick={e => { e.stopPropagation(); previewVoice(v.id); }}
+                                <button onClick={e => { e.stopPropagation(); previewVoice(v.id, 'openai'); }}
                                   disabled={loadingVoicePreview === v.id}
                                   className="h-7 w-7 rounded-lg border border-[#2A2A2A] flex items-center justify-center hover:bg-[#1A1A1A] transition disabled:opacity-40">
                                   {loadingVoicePreview === v.id ? (
@@ -1744,6 +1762,50 @@ export default function PipelineView({ context }) {
                                   )}
                                 </button>
                                 {tempAvatar?.voice?.type === 'openai' && tempAvatar?.voice?.voice_id === v.id && (
+                                  <Check size={12} className="text-[#C9A84C] shrink-0" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : voiceTab === 'premium' ? (
+                          <div className="space-y-1.5" data-testid="elevenlabs-voices-section">
+                            {!elevenLabsAvailable && (
+                              <div className="text-center py-3 border border-dashed border-[#2A2A2A] rounded-lg">
+                                <Lock size={14} className="mx-auto text-[#555] mb-1" />
+                                <p className="text-[9px] text-[#555]">ElevenLabs not configured</p>
+                              </div>
+                            )}
+                            {elevenLabsAvailable && elevenLabsVoices.length === 0 && (
+                              <div className="text-center py-3">
+                                <Loader2 size={14} className="mx-auto text-[#C9A84C] animate-spin mb-1" />
+                                <p className="text-[9px] text-[#555]">{t('studio.loading_voices')}</p>
+                              </div>
+                            )}
+                            {elevenLabsVoices.map(v => (
+                              <div key={v.id} data-testid={`voice-el-${v.name.toLowerCase()}`}
+                                className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition ${
+                                  tempAvatar?.voice?.type === 'elevenlabs' && tempAvatar?.voice?.voice_id === v.id
+                                    ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}
+                                onClick={() => setTempAvatar(p => ({ ...p, voice: { type: 'elevenlabs', voice_id: v.id } }))}>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-[10px] text-white font-medium">{v.name}</p>
+                                    <Crown size={8} className="text-[#C9A84C] shrink-0" />
+                                  </div>
+                                  <p className="text-[8px] text-[#555] truncate">{v.style} · {v.accent} · {v.gender === 'female' ? '♀' : '♂'}</p>
+                                </div>
+                                <button onClick={e => { e.stopPropagation(); previewVoice(v.id, 'elevenlabs'); }}
+                                  disabled={loadingVoicePreview === v.id}
+                                  className="h-7 w-7 rounded-lg border border-[#2A2A2A] flex items-center justify-center hover:bg-[#1A1A1A] transition disabled:opacity-40">
+                                  {loadingVoicePreview === v.id ? (
+                                    <Loader2 size={10} className="animate-spin text-[#C9A84C]" />
+                                  ) : playingVoiceId === v.id ? (
+                                    <Volume2 size={10} className="text-[#C9A84C]" />
+                                  ) : (
+                                    <Play size={10} className="text-[#555]" />
+                                  )}
+                                </button>
+                                {tempAvatar?.voice?.type === 'elevenlabs' && tempAvatar?.voice?.voice_id === v.id && (
                                   <Check size={12} className="text-[#C9A84C] shrink-0" />
                                 )}
                               </div>

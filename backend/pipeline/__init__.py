@@ -13,6 +13,7 @@ This package breaks down the monolithic pipeline.py into focused modules:
 
 from pipeline.router import router
 
-# Import route modules to register their endpoints on the shared router
-from pipeline import routes  # noqa: F401
+# Import avatar_routes FIRST so specific paths (/elevenlabs-voices, /voice-preview, etc.)
+# are registered before the catch-all /{pipeline_id} in routes.py
 from pipeline import avatar_routes  # noqa: F401
+from pipeline import routes  # noqa: F401
