@@ -1086,14 +1086,18 @@ export default function PipelineView({ context }) {
         {/* Pipeline Intro */}
         <div className="text-center py-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15">
-            {[PenTool, CheckCircle, Palette, Award, Film, CalendarClock].map((Icon, i) => (
-              <div key={i} className="flex items-center gap-1">
-                {i > 0 && <ArrowRight size={8} className="text-[#333]" />}
-                <Icon size={12} style={{ color: Object.values(STEP_META)[i].color }} />
-              </div>
-            ))}
+            {STEP_ORDER.map((s, i) => {
+              const meta = STEP_META[s];
+              const Icon = meta.icon;
+              return (
+                <div key={s} className="flex items-center gap-1">
+                  {i > 0 && <ArrowRight size={8} className="text-[#333]" />}
+                  <Icon size={12} style={{ color: meta.color }} />
+                </div>
+              );
+            })}
           </div>
-          <p className="text-[9px] text-[#555] mt-1.5">David &rarr; Lee &rarr; Stefan &rarr; George &rarr; Ridley &rarr; Roger &rarr; Gary</p>
+          <p className="text-[9px] text-[#555] mt-1.5">{STEP_ORDER.map(s => STEP_META[s].agent).join(' \u2192 ')}</p>
         </div>
 
         {/* Company / Advertiser — selectable list with "+" in header */}

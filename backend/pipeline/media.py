@@ -614,22 +614,31 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
                     ov = voice_config.get("voice_id", "onyx")
                     el_voice_id = OPENAI_TO_EL.get(ov, el_voice_id)
 
+                # Dylan Reed's precise settings take priority over tone-based heuristics
+                if voice_config.get("stability") is not None:
+                    stability = voice_config["stability"]
+                if voice_config.get("similarity") is not None:
+                    similarity = voice_config["similarity"]
+                if voice_config.get("style_val") is not None:
+                    style = voice_config["style_val"]
+
                 tone = (voice_config.get("tone") or "").lower()
                 pace = (voice_config.get("pace") or "moderate").lower()
 
-                # Adjust stability/style based on tone
-                if "energetic" in tone or "excited" in tone or "urgent" in tone:
-                    stability = 0.3
-                    style = 0.6
-                elif "calm" in tone or "professional" in tone:
-                    stability = 0.7
-                    style = 0.15
-                elif "warm" in tone or "friendly" in tone:
-                    stability = 0.5
-                    style = 0.4
-                elif "dramatic" in tone or "inspirational" in tone:
-                    stability = 0.35
-                    style = 0.55
+                # Tone-based adjustments only if Dylan didn't set precise values
+                if "stability" not in voice_config:
+                    if "energetic" in tone or "excited" in tone or "urgent" in tone:
+                        stability = 0.3
+                        style = 0.6
+                    elif "calm" in tone or "professional" in tone:
+                        stability = 0.7
+                        style = 0.15
+                    elif "warm" in tone or "friendly" in tone:
+                        stability = 0.5
+                        style = 0.4
+                    elif "dramatic" in tone or "inspirational" in tone:
+                        stability = 0.35
+                        style = 0.55
 
             voice_settings = VoiceSettings(
                 stability=stability,

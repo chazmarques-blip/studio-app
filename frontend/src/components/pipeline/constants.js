@@ -1,4 +1,4 @@
-import { PenTool, Palette, CheckCircle, CalendarClock, Award, Film } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Award, Film, Headphones } from 'lucide-react';
 
 function cleanDisplayText(raw) {
   if (!raw) return '';
@@ -23,12 +23,13 @@ const STEP_META = {
   ana_review_copy: { agent: 'Lee', role: 'Creative Director', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
   lucas_design: { agent: 'Stefan', role: 'Visual Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
   rafael_review_design: { agent: 'George', role: 'Art Director', icon: Award, color: '#9B59B6', estimatedSec: 25 },
+  dylan_sound: { agent: 'Dylan', role: 'Sound Director', icon: Headphones, color: '#E91E63', estimatedSec: 15 },
   marcos_video: { agent: 'Ridley', role: 'Video Director', icon: Film, color: '#E74C3C', estimatedSec: 500 },
   rafael_review_video: { agent: 'Roger', role: 'Video Reviewer', icon: Award, color: '#9B59B6', estimatedSec: 25 },
   pedro_publish: { agent: 'Gary', role: 'Campaign Validator', icon: CalendarClock, color: '#E8A87C', estimatedSec: 25 },
 };
 
-const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'marcos_video', 'rafael_review_video', 'pedro_publish'];
+const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'dylan_sound', 'marcos_video', 'rafael_review_video', 'pedro_publish'];
 
 const PLATFORMS = [
   { id: 'whatsapp', label: 'WhatsApp', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '1080x1920' },

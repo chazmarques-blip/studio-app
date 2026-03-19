@@ -256,6 +256,51 @@ Then make your DECISION: APPROVED (with SELECTED_FOR_[PLATFORM] lines) or REVISI
 If approving, end with:
 {chr(10).join(f'SELECTED_FOR_{p.upper()}: [1, 2, or 3]' for p in platforms)}"""
 
+    elif step == "dylan_sound":
+        approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
+        if not approved_copy:
+            approved_copy = steps.get("ana_review_copy", {}).get("output", "")
+        # Extract video brief from Sofia
+        sofia_output = steps.get("sofia_copy", {}).get("output", "")
+        video_brief = ""
+        vb_match = re.search(r'===VIDEO BRIEF===([\s\S]*?)$', sofia_output, re.IGNORECASE)
+        if vb_match:
+            video_brief = vb_match.group(1).strip()
+        campaign_name = pipeline.get("result", {}).get("campaign_name", "Brand")
+        video_mode = pipeline.get("result", {}).get("video_mode", "narration")
+
+        return f"""Analyze this campaign and create the complete AUDIO IDENTITY — voice, music, and narration delivery direction.
+
+Brand/Company: {campaign_name}
+Target Platforms: {platforms_str}
+Video Mode: {video_mode}
+{lang_instruction}
+
+APPROVED CAMPAIGN COPY:
+{approved_copy}
+
+VIDEO BRIEF FROM DAVID:
+{video_brief if video_brief else "(No video brief available)"}
+
+ORIGINAL BRIEFING:
+{briefing}
+
+{f'Context:{chr(10)}{ctx_str}' if ctx_str else ''}
+{contact_str}
+
+YOUR TASK:
+1. Analyze the brand personality, target audience, and campaign mood
+2. Select the PERFECT voice from your ElevenLabs catalog that EMBODIES this brand
+3. Configure the voice settings for maximum impact
+4. Write detailed narration delivery directions (emotion, pace, emphasis per segment)
+5. Select the ideal music track that amplifies the campaign's emotional arc
+6. Define the music mix (volume levels, fades, energy progression)
+7. Add platform-specific audio notes for the Video Director
+
+CRITICAL: Your audio direction will be followed EXACTLY by Ridley (Video Director) and the TTS engine. Be precise and specific. Every choice must serve the campaign's strategic goal.
+
+Output in the EXACT format specified in your instructions."""
+
     elif step == "marcos_video":
         approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
         image_briefing = ""
@@ -370,6 +415,23 @@ BRAND OVERLAY:
 - Website: {brand_data.get('website_url', '')}
 - Use this brand info in the CTA ending sequence"""
 
+        # Inject Dylan's audio DNA if available
+        dylan_output = steps.get("dylan_sound", {}).get("output", "")
+        audio_direction = ""
+        if dylan_output:
+            audio_direction = f"""
+
+=== AUDIO DIRECTION FROM DYLAN REED (Sound Director) ===
+Dylan has already analyzed the brand and selected the optimal voice, music, and narration delivery.
+You MUST follow his audio direction precisely. Do NOT override his voice or music choices.
+Your job is to create the visual script and narration TEXT — Dylan handles HOW it sounds.
+
+{dylan_output}
+
+=== END AUDIO DIRECTION ===
+IMPORTANT: Use Dylan's voice selection and music selection in your ===NARRATION TONE=== and ===MUSIC DIRECTION=== sections.
+Copy his Voice ID, tone recommendations, and music track key EXACTLY into your output."""
+
         return f"""Create a 24-second commercial video (TWO 12-second clips with perfect continuity) for this campaign.
 
 Brand/Company: {campaign_name}
@@ -384,13 +446,14 @@ Original briefing: {briefing}
 {avatar_instruction}
 {exact_photos_instruction}
 {brand_overlay_instruction}
+{audio_direction}
 {revision_info}
 
 REQUIREMENTS:
 1. Design TWO clips that feel like ONE continuous shot — same character, same visual style, seamless transition
 2. Write a DYNAMIC commercial narration script for the full 24 seconds with timing marks — urgent, exciting, creates FOMO
 3. The final 3 seconds: clean dark background for brand logo "{campaign_name}" + tagline + contact CTA
-4. Choose the right MUSIC MOOD that amplifies the commercial's emotional arc
+4. Follow Dylan's MUSIC and VOICE direction EXACTLY — use the same track key and voice ID he specified
 5. The narration and all text must be in the SAME LANGUAGE as the campaign copy above
 6. Include the contact info in the CTA SEQUENCE for the video ending overlay
 7. If an avatar/presenter is provided, they MUST be the main character in every scene — actively interacting, not just standing

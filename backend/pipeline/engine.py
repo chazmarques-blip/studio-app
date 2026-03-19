@@ -21,6 +21,47 @@ from pipeline.media import (
     _create_video_variants,
 )
 
+
+def _parse_dylan_audio(dylan_output):
+    """Parse Dylan Reed's audio direction output into voice_config dict."""
+    config = {}
+    if not dylan_output:
+        return config
+    # Parse voice ID
+    vid_match = re.search(r'Voice ID:\s*(\S+)', dylan_output, re.IGNORECASE)
+    if vid_match:
+        config["type"] = "elevenlabs"
+        config["voice_id"] = vid_match.group(1).strip()
+    # Parse voice settings
+    stab_match = re.search(r'Stability:\s*([\d.]+)', dylan_output, re.IGNORECASE)
+    if stab_match:
+        config["stability"] = float(stab_match.group(1))
+    sim_match = re.search(r'Similarity:\s*([\d.]+)', dylan_output, re.IGNORECASE)
+    if sim_match:
+        config["similarity"] = float(sim_match.group(1))
+    style_match = re.search(r'Style:\s*([\d.]+)', dylan_output, re.IGNORECASE)
+    if style_match:
+        config["style_val"] = float(style_match.group(1))
+    speed_match = re.search(r'Speed:\s*([\d.]+)', dylan_output, re.IGNORECASE)
+    if speed_match:
+        config["speed"] = float(speed_match.group(1))
+    # Parse tone from narration delivery
+    arc_match = re.search(r'Emotional Arc:\s*(.+)', dylan_output, re.IGNORECASE)
+    if arc_match:
+        config["tone"] = arc_match.group(1).strip().lower()[:80]
+    # Parse music track key
+    track_match = re.search(r'===MUSIC SELECTION===[\s\S]*?Track:\s*(\S+)', dylan_output, re.IGNORECASE)
+    if track_match:
+        config["_music_key"] = track_match.group(1).strip()
+    # Parse music mix volumes
+    narr_vol = re.search(r'Narration Volume:\s*(\d+)', dylan_output, re.IGNORECASE)
+    if narr_vol:
+        config["_music_narr_vol"] = int(narr_vol.group(1))
+    outro_vol = re.search(r'Outro Volume:\s*(\d+)', dylan_output, re.IGNORECASE)
+    if outro_vol:
+        config["_music_outro_vol"] = int(outro_vol.group(1))
+    return config
+
 # ── Shared mutable state ──
 _active_pipelines = set()
 _accuracy_jobs = {}
@@ -70,6 +111,7 @@ async def _execute_step(pipeline_id, step):
             "ana_review_copy": ("gemini", "gemini-2.0-flash"),
             "lucas_design": ("anthropic", "claude-sonnet-4-5-20250929"),
             "rafael_review_design": ("gemini", "gemini-2.0-flash"),
+            "dylan_sound": ("gemini", "gemini-2.0-flash"),
             "marcos_video": ("anthropic", "claude-sonnet-4-5-20250929"),
             "rafael_review_video": ("gemini", "gemini-2.0-flash"),
             "pedro_publish": ("gemini", "gemini-2.0-flash"),
@@ -335,12 +377,22 @@ async def _execute_step(pipeline_id, step):
                 avatar_url = pipeline.get("result", {}).get("avatar_url", "")
                 avatar_voice = pipeline.get("result", {}).get("avatar_voice", None)
 
+                # Get Dylan's audio direction for voice/music config
+                dylan_output = steps.get("dylan_sound", {}).get("output", "")
+                dylan_voice_config = _parse_dylan_audio(dylan_output) if dylan_output else {}
+
                 if video_mode == "presenter" and avatar_url:
                     # Presenter mode: talking head with lip-sync via fal.ai
                     video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=avatar_voice)
                 else:
-                    # Narration mode: 2 Sora clips + TTS narration (original behavior)
-                    video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=user_music, voice_config=avatar_voice)
+                    # Narration mode: 2 Sora clips + TTS narration
+                    # Dylan's config overrides default, avatar_voice overrides Dylan (user's manual choice)
+                    final_voice_config = dylan_voice_config.copy() if dylan_voice_config else {}
+                    if avatar_voice and isinstance(avatar_voice, dict) and avatar_voice.get("voice_id"):
+                        final_voice_config.update(avatar_voice)
+                    dylan_music = dylan_voice_config.get("_music_key", "")
+                    final_music = user_music or dylan_music
+                    video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=final_music, voice_config=final_voice_config or avatar_voice)
                 steps[step]["video_url"] = video_url
                 steps[step]["video_format"] = video_format
                 steps[step]["video_duration"] = 24
