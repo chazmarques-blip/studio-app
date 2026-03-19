@@ -86,6 +86,17 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] Per-campaign gallery button (Image icon) on campaign cards
 - [x] i18n labels for PT, EN, ES
 
+### Video Format & Branding Update (March 19, 2026)
+- [x] Updated VIDEO_PLATFORM_FORMATS with industry-standard dimensions:
+  - TikTok: 1080x1920 (9:16), Instagram Feed: 1080x1350 (4:5), Instagram Reels: 1080x1920 (9:16)
+  - Facebook Feed: 1280x720 (16:9), Facebook Stories: 1080x1920 (9:16)
+  - WhatsApp: 1080x1920 (9:16), YouTube: 1920x1080 (16:9), YouTube Shorts: 1080x1920 (9:16)
+  - Google Ads: 1920x1080, Telegram: 1280x720, Email: 1280x720, SMS: 1080x1920
+- [x] Auto-expansion: selecting Instagram generates both Feed (4:5) AND Reels (9:16)
+- [x] Same for Facebook (Feed + Stories) and YouTube (Video + Shorts)
+- [x] Branding enriched: logo from company brand_data, contact CTA from phone/website
+- [x] Presenter video now also gets brand ending (logo + name + contact)
+
 ## Known Issues
 - **Sora 2 Video Generation API** - Was down, now reported stable (needs re-verification)
 - **Pipeline steps can get stuck** - Auto-recovery added (GET/LIST triggers)

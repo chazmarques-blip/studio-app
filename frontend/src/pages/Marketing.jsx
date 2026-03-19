@@ -694,9 +694,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   ) : null;
                   // Format badge for channel
                   const FORMAT_SIZES = {
-                    whatsapp: '1:1 · 720x720', instagram: '1:1 · 1080x1080', facebook: '16:9 · 1280x720',
-                    tiktok: '9:16 · 720x1280', google_ads: '16:9 · 1344x768', telegram: '16:9 · 1280x720',
-                    email: '16:9 · 1280x720', sms: '9:16 · 720x1280'
+                    tiktok: '9:16 · 1080x1920', instagram: '4:5 · 1080x1350', instagram_reels: '9:16 · 1080x1920',
+                    facebook: '16:9 · 1280x720', facebook_stories: '9:16 · 1080x1920',
+                    whatsapp: '9:16 · 1080x1920', youtube: '16:9 · 1920x1080', youtube_shorts: '9:16 · 1080x1920',
+                    google_ads: '16:9 · 1920x1080', telegram: '16:9 · 1280x720',
+                    email: '16:9 · 1280x720', sms: '9:16 · 1080x1920'
                   };
 
                   if (channel === 'whatsapp') return (

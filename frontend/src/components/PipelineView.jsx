@@ -2315,7 +2315,7 @@ export default function PipelineView({ context }) {
         <div>
           <label className="text-[9px] text-[#555] uppercase tracking-wider block mb-1.5">{t('studio.platforms')}</label>
           <div className="flex flex-wrap gap-1.5">
-            {PLATFORMS.map(p => (
+            {PLATFORMS.filter(p => !p.parent).map(p => (
               <button key={p.id} data-testid={`platform-${p.id}`} onClick={() => togglePlatform(p.id)}
                 className={`rounded-lg px-3 py-1.5 text-[11px] font-medium border transition ${platforms.includes(p.id) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#555] hover:text-white'}`}>
                 {p.label}

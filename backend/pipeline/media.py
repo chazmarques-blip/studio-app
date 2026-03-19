@@ -148,11 +148,30 @@ def _resize_image_for_platform(img_bytes: bytes, target_w: int, target_h: int) -
 
 async def _create_platform_variants(pipeline_id: str, base_image_urls: list, platforms: list) -> dict:
     """Create platform-specific image variants by cropping/resizing base images.
-    Returns dict: { "tiktok": [url1, url2, url3], "google_ads": [url1, url2, url3], ... }
+    Returns dict: { "tiktok": [url1, url2, url3], "instagram_reels": [url1, url2, url3], ... }
     """
+    # Expand platforms to include sub-formats
+    SUB_FORMATS = {
+        "instagram": ["instagram", "instagram_reels"],
+        "facebook": ["facebook", "facebook_stories"],
+        "youtube": ["youtube", "youtube_shorts"],
+    }
+    expanded = []
+    for p in platforms:
+        if p in SUB_FORMATS:
+            expanded.extend(SUB_FORMATS[p])
+        else:
+            expanded.append(p)
+    seen = set()
+    all_platforms = []
+    for p in expanded:
+        if p not in seen:
+            seen.add(p)
+            all_platforms.append(p)
+
     # Determine which unique aspect ratios we need
     needed_ratios = {}  # label -> {platforms, w, h}
-    for p in platforms:
+    for p in all_platforms:
         cfg = PLATFORM_ASPECT_RATIOS.get(p)
         if not cfg:
             continue
@@ -163,7 +182,7 @@ async def _create_platform_variants(pipeline_id: str, base_image_urls: list, pla
 
     # Base images are assumed 1:1 (1024x1024). Create variants for non-1:1 ratios.
     variants = {}
-    for p in platforms:
+    for p in all_platforms:
         variants[p] = list(base_image_urls)  # default: same as base
 
     non_square_ratios = {k: v for k, v in needed_ratios.items() if k != "1:1"}
@@ -200,9 +219,29 @@ async def _create_platform_variants(pipeline_id: str, base_image_urls: list, pla
 
 async def _create_video_variants(pipeline_id: str, master_video_url: str, master_format: str, platforms: list) -> dict:
     """Create platform-specific video variants by cropping/resizing the master video.
-    Returns dict: { "tiktok": "url", "instagram": "url", ... }
+    Returns dict: { "tiktok": "url", "instagram": "url", "instagram_reels": "url", ... }
     """
     import urllib.request as urlreq
+
+    # Expand platforms to include sub-formats
+    SUB_FORMATS = {
+        "instagram": ["instagram", "instagram_reels"],
+        "facebook": ["facebook", "facebook_stories"],
+        "youtube": ["youtube", "youtube_shorts"],
+    }
+    expanded = []
+    for p in platforms:
+        if p in SUB_FORMATS:
+            expanded.extend(SUB_FORMATS[p])
+        else:
+            expanded.append(p)
+    # Deduplicate while preserving order
+    seen = set()
+    expanded_unique = []
+    for p in expanded:
+        if p not in seen:
+            seen.add(p)
+            expanded_unique.append(p)
 
     # Download master video
     master_path = f"/tmp/{pipeline_id}_master_vid.mp4"
@@ -222,7 +261,7 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
     # Group by unique target size to avoid duplicate processing
     done_sizes = {}  # "WxH" -> url
 
-    for platform in platforms:
+    for platform in expanded_unique:
         fmt = VIDEO_PLATFORM_FORMATS.get(platform)
         if not fmt:
             variants[platform] = master_video_url
@@ -957,22 +996,48 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
             shutil.copy2(clip1_path, clip2_path)
             logger.warning("Reverse failed, using clip1 copy as clip2")
 
-    # 3. Check for uploaded logo image
+    # 3. Check for logo image: first from company brand_data, then from uploaded_assets
     logo_path = None
     try:
         pipeline = supabase.table("pipelines").select("result").eq("id", pipeline_id).single().execute()
-        assets = pipeline.data.get("result", {}).get("uploaded_assets", []) if pipeline.data else []
-        backend_url = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
-        for asset in assets:
-            url = asset.get("url", "") if isinstance(asset, dict) else str(asset)
-            if url and any(url.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp']):
-                # Convert relative URL to absolute
-                if url.startswith('/'):
-                    url = f"{backend_url}{url}"
-                logo_path = f"/tmp/{pipeline_id}_logo.png"
-                urllib.request.urlretrieve(url, logo_path)
-                logger.info(f"Downloaded logo for video: {url}")
-                break
+        result = pipeline.data.get("result", {}) if pipeline.data else {}
+        
+        # Try company logo from brand_data first
+        brand_data = result.get("brand_data", {})
+        logo_url = brand_data.get("logo_url", "") if brand_data else ""
+        
+        # Fallback to uploaded_assets
+        if not logo_url:
+            assets = result.get("uploaded_assets", [])
+            backend_url = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
+            for asset in assets:
+                url = asset.get("url", "") if isinstance(asset, dict) else str(asset)
+                if url and any(url.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp']):
+                    if url.startswith('/'):
+                        url = f"{backend_url}{url}"
+                    logo_url = url
+                    break
+        
+        if logo_url:
+            logo_path = f"/tmp/{pipeline_id}_logo.png"
+            urllib.request.urlretrieve(logo_url, logo_path)
+            logger.info(f"Downloaded logo for video: {logo_url}")
+        
+        # Also enrich contact_cta from brand_data if not parsed from AI output
+        if not contact_cta and brand_data:
+            parts = []
+            if brand_data.get("phone"):
+                parts.append(brand_data["phone"])
+            if brand_data.get("website_url"):
+                parts.append(brand_data["website_url"])
+            if parts:
+                contact_cta = " | ".join(parts)
+                logger.info(f"Using brand_data contact CTA: {contact_cta}")
+        
+        # Enrich brand_name from brand_data if not parsed
+        if not brand_name and brand_data.get("company_name"):
+            brand_name = brand_data["company_name"]
+            
     except Exception as e:
         logger.warning(f"Could not fetch logo from pipeline: {e}")
 
@@ -1188,6 +1253,69 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
         if r.returncode != 0:
             logger.warning(f"Final mix failed: {r.stderr[:300] if r.stderr else ''}")
             shutil.copy2(concat_path, output_path)
+
+        # Add brand ending to presenter video (logo + contact info)
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            try:
+                pipeline_rec = supabase.table("pipelines").select("result").eq("id", pipeline_id).single().execute()
+                p_result = pipeline_rec.data.get("result", {}) if pipeline_rec.data else {}
+                p_brand = p_result.get("brand_data", {})
+                logo_url = p_brand.get("logo_url", "") if p_brand else ""
+                p_contact = ""
+                if p_brand:
+                    parts = []
+                    if p_brand.get("phone"): parts.append(p_brand["phone"])
+                    if p_brand.get("website_url"): parts.append(p_brand["website_url"])
+                    if parts: p_contact = " | ".join(parts)
+                p_brand_name = brand_name or (p_brand.get("company_name", "") if p_brand else "")
+
+                p_logo_path = None
+                if logo_url:
+                    p_logo_path = f"/tmp/{pipeline_id}_plogo.png"
+                    import urllib.request as urlreq2
+                    urlreq2.urlretrieve(logo_url, p_logo_path)
+
+                # Apply branding overlay
+                vid_dur = _ffprobe_duration(output_path) or 24.0
+                b_start = max(vid_dur - 4, 18)
+                b_mid = b_start + 0.5
+                b_late = b_start + 1.0
+                font = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
+                def _safe(t):
+                    if not t: return ""
+                    for ch in ["'",'"',":",";",'[',']','(',')',',','%']:
+                        t = t.replace(ch, " ")
+                    return " ".join(t.split())
+
+                branded_out = f"/tmp/{pipeline_id}_presenter_branded.mp4"
+                branded_ok = False
+                if p_logo_path and os.path.exists(p_logo_path):
+                    scaled = f"/tmp/{pipeline_id}_plogo_s.png"
+                    subprocess.run(f"{FFMPEG} -y -i {p_logo_path} -vf scale=240:-1 {scaled}", shell=True, capture_output=True, timeout=30)
+                    if not os.path.exists(scaled): scaled = p_logo_path
+                    vf = (f"[0:v]drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill:enable='between(t,{b_start},{vid_dur})'[bg];"
+                          f"[1:v]scale=240:-1[logo];[bg][logo]overlay=(W-w)/2:(H/4)-(h/2):enable='between(t,{b_start},{vid_dur})'")
+                    s_brand = _safe(p_brand_name)
+                    if s_brand:
+                        vf += f",drawtext=text='{s_brand}':fontfile={font}:fontsize=40:fontcolor=white:x=(w-text_w)/2:y=(h/2):enable='between(t,{b_mid},{vid_dur})'"
+                    if p_contact:
+                        vf += f",drawtext=text='{_safe(p_contact)}':fontfile={font}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+20:enable='between(t,{b_late},{vid_dur})'"
+                    br = subprocess.run([FFMPEG, "-y", "-i", output_path, "-i", scaled, "-filter_complex", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-c:a", "copy", branded_out], capture_output=True, text=True, timeout=120)
+                    branded_ok = br.returncode == 0 and os.path.exists(branded_out)
+                
+                if not branded_ok and p_brand_name:
+                    tvf = f"drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill:enable='between(t,{b_start},{vid_dur})'"
+                    tvf += f",drawtext=text='{_safe(p_brand_name)}':fontfile={font}:fontsize=60:fontcolor=white:x=(w-text_w)/2:y=(h/3):enable='between(t,{b_start},{vid_dur})'"
+                    if p_contact:
+                        tvf += f",drawtext=text='{_safe(p_contact)}':fontfile={font}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+20:enable='between(t,{b_late},{vid_dur})'"
+                    br = subprocess.run([FFMPEG, "-y", "-i", output_path, "-vf", tvf, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-c:a", "copy", branded_out], capture_output=True, text=True, timeout=120)
+                    branded_ok = br.returncode == 0 and os.path.exists(branded_out)
+                
+                if branded_ok:
+                    shutil.copy2(branded_out, output_path)
+                    logger.info("Presenter video branding applied")
+            except Exception as be:
+                logger.warning(f"Presenter branding failed (non-fatal): {be}")
 
         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
             with open(output_path, "rb") as f:

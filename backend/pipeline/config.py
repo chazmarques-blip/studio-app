@@ -488,9 +488,13 @@ MUSIC_LIBRARY = {
 
 PLATFORM_ASPECT_RATIOS = {
     "tiktok": {"ratio": (9, 16), "label": "9:16", "w": 768, "h": 1344},
-    "instagram": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
+    "instagram": {"ratio": (4, 5), "label": "4:5", "w": 864, "h": 1080},
+    "instagram_reels": {"ratio": (9, 16), "label": "9:16", "w": 768, "h": 1344},
     "facebook": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
-    "whatsapp": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
+    "facebook_stories": {"ratio": (9, 16), "label": "9:16", "w": 768, "h": 1344},
+    "whatsapp": {"ratio": (9, 16), "label": "9:16", "w": 768, "h": 1344},
+    "youtube": {"ratio": (16, 9), "label": "16:9", "w": 1344, "h": 768},
+    "youtube_shorts": {"ratio": (9, 16), "label": "9:16", "w": 768, "h": 1344},
     "google_ads": {"ratio": (16, 9), "label": "16:9", "w": 1344, "h": 768},
     "telegram": {"ratio": (1, 1), "label": "1:1", "w": 1024, "h": 1024},
     "email": {"ratio": (16, 9), "label": "16:9", "w": 1344, "h": 768},
@@ -499,14 +503,27 @@ PLATFORM_ASPECT_RATIOS = {
 
 
 VIDEO_PLATFORM_FORMATS = {
-    "tiktok": {"w": 720, "h": 1280, "label": "9:16"},
-    "instagram": {"w": 1080, "h": 1080, "label": "1:1"},
+    # TikTok — Full HD vertical
+    "tiktok": {"w": 1080, "h": 1920, "label": "9:16"},
+    # Instagram — Feed (4:5 otimizado) + Reels/Stories (9:16)
+    "instagram": {"w": 1080, "h": 1350, "label": "4:5"},
+    "instagram_reels": {"w": 1080, "h": 1920, "label": "9:16"},
+    # Facebook — Feed (16:9) + Stories/Reels (9:16)
     "facebook": {"w": 1280, "h": 720, "label": "16:9"},
-    "whatsapp": {"w": 720, "h": 720, "label": "1:1"},
-    "google_ads": {"w": 1280, "h": 720, "label": "16:9"},
+    "facebook_stories": {"w": 1080, "h": 1920, "label": "9:16"},
+    # WhatsApp — Status vertical
+    "whatsapp": {"w": 1080, "h": 1920, "label": "9:16"},
+    # YouTube — Horizontal HD + Shorts vertical
+    "youtube": {"w": 1920, "h": 1080, "label": "16:9"},
+    "youtube_shorts": {"w": 1080, "h": 1920, "label": "9:16"},
+    # Google Ads — Full HD horizontal
+    "google_ads": {"w": 1920, "h": 1080, "label": "16:9"},
+    # Telegram — HD horizontal
     "telegram": {"w": 1280, "h": 720, "label": "16:9"},
+    # Email — HD horizontal
     "email": {"w": 1280, "h": 720, "label": "16:9"},
-    "sms": {"w": 720, "h": 1280, "label": "9:16"},
+    # SMS — Vertical
+    "sms": {"w": 1080, "h": 1920, "label": "9:16"},
 }
 
 

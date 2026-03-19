@@ -31,14 +31,18 @@ const STEP_META = {
 const STEP_ORDER = ['sofia_copy', 'ana_review_copy', 'lucas_design', 'rafael_review_design', 'marcos_video', 'rafael_review_video', 'pedro_publish'];
 
 const PLATFORMS = [
-  { id: 'whatsapp', label: 'WhatsApp', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '768x1344' },
-  { id: 'instagram', label: 'Instagram', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '768x1344' },
-  { id: 'facebook', label: 'Facebook', imgRatio: '1:1', vidRatio: '16:9', imgSize: '1024x1024', vidSize: '1280x720' },
-  { id: 'tiktok', label: 'TikTok', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '768x1344' },
-  { id: 'google_ads', label: 'Google Ads', imgRatio: '16:9', vidRatio: '16:9', imgSize: '1344x768', vidSize: '1280x720' },
+  { id: 'whatsapp', label: 'WhatsApp', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '1080x1920' },
+  { id: 'instagram', label: 'Instagram Feed', imgRatio: '4:5', vidRatio: '4:5', imgSize: '864x1080', vidSize: '1080x1350', subFormats: ['instagram_reels'] },
+  { id: 'instagram_reels', label: 'Instagram Reels', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '1080x1920', parent: 'instagram' },
+  { id: 'facebook', label: 'Facebook Feed', imgRatio: '1:1', vidRatio: '16:9', imgSize: '1024x1024', vidSize: '1280x720', subFormats: ['facebook_stories'] },
+  { id: 'facebook_stories', label: 'Facebook Stories', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '1080x1920', parent: 'facebook' },
+  { id: 'tiktok', label: 'TikTok', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '1080x1920' },
+  { id: 'youtube', label: 'YouTube', imgRatio: '16:9', vidRatio: '16:9', imgSize: '1344x768', vidSize: '1920x1080', subFormats: ['youtube_shorts'] },
+  { id: 'youtube_shorts', label: 'YouTube Shorts', imgRatio: '9:16', vidRatio: '9:16', imgSize: '768x1344', vidSize: '1080x1920', parent: 'youtube' },
+  { id: 'google_ads', label: 'Google Ads', imgRatio: '16:9', vidRatio: '16:9', imgSize: '1344x768', vidSize: '1920x1080' },
   { id: 'telegram', label: 'Telegram', imgRatio: '1:1', vidRatio: '16:9', imgSize: '1024x1024', vidSize: '1280x720' },
   { id: 'email', label: 'Email', imgRatio: '16:9', vidRatio: '16:9', imgSize: '1344x768', vidSize: '1280x720' },
-  { id: 'sms', label: 'SMS', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '768x1344' },
+  { id: 'sms', label: 'SMS', imgRatio: '1:1', vidRatio: '9:16', imgSize: '1024x1024', vidSize: '1080x1920' },
 ];
 
 export { cleanDisplayText, STEP_META, STEP_ORDER, PLATFORMS };
