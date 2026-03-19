@@ -552,7 +552,22 @@ class AvatarAccuracyRequest(BaseModel):
 
 class VoicePreviewRequest(BaseModel):
     voice_id: str = "alloy"
+    voice_type: str = "openai"  # 'openai' or 'elevenlabs'
     text: str = "Hello! This is a preview of my voice. I can be the presenter for your marketing campaigns."
+
+
+ELEVENLABS_VOICES = [
+    {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel", "gender": "female", "accent": "American", "style": "Calm, Warm"},
+    {"id": "TX3LPaxmHKxFdv7VOQHJ", "name": "Liam", "gender": "male", "accent": "American", "style": "Deep, Confident"},
+    {"id": "29vD33N1CtxCmqQRPOHJ", "name": "Drew", "gender": "male", "accent": "American", "style": "Soft, Narrative"},
+    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella", "gender": "female", "accent": "American", "style": "Bright, Friendly"},
+    {"id": "MF3mGyEYCl7XYWbV9V6O", "name": "Emily", "gender": "female", "accent": "American", "style": "Calm, Clear"},
+    {"id": "jBpfuIE2acCO8z3wKNLl", "name": "Gigi", "gender": "female", "accent": "American", "style": "Youthful, Animated"},
+    {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "gender": "male", "accent": "British", "style": "Authoritative, Deep"},
+    {"id": "pqHfZKP75CvOlQylNhV4", "name": "Bill", "gender": "male", "accent": "American", "style": "Warm, Trustworthy"},
+    {"id": "XB0fDUnXU5powFXDhCwa", "name": "Charlotte", "gender": "female", "accent": "Neutral", "style": "Seductive, Calm"},
+    {"id": "JBFqnCBsd6RMkjVDRZzb", "name": "George", "gender": "male", "accent": "British", "style": "Warm, Raspy"},
+]
 
 
 

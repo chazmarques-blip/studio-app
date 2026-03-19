@@ -22,7 +22,7 @@ from pipeline.config import (
     AvatarGenerateRequest, AvatarAccuracyRequest,
     AvatarVideoPreviewRequest, AvatarVariantRequest,
     AvatarBatch360Request, VoicePreviewRequest,
-    MasterVoiceRequest,
+    MasterVoiceRequest, ELEVENLABS_VOICES,
 )
 from pipeline.utils import (
     _upload_to_storage, _describe_person,
@@ -438,21 +438,50 @@ async def extract_from_video(file: UploadFile = File(...), user=Depends(get_curr
 
 
 
+@router.get("/elevenlabs-voices")
+async def get_elevenlabs_voices(user=Depends(get_current_user)):
+    """Return list of available ElevenLabs premium voices."""
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    return {"voices": ELEVENLABS_VOICES, "available": bool(elevenlabs_key)}
+
+
 @router.post("/voice-preview")
 async def voice_preview(req: VoicePreviewRequest, user=Depends(get_current_user)):
-    """Generate a short voice preview using OpenAI TTS."""
-    valid_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-    if req.voice_id not in valid_voices:
-        raise HTTPException(status_code=400, detail=f"Invalid voice. Choose from: {', '.join(valid_voices)}")
+    """Generate a short voice preview using ElevenLabs (premium) or OpenAI TTS."""
     try:
+        text = req.text[:200]
+
+        # ── ElevenLabs Voice ──
+        if req.voice_type == "elevenlabs":
+            elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+            if not elevenlabs_key:
+                raise HTTPException(status_code=400, detail="ElevenLabs not configured")
+            from elevenlabs import ElevenLabs as ELClient, VoiceSettings
+            el = ELClient(api_key=elevenlabs_key)
+            audio_gen = el.text_to_speech.convert(
+                text=text,
+                voice_id=req.voice_id,
+                model_id="eleven_multilingual_v2",
+                voice_settings=VoiceSettings(stability=0.5, similarity_boost=0.75, style=0.3, use_speaker_boost=True),
+            )
+            audio_bytes = b"".join(audio_gen)
+            filename = f"voice_previews/el_preview_{req.voice_id[:8]}_{uuid.uuid4().hex[:6]}.mp3"
+            public_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
+            return {"audio_url": public_url, "voice_id": req.voice_id, "voice_type": "elevenlabs"}
+
+        # ── OpenAI TTS ──
+        valid_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+        voice_id = req.voice_id if req.voice_id in valid_voices else "onyx"
         tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
         audio_bytes = await tts.generate_speech(
-            text=req.text[:200], model="tts-1-hd",
-            voice=req.voice_id, speed=1.0, response_format="mp3"
+            text=text, model="tts-1-hd",
+            voice=voice_id, speed=1.0, response_format="mp3"
         )
-        filename = f"voice_previews/preview_{req.voice_id}_{uuid.uuid4().hex[:6]}.mp3"
+        filename = f"voice_previews/preview_{voice_id}_{uuid.uuid4().hex[:6]}.mp3"
         public_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
-        return {"audio_url": public_url, "voice_id": req.voice_id}
+        return {"audio_url": public_url, "voice_id": voice_id, "voice_type": "openai"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Voice preview failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -558,15 +587,37 @@ def _run_preview_generation(job_id: str, avatar_url: str, voice_url: str, voice_
 
         # If no custom voice, generate TTS audio
         if not audio_url:
-            tts_voice = voice_id if voice_id in ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] else "onyx"
-            tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
-            audio_bytes = loop.run_until_complete(tts.generate_speech(
-                text=text, model="tts-1-hd",
-                voice=tts_voice, speed=1.0, response_format="mp3"
-            ))
-            audio_filename = f"voice_previews/preview_tts_{uuid.uuid4().hex[:6]}.mp3"
-            audio_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
-            logger.info(f"Preview TTS audio generated: {audio_filename}")
+            # Try ElevenLabs first (check if voice_id is an ElevenLabs ID)
+            el_voice_ids = {v["id"] for v in ELEVENLABS_VOICES}
+            elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+
+            if elevenlabs_key and voice_id in el_voice_ids:
+                try:
+                    from elevenlabs import ElevenLabs as ELClient, VoiceSettings
+                    el = ELClient(api_key=elevenlabs_key)
+                    audio_gen = el.text_to_speech.convert(
+                        text=text, voice_id=voice_id,
+                        model_id="eleven_multilingual_v2",
+                        voice_settings=VoiceSettings(stability=0.5, similarity_boost=0.75, style=0.3, use_speaker_boost=True),
+                    )
+                    audio_bytes = b"".join(audio_gen)
+                    audio_filename = f"voice_previews/el_tts_{uuid.uuid4().hex[:6]}.mp3"
+                    audio_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+                    logger.info(f"ElevenLabs preview TTS: {audio_filename}")
+                except Exception as e:
+                    logger.warning(f"ElevenLabs preview failed, falling back to OpenAI: {e}")
+
+            # OpenAI TTS fallback
+            if not audio_url:
+                tts_voice = voice_id if voice_id in ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] else "onyx"
+                tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
+                audio_bytes = loop.run_until_complete(tts.generate_speech(
+                    text=text, model="tts-1-hd",
+                    voice=tts_voice, speed=1.0, response_format="mp3"
+                ))
+                audio_filename = f"voice_previews/preview_tts_{uuid.uuid4().hex[:6]}.mp3"
+                audio_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+                logger.info(f"OpenAI preview TTS generated: {audio_filename}")
 
         _preview_jobs[job_id] = {"status": "generating_video", "progress": "Lip-sync..."}
 
