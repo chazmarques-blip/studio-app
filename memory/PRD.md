@@ -54,6 +54,7 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - Multi-language support (EN, PT, ES)
 - Unified Share Area
 - ElevenLabs TTS Integration for video narration
+- **ElevenLabs Premium Voices for Avatars** (backend + frontend complete)
 - Scale-to-fit + padding for image/video format conversion
 - Two-tab campaign detail (Content | Results)
 - Per-platform video variants (8 platforms)
@@ -68,8 +69,17 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 - [x] All 37 backend routes preserved and tested (iteration_69)
 - [x] Avatar audio fix for older avatars (missing `language` field) verified working
 
+## Completed - March 19, 2026
+### ElevenLabs Premium Voices for Avatars
+- [x] Backend: `/elevenlabs-voices` endpoint, `voice-preview` with `voice_type` param (openai/elevenlabs)
+- [x] Backend: Route order fix in `pipeline/__init__.py` (avatar_routes before routes)
+- [x] Frontend: 3 voice sub-tabs (Voice Bank, Premium ElevenLabs, Custom Recording)
+- [x] Frontend: ElevenLabs voice selection, preview playback, visual indicators (Crown icon)
+- [x] Frontend: Avatar edit auto-selects correct voice tab based on saved voice type
+- [x] All tested and verified (iteration_70: 10/10 backend tests passed)
+
 ## Known Issues
-- **Sora 2 Video Generation API DOWN** - Returns 500 Server Error. External issue.
+- **Sora 2 Video Generation API** - Was down, now reported stable (needs re-verification)
 - **Pipeline steps can get stuck** - Auto-recovery added (GET/LIST triggers)
 
 ## Backlog (Priority Order)
