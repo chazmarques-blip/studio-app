@@ -1708,7 +1708,7 @@ function GlobalArtGallery({ campaigns, labels }) {
                                   {asset.type === 'image' ? (
                                     <img src={resolveImageUrl(asset.url)} alt="" className="w-full h-full object-cover" />
                                   ) : (
-                                    <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                                    <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" autoPlay loop playsInline controls />
                                   )}
                                   {/* Platform UI overlay */}
                                   {(isVertical || isFeed) && (
