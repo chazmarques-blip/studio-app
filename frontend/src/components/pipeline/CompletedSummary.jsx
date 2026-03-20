@@ -1,13 +1,32 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Download, Eye, Maximize2, X, Play, Film, Loader2, RefreshCw, Send, Globe, Phone, Mail, MapPin, Building2, Image, FileText } from 'lucide-react';
+import { Check, Download, Eye, Maximize2, X, Play, Film, Loader2, RefreshCw, Send, Globe, Phone, Mail, MapPin, Building2, Image, FileText, Palette, Sparkles, CalendarClock } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { STEP_ORDER, cleanDisplayText } from './constants';
 import FinalPreview from '../FinalPreview';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
+import { ImageLightbox } from './ImageLightbox';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const STYLE_FILTERS = [
+  { id: 'professional', label: 'Professional', icon: '💼', color: '#4A90D9' },
+  { id: 'minimalist', label: 'Minimalist', icon: '◻️', color: '#A0A0A0' },
+  { id: 'vibrant', label: 'Bold & Vibrant', icon: '🎨', color: '#FF6B6B' },
+  { id: 'luxury', label: 'Luxury', icon: '✨', color: '#C9A84C' },
+  { id: 'playful', label: 'Fun & Playful', icon: '🎉', color: '#FF9F43' },
+  { id: 'bold', label: 'Bold Impact', icon: '⚡', color: '#E74C3C' },
+  { id: 'organic', label: 'Natural & Organic', icon: '🌿', color: '#27AE60' },
+  { id: 'tech', label: 'Tech & Modern', icon: '🔮', color: '#8E44AD' },
+  { id: 'cartoon', label: 'Cartoon', icon: '🎭', color: '#F39C12' },
+  { id: 'illustration', label: 'Illustration', icon: '🖌️', color: '#E67E22' },
+  { id: 'watercolor', label: 'Watercolor', icon: '💧', color: '#3498DB' },
+  { id: 'neon', label: 'Neon Glow', icon: '💜', color: '#9B59B6' },
+  { id: 'retro', label: 'Retro & Vintage', icon: '📼', color: '#D35400' },
+  { id: 'flat', label: 'Flat Design', icon: '📐', color: '#1ABC9C' },
+  { id: 'corporate', label: 'Corporate', icon: '🏢', color: '#2C3E50' },
+];
 
 function CompletedSummary({ pipeline }) {
   const { t } = useTranslation();
@@ -22,6 +41,33 @@ function CompletedSummary({ pipeline }) {
   const [activeTab, setActiveTab] = useState('preview');
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [showVideoLightbox, setShowVideoLightbox] = useState(false);
+  const [generatingStyle, setGeneratingStyle] = useState(null);
+  const [styleVariations, setStyleVariations] = useState([]);
+
+  const generateStyleVariation = async (styleId) => {
+    setGeneratingStyle(styleId);
+    try {
+      const token = localStorage.getItem('token');
+      const campName = pipeline.name || pipeline.campaign_name || '';
+      const productDesc = pipeline.product_description || pipeline.company_description || '';
+      const res = await axios.post(`${API}/campaigns/pipeline/regenerate-single-image`, {
+        style: styleId,
+        pipeline_id: pipeline.id,
+        campaign_name: campName,
+        campaign_copy: approvedCopy.slice(0, 500),
+        product_description: productDesc,
+        prompt_override: '',
+        language: pipeline.result?.campaign_language || 'pt',
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data?.url) {
+        setStyleVariations(prev => [{ style: styleId, url: res.data.url, label: STYLE_FILTERS.find(s => s.id === styleId)?.label || styleId }, ...prev]);
+        toast.success(t('studio.variation_created') || 'New variation created!');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to generate variation');
+    }
+    setGeneratingStyle(null);
+  };
 
   const copyToClipboard = (text) => {
     try {
@@ -49,6 +95,7 @@ function CompletedSummary({ pipeline }) {
             { id: 'copy', label: 'Copy Final', icon: FileText },
             { id: 'images', label: `Imagens (${images.length})`, icon: Image },
             ...(videoUrl ? [{ id: 'video', label: 'Video', icon: Film }] : []),
+            { id: 'variations', label: 'Create Art', icon: Palette },
             { id: 'schedule', label: 'Cronograma', icon: CalendarClock },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`summary-tab-${tab.id}`}
@@ -167,6 +214,63 @@ function CompletedSummary({ pipeline }) {
                 <Download size={10} /> {t('studio.download_video')}
               </a>
             </div>
+          </div>
+        )}
+        {activeTab === 'variations' && (
+          <div data-testid="style-variations-tab">
+            <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">Choose a visual style to create new art</p>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mb-4">
+              {STYLE_FILTERS.map(sf => (
+                <button key={sf.id} data-testid={`style-${sf.id}`}
+                  onClick={() => generateStyleVariation(sf.id)}
+                  disabled={generatingStyle !== null}
+                  className={`rounded-lg border p-2 text-center transition-all hover:scale-[1.02] ${
+                    generatingStyle === sf.id
+                      ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10'
+                      : 'border-[#1E1E1E] bg-[#0D0D0D] hover:border-white/[0.15] hover:bg-[#111]'
+                  } disabled:opacity-40`}>
+                  {generatingStyle === sf.id ? (
+                    <Loader2 size={16} className="animate-spin text-[#C9A84C] mx-auto mb-1" />
+                  ) : (
+                    <span className="text-sm block mb-0.5">{sf.icon}</span>
+                  )}
+                  <span className="text-[8px] font-semibold text-[#ccc] block leading-tight">{sf.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Generated variations gallery */}
+            {styleVariations.length > 0 && (
+              <div>
+                <p className="text-[9px] text-[#C9A84C] uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                  <Sparkles size={9} /> Generated Variations ({styleVariations.length})
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {styleVariations.map((sv, i) => (
+                    <div key={i} className="relative rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group hover:border-[#C9A84C]/30 transition">
+                      <img src={resolveImageUrl(sv.url)} alt={sv.label} className="w-full aspect-square object-cover" loading="lazy" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <a href={resolveImageUrl(sv.url)} target="_blank" rel="noopener noreferrer"
+                          className="h-8 w-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <Download size={14} className="text-white" />
+                        </a>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-1.5">
+                        <span className="text-[8px] font-semibold text-white">{sv.label}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {styleVariations.length === 0 && !generatingStyle && (
+              <div className="text-center py-6 rounded-lg border border-dashed border-[#1E1E1E]">
+                <Palette size={24} className="text-[#333] mx-auto mb-2" />
+                <p className="text-[10px] text-[#555]">Click a style above to generate a new art variation</p>
+                <p className="text-[8px] text-[#333] mt-1">Uses the same campaign prompt with a different visual style</p>
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'schedule' && (

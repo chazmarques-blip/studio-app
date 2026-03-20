@@ -343,14 +343,21 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
             </div>
             <div className="flex flex-wrap gap-1">
               {[
-                { key: 'minimalist', label: t('studio.style_minimalist') },
-                { key: 'vibrant', label: t('studio.style_vibrant') },
-                { key: 'luxury', label: t('studio.style_luxury') },
-                { key: 'corporate', label: t('studio.style_corporate') },
-                { key: 'playful', label: t('studio.style_playful') },
-                { key: 'bold', label: t('studio.style_bold') },
-                { key: 'organic', label: t('studio.style_organic') },
-                { key: 'tech', label: t('studio.style_tech') },
+                { key: 'professional', label: 'Professional' },
+                { key: 'minimalist', label: 'Minimalist' },
+                { key: 'vibrant', label: 'Bold & Vibrant' },
+                { key: 'luxury', label: 'Luxury' },
+                { key: 'playful', label: 'Fun & Playful' },
+                { key: 'bold', label: 'Bold Impact' },
+                { key: 'organic', label: 'Natural & Organic' },
+                { key: 'tech', label: 'Tech & Modern' },
+                { key: 'cartoon', label: 'Cartoon' },
+                { key: 'illustration', label: 'Illustration' },
+                { key: 'watercolor', label: 'Watercolor' },
+                { key: 'neon', label: 'Neon Glow' },
+                { key: 'retro', label: 'Retro & Vintage' },
+                { key: 'flat', label: 'Flat Design' },
+                { key: 'corporate', label: 'Corporate' },
               ].map(s => (
                 <button key={s.key} disabled={regenerating}
                   onClick={() => { setSelectedStyle(s.key); handleRegenerateImage(s.key); }}
