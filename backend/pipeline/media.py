@@ -934,17 +934,19 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 f"afade=t=in:d=1.5:curve=exp,"
                 f"afade=t=out:st={fade_out_start}:d=3:curve=exp"
             )
-            # Sidechain: narration signal controls music compression
-            # level_in=0.18 → music base level ~18% (cinematic bed)
-            # threshold=0.025 → duck when voice > ~-32dB
-            # ratio=8 → aggressive ducking
-            # attack=15ms → fast response, release=250ms → smooth return
-            sidechain = "sidechaincompress=threshold=0.025:ratio=8:attack=15:release=250:level_in=0.18:level_sc=1"
+            # Sidechain: MUSIC gets compressed when NARRATION is present
+            # [music][narr] → first input (music) is compressed, second input (narr) is the sidechain trigger
+            # level_in=0.22 → music base level ~22% (cinematic bed, slightly louder for presence)
+            # threshold=0.02 → duck when voice > ~-34dB (sensitive trigger)
+            # ratio=6 → strong ducking but not total silence
+            # attack=20ms → smooth onset, release=400ms → gradual return after voice pauses
+            sidechain = "sidechaincompress=threshold=0.02:ratio=6:attack=20:release=400:level_in=0.22:level_sc=1"
 
             mix_filter = (
-                f"[0:a]{narr_chain}[narr];"
+                f"[0:a]{narr_chain},asplit=2[narr][narr_sc];"
                 f"[1:a]{music_chain}[music];"
-                f"[narr][music]{sidechain}[out]"
+                f"[music][narr_sc]{sidechain}[ducked];"
+                f"[narr][ducked]amix=inputs=2:duration=longest:normalize=0[out]"
             )
             mix_cmd = [
                 FFMPEG_PATH, "-y",
@@ -984,11 +986,12 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
 
         if final_audio:
             # Merge audio with video — strip any existing audio from video first, use only our mixed audio
+            # Use -t to enforce exact video duration instead of -shortest (which can cut prematurely)
             subprocess.run(
                 [FFMPEG_PATH, "-y", "-i", branded_file, "-i", final_audio,
                  "-map", "0:v", "-map", "1:a",
                  "-c:v", "copy", "-c:a", "aac", "-b:a", "256k",
-                 "-ar", "44100", "-ac", "2", "-shortest",
+                 "-ar", "44100", "-ac", "2", "-t", str(vid_duration),
                  output_path],
                 capture_output=True, timeout=60
             )
@@ -1379,23 +1382,47 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
 
         inputs = ["-i", concat_path]
         filter_parts = []
-        audio_streams = []
 
         if audio_path and os.path.exists(audio_path):
             inputs.extend(["-i", audio_path])
             audio_idx = 1
-            filter_parts.append(f"[{audio_idx}:a]volume=1.2,apad=pad_dur={total_clip_dur}[voice]")
-            audio_streams.append("[voice]")
 
             if bg_music_path:
                 inputs.extend(["-i", bg_music_path])
                 music_idx = audio_idx + 1
                 fade_out_start = max(total_clip_dur - 3, 10)
-                filter_parts.append(f"[{music_idx}:a]volume=0.08,afade=t=in:d=2,afade=t=out:st={fade_out_start}:d=3,atrim=0:{total_clip_dur}[music]")
-                audio_streams.append("[music]")
-                filter_parts.append(f"{''.join(audio_streams)}amix=inputs=2:duration=first:normalize=0[mixed]")
-                final_audio = "[mixed]"
+
+                # ── Cinematic Audio Mixing for Presenter ──
+                # Narration: presence boost, broadcast compressor, pad to video length
+                narr_chain = (
+                    f"volume=1.3,"
+                    f"highpass=f=80,"
+                    f"equalizer=f=3000:t=h:w=1000:g=2.5,"
+                    f"acompressor=threshold=-18dB:ratio=3:attack=10:release=100,"
+                    f"apad=whole_dur={total_clip_dur}"
+                )
+                # Music: EQ carve for voice clarity, fades, trim to video length
+                music_chain = (
+                    f"equalizer=f=400:t=q:w=2:g=-8,"
+                    f"equalizer=f=2500:t=q:w=1.5:g=-4,"
+                    f"afade=t=in:d=1.5:curve=exp,"
+                    f"afade=t=out:st={fade_out_start}:d=3:curve=exp,"
+                    f"atrim=0:{total_clip_dur}"
+                )
+                # Sidechain: music ducks under narration voice
+                sidechain = "sidechaincompress=threshold=0.02:ratio=6:attack=20:release=400:level_in=0.22:level_sc=1"
+
+                filter_complex = (
+                    f"[{audio_idx}:a]{narr_chain},asplit=2[narr][narr_sc];"
+                    f"[{music_idx}:a]{music_chain}[music];"
+                    f"[music][narr_sc]{sidechain}[ducked];"
+                    f"[narr][ducked]amix=inputs=2:duration=longest:normalize=0[out]"
+                )
+                filter_parts = [filter_complex]
+                final_audio = "[out]"
             else:
+                # Voice only, padded to video length
+                filter_parts.append(f"[{audio_idx}:a]volume=1.2,apad=whole_dur={total_clip_dur}[voice]")
                 final_audio = "[voice]"
         elif bg_music_path:
             inputs.extend(["-i", bg_music_path])
@@ -1412,15 +1439,38 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                 "-map", "0:v", "-map", final_audio,
                 "-c:v", "libx264", "-preset", "fast", "-crf", "23",
                 "-c:a", "aac", "-b:a", "256k",
-                "-shortest", output_path
+                "-t", str(total_clip_dur), output_path
             ]
         else:
             cmd = [FFMPEG, "-y", "-i", concat_path, "-c", "copy", output_path]
 
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if r.returncode != 0:
-            logger.warning(f"Final mix failed: {r.stderr[:300] if r.stderr else ''}")
-            shutil.copy2(concat_path, output_path)
+            stderr_tail = (r.stderr or '')[-800:]  # Get last 800 chars for actual error
+            logger.warning(f"Cinematic presenter mix failed, trying basic mix. Error: {stderr_tail}")
+            # Fallback: simple amix without sidechain
+            if audio_path and os.path.exists(audio_path) and bg_music_path:
+                basic_filter = (
+                    f"[1:a]volume=1.3,apad=whole_dur={total_clip_dur}[voice];"
+                    f"[2:a]volume=0.10,afade=t=in:d=2,afade=t=out:st={max(total_clip_dur-3,10)}:d=3,atrim=0:{total_clip_dur}[music];"
+                    f"[voice][music]amix=inputs=2:duration=longest:normalize=0[out]"
+                )
+                basic_cmd = [
+                    FFMPEG, "-y", "-i", concat_path, "-i", audio_path, "-i", bg_music_path,
+                    "-filter_complex", basic_filter,
+                    "-map", "0:v", "-map", "[out]",
+                    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                    "-c:a", "aac", "-b:a", "256k",
+                    "-t", str(total_clip_dur), output_path
+                ]
+                r2 = subprocess.run(basic_cmd, capture_output=True, text=True, timeout=120)
+                if r2.returncode == 0:
+                    logger.info("Presenter basic audio mix succeeded (fallback)")
+                else:
+                    logger.warning(f"Basic mix also failed: {(r2.stderr or '')[-300:]}")
+                    shutil.copy2(concat_path, output_path)
+            else:
+                shutil.copy2(concat_path, output_path)
 
         # Add brand ending to presenter video (logo + contact info)
         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:

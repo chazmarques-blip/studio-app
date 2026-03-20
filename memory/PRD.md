@@ -26,44 +26,32 @@ Mobile-first, no-code SaaS platform for deploying AI agents on social channels. 
 
 ## Completed - March 20, 2026
 
+### Audio Mixing Fix (Critical Bug Fix)
+- **Bug 1: Sidechain Inverted** - `[narr][music]sidechaincompress` was compressing NARRATION instead of MUSIC. Fixed to `[music][narr_sc]sidechaincompress` with `asplit` for dual-stream
+- **Bug 2: -shortest flag** - Was cutting video prematurely when audio ended. Replaced with explicit `-t {duration}` for exact video length
+- **Bug 3: apad=pad_dur** - Was adding X seconds of silence instead of padding TO X seconds. Fixed to `apad=whole_dur`
+- **Bug 4: asplit missing** - sidechaincompress consumes its inputs, so narration needed duplication via `asplit=2[narr][narr_sc]`
+- Applied to both `_combine_commercial_video()` and `_generate_presenter_video()`
+- Added fallback basic mix when cinematic sidechain fails in presenter mode
+
 ### Avatar in Campaign Assets
-- Backend: avatar_url and video_mode now saved in campaign stats when pipeline completes (engine.py)
-- Frontend: Avatar displayed in CampaignCard with mini-thumbnail and View Avatar button
-- Frontend: Avatar section in CampaignDetail with Presenter badge, View Avatar + Download buttons
-- Frontend: Avatar lightbox modal for full-size preview with Copy/Download actions
-- Frontend: GlobalArtGallery now includes avatar as asset type with dedicated "Avatares" filter
-- Frontend: Avatar badge overlay on gallery thumbnails and player
-- Backfill: Existing campaigns updated with avatar data from their pipelines
-- i18n: Avatar labels added for PT, EN, ES
+- Backend: avatar_url and video_mode saved in campaign stats when pipeline completes
+- Frontend: Avatar in CampaignCard (thumbnail + View Avatar button), CampaignDetail (section + lightbox), GlobalArtGallery (filter + badge)
+- Backfill: Existing campaigns updated with avatar data
 - Testing: 12/12 tests passed (iteration_74.json)
 
-### Agents Superhero Campaign (Pipeline ed678011)
-- Full pipeline completed: copy, review, design, audio (Dylan), video generation
-- 3 images generated with Nano Banana + platform variants
-- Avatar: 3D superhero with AgentZZ logo and cape
-- Video: Sora 2 clips generated in presenter mode (some retries due to timeouts)
-- Campaign saved to DB with avatar_url and video_mode=presenter
+### New Campaign: "Agents - Super Heroi Apresentador"
+- Pipeline: ab592fdc-df4f-41d6-bda5-2bf9d16ca544 (completed)
+- Video regenerated with audio fix: 6316KB master + 3 platform variants
+- Avatar: 3D superhero with AgentZZ cape
+- Mode: presenter
+- Platforms: Instagram Reels, TikTok, YouTube Shorts
 
 ## Previous Completions
-
-### Dylan Reed v2 - Cinematic Sound Director
-- Complete rewrite of system prompt with world-class audio direction knowledge
-- 3-Act Audio Architecture: Hook -> Body -> Payoff
-- Cinematic voice settings: stability 0.25-0.35 for dramatic
-- Platform-specific audio mastering rules
-- Validated in 3+ end-to-end campaigns
-
-### Cinematic Audio Mixing (FFmpeg)
-- Sidechain compression: music auto-ducks when narration plays
-- EQ carving: -8dB at 400Hz, -4dB at 2.5kHz
-- Narration processing: highpass 80Hz, presence boost 3kHz, broadcast compressor
-
-### AI Image Director v2
-- Robust parser with 4 regex patterns
-- Raw response logging for debugging
-
-### Art Gallery UI
-- Fixed player at top, scrollable grid below, channel previews
+- Dylan Reed v2 - Cinematic Sound Director
+- Cinematic Audio Mixing (FFmpeg sidechain + EQ)
+- AI Image Director v2 with robust parsing
+- Art Gallery UI (fixed player + scrollable grid)
 
 ## Backlog (Priority Order)
 ### P1
