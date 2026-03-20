@@ -1,0 +1,151 @@
+{
+  "design_strategy": {
+    "theme": "Dark Luxury Tech",
+    "core_colors": {
+      "background": "#070707",
+      "surface": "#0C0C0C",
+      "surface_highlight": "#141414",
+      "border": "#1E1E1E",
+      "primary": "#C9A84C",
+      "primary_glow": "rgba(201, 168, 76, 0.15)",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#888888",
+      "text_muted": "#555555"
+    },
+    "typography": {
+      "headings": {
+        "font": "Inter, sans-serif",
+        "weight": "700",
+        "tracking": "-0.02em",
+        "style": "Modern, tight, authoritative"
+      },
+      "body": {
+        "font": "Inter, sans-serif",
+        "weight": "400",
+        "tracking": "normal",
+        "style": "Clean, legible"
+      },
+      "mono": {
+        "font": "JetBrains Mono, monospace",
+        "usage": "Badges, Overlines, Code snippets, Numbers"
+      }
+    },
+    "visual_effects": {
+      "glassmorphism": "backdrop-blur-xl bg-white/5 border border-white/10",
+      "tracing_beam": "Animated gradient border using Framer Motion",
+      "glow": "Box-shadow with primary color (gold) at 15% opacity",
+      "grid_background": "SVG grid pattern with 4% opacity",
+      "noise": "Subtle grain overlay for texture"
+    }
+  },
+  "layout_structure": {
+    "type": "Vertical Sections",
+    "spacing": "Generous (py-24, gap-12)",
+    "container": "max-w-7xl mx-auto px-6",
+    "responsive": "Mobile-first, stack on mobile, grid on desktop"
+  },
+  "components": {
+    "Hero": {
+      "structure": "Split Screen (Text Left, Visual Right)",
+      "visuals": {
+        "badge": "Pill shape, glass background, gold border, mono font",
+        "title": "Large (text-5xl md:text-7xl), tight tracking, gold gradient on key phrase",
+        "cta_group": "Row of buttons: Solid Gold (Primary) + Outline/Glass (Secondary)",
+        "stats": "Horizontal flex, minimal separators, mono numbers"
+      },
+      "interactive_element": {
+        "type": "LiveChatDemo",
+        "style": "Floating glass container with 'Tracing Beam' border effect",
+        "animation": "Float animation (y-axis sine wave)"
+      }
+    },
+    "Channels": {
+      "structure": "Marquee or Dense Grid",
+      "style": "Tech Grid - 1px dark borders, glowing intersections on hover",
+      "card_style": "Minimal, icon centered, mono label"
+    },
+    "Agents_Marketplace": {
+      "structure": "Interactive Showcase",
+      "layout": "Left: List of Agents (Vertical Tabs) | Right: Agent Preview Card (3D/Tilt effect)",
+      "interaction": "Hovering/Clicking a name updates the preview card instantly"
+    },
+    "Features": {
+      "structure": "Bento Grid",
+      "grid_config": "grid-cols-1 md:grid-cols-3 auto-rows-min",
+      "cards": [
+        { "span": "col-span-1 md:col-span-2", "content": "Omnichannel" },
+        { "span": "col-span-1", "content": "Analytics" },
+        { "span": "col-span-1", "content": "Multi-language" },
+        { "span": "col-span-1 md:col-span-2", "content": "CRM Integration" }
+      ]
+    },
+    "Pricing": {
+      "structure": "4-Column Grid",
+      "highlight": "Pro Plan (3rd item)",
+      "card_style": "Glass panels. Pro plan has a permanent gold glow and a 'Best Value' floating badge.",
+      "toggle": "Pill shape toggle for Monthly/Annual"
+    },
+    "Footer": {
+      "structure": "Minimal, single row flex",
+      "elements": "Logo, Social Icons (Monochrome), Copyright"
+    }
+  },
+  "data_mapping": {
+    "translations": {
+      "hero_title_1": "landing.hero_title_1",
+      "hero_title_2": "landing.hero_title_2",
+      "hero_subtitle": "landing.hero_subtitle",
+      "hero_cta": "landing.hero_cta",
+      "badge": "landing.badge",
+      "watch_demo": "landing.watch_demo"
+    },
+    "stats": [
+      { "value": "22+", "label_key": "Agentes IA / AI Agents" },
+      { "value": "5", "label_key": "Canais / Channels" },
+      { "value": "3", "label_key": "Idiomas / Languages" },
+      { "value": "24/7", "label_key": "Disponivel / Available" }
+    ],
+    "channels": [
+      "WhatsApp", "Instagram", "Messenger", "Telegram", "SMS"
+    ],
+    "agents": [
+      { "name": "Sofia", "role": "Sales" },
+      { "name": "Roberto", "role": "Support" },
+      { "name": "Ana", "role": "Scheduling" },
+      { "name": "Marina", "role": "Onboarding" }
+    ],
+    "features": [
+      "landing.feat_agents", "landing.feat_omni", "landing.feat_multi", "landing.feat_lang", "landing.feat_crm", "landing.feat_analytics"
+    ],
+    "pricing_tiers": [
+      "landing.plan_free", "landing.plan_starter", "landing.plan_pro", "landing.plan_enterprise"
+    ]
+  },
+  "asset_urls": {
+    "logo": "/logo-agentzz.png",
+    "hero_image": "/hero-person-robot.png"
+  },
+  "instructions_to_main_agent": [
+    "Create a new file `/app/frontend/src/pages/LandingV2.jsx`.",
+    "Copy ALL imports and the `LiveChatDemo` component from `Landing.jsx` exactly as is (functionality must be identical).",
+    "Implement the new design using the `Dark Luxury Tech` theme.",
+    "Use `framer-motion` for entrance animations (fade-in-up) and hover effects (scale, glow).",
+    "Use `lucide-react` icons as provided in the original file.",
+    "Maintain all `data-testid` attributes for testing.",
+    "Ensure `useTranslation` hooks are used exactly as in the original file.",
+    "Do not use gradients for backgrounds (except subtle glowing orbs). Use solid dark colors with high-contrast borders.",
+    "For the 'Tech Grid' background, create a simple SVG pattern component.",
+    "Ensure the 'LiveChatDemo' is wrapped in a glass container with a gold border glow.",
+    "Replace the standard `img` tags with optimized styling (rounded-xl, border-gold/20).",
+    "Make sure the page is fully responsive (stacking order on mobile)."
+  ],
+  "universal_guidelines": [
+    "Do not make generic centered layouts.",
+    "Create depth through layered design elements (z-index).",
+    "Use glass-morphism effects with backdrop filters.",
+    "Every interaction needs micro-animations.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "CRITICAL: NO EMOJIS in the UI (use Lucide icons instead).",
+    "Follow existing shadcn/ui patterns for components."
+  ]
+}
