@@ -942,9 +942,21 @@ export default function LandingV2() {
   const l = L[lang] || L.en;
 
   const agents = [
-    { name: l.ag1_name, role: l.ag1_role, desc: l.ag1_desc, avatar: AVATARS.Sarah, channels: ['WhatsApp', 'Instagram', 'Telegram'], skills: [l.skill_sales, l.skill_qualify, l.skill_followup] },
-    { name: l.ag2_name, role: l.ag2_role, desc: l.ag2_desc, avatar: AVATARS.Carlos, channels: ['WhatsApp', 'Messenger', 'SMS'], skills: [l.skill_support, l.skill_multilang, l.skill_followup] },
-    { name: l.ag3_name, role: l.ag3_role, desc: l.ag3_desc, avatar: AVATARS.Sophia, channels: ['WhatsApp', 'Instagram'], skills: [l.skill_schedule, l.skill_followup, l.skill_multilang] },
+    { name: l.ag1_name, role: l.ag1_role, desc: l.ag1_desc, avatar: AVATARS.Sarah, channels: ['WhatsApp', 'Instagram', 'Telegram'], skills: [l.skill_sales, l.skill_qualify, l.skill_followup],
+      mindset: lang === 'pt' ? 'Especialista em conversao com abordagem consultiva. Combina empatia com técnicas de vendas para qualificar e converter leads automaticamente.' : lang === 'es' ? 'Especialista en conversion con enfoque consultivo. Combina empatia con técnicas de ventas para calificar y convertir leads.' : 'Conversion specialist with a consultative approach. Combines empathy with sales techniques to qualify and convert leads automatically.',
+      stats: [{ name: 'Lead Conversion', pct: 98 }, { name: 'Response Speed', pct: 97 }, { name: 'Customer Satisfaction', pct: 95 }, { name: 'Follow-up Rate', pct: 94 }],
+      metrics: { conversations: '1,247', resolved: '98.2%', avgTime: '< 3s' },
+    },
+    { name: l.ag2_name, role: l.ag2_role, desc: l.ag2_desc, avatar: AVATARS.Carlos, channels: ['WhatsApp', 'Messenger', 'SMS'], skills: [l.skill_support, l.skill_multilang, l.skill_followup],
+      mindset: lang === 'pt' ? 'Resolve problemas técnicos com clareza e paciência. Acessa base de conhecimento em tempo real para fornecer respostas precisas e soluções rápidas.' : lang === 'es' ? 'Resuelve problemas técnicos con claridad y paciencia. Accede a la base de conocimiento en tiempo real para respuestas precisas.' : 'Resolves technical issues with clarity and patience. Accesses the knowledge base in real-time to provide precise answers and quick solutions.',
+      stats: [{ name: 'Issue Resolution', pct: 96 }, { name: 'First Contact Fix', pct: 93 }, { name: 'Knowledge Accuracy', pct: 98 }, { name: 'Escalation Rate', pct: 8 }],
+      metrics: { conversations: '892', resolved: '96.5%', avgTime: '< 5s' },
+    },
+    { name: l.ag3_name, role: l.ag3_role, desc: l.ag3_desc, avatar: AVATARS.Sophia, channels: ['WhatsApp', 'Instagram'], skills: [l.skill_schedule, l.skill_followup, l.skill_multilang],
+      mindset: lang === 'pt' ? 'Gerencia calendários e envia lembretes automáticos. Integra com Google Calendar para agendamentos inteligentes sem conflitos de horário.' : lang === 'es' ? 'Gestiona calendarios y envia recordatorios automáticos. Integra con Google Calendar para agendamientos inteligentes.' : 'Manages calendars and sends automatic reminders. Integrates with Google Calendar for smart scheduling without time conflicts.',
+      stats: [{ name: 'Booking Rate', pct: 99 }, { name: 'Reminder Delivery', pct: 100 }, { name: 'No-show Reduction', pct: 87 }, { name: 'Calendar Accuracy', pct: 98 }],
+      metrics: { conversations: '634', resolved: '99.1%', avgTime: '< 2s' },
+    },
   ];
 
   const channels = [
@@ -1359,10 +1371,19 @@ export default function LandingV2() {
                       </div>
                     </div>
 
+                    {/* Mindset description */}
+                    <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2.5 mb-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Brain size={8} className="text-[#C9A84C]" />
+                        <p className="text-[8px] text-white font-semibold">{lang === 'pt' ? 'Mentalidade' : lang === 'es' ? 'Mentalidad' : 'Mindset'}</p>
+                      </div>
+                      <p className="text-[8px] text-[#666] leading-relaxed">{current.mindset}</p>
+                    </div>
+
                     {/* Skills + Channels row */}
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-1.5"><Brain size={7} className="inline mr-1 text-[#C9A84C]" />Habilidades</p>
+                        <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-1.5"><Settings size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Habilidades' : lang === 'es' ? 'Habilidades' : 'Skills'}</p>
                         <div className="flex flex-wrap gap-1">
                           {current.skills.map((skill, si) => (
                             <span key={si} className="flex items-center gap-1 rounded-full border border-[#C9A84C]/10 bg-[#C9A84C]/[0.04] px-2 py-0.5 text-[7px] font-mono text-[#C9A84C]/80">
@@ -1380,6 +1401,42 @@ export default function LandingV2() {
                             </span>
                           ))}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Performance stats with progress bars */}
+                    <div className="mb-3">
+                      <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-2"><BarChart3 size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Performance' : lang === 'es' ? 'Rendimiento' : 'Performance'}</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        {current.stats.map((s, si) => (
+                          <div key={si}>
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-[7px] text-[#888]">{s.name}</span>
+                              <span className="text-[7px] text-[#C9A84C] font-bold font-mono">{s.pct}{s.pct > 10 ? '%' : '%'}</span>
+                            </div>
+                            <div className="h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
+                              <motion.div initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }} viewport={{ once: true }}
+                                transition={{ duration: 1, delay: si * 0.15 }}
+                                className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#C9A84C]/70" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Live metrics */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-center">
+                        <p className="text-[11px] font-bold text-white font-mono">{current.metrics.conversations}</p>
+                        <p className="text-[6px] text-[#555] font-mono uppercase">{lang === 'pt' ? 'Conversas' : lang === 'es' ? 'Conversaciones' : 'Conversations'}</p>
+                      </div>
+                      <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-center">
+                        <p className="text-[11px] font-bold text-emerald-400 font-mono">{current.metrics.resolved}</p>
+                        <p className="text-[6px] text-[#555] font-mono uppercase">{lang === 'pt' ? 'Resolvido' : lang === 'es' ? 'Resuelto' : 'Resolved'}</p>
+                      </div>
+                      <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-center">
+                        <p className="text-[11px] font-bold text-[#C9A84C] font-mono">{current.metrics.avgTime}</p>
+                        <p className="text-[6px] text-[#555] font-mono uppercase">{lang === 'pt' ? 'Tempo Resp.' : lang === 'es' ? 'Tiempo Resp.' : 'Avg. Response'}</p>
                       </div>
                     </div>
 
