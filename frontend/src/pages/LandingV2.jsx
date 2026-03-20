@@ -194,7 +194,7 @@ function AgentChat() {
           <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#C9A84C]/60' : 'w-1 bg-white/[0.08]'}`} />
         ))}
       </div>
-      <div ref={ref} className="h-[420px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
+      <div ref={ref} className="h-[500px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
         <AnimatePresence mode="wait">
           <motion.div key={channelIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {msgs.map((m, i) => (
@@ -997,7 +997,8 @@ export default function LandingV2() {
           {/* Hero 3 panels */}
           <motion.div initial="hidden" animate="visible" variants={fade} custom={4}
             className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
-            <Glass hover className="p-4">
+            <Glass hover className="p-4 flex flex-col">
+              {/* Header */}
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/15">
                   <img src={AVATARS.Sarah} alt="Sarah" className="h-full w-full object-cover" />
@@ -1008,6 +1009,7 @@ export default function LandingV2() {
                 </div>
                 <div className="ml-auto h-2 w-2 rounded-full bg-emerald-400" />
               </div>
+              {/* Channels */}
               <div className="space-y-1.5 mb-3">
                 {['WhatsApp', 'Instagram', 'Telegram'].map(ch => (
                   <div key={ch} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/[0.02] border border-white/[0.04]">
@@ -1017,31 +1019,47 @@ export default function LandingV2() {
                   </div>
                 ))}
               </div>
-              {/* Skills */}
+              {/* Mentalidade */}
               <div className="border-t border-white/[0.05] pt-3 mb-3">
-                <p className="text-[8px] text-[#555] font-mono uppercase tracking-widest mb-2">Skills</p>
-                <div className="flex flex-wrap gap-1">
-                  {['Scheduling', 'Lead Qualify', 'Follow-up', 'Upsell', 'FAQ', 'Multilingual'].map(s => (
-                    <span key={s} className="text-[7px] text-[#C9A84C]/70 font-mono bg-[#C9A84C]/[0.06] border border-[#C9A84C]/10 rounded px-1.5 py-0.5">{s}</span>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Brain size={9} className="text-[#C9A84C]" />
+                  <p className="text-[8px] text-white font-semibold tracking-wide">Mentalidade</p>
+                </div>
+                <p className="text-[7px] text-[#666] leading-relaxed">
+                  Sarah combina técnicas de vendas consultivas com inteligência emocional. Treinada para identificar necessidades, qualificar leads e converter com empatia — disponível 24/7 em múltiplos canais.
+                </p>
+              </div>
+              {/* Skills with progress bars */}
+              <div className="border-t border-white/[0.05] pt-3 flex-1">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Settings size={9} className="text-[#C9A84C]" />
+                  <p className="text-[8px] text-white font-semibold tracking-wide">Skills</p>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { name: 'Lead Qualification', pct: 98 },
+                    { name: 'Appointment Scheduling', pct: 97 },
+                    { name: 'Follow-up & Nurturing', pct: 95 },
+                    { name: 'Objection Handling', pct: 94 },
+                    { name: 'Multilingual (PT/EN/ES)', pct: 96 },
+                    { name: 'Upsell & Cross-sell', pct: 92 },
+                  ].map(s => (
+                    <div key={s.name}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[7px] text-[#888]">{s.name}</span>
+                        <span className="text-[7px] text-[#C9A84C] font-bold font-mono">{s.pct}%</span>
+                      </div>
+                      <div className="h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
+                        <motion.div initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }} viewport={{ once: true }}
+                          transition={{ duration: 1, delay: 0.2 }}
+                          className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#C9A84C]/70" />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-1.5 mb-3">
-                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                  <p className="text-[9px] font-bold text-white font-mono">98%</p>
-                  <p className="text-[6px] text-[#555] font-mono">Resolve</p>
-                </div>
-                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                  <p className="text-[9px] font-bold text-emerald-400 font-mono">&lt;3s</p>
-                  <p className="text-[6px] text-[#555] font-mono">Response</p>
-                </div>
-                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                  <p className="text-[9px] font-bold text-[#C9A84C] font-mono">3</p>
-                  <p className="text-[6px] text-[#555] font-mono">Languages</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[8px] text-[#C9A84C]/60 font-mono">
+              {/* Footer stat */}
+              <div className="flex items-center gap-1 text-[8px] text-[#C9A84C]/60 font-mono mt-3 pt-2 border-t border-white/[0.05]">
                 <Sparkles size={8} /> 847 conversations
               </div>
             </Glass>
