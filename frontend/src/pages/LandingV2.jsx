@@ -83,11 +83,14 @@ const CHAT_CHANNELS = [
     Icon: WaIcon,
     convo: [
       { from: 'user', text: 'Preciso agendar uma consulta para amanha' },
-      { from: 'agent', text: 'Vou verificar os horarios! Manha ou tarde?' },
+      { from: 'agent', text: 'Claro! Vou verificar os horarios disponiveis.' },
+      { from: 'agent', text: 'Manha ou tarde?' },
       { from: 'user', text: 'Pela manha' },
-      { from: 'agent', text: '9h ou 10h30 — qual prefere?' },
-      { from: 'user', text: '9h!' },
-      { from: 'agent', text: 'Agendado! Confirmacao enviada.' },
+      { from: 'agent', text: 'Perfeito! Tenho 9h ou 10h30 — qual prefere?' },
+      { from: 'user', text: '9h por favor!' },
+      { from: 'agent', text: 'Agendado para amanha as 9h! Confirmacao enviada por WhatsApp.' },
+      { from: 'user', text: 'Muito obrigado!' },
+      { from: 'agent', text: 'Disponha! Qualquer duvida, estou aqui 24h.' },
     ]
   },
   {
@@ -95,9 +98,12 @@ const CHAT_CHANNELS = [
     Icon: IgIcon,
     convo: [
       { from: 'user', text: 'Oi, meu pedido nao chegou ainda' },
-      { from: 'agent', text: 'Ola! Qual o numero do seu pedido?' },
+      { from: 'agent', text: 'Ola! Sinto muito pelo inconveniente.' },
+      { from: 'agent', text: 'Qual o numero do seu pedido?' },
       { from: 'user', text: '#45892' },
-      { from: 'agent', text: 'Encontrei! Saiu para entrega hoje as 14h.' },
+      { from: 'agent', text: 'Encontrei! Pedido #45892 saiu para entrega hoje as 14h.' },
+      { from: 'user', text: 'Tem como rastrear?' },
+      { from: 'agent', text: 'Claro! Aqui o link de rastreio: trk.io/45892' },
       { from: 'user', text: 'Otimo, obrigado!' },
       { from: 'agent', text: 'Precisando, estou aqui!' },
     ]
@@ -109,9 +115,11 @@ const CHAT_CHANNELS = [
       { from: 'user', text: 'Quais planos voces tem?' },
       { from: 'agent', text: 'Temos 3 planos! Free, Pro e Enterprise.' },
       { from: 'user', text: 'Qual a diferenca do Pro?' },
-      { from: 'agent', text: 'O Pro inclui agentes ilimitados e AI Studio!' },
-      { from: 'user', text: 'Quero testar' },
-      { from: 'agent', text: 'Criado! Acesse seu painel agora.' },
+      { from: 'agent', text: 'O Pro inclui agentes ilimitados, AI Studio e suporte prioritario!' },
+      { from: 'user', text: 'E o Enterprise?' },
+      { from: 'agent', text: 'Enterprise adiciona gerador de campanhas com IA, video e avatar.' },
+      { from: 'user', text: 'Quero testar o Pro' },
+      { from: 'agent', text: 'Criado! 14 dias gratis. Acesse seu painel agora.' },
     ]
   },
   {
@@ -123,7 +131,9 @@ const CHAT_CHANNELS = [
       { from: 'user', text: 'E demora muito?' },
       { from: 'agent', text: 'Menos de 5 minutos! Posso te guiar agora.' },
       { from: 'user', text: 'Vamos la!' },
-      { from: 'agent', text: 'Perfeito! Acesse Configuracoes > Canais.' },
+      { from: 'agent', text: 'Perfeito! Acesse Configuracoes > Canais > WhatsApp.' },
+      { from: 'user', text: 'Conectou! E agora?' },
+      { from: 'agent', text: 'Pronto! Seu agente ja esta ativo no WhatsApp respondendo clientes.' },
     ]
   },
 ];
@@ -184,7 +194,7 @@ function AgentChat() {
           <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#C9A84C]/60' : 'w-1 bg-white/[0.08]'}`} />
         ))}
       </div>
-      <div ref={ref} className="h-[155px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
+      <div ref={ref} className="h-[260px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
         <AnimatePresence mode="wait">
           <motion.div key={channelIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {msgs.map((m, i) => (
