@@ -73,75 +73,147 @@ function Glass({ children, className = '', hover = false }) {
 }
 
 /* ── Live Chat with Agent Avatar ── */
+/* TikTok icon */
+const TkIcon = ({ size = 28, color = gold }) => <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.53v-3.4a4.85 4.85 0 01-.81-.21z"/></svg>;
+
+/* ── Multi-channel Chat rotating agents ── */
+const CHAT_CHANNELS = [
+  {
+    agent: 'Sarah', avatar: AVATARS.Sarah, channel: 'WhatsApp', color: '#25D366',
+    Icon: WaIcon,
+    convo: [
+      { from: 'user', text: 'Preciso agendar uma consulta para amanha' },
+      { from: 'agent', text: 'Vou verificar os horarios! Manha ou tarde?' },
+      { from: 'user', text: 'Pela manha' },
+      { from: 'agent', text: '9h ou 10h30 — qual prefere?' },
+      { from: 'user', text: '9h!' },
+      { from: 'agent', text: 'Agendado! Confirmacao enviada.' },
+    ]
+  },
+  {
+    agent: 'Carlos', avatar: AVATARS.Carlos, channel: 'Instagram', color: '#E1306C',
+    Icon: IgIcon,
+    convo: [
+      { from: 'user', text: 'Oi, meu pedido nao chegou ainda' },
+      { from: 'agent', text: 'Ola! Qual o numero do seu pedido?' },
+      { from: 'user', text: '#45892' },
+      { from: 'agent', text: 'Encontrei! Saiu para entrega hoje as 14h.' },
+      { from: 'user', text: 'Otimo, obrigado!' },
+      { from: 'agent', text: 'Precisando, estou aqui!' },
+    ]
+  },
+  {
+    agent: 'Sophia', avatar: AVATARS.Sophia, channel: 'Messenger', color: '#0084FF',
+    Icon: FbIcon,
+    convo: [
+      { from: 'user', text: 'Quais planos voces tem?' },
+      { from: 'agent', text: 'Temos 3 planos! Free, Pro e Enterprise.' },
+      { from: 'user', text: 'Qual a diferenca do Pro?' },
+      { from: 'agent', text: 'O Pro inclui agentes ilimitados e AI Studio!' },
+      { from: 'user', text: 'Quero testar' },
+      { from: 'agent', text: 'Criado! Acesse seu painel agora.' },
+    ]
+  },
+  {
+    agent: 'Emily', avatar: AVATARS.Emily, channel: 'Telegram', color: '#26A5E4',
+    Icon: TgIcon,
+    convo: [
+      { from: 'user', text: 'Como funciona a integracao com WhatsApp?' },
+      { from: 'agent', text: 'Basta conectar sua conta Business API!' },
+      { from: 'user', text: 'E demora muito?' },
+      { from: 'agent', text: 'Menos de 5 minutos! Posso te guiar agora.' },
+      { from: 'user', text: 'Vamos la!' },
+      { from: 'agent', text: 'Perfeito! Acesse Configuracoes > Canais.' },
+    ]
+  },
+];
+
 function AgentChat() {
   const [msgs, setMsgs] = useState([]);
   const [typing, setTyping] = useState(false);
+  const [channelIdx, setChannelIdx] = useState(0);
   const ref = useRef(null);
-  const convo = [
-    { from: 'user', text: 'Preciso agendar uma consulta para amanha' },
-    { from: 'agent', text: 'Vou verificar os horarios! Manha ou tarde?' },
-    { from: 'user', text: 'Pela manha' },
-    { from: 'agent', text: 'Perfeito! 9h ou 10h30 — qual prefere?' },
-    { from: 'user', text: '9h!' },
-    { from: 'agent', text: 'Agendado! Confirmacao enviada no seu WhatsApp.' },
-  ];
+  const ch = CHAT_CHANNELS[channelIdx];
+
   useEffect(() => {
     let i = 0, cancel = false;
+    setMsgs([]); setTyping(false);
+    const convo = ch.convo;
     const go = () => {
       if (cancel) return;
-      if (i >= convo.length) { setTimeout(() => { if (!cancel) { setMsgs([]); i = 0; go(); } }, 3000); return; }
+      if (i >= convo.length) {
+        setTimeout(() => {
+          if (cancel) return;
+          setChannelIdx(p => (p + 1) % CHAT_CHANNELS.length);
+        }, 2500);
+        return;
+      }
       const m = convo[i];
       if (m.from === 'agent') {
         setTyping(true);
-        setTimeout(() => { if (cancel) return; setTyping(false); setMsgs(p => [...p, m]); i++; setTimeout(go, 1500); }, 1200);
-      } else { setMsgs(p => [...p, m]); i++; setTimeout(go, 1200); }
+        setTimeout(() => { if (cancel) return; setTyping(false); setMsgs(p => [...p, m]); i++; setTimeout(go, 1200); }, 1000);
+      } else { setMsgs(p => [...p, m]); i++; setTimeout(go, 900); }
     };
-    setTimeout(go, 600);
-    return () => { cancel = true; };
-  }, []);
+    const t = setTimeout(go, 500);
+    return () => { cancel = true; clearTimeout(t); };
+  }, [channelIdx]);
   useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs, typing]);
 
   return (
     <div className="rounded-2xl border border-white/[0.07] bg-[#0A0A0A] overflow-hidden shadow-2xl shadow-black/60">
       <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-2.5 bg-white/[0.02]">
-        <div className="relative">
-          <div className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/20">
-            <img src={AVATARS.Sarah} alt="Sarah" className="h-full w-full object-cover" />
-          </div>
-          <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 border-2 border-[#0A0A0A]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold text-white">Sarah</p>
-          <p className="text-[8px] text-emerald-400/80 font-mono">WhatsApp</p>
-        </div>
-        <WaIcon size={14} color="#25D366" />
-      </div>
-      <div ref={ref} className="h-[170px] overflow-y-auto px-3 py-2.5 space-y-2" style={{ scrollbarWidth: 'none' }}>
-        {msgs.map((m, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-            className={`flex gap-1.5 ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {m.from === 'agent' && (
-              <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#C9A84C]/10">
-                <img src={AVATARS.Sarah} alt="" className="h-full w-full object-cover" />
+        <AnimatePresence mode="wait">
+          <motion.div key={channelIdx} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="relative">
+              <div className="h-8 w-8 rounded-full overflow-hidden ring-2" style={{ borderColor: ch.color + '33' }}>
+                <img src={ch.avatar} alt={ch.agent} className="h-full w-full object-cover" />
               </div>
-            )}
-            <div className={`max-w-[78%] rounded-xl px-2.5 py-1.5 ${
-              m.from === 'user' ? 'bg-[#C9A84C]/[0.08] border border-[#C9A84C]/12' : 'bg-white/[0.03] border border-white/[0.06]'
-            }`}>
-              <p className="text-[9px] leading-relaxed text-[#ccc]">{m.text}</p>
+              <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-[#0A0A0A]" style={{ backgroundColor: ch.color }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-white">{ch.agent}</p>
+              <p className="text-[8px] font-mono" style={{ color: ch.color }}>{ch.channel}</p>
             </div>
           </motion.div>
+        </AnimatePresence>
+        <ch.Icon size={14} color={ch.color} />
+      </div>
+      {/* Channel indicator dots */}
+      <div className="flex justify-center gap-1.5 py-1.5 bg-white/[0.01]">
+        {CHAT_CHANNELS.map((_, i) => (
+          <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#C9A84C]/60' : 'w-1 bg-white/[0.08]'}`} />
         ))}
-        {typing && (
-          <div className="flex gap-1.5 justify-start">
-            <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#C9A84C]/10">
-              <img src={AVATARS.Sarah} alt="" className="h-full w-full object-cover" />
-            </div>
-            <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
-              <div className="flex gap-1">{[0, 120, 240].map(d => <div key={d} className="h-1 w-1 animate-bounce rounded-full bg-[#C9A84C]/40" style={{ animationDelay: `${d}ms` }} />)}</div>
-            </div>
-          </div>
-        )}
+      </div>
+      <div ref={ref} className="h-[155px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
+        <AnimatePresence mode="wait">
+          <motion.div key={channelIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {msgs.map((m, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className={`flex gap-1.5 mb-2 ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {m.from === 'agent' && (
+                  <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#C9A84C]/10">
+                    <img src={ch.avatar} alt="" className="h-full w-full object-cover" />
+                  </div>
+                )}
+                <div className={`max-w-[78%] rounded-xl px-2.5 py-1.5 ${
+                  m.from === 'user' ? 'bg-[#C9A84C]/[0.08] border border-[#C9A84C]/12' : 'bg-white/[0.03] border border-white/[0.06]'
+                }`}>
+                  <p className="text-[9px] leading-relaxed text-[#ccc]">{m.text}</p>
+                </div>
+              </motion.div>
+            ))}
+            {typing && (
+              <div className="flex gap-1.5 justify-start">
+                <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#C9A84C]/10">
+                  <img src={ch.avatar} alt="" className="h-full w-full object-cover" />
+                </div>
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
+                  <div className="flex gap-1">{[0, 120, 240].map(d => <div key={d} className="h-1 w-1 animate-bounce rounded-full bg-[#C9A84C]/40" style={{ animationDelay: `${d}ms` }} />)}</div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -459,10 +531,10 @@ function CampaignDemo({ lang }) {
                 </div>
               )}
 
-              {/* Step 4: Result */}
+              {/* Step 4: Result - Channel Templates */}
               {demoStep === 4 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-5 p-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.03]">
+                  <div className="flex items-center gap-3 mb-4 p-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.03]">
                     <div className="h-8 w-8 rounded-full bg-emerald-400/10 flex items-center justify-center">
                       <Check size={14} className="text-emerald-400" />
                     </div>
@@ -471,42 +543,110 @@ function CampaignDemo({ lang }) {
                       <p className="text-[9px] text-emerald-400/60 font-mono">{d.result_formats}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* Instagram Post Template */}
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
-                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors group">
-                      <img src={CAMPAIGN_IMAGES.feed} alt="Feed" className="w-full aspect-square object-cover" />
-                      <div className="p-2 bg-white/[0.02]">
-                        <p className="text-[8px] font-mono text-[#888]">Feed Post</p>
-                        <div className="flex items-center gap-1 mt-1"><IgIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">Instagram</span></div>
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#E1306C]/30 transition-colors">
+                      <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
+                          <span className="text-[6px] font-bold text-[#C9A84C]">Az</span>
+                        </div>
+                        <span className="text-[8px] text-white font-semibold">agentzz</span>
+                        <IgIcon size={8} color="#E1306C" className="ml-auto" />
+                      </div>
+                      <img src={CAMPAIGN_IMAGES.feed} alt="IG Feed" className="w-full aspect-square object-cover" />
+                      <div className="px-2.5 py-2">
+                        <div className="flex gap-2 mb-1.5">
+                          <Heart size={10} className="text-[#ccc]" /><MessageSquare size={10} className="text-[#ccc]" /><Send size={10} className="text-[#ccc]" />
+                        </div>
+                        <p className="text-[7px] text-[#888] leading-relaxed"><span className="text-white font-semibold">agentzz</span> Seus agentes IA atendem 24h...</p>
+                      </div>
+                      <div className="px-2.5 pb-2 flex items-center gap-1">
+                        <IgIcon size={7} color="#E1306C" />
+                        <span className="text-[7px] text-[#555] font-mono">Instagram Feed</span>
                       </div>
                     </motion.div>
+
+                    {/* Facebook Post Template */}
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
-                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors">
-                      <img src={CAMPAIGN_IMAGES.story} alt="Story" className="w-full aspect-[9/16] object-cover" />
-                      <div className="p-2 bg-white/[0.02]">
-                        <p className="text-[8px] font-mono text-[#888]">Story</p>
-                        <div className="flex items-center gap-1 mt-1"><IgIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">Reels</span></div>
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#0084FF]/30 transition-colors">
+                      <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
+                          <span className="text-[6px] font-bold text-[#C9A84C]">Az</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-white font-semibold block leading-none">AgentZZ</span>
+                          <span className="text-[6px] text-[#555]">Sponsored</span>
+                        </div>
+                        <FbIcon size={8} color="#0084FF" className="ml-auto" />
+                      </div>
+                      <div className="px-2.5 py-1.5">
+                        <p className="text-[7px] text-[#999] leading-relaxed">Automatize seu negocio com agentes IA inteligentes. Comece gratis!</p>
+                      </div>
+                      <img src={CAMPAIGN_IMAGES.wide} alt="FB Banner" className="w-full aspect-video object-cover" />
+                      <div className="px-2.5 py-2 flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <ThumbsUp size={8} className="text-[#0084FF]" />
+                          <span className="text-[7px] text-[#888]">2.4k</span>
+                        </div>
+                        <span className="text-[7px] text-[#555]">342 shares</span>
+                      </div>
+                      <div className="px-2.5 pb-2 flex items-center gap-1">
+                        <FbIcon size={7} color="#0084FF" />
+                        <span className="text-[7px] text-[#555] font-mono">Facebook Ads</span>
                       </div>
                     </motion.div>
+
+                    {/* WhatsApp Status Template */}
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors">
-                      <img src={CAMPAIGN_IMAGES.wide} alt="Banner" className="w-full aspect-video object-cover" />
-                      <div className="p-2 bg-white/[0.02]">
-                        <p className="text-[8px] font-mono text-[#888]">Banner</p>
-                        <div className="flex items-center gap-1 mt-1"><FbIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">Facebook</span></div>
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#25D366]/30 transition-colors">
+                      <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
+                          <span className="text-[6px] font-bold text-[#C9A84C]">Az</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-white font-semibold block leading-none">AgentZZ</span>
+                          <span className="text-[6px] text-[#555]">Business</span>
+                        </div>
+                        <WaIcon size={8} color="#25D366" className="ml-auto" />
                       </div>
-                    </motion.div>
-                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
-                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors relative">
-                      <img src={CAMPAIGN_IMAGES.feed} alt="Video" className="w-full aspect-square object-cover opacity-70" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="h-10 w-10 rounded-full bg-[#C9A84C]/20 backdrop-blur-sm flex items-center justify-center border border-[#C9A84C]/20">
-                          <Play size={16} className="text-[#C9A84C] ml-0.5" fill="#C9A84C" />
+                      <div className="relative">
+                        <img src={CAMPAIGN_IMAGES.story} alt="WA Status" className="w-full aspect-[9/14] object-cover" />
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-white/[0.1] rounded-full mx-2 mt-1.5">
+                          <div className="h-full w-1/3 bg-[#25D366] rounded-full" />
                         </div>
                       </div>
-                      <div className="p-2 bg-white/[0.02]">
-                        <p className="text-[8px] font-mono text-[#888]">Video 0:30</p>
-                        <div className="flex items-center gap-1 mt-1"><WaIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">WhatsApp</span></div>
+                      <div className="px-2.5 py-2 flex items-center gap-1">
+                        <WaIcon size={7} color="#25D366" />
+                        <span className="text-[7px] text-[#555] font-mono">WhatsApp Status</span>
+                      </div>
+                    </motion.div>
+
+                    {/* TikTok Video Template */}
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#ff0050]/30 transition-colors">
+                      <div className="relative">
+                        <img src={CAMPAIGN_IMAGES.feed} alt="TikTok" className="w-full aspect-[9/14] object-cover opacity-80" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="h-12 w-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                            <Play size={18} className="text-white ml-0.5" fill="white" />
+                          </div>
+                        </div>
+                        {/* TikTok sidebar */}
+                        <div className="absolute right-2 bottom-12 flex flex-col items-center gap-3">
+                          <div className="flex flex-col items-center"><Heart size={12} className="text-white" /><span className="text-[6px] text-white">24.5k</span></div>
+                          <div className="flex flex-col items-center"><MessageSquare size={12} className="text-white" /><span className="text-[6px] text-white">1.2k</span></div>
+                          <div className="flex flex-col items-center"><Send size={12} className="text-white" /><span className="text-[6px] text-white">856</span></div>
+                        </div>
+                        {/* Bottom text */}
+                        <div className="absolute left-2 bottom-2 right-10">
+                          <p className="text-[8px] text-white font-semibold">@agentzz</p>
+                          <p className="text-[6px] text-white/70">Agentes IA que nunca dormem #IA #Marketing</p>
+                        </div>
+                      </div>
+                      <div className="px-2.5 py-2 flex items-center gap-1">
+                        <TkIcon size={7} color="#ff0050" />
+                        <span className="text-[7px] text-[#555] font-mono">TikTok Video</span>
                       </div>
                     </motion.div>
                   </div>
@@ -809,35 +949,39 @@ export default function LandingV2() {
             <div className="md:translate-y-[-12px]"><AgentChat /></div>
 
             <Glass hover className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/10">
-                  <Megaphone size={14} className="text-[#C9A84C]" />
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/10">
+                  <Megaphone size={13} className="text-[#C9A84C]" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-white">Campaign</p>
-                  <p className="text-[8px] text-[#555] font-mono">AI Studio</p>
+                  <p className="text-[10px] font-semibold text-white">AI Campaign</p>
+                  <p className="text-[7px] text-emerald-400 font-mono">Published</p>
                 </div>
               </div>
-              <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-2.5 mb-2.5">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[8px] text-[#888] font-mono">Impressions</span>
-                  <span className="text-[8px] text-emerald-400 font-mono">+24%</span>
+              {/* Campaign preview image */}
+              <div className="rounded-lg overflow-hidden border border-white/[0.06] mb-2.5">
+                <img src={CAMPAIGN_IMAGES.feed} alt="Campaign" className="w-full aspect-[4/3] object-cover" />
+              </div>
+              <div className="grid grid-cols-3 gap-1 mb-2">
+                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
+                  <p className="text-[9px] font-bold text-white font-mono">45k</p>
+                  <p className="text-[6px] text-[#555] font-mono">Views</p>
                 </div>
-                <div className="flex gap-0.5 items-end h-7">
-                  {[30, 45, 38, 52, 48, 65, 58, 72, 68, 85, 78, 92].map((h, i) => (
-                    <div key={i} className="flex-1 rounded-sm bg-gradient-to-t from-[#C9A84C]/30 to-[#C9A84C]/10" style={{ height: `${h}%` }} />
-                  ))}
+                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
+                  <p className="text-[9px] font-bold text-emerald-400 font-mono">3.8%</p>
+                  <p className="text-[6px] text-[#555] font-mono">Conv.</p>
+                </div>
+                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
+                  <p className="text-[9px] font-bold text-[#C9A84C] font-mono">1.7k</p>
+                  <p className="text-[6px] text-[#555] font-mono">Leads</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                  <p className="text-[10px] font-bold text-white font-mono">12.4k</p>
-                  <p className="text-[7px] text-[#555] font-mono">Leads</p>
-                </div>
-                <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                  <p className="text-[10px] font-bold text-[#C9A84C] font-mono">4.2%</p>
-                  <p className="text-[7px] text-[#555] font-mono">Conv.</p>
-                </div>
+              <div className="flex gap-1">
+                {[IgIcon, FbIcon, WaIcon, TkIcon].map((I, i) => (
+                  <div key={i} className="h-5 w-5 rounded bg-white/[0.03] border border-white/[0.04] flex items-center justify-center">
+                    <I size={8} color="#666" />
+                  </div>
+                ))}
               </div>
             </Glass>
           </motion.div>
