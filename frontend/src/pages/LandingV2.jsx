@@ -1066,7 +1066,7 @@ export default function LandingV2() {
 
             <div className="md:translate-y-[-12px]"><AgentChat /></div>
 
-            <Glass hover className="p-4">
+            <Glass hover className="p-4 flex flex-col">
               <div className="flex items-center gap-2 mb-2.5">
                 <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/10">
                   <Megaphone size={13} className="text-[#C9A84C]" />
@@ -1085,7 +1085,7 @@ export default function LandingV2() {
                   <p className="text-[7px] text-[#C9A84C]/70 font-mono">AI-Powered Campaign</p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-1 mb-2">
+              <div className="grid grid-cols-3 gap-1 mb-3">
                 <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
                   <p className="text-[9px] font-bold text-white font-mono">45k</p>
                   <p className="text-[6px] text-[#555] font-mono">Views</p>
@@ -1099,12 +1099,62 @@ export default function LandingV2() {
                   <p className="text-[6px] text-[#555] font-mono">Leads</p>
                 </div>
               </div>
-              <div className="flex gap-1">
-                {[IgIcon, FbIcon, WaIcon, TkIcon].map((I, i) => (
-                  <div key={i} className="h-5 w-5 rounded bg-white/[0.03] border border-white/[0.04] flex items-center justify-center">
-                    <I size={8} color="#666" />
+              {/* 3 Mini campaign cards — IG, FB, TikTok */}
+              <div className="border-t border-white/[0.05] pt-3 flex-1">
+                <p className="text-[8px] text-[#555] font-mono uppercase tracking-widest mb-2">Distributed to</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {/* Instagram mini */}
+                  <div className="rounded-lg border border-white/[0.06] bg-[#0D0D0D] overflow-hidden hover:border-[#E1306C]/25 transition-colors">
+                    <div className="flex items-center gap-1 px-1.5 py-1 border-b border-white/[0.04]">
+                      <IgIcon size={7} color="#E1306C" />
+                      <span className="text-[6px] text-[#888] font-mono">Instagram</span>
+                    </div>
+                    <img src={CAMPAIGN_IMAGES.feed} alt="IG" className="w-full aspect-square object-cover object-top" />
+                    <div className="px-1.5 py-1">
+                      <div className="flex gap-1.5 mb-0.5">
+                        <Heart size={6} className="text-[#ccc]" /><MessageSquare size={6} className="text-[#ccc]" /><Send size={6} className="text-[#ccc]" />
+                      </div>
+                      <p className="text-[5px] text-[#555]">12.4k likes</p>
+                    </div>
                   </div>
-                ))}
+                  {/* Facebook mini */}
+                  <div className="rounded-lg border border-white/[0.06] bg-[#0D0D0D] overflow-hidden hover:border-[#0084FF]/25 transition-colors">
+                    <div className="flex items-center gap-1 px-1.5 py-1 border-b border-white/[0.04]">
+                      <FbIcon size={7} color="#0084FF" />
+                      <span className="text-[6px] text-[#888] font-mono">Facebook</span>
+                    </div>
+                    <img src={CAMPAIGN_IMAGES.wide} alt="FB" className="w-full aspect-video object-cover" />
+                    <div className="px-1.5 py-1">
+                      <p className="text-[5px] text-[#888] leading-tight mb-0.5">AI que vende por voce 24/7</p>
+                      <div className="flex items-center gap-1">
+                        <ThumbsUp size={5} className="text-[#0084FF]" />
+                        <span className="text-[5px] text-[#555]">3.2k</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* TikTok mini */}
+                  <div className="rounded-lg border border-white/[0.06] bg-[#0D0D0D] overflow-hidden hover:border-[#ff0050]/25 transition-colors">
+                    <div className="flex items-center gap-1 px-1.5 py-1 border-b border-white/[0.04]">
+                      <TkIcon size={7} color="#ff0050" />
+                      <span className="text-[6px] text-[#888] font-mono">TikTok</span>
+                    </div>
+                    <div className="relative">
+                      <img src={CAMPAIGN_IMAGES.story} alt="TK" className="w-full aspect-[9/14] object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-5 w-5 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <Play size={8} className="text-white ml-0.5" fill="currentColor" />
+                        </div>
+                      </div>
+                      <div className="absolute right-1 bottom-2 flex flex-col items-center gap-1">
+                        <Heart size={7} className="text-white" />
+                        <MessageSquare size={7} className="text-white" />
+                      </div>
+                    </div>
+                    <div className="px-1.5 py-1">
+                      <p className="text-[5px] text-[#555]">28.7k views</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </Glass>
           </motion.div>
