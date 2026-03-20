@@ -1046,64 +1046,65 @@ export default function LandingV2() {
             <div className="lg:col-span-3">
               <AnimatePresence mode="wait">
                 <motion.div key={activeAgent} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.3 }}>
-                  <Glass className="p-5">
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className="h-14 w-14 rounded-xl overflow-hidden ring-2 ring-[#C9A84C]/20">
+                  <Glass className="p-4">
+                    {/* Agent header */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-11 w-11 rounded-xl overflow-hidden ring-2 ring-[#C9A84C]/20">
                         <img src={current.avatar} alt={current.name} className="h-full w-full object-cover" />
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-white">{current.name}</h3>
-                        <p className="text-[10px] text-[#C9A84C] font-mono">{current.role}</p>
+                        <h3 className="text-sm font-bold text-white">{current.name}</h3>
+                        <p className="text-[9px] text-[#C9A84C] font-mono">{current.role}</p>
                       </div>
-                      <div className="ml-auto flex items-center gap-1.5 rounded-full border border-emerald-400/15 bg-emerald-400/[0.05] px-2.5 py-1">
+                      <div className="ml-auto flex items-center gap-1 rounded-full border border-emerald-400/15 bg-emerald-400/[0.05] px-2 py-0.5">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                         <span className="text-[8px] text-emerald-400 font-mono">Online</span>
                       </div>
                     </div>
 
-                    <div className="mb-4">
-                      <p className="text-[8px] font-mono text-[#555] uppercase tracking-widest mb-2"><Brain size={8} className="inline mr-1 text-[#C9A84C]" />Habilidades</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {current.skills.map((skill, si) => (
-                          <motion.div key={si} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: si * 0.05 }}
-                            className="flex items-center gap-1 rounded-full border border-[#C9A84C]/10 bg-[#C9A84C]/[0.04] px-2.5 py-1">
-                            <Star size={8} className="text-[#C9A84C]" />
-                            <span className="text-[8px] font-mono text-[#C9A84C]/80">{skill}</span>
-                          </motion.div>
-                        ))}
+                    {/* Skills + Channels row */}
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-1.5"><Brain size={7} className="inline mr-1 text-[#C9A84C]" />Habilidades</p>
+                        <div className="flex flex-wrap gap-1">
+                          {current.skills.map((skill, si) => (
+                            <span key={si} className="flex items-center gap-1 rounded-full border border-[#C9A84C]/10 bg-[#C9A84C]/[0.04] px-2 py-0.5 text-[7px] font-mono text-[#C9A84C]/80">
+                              <Star size={7} className="text-[#C9A84C]" />{skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-1.5"><Globe size={7} className="inline mr-1 text-[#C9A84C]" />{l.ag_channels}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {current.channels.map((ch, ci) => (
+                            <span key={ci} className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 text-[8px] text-[#888] font-mono">
+                              <span className="h-1 w-1 rounded-full bg-emerald-400" />{ch}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mb-4">
-                      <p className="text-[8px] font-mono text-[#555] uppercase tracking-widest mb-2"><Globe size={8} className="inline mr-1 text-[#C9A84C]" />{l.ag_channels}</p>
-                      <div className="flex gap-1.5">
-                        {current.channels.map((ch, ci) => (
-                          <div key={ci} className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-1">
-                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                            <span className="text-[9px] text-[#888] font-mono">{ch}</span>
-                          </div>
-                        ))}
+                    {/* Config compact */}
+                    <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2.5">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Sliders size={9} className="text-[#C9A84C]" />
+                        <p className="text-[9px] font-semibold text-white">{l.config_title}</p>
                       </div>
-                    </div>
-
-                    <div className="rounded-xl border border-white/[0.05] bg-white/[0.01] p-3.5">
-                      <div className="flex items-center gap-2 mb-2.5">
-                        <Sliders size={11} className="text-[#C9A84C]" />
-                        <p className="text-[10px] font-semibold text-white">{l.config_title}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-4 gap-1.5">
                         {[
                           { icon: Brain, label: l.ag_personality, value: current.role },
                           { icon: Layers, label: l.ag_knowledge, value: '3 docs' },
                           { icon: Languages, label: l.ag_lang, value: 'PT, EN, ES' },
                           { icon: Clock, label: l.ag_rules, value: '24/7' },
                         ].map((cfg, ci) => (
-                          <div key={ci} className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-2">
+                          <div key={ci} className="rounded border border-white/[0.04] bg-white/[0.02] p-1.5">
                             <div className="flex items-center gap-1 mb-0.5">
-                              <cfg.icon size={8} className="text-[#C9A84C]/60" />
-                              <span className="text-[7px] text-[#555] font-mono uppercase">{cfg.label}</span>
+                              <cfg.icon size={7} className="text-[#C9A84C]/60" />
+                              <span className="text-[6px] text-[#555] font-mono uppercase">{cfg.label}</span>
                             </div>
-                            <p className="text-[9px] text-white font-medium">{cfg.value}</p>
+                            <p className="text-[8px] text-white font-medium truncate">{cfg.value}</p>
                           </div>
                         ))}
                       </div>
