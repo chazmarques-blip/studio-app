@@ -1341,24 +1341,24 @@ export default function LandingV2() {
           </motion.div>
 
           <div className="grid lg:grid-cols-5 gap-5">
-            <div className="lg:col-span-2 space-y-2.5">
+            <div className="lg:col-span-2 space-y-2">
               {agents.map((ag, i) => (
                 <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i}
                   onClick={() => setActiveAgent(i)}
-                  className={`cursor-pointer rounded-xl border p-3.5 transition-all duration-400 ${
+                  className={`cursor-pointer rounded-xl border p-3 transition-all duration-400 ${
                     activeAgent === i ? 'border-[#C9A84C]/20 bg-[#C9A84C]/[0.03]' : 'border-white/[0.05] bg-white/[0.01] hover:border-white/[0.08]'
                   }`} data-testid={`agent-selector-${i}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`h-11 w-11 rounded-full overflow-hidden ring-2 transition-all ${activeAgent === i ? 'ring-[#C9A84C]/30' : 'ring-white/[0.06]'}`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all ${activeAgent === i ? 'ring-[#C9A84C]/30' : 'ring-white/[0.06]'}`}>
                       <img src={ag.avatar} alt={ag.name} className="h-full w-full object-cover" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-[12px] font-semibold text-white">{ag.name}</p>
-                      <p className="text-[9px] text-[#666] font-mono">{ag.role}</p>
+                      <p className="text-[11px] font-semibold text-white">{ag.name}</p>
+                      <p className="text-[8px] text-[#666] font-mono">{ag.role}</p>
                     </div>
                     {activeAgent === i && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="h-2 w-2 rounded-full bg-[#C9A84C]" />}
                   </div>
-                  <p className="text-[10px] text-[#555] leading-relaxed mt-2">{ag.desc}</p>
+                  <p className="text-[9px] text-[#555] leading-relaxed mt-1.5">{ag.desc}</p>
                 </motion.div>
               ))}
             </div>
