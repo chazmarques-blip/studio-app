@@ -1008,7 +1008,7 @@ export default function LandingV2() {
                 </div>
                 <div className="ml-auto h-2 w-2 rounded-full bg-emerald-400" />
               </div>
-              <div className="space-y-1.5 mb-2">
+              <div className="space-y-1.5 mb-3">
                 {['WhatsApp', 'Instagram', 'Telegram'].map(ch => (
                   <div key={ch} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/[0.02] border border-white/[0.04]">
                     <div className="h-1.5 w-1.5 rounded-full bg-[#C9A84C]/60" />
@@ -1016,6 +1016,30 @@ export default function LandingV2() {
                     <span className="ml-auto text-[7px] text-emerald-400/70 font-mono">Active</span>
                   </div>
                 ))}
+              </div>
+              {/* Skills */}
+              <div className="border-t border-white/[0.05] pt-3 mb-3">
+                <p className="text-[8px] text-[#555] font-mono uppercase tracking-widest mb-2">Skills</p>
+                <div className="flex flex-wrap gap-1">
+                  {['Scheduling', 'Lead Qualify', 'Follow-up', 'Upsell', 'FAQ', 'Multilingual'].map(s => (
+                    <span key={s} className="text-[7px] text-[#C9A84C]/70 font-mono bg-[#C9A84C]/[0.06] border border-[#C9A84C]/10 rounded px-1.5 py-0.5">{s}</span>
+                  ))}
+                </div>
+              </div>
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-1.5 mb-3">
+                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
+                  <p className="text-[9px] font-bold text-white font-mono">98%</p>
+                  <p className="text-[6px] text-[#555] font-mono">Resolve</p>
+                </div>
+                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
+                  <p className="text-[9px] font-bold text-emerald-400 font-mono">&lt;3s</p>
+                  <p className="text-[6px] text-[#555] font-mono">Response</p>
+                </div>
+                <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
+                  <p className="text-[9px] font-bold text-[#C9A84C] font-mono">3</p>
+                  <p className="text-[6px] text-[#555] font-mono">Languages</p>
+                </div>
               </div>
               <div className="flex items-center gap-1 text-[8px] text-[#C9A84C]/60 font-mono">
                 <Sparkles size={8} /> 847 conversations
