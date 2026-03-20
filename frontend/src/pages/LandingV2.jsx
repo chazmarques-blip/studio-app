@@ -170,7 +170,7 @@ function AgentChat() {
   useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs, typing]);
 
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-[#0A0A0A] overflow-hidden shadow-2xl shadow-black/60">
+    <div className="rounded-2xl border border-white/[0.07] bg-[#0A0A0A] overflow-hidden shadow-2xl shadow-black/60 flex flex-col h-full">
       <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-2.5 bg-white/[0.02]">
         <AnimatePresence mode="wait">
           <motion.div key={channelIdx} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className="flex items-center gap-3 flex-1 min-w-0">
@@ -194,7 +194,7 @@ function AgentChat() {
           <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#C9A84C]/60' : 'w-1 bg-white/[0.08]'}`} />
         ))}
       </div>
-      <div ref={ref} className="h-[600px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
+      <div ref={ref} className="flex-1 overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
         <AnimatePresence mode="wait">
           <motion.div key={channelIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {msgs.map((m, i) => (
@@ -996,7 +996,7 @@ export default function LandingV2() {
 
           {/* Hero 3 panels */}
           <motion.div initial="hidden" animate="visible" variants={fade} custom={4}
-            className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto items-start">
+            className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto items-stretch">
             <Glass hover className="p-4 flex flex-col">
               {/* Header */}
               <div className="flex items-center gap-3 mb-3">
@@ -1064,7 +1064,7 @@ export default function LandingV2() {
               </div>
             </Glass>
 
-            <div className="md:translate-y-[-12px]"><AgentChat /></div>
+            <div className="md:translate-y-[-12px] h-full"><AgentChat /></div>
 
             <Glass hover className="p-4 flex flex-col">
               <div className="flex items-center gap-2 mb-2.5">
