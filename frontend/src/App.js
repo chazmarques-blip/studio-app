@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppLayout } from './components/layout/AppLayout';
 import Landing from './pages/Landing';
+import LandingV2 from './pages/LandingV2';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import OnboardingAgentLang from './pages/OnboardingAgentLang';
@@ -74,6 +75,7 @@ function App() {
         <Routes>
           {/* Public */}
           <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+          <Route path="/v2" element={<LandingV2 />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           {/* Onboarding */}
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
