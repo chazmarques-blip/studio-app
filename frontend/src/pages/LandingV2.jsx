@@ -866,10 +866,19 @@ export default function LandingV2() {
   ];
 
   /* Real campaigns from AI Studio */
+  const CHANNEL_ICONS = {
+    Instagram: IgIcon,
+    WhatsApp: WaIcon,
+    Facebook: FbIcon,
+    TikTok: TkIcon,
+    Telegram: TgIcon,
+    SMS: SmsIcon,
+  };
+
   const REAL_CAMPAIGNS = [
     {
       name: 'Crafting Hands',
-      type: lang === 'pt' ? 'ONG / Social' : 'NGO / Social',
+      type: 'NGO / Social',
       copy: '¿Y si 30 minutos tuyos pudieran alegrar el dia mas dificil de un nino? Unete a nuestro club de estudiantes que hacen pulseras y tarjetas con amor para ninos hospitalizados.',
       images: [
         'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_1_7597f1.png',
@@ -880,16 +889,16 @@ export default function LandingV2() {
       channels: ['Instagram', 'WhatsApp', 'TikTok'],
     },
     {
-      name: 'Bean and Brew Coffee',
-      type: 'Food & Beverage',
-      copy: 'Fresh-Roasted Coffee. Real Focus. Zero Distractions. No stale corporate coffee, no uncomfortable chairs — just the perfect brew for your best work.',
+      name: 'Apice Detailing',
+      type: 'Luxury Auto Care',
+      copy: 'Your Supercar Deserves Supercar Treatment — We Come to You. Ferrari, Lamborghini, Porsche gleaming like the day they left the factory.',
       images: [
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c7b42a82-45f4-4b8a-90b6-dfe6ffb2f105_1_9e72d8.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c7b42a82-45f4-4b8a-90b6-dfe6ffb2f105_2_6837cb.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c7b42a82-45f4-4b8a-90b6-dfe6ffb2f105_3_c14d5f.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_1_21e9f2.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_2_814bf7.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_3_664e72.png',
       ],
-      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/c7b42a82-45f4-4b8a-90b6-dfe6ffb2f105_commercial.mp4',
-      channels: ['Instagram', 'Facebook', 'TikTok'],
+      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/4da83978-5af3-4736-8b5f-959df4a08071_commercial.mp4',
+      channels: ['Instagram', 'Facebook', 'TikTok', 'WhatsApp'],
     },
     {
       name: 'My Truck Pickup Shop',
@@ -904,16 +913,16 @@ export default function LandingV2() {
       channels: ['WhatsApp', 'Instagram', 'Facebook'],
     },
     {
-      name: 'Cologne Discovery',
-      type: 'Young Lifestyle',
-      copy: 'Your Scent Shouldn\'t Be Basic. Neither Should You. Our customizable discovery set lets YOU create a fragrance that\'s uniquely yours.',
+      name: 'Hercules Solutions',
+      type: 'Construction & Design',
+      copy: 'Your Dream Home Doesn\'t Have to Wait Years. Custom renovations with impeccable finishes, delivered on time. Transform your space today.',
       images: [
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/e13cde3c-a9af-44c5-b34f-08b461d2caa6_1_82173b.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/e13cde3c-a9af-44c5-b34f-08b461d2caa6_2_244f34.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/e13cde3c-a9af-44c5-b34f-08b461d2caa6_3_9d5bce.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_1_5dddb1.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_2_5823eb.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_3_9d9589.png',
       ],
-      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/e13cde3c-a9af-44c5-b34f-08b461d2caa6_commercial.mp4',
-      channels: ['TikTok', 'Instagram', 'WhatsApp'],
+      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/c561486a-a04e-442d-b53e-66c16f95d78a_commercial.mp4',
+      channels: ['WhatsApp', 'Instagram', 'Facebook', 'TikTok'],
     },
   ];
   const [campImageIdx, setCampImageIdx] = useState([0, 0, 0, 0]);
@@ -1222,7 +1231,7 @@ export default function LandingV2() {
             {REAL_CAMPAIGNS.map((camp, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i * 0.3}>
                 <Glass hover className="overflow-hidden h-full flex flex-col">
-                  {/* Image carousel */}
+                  {/* Clean image carousel — no text overlays */}
                   <div className="relative">
                     <AnimatePresence mode="wait">
                       <motion.img
@@ -1236,11 +1245,6 @@ export default function LandingV2() {
                         className="w-full aspect-square object-cover"
                       />
                     </AnimatePresence>
-                    <div className="absolute top-2 left-2 flex gap-1">
-                      {camp.channels.map((ch, ci) => (
-                        <span key={ci} className="text-[6px] font-mono text-white bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">{ch}</span>
-                      ))}
-                    </div>
                     {/* Carousel dots */}
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
                       {camp.images.map((_, di) => (
@@ -1249,10 +1253,17 @@ export default function LandingV2() {
                     </div>
                   </div>
                   <div className="p-3 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div>
-                        <p className="text-[11px] font-semibold text-white">{camp.name}</p>
+                    {/* Title + social icons row */}
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold text-white truncate">{camp.name}</p>
                         <p className="text-[8px] text-[#C9A84C] font-mono">{camp.type}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                        {camp.channels.map((ch, ci) => {
+                          const Icon = CHANNEL_ICONS[ch];
+                          return Icon ? <Icon key={ci} size={13} color="#666" /> : null;
+                        })}
                       </div>
                     </div>
                     <p className="text-[9px] text-[#888] leading-relaxed flex-1">{camp.copy}</p>
