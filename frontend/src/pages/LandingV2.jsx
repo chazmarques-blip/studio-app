@@ -865,18 +865,66 @@ export default function LandingV2() {
     { name: 'Pedro Santos', role: lang === 'pt' ? 'Fundador, FitLife' : 'Founder, FitLife', text: lang === 'pt' ? 'A Sophia gerencia todos os agendamentos da academia automaticamente. Nossos clientes adoram a experiencia.' : 'Sophia manages all gym scheduling automatically. Our clients love the experience.', photo: TESTIMONIAL_PHOTOS[2] },
   ];
 
-  const campaigns = [
-    { name: lang === 'pt' ? 'Black Friday Tech' : 'Black Friday Tech', type: 'E-commerce', impressions: '45.2k', conversions: '3.8%', leads: '1,720', channels: ['Instagram', 'WhatsApp', 'Facebook'], image: 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/3b6700396e3b3ac7ad87b1d76e66a3b5cc599719e940cb30638658716491f099.png', copy: lang === 'pt' ? 'Ate 60% OFF em tech! Notebooks, fones e smartphones com os melhores precos do ano. So hoje!' : 'Up to 60% OFF on tech! Laptops, headphones and smartphones at the best prices. Today only!' },
-    { name: lang === 'pt' ? 'Lancamento FitLife Pro' : 'FitLife Pro Launch', type: 'SaaS', impressions: '28.6k', conversions: '5.1%', leads: '892', channels: ['Instagram', 'TikTok', 'YouTube'], image: 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/b9ea166a930b6c7d64c8c487a8f24d2f532ba9d0f04cc49af4716ff322da22eb.png', copy: lang === 'pt' ? 'Seu personal trainer IA. Treinos personalizados, nutricao e acompanhamento 24h. Teste gratis!' : 'Your AI personal trainer. Custom workouts, nutrition and 24/7 tracking. Try free!' },
-    { name: lang === 'pt' ? 'Promocao Verao Moda' : 'Summer Fashion Promo', type: lang === 'pt' ? 'Moda' : 'Fashion', impressions: '62.1k', conversions: '4.3%', leads: '2,340', channels: ['Instagram', 'WhatsApp'], image: 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/29177f690a676f7635915ca1ffa53ecf3ed3d791f3baf3e95859c0b0d4853d54.png', copy: lang === 'pt' ? 'Colecao verao com ate 50% OFF! Oculos, chapeus e acessorios para arrasar na temporada.' : 'Summer collection up to 50% OFF! Sunglasses, hats and accessories to rock the season.' },
+  /* Real campaigns from AI Studio */
+  const REAL_CAMPAIGNS = [
+    {
+      name: 'Crafting Hands',
+      type: lang === 'pt' ? 'ONG / Social' : 'NGO / Social',
+      copy: '¿Y si 30 minutos tuyos pudieran alegrar el dia mas dificil de un nino? Unete a nuestro club de estudiantes que hacen pulseras y tarjetas con amor para ninos hospitalizados.',
+      images: [
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_1_7597f1.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_2_2d369f.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_3_cef4b7.png',
+      ],
+      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/19b6bdd8-51c9-4859-af32-007dd14a146b_commercial.mp4',
+      channels: ['Instagram', 'WhatsApp', 'TikTok'],
+    },
+    {
+      name: 'Apice Detailing',
+      type: 'Automotive Luxury',
+      copy: 'Your Supercar Deserves Supercar Treatment. Professional ceramic coatings, paint correction, and interior restoration — delivered to your home.',
+      images: [
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_1_21e9f2.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_2_814bf7.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_3_664e72.png',
+      ],
+      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/4da83978-5af3-4736-8b5f-959df4a08071_commercial.mp4',
+      channels: ['Instagram', 'Facebook', 'Google Ads'],
+    },
+    {
+      name: 'My Truck Pickup Shop',
+      type: 'Automotive Sales',
+      copy: '¿Cansado de vender sin apoyo financiero? My Truck te da TODO. 17+ bancos listos para aprobar. Gana hasta $1,500 por vehiculo vendido.',
+      images: [
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_1_880d42.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_2_2bbf67.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_3_af19d4.png',
+      ],
+      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_commercial.mp4',
+      channels: ['WhatsApp', 'Instagram', 'Facebook'],
+    },
+    {
+      name: 'SUV My Truck',
+      type: 'Automotive Finance',
+      copy: '¿Credito Bajo? ¡No te Preocupes! SUVs de alta calidad sin importar tu historial crediticio. Solo necesitas pasaporte y $1990 de entrada.',
+      images: [
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/78bdd62b-94da-48f3-8620-9166ae21d830_1_0bbae5.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/78bdd62b-94da-48f3-8620-9166ae21d830_2_a2e524.png',
+        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/78bdd62b-94da-48f3-8620-9166ae21d830_3_721ae2.png',
+      ],
+      video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/78bdd62b-94da-48f3-8620-9166ae21d830_commercial.mp4',
+      channels: ['WhatsApp', 'Facebook', 'Instagram'],
+    },
   ];
+  const [campImageIdx, setCampImageIdx] = useState([0, 0, 0, 0]);
 
   const current = agents[activeAgent];
 
   useEffect(() => {
     const i1 = setInterval(() => setActiveAgent(p => (p + 1) % agents.length), 5000);
     const i2 = setInterval(() => setActiveStep(p => (p + 1) % pipelineSteps.length), 2000);
-    return () => { clearInterval(i1); clearInterval(i2); };
+    const i3 = setInterval(() => setCampImageIdx(p => p.map((v, i) => (v + 1) % 3)), 3000);
+    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); };
   }, []);
 
   return (
@@ -1170,43 +1218,53 @@ export default function LandingV2() {
             <p className="text-sm text-[#555] max-w-md mx-auto mt-2">{l.camp_sub}</p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-3 gap-3">
-            {campaigns.map((camp, i) => (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {REAL_CAMPAIGNS.map((camp, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i * 0.3}>
                 <Glass hover className="overflow-hidden h-full flex flex-col">
-                  {/* Campaign image */}
+                  {/* Image carousel */}
                   <div className="relative">
-                    <img src={camp.image} alt={camp.name} className="w-full aspect-square object-cover" />
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={campImageIdx[i]}
+                        src={camp.images[campImageIdx[i]]}
+                        alt={camp.name}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="w-full aspect-square object-cover"
+                      />
+                    </AnimatePresence>
                     <div className="absolute top-2 left-2 flex gap-1">
                       {camp.channels.map((ch, ci) => (
                         <span key={ci} className="text-[6px] font-mono text-white bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">{ch}</span>
                       ))}
                     </div>
+                    {/* Carousel dots */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                      {camp.images.map((_, di) => (
+                        <div key={di} className={`h-1 rounded-full transition-all duration-300 ${di === campImageIdx[i] ? 'w-3 bg-white' : 'w-1 bg-white/40'}`} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="p-3 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-1.5">
                       <div>
-                        <p className="text-[12px] font-semibold text-white">{camp.name}</p>
+                        <p className="text-[11px] font-semibold text-white">{camp.name}</p>
                         <p className="text-[8px] text-[#C9A84C] font-mono">{camp.type}</p>
                       </div>
-                      <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/10">
-                        <BarChart2 size={12} className="text-[#C9A84C]" />
-                      </div>
                     </div>
-                    {/* Copy text */}
-                    <p className="text-[10px] text-[#888] leading-relaxed mb-3 flex-1">{camp.copy}</p>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                        <p className="text-[10px] font-bold text-white font-mono">{camp.impressions}</p>
-                        <p className="text-[6px] text-[#555] font-mono">Impressions</p>
+                    <p className="text-[9px] text-[#888] leading-relaxed flex-1">{camp.copy}</p>
+                    {/* Video badge */}
+                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/[0.05]">
+                      <div className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/15 px-1.5 py-0.5">
+                        <Play size={7} className="text-red-400" fill="currentColor" />
+                        <span className="text-[7px] text-red-400 font-mono">Video</span>
                       </div>
-                      <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                        <p className="text-[10px] font-bold text-emerald-400 font-mono">{camp.conversions}</p>
-                        <p className="text-[6px] text-[#555] font-mono">Conv.</p>
-                      </div>
-                      <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
-                        <p className="text-[10px] font-bold text-[#C9A84C] font-mono">{camp.leads}</p>
-                        <p className="text-[6px] text-[#555] font-mono">Leads</p>
+                      <div className="flex items-center gap-1 rounded bg-[#C9A84C]/[0.06] border border-[#C9A84C]/10 px-1.5 py-0.5">
+                        <Image size={7} className="text-[#C9A84C]" />
+                        <span className="text-[7px] text-[#C9A84C]/70 font-mono">3 imgs</span>
                       </div>
                     </div>
                   </div>
