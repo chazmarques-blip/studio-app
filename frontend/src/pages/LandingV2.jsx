@@ -19,6 +19,12 @@ const AVATARS = {
   James: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/88cfe39c6a5319218155267be07401ca74245e2076c5805a10e5c4aa82e5da90.png",
 };
 
+const CAMPAIGN_IMAGES = {
+  feed: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/49ed7b5af6869971dee9f2dcd5a7164df842cb17290129ae0565882fc3b6b2e5.png",
+  story: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/a90b958a7a2e499ced4c2f685c9fc0a1461e59c6243de42f0b617b065f800a12.png",
+  wide: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/dca8ff31dfd717773cb8e6e891bd6e6c76851c74972a896b72cf65ed7f8e18ea.png",
+};
+
 const TESTIMONIAL_PHOTOS = [
   "https://images.pexels.com/photos/5920775/pexels-photo-5920775.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   "https://images.unsplash.com/photo-1770627000564-3feb36aecbcd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHw0fHxidXNpbmVzcyUyMG93bmVyJTIwZW50cmVwcmVuZXVyJTIwcG9ydHJhaXQlMjBwcm9mZXNzaW9uYWx8ZW58MHx8fHwxNzczOTc4Mzc2fDA&ixlib=rb-4.1.0&q=85",
@@ -136,6 +142,390 @@ function AgentChat() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Campaign Demo Showcase ── */
+function CampaignDemo({ lang }) {
+  const [demoStep, setDemoStep] = useState(0);
+  const [typedText, setTypedText] = useState('');
+  const [autoPlay, setAutoPlay] = useState(true);
+
+  const L = {
+    pt: {
+      tag: 'DEMO AO VIVO', title: 'Veja uma campanha sendo criada',
+      sub: 'Acompanhe o processo completo da IA criando uma campanha real para a marca AgentZZ.',
+      steps: [
+        { label: 'Brief', title: 'Briefing da campanha', desc: 'A IA recebe o objetivo e analisa a marca.' },
+        { label: 'Copy', title: 'Textos gerados pela IA', desc: 'Copywriter IA cria textos para cada formato.' },
+        { label: 'Design', title: 'Imagens criadas', desc: 'Designer IA gera visuais para Feed, Story e Banner.' },
+        { label: 'Video', title: 'Video com avatar', desc: 'Apresentador IA com lip-sync e narracao.' },
+        { label: 'Resultado', title: 'Campanha pronta!', desc: 'Todos os formatos prontos para publicacao.' },
+      ],
+      brief_brand: 'Marca:', brief_goal: 'Objetivo:', brief_goal_v: 'Lancamento da plataforma AgentZZ — mostrar que qualquer negocio pode ter agentes IA atendendo 24h em todos os canais.',
+      brief_tone: 'Tom:', brief_tone_v: 'Premium, tecnologico, confiavel',
+      brief_channels: 'Canais:', brief_channels_v: 'Instagram Feed, Story, Facebook, WhatsApp',
+      copy_feed: 'Seus clientes nunca mais esperam. Com AgentZZ, seus agentes IA atendem 24h no WhatsApp, Instagram e Telegram. Configure em 5 minutos.',
+      copy_story: 'Atendimento 24h. Sem codigo. Sem espera. Comece gratis agora.',
+      copy_cta: 'Comece Gratis',
+      video_title: 'Video Comercial — AgentZZ', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — Apresentador IA', video_voice: 'Narracao profissional PT-BR',
+      result_title: 'Campanha AgentZZ — Pronta', result_formats: '4 formatos gerados', result_ready: 'Pronto para publicar',
+    },
+    en: {
+      tag: 'LIVE DEMO', title: 'Watch a campaign being created',
+      sub: 'Follow the complete AI process creating a real campaign for the AgentZZ brand.',
+      steps: [
+        { label: 'Brief', title: 'Campaign briefing', desc: 'AI receives the goal and analyzes the brand.' },
+        { label: 'Copy', title: 'AI-generated copy', desc: 'AI copywriter creates text for each format.' },
+        { label: 'Design', title: 'Images created', desc: 'AI designer generates visuals for Feed, Story, and Banner.' },
+        { label: 'Video', title: 'Avatar video', desc: 'AI presenter with lip-sync and narration.' },
+        { label: 'Result', title: 'Campaign ready!', desc: 'All formats ready for publishing.' },
+      ],
+      brief_brand: 'Brand:', brief_goal: 'Goal:', brief_goal_v: 'AgentZZ platform launch — show any business can have AI agents serving 24/7 on all channels.',
+      brief_tone: 'Tone:', brief_tone_v: 'Premium, technological, trustworthy',
+      brief_channels: 'Channels:', brief_channels_v: 'Instagram Feed, Story, Facebook, WhatsApp',
+      copy_feed: 'Your customers never wait again. With AgentZZ, your AI agents serve 24/7 on WhatsApp, Instagram, and Telegram. Set up in 5 minutes.',
+      copy_story: '24/7 support. No code. No waiting. Start free now.',
+      copy_cta: 'Start Free',
+      video_title: 'Commercial Video — AgentZZ', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — AI Presenter', video_voice: 'Professional narration EN',
+      result_title: 'AgentZZ Campaign — Ready', result_formats: '4 formats generated', result_ready: 'Ready to publish',
+    },
+    es: {
+      tag: 'DEMO EN VIVO', title: 'Mira una campana siendo creada',
+      sub: 'Acompana el proceso completo de IA creando una campana real para AgentZZ.',
+      steps: [
+        { label: 'Brief', title: 'Briefing de campana', desc: 'La IA recibe el objetivo y analiza la marca.' },
+        { label: 'Copy', title: 'Textos generados', desc: 'Copywriter IA crea textos para cada formato.' },
+        { label: 'Diseno', title: 'Imagenes creadas', desc: 'Designer IA genera visuales para Feed, Story y Banner.' },
+        { label: 'Video', title: 'Video con avatar', desc: 'Presentador IA con lip-sync y narracion.' },
+        { label: 'Resultado', title: 'Campana lista!', desc: 'Todos los formatos listos para publicar.' },
+      ],
+      brief_brand: 'Marca:', brief_goal: 'Objetivo:', brief_goal_v: 'Lanzamiento AgentZZ — mostrar que cualquier negocio puede tener agentes IA 24h.',
+      brief_tone: 'Tono:', brief_tone_v: 'Premium, tecnologico, confiable',
+      brief_channels: 'Canales:', brief_channels_v: 'Instagram Feed, Story, Facebook, WhatsApp',
+      copy_feed: 'Tus clientes nunca mas esperan. Con AgentZZ, tus agentes IA atienden 24h. Configura en 5 minutos.',
+      copy_story: 'Atencion 24h. Sin codigo. Sin espera. Empieza gratis.',
+      copy_cta: 'Empieza Gratis',
+      video_title: 'Video Comercial — AgentZZ', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — Presentador IA', video_voice: 'Narracion profesional ES',
+      result_title: 'Campana AgentZZ — Lista', result_formats: '4 formatos generados', result_ready: 'Listo para publicar',
+    },
+  };
+  const d = L[lang] || L.en;
+
+  // Typing effect for copy step
+  useEffect(() => {
+    if (demoStep === 1) {
+      setTypedText('');
+      const text = d.copy_feed;
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < text.length) { setTypedText(text.slice(0, i + 1)); i++; }
+        else clearInterval(interval);
+      }, 25);
+      return () => clearInterval(interval);
+    }
+  }, [demoStep, lang]);
+
+  // Auto-advance
+  useEffect(() => {
+    if (!autoPlay) return;
+    const delays = [4000, 4000, 3500, 3500, 5000];
+    const timer = setTimeout(() => {
+      setDemoStep(p => (p + 1) % 5);
+    }, delays[demoStep]);
+    return () => clearTimeout(timer);
+  }, [demoStep, autoPlay]);
+
+  const stepIcons = [Target, MessageSquare, Image, Video, Check];
+
+  return (
+    <div>
+      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
+        <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{d.tag}</p>
+        <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{d.title}</h2>
+        <p className="text-sm text-[#555] max-w-lg mx-auto mt-2">{d.sub}</p>
+      </motion.div>
+
+      {/* Step indicators */}
+      <div className="flex items-center justify-center gap-1 sm:gap-2 mb-6">
+        {d.steps.map((s, i) => {
+          const Icon = stepIcons[i];
+          return (
+            <button key={i} onClick={() => { setDemoStep(i); setAutoPlay(false); }}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all duration-400 text-[9px] font-mono ${
+                demoStep === i ? 'bg-[#C9A84C]/[0.12] border border-[#C9A84C]/20 text-[#C9A84C]' : 'border border-white/[0.05] text-[#555] hover:text-[#888]'
+              }`} data-testid={`demo-step-${i}`}>
+              <Icon size={10} />
+              <span className="hidden sm:inline">{s.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Demo content area */}
+      <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] overflow-hidden">
+        {/* Top bar */}
+        <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-3 bg-white/[0.01]">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+            </div>
+            <span className="text-[9px] font-mono text-[#555] ml-3">AgentZZ AI Marketing Studio</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] font-mono text-[#C9A84C]/50 border border-[#C9A84C]/10 rounded px-2 py-0.5 bg-[#C9A84C]/[0.03]">
+              {d.steps[demoStep].label} — {demoStep + 1}/5
+            </span>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-5 min-h-[380px]">
+          <AnimatePresence mode="wait">
+            <motion.div key={demoStep} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.35 }}>
+
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-white mb-1">{d.steps[demoStep].title}</h3>
+                <p className="text-[11px] text-[#555]">{d.steps[demoStep].desc}</p>
+              </div>
+
+              {/* Step 0: Brief */}
+              {demoStep === 0 && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">{d.brief_brand}</p>
+                      <div className="flex items-center gap-3">
+                        <img src="/logo-agentzz.png" alt="AgentZZ" className="h-6" />
+                        <span className="text-[12px] text-white font-semibold">AgentZZ</span>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">{d.brief_goal}</p>
+                      <p className="text-[11px] text-[#ccc] leading-relaxed">{d.brief_goal_v}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                        <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-1">{d.brief_tone}</p>
+                        <p className="text-[10px] text-[#999]">{d.brief_tone_v}</p>
+                      </div>
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                        <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-1">{d.brief_channels}</p>
+                        <p className="text-[10px] text-[#999]">{d.brief_channels_v}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="relative">
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                        className="h-40 w-40 rounded-full border border-[#C9A84C]/10" />
+                      <motion.div animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+                        className="absolute inset-4 rounded-full border border-dashed border-[#C9A84C]/15" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/15">
+                          <Brain size={28} className="text-[#C9A84C]" />
+                        </div>
+                      </div>
+                      <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-2 right-6 h-3 w-3 rounded-full bg-[#C9A84C]/20" />
+                      <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2.5, repeat: Infinity }} className="absolute bottom-4 left-4 h-2 w-2 rounded-full bg-[#C9A84C]/15" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 1: Copy */}
+              {demoStep === 1 && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded bg-[#C9A84C]/[0.1] flex items-center justify-center"><MessageSquare size={10} className="text-[#C9A84C]" /></div>
+                        <span className="text-[9px] font-mono text-[#C9A84C]">Instagram Feed</span>
+                      </div>
+                      <p className="text-[11px] text-[#ccc] leading-relaxed">{typedText}<motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }} className="text-[#C9A84C]">|</motion.span></p>
+                    </div>
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded bg-[#C9A84C]/[0.1] flex items-center justify-center"><MessageSquare size={10} className="text-[#C9A84C]" /></div>
+                        <span className="text-[9px] font-mono text-[#C9A84C]">Story / Reels</span>
+                      </div>
+                      <p className="text-[11px] text-[#999]">{d.copy_story}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#C9A84C]/10 bg-[#C9A84C]/[0.03] p-3 flex items-center gap-2">
+                      <Send size={12} className="text-[#C9A84C]" />
+                      <span className="text-[10px] text-[#C9A84C] font-semibold">CTA: {d.copy_cta}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="rounded-xl border border-white/[0.06] overflow-hidden shadow-2xl shadow-black/50 max-w-[200px]">
+                      <img src={CAMPAIGN_IMAGES.feed} alt="Feed post" className="w-full" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Design */}
+              {demoStep === 2 && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-1">
+                    <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">Instagram Feed</p>
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}
+                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#C9A84C]/20 transition-colors">
+                      <img src={CAMPAIGN_IMAGES.feed} alt="Feed" className="w-full aspect-square object-cover" />
+                    </motion.div>
+                  </div>
+                  <div className="col-span-1">
+                    <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">Story / Reels</p>
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
+                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#C9A84C]/20 transition-colors">
+                      <img src={CAMPAIGN_IMAGES.story} alt="Story" className="w-full aspect-[9/16] object-cover" />
+                    </motion.div>
+                  </div>
+                  <div className="col-span-1">
+                    <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">Facebook / Banner</p>
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.5 }}
+                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#C9A84C]/20 transition-colors mb-3">
+                      <img src={CAMPAIGN_IMAGES.wide} alt="Banner" className="w-full aspect-video object-cover" />
+                    </motion.div>
+                    <div className="flex items-center gap-2 text-[9px]">
+                      <Check size={10} className="text-emerald-400" />
+                      <span className="text-[#888] font-mono">3 formatos gerados</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Video */}
+              {demoStep === 3 && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-3">{d.video_title}</p>
+                      <div className="space-y-2.5">
+                        {[
+                          { icon: Clock, label: 'Duration', value: d.video_dur },
+                          { icon: Video, label: 'Resolution', value: d.video_res },
+                          { icon: Users, label: 'Avatar', value: d.video_avatar },
+                          { icon: Volume2, label: 'Audio', value: d.video_voice },
+                        ].map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <item.icon size={10} className="text-[#C9A84C]/50" />
+                            <span className="text-[9px] text-[#555] font-mono w-16">{item.label}</span>
+                            <span className="text-[10px] text-[#ccc]">{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
+                        className="h-8 w-8 rounded-full bg-[#C9A84C]/[0.1] flex items-center justify-center border border-[#C9A84C]/15">
+                        <Volume2 size={12} className="text-[#C9A84C]" />
+                      </motion.div>
+                      <div className="flex-1 h-6 rounded-full bg-white/[0.03] border border-white/[0.06] overflow-hidden flex items-center px-2 gap-0.5">
+                        {[...Array(30)].map((_, wi) => (
+                          <motion.div key={wi} animate={{ scaleY: [0.3, Math.random() * 0.8 + 0.2, 0.3] }}
+                            transition={{ duration: 0.5 + Math.random() * 0.5, repeat: Infinity, delay: wi * 0.03 }}
+                            className="w-1 bg-[#C9A84C]/40 rounded-full" style={{ height: '16px' }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="relative rounded-xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/50 max-w-[220px]">
+                      <img src={CAMPAIGN_IMAGES.feed} alt="Video thumbnail" className="w-full opacity-80" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}
+                          className="h-14 w-14 rounded-full bg-[#C9A84C]/20 backdrop-blur-sm flex items-center justify-center border border-[#C9A84C]/30">
+                          <Play size={22} className="text-[#C9A84C] ml-1" fill="#C9A84C" />
+                        </motion.div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-[#C9A84C]/20">
+                            <img src={AVATARS.James} alt="" className="h-full w-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="text-[9px] text-white font-semibold">James</p>
+                            <p className="text-[7px] text-[#C9A84C]/60 font-mono">AI Presenter</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Result */}
+              {demoStep === 4 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-5 p-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.03]">
+                    <div className="h-8 w-8 rounded-full bg-emerald-400/10 flex items-center justify-center">
+                      <Check size={14} className="text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-emerald-400">{d.result_title}</p>
+                      <p className="text-[9px] text-emerald-400/60 font-mono">{d.result_formats}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
+                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors group">
+                      <img src={CAMPAIGN_IMAGES.feed} alt="Feed" className="w-full aspect-square object-cover" />
+                      <div className="p-2 bg-white/[0.02]">
+                        <p className="text-[8px] font-mono text-[#888]">Feed Post</p>
+                        <div className="flex items-center gap-1 mt-1"><IgIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">Instagram</span></div>
+                      </div>
+                    </motion.div>
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
+                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors">
+                      <img src={CAMPAIGN_IMAGES.story} alt="Story" className="w-full aspect-[9/16] object-cover" />
+                      <div className="p-2 bg-white/[0.02]">
+                        <p className="text-[8px] font-mono text-[#888]">Story</p>
+                        <div className="flex items-center gap-1 mt-1"><IgIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">Reels</span></div>
+                      </div>
+                    </motion.div>
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors">
+                      <img src={CAMPAIGN_IMAGES.wide} alt="Banner" className="w-full aspect-video object-cover" />
+                      <div className="p-2 bg-white/[0.02]">
+                        <p className="text-[8px] font-mono text-[#888]">Banner</p>
+                        <div className="flex items-center gap-1 mt-1"><FbIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">Facebook</span></div>
+                      </div>
+                    </motion.div>
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+                      className="rounded-xl border border-white/[0.08] overflow-hidden hover:border-[#C9A84C]/20 transition-colors relative">
+                      <img src={CAMPAIGN_IMAGES.feed} alt="Video" className="w-full aspect-square object-cover opacity-70" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-full bg-[#C9A84C]/20 backdrop-blur-sm flex items-center justify-center border border-[#C9A84C]/20">
+                          <Play size={16} className="text-[#C9A84C] ml-0.5" fill="#C9A84C" />
+                        </div>
+                      </div>
+                      <div className="p-2 bg-white/[0.02]">
+                        <p className="text-[8px] font-mono text-[#888]">Video 0:30</p>
+                        <div className="flex items-center gap-1 mt-1"><WaIcon size={8} color="#888" /><span className="text-[7px] text-[#555]">WhatsApp</span></div>
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+              )}
+
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Progress bar */}
+        <div className="border-t border-white/[0.05] px-5 py-2.5 flex items-center gap-3">
+          <div className="flex-1 h-1 rounded-full bg-white/[0.04] overflow-hidden">
+            <motion.div className="h-full bg-[#C9A84C]/40 rounded-full"
+              animate={{ width: `${((demoStep + 1) / 5) * 100}%` }}
+              transition={{ duration: 0.5 }} />
+          </div>
+          <span className="text-[8px] font-mono text-[#555]">{demoStep + 1}/5</span>
+        </div>
       </div>
     </div>
   );
@@ -382,8 +772,9 @@ export default function LandingV2() {
               {l.cta} <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
             <button data-testid="hero-demo-btn"
+              onClick={() => document.getElementById('demo-section')?.scrollIntoView({ behavior: 'smooth' })}
               className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-7 py-3 text-sm text-[#888] hover:text-white hover:border-white/[0.12] transition-all">
-              {l.demo}
+              <Play size={14} /> {l.demo}
             </button>
           </motion.div>
 
@@ -597,54 +988,12 @@ export default function LandingV2() {
         </div>
       </section>
 
-      {/* ═══ AI MARKETING STUDIO ═══ */}
-      <section className="py-16 px-5 relative overflow-hidden" data-testid="ai-studio-section">
+      {/* ═══ DEMO SHOWCASE ═══ */}
+      <section id="demo-section" className="py-16 px-5 relative overflow-hidden" data-testid="demo-section">
         <Glow className="h-[300px] w-[400px] top-[10%] left-[-80px] bg-[#C9A84C]/[0.03]" />
+        <Glow className="h-[250px] w-[350px] bottom-[10%] right-[-80px] bg-[#C9A84C]/[0.02]" />
         <div className="relative z-10 mx-auto max-w-5xl">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
-            <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.ai_tag}</p>
-            <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.ai_title}<span className="text-[#C9A84C]">{l.ai_title2}</span></h2>
-            <p className="text-sm text-[#555] max-w-lg mx-auto mt-2">{l.ai_sub}</p>
-          </motion.div>
-
-          {/* Animated Pipeline */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade}
-            className="mb-8">
-            <Glass className="p-5">
-              <div className="flex items-center justify-between">
-                {pipelineSteps.map((step, si) => (
-                  <div key={si} className="flex items-center gap-2 sm:gap-3">
-                    <PipelineStep icon={step.icon} label={step.label} color={step.color} active={activeStep === si} delay={si * 0.08} />
-                    {si < pipelineSteps.length - 1 && (
-                      <div className={`hidden sm:block transition-colors duration-500 ${activeStep > si ? 'text-[#C9A84C]/40' : 'text-[#333]'}`}>
-                        <ChevronRight size={14} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Glass>
-          </motion.div>
-
-          {/* 4 Steps detail */}
-          <div className="grid sm:grid-cols-2 gap-3">
-            {studioSteps.map((step, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i * 0.4}>
-                <Glass hover className="p-4 flex gap-3 items-start h-full">
-                  <div className="h-11 w-11 rounded-xl bg-[#C9A84C]/[0.06] flex items-center justify-center flex-shrink-0 border border-[#C9A84C]/[0.08]">
-                    <step.icon size={18} className="text-[#C9A84C]" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[8px] font-mono text-[#C9A84C]/50 bg-[#C9A84C]/[0.06] rounded px-1.5 py-0.5">0{i + 1}</span>
-                      <h3 className="text-[12px] font-semibold text-white">{step.title}</h3>
-                    </div>
-                    <p className="text-[10px] text-[#555] leading-relaxed">{step.desc}</p>
-                  </div>
-                </Glass>
-              </motion.div>
-            ))}
-          </div>
+          <CampaignDemo lang={lang} />
         </div>
       </section>
 
