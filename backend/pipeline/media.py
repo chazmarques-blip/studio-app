@@ -946,7 +946,8 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 f"[0:a]{narr_chain},asplit=2[narr][narr_sc];"
                 f"[1:a]{music_chain}[music];"
                 f"[music][narr_sc]{sidechain}[ducked];"
-                f"[narr][ducked]amix=inputs=2:duration=longest:normalize=0[out]"
+                f"[narr][ducked]amix=inputs=2:duration=longest:normalize=0,"
+                f"loudnorm=I=-14:TP=-1:LRA=7[out]"
             )
             mix_cmd = [
                 FFMPEG_PATH, "-y",
@@ -1416,18 +1417,19 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                     f"[{audio_idx}:a]{narr_chain},asplit=2[narr][narr_sc];"
                     f"[{music_idx}:a]{music_chain}[music];"
                     f"[music][narr_sc]{sidechain}[ducked];"
-                    f"[narr][ducked]amix=inputs=2:duration=longest:normalize=0[out]"
+                    f"[narr][ducked]amix=inputs=2:duration=longest:normalize=0,"
+                    f"loudnorm=I=-14:TP=-1:LRA=7[out]"
                 )
                 filter_parts = [filter_complex]
                 final_audio = "[out]"
             else:
                 # Voice only, padded to video length
-                filter_parts.append(f"[{audio_idx}:a]volume=1.2,apad=whole_dur={total_clip_dur}[voice]")
+                filter_parts.append(f"[{audio_idx}:a]volume=1.2,apad=whole_dur={total_clip_dur},loudnorm=I=-14:TP=-1:LRA=7[voice]")
                 final_audio = "[voice]"
         elif bg_music_path:
             inputs.extend(["-i", bg_music_path])
             fade_out_start = max(total_clip_dur - 3, 10)
-            filter_parts.append(f"[1:a]volume=0.15,afade=t=in:d=2,afade=t=out:st={fade_out_start}:d=3,atrim=0:{total_clip_dur}[music]")
+            filter_parts.append(f"[1:a]volume=0.15,afade=t=in:d=2,afade=t=out:st={fade_out_start}:d=3,atrim=0:{total_clip_dur},loudnorm=I=-14:TP=-1:LRA=7[music]")
             final_audio = "[music]"
         else:
             final_audio = None
@@ -1438,12 +1440,13 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                 "-filter_complex", filter_complex,
                 "-map", "0:v", "-map", final_audio,
                 "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                "-c:a", "aac", "-b:a", "256k",
+                "-c:a", "aac", "-b:a", "256k", "-ac", "2",
                 "-t", str(total_clip_dur), output_path
             ]
         else:
             cmd = [FFMPEG, "-y", "-i", concat_path, "-c", "copy", output_path]
 
+        logger.info(f"Presenter video final mix starting (total_dur={total_clip_dur:.1f}s, has_voice={audio_path is not None}, has_music={bg_music_path is not None})")
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if r.returncode != 0:
             stderr_tail = (r.stderr or '')[-800:]  # Get last 800 chars for actual error
@@ -1453,14 +1456,14 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                 basic_filter = (
                     f"[1:a]volume=1.3,apad=whole_dur={total_clip_dur}[voice];"
                     f"[2:a]volume=0.10,afade=t=in:d=2,afade=t=out:st={max(total_clip_dur-3,10)}:d=3,atrim=0:{total_clip_dur}[music];"
-                    f"[voice][music]amix=inputs=2:duration=longest:normalize=0[out]"
+                    f"[voice][music]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-14:TP=-1:LRA=7[out]"
                 )
                 basic_cmd = [
                     FFMPEG, "-y", "-i", concat_path, "-i", audio_path, "-i", bg_music_path,
                     "-filter_complex", basic_filter,
                     "-map", "0:v", "-map", "[out]",
                     "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                    "-c:a", "aac", "-b:a", "256k",
+                    "-c:a", "aac", "-b:a", "256k", "-ac", "2",
                     "-t", str(total_clip_dur), output_path
                 ]
                 r2 = subprocess.run(basic_cmd, capture_output=True, text=True, timeout=120)
