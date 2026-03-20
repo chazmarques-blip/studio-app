@@ -194,7 +194,7 @@ function AgentChat() {
           <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#C9A84C]/60' : 'w-1 bg-white/[0.08]'}`} />
         ))}
       </div>
-      <div ref={ref} className="h-[260px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
+      <div ref={ref} className="h-[420px] overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
         <AnimatePresence mode="wait">
           <motion.div key={channelIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {msgs.map((m, i) => (
@@ -1035,8 +1035,13 @@ export default function LandingV2() {
                 </div>
               </div>
               {/* Campaign preview image */}
-              <div className="rounded-lg overflow-hidden border border-white/[0.06] mb-2.5">
-                <img src={CAMPAIGN_IMAGES.feed} alt="Campaign" className="w-full aspect-[4/3] object-cover" />
+              <div className="rounded-lg overflow-hidden border border-white/[0.06] mb-2.5 relative">
+                <img src={CAMPAIGN_IMAGES.feed} alt="Campaign" className="w-full aspect-[4/3] object-cover object-top" />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
+                <div className="absolute bottom-2 left-2.5 right-2.5">
+                  <p className="text-[9px] font-bold text-white">AgentZZ</p>
+                  <p className="text-[7px] text-[#C9A84C]/70 font-mono">AI-Powered Campaign</p>
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-1 mb-2">
                 <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
