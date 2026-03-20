@@ -865,74 +865,65 @@ export default function LandingV2() {
     { name: 'Pedro Santos', role: lang === 'pt' ? 'Fundador, FitLife' : 'Founder, FitLife', text: lang === 'pt' ? 'A Sophia gerencia todos os agendamentos da academia automaticamente. Nossos clientes adoram a experiencia.' : 'Sophia manages all gym scheduling automatically. Our clients love the experience.', photo: TESTIMONIAL_PHOTOS[2] },
   ];
 
-  /* Real campaigns from AI Studio */
-  const CHANNEL_ICONS = {
-    Instagram: IgIcon,
-    WhatsApp: WaIcon,
-    Facebook: FbIcon,
-    TikTok: TkIcon,
-    Telegram: TgIcon,
-    SMS: SmsIcon,
-  };
-
+  /* Real campaigns from AI Studio — full format data */
   const REAL_CAMPAIGNS = [
     {
       name: 'Crafting Hands',
+      handle: 'craftinghands',
       type: 'NGO / Social',
-      copy: '¿Y si 30 minutos tuyos pudieran alegrar el dia mas dificil de un nino? Unete a nuestro club de estudiantes que hacen pulseras y tarjetas con amor para ninos hospitalizados.',
-      images: [
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_1_7597f1.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_2_2d369f.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_3_cef4b7.png',
-      ],
+      igCaption: 'Si 30 minutos tuyos pudieran alegrar el dia mas dificil de un nino? Unete a nuestro club de estudiantes que hacen pulseras y tarjetas con amor para ninos hospitalizados.',
+      fbText: 'Mientras estas en casa viendo series, hay un nino de 6 anos en un hospital que no recibe visitas. Pero TU puedes cambiar eso. Unete gratis ahora!',
+      hashtags: '#AmorEnCadaPulsera #JovenesQueCambian #ServicioComunitario #CreaConAmor',
+      feedImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_1_7597f1.png',
+      wideImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_v1_16x9_a17d42.png',
+      storyImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/19b6bdd8-51c9-4859-af32-007dd14a146b_v1_9x16_32bd28.png',
       video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/19b6bdd8-51c9-4859-af32-007dd14a146b_commercial.mp4',
-      channels: ['Instagram', 'WhatsApp', 'TikTok'],
     },
     {
       name: 'Apice Detailing',
+      handle: 'apicedetailing',
       type: 'Luxury Auto Care',
-      copy: 'Your Supercar Deserves Supercar Treatment — We Come to You. Ferrari, Lamborghini, Porsche gleaming like the day they left the factory.',
-      images: [
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_1_21e9f2.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_2_814bf7.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_3_664e72.png',
-      ],
+      igCaption: 'Your Supercar Deserves Supercar Treatment. We Come to You. Ferrari, Lamborghini, Porsche gleaming like the day they left the factory.',
+      fbText: 'Imagine this: Your Ferrari gleaming like the day it left Maranello. Your Lamborghini reflecting perfection in every curve. Mobile luxury detailing at your door.',
+      hashtags: '#SupercarDetailing #MobileCarCare #LuxuryLifestyle #CeramicCoating',
+      feedImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_1_21e9f2.png',
+      wideImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_v1_16x9_6d1c59.png',
+      storyImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/4da83978-5af3-4736-8b5f-959df4a08071_v1_9x16_84f9ee.png',
       video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/4da83978-5af3-4736-8b5f-959df4a08071_commercial.mp4',
-      channels: ['Instagram', 'Facebook', 'TikTok', 'WhatsApp'],
     },
     {
       name: 'My Truck Pickup Shop',
+      handle: 'mytruckshop',
       type: 'Automotive Sales',
-      copy: '¿Cansado de vender sin apoyo financiero? My Truck te da TODO. 17+ bancos listos para aprobar. Gana hasta $1,500 por vehiculo vendido.',
-      images: [
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_1_880d42.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_2_2bbf67.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_3_af19d4.png',
-      ],
+      igCaption: 'Cansado de vender sin apoyo financiero? My Truck te da TODO. 17+ bancos listos para aprobar. Gana hasta $1,500 por vehiculo vendido.',
+      fbText: 'Eres vendedor de autos pero no tienes equipo de financiamiento? En My Truck Orlando tenemos 17+ bancos listos para aprobar. Unete hoy!',
+      hashtags: '#VentaDeCarros #TrucksUSA #MyTruckOrlando #ComisionesAltas #FinanciamientoFacil',
+      feedImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_1_880d42.png',
+      wideImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_2_2bbf67.png',
+      storyImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_3_af19d4.png',
       video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/89fdfe02-0fb0-46cf-b2eb-c9b20f752847_commercial.mp4',
-      channels: ['WhatsApp', 'Instagram', 'Facebook'],
     },
     {
       name: 'Hercules Solutions',
+      handle: 'herculessolutions',
       type: 'Construction & Design',
-      copy: 'Your Dream Home Doesn\'t Have to Wait Years. Custom renovations with impeccable finishes, delivered on time. Transform your space today.',
-      images: [
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_1_5dddb1.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_2_5823eb.png',
-        'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_3_9d9589.png',
-      ],
+      igCaption: 'Your Dream Home Doesn\'t Have to Wait Years. Custom renovations with impeccable finishes, delivered on time. Transform your space today.',
+      fbText: 'Most homeowners spend months waiting for renovations. Delays, cost overruns, mediocre craftsmanship. You deserve better. Premium results, on schedule.',
+      hashtags: '#LuxuryRemodeling #HomeTransformation #CustomHomes #DreamHomeUSA',
+      feedImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_1_5dddb1.png',
+      wideImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_v1_16x9_602a87.png',
+      storyImg: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/c561486a-a04e-442d-b53e-66c16f95d78a_v1_9x16_b51a77.png',
       video: 'https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/videos/c561486a-a04e-442d-b53e-66c16f95d78a_commercial.mp4',
-      channels: ['WhatsApp', 'Instagram', 'Facebook', 'TikTok'],
     },
   ];
-  const [campImageIdx, setCampImageIdx] = useState([0, 0, 0, 0]);
+  const [activeCamp, setActiveCamp] = useState(0);
 
   const current = agents[activeAgent];
 
   useEffect(() => {
     const i1 = setInterval(() => setActiveAgent(p => (p + 1) % agents.length), 5000);
     const i2 = setInterval(() => setActiveStep(p => (p + 1) % pipelineSteps.length), 2000);
-    const i3 = setInterval(() => setCampImageIdx(p => p.map((v, i) => (v + 1) % 3)), 3000);
+    const i3 = setInterval(() => setActiveCamp(p => (p + 1) % 4), 6000);
     return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); };
   }, []);
 
@@ -1217,71 +1208,163 @@ export default function LandingV2() {
         </div>
       </section>
 
-      {/* ═══ CAMPAIGNS SHOWCASE ═══ */}
+      {/* ═══ CAMPAIGNS SHOWCASE — Full Format Cards ═══ */}
       <section className="py-14 px-5 relative" data-testid="campaigns-section">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#080808] to-transparent" />
         <div className="relative z-10 mx-auto max-w-5xl">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-8">
             <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.camp_tag}</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.camp_title}<span className="text-[#C9A84C]">{l.camp_title2}</span></h2>
             <p className="text-sm text-[#555] max-w-md mx-auto mt-2">{l.camp_sub}</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {REAL_CAMPAIGNS.map((camp, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i * 0.3}>
-                <Glass hover className="overflow-hidden h-full flex flex-col">
-                  {/* Clean image carousel — no text overlays */}
-                  <div className="relative">
-                    <AnimatePresence mode="wait">
-                      <motion.img
-                        key={campImageIdx[i]}
-                        src={camp.images[campImageIdx[i]]}
-                        alt={camp.name}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="w-full aspect-square object-cover"
-                      />
-                    </AnimatePresence>
-                    {/* Carousel dots */}
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                      {camp.images.map((_, di) => (
-                        <div key={di} className={`h-1 rounded-full transition-all duration-300 ${di === campImageIdx[i] ? 'w-3 bg-white' : 'w-1 bg-white/40'}`} />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="p-3 flex-1 flex flex-col">
-                    {/* Title + social icons row */}
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-semibold text-white truncate">{camp.name}</p>
-                        <p className="text-[8px] text-[#C9A84C] font-mono">{camp.type}</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 pt-0.5">
-                        {camp.channels.map((ch, ci) => {
-                          const Icon = CHANNEL_ICONS[ch];
-                          return Icon ? <Icon key={ci} size={13} color="#666" /> : null;
-                        })}
-                      </div>
-                    </div>
-                    <p className="text-[9px] text-[#888] leading-relaxed flex-1">{camp.copy}</p>
-                    {/* Video badge */}
-                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/[0.05]">
-                      <div className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/15 px-1.5 py-0.5">
-                        <Play size={7} className="text-red-400" fill="currentColor" />
-                        <span className="text-[7px] text-red-400 font-mono">Video</span>
-                      </div>
-                      <div className="flex items-center gap-1 rounded bg-[#C9A84C]/[0.06] border border-[#C9A84C]/10 px-1.5 py-0.5">
-                        <Image size={7} className="text-[#C9A84C]" />
-                        <span className="text-[7px] text-[#C9A84C]/70 font-mono">3 imgs</span>
-                      </div>
-                    </div>
-                  </div>
-                </Glass>
-              </motion.div>
+          {/* Campaign selector tabs */}
+          <div className="flex justify-center gap-2 mb-6 flex-wrap" data-testid="campaign-tabs">
+            {REAL_CAMPAIGNS.map((c, i) => (
+              <button key={i} onClick={() => setActiveCamp(i)} data-testid={`camp-tab-${i}`}
+                className={`px-4 py-2 rounded-full text-[11px] font-semibold transition-all duration-300 border ${
+                  activeCamp === i
+                    ? 'bg-[#C9A84C]/[0.12] border-[#C9A84C]/25 text-[#C9A84C]'
+                    : 'border-white/[0.06] text-[#555] hover:text-[#999] hover:border-white/[0.12]'
+                }`}>
+                {c.name}
+              </button>
             ))}
+          </div>
+
+          {/* Active campaign — 4 format cards */}
+          <AnimatePresence mode="wait">
+            <motion.div key={activeCamp} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.4 }}
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="campaign-cards">
+              {(() => {
+                const camp = REAL_CAMPAIGNS[activeCamp];
+                const initials = camp.name[0] + (camp.name.split(' ')[1]?.[0] || '');
+                return (
+                  <>
+                    {/* Instagram Post */}
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#E1306C]/30 transition-colors">
+                      <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
+                          <span className="text-[5px] font-bold text-[#C9A84C]">{initials}</span>
+                        </div>
+                        <span className="text-[8px] text-white font-semibold">{camp.handle}</span>
+                        <IgIcon size={8} color="#E1306C" />
+                      </div>
+                      <img src={camp.feedImg} alt="IG Feed" className="w-full aspect-square object-cover" />
+                      <div className="px-2.5 py-2">
+                        <div className="flex gap-2 mb-1.5">
+                          <Heart size={10} className="text-[#ccc]" /><MessageSquare size={10} className="text-[#ccc]" /><Send size={10} className="text-[#ccc]" />
+                        </div>
+                        <p className="text-[7px] text-[#888] leading-relaxed mb-1"><span className="text-white font-semibold">{camp.handle} </span>{camp.igCaption}</p>
+                        <p className="text-[6px] text-[#555]">{camp.hashtags}</p>
+                      </div>
+                      <div className="px-2.5 pb-2 flex items-center gap-1">
+                        <IgIcon size={7} color="#E1306C" />
+                        <span className="text-[7px] text-[#555] font-mono">Instagram Feed</span>
+                      </div>
+                    </motion.div>
+
+                    {/* Facebook Ad */}
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#0084FF]/30 transition-colors">
+                      <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
+                          <span className="text-[5px] font-bold text-[#C9A84C]">{initials}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-white font-semibold block leading-none">{camp.name}</span>
+                          <span className="text-[6px] text-[#555]">Sponsored</span>
+                        </div>
+                        <FbIcon size={8} color="#0084FF" />
+                      </div>
+                      <div className="px-2.5 py-1.5">
+                        <p className="text-[7px] text-[#999] leading-relaxed">{camp.fbText}</p>
+                      </div>
+                      <img src={camp.wideImg} alt="FB Banner" className="w-full aspect-video object-cover" />
+                      <div className="px-2.5 py-1.5">
+                        <p className="text-[7px] text-[#888] leading-relaxed">{camp.igCaption.slice(0, 80)}...</p>
+                        <p className="text-[6px] text-[#0084FF] mt-1 font-semibold">Learn more</p>
+                      </div>
+                      <div className="px-2.5 py-1.5 flex items-center justify-between border-t border-white/[0.04]">
+                        <div className="flex items-center gap-1">
+                          <ThumbsUp size={8} className="text-[#0084FF]" />
+                          <span className="text-[7px] text-[#888]">1.8k</span>
+                        </div>
+                        <span className="text-[7px] text-[#555]">247 shares</span>
+                      </div>
+                      <div className="px-2.5 pb-2 flex items-center gap-1">
+                        <FbIcon size={7} color="#0084FF" />
+                        <span className="text-[7px] text-[#555] font-mono">Facebook Ads</span>
+                      </div>
+                    </motion.div>
+
+                    {/* WhatsApp Story */}
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#25D366]/30 transition-colors">
+                      <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
+                          <span className="text-[5px] font-bold text-[#C9A84C]">{initials}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-white font-semibold block leading-none">{camp.name}</span>
+                          <span className="text-[6px] text-[#555]">Business</span>
+                        </div>
+                        <WaIcon size={8} color="#25D366" />
+                      </div>
+                      <div className="relative">
+                        <img src={camp.storyImg} alt="WA Status" className="w-full aspect-[9/14] object-cover" />
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-white/[0.1] rounded-full mx-2 mt-1.5">
+                          <div className="h-full w-1/3 bg-[#25D366] rounded-full" />
+                        </div>
+                      </div>
+                      <div className="px-2.5 py-2">
+                        <p className="text-[7px] text-[#888] leading-relaxed">{camp.igCaption.slice(0, 100)}...</p>
+                      </div>
+                      <div className="px-2.5 pb-2 flex items-center gap-1">
+                        <WaIcon size={7} color="#25D366" />
+                        <span className="text-[7px] text-[#555] font-mono">WhatsApp Status</span>
+                      </div>
+                    </motion.div>
+
+                    {/* Video / TikTok */}
+                    <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+                      className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#ff0050]/30 transition-colors">
+                      <div className="relative">
+                        <video autoPlay muted loop playsInline className="w-full aspect-[9/14] object-cover" poster={camp.feedImg}>
+                          <source src={camp.video} type="video/mp4" />
+                        </video>
+                        <div className="absolute right-2 bottom-12 flex flex-col items-center gap-3">
+                          <div className="flex flex-col items-center"><Heart size={12} className="text-white" /><span className="text-[6px] text-white">18.2k</span></div>
+                          <div className="flex flex-col items-center"><MessageSquare size={12} className="text-white" /><span className="text-[6px] text-white">943</span></div>
+                          <div className="flex flex-col items-center"><Send size={12} className="text-white" /><span className="text-[6px] text-white">612</span></div>
+                        </div>
+                        <div className="absolute left-2 bottom-2 right-10">
+                          <p className="text-[8px] text-white font-semibold">@{camp.handle}</p>
+                          <p className="text-[6px] text-white/70">{camp.hashtags.split(' ').slice(0, 3).join(' ')}</p>
+                        </div>
+                        <div className="absolute top-2 left-2">
+                          <div className="flex items-center gap-1 bg-red-500/80 backdrop-blur-sm rounded px-1.5 py-0.5">
+                            <div className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                            <span className="text-[6px] text-white font-bold">LIVE</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="px-2.5 pb-2 pt-1.5 flex items-center gap-1">
+                        <TkIcon size={7} color="#ff0050" />
+                        <span className="text-[7px] text-[#555] font-mono">TikTok / Video</span>
+                      </div>
+                    </motion.div>
+                  </>
+                );
+              })()}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Campaign name + type below cards */}
+          <div className="text-center mt-5">
+            <p className="text-[13px] font-semibold text-white">{REAL_CAMPAIGNS[activeCamp].name}</p>
+            <p className="text-[10px] text-[#C9A84C] font-mono">{REAL_CAMPAIGNS[activeCamp].type}</p>
           </div>
         </div>
       </section>
