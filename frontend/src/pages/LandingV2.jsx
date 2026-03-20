@@ -303,7 +303,8 @@ function CampaignDemo({ lang }) {
   // Auto-advance
   useEffect(() => {
     if (!autoPlay) return;
-    const delays = [4000, 4000, 3500, 3500, 5000];
+    if (demoStep === 4) return; // Stop at result step
+    const delays = [5000, 5500, 5000, 5000, 0];
     const timer = setTimeout(() => {
       setDemoStep(p => (p + 1) % 5);
     }, delays[demoStep]);
@@ -622,16 +623,17 @@ function CampaignDemo({ lang }) {
                       </div>
                     </motion.div>
 
-                    {/* TikTok Video Template */}
+                    {/* TikTok Video Template - Real Video */}
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#ff0050]/30 transition-colors">
                       <div className="relative">
-                        <img src={CAMPAIGN_IMAGES.feed} alt="TikTok" className="w-full aspect-[9/14] object-cover opacity-80" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="h-12 w-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                            <Play size={18} className="text-white ml-0.5" fill="white" />
-                          </div>
-                        </div>
+                        <video
+                          autoPlay muted loop playsInline
+                          className="w-full aspect-[9/14] object-cover"
+                          poster={CAMPAIGN_IMAGES.feed}
+                        >
+                          <source src="/demo-campaign.mp4" type="video/mp4" />
+                        </video>
                         {/* TikTok sidebar */}
                         <div className="absolute right-2 bottom-12 flex flex-col items-center gap-3">
                           <div className="flex flex-col items-center"><Heart size={12} className="text-white" /><span className="text-[6px] text-white">24.5k</span></div>
@@ -642,6 +644,13 @@ function CampaignDemo({ lang }) {
                         <div className="absolute left-2 bottom-2 right-10">
                           <p className="text-[8px] text-white font-semibold">@agentzz</p>
                           <p className="text-[6px] text-white/70">Agentes IA que nunca dormem #IA #Marketing</p>
+                        </div>
+                        {/* Live badge */}
+                        <div className="absolute top-2 left-2">
+                          <div className="flex items-center gap-1 bg-red-500/80 backdrop-blur-sm rounded px-1.5 py-0.5">
+                            <div className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                            <span className="text-[6px] text-white font-bold">VIDEO</span>
+                          </div>
                         </div>
                       </div>
                       <div className="px-2.5 py-2 flex items-center gap-1">
@@ -848,9 +857,9 @@ export default function LandingV2() {
   ];
 
   const campaigns = [
-    { name: lang === 'pt' ? 'Black Friday Tech' : 'Black Friday Tech', type: 'E-commerce', impressions: '45.2k', conversions: '3.8%', leads: '1,720', channels: ['Instagram', 'WhatsApp', 'Facebook'] },
-    { name: lang === 'pt' ? 'Lancamento FitLife Pro' : 'FitLife Pro Launch', type: 'SaaS', impressions: '28.6k', conversions: '5.1%', leads: '892', channels: ['Instagram', 'TikTok', 'YouTube'] },
-    { name: lang === 'pt' ? 'Promocao Verao Moda' : 'Summer Fashion Promo', type: lang === 'pt' ? 'Moda' : 'Fashion', impressions: '62.1k', conversions: '4.3%', leads: '2,340', channels: ['Instagram', 'WhatsApp'] },
+    { name: lang === 'pt' ? 'Black Friday Tech' : 'Black Friday Tech', type: 'E-commerce', impressions: '45.2k', conversions: '3.8%', leads: '1,720', channels: ['Instagram', 'WhatsApp', 'Facebook'], image: 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/3b6700396e3b3ac7ad87b1d76e66a3b5cc599719e940cb30638658716491f099.png', copy: lang === 'pt' ? 'Ate 60% OFF em tech! Notebooks, fones e smartphones com os melhores precos do ano. So hoje!' : 'Up to 60% OFF on tech! Laptops, headphones and smartphones at the best prices. Today only!' },
+    { name: lang === 'pt' ? 'Lancamento FitLife Pro' : 'FitLife Pro Launch', type: 'SaaS', impressions: '28.6k', conversions: '5.1%', leads: '892', channels: ['Instagram', 'TikTok', 'YouTube'], image: 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/b9ea166a930b6c7d64c8c487a8f24d2f532ba9d0f04cc49af4716ff322da22eb.png', copy: lang === 'pt' ? 'Seu personal trainer IA. Treinos personalizados, nutricao e acompanhamento 24h. Teste gratis!' : 'Your AI personal trainer. Custom workouts, nutrition and 24/7 tracking. Try free!' },
+    { name: lang === 'pt' ? 'Promocao Verao Moda' : 'Summer Fashion Promo', type: lang === 'pt' ? 'Moda' : 'Fashion', impressions: '62.1k', conversions: '4.3%', leads: '2,340', channels: ['Instagram', 'WhatsApp'], image: 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/29177f690a676f7635915ca1ffa53ecf3ed3d791f3baf3e95859c0b0d4853d54.png', copy: lang === 'pt' ? 'Colecao verao com ate 50% OFF! Oculos, chapeus e acessorios para arrasar na temporada.' : 'Summer collection up to 50% OFF! Sunglasses, hats and accessories to rock the season.' },
   ];
 
   const current = agents[activeAgent];
@@ -1154,34 +1163,42 @@ export default function LandingV2() {
           <div className="grid sm:grid-cols-3 gap-3">
             {campaigns.map((camp, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i * 0.3}>
-                <Glass hover className="p-4 h-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-[12px] font-semibold text-white">{camp.name}</p>
-                      <p className="text-[8px] text-[#C9A84C] font-mono">{camp.type}</p>
-                    </div>
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/10">
-                      <BarChart2 size={14} className="text-[#C9A84C]" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-2 text-center">
-                      <p className="text-[10px] font-bold text-white font-mono">{camp.impressions}</p>
-                      <p className="text-[7px] text-[#555] font-mono">Impressions</p>
-                    </div>
-                    <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-2 text-center">
-                      <p className="text-[10px] font-bold text-emerald-400 font-mono">{camp.conversions}</p>
-                      <p className="text-[7px] text-[#555] font-mono">Conv.</p>
-                    </div>
-                    <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-2 text-center">
-                      <p className="text-[10px] font-bold text-[#C9A84C] font-mono">{camp.leads}</p>
-                      <p className="text-[7px] text-[#555] font-mono">Leads</p>
+                <Glass hover className="overflow-hidden h-full flex flex-col">
+                  {/* Campaign image */}
+                  <div className="relative">
+                    <img src={camp.image} alt={camp.name} className="w-full aspect-square object-cover" />
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      {camp.channels.map((ch, ci) => (
+                        <span key={ci} className="text-[6px] font-mono text-white bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">{ch}</span>
+                      ))}
                     </div>
                   </div>
-                  <div className="flex gap-1.5">
-                    {camp.channels.map((ch, ci) => (
-                      <span key={ci} className="text-[7px] font-mono text-[#666] border border-white/[0.05] rounded px-1.5 py-0.5 bg-white/[0.02]">{ch}</span>
-                    ))}
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="text-[12px] font-semibold text-white">{camp.name}</p>
+                        <p className="text-[8px] text-[#C9A84C] font-mono">{camp.type}</p>
+                      </div>
+                      <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/10">
+                        <BarChart2 size={12} className="text-[#C9A84C]" />
+                      </div>
+                    </div>
+                    {/* Copy text */}
+                    <p className="text-[10px] text-[#888] leading-relaxed mb-3 flex-1">{camp.copy}</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
+                        <p className="text-[10px] font-bold text-white font-mono">{camp.impressions}</p>
+                        <p className="text-[6px] text-[#555] font-mono">Impressions</p>
+                      </div>
+                      <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
+                        <p className="text-[10px] font-bold text-emerald-400 font-mono">{camp.conversions}</p>
+                        <p className="text-[6px] text-[#555] font-mono">Conv.</p>
+                      </div>
+                      <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1.5 text-center">
+                        <p className="text-[10px] font-bold text-[#C9A84C] font-mono">{camp.leads}</p>
+                        <p className="text-[6px] text-[#555] font-mono">Leads</p>
+                      </div>
+                    </div>
                   </div>
                 </Glass>
               </motion.div>
