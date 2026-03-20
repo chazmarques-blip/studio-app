@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw, Target, GalleryHorizontalEnd, Filter, Search, ChevronDown, Smartphone, Monitor, Tablet } from 'lucide-react';
+import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp, Users, Send, BarChart3, Clock, Trash2, Zap, Lock, LayoutGrid, List, Eye, X, Image, CalendarDays, DollarSign, ChevronRight, Download, ExternalLink, Globe, Phone, Mail, Maximize2, Copy, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal, ChevronLeft, Check, Film, RefreshCw, Target, GalleryHorizontalEnd, Filter, Search, ChevronDown, Smartphone, Monitor, Tablet, UserCircle2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -45,6 +45,7 @@ const L = (lang) => {
       cloneLanguage: 'Clonar em outro idioma', cloneStarted: 'Campanha clonada! Gerando em', selectLanguage: 'Selecione o idioma',
       editing: 'Editando', artGallery: 'Art Gallery', allArts: 'Todas as Artes',
       galleryAll: 'Tudo', galleryImages: 'Imagens', galleryVideos: 'Videos', galleryFilterCampaign: 'Campanha', galleryNoAssets: 'Nenhuma arte encontrada', galleryFromCampaign: 'de', close: 'Fechar', share: 'Compartilhar', useCampaign: 'Usar em Campanha', assetCopied: 'Asset pronto para usar na campanha!',
+      avatar: 'Avatar', viewAvatar: 'Ver Avatar', galleryAvatars: 'Avatares', presenterMode: 'Apresentador',
     },
     en: {
       seasonal: 'Seasonal', draft: 'Draft', active: 'Active', paused: 'Paused', completed: 'Completed',
@@ -79,6 +80,7 @@ const L = (lang) => {
       cloneLanguage: 'Clone to another language', cloneStarted: 'Campaign cloned! Generating in', selectLanguage: 'Select language',
       editing: 'Editing', artGallery: 'Art Gallery', allArts: 'All Creatives',
       galleryAll: 'All', galleryImages: 'Images', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaign', galleryNoAssets: 'No assets found', galleryFromCampaign: 'from', close: 'Close', share: 'Share', useCampaign: 'Use in Campaign', assetCopied: 'Asset ready to use in campaign!',
+      avatar: 'Avatar', viewAvatar: 'View Avatar', galleryAvatars: 'Avatars', presenterMode: 'Presenter',
     },
     es: {
       seasonal: 'Estacional', draft: 'Borrador', active: 'Activa', paused: 'Pausada', completed: 'Completada',
@@ -113,6 +115,7 @@ const L = (lang) => {
       cloneLanguage: 'Clonar en otro idioma', cloneStarted: 'Campana clonada! Generando en', selectLanguage: 'Seleccione idioma',
       editing: 'Editando', artGallery: 'Galería de Artes', allArts: 'Todas las Artes',
       galleryAll: 'Todo', galleryImages: 'Imágenes', galleryVideos: 'Videos', galleryFilterCampaign: 'Campaña', galleryNoAssets: 'Ningún arte encontrado', galleryFromCampaign: 'de', close: 'Cerrar', share: 'Compartir', useCampaign: 'Usar en Campaña', assetCopied: 'Asset listo para usar en campaña!',
+      avatar: 'Avatar', viewAvatar: 'Ver Avatar', galleryAvatars: 'Avatares', presenterMode: 'Presentador',
     },
   };
   const base = lang?.startsWith('pt') ? 'pt' : lang?.startsWith('es') ? 'es' : 'en';
@@ -383,6 +386,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [campaign, setCampaign] = useState(initialCampaign);
   const stats = campaign.stats || {};
   const images = stats.images || [];
+  const avatarUrl = stats.avatar_url || '';
+  const videoMode = stats.video_mode || '';
   const messages = campaign.messages || [];
   const schedule = campaign.schedule || {};
   const segment = campaign.target_segment || {};
@@ -395,6 +400,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const pipelineId = stats.pipeline_id || '';
   const [regenLoading, setRegenLoading] = useState(false);
   const [showVideoLightbox, setShowVideoLightbox] = useState(false);
+  const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
   const [showChannelVideo, setShowChannelVideo] = useState(false);
   const [detailTab, setDetailTab] = useState('content');
 
@@ -916,6 +922,39 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 })()}
               </div>
 
+              {/* ── AVATAR SECTION ── */}
+              {avatarUrl && (
+                <div data-testid="campaign-avatar-section" className="rounded-xl border border-[#C9A84C]/20 bg-[#0A0A0A] p-3 mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative cursor-pointer group" onClick={() => setShowAvatarLightbox(true)}>
+                      <img src={resolveImageUrl(avatarUrl)} alt="Avatar"
+                        className="w-16 h-16 rounded-full object-cover border-2 border-[#C9A84C]/40 group-hover:border-[#C9A84C] transition" />
+                      <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                        <Eye size={14} className="text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <UserCircle2 size={12} className="text-[#C9A84C]" />
+                        <span className="text-[11px] text-white font-semibold">{labels.avatar || 'Avatar'}</span>
+                        {videoMode === 'presenter' && (
+                          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C] font-bold uppercase">{labels.presenterMode || 'Apresentador'}</span>
+                        )}
+                      </div>
+                      <p className="text-[9px] text-[#555]">{campaign.name}</p>
+                    </div>
+                    <button data-testid="view-avatar-btn" onClick={() => setShowAvatarLightbox(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[9px] text-[#C9A84C] font-medium hover:bg-[#C9A84C]/20 transition">
+                      <Eye size={11} /> {labels.viewAvatar || 'Ver Avatar'}
+                    </button>
+                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                      <Download size={10} />
+                    </a>
+                  </div>
+                </div>
+              )}
+
               {/* ── UNIFIED SHARE AREA ── Select media + text + share */}
 
               {/* Media Selector - Images & Video */}
@@ -1406,13 +1445,47 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
             </div>
           </div>
         )}
+
+        {/* Avatar Lightbox */}
+        {showAvatarLightbox && avatarUrl && (
+          <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setShowAvatarLightbox(false)}>
+            <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowAvatarLightbox(false)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10"><X size={14} className="text-white" /></button>
+              <div className="rounded-2xl overflow-hidden border border-[#C9A84C]/30 bg-[#0A0A0A]">
+                <img src={resolveImageUrl(avatarUrl)} alt="Avatar" className="w-full" />
+                <div className="p-3 flex items-center justify-between bg-[#0D0D0D] border-t border-[#1A1A1A]">
+                  <div className="flex items-center gap-2">
+                    <UserCircle2 size={14} className="text-[#C9A84C]" />
+                    <div>
+                      <p className="text-[11px] text-white font-semibold">{labels.avatar || 'Avatar'}</p>
+                      <p className="text-[8px] text-[#555]">{campaign.name}</p>
+                    </div>
+                    {videoMode === 'presenter' && (
+                      <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C] font-bold uppercase ml-1">{labels.presenterMode || 'Apresentador'}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => { navigator.clipboard.writeText(resolveImageUrl(avatarUrl)); toast.success(labels.copied || 'Copiado!'); }}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white transition">
+                      <Copy size={9} /> {labels.copy || 'Copiar'}
+                    </button>
+                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+                      <Download size={9} /> {labels.download || 'Baixar'}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 /* ── Enhanced Campaign Card ── */
-function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail, confirmingDelete, setConfirmingDelete, labels }) {
+function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail, onViewAvatar, confirmingDelete, setConfirmingDelete, labels }) {
   const type = TYPE_META[campaign.type] || TYPE_META.nurture;
   const status = STATUS_META[campaign.status] || STATUS_META.draft;
   const stats = campaign.stats || {};
@@ -1421,6 +1494,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
   const messages = campaign.messages || [];
   const channels = segment.platforms || [...new Set(messages.map(m => m.channel).filter(Boolean))];
   const images = stats.images || [];
+  const avatarUrl = stats.avatar_url || '';
   const openRate = stats.sent > 0 ? Math.round((stats.opened / stats.sent) * 100) : 0;
   const convRate = stats.sent > 0 ? Math.round((stats.converted / stats.sent) * 100) : 0;
   const startDate = schedule.start_date || campaign.created_at?.split('T')[0];
@@ -1433,8 +1507,20 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
       <div className="flex items-start gap-3">
         {/* Thumbnail */}
         {images.length > 0 ? (
-          <img src={resolveImageUrl(images[0])} alt=""
-            className="w-12 h-12 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
+          <div className="relative shrink-0">
+            <img src={resolveImageUrl(images[0])} alt=""
+              className="w-12 h-12 rounded-lg object-cover border border-[#1E1E1E]" />
+            {avatarUrl && (
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#0D0D0D] overflow-hidden">
+                <img src={resolveImageUrl(avatarUrl)} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+        ) : avatarUrl ? (
+          <div className="relative shrink-0">
+            <img src={resolveImageUrl(avatarUrl)} alt=""
+              className="w-12 h-12 rounded-full object-cover border-2 border-[#C9A84C]/30" />
+          </div>
         ) : (
           <div className="w-12 h-12 rounded-lg bg-[#111] border border-[#1E1E1E] flex items-center justify-center shrink-0">
             <Megaphone size={16} className="text-[#333]" />
@@ -1460,6 +1546,12 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
 
         {/* Actions */}
         <div className="flex items-center gap-0.5 shrink-0">
+          {avatarUrl && (
+            <button data-testid={`view-avatar-${campaign.id}`} onClick={() => onViewAvatar(campaign)}
+              className="p-1.5 rounded-lg hover:bg-[#C9A84C]/10 text-[#555] hover:text-[#C9A84C] transition" title={labels.viewAvatar || 'Ver Avatar'}>
+              <UserCircle2 size={13} />
+            </button>
+          )}
           {images.length > 0 && (
             <button data-testid={`gallery-${campaign.id}`} onClick={() => onGallery(campaign)}
               className="p-1.5 rounded-lg hover:bg-[#C9A84C]/10 text-[#555] hover:text-[#C9A84C] transition" title={labels.artGallery}>
@@ -1564,7 +1656,11 @@ function GlobalArtGallery({ campaigns, labels }) {
         vids.push({ type: 'video', url: vUrl, campaign: c.name, campaignId: c.id, idx: i + 1, key: `${c.id}-vid-${i + 1}` });
       }
     });
-    return [...imgs, ...vids];
+    const avatars = [];
+    if (stats.avatar_url) {
+      avatars.push({ type: 'avatar', url: stats.avatar_url, campaign: c.name, campaignId: c.id, idx: 0, key: `${c.id}-avatar-0` });
+    }
+    return [...avatars, ...imgs, ...vids];
   });
 
   const campaignNames = [...new Set(allAssets.map(a => a.campaign))];
@@ -1578,6 +1674,7 @@ function GlobalArtGallery({ campaigns, labels }) {
 
   const imgCount = allAssets.filter(a => a.type === 'image').length;
   const vidCount = allAssets.filter(a => a.type === 'video').length;
+  const avatarCount = allAssets.filter(a => a.type === 'avatar').length;
 
   /* Device mockup renderer */
   const renderDeviceMockup = (asset, ch) => {
@@ -1638,12 +1735,14 @@ function GlobalArtGallery({ campaigns, labels }) {
               { key: 'all', label: `${labels.galleryAll} (${allAssets.length})` },
               { key: 'image', label: `${labels.galleryImages} (${imgCount})` },
               { key: 'video', label: `${labels.galleryVideos} (${vidCount})` },
+              ...(avatarCount > 0 ? [{ key: 'avatar', label: `${labels.galleryAvatars || 'Avatares'} (${avatarCount})` }] : []),
             ].map(f => (
               <button key={f.key} data-testid={`gallery-type-${f.key}`} onClick={() => setTypeFilter(f.key)}
                 className={`px-2 py-1 rounded-lg text-[9px] font-medium transition flex items-center gap-1 ${
                   typeFilter === f.key ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#555] border border-[#1A1A1A] hover:text-white'}`}>
                 {f.key === 'image' && <Image size={9} />}
                 {f.key === 'video' && <Film size={9} />}
+                {f.key === 'avatar' && <UserCircle2 size={9} />}
                 {f.label}
               </button>
             ))}
@@ -1674,8 +1773,11 @@ function GlobalArtGallery({ campaigns, labels }) {
           {/* Channel tabs + asset info */}
           <div className="flex items-center gap-1 px-3 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             <div className="flex items-center gap-1.5 mr-2 shrink-0">
-              {selectedAsset.type === 'video' ? <Film size={10} className="text-[#C9A84C]" /> : <Image size={10} className="text-[#C9A84C]" />}
+              {selectedAsset.type === 'video' ? <Film size={10} className="text-[#C9A84C]" /> : selectedAsset.type === 'avatar' ? <UserCircle2 size={10} className="text-[#C9A84C]" /> : <Image size={10} className="text-[#C9A84C]" />}
               <span className="text-[9px] text-white font-medium truncate max-w-[140px]">{selectedAsset.campaign}</span>
+              {selectedAsset.type === 'avatar' && (
+                <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C] font-bold">AVATAR</span>
+              )}
             </div>
             <div className="w-px h-3.5 bg-[#222] shrink-0" />
             {CHANNEL_MOCKUPS.map(ch => {
@@ -1694,8 +1796,16 @@ function GlobalArtGallery({ campaigns, labels }) {
           <div className="flex items-center justify-center py-3 px-4 bg-[#080808]" style={{ minHeight: '220px', maxHeight: '360px' }}>
             {previewChannel === 'original' ? (
               <div className="w-full max-w-2xl">
-                {selectedAsset.type === 'image' ? (
-                  <img src={resolveImageUrl(selectedAsset.url)} alt="" className="w-full rounded-lg" style={{ maxHeight: '320px', objectFit: 'contain' }} />
+                {selectedAsset.type === 'image' || selectedAsset.type === 'avatar' ? (
+                  <div className="relative">
+                    <img src={resolveImageUrl(selectedAsset.url)} alt="" className="w-full rounded-lg" style={{ maxHeight: '320px', objectFit: 'contain' }} />
+                    {selectedAsset.type === 'avatar' && (
+                      <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm border border-[#C9A84C]/30">
+                        <UserCircle2 size={11} className="text-[#C9A84C]" />
+                        <span className="text-[9px] text-[#C9A84C] font-semibold">{labels.avatar || 'Avatar'}</span>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <video key={selectedAsset.key} src={resolveImageUrl(selectedAsset.url)} controls autoPlay
                     className="w-full rounded-lg" style={{ maxHeight: '320px' }} data-testid="gallery-player-video" />
@@ -1751,8 +1861,16 @@ function GlobalArtGallery({ campaigns, labels }) {
                   onClick={() => { setSelectedAsset(asset); setPreviewChannel('original'); }}
                   className={`rounded-xl overflow-hidden relative group text-left transition-all ${
                     isSelected ? 'border-2 border-[#C9A84C] ring-2 ring-[#C9A84C]/20' : 'border border-[#1E1E1E] hover:border-[#C9A84C]/30'} bg-[#0A0A0A]`}>
-                  {asset.type === 'image' ? (
-                    <img src={resolveImageUrl(asset.url)} alt="" className="w-full aspect-square object-cover" />
+                  {asset.type === 'image' || asset.type === 'avatar' ? (
+                    <div className="w-full aspect-square relative">
+                      <img src={resolveImageUrl(asset.url)} alt="" className="w-full h-full object-cover" />
+                      {asset.type === 'avatar' && (
+                        <div className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#C9A84C]/90 backdrop-blur-sm">
+                          <UserCircle2 size={8} className="text-black" />
+                          <span className="text-[7px] text-black font-bold">Avatar</span>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="w-full aspect-square bg-[#111] relative">
                       <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" muted preload="metadata" />
@@ -1764,7 +1882,7 @@ function GlobalArtGallery({ campaigns, labels }) {
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition" />
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-5">
                     <div className="flex items-center gap-1">
-                      {asset.type === 'video' ? <Film size={7} className="text-[#C9A84C]" /> : <Image size={7} className="text-[#C9A84C]" />}
+                      {asset.type === 'video' ? <Film size={7} className="text-[#C9A84C]" /> : asset.type === 'avatar' ? <UserCircle2 size={7} className="text-[#C9A84C]" /> : <Image size={7} className="text-[#C9A84C]" />}
                       <span className="text-[7px] text-white/80 truncate">{asset.campaign}</span>
                     </div>
                   </div>
@@ -1807,6 +1925,7 @@ export default function Marketing() {
   const [previewCampaign, setPreviewCampaign] = useState(null);
   const [detailCampaign, setDetailCampaign] = useState(null);
   const [galleryCampaign, setGalleryCampaign] = useState(null);
+  const [avatarCampaign, setAvatarCampaign] = useState(null);
   const [showGallery, setShowGallery] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(null);
 
@@ -2007,6 +2126,7 @@ export default function Marketing() {
               {filtered.map(c => (
                 <CampaignCard key={c.id} campaign={c} lang={lang} onAction={handleAction}
                   onPreview={setPreviewCampaign} onGallery={setGalleryCampaign} onDetail={setDetailCampaign}
+                  onViewAvatar={setAvatarCampaign}
                   confirmingDelete={confirmingDelete} setConfirmingDelete={setConfirmingDelete} labels={labels} />
               ))}
             </div>
@@ -2033,6 +2153,43 @@ export default function Marketing() {
       {previewCampaign && <PreviewModal campaign={previewCampaign} onClose={() => setPreviewCampaign(null)} labels={labels} />}
       {detailCampaign && <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCampaign(null)} labels={labels} />}
       {galleryCampaign && <ArtGalleryModal campaign={galleryCampaign} onClose={() => setGalleryCampaign(null)} labels={labels} />}
+
+      {/* Avatar Lightbox Modal */}
+      {avatarCampaign && (() => {
+        const avatarUrl = avatarCampaign.stats?.avatar_url;
+        if (!avatarUrl) return null;
+        return (
+          <div data-testid="avatar-modal" className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setAvatarCampaign(null)}>
+            <div className="relative max-w-md w-full" onClick={e => e.stopPropagation()}>
+              <button data-testid="close-avatar-modal" onClick={() => setAvatarCampaign(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10"><X size={14} className="text-white" /></button>
+              <div className="rounded-2xl overflow-hidden border border-[#C9A84C]/30 bg-[#0A0A0A]">
+                <img src={resolveImageUrl(avatarUrl)} alt="Avatar" className="w-full" />
+                <div className="p-3 flex items-center justify-between bg-[#0D0D0D] border-t border-[#1A1A1A]">
+                  <div className="flex items-center gap-2">
+                    <UserCircle2 size={14} className="text-[#C9A84C]" />
+                    <div>
+                      <p className="text-[11px] text-white font-semibold">{labels.avatar || 'Avatar'} · {avatarCampaign.name}</p>
+                      {avatarCampaign.stats?.video_mode === 'presenter' && (
+                        <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C] font-bold uppercase">{labels.presenterMode || 'Apresentador'}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => { navigator.clipboard.writeText(resolveImageUrl(avatarUrl)); toast.success(labels.copied || 'Copiado!'); }}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white transition">
+                      <Copy size={9} /> {labels.copy || 'Copiar'}
+                    </button>
+                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+                      <Download size={9} /> {labels.download || 'Baixar'}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

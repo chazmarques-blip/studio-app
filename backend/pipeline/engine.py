@@ -458,6 +458,8 @@ async def _execute_step(pipeline_id, step):
                             "video_variants": steps.get("marcos_video", {}).get("video_variants", {}),
                             "pipeline_id": pipeline_id,
                             "campaign_language": camp_lang,
+                            "avatar_url": pipeline.get("result", {}).get("avatar_url", ""),
+                            "video_mode": pipeline.get("result", {}).get("video_mode", "narration"),
                         },
                         "created_by": pipeline.get("tenant_id"),
                     },
