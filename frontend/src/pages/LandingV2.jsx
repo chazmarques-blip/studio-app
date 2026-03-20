@@ -714,7 +714,7 @@ export default function LandingV2() {
             </div>
           </motion.div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-4">
             {[
               { name: t('landing.plan_free'), desc: t('landing.plan_free_desc'), price: t('landing.plan_free_price'), period: t('landing.plan_free_period'),
                 feats: ['f1','f2','f3','f4'].map(k => t(`landing.plan_free_${k}`)), cta: t('landing.plan_free_cta'), note: t('landing.plan_free_no_card'), pro: false, badge: null },
@@ -732,9 +732,9 @@ export default function LandingV2() {
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i}>
                 {plan.pro ? (
                   <div className="relative rounded-2xl p-px bg-gradient-to-b from-[#C9A84C]/30 via-[#C9A84C]/10 to-transparent h-full">
-                    <div className="rounded-2xl bg-[#090909] h-full flex flex-col p-5 relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-b from-[#C9A84C]/[0.03] to-transparent pointer-events-none" />
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 rounded-full bg-[#C9A84C] px-3 py-0.5 text-[9px] font-mono font-bold text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/20">{plan.badge}</div>
+                    <div className="rounded-2xl bg-[#090909] h-full flex flex-col pt-7 px-5 pb-5 relative">
+                      <div className="absolute inset-0 bg-gradient-to-b from-[#C9A84C]/[0.03] to-transparent pointer-events-none rounded-2xl" />
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full bg-[#C9A84C] px-3 py-1 text-[9px] font-mono font-bold text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/20 whitespace-nowrap">{plan.badge}</div>
                       <div className="relative z-10 flex flex-col h-full">
                         <h3 className="text-sm font-bold text-white mb-0.5">{plan.name}</h3>
                         <p className="text-[10px] text-[#555] font-mono mb-3">{plan.desc}</p>
@@ -745,15 +745,18 @@ export default function LandingV2() {
                     </div>
                   </div>
                 ) : (
-                  <Glass hover className="flex flex-col p-5 h-full relative">
-                    {plan.badge && <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full border border-[#C9A84C]/15 bg-[#060606] px-3 py-0.5 text-[9px] font-mono text-[#C9A84C]">{plan.badge}</div>}
+                  <div className={`relative rounded-2xl border backdrop-blur-xl transition-all duration-500
+                    border-white/[0.06] bg-white/[0.015]
+                    hover:border-[#C9A84C]/20 hover:bg-white/[0.03] hover:shadow-xl hover:shadow-[#C9A84C]/[0.04]
+                    flex flex-col ${plan.badge ? 'pt-7 px-5 pb-5' : 'p-5'} h-full`}>
+                    {plan.badge && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full border border-[#C9A84C]/15 bg-[#060606] px-3 py-1 text-[9px] font-mono text-[#C9A84C] whitespace-nowrap">{plan.badge}</div>}
                     <h3 className="text-sm font-bold text-white mb-0.5">{plan.name}</h3>
                     <p className="text-[10px] text-[#555] font-mono mb-3">{plan.desc}</p>
                     <div className="mb-4"><span className="text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[10px] text-[#555]">{plan.period}</span></div>
                     <ul className="flex-1 space-y-2 mb-5">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-2 text-[11px] text-[#666]"><Check size={11} className="text-[#C9A84C] mt-0.5 flex-shrink-0" />{f}</li>)}</ul>
                     {plan.note && <p className="text-center text-[9px] text-[#555] font-mono mb-2">{plan.note}</p>}
                     <button className="btn-gold w-full rounded-xl py-2.5 text-[12px] font-semibold">{plan.cta}</button>
-                  </Glass>
+                  </div>
                 )}
               </motion.div>
             ))}
