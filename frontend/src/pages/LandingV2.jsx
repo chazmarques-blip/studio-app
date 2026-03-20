@@ -77,73 +77,184 @@ function Glass({ children, className = '', hover = false }) {
 const TkIcon = ({ size = 28, color = gold }) => <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.53v-3.4a4.85 4.85 0 01-.81-.21z"/></svg>;
 
 /* ── Multi-channel Chat rotating agents ── */
-const CHAT_CHANNELS = [
-  {
-    agent: 'Sarah', avatar: AVATARS.Sarah, channel: 'WhatsApp', color: '#25D366',
-    Icon: WaIcon,
-    convo: [
-      { from: 'user', text: 'Preciso agendar uma consulta para amanha' },
-      { from: 'agent', text: 'Claro! Vou verificar os horarios disponiveis.' },
-      { from: 'agent', text: 'Manha ou tarde?' },
-      { from: 'user', text: 'Pela manha' },
-      { from: 'agent', text: 'Perfeito! Tenho 9h ou 10h30 — qual prefere?' },
-      { from: 'user', text: '9h por favor!' },
-      { from: 'agent', text: 'Agendado para amanha as 9h! Confirmacao enviada por WhatsApp.' },
-      { from: 'user', text: 'Muito obrigado!' },
-      { from: 'agent', text: 'Disponha! Qualquer duvida, estou aqui 24h.' },
-    ]
-  },
-  {
-    agent: 'Carlos', avatar: AVATARS.Carlos, channel: 'Instagram', color: '#E1306C',
-    Icon: IgIcon,
-    convo: [
-      { from: 'user', text: 'Oi, meu pedido nao chegou ainda' },
-      { from: 'agent', text: 'Ola! Sinto muito pelo inconveniente.' },
-      { from: 'agent', text: 'Qual o numero do seu pedido?' },
-      { from: 'user', text: '#45892' },
-      { from: 'agent', text: 'Encontrei! Pedido #45892 saiu para entrega hoje as 14h.' },
-      { from: 'user', text: 'Tem como rastrear?' },
-      { from: 'agent', text: 'Claro! Aqui o link de rastreio: trk.io/45892' },
-      { from: 'user', text: 'Otimo, obrigado!' },
-      { from: 'agent', text: 'Precisando, estou aqui!' },
-    ]
-  },
-  {
-    agent: 'Sophia', avatar: AVATARS.Sophia, channel: 'Messenger', color: '#0084FF',
-    Icon: FbIcon,
-    convo: [
-      { from: 'user', text: 'Quais planos voces tem?' },
-      { from: 'agent', text: 'Temos 3 planos! Free, Pro e Enterprise.' },
-      { from: 'user', text: 'Qual a diferenca do Pro?' },
-      { from: 'agent', text: 'O Pro inclui agentes ilimitados, AI Studio e suporte prioritario!' },
-      { from: 'user', text: 'E o Enterprise?' },
-      { from: 'agent', text: 'Enterprise adiciona gerador de campanhas com IA, video e avatar.' },
-      { from: 'user', text: 'Quero testar o Pro' },
-      { from: 'agent', text: 'Criado! 14 dias gratis. Acesse seu painel agora.' },
-    ]
-  },
-  {
-    agent: 'Emily', avatar: AVATARS.Emily, channel: 'Telegram', color: '#26A5E4',
-    Icon: TgIcon,
-    convo: [
-      { from: 'user', text: 'Como funciona a integracao com WhatsApp?' },
-      { from: 'agent', text: 'Basta conectar sua conta Business API!' },
-      { from: 'user', text: 'E demora muito?' },
-      { from: 'agent', text: 'Menos de 5 minutos! Posso te guiar agora.' },
-      { from: 'user', text: 'Vamos la!' },
-      { from: 'agent', text: 'Perfeito! Acesse Configuracoes > Canais > WhatsApp.' },
-      { from: 'user', text: 'Conectou! E agora?' },
-      { from: 'agent', text: 'Pronto! Seu agente ja esta ativo no WhatsApp respondendo clientes.' },
-    ]
-  },
-];
+const CHAT_CONVOS = {
+  en: [
+    {
+      agent: 'Sarah', avatar: AVATARS.Sarah, channel: 'WhatsApp', color: '#25D366', Icon: WaIcon,
+      convo: [
+        { from: 'user', text: 'I need to schedule an appointment for tomorrow' },
+        { from: 'agent', text: 'Sure! Let me check the available slots.' },
+        { from: 'agent', text: 'Morning or afternoon?' },
+        { from: 'user', text: 'Morning please' },
+        { from: 'agent', text: 'Perfect! I have 9am or 10:30am — which do you prefer?' },
+        { from: 'user', text: '9am please!' },
+        { from: 'agent', text: 'Booked for tomorrow at 9am! Confirmation sent via WhatsApp.' },
+        { from: 'user', text: 'Thank you so much!' },
+        { from: 'agent', text: 'You\'re welcome! Any questions, I\'m here 24/7.' },
+      ]
+    },
+    {
+      agent: 'Carlos', avatar: AVATARS.Carlos, channel: 'Instagram', color: '#E1306C', Icon: IgIcon,
+      convo: [
+        { from: 'user', text: 'Hi, my order hasn\'t arrived yet' },
+        { from: 'agent', text: 'Hello! I\'m sorry about the inconvenience.' },
+        { from: 'agent', text: 'What\'s your order number?' },
+        { from: 'user', text: '#45892' },
+        { from: 'agent', text: 'Found it! Order #45892 shipped today at 2pm.' },
+        { from: 'user', text: 'Can I track it?' },
+        { from: 'agent', text: 'Sure! Here\'s the tracking link: trk.io/45892' },
+        { from: 'user', text: 'Great, thanks!' },
+        { from: 'agent', text: 'Anytime! I\'m here if you need anything.' },
+      ]
+    },
+    {
+      agent: 'Sophia', avatar: AVATARS.Sophia, channel: 'Messenger', color: '#0084FF', Icon: FbIcon,
+      convo: [
+        { from: 'user', text: 'What plans do you offer?' },
+        { from: 'agent', text: 'We have 3 plans! Free, Pro, and Enterprise.' },
+        { from: 'user', text: 'What\'s included in Pro?' },
+        { from: 'agent', text: 'Pro includes unlimited agents, AI Studio, and priority support!' },
+        { from: 'user', text: 'And Enterprise?' },
+        { from: 'agent', text: 'Enterprise adds AI campaign generator with video and avatar.' },
+        { from: 'user', text: 'I want to try Pro' },
+        { from: 'agent', text: 'Done! 14-day free trial. Access your dashboard now.' },
+      ]
+    },
+    {
+      agent: 'Emily', avatar: AVATARS.Emily, channel: 'Telegram', color: '#26A5E4', Icon: TgIcon,
+      convo: [
+        { from: 'user', text: 'How does the WhatsApp integration work?' },
+        { from: 'agent', text: 'Just connect your Business API account!' },
+        { from: 'user', text: 'Does it take long?' },
+        { from: 'agent', text: 'Less than 5 minutes! I can guide you now.' },
+        { from: 'user', text: 'Let\'s do it!' },
+        { from: 'agent', text: 'Great! Go to Settings > Channels > WhatsApp.' },
+        { from: 'user', text: 'Connected! What now?' },
+        { from: 'agent', text: 'Done! Your agent is now live on WhatsApp handling customers.' },
+      ]
+    },
+  ],
+  pt: [
+    {
+      agent: 'Sarah', avatar: AVATARS.Sarah, channel: 'WhatsApp', color: '#25D366', Icon: WaIcon,
+      convo: [
+        { from: 'user', text: 'Preciso agendar uma consulta para amanha' },
+        { from: 'agent', text: 'Claro! Vou verificar os horarios disponiveis.' },
+        { from: 'agent', text: 'Manha ou tarde?' },
+        { from: 'user', text: 'Pela manha' },
+        { from: 'agent', text: 'Perfeito! Tenho 9h ou 10h30 — qual prefere?' },
+        { from: 'user', text: '9h por favor!' },
+        { from: 'agent', text: 'Agendado para amanha as 9h! Confirmacao enviada por WhatsApp.' },
+        { from: 'user', text: 'Muito obrigado!' },
+        { from: 'agent', text: 'Disponha! Qualquer duvida, estou aqui 24h.' },
+      ]
+    },
+    {
+      agent: 'Carlos', avatar: AVATARS.Carlos, channel: 'Instagram', color: '#E1306C', Icon: IgIcon,
+      convo: [
+        { from: 'user', text: 'Oi, meu pedido nao chegou ainda' },
+        { from: 'agent', text: 'Ola! Sinto muito pelo inconveniente.' },
+        { from: 'agent', text: 'Qual o numero do seu pedido?' },
+        { from: 'user', text: '#45892' },
+        { from: 'agent', text: 'Encontrei! Pedido #45892 saiu para entrega hoje as 14h.' },
+        { from: 'user', text: 'Tem como rastrear?' },
+        { from: 'agent', text: 'Claro! Aqui o link de rastreio: trk.io/45892' },
+        { from: 'user', text: 'Otimo, obrigado!' },
+        { from: 'agent', text: 'Precisando, estou aqui!' },
+      ]
+    },
+    {
+      agent: 'Sophia', avatar: AVATARS.Sophia, channel: 'Messenger', color: '#0084FF', Icon: FbIcon,
+      convo: [
+        { from: 'user', text: 'Quais planos voces tem?' },
+        { from: 'agent', text: 'Temos 3 planos! Free, Pro e Enterprise.' },
+        { from: 'user', text: 'Qual a diferenca do Pro?' },
+        { from: 'agent', text: 'O Pro inclui agentes ilimitados, AI Studio e suporte prioritario!' },
+        { from: 'user', text: 'E o Enterprise?' },
+        { from: 'agent', text: 'Enterprise adiciona gerador de campanhas com IA, video e avatar.' },
+        { from: 'user', text: 'Quero testar o Pro' },
+        { from: 'agent', text: 'Criado! 14 dias gratis. Acesse seu painel agora.' },
+      ]
+    },
+    {
+      agent: 'Emily', avatar: AVATARS.Emily, channel: 'Telegram', color: '#26A5E4', Icon: TgIcon,
+      convo: [
+        { from: 'user', text: 'Como funciona a integracao com WhatsApp?' },
+        { from: 'agent', text: 'Basta conectar sua conta Business API!' },
+        { from: 'user', text: 'E demora muito?' },
+        { from: 'agent', text: 'Menos de 5 minutos! Posso te guiar agora.' },
+        { from: 'user', text: 'Vamos la!' },
+        { from: 'agent', text: 'Perfeito! Acesse Configuracoes > Canais > WhatsApp.' },
+        { from: 'user', text: 'Conectou! E agora?' },
+        { from: 'agent', text: 'Pronto! Seu agente ja esta ativo no WhatsApp respondendo clientes.' },
+      ]
+    },
+  ],
+  es: [
+    {
+      agent: 'Sarah', avatar: AVATARS.Sarah, channel: 'WhatsApp', color: '#25D366', Icon: WaIcon,
+      convo: [
+        { from: 'user', text: 'Necesito agendar una cita para manana' },
+        { from: 'agent', text: 'Claro! Voy a verificar los horarios disponibles.' },
+        { from: 'agent', text: 'Manana o tarde?' },
+        { from: 'user', text: 'Por la manana' },
+        { from: 'agent', text: 'Perfecto! Tengo 9am o 10:30am — cual prefieres?' },
+        { from: 'user', text: '9am por favor!' },
+        { from: 'agent', text: 'Agendado para manana a las 9am! Confirmacion enviada.' },
+        { from: 'user', text: 'Muchas gracias!' },
+        { from: 'agent', text: 'De nada! Cualquier duda, estoy aqui 24/7.' },
+      ]
+    },
+    {
+      agent: 'Carlos', avatar: AVATARS.Carlos, channel: 'Instagram', color: '#E1306C', Icon: IgIcon,
+      convo: [
+        { from: 'user', text: 'Hola, mi pedido no ha llegado' },
+        { from: 'agent', text: 'Hola! Lamento el inconveniente.' },
+        { from: 'agent', text: 'Cual es el numero de pedido?' },
+        { from: 'user', text: '#45892' },
+        { from: 'agent', text: 'Encontrado! Pedido #45892 salio hoy a las 14h.' },
+        { from: 'user', text: 'Puedo rastrearlo?' },
+        { from: 'agent', text: 'Claro! Aqui el link: trk.io/45892' },
+        { from: 'user', text: 'Genial, gracias!' },
+        { from: 'agent', text: 'Para eso estoy!' },
+      ]
+    },
+    {
+      agent: 'Sophia', avatar: AVATARS.Sophia, channel: 'Messenger', color: '#0084FF', Icon: FbIcon,
+      convo: [
+        { from: 'user', text: 'Que planes tienen?' },
+        { from: 'agent', text: 'Tenemos 3 planes! Free, Pro y Enterprise.' },
+        { from: 'user', text: 'Que incluye el Pro?' },
+        { from: 'agent', text: 'Pro incluye agentes ilimitados, AI Studio y soporte prioritario!' },
+        { from: 'user', text: 'Y el Enterprise?' },
+        { from: 'agent', text: 'Enterprise agrega generador de campanas con IA, video y avatar.' },
+        { from: 'user', text: 'Quiero probar Pro' },
+        { from: 'agent', text: 'Listo! 14 dias gratis. Accede a tu panel ahora.' },
+      ]
+    },
+    {
+      agent: 'Emily', avatar: AVATARS.Emily, channel: 'Telegram', color: '#26A5E4', Icon: TgIcon,
+      convo: [
+        { from: 'user', text: 'Como funciona la integracion con WhatsApp?' },
+        { from: 'agent', text: 'Solo conecta tu cuenta Business API!' },
+        { from: 'user', text: 'Toma mucho tiempo?' },
+        { from: 'agent', text: 'Menos de 5 minutos! Puedo guiarte ahora.' },
+        { from: 'user', text: 'Vamos!' },
+        { from: 'agent', text: 'Perfecto! Ve a Configuracion > Canales > WhatsApp.' },
+        { from: 'user', text: 'Conectado! Y ahora?' },
+        { from: 'agent', text: 'Listo! Tu agente ya esta activo en WhatsApp.' },
+      ]
+    },
+  ],
+};
 
-function AgentChat() {
+function AgentChat({ lang = 'en' }) {
+  const channels = CHAT_CONVOS[lang] || CHAT_CONVOS.en;
   const [msgs, setMsgs] = useState([]);
   const [typing, setTyping] = useState(false);
   const [channelIdx, setChannelIdx] = useState(0);
   const ref = useRef(null);
-  const ch = CHAT_CHANNELS[channelIdx];
+  const ch = channels[channelIdx];
 
   useEffect(() => {
     let i = 0, cancel = false;
@@ -154,7 +265,7 @@ function AgentChat() {
       if (i >= convo.length) {
         setTimeout(() => {
           if (cancel) return;
-          setChannelIdx(p => (p + 1) % CHAT_CHANNELS.length);
+          setChannelIdx(p => (p + 1) % channels.length);
         }, 2500);
         return;
       }
@@ -164,9 +275,9 @@ function AgentChat() {
         setTimeout(() => { if (cancel) return; setTyping(false); setMsgs(p => [...p, m]); i++; setTimeout(go, 1200); }, 1000);
       } else { setMsgs(p => [...p, m]); i++; setTimeout(go, 900); }
     };
-    const t = setTimeout(go, 500);
-    return () => { cancel = true; clearTimeout(t); };
-  }, [channelIdx]);
+    const t2 = setTimeout(go, 500);
+    return () => { cancel = true; clearTimeout(t2); };
+  }, [channelIdx, lang]);
   useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs, typing]);
 
   return (
@@ -190,7 +301,7 @@ function AgentChat() {
       </div>
       {/* Channel indicator dots */}
       <div className="flex justify-center gap-1.5 py-1.5 bg-white/[0.01]">
-        {CHAT_CHANNELS.map((_, i) => (
+        {channels.map((_, i) => (
           <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#C9A84C]/60' : 'w-1 bg-white/[0.08]'}`} />
         ))}
       </div>
@@ -945,6 +1056,24 @@ export default function LandingV2() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <img src="/logo-agentzz.png" alt="Agents" className="h-7" data-testid="landing-logo" />
           <div className="flex items-center gap-2.5">
+            {/* Language selector */}
+            <div className="flex items-center border border-white/[0.06] rounded-lg overflow-hidden" data-testid="lang-selector">
+              {[
+                { code: 'en', label: 'EN' },
+                { code: 'pt', label: 'PT' },
+                { code: 'es', label: 'ES' },
+              ].map(lg => (
+                <button key={lg.code} data-testid={`lang-${lg.code}`}
+                  onClick={() => i18n.changeLanguage(lg.code)}
+                  className={`px-2.5 py-1.5 text-[10px] font-mono font-semibold transition-all ${
+                    lang === lg.code
+                      ? 'bg-[#C9A84C]/[0.12] text-[#C9A84C]'
+                      : 'text-[#555] hover:text-[#999]'
+                  }`}>
+                  {lg.label}
+                </button>
+              ))}
+            </div>
             <button onClick={() => navigate('/login')} data-testid="landing-signin-btn"
               className="px-4 py-2 text-[13px] text-[#777] hover:text-white transition rounded-lg">
               {t('landing.signin')}
@@ -1023,10 +1152,14 @@ export default function LandingV2() {
               <div className="border-t border-white/[0.05] pt-3 mb-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Brain size={9} className="text-[#C9A84C]" />
-                  <p className="text-[8px] text-white font-semibold tracking-wide">Mentalidade</p>
+                  <p className="text-[8px] text-white font-semibold tracking-wide">{lang === 'pt' ? 'Mentalidade' : lang === 'es' ? 'Mentalidad' : 'Mindset'}</p>
                 </div>
                 <p className="text-[7px] text-[#666] leading-relaxed">
-                  Sarah combina técnicas de vendas consultivas com inteligência emocional. Treinada para identificar necessidades, qualificar leads e converter com empatia — disponível 24/7 em múltiplos canais.
+                  {lang === 'pt'
+                    ? 'Sarah combina técnicas de vendas consultivas com inteligência emocional. Treinada para identificar necessidades, qualificar leads e converter com empatia — disponível 24/7 em múltiplos canais.'
+                    : lang === 'es'
+                    ? 'Sarah combina técnicas de ventas consultivas con inteligencia emocional. Entrenada para identificar necesidades, calificar leads y convertir con empatía — disponible 24/7.'
+                    : 'Sarah combines consultative sales techniques with emotional intelligence. Trained to identify needs, qualify leads, and convert with empathy — available 24/7 across multiple channels.'}
                 </p>
               </div>
               {/* Skills with progress bars */}
@@ -1064,7 +1197,7 @@ export default function LandingV2() {
               </div>
             </Glass>
 
-            <div className="md:translate-y-[-12px] h-full"><AgentChat /></div>
+            <div className="md:translate-y-[-12px] h-full"><AgentChat lang={lang} /></div>
 
             <Glass hover className="p-4 flex flex-col">
               <div className="flex items-center gap-2 mb-2.5">
@@ -1101,7 +1234,7 @@ export default function LandingV2() {
               </div>
               {/* 3 Mini campaign cards — IG, FB, TikTok */}
               <div className="border-t border-white/[0.05] pt-3 flex-1">
-                <p className="text-[8px] text-[#555] font-mono uppercase tracking-widest mb-2">Distributed to</p>
+                <p className="text-[8px] text-[#555] font-mono uppercase tracking-widest mb-2">{lang === 'pt' ? 'Distribuido em' : lang === 'es' ? 'Distribuido en' : 'Distributed to'}</p>
                 <div className="grid grid-cols-3 gap-1.5">
                   {/* Instagram mini */}
                   <div className="rounded-lg border border-white/[0.06] bg-[#0D0D0D] overflow-hidden hover:border-[#E1306C]/25 transition-colors">
