@@ -508,13 +508,14 @@ function CampaignDemo({ lang }) {
                     </div>
                   </div>
                   <div className="flex items-center justify-center">
-                    <div className="relative rounded-xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/50 max-w-[220px]">
-                      <img src={CAMPAIGN_IMAGES.feed} alt="Video thumbnail" className="w-full opacity-80" />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}
-                          className="h-14 w-14 rounded-full bg-[#C9A84C]/20 backdrop-blur-sm flex items-center justify-center border border-[#C9A84C]/30">
-                          <Play size={22} className="text-[#C9A84C] ml-1" fill="#C9A84C" />
-                        </motion.div>
+                    <div className="relative rounded-xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/50 max-w-[260px]">
+                      <video autoPlay muted loop playsInline className="w-full aspect-video object-cover">
+                        <source src="/agentzz-demo.mp4" type="video/mp4" />
+                      </video>
+                      <div className="absolute top-2 left-2">
+                        <div className="flex items-center gap-1 bg-[#C9A84C]/80 backdrop-blur-sm rounded px-1.5 py-0.5">
+                          <span className="text-[6px] text-[#0A0A0A] font-bold">SORA 2</span>
+                        </div>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                         <div className="flex items-center gap-2">
@@ -631,7 +632,7 @@ function CampaignDemo({ lang }) {
                       </div>
                     </motion.div>
 
-                    {/* TikTok Video Template - Real Video */}
+                    {/* TikTok Video Template - Real Sora 2 Video */}
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#ff0050]/30 transition-colors">
                       <div className="relative">
@@ -640,7 +641,7 @@ function CampaignDemo({ lang }) {
                           className="w-full aspect-[9/14] object-cover"
                           poster={CAMPAIGN_IMAGES.feed}
                         >
-                          <source src="/demo-campaign.mp4" type="video/mp4" />
+                          <source src="/agentzz-demo.mp4" type="video/mp4" />
                         </video>
                         {/* TikTok sidebar */}
                         <div className="absolute right-2 bottom-12 flex flex-col items-center gap-3">
@@ -657,13 +658,13 @@ function CampaignDemo({ lang }) {
                         <div className="absolute top-2 left-2">
                           <div className="flex items-center gap-1 bg-red-500/80 backdrop-blur-sm rounded px-1.5 py-0.5">
                             <div className="h-1 w-1 rounded-full bg-white animate-pulse" />
-                            <span className="text-[6px] text-white font-bold">VIDEO</span>
+                            <span className="text-[6px] text-white font-bold">SORA 2</span>
                           </div>
                         </div>
                       </div>
                       <div className="px-2.5 py-2 flex items-center gap-1">
                         <TkIcon size={7} color="#ff0050" />
-                        <span className="text-[7px] text-[#555] font-mono">TikTok Video</span>
+                        <span className="text-[7px] text-[#555] font-mono">TikTok Video — Sora 2 AI</span>
                       </div>
                     </motion.div>
                   </div>
