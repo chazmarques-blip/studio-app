@@ -560,7 +560,8 @@ function CampaignDemo({ lang }) {
                         <div className="flex gap-2 mb-1.5">
                           <Heart size={10} className="text-[#ccc]" /><MessageSquare size={10} className="text-[#ccc]" /><Send size={10} className="text-[#ccc]" />
                         </div>
-                        <p className="text-[7px] text-[#888] leading-relaxed"><span className="text-white font-semibold">agentzz</span> Seus agentes IA atendem 24h...</p>
+                        <p className="text-[7px] text-[#888] leading-relaxed mb-1"><span className="text-white font-semibold">agentzz </span>Seus clientes nunca mais esperam. Com AgentZZ, seus agentes IA atendem 24h no WhatsApp, Instagram e Telegram. Configure em 5 minutos.</p>
+                        <p className="text-[6px] text-[#555]">#IA #Atendimento #ChatBot #AgentZZ #Marketing</p>
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <IgIcon size={7} color="#E1306C" />
@@ -582,10 +583,14 @@ function CampaignDemo({ lang }) {
                         <FbIcon size={8} color="#0084FF" className="ml-auto" />
                       </div>
                       <div className="px-2.5 py-1.5">
-                        <p className="text-[7px] text-[#999] leading-relaxed">Automatize seu negocio com agentes IA inteligentes. Comece gratis!</p>
+                        <p className="text-[7px] text-[#999] leading-relaxed">Automatize seu negocio com agentes IA inteligentes. Atendimento 24h no WhatsApp, Instagram e Telegram. Sem codigo, sem espera. Comece gratis!</p>
                       </div>
                       <img src={CAMPAIGN_IMAGES.wide} alt="FB Banner" className="w-full aspect-video object-cover" />
-                      <div className="px-2.5 py-2 flex items-center justify-between">
+                      <div className="px-2.5 py-1.5">
+                        <p className="text-[7px] text-[#888] leading-relaxed">Mais de 22 agentes prontos para usar. Crie campanhas com IA e publique em todos os canais.</p>
+                        <p className="text-[6px] text-[#0084FF] mt-1 font-semibold">Saiba mais</p>
+                      </div>
+                      <div className="px-2.5 py-1.5 flex items-center justify-between border-t border-white/[0.04]">
                         <div className="flex items-center gap-1">
                           <ThumbsUp size={8} className="text-[#0084FF]" />
                           <span className="text-[7px] text-[#888]">2.4k</span>
@@ -617,7 +622,10 @@ function CampaignDemo({ lang }) {
                           <div className="h-full w-1/3 bg-[#25D366] rounded-full" />
                         </div>
                       </div>
-                      <div className="px-2.5 py-2 flex items-center gap-1">
+                      <div className="px-2.5 py-2">
+                        <p className="text-[7px] text-[#888] leading-relaxed">Atendimento 24h no WhatsApp. Seus agentes IA respondem, agendam e vendem automaticamente.</p>
+                      </div>
+                      <div className="px-2.5 pb-2 flex items-center gap-1">
                         <WaIcon size={7} color="#25D366" />
                         <span className="text-[7px] text-[#555] font-mono">WhatsApp Status</span>
                       </div>
