@@ -72,7 +72,8 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Botoes de acao (editar, excluir, editar IA) agora sempre visiveis nos avatares da galeria (sem hover)
 - Novo botao "Editar com IA" (sparkle roxo) na galeria e no modal de customizacao do avatar
 - Overlay popup com textarea para instrucoes de edicao contextual
-- Backend endpoint POST /api/campaigns/pipeline/edit-avatar usando Gemini Edit IN-PLACE: envia imagem original + instrucao, mantendo identidade do personagem
+- Backend endpoint POST /api/campaigns/pipeline/edit-avatar usando Gemini Edit com prompt agressivo de SUBSTITUICAO
+- Prompt: "COMPLETELY REPLACE the character" em vez de "keep character identity" — permite transformacoes drasticas como humano→cartoon
 - Traducoes adicionadas em PT, EN, ES
 
 ## Backlog

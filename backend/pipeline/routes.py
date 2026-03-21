@@ -1106,13 +1106,17 @@ async def edit_avatar_image(body: EditAvatarRequest, user=Depends(get_current_us
         mime = "image/webp"
 
     system_msg = (
-        "You are an expert image editor. You receive a character/avatar image and an editing instruction. "
-        "Apply the requested changes while keeping the same character, pose, and overall composition. "
-        "Output ONLY the edited image."
+        "You are a character design AI. When given a reference image and instructions, "
+        "COMPLETELY REPLACE the character with the new one described. "
+        "Use the reference image ONLY for pose and composition guidance. "
+        "The output must show ONLY the new character described — NOT the original person. "
+        "Generate the described character from scratch, keeping similar pose/framing."
     )
     prompt = (
-        f"Edit this avatar image according to these instructions: {body.instruction}\n\n"
-        "Keep the same character identity and overall pose. Apply the changes described above."
+        f"REPLACE the character entirely with: {body.instruction}\n\n"
+        "DO NOT keep the original person. DO NOT add the new character as a drawing or picture frame. "
+        "The ENTIRE image must become the new character described above. "
+        "Use the original image ONLY as pose/composition reference."
     )
 
     try:
