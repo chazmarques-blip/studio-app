@@ -992,6 +992,12 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
     """Edit ONLY the text in an image while preserving the entire visual composition"""
     tenant = await _get_tenant(user)
 
+    # Validate UUID format
+    try:
+        uuid.UUID(body.pipeline_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="Invalid pipeline_id format")
+
     # Get pipeline data
     p = supabase.table("pipelines").select("steps, tenant_id, platforms, result").eq("id", body.pipeline_id).eq("tenant_id", tenant["id"]).execute()
     if not p.data:
