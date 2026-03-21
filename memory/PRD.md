@@ -1,35 +1,50 @@
 # AgentZZ - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for SMBs to deploy AI agents on social media. Features: AI Marketing Studio, omnichannel support, premium dark luxury theme.
+SaaS platform "AgentZZ" for SMBs to deploy AI agents on social media. AI Marketing Studio with full campaign generation (copy, images, video, audio).
 
 ## Core Architecture
 - **Frontend**: React, Tailwind, shadcn-ui, Framer Motion, recharts, react-i18next
 - **Backend**: FastAPI, Supabase (PostgreSQL), MongoDB
-- **3rd Party**: Claude 3.5 Sonnet, OpenAI Whisper, Sora 2, ElevenLabs, Google APIs, Gemini, fal.ai (Kling)
+- **3rd Party**: Claude 3.5 Sonnet, OpenAI Whisper, Sora 2, ElevenLabs, Google APIs, Gemini, fal.ai
 
 ## Completed (March 21, 2026 — Session 3)
 
-### Bug Fix: Avatar 360° View for 3D/Pixar Avatars (3 iterations of fixes)
-1. **Style-aware prompts**: Backend `_run_batch_360` and `generate_avatar_variant` now detect `avatar_style` and use 3D-appropriate prompts ("do NOT make it photorealistic")
-2. **Correct source URL**: `applyClothing` and `generateAngle` use `tempAvatar.url` (generated 3D avatar) for 3D styles, not `source_photo_url` (original photo)
-3. **Style inference for old avatars**: `openAvatarForEdit` infers `avatar_style` from `creation_mode` for avatars saved before the fix
-4. **Clear wrong angles**: Opens 3D avatars with fresh front angle if saved angles don't match
-5. **Auto-trigger 360°**: Clicking "360° View" tab auto-starts generation if <4 angles loaded
-6. **Regenerate All button**: New "Regenerate All 360°" button in 360° tab
-7. **Persistence**: `avatar_style` and `creation_mode` now saved/restored in all avatar CRUD functions
+### Video Quality Overhaul (Cinema Grade)
+- **CRF 23→16** in ALL pipeline steps (normalization, crossfade, brand overlay, concat, final merge)
+- **Preset fast→slow** for max quality throughout pipeline
+- **Normalization** now forces exact target resolution: `scale=W:H:force_original_aspect_ratio=increase,crop=W:H` — eliminates black bars
+- **Audio bitrate** upgraded from 192k to 256k/320k
+- **Audio merge** now uses CRF 16 encoding instead of `-c:v copy`
+- **Video variants** use CRF 18, preset slow, 256k audio for social platform formats
 
-### Bug Fix: Download Button
-- Replaced `<a target=_blank>` with fetch+blob download pattern
+### Social Media Video Formats (Already Configured)
+- TikTok: 1080x1920 (9:16)
+- Instagram: 1080x1350 (4:5) + Reels 1080x1920
+- Facebook: 1280x720 (16:9) + Stories 1080x1920
+- WhatsApp: 1080x1920 (9:16)
+- YouTube: 1920x1080 (16:9) + Shorts 1080x1920
+- Google Ads: 1920x1080 (16:9)
+- Telegram: 1280x720 (16:9)
 
-### P0: 3D Avatar Photo Reference Fix
-- `generate_avatar_from_prompt` uses `_gemini_edit_image` (litellm multimodal) for photo references
+### Audio Pre-Approval in Video Pipeline
+- After marcos_video AI generates script, pipeline pauses at `waiting_audio_approval`
+- TTS audio preview auto-generated
+- Endpoint: POST /api/campaigns/pipeline/{id}/approve-audio
+- Approve → Sora 2 video generation starts; Reject → script revision
 
-### P1a: Landing Page V2 at `/`
-### P1b: Audio Pre-Approval in Video Pipeline
+### Avatar 360° View (3D Style Preservation)
+- Style-aware prompts for 3D/Pixar avatars
+- Auto-trigger 360° when switching to tab
+- avatar_style persistence in all CRUD functions
+
+### Other Fixes
+- 3D Avatar photo reference: uses _gemini_edit_image (litellm multimodal)
+- Landing Page V2 at `/`
+- Download button: fetch+blob pattern
 
 ## Test Reports
-- iteration_76: 30/30 | iteration_77: 21/21 | iteration_78: 30/30 | iteration_79: 32/32
+- iteration_76: 30/30 | iteration_77: 21/21 | iteration_78: 30/30 | iteration_79: 32/32 | iteration_80: 22/22
 
 ## Test Credentials
 - Email: test@agentflow.com / Password: password123
