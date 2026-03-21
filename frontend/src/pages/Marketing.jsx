@@ -329,19 +329,90 @@ function PreviewModal({ campaign, onClose, labels }) {
 /* ── Art Gallery Modal ── */
 function ArtGalleryModal({ campaign, onClose, labels }) {
   const stats = campaign.stats || {};
-  const images = stats.images || [];
+  const [images, setImages] = useState(stats.images || []);
   const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [styleRegenLoading, setStyleRegenLoading] = useState(false);
+  const pipelineId = stats.pipeline_id || '';
+  const messages = campaign.messages || [];
+
+  const ART_STYLES = [
+    { key: 'minimalist', label: labels.styleMinimalist, icon: '◻' },
+    { key: 'vibrant', label: labels.styleVibrant, icon: '◆' },
+    { key: 'luxury', label: labels.styleLuxury, icon: '✦' },
+    { key: 'corporate', label: labels.styleCorporate, icon: '▣' },
+    { key: 'playful', label: labels.stylePlayful, icon: '◉' },
+    { key: 'bold', label: labels.styleBold, icon: '▲' },
+    { key: 'organic', label: labels.styleOrganic, icon: '❋' },
+    { key: 'tech', label: labels.styleTech, icon: '⬡' },
+    { key: 'cartoon', label: labels.styleCartoon, icon: '★' },
+    { key: 'illustration', label: labels.styleIllustration, icon: '✎' },
+    { key: 'watercolor', label: labels.styleWatercolor, icon: '◈' },
+    { key: 'neon', label: labels.styleNeon, icon: '⚡' },
+    { key: 'retro', label: labels.styleRetro, icon: '◎' },
+    { key: 'flat', label: labels.styleFlat, icon: '⬡' },
+  ];
+
+  const generateStyleImage = async (styleKey) => {
+    if (styleRegenLoading) return;
+    setStyleRegenLoading(styleKey);
+    try {
+      const fullCopy = stats.full_copy || messages.map(m => m.content).join('\n\n');
+      const { data } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/regenerate-single-image`, {
+        style: styleKey,
+        campaign_name: campaign.name || '',
+        campaign_copy: fullCopy.slice(0, 300),
+        product_description: campaign.name || '',
+        language: stats.campaign_language || 'pt',
+        pipeline_id: pipelineId,
+      });
+      if (data.image_url) {
+        setImages(prev => [...prev, data.image_url]);
+        toast.success(labels.imageAdded);
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || labels.error || 'Error');
+    } finally {
+      setStyleRegenLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0D0D0D] border border-[#1A1A1A] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-4 py-3 border-b border-[#111] flex items-center gap-2">
+      <div className="bg-[#0D0D0D] border border-[#1A1A1A] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-[#111] flex items-center gap-2 shrink-0">
           <Image size={14} className="text-[#C9A84C]" />
           <h3 className="text-sm font-bold text-white flex-1">{labels.artGallery}: {campaign.name}</h3>
           <span className="text-[9px] text-[#555]">{images.length} {images.length === 1 ? 'art' : 'artes'}</span>
           <button onClick={onClose} className="text-[#555] hover:text-white"><X size={16} /></button>
         </div>
-        <div className="p-4 overflow-y-auto max-h-[75vh]">
+
+        {/* Style generator strip */}
+        {pipelineId && (
+          <div className="px-4 py-2.5 border-b border-[#111] shrink-0">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Sparkles size={10} className="text-[#C9A84C]" />
+              <p className="text-[9px] font-bold text-[#C9A84C] uppercase tracking-wider">{labels.generateNewImage}</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {ART_STYLES.map(s => (
+                <button key={s.key} data-testid={`gallery-style-${s.key}`}
+                  disabled={!!styleRegenLoading}
+                  onClick={() => generateStyleImage(s.key)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[9px] transition ${
+                    styleRegenLoading === s.key
+                      ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]'
+                      : 'border-[#1E1E1E] bg-[#0A0A0A] text-[#888] hover:text-[#C9A84C] hover:border-[#C9A84C]/30'
+                  } disabled:opacity-50`}>
+                  <span className="text-[8px]">{s.icon}</span>
+                  {styleRegenLoading === s.key ? labels.generatingImage : s.label}
+                  {styleRegenLoading === s.key && <RefreshCw size={8} className="animate-spin ml-0.5" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="p-4 overflow-y-auto flex-1">
           {images.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {images.map((url, i) => (
