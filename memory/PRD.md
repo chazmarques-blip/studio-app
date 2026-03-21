@@ -1,64 +1,43 @@
 # AgentZZ - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows SMBs to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS). Features include an AI Marketing Studio for generating full campaigns (copy, images, video) using multimodal AI, with a premium "dark luxury" theme.
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for SMBs to deploy AI agents on social media. Features: AI Marketing Studio, omnichannel support, premium dark luxury theme.
 
 ## Core Architecture
-- **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts, react-i18next
-- **Backend**: FastAPI (Python), Supabase (PostgreSQL), MongoDB
-- **3rd Party**: Claude 3.5 Sonnet, OpenAI Whisper, Sora 2, ElevenLabs (TTS + Music), Google APIs, Gemini (image gen), fal.ai (Kling lip-sync)
-- **Design**: Dark luxury monochrome theme (black/gold/white/gray)
-
-## What's Been Implemented
-- Full navigation, Dashboard, Agent Management, Agent Marketplace
-- Google Calendar/Sheets integration in AgentConfig
-- AI Marketing Studio: Full 8-step pipeline with real-time polling
-- Video generation with Sora 2 + ElevenLabs + FFmpeg cinematic audio mix
-- AI Music generation with ElevenLabs music_v1 API
-- Create Art tab with 15 style filters
-- 3D Avatar generation with photo reference + style-aware 360° view
-- Avatar lip-sync video preview (Kling via fal.ai)
-- Landing Page V2 at `/` with i18n (EN/PT/ES)
-- CRM with Kanban board
-- Audio Pre-Approval step in video pipeline
+- **Frontend**: React, Tailwind, shadcn-ui, Framer Motion, recharts, react-i18next
+- **Backend**: FastAPI, Supabase (PostgreSQL), MongoDB
+- **3rd Party**: Claude 3.5 Sonnet, OpenAI Whisper, Sora 2, ElevenLabs, Google APIs, Gemini, fal.ai (Kling)
 
 ## Completed (March 21, 2026 — Session 3)
 
-### Bug Fix: Avatar 360° View Converting 3D to Realistic
-- **Root cause**: `applyClothing` and `generateAngle` used `source_photo_url` (original real photo) as source for 360° generation, even for 3D/Pixar avatars
-- **Fix**: Added `is3d` check — for 3D styles, always use `tempAvatar.url` (the generated Pixar avatar). Realistic avatars still use source_photo_url
-- Also: `avatar_style` is now persisted in save/edit functions (`saveAvatarAndClose`, `saveAvatarAsNew`, `openAvatarForEdit`)
+### Bug Fix: Avatar 360° View for 3D/Pixar Avatars (3 iterations of fixes)
+1. **Style-aware prompts**: Backend `_run_batch_360` and `generate_avatar_variant` now detect `avatar_style` and use 3D-appropriate prompts ("do NOT make it photorealistic")
+2. **Correct source URL**: `applyClothing` and `generateAngle` use `tempAvatar.url` (generated 3D avatar) for 3D styles, not `source_photo_url` (original photo)
+3. **Style inference for old avatars**: `openAvatarForEdit` infers `avatar_style` from `creation_mode` for avatars saved before the fix
+4. **Clear wrong angles**: Opens 3D avatars with fresh front angle if saved angles don't match
+5. **Auto-trigger 360°**: Clicking "360° View" tab auto-starts generation if <4 angles loaded
+6. **Regenerate All button**: New "Regenerate All 360°" button in 360° tab
+7. **Persistence**: `avatar_style` and `creation_mode` now saved/restored in all avatar CRUD functions
 
-### Bug Fix: Download Button Not Working
-- **Root cause**: Used `<a target="_blank">` which only opens in new tab
-- **Fix**: Replaced with `fetch+blob` download pattern that actually saves the file
+### Bug Fix: Download Button
+- Replaced `<a target=_blank>` with fetch+blob download pattern
 
-### Bug Fix: 3D Avatar Photo Reference Ignored
-- Fixed `generate_avatar_from_prompt` to use `_gemini_edit_image` (litellm multimodal) instead of `UserMessage(images=[...])`
+### P0: 3D Avatar Photo Reference Fix
+- `generate_avatar_from_prompt` uses `_gemini_edit_image` (litellm multimodal) for photo references
 
-### P1a: Landing Page V2 Swap
-- Route `/` now serves `LandingV2`, removed temporary `/v2` route
-
+### P1a: Landing Page V2 at `/`
 ### P1b: Audio Pre-Approval in Video Pipeline
-- Pipeline pauses at `waiting_audio_approval` after script generation, before Sora 2 video
-- AudioApprovalPanel component with TTS preview, approve/reject buttons
-- Endpoint: `POST /api/campaigns/pipeline/{id}/approve-audio`
+
+## Test Reports
+- iteration_76: 30/30 | iteration_77: 21/21 | iteration_78: 30/30 | iteration_79: 32/32
 
 ## Test Credentials
 - Email: test@agentflow.com / Password: password123
 
-## Test Reports
-- iteration_76.json: 30/30 passed (P0 avatar fix + P1a landing + P1b audio approval)
-- iteration_77.json: 21/21 passed (avatar_style parameter in 360° endpoints)
-- iteration_78.json: 30/30 passed (360° style persistence + download fix)
-
 ## P1 - Upcoming
-- Activate live omnichannel integrations (WhatsApp, SMS, etc.)
+- Activate live omnichannel integrations
 - CRM Kanban improvements
 
 ## P2 - Future/Backlog
-- Admin Management System
-- Payment Gateway Integration
-- Legal & Publication (Terms, Privacy)
-- Scalability hardening
-- PipelineView.jsx refactoring (2600+ lines)
+- Admin System, Payment Gateway, Terms/Privacy
+- PipelineView.jsx refactoring (2700+ lines)
