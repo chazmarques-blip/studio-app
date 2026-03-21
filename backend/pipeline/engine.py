@@ -365,14 +365,14 @@ async def _execute_step(pipeline_id, step):
                     video_format = format_match.group(1).lower()
 
                 platforms = pipeline.get("platforms") or []
-                # Sora 2 cinema quality: Full HD
-                FORMAT_MAP = {"vertical": "1080x1920", "horizontal": "1920x1080"}
+                # Sora 2 valid sizes: 720x1280, 1280x720
+                FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
                 if not format_match:
                     if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
                         video_format = "vertical"
                     elif any(p in platforms for p in ["google_ads", "facebook"]):
                         video_format = "horizontal"
-                size = FORMAT_MAP.get(video_format, "1920x1080")
+                size = FORMAT_MAP.get(video_format, "1280x720")
 
                 # Update status to generating_video
                 steps[step]["output"] = response
@@ -576,7 +576,7 @@ def _recover_orphaned_pipelines():
                         try:
                             fmt = re.search(r'Format:\s*(horizontal|vertical)', marcos_out, re.IGNORECASE)
                             vf = fmt.group(1).lower() if fmt else "horizontal"
-                            sz = {"vertical": "1080x1920", "horizontal": "1920x1080"}.get(vf, "1920x1080")
+                            sz = {"vertical": "720x1280", "horizontal": "1280x720"}.get(vf, "1280x720")
                             p_data = supabase.table("pipelines").select("result").eq("id", pid).single().execute()
                             user_music = (p_data.data or {}).get("result", {}).get("selected_music", "")
                             av_voice = (p_data.data or {}).get("result", {}).get("avatar_voice", None)

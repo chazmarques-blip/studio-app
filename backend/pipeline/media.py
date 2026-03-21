@@ -854,8 +854,127 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
     return None
 
 
-def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta="", music_mood="upbeat"):
-    """Combine 2 clips with crossfade + narration + background music + brand logo ending with CTA"""
+async def _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=27000):
+    """Generate cinema-quality background music using ElevenLabs Music API.
+    Returns path to generated music file, or None on failure."""
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not elevenlabs_key:
+        logger.warning("No ElevenLabs key for music generation")
+        return None
+
+    output_path = f"/tmp/{pipeline_id}_ai_music.mp3"
+    try:
+        from elevenlabs import ElevenLabs as ELClient
+
+        el_client = ELClient(api_key=elevenlabs_key, timeout=120)
+
+        # Enforce instrumental and cinema-quality duration
+        logger.info(f"ElevenLabs Music: generating {duration_ms}ms track — '{music_prompt[:80]}...'")
+
+        audio_data = None
+        prompt_to_use = music_prompt
+
+        for attempt in range(2):
+            try:
+                response = el_client.music.compose(
+                    prompt=prompt_to_use,
+                    music_length_ms=duration_ms,
+                    model_id="music_v1",
+                    force_instrumental=True,
+                    output_format="mp3_44100_128",
+                )
+                audio_data = b""
+                for chunk in response:
+                    if isinstance(chunk, bytes):
+                        audio_data += chunk
+                break
+            except Exception as api_err:
+                err_str = str(api_err)
+                # If API suggests a cleaned prompt, retry with it
+                if "prompt_suggestion" in err_str and attempt == 0:
+                    try:
+                        err_body = getattr(api_err, 'body', {})
+                        if isinstance(err_body, dict):
+                            suggestion = err_body.get("detail", {}).get("data", {}).get("prompt_suggestion", "")
+                        else:
+                            suggestion = ""
+                        if suggestion:
+                            logger.info(f"ElevenLabs Music: retrying with API-suggested prompt")
+                            prompt_to_use = suggestion
+                            continue
+                    except Exception:
+                        pass
+                raise
+
+        # Response is an iterator of bytes
+        audio_data = b""
+        for chunk in response:
+            audio_data += chunk
+
+        if len(audio_data) < 5000:
+            logger.warning(f"ElevenLabs Music: response too small ({len(audio_data)}B)")
+            return None
+
+        with open(output_path, "wb") as f:
+            f.write(audio_data)
+
+        file_size = os.path.getsize(output_path)
+        duration = _ffprobe_duration(output_path) or 0
+        logger.info(f"ElevenLabs Music generated: {file_size/1024:.0f}KB, {duration:.1f}s")
+        return output_path
+
+    except Exception as e:
+        logger.warning(f"ElevenLabs Music generation failed: {e}")
+        return None
+
+
+def _build_music_prompt_from_dylan(marcos_output, brand_name="", music_mood="cinematic"):
+    """Extract Dylan's music direction from Marcos output and build an ElevenLabs music prompt."""
+    # Mood-to-prompt mapping for fallback
+    mood_prompts = {
+        "cinematic": "Epic cinematic orchestral instrumental. Soft piano opening with warm strings building gradually. Subtle brushed drums at midpoint. Builds to emotional crescendo with brass and full strings. Premium advertising feel. 30 seconds.",
+        "upbeat": "Upbeat positive instrumental. Acoustic guitar and light percussion with warm keyboard pads. Bright, inviting, optimistic. Commercial background music. 30 seconds.",
+        "energetic": "High energy electronic instrumental. Driving synth bass with crisp hi-hats and powerful drops. Bold and unstoppable feel. Sports or tech commercial. 30 seconds.",
+        "emotional": "Emotional piano-led instrumental. Gentle strings building to powerful orchestral crescendo. Touching and inspiring. 30 seconds.",
+        "corporate": "Modern corporate instrumental. Clean electronic beats with ambient pads and subtle bass. Professional and trustworthy. Business commercial. 30 seconds.",
+        "luxury": "Sophisticated smooth jazz instrumental. Elegant piano with soft brushed drums and warm bass. Premium luxury feel. High-end commercial. 30 seconds.",
+        "playful": "Playful cheerful instrumental. Light marimba and pizzicato strings with gentle percussion. Fun and friendly family commercial. 30 seconds.",
+        "dramatic": "Dramatic cinematic instrumental. Dark cello with timpani building to powerful brass crescendo. Intense and epic advertising. 30 seconds.",
+        "tropical": "Tropical Latin instrumental. Reggaeton rhythm with tropical percussion and warm synth pads. Festive summer commercial feel. 30 seconds.",
+        "urban": "Urban hip-hop instrumental. Deep bass with crisp hi-hats and atmospheric synths. Street culture commercial. 30 seconds.",
+    }
+
+    # Try to extract the ===ELEVENLABS MUSIC PROMPT=== section first
+    el_prompt_match = re.search(r'===ELEVENLABS MUSIC PROMPT===([\s\S]*?)===', marcos_output, re.IGNORECASE)
+    if el_prompt_match:
+        prompt = el_prompt_match.group(1).strip()
+        if len(prompt) > 20:
+            logger.info(f"Using Dylan's ElevenLabs music prompt: {prompt[:80]}...")
+            return prompt
+
+    # Fallback: extract from ===MUSIC SELECTION=== or ===MUSIC DIRECTION===
+    music_match = re.search(r'===MUSIC (?:SELECTION|DIRECTION)===([\s\S]*?)===', marcos_output, re.IGNORECASE)
+    if music_match:
+        music_section = music_match.group(1).strip()
+        # Build a descriptive prompt from the rationale
+        rationale = re.search(r'(?:Rationale|Description|Cinematic Rationale):\s*(.+?)(?:\n|$)', music_section, re.IGNORECASE)
+        track = re.search(r'Track:\s*(.+?)(?:\n|$)', music_section, re.IGNORECASE)
+        if rationale and len(rationale.group(1).strip()) > 20:
+            return f"Instrumental background music for a {brand_name} commercial. {rationale.group(1).strip()}. 30 seconds, cinematic quality, suitable for advertising."
+        elif track:
+            # Map track name to a rich prompt
+            track_name = track.group(1).strip().lower().replace(".mp3", "")
+            track_mood = track_name.split("_")[0] if "_" in track_name else track_name
+            return mood_prompts.get(track_mood, mood_prompts.get(music_mood, mood_prompts["cinematic"]))
+
+    # Final fallback: generic cinematic prompt based on mood
+    base_prompt = mood_prompts.get(music_mood, mood_prompts["cinematic"])
+    if brand_name:
+        base_prompt = f"{base_prompt}. For {brand_name} brand."
+    return base_prompt
+
+
+def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta="", music_mood="upbeat", ai_music_path=None):
     output_path = f"/tmp/{pipeline_id}_commercial.mp4"
     try:
         # 1. Normalize both clips to consistent format
@@ -995,10 +1114,17 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         branded_file = f"/tmp/{pipeline_id}_branded.mp4"
         final_audio = None
 
-        # Check for background music — intelligent selection by mood + industry
-        music_dir = "/app/backend/assets/music"
+        # Check for background music — prefer AI-generated, then static files
         bg_music_path = None
-        if os.path.isdir(music_dir):
+
+        # Priority 1: AI-generated music from ElevenLabs
+        if ai_music_path and os.path.exists(ai_music_path) and os.path.getsize(ai_music_path) > 5000:
+            bg_music_path = ai_music_path
+            logger.info(f"Using ElevenLabs AI-generated music: {os.path.getsize(ai_music_path)/1024:.0f}KB")
+
+        # Priority 2: Static music files by mood
+        music_dir = "/app/backend/assets/music"
+        if not bg_music_path and os.path.isdir(music_dir):
             # Comprehensive mood-to-file mapping with industry context
             mood_map = {
                 # Direct mood matches
@@ -1145,7 +1271,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
     return None
 
 
-async def _generate_commercial_video(pipeline_id, marcos_output, size="1920x1080", selected_music_override="", voice_config=None):
+async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720", selected_music_override="", voice_config=None):
     """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo + CTA"""
     # Parse Marcos's structured output
     clip1_prompt = ""
@@ -1358,11 +1484,19 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1920x1080
             logo_path = default_logo
             logger.info("Using default brand logo from assets")
 
-    # 4. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration + music
-    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood)
+    # 4. Generate AI music via ElevenLabs (runs while clips are ready)
+    ai_music_path = None
+    try:
+        music_prompt = _build_music_prompt_from_dylan(marcos_output, brand_name, music_mood)
+        ai_music_path = await _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=27000)
+    except Exception as e:
+        logger.warning(f"AI music generation failed, will use static files: {e}")
+
+    # 5. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration + music
+    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood, ai_music_path)
 
 
-async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1920x1080", selected_music_override="", voice_config=None):
+async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override="", voice_config=None):
     """Generate a commercial with the avatar as a character IN the scene.
     1. Parse narration and clip prompts from marcos_output
     2. Enhance Sora prompts to include the avatar as an active character in each scene
@@ -1503,20 +1637,33 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
             logger.error("Clip concatenation failed")
             return None
 
-        # Add narration + background music
-        music_dir = "/app/backend/assets/music"
+        # Add narration + background music (prefer AI-generated from ElevenLabs)
+        ai_music_path = None
+        try:
+            music_prompt = _build_music_prompt_from_dylan(marcos_output, brand_name, music_mood)
+            ai_music_path = await _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=int(total_clip_dur * 1000))
+        except Exception as e:
+            logger.warning(f"AI music generation failed for presenter: {e}")
+
         bg_music_path = None
-        if os.path.isdir(music_dir):
-            mood_map = {
-                "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "emotional": "emotional.mp3",
-                "cinematic": "cinematic.mp3", "corporate": "corporate.mp3", "luxury": "jazz_smooth.mp3",
-                "modern": "electronic_chill.mp3", "fun": "pop_dance.mp3",
-            }
-            mood_file = mood_map.get(music_mood, "corporate.mp3")
-            candidate = os.path.join(music_dir, mood_file)
-            bg_music_path = candidate if os.path.exists(candidate) else os.path.join(music_dir, "corporate.mp3")
-            if not os.path.exists(bg_music_path):
-                bg_music_path = None
+        # Priority 1: AI-generated music
+        if ai_music_path and os.path.exists(ai_music_path) and os.path.getsize(ai_music_path) > 5000:
+            bg_music_path = ai_music_path
+            logger.info(f"Using ElevenLabs AI music for presenter: {os.path.getsize(ai_music_path)/1024:.0f}KB")
+        else:
+            # Priority 2: Static music files
+            music_dir = "/app/backend/assets/music"
+            if os.path.isdir(music_dir):
+                mood_map = {
+                    "upbeat": "upbeat.mp3", "energetic": "energetic.mp3", "emotional": "emotional.mp3",
+                    "cinematic": "cinematic.mp3", "corporate": "corporate.mp3", "luxury": "jazz_smooth.mp3",
+                    "modern": "electronic_chill.mp3", "fun": "pop_dance.mp3",
+                }
+                mood_file = mood_map.get(music_mood, "corporate.mp3")
+                candidate = os.path.join(music_dir, mood_file)
+                bg_music_path = candidate if os.path.exists(candidate) else os.path.join(music_dir, "corporate.mp3")
+                if not os.path.exists(bg_music_path):
+                    bg_music_path = None
 
         inputs = ["-i", concat_path]
         filter_parts = []
@@ -1530,19 +1677,21 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                 music_idx = audio_idx + 1
                 fade_out_start = max(total_clip_dur - 3, 10)
 
-                # ── Cinematic Audio Mixing for Presenter ──
-                # Narration: presence boost, broadcast compressor, pad to video length
+                # ── Cinema-Grade Audio Mixing for Presenter ──
                 narr_chain = (
-                    f"volume=1.3,"
+                    f"volume=1.4,"
                     f"highpass=f=80,"
-                    f"equalizer=f=3000:t=h:w=1000:g=2.5,"
-                    f"acompressor=threshold=-18dB:ratio=3:attack=10:release=100,"
+                    f"equalizer=f=3000:t=h:w=1000:g=3,"
+                    f"equalizer=f=8000:t=h:w=2000:g=1.5,"
+                    f"acompressor=threshold=-18dB:ratio=3:attack=8:release=80,"
+                    f"aecho=0.8:0.88:40:0.15,"
                     f"apad=whole_dur={total_clip_dur}"
                 )
                 # Music: EQ carve for voice clarity, fades, trim to video length
                 music_chain = (
                     f"equalizer=f=400:t=q:w=2:g=-8,"
                     f"equalizer=f=2500:t=q:w=1.5:g=-4,"
+                    f"equalizer=f=100:t=h:w=50:g=2,"
                     f"afade=t=in:d=1.5:curve=exp,"
                     f"afade=t=out:st={fade_out_start}:d=3:curve=exp,"
                     f"atrim=0:{total_clip_dur}"

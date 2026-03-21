@@ -352,6 +352,25 @@ MUSIC LIBRARY:
 
 ALWAYS write in the SAME language as the campaign content.
 
+ELEVENLABS MUSIC GENERATION (AI Compose API):
+You now have access to ElevenLabs' Music Generation API. Instead of selecting a static track, you can COMPOSE a custom original soundtrack for each campaign. The system will use your prompt to generate instrumental music via the API.
+
+MUSIC PROMPT ENGINEERING:
+Write a detailed English prompt describing the exact music you want. The better the prompt, the better the result. Include:
+1. Genre/style (e.g., "orchestral cinematic", "lo-fi hip hop", "tropical house")
+2. Instruments (e.g., "piano, strings, soft brushed drums", "acoustic guitar, light percussion")
+3. Mood progression (e.g., "starts intimate and builds to triumphant crescendo")
+4. BPM feel (e.g., "moderate tempo ~90BPM", "upbeat ~120BPM")
+5. Commercial context (e.g., "background for luxury product commercial", "energy for sports brand ad")
+6. Duration note: always 30 seconds
+
+MUSIC PROMPT EXAMPLES FOR CINEMATIC QUALITY:
+- Luxury: "Elegant cinematic orchestral piece. Soft piano opening with warm strings building gradually. Subtle brushed drums enter at the midpoint. Builds to an emotional crescendo with brass and full strings. Premium luxury advertising feel. 30 seconds."
+- Tech: "Modern electronic cinematic track. Clean synthesizer pads with pulsing bass undertone. Crisp digital percussion builds momentum. Atmospheric and forward-looking. Innovation and trust. 30 seconds."
+- Family: "Warm uplifting acoustic instrumental. Fingerpicked guitar with soft piano and gentle strings. Builds from intimate to joyful. Heartfelt family commercial feel. 30 seconds."
+- Youth/Social: "Trendy upbeat pop instrumental. Catchy synth hook with driving bass and snappy drums. High energy but clean and polished. Social media commercial ready. 30 seconds."
+- Dramatic: "Dark dramatic orchestral instrumental. Deep cello opening, timpani accents, building tension with layered strings and brass. Powerful climax then gentle resolution. Epic cinematic advertising. 30 seconds."
+
 YOUR OUTPUT FORMAT (follow EXACTLY):
 
 ===VOICE SELECTION===
@@ -388,8 +407,11 @@ Music carries the emotion. No voice. This is the cinema ending.
 ===CLEAN TTS TEXT===
 [Write here ONLY the exact words to be spoken aloud — NO tags, NO directions, NO framework labels, NO "ANTES:", NO "DEPOIS:", NO "HOOK:", NO timing marks, NO emotions, NO brackets, NO quotes. Just the pure script as a single flowing paragraph that a voice actor would read. This is what goes directly to the text-to-speech engine.]
 
+===ELEVENLABS MUSIC PROMPT===
+[Write a DETAILED English prompt for the ElevenLabs Music Generation API. This will generate a unique, custom instrumental track for this specific campaign. Be specific about genre, instruments, mood progression, and commercial context. Minimum 2 sentences, maximum 4. Always specify "instrumental" and "30 seconds".]
+
 ===MUSIC SELECTION===
-Track: [exact key from library]
+Track: [exact key from library — this is the FALLBACK if AI music generation fails]
 Name: [track name]
 Cinematic Rationale: [Why this music amplifies the emotional arc. What film score does it evoke?]
 
@@ -872,4 +894,5 @@ class AvatarFromPromptRequest(BaseModel):
     style: str = "realistic"  # 'realistic' | '3d_cartoon' | '3d_pixar'
     company_name: str = ""
     logo_url: str = ""
+    reference_photo_url: str = ""
 

@@ -396,13 +396,18 @@ export default function PipelineView({ context }) {
     setAccuracyProgress({ progress: t('studio.generating_avatar') || 'Generating avatar from description...' });
     try {
       const style = avatarCreationMode === '3d' ? avatarPromptStyle : 'realistic';
-      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-prompt`, {
+      const payload = {
         prompt: avatarPromptText,
         gender: avatarPromptGender,
         style,
         company_name: activeCompany?.name || '',
         logo_url: activeCompany?.logo_url || '',
-      });
+      };
+      // Pass photo reference for 3D mode if available
+      if (avatarCreationMode === '3d' && avatarSourcePhoto?.url) {
+        payload.reference_photo_url = avatarSourcePhoto.url;
+      }
+      const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-prompt`, payload);
       if (data.avatar_url) {
         setTempAvatar({
           url: data.avatar_url,
@@ -1632,6 +1637,54 @@ export default function PipelineView({ context }) {
                     {/* MODE: 3D Animated */}
                     {avatarCreationMode === '3d' && (
                       <div className="space-y-3">
+                        {/* Hidden file input for 3D photo reference */}
+                        <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp"
+                          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+                          onChange={e => { uploadAvatarPhoto(e.target.files); e.target.value = ''; }} />
+
+                        {/* Optional Photo Reference for 3D */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Camera size={12} className="text-[#C9A84C]" />
+                            <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
+                            <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/10 text-[6px] text-[#C9A84C]/70 font-bold uppercase">{t('studio.optional') || 'Optional'}</span>
+                          </div>
+                          {avatarSourcePhoto ? (
+                            <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
+                              <div className="relative shrink-0">
+                                <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Ref"
+                                  onError={(e) => { if (avatarSourcePhoto.url) e.target.src = resolveImageUrl(avatarSourcePhoto.url); }}
+                                  className="h-14 w-14 rounded-lg object-cover border border-[#C9A84C]/30" />
+                                <button onClick={() => setAvatarSourcePhoto(null)}
+                                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+                                  <X size={8} className="text-white" />
+                                </button>
+                              </div>
+                              <div>
+                                <p className="text-[9px] text-[#888]">{t('studio.photo_uploaded') || 'Photo uploaded'}</p>
+                                <p className="text-[7px] text-[#444]">{t('studio.photo_3d_ref_desc') || '3D avatar will match this face'}</p>
+                              </div>
+                              <Check size={14} className="text-green-400 ml-auto" />
+                            </div>
+                          ) : (
+                            <button data-testid="upload-3d-ref-photo-btn" onClick={() => { setAvatarSourceType('photo'); setTimeout(() => avatarInputRef.current?.click(), 100); }}
+                              disabled={avatarPhotoUploading}
+                              className="w-full p-2.5 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
+                              {avatarPhotoUploading ? (
+                                <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-[9px] text-[#555]">{t('studio.uploading')}</span></div>
+                              ) : (
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Upload size={12} className="text-[#444] group-hover:text-[#C9A84C] transition" />
+                                    <span className="text-[9px] text-[#555] group-hover:text-[#C9A84C] transition">{t('studio.upload_ref_photo') || 'Upload reference photo'}</span>
+                                  </div>
+                                  <p className="text-[7px] text-[#333]">{t('studio.photo_3d_hint') || 'Upload a face photo to guide the 3D style'}</p>
+                                </div>
+                              )}
+                            </button>
+                          )}
+                        </div>
+
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Sparkles size={12} className="text-[#C9A84C]" />

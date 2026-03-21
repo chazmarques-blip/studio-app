@@ -1080,8 +1080,8 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
     # Determine video format
     format_match = re.search(r'Format:\s*(horizontal|vertical)', marcos_output, re.IGNORECASE)
     video_format = format_match.group(1).lower() if format_match else "horizontal"
-    FORMAT_MAP = {"vertical": "1080x1920", "horizontal": "1920x1080"}
-    size = FORMAT_MAP.get(video_format, "1920x1080")
+    FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
+    size = FORMAT_MAP.get(video_format, "1280x720")
     user_music = pipeline.get("result", {}).get("selected_music", "")
 
     # Mark as generating

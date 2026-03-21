@@ -157,13 +157,32 @@ async def generate_avatar_from_prompt(req: AvatarFromPromptRequest, user=Depends
         prompt = style_prompts.get(req.style, style_prompts["realistic"])
         if req.company_name:
             prompt += f" The character works at {req.company_name}."
+        if req.reference_photo_url and req.style in ("3d_cartoon", "3d_pixar"):
+            prompt += f" IMPORTANT: Use the face and features from the reference photo to create this 3D character. Maintain the person's likeness, facial structure, and key features while applying the 3D style."
 
         chat = LlmChat(
             api_key=EMERGENT_KEY,
             session_id=f"avatar-prompt-{uuid.uuid4().hex[:8]}",
             system_message="You are an expert character designer. Create stunning full-body character portraits in VERTICAL format."
         )
-        msg = UserMessage(text=prompt)
+
+        # Build message — include reference photo if provided
+        if req.reference_photo_url and req.style in ("3d_cartoon", "3d_pixar"):
+            try:
+                ref_data = urllib.request.urlopen(req.reference_photo_url, timeout=15).read()
+                ref_b64 = base64.b64encode(ref_data).decode()
+                ref_mime = "image/jpeg" if req.reference_photo_url.endswith((".jpg", ".jpeg")) else "image/png"
+                msg = UserMessage(
+                    text=prompt,
+                    images=[{"data": ref_b64, "mime_type": ref_mime}]
+                )
+                logger.info(f"3D avatar with photo reference: {req.reference_photo_url[:60]}...")
+            except Exception as e:
+                logger.warning(f"Failed to load reference photo, generating without it: {e}")
+                msg = UserMessage(text=prompt)
+        else:
+            msg = UserMessage(text=prompt)
+
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
         logger.info(f"Avatar prompt gen: text={text_response[:100] if text_response else 'None'}, images_count={len(images) if images else 0}")
