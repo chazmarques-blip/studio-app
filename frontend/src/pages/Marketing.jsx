@@ -231,6 +231,23 @@ function metaLabel(meta, labels) {
 
 /* ── Video Lightbox ── */
 function VideoLightbox({ videoUrl, onClose, labels }) {
+  const [downloading, setDownloading] = useState(false);
+  const downloadVideo = async () => {
+    setDownloading(true);
+    try {
+      const resp = await fetch(videoUrl);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = 'video_campaign.mp4';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch { window.open(videoUrl, '_blank'); }
+    finally { setDownloading(false); }
+  };
   useEffect(() => {
     document.querySelectorAll('video').forEach(v => {
       if (!v.dataset.testid?.includes('lightbox')) v.pause();
@@ -248,10 +265,10 @@ function VideoLightbox({ videoUrl, onClose, labels }) {
         </div>
         <div className="flex items-center justify-between mt-3">
           <span className="text-[9px] text-[#999] bg-[#111] px-2 py-1 rounded">Sora 2</span>
-          <a href={videoUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
-            <Download size={12} /> {labels?.download || 'Baixar'}
-          </a>
+          <button onClick={downloadVideo} disabled={downloading}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition disabled:opacity-50">
+            {downloading ? <RefreshCw size={12} className="animate-spin" /> : <Download size={12} />} {labels?.download || 'Baixar'}
+          </button>
         </div>
       </div>
     </div>
@@ -617,6 +634,48 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [detectedTexts, setDetectedTexts] = useState([]);
   const [detectingTexts, setDetectingTexts] = useState(false);
   const [selectedOriginalText, setSelectedOriginalText] = useState('');
+  const [downloadingIdx, setDownloadingIdx] = useState(null);
+  const [downloadingAsset, setDownloadingAsset] = useState(null);
+
+  const downloadImage = async (url, index) => {
+    setDownloadingIdx(index);
+    try {
+      const resp = await fetch(resolveImageUrl(url));
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${campaign.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'design'}_${index + 1}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(resolveImageUrl(url), '_blank');
+    } finally {
+      setDownloadingIdx(null);
+    }
+  };
+
+  const downloadAsset = async (url, filename, key) => {
+    setDownloadingAsset(key);
+    try {
+      const resp = await fetch(resolveImageUrl(url));
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(resolveImageUrl(url), '_blank');
+    } finally {
+      setDownloadingAsset(null);
+    }
+  };
 
   const startEditImageText = async (imageIndex) => {
     setEditImageTextIdx(imageIndex);
@@ -769,10 +828,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 <img src={resolveImageUrl(avatarUrl)} alt="" className="w-5 h-5 rounded-full object-cover border border-[#C9A84C]/40" />
                 <Eye size={10} /> {labels.viewAvatar || 'Ver Avatar'}
               </button>
-              <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer" data-testid="download-avatar-btn"
-                className="flex items-center p-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
-                <Download size={10} />
-              </a>
+              <button onClick={() => downloadAsset(avatarUrl, 'avatar.png', 'avatar')} data-testid="download-avatar-btn"
+                disabled={downloadingAsset === 'avatar'}
+                className="flex items-center p-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition disabled:opacity-50">
+                {downloadingAsset === 'avatar' ? <RefreshCw size={10} className="animate-spin" /> : <Download size={10} />}
+              </button>
             </div>
           )}
         </div>
@@ -1092,9 +1152,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                               className="text-[#C9A84C] hover:text-[#D4B85C] transition" title={labels.regenImage}>
                               <RefreshCw size={10} />
                             </button>
-                            <a href={resolveImageUrl(url)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-white/60 hover:text-white">
-                              <Download size={10} />
-                            </a>
+                            <button onClick={e => { e.stopPropagation(); downloadImage(url, i); }} data-testid={`download-image-${i}`}
+                              disabled={downloadingIdx === i}
+                              className="text-white/60 hover:text-white transition disabled:opacity-50">
+                              {downloadingIdx === i ? <RefreshCw size={10} className="animate-spin" /> : <Download size={10} />}
+                            </button>
                           </div>
                         </div>
                         {/* Edit Image Text — handled by modal below */}
@@ -1528,10 +1590,11 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white transition">
                       <Copy size={9} /> {labels.copy || 'Copiar'}
                     </button>
-                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
-                      <Download size={9} /> {labels.download || 'Baixar'}
-                    </a>
+                    <button onClick={() => downloadAsset(avatarUrl, 'avatar.png', 'avatar-lightbox')}
+                      disabled={downloadingAsset === 'avatar-lightbox'}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition disabled:opacity-50">
+                      {downloadingAsset === 'avatar-lightbox' ? <RefreshCw size={9} className="animate-spin" /> : <Download size={9} />} {labels.download || 'Baixar'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1985,10 +2048,11 @@ function GlobalArtGallery({ campaigns, labels }) {
               {previewChannel !== 'original' && ` · ${CHANNEL_MOCKUPS.find(c => c.id === previewChannel)?.aspect?.replace('/', ':') || ''}`}
             </span>
             <div className="flex items-center gap-1.5">
-              <a href={resolveImageUrl(selectedAsset.url)} target="_blank" rel="noopener noreferrer" data-testid="gallery-download"
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
-                <Download size={9} /> {labels.download || 'Download'}
-              </a>
+              <button onClick={() => downloadAsset(selectedAsset.url, `gallery_${selectedAsset.id || 'asset'}.png`, 'gallery')} data-testid="gallery-download"
+                disabled={downloadingAsset === 'gallery'}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition disabled:opacity-50">
+                {downloadingAsset === 'gallery' ? <RefreshCw size={9} className="animate-spin" /> : <Download size={9} />} {labels.download || 'Download'}
+              </button>
               <button data-testid="gallery-share" onClick={() => { navigator.clipboard.writeText(resolveImageUrl(selectedAsset.url)); toast.success('Link copiado!'); }}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
                 <Share2 size={9} /> {labels.share || 'Compartilhar'}
@@ -2341,10 +2405,11 @@ export default function Marketing() {
                       className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white transition">
                       <Copy size={9} /> {labels.copy || 'Copiar'}
                     </button>
-                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
-                      <Download size={9} /> {labels.download || 'Baixar'}
-                    </a>
+                    <button onClick={() => downloadAsset(avatarUrl, 'avatar.png', 'avatar-share')}
+                      disabled={downloadingAsset === 'avatar-share'}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[8px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition disabled:opacity-50">
+                      {downloadingAsset === 'avatar-share' ? <RefreshCw size={9} className="animate-spin" /> : <Download size={9} />} {labels.download || 'Baixar'}
+                    </button>
                   </div>
                 </div>
               </div>

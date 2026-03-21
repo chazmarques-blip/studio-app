@@ -62,6 +62,12 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Avatares: formato quadrado (h-16 w-16) → retangular portrait (h-24 w-16) para mostrar corpo inteiro
 - ~200+ ajustes de cor + forma dos avatares, mantendo estetica "dark luxury"
 
+### Download Fix — Botoes de Download (2026-03-21)
+- Corrigido todos os botoes de download que abriam zoom/nova aba (target="_blank") → agora fazem download direto via blob fetch
+- Adicionado spinner animado (RefreshCw) enquanto o download esta em progresso
+- Locais corrigidos: imagens do campaign detail, avatar download, art gallery download, video lightbox download
+- Sem sair da pagina ao clicar no download
+
 ## Backlog
 ### P0 (In Progress)
 - Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs
