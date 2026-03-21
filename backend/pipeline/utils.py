@@ -152,6 +152,53 @@ def _next_step(current):
 
 
 
+
+async def _detect_texts_in_image(img_b64: str, mime: str = "image/png") -> list:
+    """Use Gemini Vision to detect and extract all visible text/typography from an image.
+    Returns a list of text strings found in the image."""
+    try:
+        messages = [
+            {"role": "user", "content": [
+                {"type": "text", "text": (
+                    "You are an expert OCR system. Analyze this marketing image and extract ALL visible text.\n\n"
+                    "RULES:\n"
+                    "1. Return ONLY a JSON array of strings, each string being a separate text element found in the image\n"
+                    "2. Separate texts by their visual grouping (headlines, subheadlines, body text, buttons, labels)\n"
+                    "3. Preserve the original language — do NOT translate\n"
+                    "4. Order from most prominent (largest/boldest) to least prominent\n"
+                    "5. Do NOT include any explanation, only the JSON array\n\n"
+                    "Example output: [\"MAIN HEADLINE\", \"Subheadline text here\", \"Call to action\"]\n\n"
+                    "If no text is found, return: []"
+                )},
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}}
+            ]}
+        ]
+        response = litellm.completion(
+            model="gemini/gemini-2.5-flash",
+            messages=messages,
+            api_key=EMERGENT_KEY,
+            api_base=EMERGENT_PROXY_URL,
+            custom_llm_provider="openai",
+            max_tokens=500,
+        )
+        raw = response.choices[0].message.content or "[]"
+        logger.info(f"Text detection raw response: {raw[:500]}")
+        # Extract JSON array from response
+        import json
+        # Try to find JSON array in the response
+        match = re.search(r'\[.*\]', raw, re.DOTALL)
+        if match:
+            texts = json.loads(match.group())
+            logger.info(f"Text detection parsed texts: {texts}")
+            if isinstance(texts, list):
+                return [str(t).strip() for t in texts if str(t).strip()]
+        logger.warning(f"Text detection: No JSON array found in response")
+        return []
+    except Exception as e:
+        logger.warning(f"Text detection failed: {e}")
+        return []
+
+
 async def _describe_person(img_b64: str, mime: str = "image/png") -> str:
     """Use Gemini Vision to get an extremely detailed description of a person."""
     try:

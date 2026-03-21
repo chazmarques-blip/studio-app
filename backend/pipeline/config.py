@@ -930,10 +930,15 @@ class RegenerateStyleRequest(BaseModel):
 
 
 
+class DetectImageTextRequest(BaseModel):
+    image_url: str
+    pipeline_id: str = ""
+
 class EditImageTextRequest(BaseModel):
     pipeline_id: str
     image_index: int
     new_text: str
+    original_text: str = ""  # The specific text to replace (from detection)
     language: str = "pt"
 
 

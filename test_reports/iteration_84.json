@@ -1,0 +1,57 @@
+{
+  "summary": "Iteration 84: Smart Text Detection and Targeted Editing Feature - All tests passed. Backend detect-image-text endpoint works correctly with Gemini Vision AI. Frontend 3-step UI flow (detecting → select text → input new text) is fully functional.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/campaigns/pipeline/edit-image-text", "issue": "Returns 500 instead of 404 for invalid UUID pipeline_id (e.g., 'nonexistent'). Should validate UUID format and return proper error."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Campaign detail modal", "issues": ["Some images in SELECT MEDIA grid show gray placeholders initially (lazy loading delay)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration84_smart_text_detection.py",
+    "/app/test_reports/pytest/pytest_results_iteration84.xml"
+  ],
+  "action_items": [
+    "Consider adding UUID validation in edit-image-text endpoint to return 400 for invalid UUID format instead of 500"
+  ],
+  "critical_code_review_comments": [
+    "Text detection may return empty for images with minimal text - this is expected AI behavior, not a bug",
+    "Debug logging added to _detect_texts_in_image function for troubleshooting - consider removing in production"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration84_smart_text_detection.py",
+    "/app/backend/pipeline/utils.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all 3-step UI flow verified)"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Smart text detection feature is working. The detect-image-text endpoint uses Gemini Vision AI which may return empty results for images with minimal/no text - this is expected behavior. The 3-step UI flow in Marketing.jsx (lines 1101-1175) is fully functional: (1) detecting spinner, (2) detected texts as clickable buttons, (3) input for new text with Voltar button. Test image URL that works: https://rzwpuitdsejtmuuabxwh.supabase.co/storage/v1/object/public/pipeline-assets/single-35b53c76_1_cff264.png",
+  "features_tested": {
+    "detect-image-text_endpoint": {
+      "status": "PASS",
+      "details": "Returns texts array and count. Detected 4-8 texts from PAS Framework image including 'Problem', 'Agitate', 'Solution', 'PAS Framework', 'Not Anymore!', 'Mom, the Bible is Boring...'"
+    },
+    "edit-image-text_original_text_param": {
+      "status": "PASS",
+      "details": "Endpoint accepts original_text parameter without validation error (422)"
+    },
+    "frontend_3step_flow": {
+      "status": "PASS",
+      "details": "Step 1 (detecting spinner), Step 2 (detected texts as buttons), Step 3 (input for new text) all working. Voltar button returns to text selection."
+    }
+  }
+}

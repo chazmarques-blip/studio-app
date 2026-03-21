@@ -24,13 +24,14 @@ from pipeline.config import (
     EMERGENT_PROXY_URL, UPLOADS_DIR, STORAGE_BUCKET,
     PipelineCreate, PipelineApprove,
     RegenerateDesignRequest, RegenerateStyleRequest,
-    EditImageTextRequest, PublishRequest,
+    EditImageTextRequest, DetectImageTextRequest, PublishRequest,
     UpdateCopyRequest, RegenerateImageRequest, CloneLanguageRequest,
 )
 from pipeline.utils import (
     _upload_to_storage, _get_tenant, _next_step,
     _clean_copy_text, _gemini_edit_image, _gemini_edit_multi_ref,
     _ffprobe_duration, _delete_from_storage, _describe_person,
+    _detect_texts_in_image,
     FFMPEG_PATH,
 )
 from pipeline.media import (
@@ -963,6 +964,29 @@ No logos or brand names. 1080x1080 square format.
 
 
 
+@router.post("/detect-image-text")
+async def detect_image_text(body: DetectImageTextRequest, user=Depends(get_current_user)):
+    """Detect all visible text in an image using AI Vision"""
+    await _get_tenant(user)
+    if not body.image_url:
+        raise HTTPException(status_code=400, detail="image_url is required")
+    try:
+        img_resp = urllib.request.urlopen(body.image_url, timeout=20)
+        img_data = img_resp.read()
+        if not img_data or len(img_data) < 500:
+            raise HTTPException(status_code=400, detail="Could not download image")
+        img_b64 = base64.b64encode(img_data).decode('utf-8')
+        mime = "image/png" if ".png" in body.image_url.lower() else "image/jpeg"
+        texts = await _detect_texts_in_image(img_b64, mime)
+        return {"texts": texts, "count": len(texts)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Text detection endpoint failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Text detection failed: {str(e)}")
+
+
+
 @router.post("/edit-image-text")
 async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_user)):
     """Edit ONLY the text in an image while preserving the entire visual composition"""
@@ -999,6 +1023,7 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
         language=body.language or "pt",
         pipeline_id=body.pipeline_id,
         index=body.image_index,
+        original_text=body.original_text or "",
     )
 
     if not new_url:

@@ -193,9 +193,10 @@ DO NOT add any text, logos, or watermarks to the image."""
     return None
 
 
-async def _edit_text_in_image(source_image_url, new_text, language, pipeline_id, index):
+async def _edit_text_in_image(source_image_url, new_text, language, pipeline_id, index, original_text=""):
     """Edit ONLY the text in an image using Gemini image editing.
-    Preserves the entire visual (background, colors, layout, composition) and replaces text only."""
+    If original_text is provided, replaces only that specific text. Otherwise replaces the main headline.
+    Preserves the entire visual (background, colors, layout, composition)."""
     LANG_MAP = {"pt": "Portuguese", "es": "Spanish", "en": "English", "fr": "French", "de": "German", "it": "Italian"}
     lang_name = LANG_MAP.get(language, "Portuguese")
     max_retries = 3
@@ -215,10 +216,27 @@ async def _edit_text_in_image(source_image_url, new_text, language, pipeline_id,
                 "Your task is to modify ONLY the text/typography in the provided image. "
                 "You MUST preserve the EXACT same background, visual elements, colors, lighting, composition, "
                 "art style, and every non-text pixel. The output must look like the original image "
-                "with only the words changed — same font style, same text placement, same text colors."
+                "with only the specified words changed — same font style, same text placement, same text colors."
             )
 
-            prompt = f"""EDIT THIS IMAGE — CHANGE ONLY THE TEXT.
+            if original_text:
+                # Targeted replacement: change specific text only
+                prompt = f"""EDIT THIS IMAGE — REPLACE ONE SPECIFIC TEXT.
+
+CRITICAL RULES:
+1. Find the text that says: "{original_text}"
+2. Replace it with: "{new_text}"
+3. Keep the EXACT same font style, text color, text size, text position, and text effects
+4. The new text must be in {lang_name}
+5. DO NOT change ANY other text in the image — leave all other words exactly as they are
+6. Keep the EXACT same background, visual elements, objects, colors, lighting — EVERYTHING stays identical
+7. Keep the same image dimensions and aspect ratio
+8. DO NOT add, remove, or modify any non-text elements
+
+ONLY change "{original_text}" → "{new_text}". Everything else must remain PIXEL-PERFECT identical."""
+            else:
+                # Generic replacement: change main headline
+                prompt = f"""EDIT THIS IMAGE — CHANGE ONLY THE TEXT.
 
 CRITICAL RULES:
 1. Keep the EXACT same background, visual elements, objects, people, colors, lighting — EVERYTHING stays identical

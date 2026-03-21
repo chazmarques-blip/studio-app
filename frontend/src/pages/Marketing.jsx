@@ -614,6 +614,31 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   const [editImageTextIdx, setEditImageTextIdx] = useState(null);
   const [editImageTextValue, setEditImageTextValue] = useState('');
   const [editImageTextLoading, setEditImageTextLoading] = useState(false);
+  const [detectedTexts, setDetectedTexts] = useState([]);
+  const [detectingTexts, setDetectingTexts] = useState(false);
+  const [selectedOriginalText, setSelectedOriginalText] = useState('');
+
+  const startEditImageText = async (imageIndex) => {
+    setEditImageTextIdx(imageIndex);
+    setEditImageTextValue('');
+    setSelectedOriginalText('');
+    setDetectedTexts([]);
+    setDetectingTexts(true);
+    try {
+      const imgUrl = images[imageIndex];
+      const fullUrl = imgUrl?.startsWith('http') ? imgUrl : `${process.env.REACT_APP_BACKEND_URL}${imgUrl}`;
+      const { data } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/detect-image-text`, {
+        image_url: fullUrl,
+        pipeline_id: pipelineId,
+      });
+      setDetectedTexts(data.texts || []);
+    } catch (err) {
+      console.error('Text detection failed:', err);
+      setDetectedTexts([]);
+    } finally {
+      setDetectingTexts(false);
+    }
+  };
 
   const cloneCampaign = async (targetLang) => {
     if (!pipelineId) return;
@@ -1057,7 +1082,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
                           <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
                           <div className="flex items-center gap-1.5">
-                            <button onClick={e => { e.stopPropagation(); setEditImageTextIdx(i); setEditImageTextValue(''); }}
+                            <button onClick={e => { e.stopPropagation(); startEditImageText(i); }}
                               data-testid={`edit-text-${i}`}
                               className="text-[#60A5FA] hover:text-[#93C5FD] transition" title={labels.editImageText}>
                               <FileText size={10} />
@@ -1074,47 +1099,88 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         </div>
                         {/* Edit Image Text Overlay */}
                         {editImageTextIdx === i && (
-                          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
-                            <p className="text-[8px] text-[#60A5FA] font-bold mb-0.5">{labels.editImageText}</p>
-                            <p className="text-[7px] text-[#555] mb-1.5 text-center">AI vai manter a imagem e alterar apenas o texto</p>
-                            <textarea data-testid={`edit-image-text-input-${i}`}
-                              value={editImageTextValue} onChange={e => setEditImageTextValue(e.target.value)}
-                              placeholder={labels.imageTextPlaceholder}
-                              className="w-full text-[9px] bg-[#1A1A1A] border border-[#444] rounded-lg p-2 text-white placeholder-[#555] resize-none"
-                              rows={2} />
-                            <div className="flex gap-1.5 mt-1.5 w-full">
-                              <button onClick={(e) => { e.stopPropagation(); setEditImageTextIdx(null); }}
-                                className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
-                                {labels.cancelEdit}
-                              </button>
-                              <button data-testid={`edit-image-text-confirm-${i}`}
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (!editImageTextValue.trim()) return;
-                                  setEditImageTextLoading(true);
-                                  try {
-                                    const { data: res } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/edit-image-text`, {
-                                      pipeline_id: pipelineId,
-                                      image_index: i,
-                                      new_text: editImageTextValue.trim(),
-                                      language: stats.campaign_language || 'pt',
-                                    });
-                                    if (res.image_url) {
-                                      toast.success(labels.imageTextUpdated);
-                                      setEditImageTextIdx(null);
-                                      refreshCampaign();
-                                    }
-                                  } catch (err) {
-                                    toast.error(err.response?.data?.detail || labels.error);
-                                  } finally {
-                                    setEditImageTextLoading(false);
-                                  }
-                                }}
-                                disabled={editImageTextLoading || !editImageTextValue.trim()}
-                                className="flex-1 text-[8px] py-1 rounded-lg bg-[#60A5FA] text-black font-bold hover:bg-[#93C5FD] transition disabled:opacity-50">
-                                {editImageTextLoading ? <RefreshCw size={10} className="animate-spin mx-auto" /> : labels.editImageText}
-                              </button>
-                            </div>
+                          <div className="absolute inset-0 bg-black/95 flex flex-col p-2 z-10 overflow-y-auto" onClick={e => e.stopPropagation()}>
+                            <p className="text-[8px] text-[#60A5FA] font-bold mb-1 text-center">{labels.editImageText}</p>
+
+                            {/* Step 1: Detecting texts */}
+                            {detectingTexts && (
+                              <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                                <RefreshCw size={14} className="animate-spin text-[#60A5FA]" />
+                                <p className="text-[7px] text-[#888]">Detectando textos na imagem...</p>
+                              </div>
+                            )}
+
+                            {/* Step 2: Show detected texts for selection */}
+                            {!detectingTexts && !selectedOriginalText && (
+                              <div className="flex-1 flex flex-col gap-1">
+                                <p className="text-[7px] text-[#888] text-center mb-0.5">
+                                  {detectedTexts.length > 0 ? 'Selecione o texto a editar:' : 'Nenhum texto detectado'}
+                                </p>
+                                <div className="flex flex-col gap-1 max-h-[120px] overflow-y-auto">
+                                  {detectedTexts.map((txt, ti) => (
+                                    <button key={ti}
+                                      data-testid={`detected-text-${ti}`}
+                                      onClick={() => setSelectedOriginalText(txt)}
+                                      className="text-left text-[8px] px-2 py-1.5 rounded-md bg-[#1A1A1A] border border-[#333] text-white hover:border-[#60A5FA] hover:text-[#60A5FA] transition truncate">
+                                      {txt}
+                                    </button>
+                                  ))}
+                                </div>
+                                <button onClick={() => setEditImageTextIdx(null)}
+                                  className="mt-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                                  {labels.cancelEdit}
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Step 3: User selected a text — show input for replacement */}
+                            {!detectingTexts && selectedOriginalText && (
+                              <div className="flex-1 flex flex-col gap-1">
+                                <p className="text-[7px] text-[#888] text-center">Texto original:</p>
+                                <div className="text-[8px] px-2 py-1 rounded-md bg-[#1A1A1A] border border-[#60A5FA]/30 text-[#60A5FA] truncate">{selectedOriginalText}</div>
+                                <p className="text-[7px] text-[#888] text-center mt-0.5">Novo texto:</p>
+                                <textarea data-testid={`edit-image-text-input-${i}`}
+                                  value={editImageTextValue} onChange={e => setEditImageTextValue(e.target.value)}
+                                  placeholder={labels.imageTextPlaceholder}
+                                  className="w-full text-[9px] bg-[#1A1A1A] border border-[#444] rounded-lg p-2 text-white placeholder-[#555] resize-none"
+                                  rows={2} />
+                                <div className="flex gap-1.5 mt-1 w-full">
+                                  <button onClick={() => { setSelectedOriginalText(''); setEditImageTextValue(''); }}
+                                    className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                                    Voltar
+                                  </button>
+                                  <button data-testid={`edit-image-text-confirm-${i}`}
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!editImageTextValue.trim()) return;
+                                      setEditImageTextLoading(true);
+                                      try {
+                                        const { data: res } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/edit-image-text`, {
+                                          pipeline_id: pipelineId,
+                                          image_index: i,
+                                          new_text: editImageTextValue.trim(),
+                                          original_text: selectedOriginalText,
+                                          language: stats.campaign_language || 'pt',
+                                        });
+                                        if (res.image_url) {
+                                          toast.success(labels.imageTextUpdated);
+                                          setEditImageTextIdx(null);
+                                          setSelectedOriginalText('');
+                                          refreshCampaign();
+                                        }
+                                      } catch (err) {
+                                        toast.error(err.response?.data?.detail || labels.error);
+                                      } finally {
+                                        setEditImageTextLoading(false);
+                                      }
+                                    }}
+                                    disabled={editImageTextLoading || !editImageTextValue.trim()}
+                                    className="flex-1 text-[8px] py-1 rounded-lg bg-[#60A5FA] text-black font-bold hover:bg-[#93C5FD] transition disabled:opacity-50">
+                                    {editImageTextLoading ? <RefreshCw size={10} className="animate-spin mx-auto" /> : labels.editImageText}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                         {regenImageIdx === i && (
