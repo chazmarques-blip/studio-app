@@ -1306,7 +1306,7 @@ export default function PipelineView({ context }) {
                       <Sparkles size={12} className="text-purple-400 mb-1" />
                       <textarea data-testid={`ai-edit-input-${av.id}`}
                         value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                        placeholder="Ex: mudar roupa para terno azul..."
+                        placeholder="Descreva o avatar: personagem, estilo, roupa, fundo..."
                         className="w-full text-[8px] bg-[#1A1A1A] border border-[#333] rounded-lg p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
                         rows={2} />
                       <div className="flex gap-1 mt-1 w-full">
@@ -1911,7 +1911,7 @@ export default function PipelineView({ context }) {
                                 <p className="text-[9px] text-purple-300 font-bold mb-2">{t('studio.ai_edit') || 'Editar com IA'}</p>
                                 <textarea data-testid="ai-edit-modal-input"
                                   value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                                  placeholder="Ex: mudar roupa para vestido vermelho, adicionar óculos, fundo na praia..."
+                                  placeholder="Descreva o avatar desejado em detalhes: personagem, estilo, roupa, pose, fundo..."
                                   className="w-full text-[9px] bg-[#1A1A1A] border border-[#333] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
                                   rows={3} />
                                 <div className="flex gap-2 mt-2 w-full">
