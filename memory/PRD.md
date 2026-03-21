@@ -6,76 +6,66 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 ## Core Architecture
 - **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts, react-i18next
 - **Backend**: FastAPI (Python), Supabase (PostgreSQL), MongoDB
-- **3rd Party**: Claude 3.5 Sonnet, OpenAI Whisper, Sora 2, ElevenLabs (TTS + Music Generation), Google APIs
+- **3rd Party**: Claude 3.5 Sonnet, OpenAI Whisper, Sora 2, ElevenLabs (TTS + Music Generation), Google APIs, Gemini (image gen)
 - **Design**: Dark luxury monochrome theme (black/gold/white/gray)
 
 ## What's Been Implemented
 - Full navigation, Dashboard with recharts, Agent Management (CRUD + config)
 - Agent Marketplace with plan-gating (Personal Agents = Pro)
 - Google Calendar/Sheets integration in AgentConfig
-- AI Marketing Studio: Full pipeline (Sofia Copy -> Ana Review -> Lucas Design -> Stefan Retouch -> George Creative -> Dylan Sound -> Ridley Video -> Rafael Review -> Pedro Publish)
+- AI Marketing Studio: Full pipeline (David Copy -> Lee Review -> Stefan Design -> George Review -> Dylan Sound -> Ridley Video -> Roger Review -> Gary Publish)
 - Campaign management with 8-channel distribution
 - Video generation with Sora 2 + ElevenLabs narration + FFmpeg cinematic audio mix
+- AI Music generation with ElevenLabs music_v1 API
 - Create Art tab with 15 style filters
-- Landing Page V2 with i18n (EN/PT/ES), multi-platform campaign carousel
+- 3D Avatar generation with photo reference support (Gemini multimodal)
+- Landing Page V2 with i18n (EN/PT/ES), multi-platform campaign carousel — now the main landing page at `/`
 - Login page with 2-column pricing layout
 - CRM with Kanban board
+- Audio Pre-Approval step in video pipeline (marcos_video pauses for user review before Sora 2 generation)
 
-## Completed (March 21, 2026 — Session 2)
+## Completed (March 21, 2026 — Session 3)
 
-### ElevenLabs Music Generation API
-- Implemented `_generate_music_elevenlabs()` using ElevenLabs Compose API (`music_v1` model)
-- `_build_music_prompt_from_dylan()` extracts music direction from pipeline output
-- Prefers `===ELEVENLABS MUSIC PROMPT===` section, falls back to mood-based prompts
-- Automatic retry with API prompt_suggestion on copyright violations
-- Fallback to static music files if AI generation fails
+### P0: 3D Avatar Photo Reference Fix
+- Fixed `generate_avatar_from_prompt` in avatar_routes.py to use `_gemini_edit_image` (litellm multimodal) instead of `emergentintegrations LlmChat.UserMessage(images=[...])` which silently ignored images
+- When `reference_photo_url` is provided for 3D styles, the image is now properly sent to Gemini alongside the prompt
+- Added `_describe_person()` call for photo reference to capture likeness details
 
-### Dylan Sound Director — Full ElevenLabs Knowledge
-- Updated prompt with complete ELEVENLABS MUSIC GENERATION documentation
-- Music prompt engineering guidelines with 5 genre-specific examples
-- New `===ELEVENLABS MUSIC PROMPT===` output section for custom music generation
-- New `===CLEAN TTS TEXT===` section for pure spoken text output
+### P1a: Landing Page V2 Swap
+- Route `/` now serves `LandingV2` component (was `Landing`)
+- Removed the temporary `/v2` route
+- Old `Landing` component no longer imported in App.js
 
-### Narration Cleaning (TTS)
-- Centralized `_clean_narration_for_tts()` removes ALL non-spoken content
-- Tags removed: ANTES:, DEPOIS:, A PONTE:, [HOOK 0-4s], [Direction:], <<<>>>, emojis, [TOTAL WORD COUNT], etc.
-- Applied to both commercial and presenter video pipelines
-- Both cleanCampaignText() and cleanDisplayText() updated for UI display
+### P1b: Audio Pre-Approval in Video Pipeline
+- After `marcos_video` AI generates the script, pipeline pauses at `waiting_audio_approval` status
+- TTS audio preview is automatically generated from the narration text
+- New `AudioApprovalPanel` component in StepCard shows: narration text, audio player, approve/reject buttons
+- New backend endpoint: `POST /api/campaigns/pipeline/{id}/approve-audio`
+- Approve: triggers `_continue_video_after_approval()` which runs Sora 2 + music + FFmpeg mix in background
+- Reject with feedback: reruns marcos_video step with revision feedback
+- Purple theme for audio approval status in pipeline UI
 
-### Cinema-Quality Audio
-- ElevenLabs voice: stability=0.30, style=0.55, speaker_boost=True
-- Dylan's voice settings (stability, similarity, style) auto-extracted and applied
-- Narration: presence EQ (3kHz), broadcast compressor, cinematic reverb (aecho)
-- AAC 320kbps at 48kHz encoding
-- Music: sidechain ducking + EQ carving + exponential fades
-
-### Avatar 3D — Photo Reference
-- Added optional photo upload to "3D Animated" tab in Create Avatar modal
-- Backend AvatarFromPromptRequest accepts `reference_photo_url`
-- Photo sent to Gemini as image reference for 3D character generation
-
-### Campaign Auto-Update Fix
-- `_find_campaign_for_pipeline()` checks metrics.schedule.pipeline_id (primary) + metrics.stats.pipeline_id (legacy)
-- `_update_campaign_stats()` correctly writes to metrics.stats
-- Video URL preservation: regeneration failures no longer clear existing URLs
-- All 10+ campaign lookup patterns refactored to use helper functions
-
-### Music Files
-- Replaced 20 placeholder music files (~361KB) with proper copies of 5 real tracks mapped by mood
+## Previous Sessions Completed
+- ElevenLabs Music Generation API (music_v1 model)
+- Dylan Sound Director with full ElevenLabs knowledge
+- Cinema-Quality FFmpeg audio mixing (sidechain ducking, reverb, loudnorm)
+- Narration text cleaning (_clean_narration_for_tts)
+- Campaign auto-update DB logic fix
+- Music files replaced with proper tracks
 
 ## Test Credentials
 - Email: test@agentflow.com / Password: password123
 
 ## P0 - Next Actions
-- Audio Pre-Approval step in video pipeline (user approves script/voice before burning credits)
+- None currently
 
 ## P1 - Upcoming
-- Replace landing page `/` with `/v2` version
 - Activate live omnichannel integrations (WhatsApp, SMS, etc.)
+- CRM Kanban improvements
 
 ## P2 - Future/Backlog
 - Admin Management System
 - Payment Gateway Integration
-- CRM Kanban improvements
 - Legal & Publication (Terms, Privacy)
 - Scalability hardening
+- PipelineView.jsx refactoring (2600+ lines — split into smaller components)
