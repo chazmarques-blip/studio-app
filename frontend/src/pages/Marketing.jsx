@@ -328,12 +328,23 @@ function PreviewModal({ campaign, onClose, labels }) {
 
 /* ── Art Gallery Modal ── */
 function ArtGalleryModal({ campaign, onClose, labels }) {
-  const stats = campaign.stats || {};
+  const [campaignData, setCampaignData] = useState(campaign);
+  const stats = campaignData.stats || {};
   const [images, setImages] = useState(stats.images || []);
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [styleRegenLoading, setStyleRegenLoading] = useState(false);
   const pipelineId = stats.pipeline_id || '';
-  const messages = campaign.messages || [];
+  const messages = campaignData.messages || [];
+
+  // Refresh campaign data on mount to get latest images
+  useEffect(() => {
+    axios.get(`${API}/campaigns/${campaign.id}`)
+      .then(res => {
+        setCampaignData(res.data);
+        setImages(res.data?.stats?.images || []);
+      })
+      .catch(() => {});
+  }, [campaign.id]);
 
   const ART_STYLES = [
     { key: 'minimalist', label: labels.styleMinimalist, icon: '◻' },
@@ -2219,8 +2230,8 @@ export default function Marketing() {
 
       {/* Modals */}
       {previewCampaign && <PreviewModal campaign={previewCampaign} onClose={() => setPreviewCampaign(null)} labels={labels} />}
-      {detailCampaign && <CampaignDetail campaign={detailCampaign} onClose={() => setDetailCampaign(null)} labels={labels} />}
-      {galleryCampaign && <ArtGalleryModal campaign={galleryCampaign} onClose={() => setGalleryCampaign(null)} labels={labels} />}
+      {detailCampaign && <CampaignDetail campaign={detailCampaign} onClose={() => { setDetailCampaign(null); loadData(); }} labels={labels} />}
+      {galleryCampaign && <ArtGalleryModal campaign={galleryCampaign} onClose={() => { setGalleryCampaign(null); loadData(); }} labels={labels} />}
 
       {/* Avatar Lightbox Modal */}
       {avatarCampaign && (() => {

@@ -908,9 +908,10 @@ No logos or brand names. 1080x1080 square format.
                 steps = p.data[0].get("steps", {})
                 platforms = p.data[0].get("platforms", [])
                 lucas_step = steps.get("lucas_design", {})
-                existing_images = lucas_step.get("images", [])
+                existing_images = lucas_step.get("images", []) or lucas_step.get("image_urls", [])
                 existing_images.append(url)
                 lucas_step["images"] = existing_images
+                lucas_step["image_urls"] = existing_images  # legacy compat
 
                 # Generate platform variants for this new image
                 if platforms:
@@ -961,7 +962,7 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
     pipeline = p.data[0]
     steps = pipeline.get("steps", {})
     lucas_step = steps.get("lucas_design", {})
-    existing_images = lucas_step.get("images", [])
+    existing_images = lucas_step.get("images", []) or lucas_step.get("image_urls", [])
     platforms = pipeline.get("platforms", [])
 
     if body.image_index >= len(existing_images):
@@ -1002,6 +1003,7 @@ Keep the same color palette, art style, and general composition. Only change the
     # Replace the image at the same index
     existing_images[body.image_index] = new_url
     lucas_step["images"] = existing_images
+    lucas_step["image_urls"] = existing_images  # legacy compat
 
     # Generate platform variants for the replacement image
     if platforms:
@@ -1248,7 +1250,7 @@ async def regenerate_pipeline_image(pipeline_id: str, data: RegenerateImageReque
     pipeline = result.data[0]
     steps = pipeline.get("steps") or {}
     lucas = steps.get("lucas_design", {})
-    image_urls = lucas.get("image_urls", [])
+    image_urls = lucas.get("images", []) or lucas.get("image_urls", [])
 
     if data.image_index < 0 or data.image_index >= len(image_urls):
         raise HTTPException(status_code=400, detail=f"Invalid image index {data.image_index}. Available: 0-{len(image_urls)-1}")
@@ -1296,7 +1298,8 @@ NO logos, NO brand names, NO website URLs.
             if new_url:
                 # Update main image
                 image_urls[data.image_index] = new_url
-                lucas["image_urls"] = image_urls
+                lucas["images"] = image_urls
+                lucas["image_urls"] = image_urls  # legacy compat
                 steps["lucas_design"] = lucas
                 supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
 
@@ -1314,7 +1317,7 @@ NO logos, NO brand names, NO website URLs.
                 campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
                 c = _find_campaign_for_pipeline(campaigns, pipeline_id)
                 if c:
-                    _update_campaign_stats(c, {"image_urls": image_urls, "platform_variants": lucas.get("platform_variants", {})})
+                    _update_campaign_stats(c, {"images": image_urls, "platform_variants": lucas.get("platform_variants", {})})
                     logger.info(f"Updated campaign images for pipeline {pipeline_id}")
 
                 logger.info(f"Image {data.image_index} regenerated successfully: {new_url}")

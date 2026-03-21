@@ -360,7 +360,8 @@ async def _execute_step(pipeline_id, step):
             image_urls, image_prompts = await _generate_design_images(
                 pipeline_id, response, platforms
             )
-            steps[step]["image_urls"] = image_urls
+            steps[step]["images"] = image_urls
+            steps[step]["image_urls"] = image_urls  # legacy compat
             steps[step]["image_prompts"] = image_prompts
 
             # Create platform-specific variants (TikTok 9:16, Google Ads 16:9, etc.)
