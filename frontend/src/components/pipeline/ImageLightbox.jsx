@@ -67,7 +67,7 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
             <p className="text-[10px] text-[#888] mb-1.5">{t('studio.describe_adjustment') || 'Describe the adjustment you want'} {index + 1}:</p>
             <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2}
               placeholder="Ex: Aumentar o logo, mudar a cor de fundo para azul, adicionar o telefone..."
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2 text-xs text-white placeholder-[#555] outline-none resize-none focus:border-[#C9A84C]/30" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C]/30" />
             <button onClick={requestAdjust} disabled={submitting || !feedback.trim()}
               className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] text-[11px] font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
               {submitting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}

@@ -86,7 +86,7 @@ function CompletedSummary({ pipeline }) {
           <div className="h-7 w-7 rounded-lg bg-green-500/10 flex items-center justify-center"><Check size={14} className="text-green-400" /></div>
           <div>
             <p className="text-xs font-bold text-white">{t('studio.campaign_finished') || 'Campaign Finished'}</p>
-            <p className="text-[9px] text-[#666]">{(pipeline.platforms || []).join(' / ')}</p>
+            <p className="text-[9px] text-[#888]">{(pipeline.platforms || []).join(' / ')}</p>
           </div>
         </div>
         <div className="flex gap-1">
@@ -100,7 +100,7 @@ function CompletedSummary({ pipeline }) {
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`summary-tab-${tab.id}`}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-semibold transition ${
-                activeTab === tab.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#777] hover:text-white border border-transparent'
+                activeTab === tab.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#999] hover:text-white border border-transparent'
               }`}>
               <tab.icon size={10} />{tab.label}
             </button>
@@ -113,14 +113,14 @@ function CompletedSummary({ pipeline }) {
           <div className="space-y-3">
             {/* Preview: Copy + Images side by side */}
             <div>
-              <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1">{t('studio.campaign_text') || 'Campaign Copy'}</p>
+              <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1">{t('studio.campaign_text') || 'Campaign Copy'}</p>
               <div className="rounded-lg bg-[#111] p-3 border border-[#1A1A1A]">
                 <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans">{approvedCopy}</pre>
               </div>
             </div>
             {images.length > 0 && (
               <div>
-                <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1">{t('studio.campaign_images') || 'Campaign Images'}</p>
+                <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1">{t('studio.campaign_images') || 'Campaign Images'}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((url, i) => (
                     <button key={i} onClick={() => setLightboxIdx(i)}
@@ -136,7 +136,7 @@ function CompletedSummary({ pipeline }) {
             )}
             {schedule && (
               <div>
-                <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1">Cronograma</p>
+                <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1">Cronograma</p>
                 <div className="rounded-lg bg-[#111] p-2 border border-[#1A1A1A]">
                   <pre className="text-[9px] text-[#999] whitespace-pre-wrap leading-relaxed font-sans line-clamp-6">{schedule}</pre>
                 </div>
@@ -144,7 +144,7 @@ function CompletedSummary({ pipeline }) {
             )}
             {videoUrl && (
               <div>
-                <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1 flex items-center gap-1"><Film size={9} className="text-red-400" /> {t('studio.video_commercial')}</p>
+                <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1 flex items-center gap-1"><Film size={9} className="text-red-400" /> {t('studio.video_commercial')}</p>
                 <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
                   <video src={videoUrl} controls playsInline className="w-full max-h-[250px]" data-testid="summary-video-player" onClick={e => e.stopPropagation()} />
                   <button data-testid="summary-video-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
@@ -159,7 +159,7 @@ function CompletedSummary({ pipeline }) {
         {activeTab === 'copy' && (
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[9px] text-[#777] uppercase tracking-wider">Copy Aprovada</p>
+              <p className="text-[9px] text-[#999] uppercase tracking-wider">Copy Aprovada</p>
               <button onClick={() => copyToClipboard(approvedCopy)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5"><FileText size={8} />Copiar</button>
             </div>
             <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{approvedCopy}</pre>
@@ -167,7 +167,7 @@ function CompletedSummary({ pipeline }) {
         )}
         {activeTab === 'images' && (
           <div>
-            <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1.5">Click to view full size</p>
+            <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1.5">Click to view full size</p>
             {images.length > 0 ? (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((url, i) => (
@@ -188,13 +188,13 @@ function CompletedSummary({ pipeline }) {
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] text-[#777] text-center py-4">Nenhuma imagem gerada</p>
+              <p className="text-[10px] text-[#999] text-center py-4">Nenhuma imagem gerada</p>
             )}
           </div>
         )}
         {activeTab === 'video' && videoUrl && (
           <div>
-            <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={9} className="text-red-400" /> {t('studio.video_commercial')}</p>
+            <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={9} className="text-red-400" /> {t('studio.video_commercial')}</p>
             <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowVideoLightbox(true)}>
               <video src={videoUrl} controls playsInline autoPlay muted className="w-full max-h-[400px]" data-testid="summary-video-tab-player" onClick={e => e.stopPropagation()} />
               <button data-testid="video-tab-expand-btn" onClick={(e) => { e.stopPropagation(); setShowVideoLightbox(true); }}
@@ -203,8 +203,8 @@ function CompletedSummary({ pipeline }) {
               </button>
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <span className="text-[8px] text-[#777] bg-[#111] px-1.5 py-0.5 rounded">12 segundos</span>
-              <span className="text-[8px] text-[#777] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
+              <span className="text-[8px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded">12 segundos</span>
+              <span className="text-[8px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
               <button onClick={() => setShowVideoLightbox(true)} data-testid="video-tab-expand-text"
                 className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
                 <Maximize2 size={9} /> {t('studio.expand')}
@@ -218,7 +218,7 @@ function CompletedSummary({ pipeline }) {
         )}
         {activeTab === 'variations' && (
           <div data-testid="style-variations-tab">
-            <p className="text-[9px] text-[#777] uppercase tracking-wider mb-2">Choose a visual style to create new art</p>
+            <p className="text-[9px] text-[#999] uppercase tracking-wider mb-2">Choose a visual style to create new art</p>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mb-4">
               {STYLE_FILTERS.map(sf => (
                 <button key={sf.id} data-testid={`style-${sf.id}`}
@@ -266,9 +266,9 @@ function CompletedSummary({ pipeline }) {
 
             {styleVariations.length === 0 && !generatingStyle && (
               <div className="text-center py-6 rounded-lg border border-dashed border-[#1E1E1E]">
-                <Palette size={24} className="text-[#555] mx-auto mb-2" />
-                <p className="text-[10px] text-[#777]">Click a style above to generate a new art variation</p>
-                <p className="text-[8px] text-[#555] mt-1">Uses the same campaign prompt with a different visual style</p>
+                <Palette size={24} className="text-[#777] mx-auto mb-2" />
+                <p className="text-[10px] text-[#999]">Click a style above to generate a new art variation</p>
+                <p className="text-[8px] text-[#777] mt-1">Uses the same campaign prompt with a different visual style</p>
               </div>
             )}
           </div>
@@ -276,7 +276,7 @@ function CompletedSummary({ pipeline }) {
         {activeTab === 'schedule' && (
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[9px] text-[#777] uppercase tracking-wider">Cronograma de Publicacao</p>
+              <p className="text-[9px] text-[#999] uppercase tracking-wider">Cronograma de Publicacao</p>
               <button onClick={() => copyToClipboard(schedule)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5"><FileText size={8} />Copiar</button>
             </div>
             <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{schedule}</pre>
@@ -299,7 +299,7 @@ function CompletedSummary({ pipeline }) {
               <video src={videoUrl} controls playsInline autoPlay className="w-full" style={{ maxHeight: '80vh' }} />
             </div>
             <div className="flex items-center justify-between mt-3">
-              <span className="text-[9px] text-[#777] bg-[#111] px-2 py-1 rounded">Sora 2</span>
+              <span className="text-[9px] text-[#999] bg-[#111] px-2 py-1 rounded">Sora 2</span>
               <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
                 <Download size={12} /> {t('studio.download')} Video

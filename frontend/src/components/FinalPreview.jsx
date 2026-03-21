@@ -271,10 +271,10 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           <img src={brandLogo} alt="" className="h-8 w-8 rounded-lg object-contain bg-black border border-[#1A1A1A]" onError={e => { e.target.src = DEFAULT_LOGO; }} />
           <div className="flex-1">
             <p className="text-xs font-bold text-white">{campaignName}</p>
-            <p className="text-[9px] text-[#777]">Visualize como sua campanha aparece em cada canal</p>
+            <p className="text-[9px] text-[#999]">Visualize como sua campanha aparece em cada canal</p>
           </div>
           {onClose && (
-            <button onClick={onClose} className="text-[#666] hover:text-white p-1.5 rounded-lg hover:bg-[#111] transition">
+            <button onClick={onClose} className="text-[#888] hover:text-white p-1.5 rounded-lg hover:bg-[#111] transition">
               <X size={14} />
             </button>
           )}
@@ -288,7 +288,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           return (
             <button key={p} data-testid={`preview-channel-${p}`} onClick={() => handleChannelChange(p)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition whitespace-nowrap ${
-                selectedChannel === p ? 'border-2 shadow-lg' : 'border border-[#1E1E1E] text-[#777] hover:text-white'
+                selectedChannel === p ? 'border-2 shadow-lg' : 'border border-[#1E1E1E] text-[#999] hover:text-white'
               }`}
               style={selectedChannel === p ? { borderColor: ch.color, color: ch.color, backgroundColor: `${ch.color}10` } : {}}>
               {ch.label}
@@ -310,7 +310,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
 
           {/* Image Selector + Upload */}
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[8px] text-[#777] uppercase tracking-wider">{t('studio.image_label')}</p>
+            <p className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.image_label')}</p>
             {allImages.map((url, i) => {
               const isCustom = i >= images.length;
               return (
@@ -329,7 +329,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
             })}
             <button data-testid="upload-custom-image" onClick={() => fileInputRef.current?.click()}
               className="h-10 w-10 rounded-lg border-2 border-dashed border-[#333] hover:border-[#C9A84C]/40 flex items-center justify-center transition group">
-              <ImageIcon size={14} className="text-[#666] group-hover:text-[#C9A84C]" />
+              <ImageIcon size={14} className="text-[#888] group-hover:text-[#C9A84C]" />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
           </div>
@@ -337,8 +337,8 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           {/* Style Selector for Image Regeneration */}
           <div className="w-full max-w-[320px]">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <RefreshCw size={10} className="text-[#777]" />
-              <p className="text-[8px] text-[#777] uppercase tracking-wider">{t('studio.generate_new_style')}</p>
+              <RefreshCw size={10} className="text-[#999]" />
+              <p className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.generate_new_style')}</p>
               {regenerating && <Loader2 size={10} className="text-[#C9A84C] animate-spin" />}
             </div>
             <div className="flex flex-wrap gap-1">
@@ -361,7 +361,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
               ].map(s => (
                 <button key={s.key} disabled={regenerating}
                   onClick={() => { setSelectedStyle(s.key); handleRegenerateImage(s.key); }}
-                  className={`rounded-md px-2 py-1 text-[9px] border transition disabled:opacity-30 ${selectedStyle === s.key && regenerating ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#777] hover:text-white hover:border-[#333]'}`}>
+                  className={`rounded-md px-2 py-1 text-[9px] border transition disabled:opacity-30 ${selectedStyle === s.key && regenerating ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white hover:border-[#333]'}`}>
                   {s.label}
                 </button>
               ))}
@@ -371,7 +371,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           {/* Text Editing */}
           <div className="w-full max-w-[320px]">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[8px] text-[#777] uppercase tracking-wider">{t('studio.campaign_text') || 'Campaign Copy'}</p>
+              <p className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.campaign_text') || 'Campaign Copy'}</p>
               {isEditing ? (
                 <div className="flex gap-1">
                   <button onClick={handleCancelEdit} className="text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#888] hover:text-white transition">{t('studio.cancel') || 'Cancel'}</button>
@@ -400,7 +400,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           {/* Schedule Summary */}
           {schedule && (
             <div className="w-full max-w-[320px] rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
-              <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1">Cronograma (Pedro)</p>
+              <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1">Cronograma (Pedro)</p>
               <pre className="text-[9px] text-[#999] whitespace-pre-wrap font-sans leading-relaxed line-clamp-6">{cleanText(schedule)}</pre>
             </div>
           )}
@@ -408,12 +408,12 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           {/* Video Commercial */}
           {videoUrl && (
             <div className="w-full max-w-[320px]">
-              <p className="text-[8px] text-[#777] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial (Marcos)</p>
+              <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial (Marcos)</p>
               <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black">
                 <video src={videoUrl} controls playsInline className="w-full" data-testid="final-preview-video" />
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[7px] text-[#777] bg-[#111] px-1.5 py-0.5 rounded">12s Sora 2</span>
+                <span className="text-[7px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded">12s Sora 2</span>
                 <a href={videoUrl} target="_blank" rel="noopener noreferrer"
                   className="ml-auto text-[8px] text-[#C9A84C] hover:underline">Baixar</a>
               </div>
@@ -421,10 +421,10 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
           )}
           {!videoUrl && pipeline?.id && (
             <div className="w-full max-w-[320px]">
-              <p className="text-[8px] text-[#777] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial</p>
+              <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial</p>
               <div className="rounded-xl border border-dashed border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4 text-center">
                 <Film size={18} className="mx-auto mb-1 text-[#C9A84C]/60" />
-                <p className="text-[9px] text-[#666]">{t('studio.generating_video') || 'Video will appear here once generated'}</p>
+                <p className="text-[9px] text-[#888]">{t('studio.generating_video') || 'Video will appear here once generated'}</p>
               </div>
             </div>
           )}

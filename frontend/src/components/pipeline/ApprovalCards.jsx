@@ -112,7 +112,7 @@ function VideoApproval({ data, onApprove, pipelineId }) {
       </p>
       <div className="text-[9px] text-[#888] bg-[#0A0A0A] rounded-lg p-2 max-h-32 overflow-y-auto">
         {summaryLines.map((line, i) => <p key={i} className="mb-0.5">{line}</p>)}
-        {lines.length > 8 && <p className="text-[#777]">... ({lines.length - 8} more lines)</p>}
+        {lines.length > 8 && <p className="text-[#999]">... ({lines.length - 8} more lines)</p>}
       </div>
       <div className="flex items-center gap-2 text-[9px]">
         <span className={`px-2 py-0.5 rounded-full font-bold ${decision === 'approved' ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400'}`}>

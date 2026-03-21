@@ -56,11 +56,11 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Files: `pipeline/media.py`, `pipeline/routes.py`, `Marketing.jsx`
 
 ### UI Readability Fix — AI Studio & Marketing (2026-03-21)
-- Corrigido contraste de texto em 11 arquivos do ecossistema AI Studio
-- Mapeamento: `text-[#555]`→`text-[#777]`, `text-[#444]`→`text-[#666]`, `text-[#333]`→`text-[#555]`
-- Placeholders tambem ajustados: `placeholder-[#333]`/`[#444]` → `placeholder-[#555]`
-- ~200+ ajustes de cor, mantendo hierarquia visual e estetica "dark luxury"
-- Arquivos: PipelineView.jsx, Marketing.jsx, MarketingStudio.jsx, FinalPreview.jsx, StepCard.jsx, CompletedSummary.jsx, HistoryCard.jsx, ApprovalCards.jsx, AssetUploader.jsx, ProgressTimer.jsx, ImageLightbox.jsx
+- Corrigido contraste de texto em 11 arquivos do ecossistema AI Studio (2 rodadas de ajuste)
+- Mapeamento final: `#555→#999` (labels), `#444→#888` (terciario), `#333→#777` (sutil)
+- Placeholders: `#333/#444` → `#666`
+- Avatares: formato quadrado (h-16 w-16) → retangular portrait (h-24 w-16) para mostrar corpo inteiro
+- ~200+ ajustes de cor + forma dos avatares, mantendo estetica "dark luxury"
 
 ## Backlog
 ### P0 (In Progress)

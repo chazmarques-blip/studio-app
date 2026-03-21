@@ -23,21 +23,21 @@ function HistoryCard({ pipeline, onSelect, onDelete }) {
             alt="" className="w-10 h-10 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
         ) : (
           <div className="w-10 h-10 rounded-lg bg-[#111] border border-[#1E1E1E] flex items-center justify-center shrink-0">
-            <Zap size={14} className="text-[#555]" />
+            <Zap size={14} className="text-[#777]" />
           </div>
         )}
         <div className="flex-1 min-w-0">
           <p className="text-[11px] text-white font-medium truncate">{pipeline.briefing}</p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className={`text-[9px] font-semibold ${statusColors[pipeline.status] || 'text-[#777]'}`}>
+            <span className={`text-[9px] font-semibold ${statusColors[pipeline.status] || 'text-[#999]'}`}>
               {statusLabels[pipeline.status] || pipeline.status}
             </span>
-            <span className="text-[8px] text-[#666]">{completedCount}/{STEP_ORDER.length} etapas</span>
-            <span className="text-[8px] text-[#555]">{createdAt}</span>
+            <span className="text-[8px] text-[#888]">{completedCount}/{STEP_ORDER.length} etapas</span>
+            <span className="text-[8px] text-[#777]">{createdAt}</span>
           </div>
           <div className="flex gap-0.5 mt-1">
             {(pipeline.platforms || []).map(p => (
-              <span key={p} className="text-[7px] text-[#666] bg-[#111] px-1 py-0.5 rounded capitalize">{p}</span>
+              <span key={p} className="text-[7px] text-[#888] bg-[#111] px-1 py-0.5 rounded capitalize">{p}</span>
             ))}
           </div>
         </div>
