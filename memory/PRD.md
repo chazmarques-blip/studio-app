@@ -38,6 +38,14 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - **Migracao executada**: 64 pipelines + 54 campanhas corrigidas
 - **Testes**: 11/11 backend + 8/8 frontend (iteration_83)
 
+### Edit Image Text — AI In-Place Editing (2026-03-21)
+- **Antes**: O "Edit Image Text" gerava uma imagem COMPLETAMENTE nova (perdia o visual original)
+- **Agora**: Usa Gemini image editing para alterar APENAS o texto, preservando background/composicao/cores
+- Nova funcao `_edit_text_in_image` em `media.py` com prompts especializados em preservacao visual
+- Endpoint `edit-image-text` reescrito para usar edicao in-place em vez de geracao do zero
+- Testado com campanha Hercules: texto mudou de "Banheiro dos Sonhos AGORA" → "Banheiro de Luxo Premium" mantendo imagem identica
+- Files: `pipeline/media.py`, `pipeline/routes.py`, `Marketing.jsx`
+
 ## Backlog
 ### P0 (In Progress)
 - Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs

@@ -39,7 +39,7 @@ from pipeline.media import (
     _create_video_variants, _generate_design_images,
     _generate_commercial_video, _generate_presenter_video,
     _generate_narration, _combine_commercial_video,
-    _edit_exact_image,
+    _edit_exact_image, _edit_text_in_image,
 )
 from pipeline.engine import (
     _start_step_bg, _active_pipelines,
@@ -957,11 +957,8 @@ No logos or brand names. 1080x1080 square format.
 
 @router.post("/edit-image-text")
 async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_user)):
-    """Regenerate an image with new text while keeping the same visual style"""
+    """Edit ONLY the text in an image while preserving the entire visual composition"""
     tenant = await _get_tenant(user)
-
-    LANG_MAP = {"pt": "Portuguese (Português)", "es": "Spanish (Español)", "en": "English", "fr": "French (Français)", "de": "German", "it": "Italian"}
-    lang_name = LANG_MAP.get(body.language, "Portuguese (Português)")
 
     # Get pipeline data
     p = supabase.table("pipelines").select("steps, tenant_id, platforms, result").eq("id", body.pipeline_id).eq("tenant_id", tenant["id"]).execute()
@@ -987,35 +984,17 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
 
     original_url = existing_images[body.image_index]
 
-    # Use vision to describe the current image's style
-    style_description = ""
-    try:
-        img_resp = httpx.get(original_url, timeout=15)
-        if img_resp.status_code == 200:
-            img_b64 = base64.b64encode(img_resp.content).decode()
-            mime = "image/png" if ".png" in original_url else "image/jpeg"
-            style_description = await _describe_person(img_b64, mime)
-    except Exception as e:
-        logger.warning(f"Failed to analyze original image for text edit: {e}")
+    # Use Gemini image editing to change ONLY the text, preserving the original image
+    new_url = await _edit_text_in_image(
+        source_image_url=original_url,
+        new_text=body.new_text,
+        language=body.language or "pt",
+        pipeline_id=body.pipeline_id,
+        index=body.image_index,
+    )
 
-    # Generate new image with same style but new text
-    prompt = f"""⚠️ MANDATORY: ALL visible text in this image MUST be in {lang_name}. ZERO English text allowed.
-
-Recreate a marketing image with the EXACT same visual style, colors, composition and mood as described below, but with DIFFERENT text.
-
-STYLE REFERENCE: {style_description[:500] if style_description else 'Professional marketing image with bold typography'}
-
-THE HEADLINE TEXT MUST BE EXACTLY: "{body.new_text}"
-Write this text in large, bold, clean typography that fits the visual style.
-
-Keep the same color palette, art style, and general composition. Only change the text content.
-1080x1080 square format. No logos or brand names.
-🚨 The text "{body.new_text}" MUST appear prominently in the image in {lang_name}."""
-
-    pid = f"textedit-{uuid.uuid4().hex[:8]}"
-    new_url = await _generate_image(prompt, pid, 1)
     if not new_url:
-        raise HTTPException(status_code=500, detail="Image generation failed")
+        raise HTTPException(status_code=500, detail="Text editing failed — could not modify text in image")
 
     # Replace the image at the same index
     existing_images[body.image_index] = new_url

@@ -1075,7 +1075,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         {/* Edit Image Text Overlay */}
                         {editImageTextIdx === i && (
                           <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
-                            <p className="text-[8px] text-[#60A5FA] font-bold mb-1.5">{labels.editImageText}</p>
+                            <p className="text-[8px] text-[#60A5FA] font-bold mb-0.5">{labels.editImageText}</p>
+                            <p className="text-[7px] text-[#555] mb-1.5 text-center">AI vai manter a imagem e alterar apenas o texto</p>
                             <textarea data-testid={`edit-image-text-input-${i}`}
                               value={editImageTextValue} onChange={e => setEditImageTextValue(e.target.value)}
                               placeholder={labels.imageTextPlaceholder}

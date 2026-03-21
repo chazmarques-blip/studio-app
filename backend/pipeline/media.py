@@ -193,6 +193,59 @@ DO NOT add any text, logos, or watermarks to the image."""
     return None
 
 
+async def _edit_text_in_image(source_image_url, new_text, language, pipeline_id, index):
+    """Edit ONLY the text in an image using Gemini image editing.
+    Preserves the entire visual (background, colors, layout, composition) and replaces text only."""
+    LANG_MAP = {"pt": "Portuguese", "es": "Spanish", "en": "English", "fr": "French", "de": "German", "it": "Italian"}
+    lang_name = LANG_MAP.get(language, "Portuguese")
+    max_retries = 3
+
+    for attempt in range(max_retries):
+        try:
+            img_data = urllib.request.urlopen(source_image_url, timeout=30).read()
+            if not img_data or len(img_data) < 500:
+                logger.warning(f"Image download failed for text edit: {source_image_url}")
+                return None
+
+            img_b64 = base64.b64encode(img_data).decode('utf-8')
+            mime = "image/png" if ".png" in source_image_url.lower() else "image/jpeg"
+
+            system_msg = (
+                "You are an expert image editor specialized in typography replacement. "
+                "Your task is to modify ONLY the text/typography in the provided image. "
+                "You MUST preserve the EXACT same background, visual elements, colors, lighting, composition, "
+                "art style, and every non-text pixel. The output must look like the original image "
+                "with only the words changed — same font style, same text placement, same text colors."
+            )
+
+            prompt = f"""EDIT THIS IMAGE — CHANGE ONLY THE TEXT.
+
+CRITICAL RULES:
+1. Keep the EXACT same background, visual elements, objects, people, colors, lighting — EVERYTHING stays identical
+2. ONLY replace the text/words/headlines visible in the image
+3. The NEW text must be: "{new_text}"
+4. The new text MUST be in {lang_name}
+5. Keep the same font style, text color, text position, text size, and text effects (shadow, outline, etc.)
+6. If there are multiple text areas, replace the MAIN headline/title with the new text
+7. Keep the same image dimensions and aspect ratio
+8. DO NOT add new elements, change colors, or modify the background in ANY way
+
+The result should be IDENTICAL to the original image except the text content has changed to: "{new_text}" """
+
+            images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
+            if images and len(images) > 0:
+                img_bytes = base64.b64decode(images[0]['data'])
+                filename = f"{pipeline_id}_textedit_{index}_{uuid.uuid4().hex[:6]}.png"
+                public_url = _upload_to_storage(img_bytes, filename, "image/png")
+                logger.info(f"Text-only edit completed and uploaded: {filename}")
+                return public_url
+        except Exception as e:
+            logger.warning(f"Text edit attempt {attempt+1}/{max_retries} failed: {e}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(3 * (attempt + 1))
+    return None
+
+
 
 async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None):
     """Generate a single image using Gemini Nano Banana and upload to Supabase Storage"""
