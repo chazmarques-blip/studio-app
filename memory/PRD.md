@@ -1,43 +1,58 @@
 # AgentZZ - PRD
 
 ## Original Problem Statement
-SaaS platform "AgentZZ" for SMBs to deploy AI agents on social media. AI Marketing Studio with full campaign generation.
+Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS). Includes AI Marketing Studio for multimodal campaign generation.
 
 ## Core Architecture
-- **Frontend**: React, Tailwind, shadcn-ui, Framer Motion, recharts, react-i18next
-- **Backend**: FastAPI, Supabase (PostgreSQL), MongoDB
-- **3rd Party**: Claude, OpenAI Whisper, Sora 2, ElevenLabs, Google APIs, Gemini, fal.ai
+- Frontend: React + Tailwind + shadcn-ui + Framer Motion + recharts
+- Backend: FastAPI (Python)
+- Database: Supabase (PostgreSQL) + MongoDB
+- AI: Claude Sonnet 4.5, Gemini Flash, Gemini Nano Banana (images), Sora 2 (video), ElevenLabs (voice/music)
+- Auth: Supabase Auth
+- Pipeline: Multi-agent AI directors (Sofia, Lee, Ana, Lucas, Rafael, George, Stefan, Dylan, Roger, Marcos, Pedro)
 
-## Completed (March 21, 2026 — Session 3)
+## Implemented Features (Completed)
+- Dashboard with recharts analytics
+- Agent Management + Marketplace
+- Agent Configuration with Google Calendar/Sheets integration
+- AI Marketing Studio with full pipeline
+- Campaign Gallery with Art Style Generator (14 styles)
+- Avatar 3D Creator with 360-degree views
+- Video generation pipeline (Sora 2 + FFmpeg)
+- Audio Pre-Approval (pipeline pauses before video)
+- FFmpeg quality: CRF 16, scale+crop, 256k/320k audio
+- Landing Page V2
+- Multi-language support (PT/EN/ES)
 
-### Art Style Generator in Gallery Modal
-- ArtGalleryModal now has inline style generator with 14 styles
-- Styles: Minimalist, Vibrant, Luxury, Corporate, Playful, Bold, Organic, Tech, Cartoon, Illustration, Watercolor, Neon, Retro, Flat Design
-- Uses same campaign prompt + chosen style variable
-- New images added to gallery in real-time
-- Backend: POST /api/campaigns/pipeline/regenerate-single-image
+## Completed This Session (2026-03-21)
+- BUG FIX: Campaign gallery image selection now updates the channel mockup preview (was always showing first image)
+- BUG FIX: Router ordering conflict resolved (pipeline_router before campaigns_router in server.py)
+- P0 FEATURE: ElevenLabs voice catalog expanded from 10 to 24 verified premade voices with rich metadata
+  - All voices support multilingual (PT/ES/EN/28+ languages)
+  - Includes female (11), male (12), non-binary (1) voices
+  - Hardcoded catalog (API key lacks voices_read permission)
+  - Dylan's prompt now includes detailed voice descriptions for context-aware selection
+  - _generate_voice_alternatives() updated to use hardcoded catalog
 
-### Video Quality Overhaul
-- CRF 23→16 throughout, preset fast→slow
-- Normalization forces exact resolution (scale+crop, no black bars)
-- Audio bitrate 192k→256k/320k
+## Backlog
+### P1
+- Omnichannel integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
+- CRM Kanban board
 
-### Audio Pre-Approval Pipeline
-- marcos_video pauses at `waiting_audio_approval` before Sora 2
+### P2
+- Admin Management System
+- Payment Gateway
+- Terms of Use / Privacy Policy
 
-### Avatar 360° View (3D Style Preservation)
-- Style-aware prompts, auto-trigger, persistence
+### P3
+- Refactor PipelineView.jsx (>2700 lines)
+- Scalability hardening
 
-### Other: Landing V2, Download fix, Photo reference fix
+## Known Issues
+- Sora 2 video generation returning "insufficient_balance" - user needs to add balance via Profile > Universal Key > Add Balance
+- ElevenLabs API key lacks voices_read permission (mitigated with hardcoded catalog)
+- Live social channel integrations are mocked
 
-## Test Reports
-- iteration_76-81: All passed (30+21+30+32+22+16 = 151 tests total)
-
-## Credentials
-- Email: test@agentflow.com / Password: password123
-
-## P1 - Upcoming
-- Omnichannel integrations, CRM improvements
-
-## P2 - Future/Backlog
-- Admin System, Payment Gateway, Terms/Privacy, PipelineView refactoring
+## Test Credentials
+- Email: test@agentflow.com
+- Password: password123

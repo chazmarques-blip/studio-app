@@ -30,83 +30,30 @@ from pipeline.utils import (
 
 
 async def _fetch_elevenlabs_voices(language="pt", gender=None, page_size=30):
-    """Fetch voices from ElevenLabs Voice Library using the SDK.
-    Returns a formatted catalog string for injection into Dylan's system prompt."""
-    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
-    if not api_key:
+    """Return the hardcoded voice catalog formatted for Dylan's prompt.
+    The ElevenLabs API key lacks voices_read permission, so we use a curated
+    catalog of verified premade voice IDs that support multilingual TTS."""
+    from pipeline.config import ELEVENLABS_VOICES
+
+    voices = ELEVENLABS_VOICES
+    if gender:
+        voices = [v for v in voices if gender.lower() in v["gender"].lower()]
+
+    if not voices:
         return ""
 
-    LANG_MAP = {
-        "pt": "portuguese", "en": "english", "es": "spanish",
-        "fr": "french", "de": "german", "it": "italian",
-    }
-    lang_filter = LANG_MAP.get(language, language)
+    LANG_LABEL = {"pt": "PORTUGUESE", "en": "ENGLISH", "es": "SPANISH"}.get(language, language.upper())
 
-    try:
-        from elevenlabs import ElevenLabs as ELClient
-        el_client = ELClient(api_key=api_key)
+    lines = [f"\n\n===HARDCODED VOICE CATALOG ({len(voices)} verified voices, all multilingual)==="]
+    lines.append(f"Target language: {LANG_LABEL} (all voices below speak this language natively via eleven_multilingual_v2)")
+    lines.append("| Voice ID | Name | Gender | Accent | Style |")
+    lines.append("|---|---|---|---|---|")
+    for v in voices:
+        lines.append(f"| {v['id']} | {v['name']} | {v['gender']} | {v['accent']} | {v['style']} |")
 
-        # Get all available voices (premade + cloned)
-        all_voices = el_client.voices.get_all()
-        voices_list = all_voices.voices if hasattr(all_voices, 'voices') else []
-
-        # Filter by language and gather metadata
-        filtered = []
-        for v in voices_list:
-            labels = v.labels if hasattr(v, 'labels') and v.labels else {}
-            if isinstance(labels, dict):
-                v_accent = labels.get("accent", "").lower()
-                v_lang = labels.get("language", "").lower()
-                v_gender = labels.get("gender", "").lower()
-                v_desc = labels.get("description", "")
-                v_use = labels.get("use_case", "")
-            else:
-                v_accent = v_lang = v_gender = v_desc = v_use = ""
-
-            # Match by language or accent containing the target
-            lang_match = (
-                lang_filter.lower() in v_lang or
-                lang_filter.lower() in v_accent or
-                language in v_accent.lower() or
-                v_accent in ["american", "british", "australian", "neutral"] or  # English always useful
-                not v_lang  # Include voices without language labels
-            )
-
-            if gender and v_gender and gender.lower() not in v_gender:
-                continue
-
-            filtered.append({
-                "voice_id": v.voice_id,
-                "name": v.name,
-                "gender": v_gender or "unknown",
-                "accent": v_accent or "neutral",
-                "description": v_desc,
-                "use_case": v_use,
-                "category": v.category if hasattr(v, 'category') else "premade",
-                "lang_match": lang_match,
-            })
-
-        # Sort: language matches first, then by name
-        filtered.sort(key=lambda x: (0 if x["lang_match"] else 1, x["name"]))
-        top = filtered[:page_size]
-
-        if not top:
-            return ""
-
-        lines = [f"\n\n===DYNAMIC VOICE CATALOG ({len(top)} voices available)==="]
-        lines.append(f"Target language: {lang_filter.upper()}")
-        lines.append("| Voice ID | Name | Gender | Accent | Description | Use Case | Category |")
-        lines.append("|---|---|---|---|---|---|---|")
-        for v in top:
-            lines.append(f"| {v['voice_id']} | {v['name']} | {v['gender']} | {v['accent']} | {v['description']} | {v['use_case']} | {v['category']} |")
-
-        lines.append("\nIMPORTANT: Select from this REAL voice catalog. Choose voices that match the campaign's language, emotional tone, and target audience. VARY your selections — do not always pick the same voice.")
-        logger.info(f"Fetched {len(top)} ElevenLabs voices for language={lang_filter}")
-        return "\n".join(lines)
-
-    except Exception as e:
-        logger.warning(f"Failed to fetch ElevenLabs voices: {e}")
-        return ""
+    lines.append("\nIMPORTANT: Select from this catalog. VARY your selections across campaigns. Match voice personality to brand tone.")
+    logger.info(f"Injected hardcoded voice catalog ({len(voices)} voices) for language={LANG_LABEL}")
+    return "\n".join(lines)
 
 
 async def _fetch_recent_campaign_audio(tenant_id, limit=5):
@@ -152,57 +99,32 @@ async def _fetch_recent_campaign_audio(tenant_id, limit=5):
 
 async def _generate_voice_alternatives(narration_text, pipeline_id, primary_voice_config, language="pt", num_alternatives=3):
     """Generate alternative voice previews for the Audio Pre-Approval step.
+    Uses hardcoded catalog since API key lacks voices_read permission.
     Returns list of {voice_id, voice_name, accent, style, audio_url}."""
     alternatives = []
     if not narration_text:
         return alternatives
 
     try:
-        from elevenlabs import ElevenLabs as ELClient
-        api_key = os.environ.get("ELEVENLABS_API_KEY", "")
-        if not api_key:
-            return alternatives
+        from pipeline.config import ELEVENLABS_VOICES
+        import random
 
-        el_client = ELClient(api_key=api_key)
-        all_voices = el_client.voices.get_all()
-        voices_list = all_voices.voices if hasattr(all_voices, 'voices') else []
-
-        # Exclude the primary voice
         primary_id = primary_voice_config.get("voice_id", "") if primary_voice_config else ""
-        candidates = [v for v in voices_list if v.voice_id != primary_id]
-
-        # Prefer voices with language-matching labels
-        LANG_MAP = {"pt": "portuguese", "en": "english", "es": "spanish"}
-        lang = LANG_MAP.get(language, "portuguese")
-
-        def score_voice(v):
-            labels = v.labels if hasattr(v, 'labels') and v.labels else {}
-            accent = (labels.get("accent", "") if isinstance(labels, dict) else "").lower()
-            v_lang = (labels.get("language", "") if isinstance(labels, dict) else "").lower()
-            s = 0
-            if lang in v_lang or lang in accent:
-                s += 10
-            if hasattr(v, 'category') and v.category == "premade":
-                s += 5
-            return s
-
-        candidates.sort(key=score_voice, reverse=True)
+        candidates = [v for v in ELEVENLABS_VOICES if v["id"] != primary_id]
+        random.shuffle(candidates)
         top_candidates = candidates[:num_alternatives]
 
         for v in top_candidates:
-            labels = v.labels if hasattr(v, 'labels') and v.labels else {}
-            accent = labels.get("accent", "") if isinstance(labels, dict) else ""
-            desc = labels.get("description", "") if isinstance(labels, dict) else ""
             try:
-                alt_config = {"voice_id": v.voice_id, "stability": 0.40, "similarity_boost": 0.80, "style": 0.45}
+                alt_config = {"voice_id": v["id"], "stability": 0.40, "similarity_boost": 0.80, "style": 0.45}
                 preview_path = await _generate_narration(
-                    narration_text, f"{pipeline_id}_alt_{v.voice_id[:6]}",
+                    narration_text, f"{pipeline_id}_alt_{v['id'][:6]}",
                     max_duration=25.0, voice_config=alt_config
                 )
                 if preview_path and os.path.exists(preview_path):
                     with open(preview_path, "rb") as f:
                         audio_bytes = f.read()
-                    fname = f"audio_previews/alt_{pipeline_id}_{v.voice_id[:8]}.mp3"
+                    fname = f"audio_previews/alt_{pipeline_id}_{v['id'][:8]}.mp3"
                     audio_url = _upload_to_storage(audio_bytes, fname, "audio/mpeg")
                     try:
                         os.remove(preview_path)
@@ -210,15 +132,15 @@ async def _generate_voice_alternatives(narration_text, pipeline_id, primary_voic
                         pass
                     if audio_url:
                         alternatives.append({
-                            "voice_id": v.voice_id,
-                            "voice_name": v.name,
-                            "accent": accent,
-                            "style": desc,
+                            "voice_id": v["id"],
+                            "voice_name": v["name"],
+                            "accent": v["accent"],
+                            "style": v["style"],
                             "audio_url": audio_url,
                         })
-                        logger.info(f"Generated alt voice preview: {v.name} ({v.voice_id[:8]})")
+                        logger.info(f"Generated alt voice preview: {v['name']} ({v['id'][:8]})")
             except Exception as ve:
-                logger.warning(f"Alt voice {v.name} failed: {ve}")
+                logger.warning(f"Alt voice {v['name']} failed: {ve}")
 
         return alternatives
 
@@ -1134,7 +1056,7 @@ async def _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=2700
                         else:
                             suggestion = ""
                         if suggestion:
-                            logger.info(f"ElevenLabs Music: retrying with API-suggested prompt")
+                            logger.info("ElevenLabs Music: retrying with API-suggested prompt")
                             prompt_to_use = suggestion
                             continue
                     except Exception:
@@ -1237,7 +1159,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             logger.error(f"Normalized clip1 missing or empty: {os.path.exists(norm1)}")
             return None
         if not os.path.exists(norm2) or os.path.getsize(norm2) < 1000:
-            logger.warning(f"Normalized clip2 missing or empty — concatenating clip1 twice for 24s")
+            logger.warning("Normalized clip2 missing or empty — concatenating clip1 twice for 24s")
             # Create 24s video by concatenating clip1 with itself
             concat_list = f"/tmp/{pipeline_id}_concat.txt"
             with open(concat_list, "w") as cf:
@@ -1843,13 +1765,13 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
         audio_path = await _generate_narration(narration_text, pipeline_id, max_duration=19.0, voice_config=voice_config)
 
         # 2. Generate Sora clips with avatar in scene
-        logger.info(f"Generating Sora clip 1 with avatar in scene...")
+        logger.info("Generating Sora clip 1 with avatar in scene...")
         clip1_path = _generate_video_clip_sync(enhanced_clip1, pipeline_id, "clip1", size)
         if not clip1_path:
             logger.error(f"Presenter clip 1 failed for pipeline {pipeline_id}")
             return None
 
-        logger.info(f"Generating Sora clip 2 with avatar in scene...")
+        logger.info("Generating Sora clip 2 with avatar in scene...")
         clip2_path = _generate_video_clip_sync(enhanced_clip2, pipeline_id, "clip2", size)
         if not clip2_path:
             logger.warning("Presenter clip 2 failed, retrying with simplified prompt...")

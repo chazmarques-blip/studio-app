@@ -307,19 +307,52 @@ PLATFORM-SPECIFIC AUDIO MASTERING:
 - WhatsApp: Intimate. Voice close-mic feel. Music almost imperceptible. Like a personal voice note from a friend who happens to have great taste.
 - Google Ads: Broadcast-standard loudness (-14 LUFS). Voice crystal clear. Music minimal, non-distracting.
 
-ELEVENLABS VOICE CATALOG:
-| Voice ID | Name | Gender | Style | Cinematic Range |
-|---|---|---|---|---|
-| 21m00Tcm4TlvDq8ikWAM | Rachel | Female | Calm, Warm | Excellent for intimate whisper-to-warm arcs |
-| TX3LPaxmHKxFdv7VOQHJ | Liam | Male | Deep, Confident | Ideal for authority builds, tech/finance |
-| 29vD33N1CtxCmqQRPOHJ | Drew | Male | Soft, Narrative | Master storyteller voice, documentary feel |
-| EXAVITQu4vr4xnSDxMaL | Bella | Female | Bright, Friendly | Energetic campaigns, youth/social |
-| MF3mGyEYCl7XYWbV9V6O | Emily | Female | Calm, Clear | Corporate elegance, healthcare trust |
-| jBpfuIE2acCO8z3wKNLl | Gigi | Female | Youthful, Animated | TikTok-native, event energy |
-| onwK4e9ZLuTAKqWW03F9 | Daniel | Male | Authoritative, Deep | Premium luxury, cinematic gravitas |
-| pqHfZKP75CvOlQylNhV4 | Bill | Male | Warm, Trustworthy | Community, local business, family |
-| XB0fDUnXU5powFXDhCwa | Charlotte | Female | Seductive, Calm | Fashion, beauty, lifestyle allure |
-| JBFqnCBsd6RMkjVDRZzb | George | Male | Warm, Raspy | Culture, arts, craft authenticity |
+ELEVENLABS VOICE CATALOG (ALL voices support multilingual — they speak Portuguese, Spanish, English and 28+ languages natively):
+
+=== FEMALE VOICES ===
+| Voice ID | Name | Accent | Age | Style | Best For |
+|---|---|---|---|---|---|
+| 9BWtsMINqrJLrRacOk9x | Aria | American | Mid | Expressive, dynamic range | Social media, storytelling, emotional campaigns |
+| EXAVITQu4vr4xnSDxMaL | Sarah | American | Young | Soft, gentle, intimate | News, wellness, luxury whisper-to-warm arcs |
+| FGY2WhTYpPnrIDTdsKH5 | Laura | American | Young | Upbeat, energetic, bright | Social media, youth brands, TikTok, events |
+| XB0fDUnXU5powFXDhCwa | Charlotte | Swedish | Young | Seductive, alluring, calm | Fashion, beauty, lifestyle, premium brands |
+| Xb7hH8MSUJpSbSDYk0k2 | Alice | British | Mid | Confident, polished, clear | News, corporate, B2B, finance, authority |
+| XrExE9yKIg1WjnnlVkGX | Matilda | American | Mid | Friendly, warm, approachable | Narration, family brands, community, health |
+| cgSgspJ2msm6clMCkdW9 | Jessica | American | Young | Expressive, conversational | Conversational ads, social content, relatable |
+| pFZP5JQG7iQjIQuC4Bku | Lily | British | Mid | Warm, nurturing, elegant | Narration, premium storytelling, documentary |
+| 21m00Tcm4TlvDq8ikWAM | Rachel | American | Mid | Calm, warm, soothing | Intimate campaigns, wellness, trust-building |
+| MF3mGyEYCl7XYWbV9V6O | Emily | American | Mid | Calm, crystal clear | Corporate elegance, healthcare, education |
+| jBpfuIE2acCO8z3wKNLl | Gigi | American | Young | Youthful, animated, bubbly | TikTok-native, party, Gen-Z, event energy |
+
+=== MALE VOICES ===
+| Voice ID | Name | Accent | Age | Style | Best For |
+|---|---|---|---|---|---|
+| CwhRBWXzGAHq8TQ4Fs17 | Roger | American | Mid | Confident, commanding, smooth | Social media, tech launches, confident brands |
+| IKne3meq5aSn9XLyUdCD | Charlie | Australian | Mid | Natural, laid-back, authentic | Conversational, outdoor, lifestyle, travel |
+| JBFqnCBsd6RMkjVDRZzb | George | British | Mid | Warm, raspy, cultured | Narration, arts, craft, whiskey/luxury brands |
+| N2lVS1w4EtoT3dr4eOWO | Callum | Transatlantic | Mid | Intense, dramatic, cinematic | Characters, dramatic campaigns, movie trailers |
+| TX3LPaxmHKxFdv7VOQHJ | Liam | American | Young | Articulate, deep, polished | Narration, tech/finance, authority builds |
+| bIHbv24MWmeRgasZH58o | Will | American | Young | Friendly, casual, relatable | Social media, youth, startup, approachable |
+| cjVigY5qzO86Huf0OWal | Eric | American | Mid | Friendly, conversational, warm | Conversational, local business, community |
+| iP95p4xoKVk53GoZ742B | Chris | American | Mid | Casual, relaxed, real | Conversational, podcast-style, authentic |
+| nPczCjzI2devNBz1zQrb | Brian | American | Mid | Deep, resonant, cinematic | Narration, documentary, premium reveals |
+| onwK4e9ZLuTAKqWW03F9 | Daniel | British | Mid | Authoritative, deep, gravitas | News, luxury, cinematic, premium authority |
+| pqHfZKP75CvOlQylNhV4 | Bill | American | Senior | Trustworthy, wise, paternal | Narration, family, community, legacy brands |
+| 29vD33N1CtxCmqQRPOHJ | Drew | American | Mid | Soft, narrative, thoughtful | Documentary, storytelling, reflective |
+
+=== NON-BINARY VOICES ===
+| Voice ID | Name | Accent | Age | Style | Best For |
+|---|---|---|---|---|---|
+| SAz9YHcvj6GT2YYXdXww | River | American | Mid | Confident, gentle, modern | Social media, inclusive brands, wellness, tech |
+
+VOICE SELECTION RULES:
+1. ALL voices above speak Portuguese, Spanish, and English fluently via multilingual model
+2. NEVER pick the same voice twice in a row across campaigns — VARY your selections
+3. Match voice personality to brand personality (not just gender)
+4. For Portuguese campaigns: voices with warm/expressive styles work best (Aria, Jessica, Charlie, Eric, Matilda)
+5. For Spanish campaigns: energetic/passionate styles shine (Laura, Roger, Will, Gigi)
+6. For premium/luxury: use British accents (Daniel, George, Alice, Lily) or Swedish (Charlotte)
+7. Consider the target audience age: young voices for Gen-Z, senior voices for trust
 
 MUSIC LIBRARY:
 | Key | Name | Best Cinematic Use |
@@ -796,16 +829,33 @@ class VoicePreviewRequest(BaseModel):
 
 
 ELEVENLABS_VOICES = [
-    {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel", "gender": "female", "accent": "American", "style": "Calm, Warm"},
-    {"id": "TX3LPaxmHKxFdv7VOQHJ", "name": "Liam", "gender": "male", "accent": "American", "style": "Deep, Confident"},
-    {"id": "29vD33N1CtxCmqQRPOHJ", "name": "Drew", "gender": "male", "accent": "American", "style": "Soft, Narrative"},
-    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella", "gender": "female", "accent": "American", "style": "Bright, Friendly"},
-    {"id": "MF3mGyEYCl7XYWbV9V6O", "name": "Emily", "gender": "female", "accent": "American", "style": "Calm, Clear"},
-    {"id": "jBpfuIE2acCO8z3wKNLl", "name": "Gigi", "gender": "female", "accent": "American", "style": "Youthful, Animated"},
-    {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "gender": "male", "accent": "British", "style": "Authoritative, Deep"},
-    {"id": "pqHfZKP75CvOlQylNhV4", "name": "Bill", "gender": "male", "accent": "American", "style": "Warm, Trustworthy"},
-    {"id": "XB0fDUnXU5powFXDhCwa", "name": "Charlotte", "gender": "female", "accent": "Neutral", "style": "Seductive, Calm"},
-    {"id": "JBFqnCBsd6RMkjVDRZzb", "name": "George", "gender": "male", "accent": "British", "style": "Warm, Raspy"},
+    # Female voices
+    {"id": "9BWtsMINqrJLrRacOk9x", "name": "Aria", "gender": "female", "accent": "American", "style": "Expressive, dynamic"},
+    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Sarah", "gender": "female", "accent": "American", "style": "Soft, gentle"},
+    {"id": "FGY2WhTYpPnrIDTdsKH5", "name": "Laura", "gender": "female", "accent": "American", "style": "Upbeat, energetic"},
+    {"id": "XB0fDUnXU5powFXDhCwa", "name": "Charlotte", "gender": "female", "accent": "Swedish", "style": "Seductive, calm"},
+    {"id": "Xb7hH8MSUJpSbSDYk0k2", "name": "Alice", "gender": "female", "accent": "British", "style": "Confident, polished"},
+    {"id": "XrExE9yKIg1WjnnlVkGX", "name": "Matilda", "gender": "female", "accent": "American", "style": "Friendly, warm"},
+    {"id": "cgSgspJ2msm6clMCkdW9", "name": "Jessica", "gender": "female", "accent": "American", "style": "Expressive, conversational"},
+    {"id": "pFZP5JQG7iQjIQuC4Bku", "name": "Lily", "gender": "female", "accent": "British", "style": "Warm, elegant"},
+    {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel", "gender": "female", "accent": "American", "style": "Calm, warm"},
+    {"id": "MF3mGyEYCl7XYWbV9V6O", "name": "Emily", "gender": "female", "accent": "American", "style": "Calm, clear"},
+    {"id": "jBpfuIE2acCO8z3wKNLl", "name": "Gigi", "gender": "female", "accent": "American", "style": "Youthful, animated"},
+    # Male voices
+    {"id": "CwhRBWXzGAHq8TQ4Fs17", "name": "Roger", "gender": "male", "accent": "American", "style": "Confident, commanding"},
+    {"id": "IKne3meq5aSn9XLyUdCD", "name": "Charlie", "gender": "male", "accent": "Australian", "style": "Natural, laid-back"},
+    {"id": "JBFqnCBsd6RMkjVDRZzb", "name": "George", "gender": "male", "accent": "British", "style": "Warm, raspy"},
+    {"id": "N2lVS1w4EtoT3dr4eOWO", "name": "Callum", "gender": "male", "accent": "Transatlantic", "style": "Intense, dramatic"},
+    {"id": "TX3LPaxmHKxFdv7VOQHJ", "name": "Liam", "gender": "male", "accent": "American", "style": "Articulate, deep"},
+    {"id": "bIHbv24MWmeRgasZH58o", "name": "Will", "gender": "male", "accent": "American", "style": "Friendly, casual"},
+    {"id": "cjVigY5qzO86Huf0OWal", "name": "Eric", "gender": "male", "accent": "American", "style": "Friendly, conversational"},
+    {"id": "iP95p4xoKVk53GoZ742B", "name": "Chris", "gender": "male", "accent": "American", "style": "Casual, relaxed"},
+    {"id": "nPczCjzI2devNBz1zQrb", "name": "Brian", "gender": "male", "accent": "American", "style": "Deep, resonant"},
+    {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "gender": "male", "accent": "British", "style": "Authoritative, deep"},
+    {"id": "pqHfZKP75CvOlQylNhV4", "name": "Bill", "gender": "male", "accent": "American", "style": "Trustworthy, wise"},
+    {"id": "29vD33N1CtxCmqQRPOHJ", "name": "Drew", "gender": "male", "accent": "American", "style": "Soft, narrative"},
+    # Non-binary
+    {"id": "SAz9YHcvj6GT2YYXdXww", "name": "River", "gender": "non-binary", "accent": "American", "style": "Confident, gentle"},
 ]
 
 

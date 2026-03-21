@@ -769,7 +769,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   // Use platform-specific variant if available
                   const platformVariants = stats.platform_variants || {};
                   const channelImages = platformVariants[channel] || images;
-                  const imgUrl = channelImages[0] || images[0];
+                  const safeIdx = shareImgIdx < channelImages.length ? shareImgIdx : 0;
+                  const imgUrl = channelImages[safeIdx] || images[safeIdx] || images[0];
                   const imgSrc = imgUrl ? resolveImageUrl(imgUrl) : null;
                   const channelMsg = messages.find(m => m.channel === channel);
                   const copyText_ch = cleanCampaignText(channelMsg?.content || messages[0]?.content || '');
