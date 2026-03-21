@@ -444,6 +444,7 @@ export default function PipelineView({ context }) {
         source_photo_url: tempAvatar.source_photo_url || '',
         video_url: previewVideoUrl || null,
         language: previewLanguage,
+        avatar_style: tempAvatar.avatar_style || 'realistic',
       };
       const updated = avatars.map(a => a.id === editingAvatarId ? { ...a, ...editedAvatar } : a);
       saveAvatars(updated);
@@ -459,6 +460,7 @@ export default function PipelineView({ context }) {
         angles: angleImages,
         video_url: previewVideoUrl || null,
         language: previewLanguage,
+        avatar_style: tempAvatar.avatar_style || 'realistic',
       };
       const updated = [...avatars, newAv];
       saveAvatars(updated);
@@ -482,6 +484,7 @@ export default function PipelineView({ context }) {
       video_url: previewVideoUrl || null,
       language: previewLanguage,
       creation_mode: tempAvatar.creation_mode || 'photo',
+      avatar_style: tempAvatar.avatar_style || 'realistic',
     };
     const updated = [...avatars, newAv];
     saveAvatars(updated);
@@ -498,6 +501,7 @@ export default function PipelineView({ context }) {
       source_photo_url: av.source_photo_url || '',
       clothing: av.clothing || 'company_uniform',
       voice: av.voice || null,
+      avatar_style: av.avatar_style || 'realistic',
     });
     setAvatarName(av.name || '');
     setPreviewVideoUrl(av.video_url || null);
@@ -558,20 +562,24 @@ export default function PipelineView({ context }) {
       return;
     }
     setApplyingClothing(true);
+    const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
+    // For 3D avatars, always use the generated avatar URL (not the original photo)
+    const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
-        source_image_url: tempAvatar.source_photo_url || tempAvatar.url,
+        source_image_url: sourceUrl,
         clothing: style,
         angle: 'front',
         company_name: activeCompany?.name || '',
         logo_url: activeCompany?.logo_url || '',
+        avatar_style: tempAvatar?.avatar_style || 'realistic',
       });
       if (data.avatar_url) {
         setClothingVariants(p => ({ ...p, [style]: data.avatar_url }));
         setTempAvatar(p => ({ ...p, url: data.avatar_url, clothing: style }));
         setAngleImages({ front: data.avatar_url });
         // Auto-generate remaining 360° angles for this style
-        startAuto360(tempAvatar.source_photo_url || tempAvatar.url, style, tempAvatar?.avatar_style || 'realistic');
+        startAuto360(sourceUrl, style, tempAvatar?.avatar_style || 'realistic');
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error');
@@ -582,9 +590,11 @@ export default function PipelineView({ context }) {
   const generateAngle = async (angle, forceRegenerate = false) => {
     if (!tempAvatar || (angleImages[angle] && !forceRegenerate)) return;
     setGeneratingAngle(angle);
+    const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
+    const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
-        source_image_url: tempAvatar.source_photo_url || tempAvatar.url,
+        source_image_url: sourceUrl,
         clothing: tempAvatar.clothing || 'company_uniform',
         angle,
         company_name: activeCompany?.name || '',
@@ -1257,10 +1267,23 @@ export default function PipelineView({ context }) {
                 <X size={14} className="text-white" />
               </button>
               <div className="absolute bottom-3 right-3 flex gap-2">
-                <a href={resolveImageUrl(avatarPreviewUrl)} target="_blank" rel="noopener noreferrer"
+                <button data-testid="download-avatar-btn" onClick={async () => {
+                    try {
+                      const response = await fetch(resolveImageUrl(avatarPreviewUrl));
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `avatar_${Date.now()}.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      window.URL.revokeObjectURL(url);
+                    } catch { toast.error('Download failed'); }
+                  }}
                   className="h-8 w-8 rounded-lg bg-black/70 border border-white/15 flex items-center justify-center hover:bg-black transition">
                   <Download size={14} className="text-white" />
-                </a>
+                </button>
               </div>
             </div>
           </div>
