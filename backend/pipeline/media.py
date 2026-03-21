@@ -415,8 +415,8 @@ async def _create_video_variants(pipeline_id: str, master_video_url: str, master
         cmd = [
             FFMPEG_PATH, "-y", "-i", master_path,
             "-vf", vf,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "aac", "-b:a", "192k",
+            "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+            "-c:a", "aac", "-b:a", "256k",
             "-movflags", "+faststart",
             output_path
         ]
@@ -1011,14 +1011,24 @@ def _build_music_prompt_from_dylan(marcos_output, brand_name="", music_mood="cin
     return base_prompt
 
 
-def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta="", music_mood="upbeat", ai_music_path=None):
+def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pipeline_id, logo_path=None, tagline="", contact_cta="", music_mood="upbeat", ai_music_path=None, target_size="1280x720"):
     output_path = f"/tmp/{pipeline_id}_commercial.mp4"
     try:
-        # 1. Normalize both clips to consistent format
+        # Parse target resolution
+        tw, th = [int(x) for x in target_size.split("x")]
+
+        # 1. Normalize both clips to EXACT target resolution (fill, no black bars)
         for i, clip in enumerate([clip1_path, clip2_path], 1):
+            scale_filter = (
+                f"scale={tw}:{th}:force_original_aspect_ratio=increase,"
+                f"crop={tw}:{th},"
+                f"format=yuv420p"
+            )
             subprocess.run(
-                f"{FFMPEG_PATH} -y -i {clip} -c:v libx264 -preset fast -crf 18 -r 30 -pix_fmt yuv420p -an /tmp/{pipeline_id}_norm{i}.mp4",
-                shell=True, capture_output=True, timeout=60
+                [FFMPEG_PATH, "-y", "-i", clip, "-vf", scale_filter,
+                 "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-r", "30", "-an",
+                 f"/tmp/{pipeline_id}_norm{i}.mp4"],
+                capture_output=True, timeout=60
             )
 
         # 2. Crossfade (1s fade at 11s mark → total ~23s)
@@ -1051,7 +1061,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             xfade_cmd = [
                 FFMPEG_PATH, "-y", "-i", norm1, "-i", norm2,
                 "-filter_complex", xfade_filter,
-                "-map", "[vout]", "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+                "-map", "[vout]", "-c:v", "libx264", "-preset", "slow", "-crf", "16",
                 f"/tmp/{pipeline_id}_xfade.mp4"
             ]
             result = subprocess.run(xfade_cmd, capture_output=True, text=True, timeout=120)
@@ -1123,7 +1133,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             if safe_contact:
                 vf += f",drawtext=text='{safe_contact}':fontfile={font_path}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
-            logo_cmd = [FFMPEG_PATH, "-y", "-i", f"/tmp/{pipeline_id}_xfade.mp4", "-i", scaled_logo, "-filter_complex", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "18", f"/tmp/{pipeline_id}_branded.mp4"]
+            logo_cmd = [FFMPEG_PATH, "-y", "-i", f"/tmp/{pipeline_id}_xfade.mp4", "-i", scaled_logo, "-filter_complex", vf, "-c:v", "libx264", "-preset", "slow", "-crf", "16", f"/tmp/{pipeline_id}_branded.mp4"]
             r = subprocess.run(logo_cmd, capture_output=True, text=True, timeout=120)
             branded_ok = r.returncode == 0 and os.path.exists(f"/tmp/{pipeline_id}_branded.mp4")
             if branded_ok:
@@ -1141,7 +1151,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             if safe_contact:
                 text_vf += f",drawtext=text='{safe_contact}':fontfile={font_path}:fontsize=20:fontcolor=0xC9A84C@0.9:x=(w-text_w)/2:y=(h*3/5)+40:enable='between(t,{brand_late},{vid_duration})'"
 
-            brand_cmd = [FFMPEG_PATH, "-y", "-i", f"/tmp/{pipeline_id}_xfade.mp4", "-vf", text_vf, "-c:v", "libx264", "-preset", "fast", "-crf", "18", f"/tmp/{pipeline_id}_branded.mp4"]
+            brand_cmd = [FFMPEG_PATH, "-y", "-i", f"/tmp/{pipeline_id}_xfade.mp4", "-vf", text_vf, "-c:v", "libx264", "-preset", "slow", "-crf", "16", f"/tmp/{pipeline_id}_branded.mp4"]
             r = subprocess.run(brand_cmd, capture_output=True, text=True, timeout=120)
             if r.returncode != 0 or not os.path.exists(f"/tmp/{pipeline_id}_branded.mp4"):
                 logger.warning("Brand overlay failed, using crossfade only")
@@ -1287,10 +1297,11 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             subprocess.run(
                 [FFMPEG_PATH, "-y", "-i", branded_file, "-i", final_audio,
                  "-map", "0:v", "-map", "1:a",
-                 "-c:v", "copy", "-c:a", "aac", "-b:a", "320k",
+                 "-c:v", "libx264", "-preset", "slow", "-crf", "16",
+                 "-c:a", "aac", "-b:a", "320k",
                  "-ar", "48000", "-ac", "2", "-t", str(vid_duration),
                  output_path],
-                capture_output=True, timeout=60
+                capture_output=True, timeout=120
             )
         else:
             shutil.copy2(branded_file, output_path)
@@ -1530,7 +1541,7 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
         logger.warning(f"AI music generation failed, will use static files: {e}")
 
     # 5. Combine: crossfade + brand ending (logo/text + tagline + contact) + narration + music
-    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood, ai_music_path)
+    return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood, ai_music_path, target_size=size)
 
 
 async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override="", voice_config=None):
@@ -1667,7 +1678,7 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
             f.write(f"file '{clip1_path}'\nfile '{clip2_path}'\n")
         subprocess.run(
             [FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
-             "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-an", concat_path],
+             "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-an", concat_path],
             capture_output=True, timeout=120
         )
         if not os.path.exists(concat_path) or os.path.getsize(concat_path) < 1000:
@@ -1762,7 +1773,7 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
             cmd = [FFMPEG, "-y"] + inputs + [
                 "-filter_complex", filter_complex,
                 "-map", "0:v", "-map", final_audio,
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:v", "libx264", "-preset", "slow", "-crf", "16",
                 "-c:a", "aac", "-b:a", "256k", "-ac", "2",
                 "-t", str(total_clip_dur), output_path
             ]
@@ -1785,7 +1796,7 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                     FFMPEG, "-y", "-i", concat_path, "-i", audio_path, "-i", bg_music_path,
                     "-filter_complex", basic_filter,
                     "-map", "0:v", "-map", "[out]",
-                    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                    "-c:v", "libx264", "-preset", "slow", "-crf", "16",
                     "-c:a", "aac", "-b:a", "256k", "-ac", "2",
                     "-t", str(total_clip_dur), output_path
                 ]
