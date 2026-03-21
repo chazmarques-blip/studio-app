@@ -713,8 +713,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
           )}
         </div>
 
-        {/* ── Tab switcher: Content | Results ── */}
-        <div className="px-4 py-1.5 border-b border-[#111] shrink-0 flex gap-1">
+        {/* ── Tab switcher: Content | Results | Avatar ── */}
+        <div className="px-4 py-1.5 border-b border-[#111] shrink-0 flex items-center gap-1">
           {[
             { id: 'content', icon: Image, label: labels.content },
             { id: 'results', icon: BarChart3, label: labels.results },
@@ -726,6 +726,19 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               {tab.label}
             </button>
           ))}
+          {avatarUrl && (
+            <div className="ml-auto flex items-center gap-2">
+              <button data-testid="view-avatar-btn" onClick={() => setShowAvatarLightbox(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[10px] text-[#C9A84C] font-semibold hover:bg-[#C9A84C]/20 transition">
+                <img src={resolveImageUrl(avatarUrl)} alt="" className="w-5 h-5 rounded-full object-cover border border-[#C9A84C]/40" />
+                <Eye size={10} /> {labels.viewAvatar || 'Ver Avatar'}
+              </button>
+              <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer" data-testid="download-avatar-btn"
+                className="flex items-center p-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                <Download size={10} />
+              </a>
+            </div>
+          )}
         </div>
 
         {/* ── Body ── */}
@@ -1009,39 +1022,6 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   );
                 })()}
               </div>
-
-              {/* ── AVATAR SECTION ── */}
-              {avatarUrl && (
-                <div data-testid="campaign-avatar-section" className="rounded-xl border border-[#C9A84C]/20 bg-[#0A0A0A] p-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative cursor-pointer group" onClick={() => setShowAvatarLightbox(true)}>
-                      <img src={resolveImageUrl(avatarUrl)} alt="Avatar"
-                        className="w-16 h-16 rounded-full object-cover border-2 border-[#C9A84C]/40 group-hover:border-[#C9A84C] transition" />
-                      <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                        <Eye size={14} className="text-white" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <UserCircle2 size={12} className="text-[#C9A84C]" />
-                        <span className="text-[11px] text-white font-semibold">{labels.avatar || 'Avatar'}</span>
-                        {videoMode === 'presenter' && (
-                          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C] font-bold uppercase">{labels.presenterMode || 'Apresentador'}</span>
-                        )}
-                      </div>
-                      <p className="text-[9px] text-[#555]">{campaign.name}</p>
-                    </div>
-                    <button data-testid="view-avatar-btn" onClick={() => setShowAvatarLightbox(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/20 text-[9px] text-[#C9A84C] font-medium hover:bg-[#C9A84C]/20 transition">
-                      <Eye size={11} /> {labels.viewAvatar || 'Ver Avatar'}
-                    </button>
-                    <a href={resolveImageUrl(avatarUrl)} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[9px] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
-                      <Download size={10} />
-                    </a>
-                  </div>
-                </div>
-              )}
 
               {/* ── UNIFIED SHARE AREA ── Select media + text + share */}
 
