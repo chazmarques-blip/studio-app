@@ -360,6 +360,46 @@ async def approve_step(pipeline_id: str, data: PipelineApprove, user=Depends(get
         return {"status": "completed"}
 
 
+from pipeline.engine import _start_video_after_approval_bg
+
+
+@router.post("/{pipeline_id}/approve-audio")
+async def approve_audio(pipeline_id: str, data: PipelineApprove, user=Depends(get_current_user)):
+    """Approve or reject the audio preview before video generation (saves Sora 2 credits)."""
+    tenant = await _get_tenant(user)
+    result = supabase.table("pipelines").select("*").eq("id", pipeline_id).eq("tenant_id", tenant["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+    pipeline = result.data[0]
+    if pipeline["status"] != "waiting_audio_approval":
+        raise HTTPException(status_code=400, detail="Pipeline is not waiting for audio approval")
+
+    steps = pipeline.get("steps") or {}
+    marcos = steps.get("marcos_video", {})
+
+    if data.feedback and not getattr(data, 'approved', True):
+        # Rejected: rerun marcos_video with feedback
+        marcos["revision_feedback"] = data.feedback
+        marcos["previous_output"] = marcos.get("output", "")
+        marcos["status"] = "pending"
+        supabase.table("pipelines").update({
+            "steps": steps, "status": "running", "current_step": "marcos_video",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", pipeline_id).execute()
+        _start_step_bg(pipeline_id, "marcos_video")
+        return {"status": "revision_requested", "next_step": "marcos_video"}
+
+    # Approved: continue to video generation
+    marcos["audio_approved"] = True
+    marcos["audio_approved_at"] = datetime.now(timezone.utc).isoformat()
+    supabase.table("pipelines").update({
+        "steps": steps,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", pipeline_id).execute()
+
+    _start_video_after_approval_bg(pipeline_id)
+    return {"status": "approved", "message": "Video generation started"}
 
 
 @router.delete("/{pipeline_id}")
@@ -380,14 +420,14 @@ async def retry_failed_step(pipeline_id: str, user=Depends(get_current_user)):
     if not result.data:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     pipeline = result.data[0]
-    if pipeline["status"] not in ("failed", "running"):
+    if pipeline["status"] not in ("failed", "running", "waiting_audio_approval"):
         raise HTTPException(status_code=400, detail="Pipeline is not in a retryable state")
 
     steps = pipeline.get("steps") or {}
     retry_step = None
     for s in STEP_ORDER:
         st = steps.get(s, {}).get("status")
-        if st in ("failed", "running", "generating_images", "generating_video"):
+        if st in ("failed", "running", "generating_images", "generating_video", "waiting_audio_approval"):
             retry_step = s
             break
 

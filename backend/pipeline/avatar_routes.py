@@ -157,35 +157,64 @@ async def generate_avatar_from_prompt(req: AvatarFromPromptRequest, user=Depends
         prompt = style_prompts.get(req.style, style_prompts["realistic"])
         if req.company_name:
             prompt += f" The character works at {req.company_name}."
-        if req.reference_photo_url and req.style in ("3d_cartoon", "3d_pixar"):
-            prompt += f" IMPORTANT: Use the face and features from the reference photo to create this 3D character. Maintain the person's likeness, facial structure, and key features while applying the 3D style."
 
+        system_msg = "You are an expert character designer. Create stunning full-body character portraits in VERTICAL format."
+        has_ref = req.reference_photo_url and req.style in ("3d_cartoon", "3d_pixar")
+
+        # --- Path A: Reference photo provided → use _gemini_edit_image (litellm multimodal) ---
+        if has_ref:
+            prompt += (
+                " CRITICAL: The person in the reference photo is your ONLY model. "
+                "Transform them into a 3D character while preserving their EXACT likeness — "
+                "face shape, skin tone, hair color/style, eye shape, nose, mouth, and body build. "
+                "The 3D character MUST be immediately recognizable as the same person."
+            )
+            try:
+                img_req = urllib.request.Request(req.reference_photo_url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(img_req, timeout=15) as resp:
+                    ref_data = resp.read()
+                    ct = resp.headers.get("Content-Type", "image/png")
+                    ref_mime = ct if ct.startswith("image/") else "image/png"
+                ref_b64 = base64.b64encode(ref_data).decode()
+
+                person_desc = await _describe_person(ref_b64, ref_mime)
+                if person_desc:
+                    prompt = f"REFERENCE PERSON (preserve this likeness): {person_desc}\n\n{prompt}"
+
+                logger.info(f"3D avatar with photo ref via litellm multimodal: {req.reference_photo_url[:60]}...")
+                images = await _gemini_edit_image(system_msg, prompt, ref_b64, ref_mime)
+
+                if images:
+                    raw_bytes = base64.b64decode(images[0]['data'])
+                    fname = f"avatars/{user.get('id', 'anon')}/{uuid.uuid4().hex[:8]}_prompt_{req.style}.png"
+                    avatar_url = _upload_to_storage(raw_bytes, fname, "image/png")
+
+                    if req.logo_url and avatar_url:
+                        try:
+                            av_data = urllib.request.urlopen(avatar_url, timeout=15).read()
+                            branded = _composite_logo_on_avatar(av_data, req.logo_url)
+                            if branded:
+                                fname2 = f"avatars/{user.get('id', 'anon')}/{uuid.uuid4().hex[:8]}_branded.png"
+                                branded_url = _upload_to_storage(branded, fname2, "image/png")
+                                if branded_url:
+                                    avatar_url = branded_url
+                        except Exception as logo_err:
+                            logger.warning(f"Logo composite failed: {logo_err}")
+
+                    return {"avatar_url": avatar_url, "style": req.style}
+            except Exception as ref_err:
+                logger.warning(f"Reference photo processing failed, falling back to text-only: {ref_err}")
+
+        # --- Path B: No reference photo or reference failed → text-only via LlmChat ---
         chat = LlmChat(
             api_key=EMERGENT_KEY,
             session_id=f"avatar-prompt-{uuid.uuid4().hex[:8]}",
-            system_message="You are an expert character designer. Create stunning full-body character portraits in VERTICAL format."
+            system_message=system_msg
         )
-
-        # Build message — include reference photo if provided
-        if req.reference_photo_url and req.style in ("3d_cartoon", "3d_pixar"):
-            try:
-                ref_data = urllib.request.urlopen(req.reference_photo_url, timeout=15).read()
-                ref_b64 = base64.b64encode(ref_data).decode()
-                ref_mime = "image/jpeg" if req.reference_photo_url.endswith((".jpg", ".jpeg")) else "image/png"
-                msg = UserMessage(
-                    text=prompt,
-                    images=[{"data": ref_b64, "mime_type": ref_mime}]
-                )
-                logger.info(f"3D avatar with photo reference: {req.reference_photo_url[:60]}...")
-            except Exception as e:
-                logger.warning(f"Failed to load reference photo, generating without it: {e}")
-                msg = UserMessage(text=prompt)
-        else:
-            msg = UserMessage(text=prompt)
-
+        msg = UserMessage(text=prompt)
         chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
         text_response, images = await chat.send_message_multimodal_response(msg)
-        logger.info(f"Avatar prompt gen: text={text_response[:100] if text_response else 'None'}, images_count={len(images) if images else 0}")
+        logger.info(f"Avatar prompt gen (text-only): text={text_response[:100] if text_response else 'None'}, images={len(images) if images else 0}")
 
         if images and len(images) > 0:
             raw_bytes = base64.b64decode(images[0]['data'])

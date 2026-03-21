@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Check, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Crown, Lock, Play, RefreshCw, Maximize2, ArrowRight, X, Film, Eye, Download, Image } from 'lucide-react';
+import { Loader2, Check, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Crown, Lock, Play, RefreshCw, Maximize2, ArrowRight, X, Film, Eye, Download, Image, Headphones, Pause, Volume2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { STEP_META, STEP_ORDER, cleanDisplayText } from './constants';
 import { ProgressTimer } from './ProgressTimer';
 import { ImageLightbox } from './ImageLightbox';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
 
-function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, onToggle, pipelineId, onRefresh }) {
+function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAudio, expanded, onToggle, pipelineId, onRefresh }) {
   const { t } = useTranslation();
   const meta = STEP_META[step];
   const Icon = meta.icon;
   const status = data?.status || 'pending';
   const isGeneratingImages = status === 'generating_images';
   const isGeneratingVideo = status === 'generating_video';
+  const isWaitingAudio = step === 'marcos_video' && status === 'waiting_audio_approval';
   const isGenerating = isGeneratingImages || isGeneratingVideo;
   const needsApproval = pipelineStatus === 'waiting_approval' && (status === 'completed') &&
     ((step === 'ana_review_copy' && !data?.user_selection) ||
@@ -29,6 +30,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
 
   return (
     <div data-testid={`step-card-${step}`} className={`rounded-xl border transition-all duration-300 ${
+      isWaitingAudio ? 'border-purple-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(147,51,234,0.08)]' :
       isActive || isGenerating ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
       needsApproval ? 'border-amber-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(245,158,11,0.08)]' :
       isFailed ? 'border-red-500/30 bg-[#0D0D0D]' :
@@ -59,6 +61,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
             {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `${t('studio.revising')} (${revisionRound}/1)` : t('studio.processing')}</span>}
             {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />{t('studio.generating_images') || 'Generating images...'}</span>}
             {isGeneratingVideo && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400"><Film size={8} className="animate-spin" />{t('studio.generating_video') || 'Generating commercial video...'}</span>}
+            {isWaitingAudio && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 animate-pulse"><Headphones size={8} />{t('studio.waiting_audio') || 'Audio Pre-Approval'}</span>}
             {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">{t('studio.status_completed') || 'Completed'}</span>}
             {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />{t('studio.status_waiting') || 'Waiting Approval'}</span>}
             {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">{t('studio.pending')}</span>}
@@ -72,7 +75,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
           </div>
         </div>
         {data?.elapsed_ms && <span className="text-[8px] text-[#444] shrink-0 bg-[#111] px-1.5 py-0.5 rounded">{(data.elapsed_ms / 1000).toFixed(1)}s</span>}
-        {(data?.output || isFailed || requiresUpgrade) && (expanded ? <ChevronUp size={14} className="text-[#444]" /> : <ChevronDown size={14} className="text-[#444]" />)}
+        {(data?.output || isFailed || requiresUpgrade || isWaitingAudio) && (expanded ? <ChevronUp size={14} className="text-[#444]" /> : <ChevronDown size={14} className="text-[#444]" />)}
       </button>
 
       {/* Progress Timer for running steps */}
@@ -88,23 +91,44 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, expanded, o
         </div>
       )}
 
-      {expanded && (data?.output || isFailed || requiresUpgrade) && (
+      {expanded && (data?.output || isFailed || requiresUpgrade || isWaitingAudio) && (
         <StepContent step={step} data={data} hasImages={hasImages} hasVideo={hasVideo} isFailed={isFailed}
-          needsApproval={needsApproval} requiresUpgrade={requiresUpgrade}
-          onApprove={onApprove} pipelineId={pipelineId} onRefresh={onRefresh} />
+          needsApproval={needsApproval} requiresUpgrade={requiresUpgrade} isWaitingAudio={isWaitingAudio}
+          onApprove={onApprove} onApproveAudio={onApproveAudio} pipelineId={pipelineId} onRefresh={onRefresh} />
       )}
     </div>
   );
 }
 
-function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval, requiresUpgrade, onApprove, pipelineId, onRefresh }) {
+function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval, requiresUpgrade, isWaitingAudio, onApprove, onApproveAudio, pipelineId, onRefresh }) {
   const { t } = useTranslation();
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [showStepVideoLightbox, setShowStepVideoLightbox] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const audioRef = useRef(null);
   const images = (data?.image_urls || []).filter(u => u);
+
+  const toggleAudioPreview = () => {
+    if (!data?.audio_preview_url) return;
+    if (audioPlaying && audioRef.current) {
+      audioRef.current.pause();
+      setAudioPlaying(false);
+    } else {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(data.audio_preview_url);
+        audioRef.current.onended = () => setAudioPlaying(false);
+      }
+      audioRef.current.play();
+      setAudioPlaying(true);
+    }
+  };
 
   return (
     <div className="px-3 pb-3 border-t border-[#151515]">
+      {/* Audio Pre-Approval Panel */}
+      {isWaitingAudio && (
+        <AudioApprovalPanel data={data} audioPlaying={audioPlaying} onToggleAudio={toggleAudioPreview} onApproveAudio={onApproveAudio} />
+      )}
       {data?.output && (
         <div className="mt-2 rounded-lg bg-[#111] p-3 max-h-[300px] overflow-y-auto">
           <pre className="text-[10px] text-[#aaa] whitespace-pre-wrap leading-relaxed font-sans">{data.output}</pre>
@@ -207,6 +231,98 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
       {needsApproval && step === 'ana_review_copy' && <CopyApproval data={data} onApprove={onApprove} />}
       {needsApproval && step === 'rafael_review_design' && <DesignApproval data={data} onApprove={onApprove} images={images} pipelineId={pipelineId} onRefresh={onRefresh} />}
       {needsApproval && step === 'rafael_review_video' && <VideoApproval data={data} onApprove={onApprove} pipelineId={pipelineId} />}
+    </div>
+  );
+}
+
+
+function AudioApprovalPanel({ data, audioPlaying, onToggleAudio, onApproveAudio }) {
+  const { t } = useTranslation();
+  const [feedback, setFeedback] = useState('');
+  const [approving, setApproving] = useState(false);
+
+  const handleApprove = async () => {
+    setApproving(true);
+    try {
+      await onApproveAudio({ approved: true });
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!feedback.trim()) {
+      toast.error(t('studio.provide_feedback') || 'Provide feedback for revision');
+      return;
+    }
+    setApproving(true);
+    try {
+      await onApproveAudio({ approved: false, feedback: feedback.trim() });
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  return (
+    <div data-testid="audio-approval-panel" className="mt-3 rounded-xl bg-gradient-to-b from-purple-500/5 to-transparent border border-purple-500/20 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+          <Headphones size={16} className="text-purple-400" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-white">{t('studio.audio_preapproval') || 'Audio Pre-Approval'}</p>
+          <p className="text-[9px] text-[#777]">{t('studio.audio_preapproval_desc') || 'Review the narration before generating the video (saves credits)'}</p>
+        </div>
+      </div>
+
+      {/* Narration Text */}
+      {data?.narration_text && (
+        <div className="mb-3 rounded-lg bg-[#111] border border-[#1A1A1A] p-3">
+          <p className="text-[8px] text-purple-400 uppercase tracking-wider font-semibold mb-1.5">{t('studio.narration_script') || 'Narration Script'}</p>
+          <p className="text-[11px] text-[#ccc] leading-relaxed italic">"{data.narration_text}"</p>
+        </div>
+      )}
+
+      {/* Audio Preview Player */}
+      {data?.audio_preview_url && (
+        <div className="mb-3 flex items-center gap-3 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-3">
+          <button data-testid="audio-preview-play-btn" onClick={onToggleAudio}
+            className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 transition-all ${
+              audioPlaying ? 'bg-purple-500 text-white' : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
+            }`}>
+            {audioPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+          </button>
+          <div className="flex-1">
+            <p className="text-[10px] text-white font-medium">{t('studio.voice_preview') || 'Voice Preview'}</p>
+            <p className="text-[8px] text-[#555]">{t('studio.listen_before_approve') || 'Listen to the narration before approving'}</p>
+          </div>
+          <Volume2 size={14} className={audioPlaying ? 'text-purple-400 animate-pulse' : 'text-[#333]'} />
+        </div>
+      )}
+
+      {/* Feedback textarea */}
+      <div className="mb-3">
+        <textarea data-testid="audio-feedback-input"
+          value={feedback} onChange={e => setFeedback(e.target.value)}
+          placeholder={t('studio.audio_feedback_placeholder') || 'Optional: request changes to the narration script...'}
+          className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-lg p-2.5 text-[10px] text-[#ccc] placeholder-[#444] resize-none focus:outline-none focus:border-purple-500/40"
+          rows={2}
+        />
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2">
+        <button data-testid="approve-audio-btn" onClick={handleApprove} disabled={approving}
+          className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] font-semibold hover:bg-green-500/20 transition disabled:opacity-50">
+          {approving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+          {t('studio.approve_generate') || 'Approve & Generate Video'}
+        </button>
+        <button data-testid="reject-audio-btn" onClick={handleReject} disabled={approving}
+          className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-red-500/5 border border-red-500/20 text-red-400 text-[10px] font-semibold hover:bg-red-500/10 transition disabled:opacity-50">
+          <XCircle size={12} />
+          {t('studio.revise_script') || 'Revise'}
+        </button>
+      </div>
     </div>
   );
 }

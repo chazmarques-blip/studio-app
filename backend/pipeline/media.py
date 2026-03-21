@@ -854,6 +854,43 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
     return None
 
 
+async def _generate_audio_preview(marcos_output, pipeline_id, voice_config=None):
+    """Generate a quick TTS audio preview from marcos_video script for pre-approval.
+    Returns (narration_text, audio_preview_url) or (narration_text, None) on failure."""
+    # Extract narration text
+    narration_text = ""
+    clean_tts_match = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)===', marcos_output, re.IGNORECASE)
+    if not clean_tts_match:
+        clean_tts_match = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)$', marcos_output, re.IGNORECASE)
+    if clean_tts_match:
+        narration_text = _clean_narration_for_tts(clean_tts_match.group(1).strip())
+    else:
+        narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===(?:CLEAN TTS TEXT|MUSIC DIRECTION|BRAND NAME|CTA SEQUENCE|VIDEO FORMAT)===', marcos_output, re.IGNORECASE)
+        if narr_match:
+            narration_text = _clean_narration_for_tts(narr_match.group(1))
+
+    if not narration_text:
+        return "", None
+
+    try:
+        preview_path = await _generate_narration(narration_text, f"{pipeline_id}_preview", max_duration=25.0, voice_config=voice_config)
+        if preview_path and os.path.exists(preview_path):
+            with open(preview_path, "rb") as f:
+                audio_bytes = f.read()
+            filename = f"audio_previews/preview_{pipeline_id}.mp3"
+            audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
+            try:
+                os.remove(preview_path)
+            except Exception:
+                pass
+            logger.info(f"Audio preview generated for pipeline {pipeline_id}: {len(audio_bytes)/1024:.0f}KB")
+            return narration_text, audio_url
+    except Exception as e:
+        logger.warning(f"Audio preview generation failed: {e}")
+
+    return narration_text, None
+
+
 async def _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=27000):
     """Generate cinema-quality background music using ElevenLabs Music API.
     Returns path to generated music file, or None on failure."""

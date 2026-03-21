@@ -18,7 +18,7 @@ from pipeline.utils import (
 from pipeline.media import (
     _generate_design_images, _generate_commercial_video,
     _generate_presenter_video, _create_platform_variants,
-    _create_video_variants,
+    _create_video_variants, _generate_audio_preview,
 )
 
 
@@ -346,81 +346,45 @@ async def _execute_step(pipeline_id, step):
                 steps[step]["video_duration"] = 0
                 steps[step]["skipped"] = True
             else:
-                # Validate narration script language before generating
-                camp_lang = pipeline.get("result", {}).get("campaign_language", "")
-                if camp_lang:
-                    narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===', response, re.IGNORECASE)
-                    if not narr_match:
-                        narr_match = re.search(r'NARRATION SCRIPT[:\s]*([\s\S]*?)(?:===|MUSIC DIRECTION)', response, re.IGNORECASE)
-                    if narr_match:
-                        narr_text = narr_match.group(1).strip()
-                        LANG_NAMES_V = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
-                        expected_lang = LANG_NAMES_V.get(camp_lang, camp_lang)
-                        logger.info(f"Video narration language validation: expected={expected_lang}, checking script ({len(narr_text)} chars)")
+                # ── Audio Pre-Approval: generate TTS preview, pause for user approval ──
+                dylan_output = steps.get("dylan_sound", {}).get("output", "")
+                dylan_voice_config = _parse_dylan_audio(dylan_output) if dylan_output else {}
+                avatar_voice = pipeline.get("result", {}).get("avatar_voice", None)
+                final_voice_config = dylan_voice_config.copy() if dylan_voice_config else {}
+                if avatar_voice and isinstance(avatar_voice, dict) and avatar_voice.get("voice_id"):
+                    final_voice_config.update(avatar_voice)
 
-                # Parse video format from output
+                narration_text, audio_preview_url = await _generate_audio_preview(
+                    response, pipeline_id, voice_config=final_voice_config or avatar_voice
+                )
+
+                steps[step]["output"] = response
+                steps[step]["narration_text"] = narration_text
+                steps[step]["audio_preview_url"] = audio_preview_url
+                steps[step]["status"] = "waiting_audio_approval"
+
+                # Parse and save video format for later use
                 video_format = "horizontal"
                 format_match = re.search(r'Format:\s*(vertical|horizontal)', response, re.IGNORECASE)
                 if format_match:
                     video_format = format_match.group(1).lower()
-
                 platforms = pipeline.get("platforms") or []
-                # Sora 2 valid sizes: 720x1280, 1280x720
                 FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
                 if not format_match:
                     if any(p in platforms for p in ["tiktok", "instagram", "whatsapp"]):
                         video_format = "vertical"
                     elif any(p in platforms for p in ["google_ads", "facebook"]):
                         video_format = "horizontal"
-                size = FORMAT_MAP.get(video_format, "1280x720")
+                steps[step]["video_format"] = video_format
+                steps[step]["video_size"] = FORMAT_MAP.get(video_format, "1280x720")
 
-                # Update status to generating_video
-                steps[step]["output"] = response
-                steps[step]["status"] = "generating_video"
                 supabase.table("pipelines").update({
-                    "steps": steps,
+                    "steps": steps, "status": "waiting_audio_approval",
+                    "current_step": step,
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 }).eq("id", pipeline_id).execute()
-
-                # Generate the full commercial
-                user_music = pipeline.get("result", {}).get("selected_music", "")
-                video_mode = pipeline.get("result", {}).get("video_mode", "narration")
-                avatar_url = pipeline.get("result", {}).get("avatar_url", "")
-                avatar_voice = pipeline.get("result", {}).get("avatar_voice", None)
-
-                # Get Dylan's audio direction for voice/music config
-                dylan_output = steps.get("dylan_sound", {}).get("output", "")
-                dylan_voice_config = _parse_dylan_audio(dylan_output) if dylan_output else {}
-
-                if video_mode == "presenter" and avatar_url:
-                    # Presenter mode: talking head with lip-sync via fal.ai
-                    video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=avatar_voice)
-                else:
-                    # Narration mode: 2 Sora clips + TTS narration
-                    # Dylan's config overrides default, avatar_voice overrides Dylan (user's manual choice)
-                    final_voice_config = dylan_voice_config.copy() if dylan_voice_config else {}
-                    if avatar_voice and isinstance(avatar_voice, dict) and avatar_voice.get("voice_id"):
-                        final_voice_config.update(avatar_voice)
-                    dylan_music = dylan_voice_config.get("_music_key", "")
-                    final_music = user_music or dylan_music
-                    video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=final_music, voice_config=final_voice_config or avatar_voice)
-                steps[step]["video_url"] = video_url
-                steps[step]["video_format"] = video_format
-                steps[step]["video_duration"] = 24
-                steps[step]["video_size"] = size
-
-                # Generate per-channel video variants (crop/resize from master)
-                if video_url:
-                    try:
-                        video_variants = await _create_video_variants(pipeline_id, video_url, video_format, pipeline.get("platforms", []))
-                        steps[step]["video_variants"] = video_variants
-                        logger.info(f"Created video variants for {len(video_variants)} platforms")
-                    except Exception as vv_err:
-                        logger.warning(f"Failed to create video variants: {vv_err}")
-
-                if not video_url:
-                    logger.warning(f"Commercial video generation failed for pipeline {pipeline_id}, continuing pipeline")
-                steps[step]["status"] = "completed"
+                logger.info(f"Pipeline {pipeline_id} paused for audio pre-approval (narration: {len(narration_text)} chars)")
+                return  # Stop here — wait for user approval before generating video
 
         # Determine next pipeline status
         nxt = _next_step(step)
@@ -499,6 +463,99 @@ async def _execute_step(pipeline_id, step):
         }).eq("id", pipeline_id).execute()
 
 
+
+
+async def _continue_video_after_approval(pipeline_id):
+    """Continue marcos_video step after user approves the audio preview.
+    Generates Sora 2 video + music + FFmpeg mix using the saved script."""
+    pipeline = supabase.table("pipelines").select("*").eq("id", pipeline_id).execute().data
+    if not pipeline:
+        return
+    pipeline = pipeline[0]
+    steps = pipeline.get("steps") or {}
+    marcos = steps.get("marcos_video", {})
+    response = marcos.get("output", "")
+    video_format = marcos.get("video_format", "horizontal")
+    size = marcos.get("video_size", "1280x720")
+
+    try:
+        steps["marcos_video"]["status"] = "generating_video"
+        supabase.table("pipelines").update({
+            "steps": steps, "status": "running",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", pipeline_id).execute()
+
+        user_music = pipeline.get("result", {}).get("selected_music", "")
+        video_mode = pipeline.get("result", {}).get("video_mode", "narration")
+        avatar_url = pipeline.get("result", {}).get("avatar_url", "")
+        avatar_voice = pipeline.get("result", {}).get("avatar_voice", None)
+
+        dylan_output = steps.get("dylan_sound", {}).get("output", "")
+        dylan_voice_config = _parse_dylan_audio(dylan_output) if dylan_output else {}
+
+        if video_mode == "presenter" and avatar_url:
+            video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=avatar_voice)
+        else:
+            final_voice_config = dylan_voice_config.copy() if dylan_voice_config else {}
+            if avatar_voice and isinstance(avatar_voice, dict) and avatar_voice.get("voice_id"):
+                final_voice_config.update(avatar_voice)
+            dylan_music = dylan_voice_config.get("_music_key", "")
+            final_music = user_music or dylan_music
+            video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=final_music, voice_config=final_voice_config or avatar_voice)
+
+        steps["marcos_video"]["video_url"] = video_url
+        steps["marcos_video"]["video_duration"] = 24
+        steps["marcos_video"]["status"] = "completed"
+        steps["marcos_video"]["completed_at"] = datetime.now(timezone.utc).isoformat()
+
+        if video_url:
+            try:
+                video_variants = await _create_video_variants(pipeline_id, video_url, video_format, pipeline.get("platforms", []))
+                steps["marcos_video"]["video_variants"] = video_variants
+            except Exception as vv_err:
+                logger.warning(f"Video variants failed: {vv_err}")
+        else:
+            logger.warning(f"Video generation failed for pipeline {pipeline_id}")
+
+        # Continue to next step
+        nxt = _next_step("marcos_video")
+        new_status = "running" if nxt else "completed"
+
+        supabase.table("pipelines").update({
+            "steps": steps, "status": new_status,
+            "current_step": nxt or "marcos_video",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", pipeline_id).execute()
+
+        if nxt:
+            await _execute_step(pipeline_id, nxt)
+
+    except Exception as e:
+        logger.error(f"Video generation after approval failed: {e}")
+        steps["marcos_video"]["status"] = "failed"
+        steps["marcos_video"]["error"] = str(e)
+        supabase.table("pipelines").update({
+            "steps": steps, "status": "failed",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", pipeline_id).execute()
+
+
+def _run_video_after_approval_in_thread(pipeline_id):
+    """Run video generation after audio approval in background thread."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_continue_video_after_approval(pipeline_id))
+    except Exception as e:
+        logger.error(f"Video after approval thread error: {e}")
+    finally:
+        loop.close()
+
+
+def _start_video_after_approval_bg(pipeline_id):
+    """Start video generation after audio approval in background."""
+    t = threading.Thread(target=_run_video_after_approval_in_thread, args=(pipeline_id,), daemon=True)
+    t.start()
 
 
 def _run_step_in_thread(pipeline_id, step):

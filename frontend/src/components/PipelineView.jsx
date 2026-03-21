@@ -752,6 +752,7 @@ export default function PipelineView({ context }) {
       const st = steps[s];
       if (!st) return;
       if (activePipeline.status === 'waiting_approval' && st.status === 'completed' && (s === 'ana_review_copy' || s === 'rafael_review_design' || s === 'rafael_review_video') && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
+          if (activePipeline.status === 'waiting_audio_approval' && s === 'marcos_video' && st.status === 'waiting_audio_approval' && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
       if (st.status === 'failed' && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
       if (st.status === 'requires_upgrade' && !newExpanded[s]) { newExpanded[s] = true; changed = true; }
     });
@@ -777,7 +778,7 @@ export default function PipelineView({ context }) {
       const { data } = await axios.get(`${API}/campaigns/pipeline/list`);
       const list = data.pipelines || [];
       setPipelines(list);
-      const active = list.find(p => ['running', 'pending', 'waiting_approval'].includes(p.status));
+      const active = list.find(p => ['running', 'pending', 'waiting_approval', 'waiting_audio_approval'].includes(p.status));
       if (active) {
         setActivePipeline(active);
         const exp = {};
@@ -791,7 +792,7 @@ export default function PipelineView({ context }) {
     try {
       const { data } = await axios.get(`${API}/campaigns/pipeline/${id}`);
       setActivePipeline(data);
-      if (['completed', 'failed', 'waiting_approval', 'requires_upgrade'].includes(data.status)) {
+      if (['completed', 'failed', 'waiting_approval', 'waiting_audio_approval', 'requires_upgrade'].includes(data.status)) {
         if (pollRef.current) clearInterval(pollRef.current);
       }
     } catch {}
@@ -882,6 +883,22 @@ export default function PipelineView({ context }) {
     } catch (e) { toast.error(e.response?.data?.detail || t('studio.err_approve') || 'Error approving'); }
   };
 
+  const approveAudio = async (approvalData) => {
+    if (!activePipeline) return;
+    try {
+      await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/approve-audio`, {
+        feedback: approvalData.feedback || '',
+        selection: approvalData.approved ? 1 : 0,
+      });
+      if (approvalData.approved) {
+        toast.success(t('studio.audio_approved') || 'Audio approved! Generating video...');
+      } else {
+        toast.success(t('studio.script_revision') || 'Script revision requested...');
+      }
+      setTimeout(() => { pollPipeline(activePipeline.id); startPolling(activePipeline.id); }, 1000);
+    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+  };
+
   const retryPipeline = async () => {
     if (!activePipeline) return;
     try {
@@ -946,6 +963,7 @@ export default function PipelineView({ context }) {
     const statusConfig = {
       running: { label: t('studio.status_running') || 'Running', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
       waiting_approval: { label: t('studio.status_waiting') || 'Waiting Approval', color: 'text-amber-400', bg: 'bg-amber-400' },
+      waiting_audio_approval: { label: t('studio.audio_preapproval') || 'Audio Pre-Approval', color: 'text-purple-400', bg: 'bg-purple-400' },
       completed: { label: t('studio.status_completed') || 'Completed!', color: 'text-green-400', bg: 'bg-green-400' },
       failed: { label: t('studio.status_failed') || 'Failed', color: 'text-red-400', bg: 'bg-red-400' },
       pending: { label: t('studio.status_pending') || 'Starting...', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
@@ -1028,7 +1046,7 @@ export default function PipelineView({ context }) {
           {STEP_ORDER.map(s => (
             <StepCard key={s} step={s} data={steps[s]}
               isActive={s === activePipeline.current_step && activePipeline.status === 'running'}
-              pipelineStatus={activePipeline.status} onApprove={approveStep}
+              pipelineStatus={activePipeline.status} onApprove={approveStep} onApproveAudio={approveAudio}
               expanded={!!expandedSteps[s]} onToggle={() => toggleStep(s)}
               pipelineId={activePipeline.id} onRefresh={() => pollPipeline(activePipeline.id)} />
           ))}
