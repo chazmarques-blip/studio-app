@@ -626,8 +626,8 @@
     "text_updated": "Texto actualizado!",
     "only_images": "Solo se aceptan imágenes",
     "err_generate_image": "Error al generar imagen",
-    "ai_edit": "Generar/Editar con IA",
-    "avatar_edited": "Avatar generado con IA!",
+    "ai_edit": "Editar con IA",
+    "avatar_edited": "Avatar editado con IA!",
     "editing": "Editando...",
     "apply": "Aplicar",
     "cancel": "Cancelar"

@@ -70,10 +70,9 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 
 ### Edicao IA de Avatar (2026-03-21)
 - Botoes de acao (editar, excluir, editar IA) agora sempre visiveis nos avatares da galeria (sem hover)
-- Novo botao "Gerar/Editar com IA" (sparkle roxo) na galeria e no modal de customizacao do avatar
-- Overlay popup com textarea para instrucoes detalhadas (descricao completa do personagem)
-- Backend endpoint POST /api/campaigns/pipeline/edit-avatar usando Gemini Nano Banana para GERACAO de imagem
-- Corrigido: agora gera imagem nova a partir do prompt (antes tentava editar a existente com Gemini edit que nao funcionava para transformacoes drasticas)
+- Novo botao "Editar com IA" (sparkle roxo) na galeria e no modal de customizacao do avatar
+- Overlay popup com textarea para instrucoes de edicao contextual
+- Backend endpoint POST /api/campaigns/pipeline/edit-avatar usando Gemini Edit IN-PLACE: envia imagem original + instrucao, mantendo identidade do personagem
 - Traducoes adicionadas em PT, EN, ES
 
 ## Backlog

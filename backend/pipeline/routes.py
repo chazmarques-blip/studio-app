@@ -1083,26 +1083,55 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
 
 @router.post("/edit-avatar")
 async def edit_avatar_image(body: EditAvatarRequest, user=Depends(get_current_user)):
-    """Edit or generate an avatar image using AI."""
+    """Edit an avatar image using AI — keeps the original as context/reference."""
     await _get_tenant(user)
 
-    # Use image GENERATION (Nano Banana) — the prompt describes what the user wants
-    gen_prompt = (
-        f"{body.instruction}\n\n"
-        "Full body character, centered, high quality, clean background. "
-        "The character should be suitable as a marketing presenter/avatar."
+    # Download the original avatar image to use as reference
+    image_url = body.avatar_url
+    if not image_url.startswith("http"):
+        image_url = f"{os.environ.get('SUPABASE_URL', '')}/storage/v1/object/public/pipeline-assets/{image_url.lstrip('/')}"
+
+    try:
+        req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            img_bytes = resp.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not download avatar image: {e}")
+
+    img_b64 = base64.b64encode(img_bytes).decode()
+    mime = "image/png"
+    if image_url.lower().endswith(".jpg") or image_url.lower().endswith(".jpeg"):
+        mime = "image/jpeg"
+    elif image_url.lower().endswith(".webp"):
+        mime = "image/webp"
+
+    system_msg = (
+        "You are an expert image editor. You receive a character/avatar image and an editing instruction. "
+        "Apply the requested changes while keeping the same character, pose, and overall composition. "
+        "Output ONLY the edited image."
+    )
+    prompt = (
+        f"Edit this avatar image according to these instructions: {body.instruction}\n\n"
+        "Keep the same character identity and overall pose. Apply the changes described above."
     )
 
     try:
-        new_url = await _generate_image(gen_prompt, f"avatar-edit-{uuid.uuid4().hex[:8]}", "ai")
-        if not new_url:
-            raise HTTPException(status_code=500, detail="AI generation returned no result")
+        images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
+        if not images:
+            raise HTTPException(status_code=500, detail="AI editing returned no result")
+
+        edited_b64 = images[0]["data"]
+        edited_mime = images[0].get("mime_type", "image/png")
+        ext = ".png" if "png" in edited_mime else ".jpg" if "jpeg" in edited_mime else ".webp"
+        filename = f"avatars/edited_{uuid.uuid4().hex[:8]}{ext}"
+        edited_bytes = base64.b64decode(edited_b64)
+        new_url = _upload_to_storage(edited_bytes, filename, edited_mime)
         return {"status": "ok", "url": new_url}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Avatar AI generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Avatar AI generation failed: {str(e)}")
+        logger.error(f"Avatar edit failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Avatar editing failed: {str(e)}")
 
 
 
