@@ -836,6 +836,7 @@ class AvatarVariantRequest(BaseModel):
     angle: str = "front"
     company_name: str = ""
     logo_url: str = ""
+    avatar_style: str = "realistic"  # 'realistic' | '3d_cartoon' | '3d_pixar'
 
 
 
@@ -843,6 +844,7 @@ class AvatarBatch360Request(BaseModel):
     source_image_url: str = ""
     clothing: str = "company_uniform"
     logo_url: str = ""
+    avatar_style: str = "realistic"  # 'realistic' | '3d_cartoon' | '3d_pixar'
 
 
 

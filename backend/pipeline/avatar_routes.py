@@ -815,29 +815,57 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
     }
     clothing_desc = CLOTHING_MAP.get(req.clothing, CLOTHING_MAP["company_uniform"])
     angle_desc = ANGLE_MAP.get(req.angle, ANGLE_MAP["front"])
+    is_3d = req.avatar_style in ("3d_cartoon", "3d_pixar")
     try:
-        system_msg = (
-            "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
-            "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
-            "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
-            "same body build. Do NOT generate a different person. Do NOT change their appearance. "
-            "Only change their clothing and camera angle as instructed. "
-            "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
-        )
-        prompt = (
-            f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
-            f"CHANGE ONLY:\n"
-            f"1. CLOTHING: Dress them in: {clothing_desc}\n"
-            f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
-            f"KEEP EXACTLY THE SAME:\n"
-            f"- Their face (every detail — eyes, nose, mouth, jawline, eyebrows)\n"
-            f"- Their skin tone and complexion\n"
-            f"- Their hair color, style, and length\n"
-            f"- Their body build and proportions\n\n"
-            f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
-            f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
-            f"Photorealistic, 4K detail."
-        )
+        if is_3d:
+            style_label = "Pixar-style 3D animated" if req.avatar_style == "3d_pixar" else "3D cartoon animated"
+            system_msg = (
+                f"You are an expert 3D character artist specializing in {style_label} characters. "
+                f"CRITICAL: The output MUST maintain the EXACT SAME {style_label} art style as the input image. "
+                "Do NOT make it photorealistic. Keep the 3D animation style — smooth skin, stylized proportions, "
+                "expressive features, vibrant colors, cinematic lighting. "
+                "Preserve the character's EXACT identity: same face shape, hair, skin tone, features. "
+                "Only change clothing and camera angle as instructed. "
+                "Output VERTICAL format (taller than wide, approximately 3:5 ratio)."
+            )
+            prompt = (
+                f"This is a {style_label} character. Generate the SAME character from a different angle.\n\n"
+                f"CRITICAL: Keep the EXACT SAME {style_label} art style — do NOT make it photorealistic.\n\n"
+                f"CHANGE ONLY:\n"
+                f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+                f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
+                f"KEEP EXACTLY THE SAME:\n"
+                f"- The {style_label} art style (smooth skin, stylized proportions, 3D rendering)\n"
+                f"- Their face design (every detail — eyes, nose, mouth, hair)\n"
+                f"- Their skin tone, hair color and style\n"
+                f"- Their body proportions\n\n"
+                f"OUTPUT: Full-body {style_label} character, VERTICAL format (taller than wide, 3:5 ratio), "
+                f"head to feet visible, clean studio background with soft gradient, "
+                f"cinematic 3D lighting, high-quality render."
+            )
+        else:
+            system_msg = (
+                "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
+                "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
+                "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
+                "same body build. Do NOT generate a different person. Do NOT change their appearance. "
+                "Only change their clothing and camera angle as instructed. "
+                "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
+            )
+            prompt = (
+                f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
+                f"CHANGE ONLY:\n"
+                f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+                f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
+                f"KEEP EXACTLY THE SAME:\n"
+                f"- Their face (every detail — eyes, nose, mouth, jawline, eyebrows)\n"
+                f"- Their skin tone and complexion\n"
+                f"- Their hair color, style, and length\n"
+                f"- Their body build and proportions\n\n"
+                f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
+                f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
+                f"Photorealistic, 4K detail."
+            )
 
         if req.source_image_url:
             img_b64 = None
@@ -900,7 +928,7 @@ _batch360_jobs = {}
 
 
 
-def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = ""):
+def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = "", avatar_style: str = "realistic"):
     """Background thread to generate all 4 angles for an avatar."""
     import asyncio
     CLOTHING_MAP = {
@@ -917,14 +945,28 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = 
         "back": "turned completely away from camera showing their back, looking slightly over shoulder",
     }
     clothing_desc = CLOTHING_MAP.get(clothing, CLOTHING_MAP["company_uniform"])
-    system_msg = (
-        "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
-        "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
-        "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
-        "same body build. Do NOT generate a different person. Do NOT change their appearance. "
-        "Only change their clothing and camera angle as instructed. "
-        "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
-    )
+    is_3d = avatar_style in ("3d_cartoon", "3d_pixar")
+
+    if is_3d:
+        style_label = "Pixar-style 3D animated" if avatar_style == "3d_pixar" else "3D cartoon animated"
+        system_msg = (
+            f"You are an expert 3D character artist specializing in {style_label} characters. "
+            f"CRITICAL: The output MUST maintain the EXACT SAME {style_label} art style as the input image. "
+            "Do NOT make it photorealistic. Keep the 3D animation style — smooth skin, stylized proportions, "
+            "expressive features, vibrant colors, cinematic lighting. "
+            "Preserve the character's EXACT identity: same face shape, hair, skin tone, features. "
+            "Only change clothing and camera angle as instructed. "
+            "Output VERTICAL format (taller than wide, approximately 3:5 ratio)."
+        )
+    else:
+        system_msg = (
+            "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
+            "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
+            "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
+            "same body build. Do NOT generate a different person. Do NOT change their appearance. "
+            "Only change their clothing and camera angle as instructed. "
+            "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
+        )
 
     # Download source image once
     img_b64 = None
@@ -949,20 +991,37 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = 
     results = {}
     for angle_key, angle_desc in ANGLE_MAP.items():
         try:
-            prompt = (
-                f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
-                f"CHANGE ONLY:\n"
-                f"1. CLOTHING: Dress them in: {clothing_desc}\n"
-                f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
-                f"KEEP EXACTLY THE SAME:\n"
-                f"- Their face (every detail — eyes, nose, mouth, jawline, eyebrows)\n"
-                f"- Their skin tone and complexion\n"
-                f"- Their hair color, style, and length\n"
-                f"- Their body build and proportions\n\n"
-                f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
-                f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
-                f"Photorealistic, 4K detail."
-            )
+            if is_3d:
+                prompt = (
+                    f"This is a {style_label} character. Generate the SAME character from a different angle.\n\n"
+                    f"CRITICAL: Keep the EXACT SAME {style_label} art style — do NOT make it photorealistic.\n\n"
+                    f"CHANGE ONLY:\n"
+                    f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+                    f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
+                    f"KEEP EXACTLY THE SAME:\n"
+                    f"- The {style_label} art style (smooth skin, stylized proportions, 3D rendering)\n"
+                    f"- Their face design (every detail — eyes, nose, mouth, hair)\n"
+                    f"- Their skin tone, hair color and style\n"
+                    f"- Their body proportions\n\n"
+                    f"OUTPUT: Full-body {style_label} character, VERTICAL format (taller than wide, 3:5 ratio), "
+                    f"head to feet visible, clean studio background with soft gradient, "
+                    f"cinematic 3D lighting, high-quality render."
+                )
+            else:
+                prompt = (
+                    f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
+                    f"CHANGE ONLY:\n"
+                    f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+                    f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
+                    f"KEEP EXACTLY THE SAME:\n"
+                    f"- Their face (every detail — eyes, nose, mouth, jawline, eyebrows)\n"
+                    f"- Their skin tone and complexion\n"
+                    f"- Their hair color, style, and length\n"
+                    f"- Their body build and proportions\n\n"
+                    f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
+                    f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
+                    f"Photorealistic, 4K detail."
+                )
             if person_desc:
                 prompt = f"PERSON IDENTITY (must match EXACTLY): {person_desc}\n\n{prompt}"
 
@@ -1001,7 +1060,7 @@ async def generate_avatar_360(req: AvatarBatch360Request, user=Depends(get_curre
     """Start batch generation of all 4 angles for an avatar (background job with polling)."""
     job_id = uuid.uuid4().hex[:10]
     _batch360_jobs[job_id] = {"status": "processing", "results": {}, "completed": 0}
-    thread = threading.Thread(target=_run_batch_360, args=(job_id, req.source_image_url, req.clothing, req.logo_url), daemon=True)
+    thread = threading.Thread(target=_run_batch_360, args=(job_id, req.source_image_url, req.clothing, req.logo_url, req.avatar_style), daemon=True)
     thread.start()
     return {"job_id": job_id, "status": "processing"}
 

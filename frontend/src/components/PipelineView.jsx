@@ -293,13 +293,14 @@ export default function PipelineView({ context }) {
     setAvatarVideoUploading(false);
   };
 
-  const startAuto360 = async (sourceUrl, clothing = 'company_uniform') => {
+  const startAuto360 = async (sourceUrl, clothing = 'company_uniform', style = 'realistic') => {
     setAuto360Progress({ completed: 0, total: 4 });
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-360`, {
         source_image_url: sourceUrl,
         clothing,
         logo_url: activeCompany?.logo_url || '',
+        avatar_style: style,
       });
       if (data.job_id) {
         const pollInterval = setInterval(async () => {
@@ -361,6 +362,7 @@ export default function PipelineView({ context }) {
                 clothing: 'company_uniform',
                 voice: autoVoice,
                 accuracy_iterations: status.iterations || [],
+                avatar_style: 'realistic',
               });
               setAvatarStage('customize');
               setAngleImages({});
@@ -373,7 +375,7 @@ export default function PipelineView({ context }) {
               setGeneratingAvatar(false);
               toast.success(`${t('studio.avatar_generated')} (Score: ${status.final_score || '?'}/10)`);
               // Auto-generate 360° angles
-              startAuto360(avatarSourcePhoto?.url || status.avatar_url, 'company_uniform');
+              startAuto360(avatarSourcePhoto?.url || status.avatar_url, 'company_uniform', 'realistic');
             } else if (status.status === 'failed') {
               clearInterval(pollInterval);
               setAccuracyProgress(null);
@@ -415,6 +417,7 @@ export default function PipelineView({ context }) {
           clothing: 'company_uniform',
           voice: null,
           creation_mode: avatarCreationMode,
+          avatar_style: style,
         });
         setAvatarStage('customize');
         setAngleImages({});
@@ -422,7 +425,7 @@ export default function PipelineView({ context }) {
         setAccuracyProgress(null);
         setGeneratingAvatar(false);
         toast.success(t('studio.avatar_generated') || 'Avatar generated!');
-        startAuto360(data.avatar_url, 'company_uniform');
+        startAuto360(data.avatar_url, 'company_uniform', style);
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || t('studio.err_generic'));
@@ -568,7 +571,7 @@ export default function PipelineView({ context }) {
         setTempAvatar(p => ({ ...p, url: data.avatar_url, clothing: style }));
         setAngleImages({ front: data.avatar_url });
         // Auto-generate remaining 360° angles for this style
-        startAuto360(tempAvatar.source_photo_url || tempAvatar.url, style);
+        startAuto360(tempAvatar.source_photo_url || tempAvatar.url, style, tempAvatar?.avatar_style || 'realistic');
       }
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error');
@@ -586,6 +589,7 @@ export default function PipelineView({ context }) {
         angle,
         company_name: activeCompany?.name || '',
         logo_url: activeCompany?.logo_url || '',
+        avatar_style: tempAvatar?.avatar_style || 'realistic',
       });
       if (data.avatar_url) {
         setAngleImages(p => ({ ...p, [angle]: data.avatar_url }));
