@@ -880,20 +880,28 @@ async def regenerate_single_image(body: RegenerateStyleRequest, user=Depends(get
         template = LANG_PROMPT_TEMPLATES.get(lang_code, LANG_PROMPT_TEMPLATES["pt"])
         content_prompt = template.format(context=context, copy=copy_hint[:200] if copy_hint else context)
 
-    # Use the extracted headline or generate one based on campaign name
-    headline_instruction = ""
+    # Language enforcement for the prompt
+    if lang_code == "en":
+        lang_enforcement_top = f"⚠️ MANDATORY: ALL visible text in this image MUST be in English."
+        lang_enforcement_bottom = f"🚨 EVERY word visible in the image MUST be in English. Do NOT write text in Spanish, Portuguese, or any other language."
+        headline_no_translate = ""
+    else:
+        lang_enforcement_top = f"⚠️ MANDATORY: ALL visible text in this image MUST be in {lang_name}. ZERO English text allowed."
+        lang_enforcement_bottom = f"🚨 EVERY word visible in the image MUST be in {lang_name}. If you write ANY English text, the image is REJECTED."
+        headline_no_translate = f" DO NOT translate this headline to English."
+
     if extracted_headline:
-        headline_instruction = f'\nTHE HEADLINE TEXT IN THE IMAGE MUST BE EXACTLY: "{extracted_headline}" (or a short variation of it, MAX 7 words, in {lang_name}). DO NOT translate this headline to English.'
+        headline_instruction = f'\nTHE HEADLINE TEXT IN THE IMAGE MUST BE EXACTLY: "{extracted_headline}" (or a short variation of it, MAX 7 words, in {lang_name}).{headline_no_translate}'
     else:
         headline_instruction = f"\nINCLUDE one short impactful headline text (3-7 words) written in {lang_name}, in bold clean typography."
 
-    prompt = f"""⚠️ MANDATORY: ALL visible text in this image MUST be in {lang_name}. ZERO English text allowed.
+    prompt = f"""{lang_enforcement_top}
 {content_prompt}
 
 VISUAL STYLE: {style_desc}
 {headline_instruction}
 No logos or brand names. 1080x1080 square format.
-🚨 EVERY word visible in the image MUST be in {lang_name}. If you write ANY English text, the image is REJECTED."""
+{lang_enforcement_bottom}"""
 
     pid = f"single-{uuid.uuid4().hex[:8]}"
     url = await _generate_image(prompt, pid, 1)
