@@ -451,8 +451,16 @@ async def _execute_step(pipeline_id, step):
             try:
                 approved_copy = steps.get("ana_review_copy", {}).get("approved_content", "")
                 clean_copy = _clean_copy_text(approved_copy)
-                image_urls = steps.get("lucas_design", {}).get("images", []) or steps.get("lucas_design", {}).get("image_urls", [])
-                platform_variants = steps.get("lucas_design", {}).get("platform_variants", {})
+                lucas_data = steps.get("lucas_design", {})
+                imgs_f = lucas_data.get("images", [])
+                urls_f = lucas_data.get("image_urls", [])
+                seen_urls = set()
+                image_urls = []
+                for u in (urls_f + imgs_f):
+                    if u and u not in seen_urls:
+                        seen_urls.add(u)
+                        image_urls.append(u)
+                platform_variants = lucas_data.get("platform_variants", {})
                 video_url = steps.get("marcos_video", {}).get("video_url", "")
                 schedule_text = steps.get("pedro_publish", {}).get("output", "")
                 ctx = pipeline.get("result", {}).get("context", {})

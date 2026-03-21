@@ -1,0 +1,90 @@
+{
+  "summary": "Iteration 83: Art Gallery Complete Bug Fix Verification - All 11 backend tests passed + UI verification successful. The bug where (1) original pipeline images weren't appearing when new ones were created and (2) WhatsApp mockup showed different image than selected in grid has been FIXED. The fix implements merge logic with deduplication for images/image_urls fields and mockup now uses images[safeIdx] directly instead of platform_variants.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration83_art_gallery_complete_fix.py",
+    "/app/test_reports/pytest/pytest_results_iteration83.xml"
+  ],
+  "test_results": {
+    "backend": {
+      "total": 11,
+      "passed": 11,
+      "skipped": 0,
+      "failed": 0,
+      "details": [
+        "✓ TestAuthAndHealth::test_backend_health - Backend is healthy",
+        "✓ TestAuthAndHealth::test_login_success - Login with test@agentflow.com works",
+        "✓ TestHerculesCampaignImages::test_get_campaigns_list - 60 campaigns found",
+        "✓ TestHerculesCampaignImages::test_hercules_campaign_has_12_images - Hercules campaign has images",
+        "✓ TestHerculesCampaignImages::test_original_images_preserved - Original images preserved, no duplicates",
+        "✓ TestPipelineImagesField::test_pipeline_list_returns_images - Pipelines have images in lucas_design step",
+        "✓ TestBiblizooCampaign::test_biblizoo_campaign_images - Biblizoo campaign has images",
+        "✓ TestMigrateImagesEndpoint::test_migrate_images_endpoint_exists - migrate-images endpoint working",
+        "✓ TestRegenerateSingleImageMerge::test_regenerate_single_image_endpoint_exists - regenerate-single-image endpoint exists",
+        "✓ TestEditImageTextMerge::test_edit_image_text_endpoint_exists - edit-image-text endpoint exists",
+        "✓ TestCampaignImageDataIntegrity::test_all_campaigns_have_valid_images - All campaign images are valid URLs"
+      ]
+    },
+    "frontend": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "details": [
+        "✓ Login with test@agentflow.com / password123 works",
+        "✓ Marketing page loads with 60 campaigns",
+        "✓ Hercules Solutions Avatar campaign detail modal opens",
+        "✓ SELECT MEDIA grid shows 12 Design images (3 originals + 9 new style)",
+        "✓ Image selection updates mockup correctly (Design 1, 3, 5 tested)",
+        "✓ WhatsApp mockup shows correct selected image",
+        "✓ Instagram mockup works correctly",
+        "✓ TikTok mockup works correctly",
+        "✓ Facebook mockup works correctly"
+      ]
+    }
+  },
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration83_art_gallery_complete_fix.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 passed)",
+    "frontend": "100% (8/8 UI tests passed)"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "None - used existing campaigns",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 83 verified the COMPLETE Art Gallery bug fix. The bugs were: (1) Original pipeline images not appearing when new ones were created - caused by images vs image_urls field desync, (2) WhatsApp mockup showing different image than selected in grid - caused by platform_variants indices being different from images array. The fix implements: (1) Merge logic with deduplication in all read operations (engine.py lines 452-462, routes.py lines 910-923, 972-983, 1268-1278), (2) Data migration endpoint that fixed 64 pipelines + 54 campaigns, (3) Mockup now uses images[safeIdx] directly (Marketing.jsx lines 791-797). Hercules Solutions Avatar campaign now shows 12 images correctly. All mockups (WhatsApp, Instagram, TikTok, Facebook) display the correct selected image.",
+  "bug_fix_verification": {
+    "root_cause_1": "images vs image_urls field desync - engine.py saved to image_urls, other endpoints read/wrote images",
+    "root_cause_2": "platform_variants indices were different from images array, causing mockup to show wrong image",
+    "fix_applied": [
+      "Merge logic with deduplication: urls_field + imgs_field merged with seen set to prevent duplicates",
+      "Both fields (images and image_urls) now kept in sync for legacy compatibility",
+      "Mockup uses images[safeIdx] directly instead of platform_variants[channel][safeIdx]",
+      "Data migration endpoint already executed fixing 64 pipelines + 54 campaigns"
+    ],
+    "files_fixed": [
+      "backend/pipeline/engine.py: Lines 452-462 - merge images/image_urls with dedup before publishing campaign",
+      "backend/pipeline/routes.py: Lines 910-923 - regenerate-single-image merges both fields with dedup",
+      "backend/pipeline/routes.py: Lines 972-983 - edit-image-text merges both fields with dedup",
+      "backend/pipeline/routes.py: Lines 1268-1278 - regenerate_pipeline_image merges both fields",
+      "backend/pipeline/routes.py: Lines 1061-1100 - migrate-images endpoint (already run)",
+      "frontend/pages/Marketing.jsx: Lines 791-797 - mockup now uses images[safeIdx] directly"
+    ],
+    "verification_status": "VERIFIED - All 12 images display correctly in SELECT MEDIA grid, mockup shows correct selected image"
+  },
+  "note": "Bug fix fully verified. Original images (3) + new style-generated images (9) = 12 total images now display correctly in Hercules Solutions Avatar campaign. Mockup selection works as expected across all channels."
+}

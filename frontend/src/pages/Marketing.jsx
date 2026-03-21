@@ -790,11 +790,9 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               <div className="space-y-3" data-testid={`mockup-${selectedChannel}-content`}>
                 {(() => {
                   const channel = selectedChannel;
-                  // Use platform-specific variant if available
-                  const platformVariants = stats.platform_variants || {};
-                  const channelImages = platformVariants[channel] || images;
-                  const safeIdx = shareImgIdx < channelImages.length ? shareImgIdx : 0;
-                  const imgUrl = channelImages[safeIdx] || images[safeIdx] || images[0];
+                  // Always use the images array directly — platform_variants indices may be out of sync
+                  const safeIdx = shareImgIdx < images.length ? shareImgIdx : 0;
+                  const imgUrl = images[safeIdx] || images[0];
                   const imgSrc = imgUrl ? resolveImageUrl(imgUrl) : null;
                   const channelMsg = messages.find(m => m.channel === channel);
                   const copyText_ch = cleanCampaignText(channelMsg?.content || messages[0]?.content || '');

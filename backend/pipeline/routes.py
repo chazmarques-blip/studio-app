@@ -908,7 +908,16 @@ No logos or brand names. 1080x1080 square format.
                 steps = p.data[0].get("steps", {})
                 platforms = p.data[0].get("platforms", [])
                 lucas_step = steps.get("lucas_design", {})
-                existing_images = lucas_step.get("images", []) or lucas_step.get("image_urls", [])
+                # Merge images from both fields: originals (image_urls) + new ones (images)
+                imgs_field = lucas_step.get("images", [])
+                urls_field = lucas_step.get("image_urls", [])
+                # Deduplicate: originals first, then new ones not already present
+                seen = set()
+                existing_images = []
+                for u in (urls_field + imgs_field):
+                    if u and u not in seen:
+                        seen.add(u)
+                        existing_images.append(u)
                 existing_images.append(url)
                 lucas_step["images"] = existing_images
                 lucas_step["image_urls"] = existing_images  # legacy compat
@@ -962,7 +971,15 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
     pipeline = p.data[0]
     steps = pipeline.get("steps", {})
     lucas_step = steps.get("lucas_design", {})
-    existing_images = lucas_step.get("images", []) or lucas_step.get("image_urls", [])
+    # Merge images from both fields: originals (image_urls) + new ones (images)
+    imgs_field = lucas_step.get("images", [])
+    urls_field = lucas_step.get("image_urls", [])
+    seen = set()
+    existing_images = []
+    for u in (urls_field + imgs_field):
+        if u and u not in seen:
+            seen.add(u)
+            existing_images.append(u)
     platforms = pipeline.get("platforms", [])
 
     if body.image_index >= len(existing_images):
@@ -1040,6 +1057,49 @@ Keep the same color palette, art style, and general composition. Only change the
 
 
 
+
+
+@router.post("/migrate-images")
+async def migrate_pipeline_images(user=Depends(get_current_user)):
+    """One-time migration: merge image_urls into images for all pipelines and sync to campaigns"""
+    tenant = await _get_tenant(user)
+    pipelines = supabase.table("pipelines").select("id, steps, tenant_id, platforms").eq("tenant_id", tenant["id"]).execute().data or []
+    campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
+    
+    fixed_pipelines = 0
+    fixed_campaigns = 0
+    
+    for p in pipelines:
+        steps = p.get("steps", {})
+        lucas = steps.get("lucas_design", {})
+        imgs = lucas.get("images", [])
+        urls = lucas.get("image_urls", [])
+        
+        if not urls and not imgs:
+            continue
+        
+        # Merge: originals first, then new ones
+        seen = set()
+        merged = []
+        for u in (urls + imgs):
+            if u and u not in seen:
+                seen.add(u)
+                merged.append(u)
+        
+        if merged != imgs or merged != urls:
+            lucas["images"] = merged
+            lucas["image_urls"] = merged
+            steps["lucas_design"] = lucas
+            supabase.table("pipelines").update({"steps": steps}).eq("id", p["id"]).execute()
+            fixed_pipelines += 1
+            
+            # Sync to linked campaign
+            c = _find_campaign_for_pipeline(campaigns, p["id"])
+            if c:
+                _update_campaign_stats(c, {"images": merged})
+                fixed_campaigns += 1
+    
+    return {"fixed_pipelines": fixed_pipelines, "fixed_campaigns": fixed_campaigns, "total_pipelines": len(pipelines)}
 
 @router.post("/{pipeline_id}/archive")
 async def archive_pipeline(pipeline_id: str, user=Depends(get_current_user)):
@@ -1250,7 +1310,15 @@ async def regenerate_pipeline_image(pipeline_id: str, data: RegenerateImageReque
     pipeline = result.data[0]
     steps = pipeline.get("steps") or {}
     lucas = steps.get("lucas_design", {})
-    image_urls = lucas.get("images", []) or lucas.get("image_urls", [])
+    # Merge images from both fields
+    imgs_field = lucas.get("images", [])
+    urls_field = lucas.get("image_urls", [])
+    seen = set()
+    image_urls = []
+    for u in (urls_field + imgs_field):
+        if u and u not in seen:
+            seen.add(u)
+            image_urls.append(u)
 
     if data.image_index < 0 or data.image_index >= len(image_urls):
         raise HTTPException(status_code=400, detail=f"Invalid image index {data.image_index}. Available: 0-{len(image_urls)-1}")
