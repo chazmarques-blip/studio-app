@@ -12,6 +12,22 @@ function cleanDisplayText(raw) {
   const labels = 'Title|Titulo|Título|Copy|Texto|Headline|Body|CTA|Caption|Legenda|Subject|Assunto|Chamada|Subtítulo|Subtitle|Hashtags|Visual|Conceito|Concept|Plataforma|Platform|Dimensões|Dimensions|Adaptações|Call.to.Action';
   text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*[:：]\\s*`, 'gim'), '');
   text = text.replace(new RegExp(`^\\s*(?:${labels})\\s*$`, 'gim'), '');
+  // Remove framework/direction tags from copy (ANTES:, DEPOIS:, A PONTE:, HOOK:, BUILD:, etc.)
+  const fwTags = 'ANTES|DEPOIS|A PONTE|PROBLEMA|SOLU[ÇC][ÃA]O|TRANSFORMA[ÇC][ÃA]O|BEFORE|AFTER|THE BRIDGE|PROBLEM|SOLUTION|HOOK|BUILD|CLIMAX|PEAK|SETUP|REVEAL|PAYOFF|GANCHO|REVELA[ÇC][ÃA]O';
+  text = text.replace(new RegExp(`^\\s*"?\\s*(?:${fwTags})\\s*:\\s*`, 'gim'), '');
+  // Remove timing marks [0-4s]:, [HOOK 0-4s], etc.
+  text = text.replace(/\[\d+\s*-\s*\d+s?\]\s*:?\s*/g, '');
+  text = text.replace(/\[\s*(?:HOOK|BUILD|CLIMAX|SILENCE|INTRO|OUTRO|CTA|PEAK|TRANSITION|CLOSE)\s*[^\]]*\]/gi, '');
+  // Remove [Direction: ...] and <emotion, pace, volume> tags
+  text = text.replace(/\[Direction:[^\]]*\]/gi, '');
+  text = text.replace(/<[^>]{2,60}>/g, '');
+  // Remove <<<...>>> and standalone directions
+  text = text.replace(/<{2,}[^<]*>{2,}/g, '');
+  text = text.replace(/>{2,}/g, '');
+  text = text.replace(/\[?TOTAL WORD COUNT[^\]]*\]?/gi, '');
+  text = text.replace(/^.*(?:silêncio|apenas música|music only|Music carries|No voice|cinema ending|TOTAL WORD COUNT).*$/gim, '');
+  text = text.replace(/Emotional Arc:.*$/gim, '');
+  text = text.replace(/Total Word Count:.*$/gim, '');
   text = text.replace(/={3,}.*?={3,}/g, '');
   text = text.replace(/^-{3,}\s*$/gm, '');
   text = text.replace(/\n{3,}/g, '\n\n').trim();

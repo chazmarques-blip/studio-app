@@ -48,6 +48,30 @@ from pipeline.engine import (
 
 
 
+
+def _find_campaign_for_pipeline(campaigns, pipeline_id):
+    """Find a campaign that matches a pipeline_id.
+    Checks metrics.schedule.pipeline_id (primary) and metrics.stats.pipeline_id (legacy)."""
+    for c in campaigns:
+        m = c.get("metrics") or {}
+        sched_pid = m.get("schedule", {}).get("pipeline_id")
+        legacy_pid = m.get("stats", {}).get("pipeline_id")
+        if sched_pid == pipeline_id or legacy_pid == pipeline_id:
+            return c
+    return None
+
+
+def _update_campaign_stats(campaign, updates):
+    """Update a campaign's metrics.stats with the given dict, preserving existing data."""
+    m = campaign.get("metrics") or {}
+    st = m.get("stats") or {}
+    st.update(updates)
+    m["stats"] = st
+    supabase.table("campaigns").update({"metrics": m}).eq("id", campaign["id"]).execute()
+    return st
+
+
+
 @router.get("/music-library")
 async def get_music_library():
     """Return available background music tracks with preview URLs"""
@@ -493,15 +517,10 @@ async def regenerate_video_variants(pipeline_id: str, user=Depends(get_current_u
             }).eq("id", pipeline_id).execute()
             # Also update campaign stats
             campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
-            for c in campaigns:
-                m = c.get("metrics") or {}
-                s = m.get("stats") or {}
-                if s.get("pipeline_id") == pipeline_id:
-                    s["video_variants"] = variants
-                    m["stats"] = s
-                    supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                    logger.info(f"Updated campaign {c['id']} with {len(variants)} video variants")
-                    break
+            c = _find_campaign_for_pipeline(campaigns, pipeline_id)
+            if c:
+                _update_campaign_stats(c, {"video_variants": variants})
+                logger.info(f"Updated campaign {c['id']} with {len(variants)} video variants")
             return {"status": "success", "variants": variants, "count": len(variants)}
         return {"status": "no_variants_generated"}
     except Exception as e:
@@ -613,15 +632,10 @@ async def remix_audio(pipeline_id: str, user=Depends(get_current_user)):
                 # Also update campaign if exists (search by pipeline_id in metrics JSONB)
                 try:
                     camps = supabase.table("campaigns").select("id, metrics").eq("tenant_id", supabase.table("pipelines").select("tenant_id").eq("id", pid).single().execute().data["tenant_id"]).execute()
-                    for c in (camps.data or []):
-                        metrics = c.get("metrics") or {}
-                        if metrics.get("stats", {}).get("pipeline_id") == pid:
-                            stats = metrics.get("stats", {})
-                            stats["video_url"] = new_url
-                            metrics["stats"] = stats
-                            supabase.table("campaigns").update({"metrics": metrics}).eq("id", c["id"]).execute()
-                            logger.info(f"Updated campaign {c['id']} with new video URL")
-                            break
+                    c = _find_campaign_for_pipeline(camps.data or [], pid)
+                    if c:
+                        _update_campaign_stats(c, {"video_url": new_url})
+                        logger.info(f"Updated campaign {c['id']} with new video URL")
                 except Exception as ce:
                     logger.warning(f"Campaign update skipped: {ce}")
                 logger.info(f"Audio remixed successfully for pipeline {pid}")
@@ -707,12 +721,9 @@ async def remix_all_videos(user=Depends(get_current_user)):
                     # Update linked campaign
                     try:
                         camps = supabase.table("campaigns").select("id, metrics").eq("tenant_id", tenant_id).execute()
-                        for c in (camps.data or []):
-                            if (c.get("metrics") or {}).get("stats", {}).get("pipeline_id") == pid:
-                                m = c.get("metrics") or {}
-                                m.setdefault("stats", {})["video_url"] = new_url
-                                supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                                break
+                        c = _find_campaign_for_pipeline(camps.data or [], pid)
+                        if c:
+                            _update_campaign_stats(c, {"video_url": new_url})
                     except Exception:
                         pass
                     logger.info(f"Batch remix done: {pid}")
@@ -861,16 +872,10 @@ No logos or brand names. 1080x1080 square format.
 
                 # Also update linked campaign
                 campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
-                for c in campaigns:
-                    m = c.get("metrics") or {}
-                    s = m.get("stats") or {}
-                    if s.get("pipeline_id") == body.pipeline_id:
-                        s["images"] = existing_images
-                        s["platform_variants"] = lucas_step.get("platform_variants", {})
-                        m["stats"] = s
-                        supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                        logger.info(f"Updated campaign {c['id']} images + variants ({len(existing_images)} total)")
-                        break
+                c = _find_campaign_for_pipeline(campaigns, body.pipeline_id)
+                if c:
+                    _update_campaign_stats(c, {"images": existing_images, "platform_variants": lucas_step.get("platform_variants", {})})
+                    logger.info(f"Updated campaign {c['id']} images + variants ({len(existing_images)} total)")
         except Exception as e:
             logger.warning(f"Failed to save image to pipeline gallery: {e}")
 
@@ -958,16 +963,10 @@ Keep the same color palette, art style, and general composition. Only change the
     # Update linked campaign
     try:
         campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
-        for c in campaigns:
-            m = c.get("metrics") or {}
-            s = m.get("stats") or {}
-            if s.get("pipeline_id") == body.pipeline_id:
-                s["images"] = existing_images
-                s["platform_variants"] = lucas_step.get("platform_variants", {})
-                m["stats"] = s
-                supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                logger.info(f"Updated campaign {c['id']} with text-edited image")
-                break
+        c = _find_campaign_for_pipeline(campaigns, body.pipeline_id)
+        if c:
+            _update_campaign_stats(c, {"images": existing_images, "platform_variants": lucas_step.get("platform_variants", {})})
+            logger.info(f"Updated campaign {c['id']} with text-edited image")
     except Exception as e:
         logger.warning(f"Failed to update campaign with text-edited image: {e}")
 
@@ -1021,12 +1020,9 @@ async def publish_pipeline_campaign(pipeline_id: str, body: PublishRequest = Pub
     # Find existing campaign from this pipeline
     campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
     campaign_id = None
-    for c in campaigns:
-        m = c.get("metrics") or {}
-        s = m.get("stats") or {}
-        if s.get("pipeline_id") == pipeline_id:
-            campaign_id = c["id"]
-            break
+    c = _find_campaign_for_pipeline(campaigns, pipeline_id)
+    if c:
+        campaign_id = c["id"]
 
     camp_lang = pipeline.get("result", {}).get("campaign_language", "pt")
     campaign_data = {
@@ -1084,8 +1080,8 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
     # Determine video format
     format_match = re.search(r'Format:\s*(horizontal|vertical)', marcos_output, re.IGNORECASE)
     video_format = format_match.group(1).lower() if format_match else "horizontal"
-    FORMAT_MAP = {"vertical": "720x1280", "horizontal": "1280x720"}
-    size = FORMAT_MAP.get(video_format, "1280x720")
+    FORMAT_MAP = {"vertical": "1080x1920", "horizontal": "1920x1080"}
+    size = FORMAT_MAP.get(video_format, "1920x1080")
     user_music = pipeline.get("result", {}).get("selected_music", "")
 
     # Mark as generating
@@ -1122,20 +1118,16 @@ async def regenerate_video(pipeline_id: str, user=Depends(get_current_user)):
                     logger.warning(f"Failed to create video variants during regen: {vv_err}")
 
                 campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
-                for c in campaigns:
-                    m = c.get("metrics") or {}
-                    s = m.get("stats") or {}
-                    if s.get("pipeline_id") == pipeline_id:
-                        s["video_url"] = video_url
-                        s["video_variants"] = video_variants
-                        m["stats"] = s
-                        supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                        logger.info(f"Auto-updated campaign {c['id']} with video + {len(video_variants)} variants")
-                        break
+                c = _find_campaign_for_pipeline(campaigns, pipeline_id)
+                if c:
+                    _update_campaign_stats(c, {"video_url": video_url, "video_variants": video_variants})
+                    logger.info(f"Auto-updated campaign {c['id']} with video + {len(video_variants)} variants")
         except Exception as e:
             logger.error(f"Video regeneration failed: {e}")
-            steps["marcos_video"]["status"] = "completed"
-            supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
+            # Preserve existing video_url on failure — don't clear a successful video
+            if not steps["marcos_video"].get("video_url"):
+                steps["marcos_video"]["status"] = "completed"
+                supabase.table("pipelines").update({"steps": steps}).eq("id", pipeline_id).execute()
 
     asyncio.create_task(_regen())
     return {"status": "generating", "pipeline_id": pipeline_id, "message": "Video regeneration started"}
@@ -1163,23 +1155,21 @@ async def update_pipeline_copy(pipeline_id: str, data: UpdateCopyRequest, user=D
 
     # Sync updated copy to the campaign messages
     campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
-    for c in campaigns:
+    c = _find_campaign_for_pipeline(campaigns, pipeline_id)
+    if c:
         m = c.get("metrics") or {}
-        s = m.get("stats") or {}
-        if s.get("pipeline_id") == pipeline_id:
-            # Parse variations and rebuild messages
-            variations = re.split(r'===\s*VARIATION\s*\d+\s*===', data.copy_text, flags=re.IGNORECASE)
-            variations = [v.strip() for v in variations if v.strip()]
-            platforms = pipeline.get("platforms") or []
-            new_messages = []
-            for i, plat in enumerate(platforms):
-                var_idx = i % max(len(variations), 1)
-                text = _clean_copy_text(variations[var_idx] if variations else data.copy_text)
-                new_messages.append({"channel": plat, "content": text, "delay_hours": 0})
-            m["messages"] = new_messages
-            supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-            logger.info(f"Updated campaign {c['id']} copy from pipeline {pipeline_id}")
-            break
+        # Parse variations and rebuild messages
+        variations = re.split(r'===\s*VARIATION\s*\d+\s*===', data.copy_text, flags=re.IGNORECASE)
+        variations = [v.strip() for v in variations if v.strip()]
+        platforms = pipeline.get("platforms") or []
+        new_messages = []
+        for i, plat in enumerate(platforms):
+            var_idx = i % max(len(variations), 1)
+            text = _clean_copy_text(variations[var_idx] if variations else data.copy_text)
+            new_messages.append({"channel": plat, "content": text, "delay_hours": 0})
+        m["messages"] = new_messages
+        supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
+        logger.info(f"Updated campaign {c['id']} copy from pipeline {pipeline_id}")
 
     return {"status": "updated", "pipeline_id": pipeline_id}
 
@@ -1261,16 +1251,10 @@ NO logos, NO brand names, NO website URLs.
 
                 # Sync to campaign
                 campaigns = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).execute().data or []
-                for c in campaigns:
-                    m = c.get("metrics") or {}
-                    s = m.get("stats") or {}
-                    if s.get("pipeline_id") == pipeline_id:
-                        s["image_urls"] = image_urls
-                        s["platform_variants"] = lucas.get("platform_variants", {})
-                        m["stats"] = s
-                        supabase.table("campaigns").update({"metrics": m}).eq("id", c["id"]).execute()
-                        logger.info(f"Updated campaign images for pipeline {pipeline_id}")
-                        break
+                c = _find_campaign_for_pipeline(campaigns, pipeline_id)
+                if c:
+                    _update_campaign_stats(c, {"image_urls": image_urls, "platform_variants": lucas.get("platform_variants", {})})
+                    logger.info(f"Updated campaign images for pipeline {pipeline_id}")
 
                 logger.info(f"Image {data.image_index} regenerated successfully: {new_url}")
             else:

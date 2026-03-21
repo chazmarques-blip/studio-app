@@ -385,6 +385,9 @@ Emotional Arc: [The complete emotional journey in 2-3 sentences. Reference the 3
 [SILENCE 16-24s]
 Music carries the emotion. No voice. This is the cinema ending.
 
+===CLEAN TTS TEXT===
+[Write here ONLY the exact words to be spoken aloud — NO tags, NO directions, NO framework labels, NO "ANTES:", NO "DEPOIS:", NO "HOOK:", NO timing marks, NO emotions, NO brackets, NO quotes. Just the pure script as a single flowing paragraph that a voice actor would read. This is what goes directly to the text-to-speech engine.]
+
 ===MUSIC SELECTION===
 Track: [exact key from library]
 Name: [track name]
@@ -611,11 +614,14 @@ Format your output EXACTLY like this:
 [80-120 words. Seconds 12-24. INCLUDE the full character description again. Start at the transition moment. Build to emotional peak. Final 2 seconds: clean/simple frame for logo overlay.]
 
 ===NARRATION SCRIPT===
-[Write ONLY the words to be spoken aloud. NO visual directions. NO "silence". NO "music only". NO "logo appears". ONLY spoken words.]
+[Write ONLY the words to be spoken aloud. NO visual directions. NO "silence". NO "music only". NO "logo appears". ONLY spoken words. NO framework labels like "ANTES:", "DEPOIS:", "A PONTE:", "HOOK:", "BUILD:", "CLIMAX:", "BEFORE:", "AFTER:". NO bracketed timing. NO quoted text markers. Just the raw speech as a flowing script.]
 [0-4s]: [Hook — spoken words only]
 [4-10s]: [Solution + Transformation — spoken words only]
 [10-16s]: [CTA — ONE powerful sentence, brand + action. LAST SPOKEN WORDS.]
 [TOTAL WORD COUNT: XX words — must be under 40]
+
+===CLEAN TTS TEXT===
+[Copy here the EXACT same narration as above but as a SINGLE CLEAN PARAGRAPH — no timing marks, no labels, no brackets. This is what goes directly to the voice engine.]
 
 ===MUSIC DIRECTION===
 Mood: [choose ONE: luxury/elegant/sophisticated/calm/peaceful/relaxing/upbeat/happy/fun/energetic/exciting/powerful/cinematic/dramatic/epic/corporate/professional/clean/modern/tech/innovation/warm/friendly/cozy/urban/street/edgy/tropical/festive/party/soulful/groovy/indie/creative/emotional/inspirational]

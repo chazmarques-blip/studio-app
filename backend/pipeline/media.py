@@ -590,14 +590,141 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
     return None
 
 
+def _clean_narration_for_tts(raw_text):
+    """Thoroughly clean narration text for TTS — removes ALL non-spoken content.
+    This is the SINGLE source of truth for narration cleaning across all video modes."""
+    text = raw_text
+
+    # 1. Remove timing marks: [0-4s]:, [16-24s]:, etc.
+    text = re.sub(r'\[\d+\s*-\s*\d+s?\]\s*:?\s*', '', text)
+
+    # 2. Remove section headers: [HOOK 0-4s], [BUILD 4-10s], [CLIMAX 10-16s], [SILENCE ...]
+    text = re.sub(r'\[\s*(?:HOOK|BUILD|CLIMAX|SILENCE|INTRO|OUTRO|CTA|PEAK|TRANSITION|CLOSE)\s*[^]]*\]', '', text, flags=re.IGNORECASE)
+
+    # 3. Remove angle-bracket markers: <emotion, pace, volume>
+    text = re.sub(r'<[^>]{2,60}>', '', text)
+
+    # 4. Remove [Direction: ...] stage directions (single and multi-line)
+    text = re.sub(r'\[Direction:[^\]]*\]', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\[Dir(?:eção|eccion):[^\]]*\]', '', text, flags=re.IGNORECASE)
+
+    # 5. Remove ALL bracketed stage directions (SILENCE, music, logo, fade, etc.)
+    text = re.sub(r'\[.*?(?:SILENCE|QUIET|PAUSE|NO NARRATION|NO SPOKEN|MUSIC ONLY).*?\]', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\[.*?(?:fade|black|screen|visual|music|logo|brand|overlay|transition|cut to).*?\]', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', text, flags=re.IGNORECASE)
+
+    # 6. Remove <<<...>>> patterns (triple angle bracket directions)
+    text = re.sub(r'<{2,}[^<]*>{2,}', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'>{2,}', '', text)  # clean any remaining orphan brackets
+
+    # 7. Remove copywriting framework tags (PT/EN/ES) — the core fix
+    # Matches "ANTES:", "DEPOIS:", "A PONTE:", etc. even when preceded by quotes
+    framework_tags = (
+        r'(?:^|\n)\s*"?\s*(?:'
+        r'ANTES|DEPOIS|A PONTE|PROBLEMA|SOLU[ÇC][ÃA]O|TRANSFORMA[ÇC][ÃA]O|'
+        r'BEFORE|AFTER|THE BRIDGE|PROBLEM|SOLUTION|TRANSFORMATION|'
+        r'GANCHO|REVELA[ÇC][ÃA]O|CHAMADA|'
+        r'HOOK|BUILD|CLIMAX|PEAK|CTA|PAYOFF|SETUP|REVEAL'
+        r')\s*:\s*'
+    )
+    text = re.sub(framework_tags, '\n', text, flags=re.IGNORECASE)
+
+    # 8. Remove standalone direction lines (PT and EN)
+    text = re.sub(r'(?:^|\n).*?(?:sil[eê]ncio|apenas m[uú]sica|logo na tela|music only|fade to|no narration|no spoken|TOTAL WORD COUNT|Music carries|No voice|cinema ending).*?(?:\n|$)', '\n', text, flags=re.IGNORECASE)
+
+    # 9. Remove WORD COUNT metadata
+    text = re.sub(r'\[?TOTAL WORD COUNT.*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'Emotional Arc:.*?(?:\n|$)', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'Total Word Count:.*?(?:\n|$)', '', text, flags=re.IGNORECASE)
+
+    # 10. Remove emoji characters
+    text = re.sub(r'[\U0001F300-\U0001F9FF\U00002702-\U000027B0\U0000FE00-\U0000FE0F\U0000200D]+', '', text)
+
+    # 11. Clean up whitespace
+    text = re.sub(r'\n{2,}', '\n', text)
+    text = re.sub(r'^\s*\n', '', text, flags=re.MULTILINE)
+    text = text.strip()
+
+    # 12. Final safety: strip trailing stage directions
+    text = re.sub(r'[.\s]*(sil[eê]ncio|apenas m[uú]sica|music only|logo|fade).*$', '.', text, flags=re.IGNORECASE).strip()
+
+    # 13. Remove empty quoted lines and orphan punctuation
+    text = re.sub(r'^\s*"?\s*"?\s*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n{2,}', '\n', text).strip()
+
+    return text
+
+
+def _extract_dylan_voice_settings(pipeline_id):
+    """Extract Dylan Reed's precise voice settings and clean TTS text from his step output."""
+    try:
+        p = supabase.table("pipelines").select("steps").eq("id", pipeline_id).single().execute()
+        if not p.data:
+            return {}
+        dylan_output = p.data.get("steps", {}).get("dylan_sound", {}).get("output", "")
+        if not dylan_output:
+            return {}
+
+        config = {}
+
+        # Extract Voice ID directly
+        vid_match = re.search(r'Voice\s*ID:\s*([A-Za-z0-9]{20,})', dylan_output)
+        if vid_match:
+            config["type"] = "elevenlabs"
+            config["voice_id"] = vid_match.group(1).strip()
+
+        # Extract precise numeric settings
+        stab_match = re.search(r'Stability:\s*([\d.]+)', dylan_output)
+        if stab_match:
+            config["stability"] = float(stab_match.group(1))
+        sim_match = re.search(r'Similarity:\s*([\d.]+)', dylan_output)
+        if sim_match:
+            config["similarity"] = float(sim_match.group(1))
+        style_match = re.search(r'Style:\s*([\d.]+)', dylan_output)
+        if style_match:
+            config["style_val"] = float(style_match.group(1))
+
+        # Extract tone and pace
+        tone_match = re.search(r'Tone:\s*(.+?)(?:\n|$)', dylan_output, re.IGNORECASE)
+        if tone_match:
+            config["tone"] = tone_match.group(1).strip().lower()
+        pace_match = re.search(r'Pace:\s*(.+?)(?:\n|$)', dylan_output, re.IGNORECASE)
+        if pace_match:
+            config["pace"] = pace_match.group(1).strip().lower()
+
+        # Extract ===CLEAN TTS TEXT=== from Dylan as ultimate fallback narration
+        clean_tts = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)===', dylan_output, re.IGNORECASE)
+        if not clean_tts:
+            clean_tts = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)$', dylan_output, re.IGNORECASE)
+        if clean_tts:
+            config["clean_tts_text"] = _clean_narration_for_tts(clean_tts.group(1).strip())
+
+        if config:
+            logger.info(f"Dylan's voice settings extracted: voice={config.get('voice_id','?')}, stability={config.get('stability','?')}, style={config.get('style_val','?')}")
+        return config
+    except Exception as e:
+        logger.warning(f"Failed to extract Dylan voice settings: {e}")
+        return {}
+
+
 async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config=None):
-    """Generate commercial narration. Uses ElevenLabs (primary) or OpenAI TTS HD (fallback).
+    """Generate cinema-quality narration. Uses ElevenLabs (primary) or OpenAI TTS HD (fallback).
     Ensures narration fits within max_duration by speeding up if needed."""
     raw_path = f"/tmp/{pipeline_id}_narration_raw.mp3"
     final_path = f"/tmp/{pipeline_id}_narration.mp3"
 
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
     audio_bytes = None
+
+    # ── Merge Dylan's precise settings with any existing voice_config ──
+    dylan_settings = _extract_dylan_voice_settings(pipeline_id)
+    if dylan_settings:
+        if not voice_config or not isinstance(voice_config, dict):
+            voice_config = {}
+        # Dylan's settings take priority — merge under voice_config
+        for k, v in dylan_settings.items():
+            if k not in voice_config or k in ("stability", "similarity", "style_val", "voice_id"):
+                voice_config[k] = v
 
     # ── ElevenLabs TTS (Primary) ──
     if elevenlabs_key:
@@ -606,13 +733,14 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
 
             el_client = ELClient(api_key=elevenlabs_key)
 
-            # Voice selection based on config or AI director instructions
-            el_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel (default female)
-            stability = 0.45
-            similarity = 0.78
-            style = 0.35
+            # Cinema-quality defaults (more expressive than generic TTS)
+            el_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel (default)
+            stability = 0.30     # Low = more expressive, cinematic
+            similarity = 0.80    # High fidelity
+            style = 0.55         # Strong personality
 
             if voice_config and isinstance(voice_config, dict):
+                # Direct ElevenLabs voice ID from Dylan or pipeline config
                 if voice_config.get("type") == "elevenlabs" and voice_config.get("voice_id"):
                     el_voice_id = voice_config["voice_id"]
                 elif voice_config.get("type") == "openai":
@@ -627,7 +755,7 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
                     ov = voice_config.get("voice_id", "onyx")
                     el_voice_id = OPENAI_TO_EL.get(ov, el_voice_id)
 
-                # Dylan Reed's precise settings take priority over tone-based heuristics
+                # Dylan Reed's precise settings override defaults
                 if voice_config.get("stability") is not None:
                     stability = voice_config["stability"]
                 if voice_config.get("similarity") is not None:
@@ -636,22 +764,23 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
                     style = voice_config["style_val"]
 
                 tone = (voice_config.get("tone") or "").lower()
-                pace = (voice_config.get("pace") or "moderate").lower()
 
                 # Tone-based adjustments only if Dylan didn't set precise values
                 if "stability" not in voice_config:
                     if "energetic" in tone or "excited" in tone or "urgent" in tone:
-                        stability = 0.3
-                        style = 0.6
+                        stability = 0.28
+                        style = 0.65
                     elif "calm" in tone or "professional" in tone:
-                        stability = 0.7
-                        style = 0.15
+                        stability = 0.55
+                        style = 0.25
                     elif "warm" in tone or "friendly" in tone:
-                        stability = 0.5
-                        style = 0.4
+                        stability = 0.40
+                        style = 0.50
                     elif "dramatic" in tone or "inspirational" in tone:
-                        stability = 0.35
-                        style = 0.55
+                        stability = 0.25
+                        style = 0.60
+
+            logger.info(f"ElevenLabs cinema settings: voice={el_voice_id}, stability={stability}, similarity={similarity}, style={style}")
 
             voice_settings = VoiceSettings(
                 stability=stability,
@@ -916,21 +1045,24 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
 
             mixed_audio = f"/tmp/{pipeline_id}_mixed_audio.wav"
 
-            # ── Cinematic Audio Mixing (Murch/Zimmer method) ──
-            # Narration: presence boost (3kHz), compressor (broadcast), cut mud (<80Hz)
-            # Music: EQ carve (-8dB at 400Hz, -4dB at 2.5kHz), exponential fades
-            # Mix: Sidechain compressor — music auto-ducks when narration plays
+            # ── Cinema-Grade Audio Mixing (Murch/Zimmer method) ──
+            # Narration: presence EQ boost (3kHz clarity), broadcast compressor, mud cut (<80Hz), cinematic room reverb
+            # Music: carve voice frequencies, exponential cinematic fades, ducking
+            # Mix: Sidechain compressor — music auto-ducks under narration, loudnorm to broadcast standard
             fade_out_start = max(vid_duration - 3, 18)
 
             narr_chain = (
-                "volume=1.3,"
+                "volume=1.4,"
                 "highpass=f=80,"
-                "equalizer=f=3000:t=h:w=1000:g=2.5,"
-                "acompressor=threshold=-18dB:ratio=3:attack=10:release=100"
+                "equalizer=f=3000:t=h:w=1000:g=3,"
+                "equalizer=f=8000:t=h:w=2000:g=1.5,"
+                "acompressor=threshold=-18dB:ratio=3:attack=8:release=80,"
+                "aecho=0.8:0.88:40:0.15"
             )
             music_chain = (
                 "equalizer=f=400:t=q:w=2:g=-8,"
                 "equalizer=f=2500:t=q:w=1.5:g=-4,"
+                "equalizer=f=100:t=h:w=50:g=2,"
                 f"afade=t=in:d=1.5:curve=exp,"
                 f"afade=t=out:st={fade_out_start}:d=3:curve=exp"
             )
@@ -986,13 +1118,14 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
             final_audio = audio_path
 
         if final_audio:
-            # Merge audio with video — strip any existing audio from video first, use only our mixed audio
-            # Use -t to enforce exact video duration instead of -shortest (which can cut prematurely)
+            # Merge audio with video — cinema-grade encoding
+            # Strip any existing audio, use only our mixed/mastered audio
+            # AAC-LC at 320kbps for broadcast/streaming quality
             subprocess.run(
                 [FFMPEG_PATH, "-y", "-i", branded_file, "-i", final_audio,
                  "-map", "0:v", "-map", "1:a",
-                 "-c:v", "copy", "-c:a", "aac", "-b:a", "256k",
-                 "-ar", "44100", "-ac", "2", "-t", str(vid_duration),
+                 "-c:v", "copy", "-c:a", "aac", "-b:a", "320k",
+                 "-ar", "48000", "-ac", "2", "-t", str(vid_duration),
                  output_path],
                 capture_output=True, timeout=60
             )
@@ -1012,7 +1145,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
     return None
 
 
-async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720", selected_music_override="", voice_config=None):
+async def _generate_commercial_video(pipeline_id, marcos_output, size="1920x1080", selected_music_override="", voice_config=None):
     """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo + CTA"""
     # Parse Marcos's structured output
     clip1_prompt = ""
@@ -1031,29 +1164,21 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     if c2_match:
         clip2_prompt = c2_match.group(1).strip()
 
-    narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===MUSIC DIRECTION===', marcos_output, re.IGNORECASE)
-    if not narr_match:
-        narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===(?:BRAND NAME|CTA SEQUENCE|VIDEO FORMAT)===', marcos_output, re.IGNORECASE)
-    if narr_match:
-        narration_text = narr_match.group(1).strip()
-        # Clean timing marks from narration for TTS
-        narration_text = re.sub(r'\[\d+-\d+s?\]:\s*', '', narration_text)
-        # Remove ALL bracketed stage directions (SILENCE, music only, logo, fade, etc.)
-        narration_text = re.sub(r'\[.*?SILENCE.*?\]', '', narration_text, flags=re.IGNORECASE)
-        narration_text = re.sub(r'\[.*?music\s+only.*?\]', '', narration_text, flags=re.IGNORECASE)
-        narration_text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', narration_text, flags=re.IGNORECASE)
-        narration_text = re.sub(r'\[(?:COMPLETE|TOTAL|FULL)?\s*(?:SILENCE|QUIET|PAUSE|NO NARRATION).*?\]', '', narration_text, flags=re.IGNORECASE)
-        # Remove any remaining visual/stage directions (anything in brackets that isn't spoken)
-        narration_text = re.sub(r'\[.*?(?:fade|black|screen|visual|music|logo|brand|overlay|transition|cut to).*?\]', '', narration_text, flags=re.IGNORECASE)
-        # Remove standalone sentences that are clearly directions, not narration
-        narration_text = re.sub(r'(?:^|\n).*?(?:sil[eê]ncio|apenas m[uú]sica|logo na tela|music only|fade to|no narration|no spoken|TOTAL WORD COUNT).*?(?:\n|$)', '\n', narration_text, flags=re.IGNORECASE)
-        # Remove "WORD COUNT" lines
-        narration_text = re.sub(r'\[?TOTAL WORD COUNT.*', '', narration_text, flags=re.IGNORECASE)
-        # Clean up extra whitespace
-        narration_text = re.sub(r'\n{2,}', '\n', narration_text).strip()
-        # Final safety: if narration ends with stage direction-like text, strip it
-        narration_text = re.sub(r'[.\s]*(sil[eê]ncio|apenas m[uú]sica|music only|logo|fade).*$', '.', narration_text, flags=re.IGNORECASE).strip()
-        logger.info(f"Cleaned narration: {len(narration_text)} chars, ~{len(narration_text.split())} words")
+    # Prefer the ===CLEAN TTS TEXT=== section (new format from Dylan/Marcos) — no cleaning needed
+    clean_tts_match = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)===', marcos_output, re.IGNORECASE)
+    if not clean_tts_match:
+        clean_tts_match = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)$', marcos_output, re.IGNORECASE)
+    if clean_tts_match:
+        raw_clean = clean_tts_match.group(1).strip()
+        # Even the "clean" section gets a safety pass through our cleaner
+        narration_text = _clean_narration_for_tts(raw_clean)
+        logger.info(f"Using CLEAN TTS TEXT section: {len(narration_text)} chars, ~{len(narration_text.split())} words")
+    else:
+        # Fallback: parse from ===NARRATION SCRIPT=== with full cleaning
+        narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===(?:CLEAN TTS TEXT|MUSIC DIRECTION|BRAND NAME|CTA SEQUENCE|VIDEO FORMAT)===', marcos_output, re.IGNORECASE)
+        if narr_match:
+            narration_text = _clean_narration_for_tts(narr_match.group(1))
+            logger.info(f"Cleaned narration from NARRATION SCRIPT: {len(narration_text)} chars, ~{len(narration_text.split())} words")
 
     # Parse CTA Sequence
     cta_match = re.search(r'===CTA SEQUENCE===([\s\S]*?)===VIDEO FORMAT===', marcos_output, re.IGNORECASE)
@@ -1090,34 +1215,47 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     # Parse narration tone for ElevenLabs
     narration_tone = ""
     narration_voice_type = ""
+    el_voice_id_direct = ""
     tone_match = re.search(r'===NARRATION TONE===([\s\S]*?)===(?:CTA SEQUENCE|VIDEO FORMAT|$)', marcos_output, re.IGNORECASE)
     if tone_match:
         tone_section = tone_match.group(1)
         voice_line = re.search(r'Voice:\s*(.+)', tone_section, re.IGNORECASE)
         tone_line = re.search(r'Tone:\s*(.+)', tone_section, re.IGNORECASE)
         if voice_line:
-            narration_voice_type = voice_line.group(1).strip().lower()
+            voice_raw = voice_line.group(1).strip()
+            # Check if Marcos wrote the actual ElevenLabs voice ID directly (e.g., "EXAVITQu4vr4xnSDxMaL (Bella)")
+            el_id_match = re.search(r'([A-Za-z0-9]{20,})', voice_raw)
+            if el_id_match:
+                el_voice_id_direct = el_id_match.group(1)
+                logger.info(f"Direct ElevenLabs voice ID from Marcos: {el_voice_id_direct}")
+            else:
+                narration_voice_type = voice_raw.lower()
         if tone_line:
             narration_tone = tone_line.group(1).strip().lower()
-        logger.info(f"Narration tone: voice={narration_voice_type}, tone={narration_tone}")
+        logger.info(f"Narration tone: voice={narration_voice_type or el_voice_id_direct}, tone={narration_tone}")
 
     # Merge AI director's voice/tone preferences into voice_config
-    if narration_tone or narration_voice_type:
+    if narration_tone or narration_voice_type or el_voice_id_direct:
         if not voice_config:
             voice_config = {}
         if not isinstance(voice_config, dict):
             voice_config = {}
         voice_config["tone"] = narration_tone or voice_config.get("tone", "")
-        # Map voice type to ElevenLabs voice ID
-        VOICE_TYPE_MAP = {
-            "deep_male": "TX3LPaxmHKxFdv7VOQHJ",      # Liam
-            "confident_male": "29vD33N1CtxCmqQRPOHJ",   # Drew
-            "warm_female": "21m00Tcm4TlvDq8ikWAM",      # Rachel
-            "energetic_female": "EXAVITQu4vr4xnSDxMaL",  # Bella
-            "neutral": "MF3mGyEYCl7XYWbV9V6O",          # Elli
-            "authoritative": "TX3LPaxmHKxFdv7VOQHJ",    # Liam
-        }
-        if narration_voice_type and not voice_config.get("voice_id"):
+
+        # Direct ElevenLabs voice ID takes highest priority
+        if el_voice_id_direct:
+            voice_config["type"] = "elevenlabs"
+            voice_config["voice_id"] = el_voice_id_direct
+        elif narration_voice_type and not voice_config.get("voice_id"):
+            # Map voice type to ElevenLabs voice ID
+            VOICE_TYPE_MAP = {
+                "deep_male": "TX3LPaxmHKxFdv7VOQHJ",      # Liam
+                "confident_male": "29vD33N1CtxCmqQRPOHJ",   # Drew
+                "warm_female": "21m00Tcm4TlvDq8ikWAM",      # Rachel
+                "energetic_female": "EXAVITQu4vr4xnSDxMaL",  # Bella
+                "neutral": "MF3mGyEYCl7XYWbV9V6O",          # Elli
+                "authoritative": "TX3LPaxmHKxFdv7VOQHJ",    # Liam
+            }
             el_voice = VOICE_TYPE_MAP.get(narration_voice_type)
             if el_voice:
                 voice_config["type"] = "elevenlabs"
@@ -1224,7 +1362,7 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood)
 
 
-async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override="", voice_config=None):
+async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1920x1080", selected_music_override="", voice_config=None):
     """Generate a commercial with the avatar as a character IN the scene.
     1. Parse narration and clip prompts from marcos_output
     2. Enhance Sora prompts to include the avatar as an active character in each scene
@@ -1242,17 +1380,16 @@ async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size
         contact_cta = ""
         music_mood = "corporate"
 
-        narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===MUSIC DIRECTION===', marcos_output, re.IGNORECASE)
-        if not narr_match:
-            narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===(?:BRAND NAME|CTA SEQUENCE|VIDEO FORMAT)===', marcos_output, re.IGNORECASE)
-        if narr_match:
-            narration_text = narr_match.group(1).strip()
-            narration_text = re.sub(r'\[\d+-\d+s?\]:\s*', '', narration_text)
-            narration_text = re.sub(r'\[.*?SILENCE.*?\]', '', narration_text, flags=re.IGNORECASE)
-            narration_text = re.sub(r'\[.*?music\s+only.*?\]', '', narration_text, flags=re.IGNORECASE)
-            narration_text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', narration_text, flags=re.IGNORECASE)
-            narration_text = re.sub(r'\[(?:COMPLETE|TOTAL|FULL)?\s*(?:SILENCE|QUIET|PAUSE|NO NARRATION).*?\]', '', narration_text, flags=re.IGNORECASE)
-            narration_text = re.sub(r'\n{2,}', '\n', narration_text).strip()
+        # Prefer ===CLEAN TTS TEXT=== (new format) — cleaner and more reliable
+        clean_tts_match = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)===', marcos_output, re.IGNORECASE)
+        if not clean_tts_match:
+            clean_tts_match = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)$', marcos_output, re.IGNORECASE)
+        if clean_tts_match:
+            narration_text = _clean_narration_for_tts(clean_tts_match.group(1).strip())
+        else:
+            narr_match = re.search(r'===NARRATION SCRIPT===([\s\S]*?)===(?:CLEAN TTS TEXT|MUSIC DIRECTION|BRAND NAME|CTA SEQUENCE|VIDEO FORMAT)===', marcos_output, re.IGNORECASE)
+            if narr_match:
+                narration_text = _clean_narration_for_tts(narr_match.group(1))
 
         # Parse clip prompts
         c1_match = re.search(r'===CLIP 1.*?===([\s\S]*?)===CLIP 2', marcos_output, re.IGNORECASE)
