@@ -19,6 +19,8 @@ from pipeline.media import (
     _generate_design_images, _generate_commercial_video,
     _generate_presenter_video, _create_platform_variants,
     _create_video_variants, _generate_audio_preview,
+    _fetch_elevenlabs_voices, _fetch_recent_campaign_audio,
+    _generate_voice_alternatives,
 )
 
 
@@ -113,6 +115,25 @@ async def _execute_step(pipeline_id, step):
     try:
         prompt = _build_prompt(step, pipeline)
         system = STEP_SYSTEMS.get(step, "")
+
+        # ── P0+P1: Inject dynamic ElevenLabs voices + campaign history for Dylan ──
+        if step == "dylan_sound":
+            camp_lang = pipeline.get("result", {}).get("campaign_language", "pt")
+            try:
+                dynamic_voices = await _fetch_elevenlabs_voices(language=camp_lang, page_size=25)
+                if dynamic_voices:
+                    system += dynamic_voices
+                    logger.info(f"Injected dynamic voice catalog for Dylan ({camp_lang})")
+            except Exception as dv_err:
+                logger.warning(f"Dynamic voices failed: {dv_err}")
+
+            try:
+                history = await _fetch_recent_campaign_audio(pipeline.get("tenant_id", ""), limit=5)
+                if history:
+                    system += history
+                    logger.info("Injected campaign audio history for Dylan")
+            except Exception as hist_err:
+                logger.warning(f"Audio history failed: {hist_err}")
 
         # Creative agents use Claude Sonnet 4.5 for quality
         # Review agents use Gemini Flash for SPEED (reviews don't need creative generation)
@@ -358,9 +379,22 @@ async def _execute_step(pipeline_id, step):
                     response, pipeline_id, voice_config=final_voice_config or avatar_voice
                 )
 
+                # ── P2: Generate voice alternatives for the Audio Pre-Approval panel ──
+                voice_alternatives = []
+                try:
+                    camp_lang = pipeline.get("result", {}).get("campaign_language", "pt")
+                    voice_alternatives = await _generate_voice_alternatives(
+                        narration_text, pipeline_id, final_voice_config, language=camp_lang, num_alternatives=3
+                    )
+                    logger.info(f"Generated {len(voice_alternatives)} voice alternatives for pre-approval")
+                except Exception as va_err:
+                    logger.warning(f"Voice alternatives failed: {va_err}")
+
                 steps[step]["output"] = response
                 steps[step]["narration_text"] = narration_text
                 steps[step]["audio_preview_url"] = audio_preview_url
+                steps[step]["voice_alternatives"] = voice_alternatives
+                steps[step]["selected_voice_config"] = final_voice_config
                 steps[step]["status"] = "waiting_audio_approval"
 
                 # Parse and save video format for later use
@@ -493,11 +527,19 @@ async def _continue_video_after_approval(pipeline_id):
         dylan_output = steps.get("dylan_sound", {}).get("output", "")
         dylan_voice_config = _parse_dylan_audio(dylan_output) if dylan_output else {}
 
+        # Check if user selected an alternative voice during audio pre-approval
+        approved_voice = marcos.get("selected_voice_config")
+        if approved_voice and approved_voice.get("voice_id"):
+            logger.info(f"Using user-selected voice from pre-approval: {approved_voice.get('voice_id')}")
+
         if video_mode == "presenter" and avatar_url:
-            video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=avatar_voice)
+            voice_for_presenter = approved_voice or avatar_voice
+            video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=voice_for_presenter)
         else:
             final_voice_config = dylan_voice_config.copy() if dylan_voice_config else {}
-            if avatar_voice and isinstance(avatar_voice, dict) and avatar_voice.get("voice_id"):
+            if approved_voice and approved_voice.get("voice_id"):
+                final_voice_config.update(approved_voice)
+            elif avatar_voice and isinstance(avatar_voice, dict) and avatar_voice.get("voice_id"):
                 final_voice_config.update(avatar_voice)
             dylan_music = dylan_voice_config.get("_music_key", "")
             final_music = user_music or dylan_music

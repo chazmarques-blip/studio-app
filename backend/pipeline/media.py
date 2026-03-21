@@ -29,6 +29,204 @@ from pipeline.utils import (
 )
 
 
+async def _fetch_elevenlabs_voices(language="pt", gender=None, page_size=30):
+    """Fetch voices from ElevenLabs Voice Library using the SDK.
+    Returns a formatted catalog string for injection into Dylan's system prompt."""
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not api_key:
+        return ""
+
+    LANG_MAP = {
+        "pt": "portuguese", "en": "english", "es": "spanish",
+        "fr": "french", "de": "german", "it": "italian",
+    }
+    lang_filter = LANG_MAP.get(language, language)
+
+    try:
+        from elevenlabs import ElevenLabs as ELClient
+        el_client = ELClient(api_key=api_key)
+
+        # Get all available voices (premade + cloned)
+        all_voices = el_client.voices.get_all()
+        voices_list = all_voices.voices if hasattr(all_voices, 'voices') else []
+
+        # Filter by language and gather metadata
+        filtered = []
+        for v in voices_list:
+            labels = v.labels if hasattr(v, 'labels') and v.labels else {}
+            if isinstance(labels, dict):
+                v_accent = labels.get("accent", "").lower()
+                v_lang = labels.get("language", "").lower()
+                v_gender = labels.get("gender", "").lower()
+                v_desc = labels.get("description", "")
+                v_use = labels.get("use_case", "")
+            else:
+                v_accent = v_lang = v_gender = v_desc = v_use = ""
+
+            # Match by language or accent containing the target
+            lang_match = (
+                lang_filter.lower() in v_lang or
+                lang_filter.lower() in v_accent or
+                language in v_accent.lower() or
+                v_accent in ["american", "british", "australian", "neutral"] or  # English always useful
+                not v_lang  # Include voices without language labels
+            )
+
+            if gender and v_gender and gender.lower() not in v_gender:
+                continue
+
+            filtered.append({
+                "voice_id": v.voice_id,
+                "name": v.name,
+                "gender": v_gender or "unknown",
+                "accent": v_accent or "neutral",
+                "description": v_desc,
+                "use_case": v_use,
+                "category": v.category if hasattr(v, 'category') else "premade",
+                "lang_match": lang_match,
+            })
+
+        # Sort: language matches first, then by name
+        filtered.sort(key=lambda x: (0 if x["lang_match"] else 1, x["name"]))
+        top = filtered[:page_size]
+
+        if not top:
+            return ""
+
+        lines = [f"\n\n===DYNAMIC VOICE CATALOG ({len(top)} voices available)==="]
+        lines.append(f"Target language: {lang_filter.upper()}")
+        lines.append("| Voice ID | Name | Gender | Accent | Description | Use Case | Category |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for v in top:
+            lines.append(f"| {v['voice_id']} | {v['name']} | {v['gender']} | {v['accent']} | {v['description']} | {v['use_case']} | {v['category']} |")
+
+        lines.append("\nIMPORTANT: Select from this REAL voice catalog. Choose voices that match the campaign's language, emotional tone, and target audience. VARY your selections — do not always pick the same voice.")
+        logger.info(f"Fetched {len(top)} ElevenLabs voices for language={lang_filter}")
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.warning(f"Failed to fetch ElevenLabs voices: {e}")
+        return ""
+
+
+async def _fetch_recent_campaign_audio(tenant_id, limit=5):
+    """Fetch voice/music choices from recent campaigns to avoid repetition."""
+    try:
+        result = supabase.table("pipelines").select("steps").eq("tenant_id", tenant_id).order("created_at", desc=True).limit(limit).execute()
+        if not result.data:
+            return ""
+
+        recent_voices = []
+        recent_music = []
+        for p in result.data:
+            steps = p.get("steps", {})
+            dylan = steps.get("dylan_sound", {})
+            output = dylan.get("output", "")
+            if not output:
+                continue
+            # Extract voice name
+            voice_match = re.search(r'Voice Name:\s*(.+)', output)
+            if voice_match:
+                recent_voices.append(voice_match.group(1).strip())
+            # Extract music key or prompt
+            music_match = re.search(r'Track:\s*(.+)', output)
+            if music_match:
+                recent_music.append(music_match.group(1).strip())
+
+        if not recent_voices and not recent_music:
+            return ""
+
+        lines = ["\n\n===RECENT CAMPAIGN AUDIO HISTORY (AVOID REPETITION)==="]
+        if recent_voices:
+            lines.append(f"Last {len(recent_voices)} voice(s) used: {', '.join(recent_voices)}")
+            lines.append("RULE: Do NOT select the same voice as any of these. Choose a DIFFERENT voice for variety.")
+        if recent_music:
+            lines.append(f"Last {len(recent_music)} music track(s): {', '.join(recent_music)}")
+            lines.append("RULE: Compose a UNIQUE music prompt that is distinctly different from previous campaigns.")
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.warning(f"Failed to fetch recent audio history: {e}")
+        return ""
+
+
+async def _generate_voice_alternatives(narration_text, pipeline_id, primary_voice_config, language="pt", num_alternatives=3):
+    """Generate alternative voice previews for the Audio Pre-Approval step.
+    Returns list of {voice_id, voice_name, accent, style, audio_url}."""
+    alternatives = []
+    if not narration_text:
+        return alternatives
+
+    try:
+        from elevenlabs import ElevenLabs as ELClient
+        api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+        if not api_key:
+            return alternatives
+
+        el_client = ELClient(api_key=api_key)
+        all_voices = el_client.voices.get_all()
+        voices_list = all_voices.voices if hasattr(all_voices, 'voices') else []
+
+        # Exclude the primary voice
+        primary_id = primary_voice_config.get("voice_id", "") if primary_voice_config else ""
+        candidates = [v for v in voices_list if v.voice_id != primary_id]
+
+        # Prefer voices with language-matching labels
+        LANG_MAP = {"pt": "portuguese", "en": "english", "es": "spanish"}
+        lang = LANG_MAP.get(language, "portuguese")
+
+        def score_voice(v):
+            labels = v.labels if hasattr(v, 'labels') and v.labels else {}
+            accent = (labels.get("accent", "") if isinstance(labels, dict) else "").lower()
+            v_lang = (labels.get("language", "") if isinstance(labels, dict) else "").lower()
+            s = 0
+            if lang in v_lang or lang in accent:
+                s += 10
+            if hasattr(v, 'category') and v.category == "premade":
+                s += 5
+            return s
+
+        candidates.sort(key=score_voice, reverse=True)
+        top_candidates = candidates[:num_alternatives]
+
+        for v in top_candidates:
+            labels = v.labels if hasattr(v, 'labels') and v.labels else {}
+            accent = labels.get("accent", "") if isinstance(labels, dict) else ""
+            desc = labels.get("description", "") if isinstance(labels, dict) else ""
+            try:
+                alt_config = {"voice_id": v.voice_id, "stability": 0.40, "similarity_boost": 0.80, "style": 0.45}
+                preview_path = await _generate_narration(
+                    narration_text, f"{pipeline_id}_alt_{v.voice_id[:6]}",
+                    max_duration=25.0, voice_config=alt_config
+                )
+                if preview_path and os.path.exists(preview_path):
+                    with open(preview_path, "rb") as f:
+                        audio_bytes = f.read()
+                    fname = f"audio_previews/alt_{pipeline_id}_{v.voice_id[:8]}.mp3"
+                    audio_url = _upload_to_storage(audio_bytes, fname, "audio/mpeg")
+                    try:
+                        os.remove(preview_path)
+                    except Exception:
+                        pass
+                    if audio_url:
+                        alternatives.append({
+                            "voice_id": v.voice_id,
+                            "voice_name": v.name,
+                            "accent": accent,
+                            "style": desc,
+                            "audio_url": audio_url,
+                        })
+                        logger.info(f"Generated alt voice preview: {v.name} ({v.voice_id[:8]})")
+            except Exception as ve:
+                logger.warning(f"Alt voice {v.name} failed: {ve}")
+
+        return alternatives
+
+    except Exception as e:
+        logger.warning(f"Voice alternatives generation failed: {e}")
+        return alternatives
+
+
 async def _edit_exact_image(source_image_url, edit_prompt, pipeline_id, index):
     """Edit an exact product photo using Gemini — keeps the real product, applies professional treatment"""
     max_retries = 3

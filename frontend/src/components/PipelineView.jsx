@@ -920,6 +920,7 @@ export default function PipelineView({ context }) {
       await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/approve-audio`, {
         feedback: approvalData.feedback || '',
         selection: approvalData.approved ? 1 : 0,
+        selected_voice_id: approvalData.selectedVoiceId || '',
       });
       if (approvalData.approved) {
         toast.success(t('studio.audio_approved') || 'Audio approved! Generating video...');

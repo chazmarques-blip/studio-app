@@ -390,7 +390,28 @@ async def approve_audio(pipeline_id: str, data: PipelineApprove, user=Depends(ge
         _start_step_bg(pipeline_id, "marcos_video")
         return {"status": "revision_requested", "next_step": "marcos_video"}
 
-    # Approved: continue to video generation
+    # Approved: If user selected an alternative voice, save it
+    selected_voice_id = getattr(data, 'selected_voice_id', None) or ""
+    if selected_voice_id:
+        # User chose an alternative voice — update the voice config for video generation
+        alternatives = marcos.get("voice_alternatives", [])
+        chosen = next((a for a in alternatives if a.get("voice_id") == selected_voice_id), None)
+        if chosen:
+            marcos["selected_voice_config"] = {
+                "voice_id": selected_voice_id,
+                "stability": 0.40,
+                "similarity_boost": 0.80,
+                "style": 0.45,
+            }
+            # Also update Dylan's output to reflect the new voice choice
+            dylan = steps.get("dylan_sound", {})
+            dylan_output = dylan.get("output", "")
+            if dylan_output:
+                dylan["output"] = re.sub(
+                    r'Voice ID:\s*\S+', f'Voice ID: {selected_voice_id}', dylan_output
+                )
+                steps["dylan_sound"] = dylan
+
     marcos["audio_approved"] = True
     marcos["audio_approved_at"] = datetime.now(timezone.utc).isoformat()
     supabase.table("pipelines").update({

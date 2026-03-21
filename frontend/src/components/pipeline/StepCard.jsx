@@ -240,11 +240,16 @@ function AudioApprovalPanel({ data, audioPlaying, onToggleAudio, onApproveAudio 
   const { t } = useTranslation();
   const [feedback, setFeedback] = useState('');
   const [approving, setApproving] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState(null); // null = primary voice
+  const [playingAltId, setPlayingAltId] = useState(null);
+  const altAudioRef = useRef(null);
+
+  const alternatives = data?.voice_alternatives || [];
 
   const handleApprove = async () => {
     setApproving(true);
     try {
-      await onApproveAudio({ approved: true });
+      await onApproveAudio({ approved: true, selectedVoiceId: selectedVoice });
     } finally {
       setApproving(false);
     }
@@ -261,6 +266,23 @@ function AudioApprovalPanel({ data, audioPlaying, onToggleAudio, onApproveAudio 
     } finally {
       setApproving(false);
     }
+  };
+
+  const playAltVoice = (alt) => {
+    // Stop any playing audio
+    if (altAudioRef.current) {
+      altAudioRef.current.pause();
+      altAudioRef.current = null;
+    }
+    if (playingAltId === alt.voice_id) {
+      setPlayingAltId(null);
+      return;
+    }
+    const audio = new Audio(alt.audio_url);
+    audio.onended = () => setPlayingAltId(null);
+    audio.play();
+    altAudioRef.current = audio;
+    setPlayingAltId(alt.voice_id);
   };
 
   return (
@@ -283,20 +305,62 @@ function AudioApprovalPanel({ data, audioPlaying, onToggleAudio, onApproveAudio 
         </div>
       )}
 
-      {/* Audio Preview Player */}
+      {/* Primary Voice Preview */}
       {data?.audio_preview_url && (
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-3">
-          <button data-testid="audio-preview-play-btn" onClick={onToggleAudio}
-            className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 transition-all ${
+        <div
+          onClick={() => { setSelectedVoice(null); }}
+          className={`mb-2 flex items-center gap-3 rounded-lg p-3 cursor-pointer transition-all ${
+            selectedVoice === null
+              ? 'bg-purple-500/10 border-2 border-purple-500/40'
+              : 'bg-[#0A0A0A] border border-[#1A1A1A] hover:border-purple-500/20'
+          }`}>
+          <button data-testid="audio-preview-play-btn" onClick={(e) => { e.stopPropagation(); onToggleAudio(); }}
+            className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
               audioPlaying ? 'bg-purple-500 text-white' : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20'
             }`}>
-            {audioPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+            {audioPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
           </button>
-          <div className="flex-1">
-            <p className="text-[10px] text-white font-medium">{t('studio.voice_preview') || 'Voice Preview'}</p>
-            <p className="text-[8px] text-[#555]">{t('studio.listen_before_approve') || 'Listen to the narration before approving'}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-white font-medium">{t('studio.dylan_choice') || "Dylan's Choice"} {selectedVoice === null && <span className="text-purple-400 text-[8px] ml-1">SELECTED</span>}</p>
+            <p className="text-[8px] text-[#555]">{t('studio.ai_recommended') || 'AI-recommended voice for this campaign'}</p>
           </div>
-          <Volume2 size={14} className={audioPlaying ? 'text-purple-400 animate-pulse' : 'text-[#333]'} />
+          <Volume2 size={12} className={audioPlaying ? 'text-purple-400 animate-pulse' : 'text-[#333]'} />
+        </div>
+      )}
+
+      {/* Voice Alternatives */}
+      {alternatives.length > 0 && (
+        <div className="mb-3">
+          <p className="text-[8px] text-[#666] uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1">
+            <Volume2 size={8} /> {t('studio.alternative_voices') || 'Alternative Voices'}
+          </p>
+          <div className="space-y-1.5">
+            {alternatives.map(alt => (
+              <div key={alt.voice_id} data-testid={`alt-voice-${alt.voice_id}`}
+                onClick={() => setSelectedVoice(alt.voice_id)}
+                className={`flex items-center gap-2.5 rounded-lg p-2.5 cursor-pointer transition-all ${
+                  selectedVoice === alt.voice_id
+                    ? 'bg-purple-500/10 border-2 border-purple-500/40'
+                    : 'bg-[#0A0A0A] border border-[#1A1A1A] hover:border-purple-500/20'
+                }`}>
+                <button onClick={(e) => { e.stopPropagation(); playAltVoice(alt); }}
+                  className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                    playingAltId === alt.voice_id ? 'bg-purple-500 text-white' : 'bg-[#151515] text-[#888] hover:text-purple-400'
+                  }`}>
+                  {playingAltId === alt.voice_id ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-white font-medium truncate">
+                    {alt.voice_name}
+                    {selectedVoice === alt.voice_id && <span className="text-purple-400 text-[8px] ml-1">SELECTED</span>}
+                  </p>
+                  <p className="text-[8px] text-[#555] truncate">
+                    {[alt.accent, alt.style].filter(Boolean).join(' · ') || 'Professional voice'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

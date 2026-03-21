@@ -776,6 +776,7 @@ class PipelineApprove(BaseModel):
     selection: Optional[int] = None
     selections: Optional[dict] = None
     feedback: Optional[str] = None
+    selected_voice_id: Optional[str] = None  # P2: user can pick alternative voice
 
 
 
