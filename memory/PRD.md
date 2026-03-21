@@ -55,6 +55,13 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Testado com campanha Hercules: texto mudou de "Banheiro dos Sonhos AGORA" → "Banheiro de Luxo Premium" mantendo imagem identica
 - Files: `pipeline/media.py`, `pipeline/routes.py`, `Marketing.jsx`
 
+### UI Readability Fix — AI Studio & Marketing (2026-03-21)
+- Corrigido contraste de texto em 11 arquivos do ecossistema AI Studio
+- Mapeamento: `text-[#555]`→`text-[#777]`, `text-[#444]`→`text-[#666]`, `text-[#333]`→`text-[#555]`
+- Placeholders tambem ajustados: `placeholder-[#333]`/`[#444]` → `placeholder-[#555]`
+- ~200+ ajustes de cor, mantendo hierarquia visual e estetica "dark luxury"
+- Arquivos: PipelineView.jsx, Marketing.jsx, MarketingStudio.jsx, FinalPreview.jsx, StepCard.jsx, CompletedSummary.jsx, HistoryCard.jsx, ApprovalCards.jsx, AssetUploader.jsx, ProgressTimer.jsx, ImageLightbox.jsx
+
 ## Backlog
 ### P0 (In Progress)
 - Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs

@@ -58,7 +58,7 @@ export default function MarketingStudio() {
               { key: 'brand_voice', label: lang === 'pt' ? 'Tom da Marca' : lang === 'es' ? 'Tono de Marca' : 'Brand Voice' },
             ].map(f => (
               <div key={f.key}>
-                <label className="text-[8px] text-[#555] uppercase">{f.label}</label>
+                <label className="text-[8px] text-[#777] uppercase">{f.label}</label>
                 <input value={context[f.key] || ''} onChange={e => setContext(p => ({ ...p, [f.key]: e.target.value }))}
                   className="w-full rounded border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white outline-none" />
               </div>

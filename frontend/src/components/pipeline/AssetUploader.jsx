@@ -57,7 +57,7 @@ function AssetUploader({ assets, onAssetsChange }) {
 
   const UploadColumn = ({ type, items, inputRef, color, icon: Icon, label, testId }) => (
     <div>
-      <p className="text-[8px] text-[#555] uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-[8px] text-[#777] uppercase tracking-wider mb-1">{label}</p>
       <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
         style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
         onChange={e => { handleUpload(e.target.files, type); e.target.value = ''; }} />
@@ -79,7 +79,7 @@ function AssetUploader({ assets, onAssetsChange }) {
           })}
           <button onClick={() => inputRef.current?.click()} disabled={uploading}
             className={`h-14 w-14 rounded-lg border border-dashed border-[#2A2A2A] flex items-center justify-center hover:border-[${color}]/40 transition disabled:opacity-40`}>
-            <Upload size={10} className="text-[#555]" />
+            <Upload size={10} className="text-[#777]" />
           </button>
         </div>
       ) : (
@@ -101,7 +101,7 @@ function AssetUploader({ assets, onAssetsChange }) {
 
   return (
     <div data-testid="asset-uploader" className="space-y-3">
-      <label className="text-[9px] text-[#555] uppercase tracking-wider block">{t('studio.product_images')}</label>
+      <label className="text-[9px] text-[#777] uppercase tracking-wider block">{t('studio.product_images')}</label>
 
       <div className="grid grid-cols-2 gap-2">
         <UploadColumn type="exact" items={exacts} inputRef={exactRef} color="#10B981"

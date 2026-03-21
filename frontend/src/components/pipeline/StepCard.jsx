@@ -56,7 +56,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAu
           )}
         </div>
         <div className="flex-1 text-left min-w-0">
-          <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#555] font-normal">- {meta.role}</span></p>
+          <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#777] font-normal">- {meta.role}</span></p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `${t('studio.revising')} (${revisionRound}/1)` : t('studio.processing')}</span>}
             {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />{t('studio.generating_images') || 'Generating images...'}</span>}
@@ -64,7 +64,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAu
             {isWaitingAudio && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 animate-pulse"><Headphones size={8} />{t('studio.waiting_audio') || 'Audio Pre-Approval'}</span>}
             {status === 'completed' && !needsApproval && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">{t('studio.status_completed') || 'Completed'}</span>}
             {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />{t('studio.status_waiting') || 'Waiting Approval'}</span>}
-            {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#555]">{t('studio.pending')}</span>}
+            {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#777]">{t('studio.pending')}</span>}
             {isFailed && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{t('studio.status_failed') || 'Failed'}</span>}
             {requiresUpgrade && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><Crown size={8} /> Upgrade Necessario</span>}
             {reviewerRevisionCount > 0 && (step === 'ana_review_copy' || step === 'rafael_review_design') && (
@@ -74,8 +74,8 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAu
             )}
           </div>
         </div>
-        {data?.elapsed_ms && <span className="text-[8px] text-[#444] shrink-0 bg-[#111] px-1.5 py-0.5 rounded">{(data.elapsed_ms / 1000).toFixed(1)}s</span>}
-        {(data?.output || isFailed || requiresUpgrade || isWaitingAudio) && (expanded ? <ChevronUp size={14} className="text-[#444]" /> : <ChevronDown size={14} className="text-[#444]" />)}
+        {data?.elapsed_ms && <span className="text-[8px] text-[#666] shrink-0 bg-[#111] px-1.5 py-0.5 rounded">{(data.elapsed_ms / 1000).toFixed(1)}s</span>}
+        {(data?.output || isFailed || requiresUpgrade || isWaitingAudio) && (expanded ? <ChevronUp size={14} className="text-[#666]" /> : <ChevronDown size={14} className="text-[#666]" />)}
       </button>
 
       {/* Progress Timer for running steps */}
@@ -136,7 +136,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
       )}
       {hasVideo && data.video_url && (
         <div className="mt-2">
-          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={10} className="text-red-400" /> {t('studio.video_commercial')}</p>
+          <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1.5 flex items-center gap-1"><Film size={10} className="text-red-400" /> {t('studio.video_commercial')}</p>
           <div className="rounded-xl overflow-hidden border border-[#1E1E1E] bg-black relative group cursor-pointer" onClick={() => setShowStepVideoLightbox(true)}>
             <video
               data-testid="pipeline-video-player"
@@ -153,8 +153,8 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
             </button>
           </div>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{data.video_duration || 12}s</span>
-            <span className="text-[8px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded capitalize">{data.video_format || 'vertical'}</span>
+            <span className="text-[8px] text-[#777] bg-[#111] px-1.5 py-0.5 rounded">{data.video_duration || 12}s</span>
+            <span className="text-[8px] text-[#777] bg-[#111] px-1.5 py-0.5 rounded capitalize">{data.video_format || 'vertical'}</span>
             <button onClick={() => setShowStepVideoLightbox(true)} data-testid="step-video-expand-text"
               className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
               <Maximize2 size={9} /> {t('studio.expand')}
@@ -175,7 +175,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
                   <video src={data.video_url} controls playsInline autoPlay className="w-full" style={{ maxHeight: '80vh' }} />
                 </div>
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-[9px] text-[#555] bg-[#111] px-2 py-1 rounded">Sora 2</span>
+                  <span className="text-[9px] text-[#777] bg-[#111] px-2 py-1 rounded">Sora 2</span>
                   <a href={data.video_url} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition">
                     <Download size={12} /> {t('studio.download')} Video
@@ -188,7 +188,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
       )}
       {hasImages && (
         <div className="mt-2">
-          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-1.5">{t('studio.images_generated')}</p>
+          <p className="text-[9px] text-[#777] uppercase tracking-wider mb-1.5">{t('studio.images_generated')}</p>
           <div className="grid grid-cols-3 gap-2">
             {data.image_urls.map((url, i) => url && (
               <button key={i} onClick={() => setLightboxIndex(i)}
@@ -206,7 +206,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
           {/* Platform variant badges */}
           {data.platform_variants && Object.keys(data.platform_variants).length > 0 && (
             <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-              <span className="text-[8px] text-[#555]">{t('studio.formats')}:</span>
+              <span className="text-[8px] text-[#777]">{t('studio.formats')}:</span>
               {Object.keys(data.platform_variants).map(p => {
                 const AR_LABELS = { tiktok: '9:16', google_ads: '16:9', instagram: '1:1', facebook: '1:1', whatsapp: '1:1', email: '16:9' };
                 return (
@@ -322,9 +322,9 @@ function AudioApprovalPanel({ data, audioPlaying, onToggleAudio, onApproveAudio 
           </button>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-white font-medium">{t('studio.dylan_choice') || "Dylan's Choice"} {selectedVoice === null && <span className="text-purple-400 text-[8px] ml-1">SELECTED</span>}</p>
-            <p className="text-[8px] text-[#555]">{t('studio.ai_recommended') || 'AI-recommended voice for this campaign'}</p>
+            <p className="text-[8px] text-[#777]">{t('studio.ai_recommended') || 'AI-recommended voice for this campaign'}</p>
           </div>
-          <Volume2 size={12} className={audioPlaying ? 'text-purple-400 animate-pulse' : 'text-[#333]'} />
+          <Volume2 size={12} className={audioPlaying ? 'text-purple-400 animate-pulse' : 'text-[#555]'} />
         </div>
       )}
 
@@ -354,7 +354,7 @@ function AudioApprovalPanel({ data, audioPlaying, onToggleAudio, onApproveAudio 
                     {alt.voice_name}
                     {selectedVoice === alt.voice_id && <span className="text-purple-400 text-[8px] ml-1">SELECTED</span>}
                   </p>
-                  <p className="text-[8px] text-[#555] truncate">
+                  <p className="text-[8px] text-[#777] truncate">
                     {[alt.accent, alt.style].filter(Boolean).join(' · ') || 'Professional voice'}
                   </p>
                 </div>
@@ -369,7 +369,7 @@ function AudioApprovalPanel({ data, audioPlaying, onToggleAudio, onApproveAudio 
         <textarea data-testid="audio-feedback-input"
           value={feedback} onChange={e => setFeedback(e.target.value)}
           placeholder={t('studio.audio_feedback_placeholder') || 'Optional: request changes to the narration script...'}
-          className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-lg p-2.5 text-[10px] text-[#ccc] placeholder-[#444] resize-none focus:outline-none focus:border-purple-500/40"
+          className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-lg p-2.5 text-[10px] text-[#ccc] placeholder-[#555] resize-none focus:outline-none focus:border-purple-500/40"
           rows={2}
         />
       </div>

@@ -18,8 +18,8 @@ function ProgressTimer({ startedAt, estimatedSec, color }) {
   return (
     <div className="mt-1.5 px-1">
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[8px] text-[#555]">{elapsed}s {t('studio.elapsed')}</span>
-        <span className="text-[8px] text-[#555]">{fmt} {t('studio.remaining')}</span>
+        <span className="text-[8px] text-[#777]">{elapsed}s {t('studio.elapsed')}</span>
+        <span className="text-[8px] text-[#777]">{fmt} {t('studio.remaining')}</span>
       </div>
       <div className="h-1 rounded-full bg-[#1A1A1A] overflow-hidden">
         <div className="h-full rounded-full transition-all duration-1000 ease-linear" style={{ width: `${pct}%`, backgroundColor: color }} />
