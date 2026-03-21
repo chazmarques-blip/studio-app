@@ -116,7 +116,7 @@ async def _generate_voice_alternatives(narration_text, pipeline_id, primary_voic
 
         for v in top_candidates:
             try:
-                alt_config = {"voice_id": v["id"], "stability": 0.40, "similarity_boost": 0.80, "style": 0.45}
+                alt_config = {"type": "elevenlabs", "voice_id": v["id"], "stability": 0.40, "similarity": 0.80, "style_val": 0.45, "_skip_dylan_override": True}
                 preview_path = await _generate_narration(
                     narration_text, f"{pipeline_id}_alt_{v['id'][:6]}",
                     max_duration=25.0, voice_config=alt_config
@@ -837,14 +837,16 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
     audio_bytes = None
 
     # ── Merge Dylan's precise settings with any existing voice_config ──
-    dylan_settings = _extract_dylan_voice_settings(pipeline_id)
-    if dylan_settings:
-        if not voice_config or not isinstance(voice_config, dict):
-            voice_config = {}
-        # Dylan's settings take priority — merge under voice_config
-        for k, v in dylan_settings.items():
-            if k not in voice_config or k in ("stability", "similarity", "style_val", "voice_id"):
-                voice_config[k] = v
+    # Skip Dylan override when generating alternative voice previews
+    if not (voice_config and voice_config.get("_skip_dylan_override")):
+        dylan_settings = _extract_dylan_voice_settings(pipeline_id)
+        if dylan_settings:
+            if not voice_config or not isinstance(voice_config, dict):
+                voice_config = {}
+            # Dylan's settings take priority — merge under voice_config
+            for k, v in dylan_settings.items():
+                if k not in voice_config or k in ("stability", "similarity", "style_val", "voice_id"):
+                    voice_config[k] = v
 
     # ── ElevenLabs TTS (Primary) ──
     if elevenlabs_key:
@@ -1063,11 +1065,6 @@ async def _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=2700
                         pass
                 raise
 
-        # Response is an iterator of bytes
-        audio_data = b""
-        for chunk in response:
-            audio_data += chunk
-
         if len(audio_data) < 5000:
             logger.warning(f"ElevenLabs Music: response too small ({len(audio_data)}B)")
             return None
@@ -1085,7 +1082,7 @@ async def _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=2700
         return None
 
 
-def _build_music_prompt_from_dylan(marcos_output, brand_name="", music_mood="cinematic"):
+def _build_music_prompt_from_dylan(marcos_output, brand_name="", music_mood="cinematic", dylan_output=""):
     """Extract Dylan's music direction from Marcos output and build an ElevenLabs music prompt."""
     # Mood-to-prompt mapping for fallback
     mood_prompts = {
@@ -1101,13 +1098,16 @@ def _build_music_prompt_from_dylan(marcos_output, brand_name="", music_mood="cin
         "urban": "Urban hip-hop instrumental. Deep bass with crisp hi-hats and atmospheric synths. Street culture commercial. 30 seconds.",
     }
 
-    # Try to extract the ===ELEVENLABS MUSIC PROMPT=== section first
-    el_prompt_match = re.search(r'===ELEVENLABS MUSIC PROMPT===([\s\S]*?)===', marcos_output, re.IGNORECASE)
-    if el_prompt_match:
-        prompt = el_prompt_match.group(1).strip()
-        if len(prompt) > 20:
-            logger.info(f"Using Dylan's ElevenLabs music prompt: {prompt[:80]}...")
-            return prompt
+    # Try to extract the ===ELEVENLABS MUSIC PROMPT=== section from Dylan first, then Marcos
+    for source_output in [dylan_output, marcos_output]:
+        if not source_output:
+            continue
+        el_prompt_match = re.search(r'===ELEVENLABS MUSIC PROMPT===([\s\S]*?)===', source_output, re.IGNORECASE)
+        if el_prompt_match:
+            prompt = el_prompt_match.group(1).strip()
+            if len(prompt) > 20:
+                logger.info(f"Using ElevenLabs music prompt from {'Dylan' if source_output == dylan_output else 'Marcos'}: {prompt[:80]}...")
+                return prompt
 
     # Fallback: extract from ===MUSIC SELECTION=== or ===MUSIC DIRECTION===
     music_match = re.search(r'===MUSIC (?:SELECTION|DIRECTION)===([\s\S]*?)===', marcos_output, re.IGNORECASE)
@@ -1232,7 +1232,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
         safe_contact = _ffmpeg_safe(contact_cta)
 
         branded_ok = False
-        font_path = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
+        font_path = "/app/backend/assets/fonts/Montserrat-Bold.ttf"
         if logo_path and os.path.exists(logo_path):
             # Pre-scale logo to reasonable size for overlay (240px wide, maintain aspect)
             scaled_logo = f"/tmp/{pipeline_id}_logo_scaled.png"
@@ -1349,8 +1349,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 "highpass=f=80,"
                 "equalizer=f=3000:t=h:w=1000:g=3,"
                 "equalizer=f=8000:t=h:w=2000:g=1.5,"
-                "acompressor=threshold=-18dB:ratio=3:attack=8:release=80,"
-                "aecho=0.8:0.88:40:0.15"
+                "acompressor=threshold=-18dB:ratio=3:attack=8:release=80"
             )
             music_chain = (
                 "equalizer=f=400:t=q:w=2:g=-8,"
@@ -1360,12 +1359,11 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
                 f"afade=t=out:st={fade_out_start}:d=3:curve=exp"
             )
             # Sidechain: MUSIC gets compressed when NARRATION is present
-            # [music][narr] → first input (music) is compressed, second input (narr) is the sidechain trigger
-            # level_in=0.22 → music base level ~22% (cinematic bed, slightly louder for presence)
-            # threshold=0.02 → duck when voice > ~-34dB (sensitive trigger)
-            # ratio=6 → strong ducking but not total silence
-            # attack=20ms → smooth onset, release=400ms → gradual return after voice pauses
-            sidechain = "sidechaincompress=threshold=0.02:ratio=6:attack=20:release=400:level_in=0.22:level_sc=1"
+            # level_in=0.35 → music base level ~35% (audible cinematic bed)
+            # threshold=0.03 → duck when voice is present
+            # ratio=4 → moderate ducking (not total silence)
+            # attack=15ms → smooth onset, release=500ms → gradual return
+            sidechain = "sidechaincompress=threshold=0.03:ratio=4:attack=15:release=500:level_in=0.35:level_sc=1"
 
             mix_filter = (
                 f"[0:a]{narr_chain},asplit=2[narr][narr_sc];"
@@ -1439,7 +1437,7 @@ def _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name, pi
     return None
 
 
-async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720", selected_music_override="", voice_config=None):
+async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720", selected_music_override="", voice_config=None, dylan_output=""):
     """Full commercial video pipeline: 2 clips + narration + crossfade + brand logo + CTA"""
     # Parse Marcos's structured output
     clip1_prompt = ""
@@ -1655,7 +1653,7 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     # 4. Generate AI music via ElevenLabs (runs while clips are ready)
     ai_music_path = None
     try:
-        music_prompt = _build_music_prompt_from_dylan(marcos_output, brand_name, music_mood)
+        music_prompt = _build_music_prompt_from_dylan(marcos_output, brand_name, music_mood, dylan_output=dylan_output)
         ai_music_path = await _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=27000)
     except Exception as e:
         logger.warning(f"AI music generation failed, will use static files: {e}")
@@ -1664,7 +1662,7 @@ async def _generate_commercial_video(pipeline_id, marcos_output, size="1280x720"
     return _combine_commercial_video(clip1_path, clip2_path, audio_path, brand_name or "Brand", pipeline_id, logo_path, tagline, contact_cta, music_mood, ai_music_path, target_size=size)
 
 
-async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override="", voice_config=None):
+async def _generate_presenter_video(pipeline_id, marcos_output, avatar_url, size="1280x720", selected_music_override="", voice_config=None, dylan_output=""):
     """Generate a commercial with the avatar as a character IN the scene.
     1. Parse narration and clip prompts from marcos_output
     2. Enhance Sora prompts to include the avatar as an active character in each scene
@@ -1808,7 +1806,7 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
         # Add narration + background music (prefer AI-generated from ElevenLabs)
         ai_music_path = None
         try:
-            music_prompt = _build_music_prompt_from_dylan(marcos_output, brand_name, music_mood)
+            music_prompt = _build_music_prompt_from_dylan(marcos_output, brand_name, music_mood, dylan_output=dylan_output)
             ai_music_path = await _generate_music_elevenlabs(pipeline_id, music_prompt, duration_ms=int(total_clip_dur * 1000))
         except Exception as e:
             logger.warning(f"AI music generation failed for presenter: {e}")
@@ -1852,7 +1850,6 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                     f"equalizer=f=3000:t=h:w=1000:g=3,"
                     f"equalizer=f=8000:t=h:w=2000:g=1.5,"
                     f"acompressor=threshold=-18dB:ratio=3:attack=8:release=80,"
-                    f"aecho=0.8:0.88:40:0.15,"
                     f"apad=whole_dur={total_clip_dur}"
                 )
                 # Music: EQ carve for voice clarity, fades, trim to video length
@@ -1865,7 +1862,7 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                     f"atrim=0:{total_clip_dur}"
                 )
                 # Sidechain: music ducks under narration voice
-                sidechain = "sidechaincompress=threshold=0.02:ratio=6:attack=20:release=400:level_in=0.22:level_sc=1"
+                sidechain = "sidechaincompress=threshold=0.03:ratio=4:attack=15:release=500:level_in=0.35:level_sc=1"
 
                 filter_complex = (
                     f"[{audio_idx}:a]{narr_chain},asplit=2[narr][narr_sc];"
@@ -1955,7 +1952,7 @@ Smooth transition feel, same cinematic quality. Warm, inviting atmosphere."""
                 b_start = max(vid_dur - 4, 18)
                 b_mid = b_start + 0.5
                 b_late = b_start + 1.0
-                font = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
+                font = "/app/backend/assets/fonts/Montserrat-Bold.ttf"
                 def _safe(t):
                     if not t: return ""
                     for ch in ["'",'"',":",";",'[',']','(',')',',','%']:

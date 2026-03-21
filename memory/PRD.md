@@ -25,16 +25,49 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Multi-language support (PT/EN/ES)
 
 ## Completed This Session (2026-03-21)
-- BUG FIX: Campaign gallery image selection now updates the channel mockup preview (was always showing first image)
-- BUG FIX: Router ordering conflict resolved (pipeline_router before campaigns_router in server.py)
-- P0 FEATURE: ElevenLabs voice catalog expanded from 10 to 24 verified premade voices with rich metadata
-  - All voices support multilingual (PT/ES/EN/28+ languages)
-  - Includes female (11), male (12), non-binary (1) voices
-  - Hardcoded catalog (API key lacks voices_read permission)
-  - Dylan's prompt now includes detailed voice descriptions for context-aware selection
-  - _generate_voice_alternatives() updated to use hardcoded catalog
+
+### Bug Fixes
+- Campaign gallery image selection now updates channel mockup preview (was always first image)
+- Router ordering conflict resolved (pipeline_router before campaigns_router)
+- Voice ID parser rewritten (was sending "Lily" instead of "pFZP5JQG7iQjIQuC4Bku")
+- ElevenLabs Music generation double-read bug fixed (response iterator consumed twice → 0 bytes)
+- Alternative voices now use correct voice_ids with type="elevenlabs" flag
+- Dylan override no longer overwrites alternative voice_id during pre-approval generation
+
+### Audio Quality Overhaul
+- Removed aecho reverb filter from narration (was making voices sound robotic)
+- Increased music bed level from 0.22 to 0.35 (was nearly inaudible)
+- Reduced sidechain compression ratio from 6 to 4 (less aggressive ducking)
+- Installed Montserrat Bold font for brand overlay (replaced FreeSansBold)
+
+### Dylan Rewrite (19,856 chars) — World-Class Audio Director
+- Complete voice personality profiles for all 24 voices (each described as if Dylan has cast them hundreds of times)
+- 10 music genre deep-dives with instruments, BPM, mood progressions
+- Music composition mastery for ElevenLabs Music API prompt engineering
+- Voice entonation via punctuation techniques (v2 model)
+- Platform-specific audio mastering (TikTok, Instagram, YouTube, etc.)
+- Dynamic voice settings by campaign type (dramatic, energetic, corporate, intimate)
+- Dylan's music prompt now passed to video generation for custom AI music
+
+### Ridley Rewrite (6,458 chars) — Intelligent Sora 2 Transitions
+- Removed dependency on character continuity between clips (impossible in Sora 2)
+- Introduced 5 transition techniques: Threshold, Reveal, Time-Lapse, Reflection, Material
+- Focus on environment + product instead of specific human faces
+- Uses hands, silhouettes, back-of-head shots for human elements
+- Prompts optimized at 60-90 words (Sora produces better with focused prompts)
+
+### Tests Verified
+- Voice parser: 4 formats tested (name+id, id-only, name-only lookup) ✅
+- Pipeline test: Dylan selected George (British Artisan) for cervejaria premium ✅
+- Narration generated with correct voice_id JBFqnCBsd6RMkjVDRZzb ✅
+- Alternative voice Will (bIHbv24MWmeRgasZH58o) generated correctly ✅
 
 ## Backlog
+### P0 (In Progress)
+- Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs
+- Color grading via FFmpeg (contrast + saturation + warmth)
+- Fade-in/out suaves, dissolve transitions
+
 ### P1
 - Omnichannel integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
 - CRM Kanban board
@@ -49,8 +82,7 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Scalability hardening
 
 ## Known Issues
-- Sora 2 video generation returning "insufficient_balance" - user needs to add balance via Profile > Universal Key > Add Balance
-- ElevenLabs API key lacks voices_read permission (mitigated with hardcoded catalog)
+- `_extract_dylan_voice_settings` fails with UUID error for "_preview" suffixed pipeline IDs (non-critical)
 - Live social channel integrations are mocked
 
 ## Test Credentials

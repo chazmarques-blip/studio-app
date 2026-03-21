@@ -29,11 +29,31 @@ def _parse_dylan_audio(dylan_output):
     config = {}
     if not dylan_output:
         return config
-    # Parse voice ID
-    vid_match = re.search(r'Voice ID:\s*(\S+)', dylan_output, re.IGNORECASE)
-    if vid_match:
+    # Parse voice ID — handle formats:
+    #   "Voice ID: pFZP5JQG7iQjIQuC4Bku"
+    #   "Voice ID: Lily (pFZP5JQG7iQjIQuC4Bku)"
+    #   "Voice ID: pFZP5JQG7iQjIQuC4Bku — Lily"
+    vid_line_match = re.search(r'Voice ID:\s*(.+)', dylan_output, re.IGNORECASE)
+    if vid_line_match:
+        vid_line = vid_line_match.group(1).strip()
+        # Try to extract alphanumeric ID (20+ chars, no spaces) from the line
+        id_in_parens = re.search(r'\(([A-Za-z0-9]{15,})\)', vid_line)
+        bare_id = re.match(r'^([A-Za-z0-9]{15,})', vid_line)
+        if id_in_parens:
+            config["voice_id"] = id_in_parens.group(1)
+        elif bare_id:
+            config["voice_id"] = bare_id.group(1)
+        else:
+            # Fallback: look up name in catalog
+            from pipeline.config import ELEVENLABS_VOICES
+            name_candidate = vid_line.split('(')[0].split('—')[0].split('-')[0].strip()
+            for v in ELEVENLABS_VOICES:
+                if v["name"].lower() == name_candidate.lower():
+                    config["voice_id"] = v["id"]
+                    break
+            if "voice_id" not in config:
+                config["voice_id"] = vid_line.split()[0].strip()
         config["type"] = "elevenlabs"
-        config["voice_id"] = vid_match.group(1).strip()
     # Parse voice settings
     stab_match = re.search(r'Stability:\s*([\d.]+)', dylan_output, re.IGNORECASE)
     if stab_match:
@@ -534,7 +554,7 @@ async def _continue_video_after_approval(pipeline_id):
 
         if video_mode == "presenter" and avatar_url:
             voice_for_presenter = approved_voice or avatar_voice
-            video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=voice_for_presenter)
+            video_url = await _generate_presenter_video(pipeline_id, response, avatar_url, size, user_music, voice_config=voice_for_presenter, dylan_output=dylan_output)
         else:
             final_voice_config = dylan_voice_config.copy() if dylan_voice_config else {}
             if approved_voice and approved_voice.get("voice_id"):
@@ -543,7 +563,7 @@ async def _continue_video_after_approval(pipeline_id):
                 final_voice_config.update(avatar_voice)
             dylan_music = dylan_voice_config.get("_music_key", "")
             final_music = user_music or dylan_music
-            video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=final_music, voice_config=final_voice_config or avatar_voice)
+            video_url = await _generate_commercial_video(pipeline_id, response, size, selected_music_override=final_music, voice_config=final_voice_config or avatar_voice, dylan_output=dylan_output)
 
         steps["marcos_video"]["video_url"] = video_url
         steps["marcos_video"]["video_duration"] = 24
