@@ -625,6 +625,11 @@
     "image_generated": "imagem gerada!",
     "text_updated": "Texto atualizado!",
     "only_images": "Apenas imagens são aceitas",
-    "err_generate_image": "Erro ao gerar imagem"
+    "err_generate_image": "Erro ao gerar imagem",
+    "ai_edit": "Editar com IA",
+    "avatar_edited": "Avatar editado com IA!",
+    "editing": "Editando...",
+    "apply": "Aplicar",
+    "cancel": "Cancelar"
   }
 }

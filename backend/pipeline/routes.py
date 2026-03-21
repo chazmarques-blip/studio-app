@@ -26,6 +26,7 @@ from pipeline.config import (
     RegenerateDesignRequest, RegenerateStyleRequest,
     EditImageTextRequest, DetectImageTextRequest, PublishRequest,
     UpdateCopyRequest, RegenerateImageRequest, CloneLanguageRequest,
+    EditAvatarRequest,
 )
 from pipeline.utils import (
     _upload_to_storage, _get_tenant, _next_step,
@@ -1078,6 +1079,57 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
         logger.warning(f"Failed to update campaign with text-edited image: {e}")
 
     return {"status": "updated", "image_url": new_url, "image_index": body.image_index}
+
+
+@router.post("/edit-avatar")
+async def edit_avatar_image(body: EditAvatarRequest, user=Depends(get_current_user)):
+    """Edit an avatar image using AI (change clothes, background, expression, etc.)"""
+    await _get_tenant(user)
+
+    # Download avatar image
+    image_url = body.avatar_url
+    if not image_url.startswith("http"):
+        image_url = f"{os.environ.get('REACT_APP_BACKEND_URL', '')}{image_url}"
+
+    try:
+        req = urllib.request.Request(image_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            img_bytes = resp.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not download avatar image: {e}")
+
+    img_b64 = base64.b64encode(img_bytes).decode()
+    mime = "image/png"
+    if image_url.lower().endswith(".jpg") or image_url.lower().endswith(".jpeg"):
+        mime = "image/jpeg"
+    elif image_url.lower().endswith(".webp"):
+        mime = "image/webp"
+
+    system_msg = (
+        "You are an expert photo editor specializing in portrait and character editing. "
+        "You receive a person/avatar image and an editing instruction. "
+        "Apply the requested change while preserving the person's face, identity, and overall pose. "
+        "Output ONLY the edited image, no text."
+    )
+    prompt = f"Edit this avatar image: {body.instruction}. Keep the person's face and identity exactly the same."
+
+    try:
+        images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
+        if not images:
+            raise HTTPException(status_code=500, detail="AI editing returned no result")
+
+        edited_b64 = images[0]["data"]
+        edited_mime = images[0].get("mime_type", "image/png")
+        ext = ".png" if "png" in edited_mime else ".jpg" if "jpeg" in edited_mime else ".webp" if "webp" in edited_mime else ".png"
+        filename = f"avatars/edited_{uuid.uuid4().hex[:8]}{ext}"
+        edited_bytes = base64.b64decode(edited_b64)
+        new_url = _upload_to_storage(edited_bytes, filename, edited_mime)
+        return {"status": "ok", "url": new_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar edit failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Avatar editing failed: {str(e)}")
 
 
 

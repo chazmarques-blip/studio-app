@@ -68,6 +68,13 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Locais corrigidos: imagens do campaign detail, avatar download, art gallery download, video lightbox download
 - Sem sair da pagina ao clicar no download
 
+### Edicao IA de Avatar (2026-03-21)
+- Botoes de acao (editar, excluir, editar IA) agora sempre visiveis nos avatares da galeria (sem hover)
+- Novo botao "Editar com IA" (sparkle roxo) na galeria e no modal de customizacao do avatar
+- Overlay popup com textarea para instrucoes (ex: mudar roupa, fundo, expressao)
+- Backend endpoint POST /api/campaigns/pipeline/edit-avatar usando Gemini para edicao in-place
+- Traducoes adicionadas em PT, EN, ES
+
 ## Backlog
 ### P0 (In Progress)
 - Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs

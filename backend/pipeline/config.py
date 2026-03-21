@@ -967,3 +967,8 @@ class AvatarFromPromptRequest(BaseModel):
     logo_url: str = ""
     reference_photo_url: str = ""
 
+
+
+class EditAvatarRequest(BaseModel):
+    avatar_url: str
+    instruction: str
