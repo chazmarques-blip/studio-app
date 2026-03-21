@@ -445,6 +445,7 @@ export default function PipelineView({ context }) {
         video_url: previewVideoUrl || null,
         language: previewLanguage,
         avatar_style: tempAvatar.avatar_style || 'realistic',
+        creation_mode: tempAvatar.creation_mode || 'photo',
       };
       const updated = avatars.map(a => a.id === editingAvatarId ? { ...a, ...editedAvatar } : a);
       saveAvatars(updated);
@@ -461,6 +462,7 @@ export default function PipelineView({ context }) {
         video_url: previewVideoUrl || null,
         language: previewLanguage,
         avatar_style: tempAvatar.avatar_style || 'realistic',
+        creation_mode: tempAvatar.creation_mode || 'photo',
       };
       const updated = [...avatars, newAv];
       saveAvatars(updated);
@@ -496,17 +498,32 @@ export default function PipelineView({ context }) {
 
   const openAvatarForEdit = (av) => {
     setEditingAvatarId(av.id);
+    // Infer avatar_style from creation_mode for avatars saved before the fix
+    let inferredStyle = av.avatar_style || 'realistic';
+    if (!av.avatar_style && av.creation_mode === '3d') {
+      inferredStyle = '3d_pixar'; // Default 3D mode to pixar if not specified
+    }
+    const is3dAvatar = inferredStyle !== 'realistic';
     setTempAvatar({
       url: av.url,
       source_photo_url: av.source_photo_url || '',
       clothing: av.clothing || 'company_uniform',
       voice: av.voice || null,
-      avatar_style: av.avatar_style || 'realistic',
+      avatar_style: inferredStyle,
+      creation_mode: av.creation_mode || 'photo',
     });
     setAvatarName(av.name || '');
     setPreviewVideoUrl(av.video_url || null);
     setAvatarMediaTab(av.video_url ? 'photo' : 'photo');
-    setAngleImages(av.angles || { front: av.url });
+    // For 3D avatars, only load angles that were generated with 3D style
+    // If the avatar is 3D but angles were saved from a previous realistic generation, clear them
+    const savedAngles = av.angles || {};
+    if (is3dAvatar && savedAngles.front && savedAngles.front !== av.url) {
+      // Angles from before the fix — clear them and set front to the 3D avatar itself
+      setAngleImages({ front: av.url });
+    } else {
+      setAngleImages(savedAngles.front ? savedAngles : { front: av.url });
+    }
     // Load saved language
     setPreviewLanguage(av.language || 'pt');
     // Restore audio from saved voice
@@ -1850,7 +1867,18 @@ export default function PipelineView({ context }) {
                         { id: 'voice', icon: Volume2, label: t('studio.voice') },
                       ].map(tab => (
                         <button key={tab.id} data-testid={`avatar-tab-${tab.id}`}
-                          onClick={() => setCustomizeTab(tab.id)}
+                          onClick={() => {
+                            setCustomizeTab(tab.id);
+                            // Auto-trigger 360° generation when switching to the tab if missing angles
+                            if (tab.id === 'view360' && tempAvatar?.url && !auto360Progress) {
+                              const loadedAngles = Object.values(angleImages).filter(Boolean).length;
+                              if (loadedAngles < 4) {
+                                const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
+                                const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
+                                startAuto360(sourceUrl, tempAvatar.clothing || 'company_uniform', tempAvatar?.avatar_style || 'realistic');
+                              }
+                            }
+                          }}
                           className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-[10px] font-semibold transition ${
                             customizeTab === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>
                           <tab.icon size={12} /> {tab.label}
@@ -1967,6 +1995,19 @@ export default function PipelineView({ context }) {
                           </div>
                         ))}
                       </div>
+                      {/* Regenerate All 360° button */}
+                      {!auto360Progress && (
+                        <button data-testid="regen-all-360-btn"
+                          onClick={() => {
+                            const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
+                            const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
+                            setAngleImages({ front: tempAvatar.url });
+                            startAuto360(sourceUrl, tempAvatar?.clothing || 'company_uniform', tempAvatar?.avatar_style || 'realistic');
+                          }}
+                          className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5">
+                          <RefreshCw size={10} /> {t('studio.regenerate_all_360') || 'Regenerate All 360°'}
+                        </button>
+                      )}
                       </div>
                     )}
 
