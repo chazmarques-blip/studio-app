@@ -26,18 +26,17 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 
 ## Completed This Session (2026-03-21)
 
-### Bug Fix: Art Gallery Images Disappearing
-- Root cause: Field name inconsistency — engine.py saved images as `image_urls` while regenerate-single-image and edit-image-text read from `images` (empty field)
-- Fix: Normalized all backend code to use `images` with fallback to `image_urls` for legacy pipelines
-- Frontend: ArtGalleryModal now fetches fresh campaign data on mount (useEffect)
-- Frontend: Gallery/Detail modal close now triggers loadData() to refresh campaign list
-- Files fixed: pipeline/engine.py, pipeline/routes.py, Marketing.jsx
-- Verified: 11/11 backend + 6/6 frontend tests passed (iteration_82)
+### Bug Fix: Art Gallery Images Disappearing + Mockup Mismatch
+**Two root causes found and fixed:**
+1. **Campo `images` vs `image_urls`**: engine.py salvava como `image_urls`, mas regenerate-single-image/edit-image-text liam de `images` (vazio). Corrigido com logica de merge com deduplicacao em todos os endpoints.
+2. **Mockup mostrando imagem errada**: `platform_variants` tinha indices desincronizados com `images`. Mockup agora usa `images[safeIdx]` diretamente.
 
-### Database Verification
-- Confirmed: ALL data is stored in Supabase (campaigns, pipelines, creatives, storage)
-- No MongoDB usage in production code
-- Tables: campaigns, pipelines, tenants, agents, creatives, leads, conversations
+**Correcoes aplicadas:**
+- `pipeline/engine.py`: Merge images/image_urls antes de publicar campanha
+- `pipeline/routes.py`: 4 endpoints corrigidos + endpoint de migracao
+- `Marketing.jsx`: Mockup usa images diretamente, ArtGalleryModal refresh ao abrir/fechar
+- **Migracao executada**: 64 pipelines + 54 campanhas corrigidas
+- **Testes**: 11/11 backend + 8/8 frontend (iteration_83)
 
 ## Backlog
 ### P0 (In Progress)
