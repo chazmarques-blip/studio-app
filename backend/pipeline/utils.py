@@ -153,24 +153,35 @@ def _next_step(current):
 
 
 
-async def _detect_texts_in_image(img_b64: str, mime: str = "image/png") -> list:
+async def _detect_texts_in_image(img_b64_or_url: str, mime: str = "image/png", is_url: bool = False) -> list:
     """Use Gemini Vision to detect and extract all visible text/typography from an image.
     Returns a list of text strings found in the image."""
     try:
+        if is_url:
+            image_content = {"type": "image_url", "image_url": {"url": img_b64_or_url}}
+        else:
+            image_content = {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64_or_url}"}}
+
         messages = [
             {"role": "user", "content": [
                 {"type": "text", "text": (
-                    "You are an expert OCR system. Analyze this marketing image and extract ALL visible text.\n\n"
-                    "RULES:\n"
-                    "1. Return ONLY a JSON array of strings, each string being a separate text element found in the image\n"
-                    "2. Separate texts by their visual grouping (headlines, subheadlines, body text, buttons, labels)\n"
-                    "3. Preserve the original language — do NOT translate\n"
-                    "4. Order from most prominent (largest/boldest) to least prominent\n"
-                    "5. Do NOT include any explanation, only the JSON array\n\n"
-                    "Example output: [\"MAIN HEADLINE\", \"Subheadline text here\", \"Call to action\"]\n\n"
-                    "If no text is found, return: []"
+                    "Look at this image VERY carefully and list ALL text you can read.\n\n"
+                    "Include:\n"
+                    "- Headlines and titles (large bold text)\n"
+                    "- Subtitles and subheadlines\n"
+                    "- Body text and paragraphs\n"
+                    "- Text inside banners, ribbons, badges, speech bubbles\n"
+                    "- Stylized, artistic, or decorative text\n"
+                    "- Text with effects (shadows, outlines, gradients)\n"
+                    "- Small text, captions, labels, watermarks\n"
+                    "- Text in ANY language (Portuguese, English, Spanish, etc.)\n\n"
+                    "Return ONLY a JSON array of strings. Each string = one text element.\n"
+                    "Order by size: largest text first.\n"
+                    "DO NOT skip any text. Even partial or blurry text should be included.\n\n"
+                    "Example: [\"BIG HEADLINE\", \"subtitle here\", \"small caption\"]\n"
+                    "If truly no text exists: []"
                 )},
-                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}}
+                image_content,
             ]}
         ]
         response = litellm.completion(
@@ -179,20 +190,39 @@ async def _detect_texts_in_image(img_b64: str, mime: str = "image/png") -> list:
             api_key=EMERGENT_KEY,
             api_base=EMERGENT_PROXY_URL,
             custom_llm_provider="openai",
-            max_tokens=500,
+            max_tokens=800,
         )
         raw = response.choices[0].message.content or "[]"
-        logger.info(f"Text detection raw response: {raw[:500]}")
-        # Extract JSON array from response
+        logger.info(f"Text detection raw ({len(raw)} chars): {raw.replace(chr(10), ' ')[:400]}")
         import json
-        # Try to find JSON array in the response
-        match = re.search(r'\[.*\]', raw, re.DOTALL)
+        # Strip markdown code block markers
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.split('\n')
+            lines = [l for l in lines if not l.strip().startswith('```')]
+            cleaned = '\n'.join(lines).strip()
+        # Try to find complete JSON array
+        match = re.search(r'\[.*\]', cleaned, re.DOTALL)
         if match:
-            texts = json.loads(match.group())
-            logger.info(f"Text detection parsed texts: {texts}")
-            if isinstance(texts, list):
-                return [str(t).strip() for t in texts if str(t).strip()]
-        logger.warning(f"Text detection: No JSON array found in response")
+            try:
+                texts = json.loads(match.group())
+                if isinstance(texts, list):
+                    return [str(t).strip() for t in texts if str(t).strip()]
+            except json.JSONDecodeError:
+                pass
+        # Handle truncated JSON: if starts with [ but no closing ]
+        if '[' in cleaned and ']' not in cleaned:
+            truncated = cleaned[cleaned.index('['):]
+            # Remove trailing comma and whitespace, add closing ]
+            truncated = truncated.rstrip().rstrip(',') + ']'
+            try:
+                texts = json.loads(truncated)
+                if isinstance(texts, list):
+                    logger.info(f"Text detection recovered from truncated JSON: {len(texts)} texts")
+                    return [str(t).strip() for t in texts if str(t).strip()]
+            except json.JSONDecodeError:
+                pass
+        logger.warning(f"Text detection: Could not parse response: {cleaned[:200]}")
         return []
     except Exception as e:
         logger.warning(f"Text detection failed: {e}")

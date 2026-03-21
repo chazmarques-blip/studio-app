@@ -975,9 +975,18 @@ async def detect_image_text(body: DetectImageTextRequest, user=Depends(get_curre
         img_data = img_resp.read()
         if not img_data or len(img_data) < 500:
             raise HTTPException(status_code=400, detail="Could not download image")
-        img_b64 = base64.b64encode(img_data).decode('utf-8')
-        mime = "image/png" if ".png" in body.image_url.lower() else "image/jpeg"
-        texts = await _detect_texts_in_image(img_b64, mime)
+        # Try URL-based detection first (faster, no b64 size issues), fall back to b64
+        texts = await _detect_texts_in_image(body.image_url, "image/jpeg", is_url=True)
+        if not texts:
+            # Retry with base64 + correct mime type
+            img_b64 = base64.b64encode(img_data).decode('utf-8')
+            if img_data[:3] == b'\xff\xd8\xff':
+                mime = "image/jpeg"
+            elif img_data[:8] == b'\x89PNG\r\n\x1a\n':
+                mime = "image/png"
+            else:
+                mime = "image/jpeg"
+            texts = await _detect_texts_in_image(img_b64, mime)
         return {"texts": texts, "count": len(texts)}
     except HTTPException:
         raise

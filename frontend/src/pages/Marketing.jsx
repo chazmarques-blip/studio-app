@@ -1097,92 +1097,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             </a>
                           </div>
                         </div>
-                        {/* Edit Image Text Overlay */}
-                        {editImageTextIdx === i && (
-                          <div className="absolute inset-0 bg-black/95 flex flex-col p-2 z-10 overflow-y-auto" onClick={e => e.stopPropagation()}>
-                            <p className="text-[8px] text-[#60A5FA] font-bold mb-1 text-center">{labels.editImageText}</p>
-
-                            {/* Step 1: Detecting texts */}
-                            {detectingTexts && (
-                              <div className="flex-1 flex flex-col items-center justify-center gap-1">
-                                <RefreshCw size={14} className="animate-spin text-[#60A5FA]" />
-                                <p className="text-[7px] text-[#888]">Detectando textos na imagem...</p>
-                              </div>
-                            )}
-
-                            {/* Step 2: Show detected texts for selection */}
-                            {!detectingTexts && !selectedOriginalText && (
-                              <div className="flex-1 flex flex-col gap-1">
-                                <p className="text-[7px] text-[#888] text-center mb-0.5">
-                                  {detectedTexts.length > 0 ? 'Selecione o texto a editar:' : 'Nenhum texto detectado'}
-                                </p>
-                                <div className="flex flex-col gap-1 max-h-[120px] overflow-y-auto">
-                                  {detectedTexts.map((txt, ti) => (
-                                    <button key={ti}
-                                      data-testid={`detected-text-${ti}`}
-                                      onClick={() => setSelectedOriginalText(txt)}
-                                      className="text-left text-[8px] px-2 py-1.5 rounded-md bg-[#1A1A1A] border border-[#333] text-white hover:border-[#60A5FA] hover:text-[#60A5FA] transition truncate">
-                                      {txt}
-                                    </button>
-                                  ))}
-                                </div>
-                                <button onClick={() => setEditImageTextIdx(null)}
-                                  className="mt-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
-                                  {labels.cancelEdit}
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Step 3: User selected a text — show input for replacement */}
-                            {!detectingTexts && selectedOriginalText && (
-                              <div className="flex-1 flex flex-col gap-1">
-                                <p className="text-[7px] text-[#888] text-center">Texto original:</p>
-                                <div className="text-[8px] px-2 py-1 rounded-md bg-[#1A1A1A] border border-[#60A5FA]/30 text-[#60A5FA] truncate">{selectedOriginalText}</div>
-                                <p className="text-[7px] text-[#888] text-center mt-0.5">Novo texto:</p>
-                                <textarea data-testid={`edit-image-text-input-${i}`}
-                                  value={editImageTextValue} onChange={e => setEditImageTextValue(e.target.value)}
-                                  placeholder={labels.imageTextPlaceholder}
-                                  className="w-full text-[9px] bg-[#1A1A1A] border border-[#444] rounded-lg p-2 text-white placeholder-[#555] resize-none"
-                                  rows={2} />
-                                <div className="flex gap-1.5 mt-1 w-full">
-                                  <button onClick={() => { setSelectedOriginalText(''); setEditImageTextValue(''); }}
-                                    className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
-                                    Voltar
-                                  </button>
-                                  <button data-testid={`edit-image-text-confirm-${i}`}
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      if (!editImageTextValue.trim()) return;
-                                      setEditImageTextLoading(true);
-                                      try {
-                                        const { data: res } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/edit-image-text`, {
-                                          pipeline_id: pipelineId,
-                                          image_index: i,
-                                          new_text: editImageTextValue.trim(),
-                                          original_text: selectedOriginalText,
-                                          language: stats.campaign_language || 'pt',
-                                        });
-                                        if (res.image_url) {
-                                          toast.success(labels.imageTextUpdated);
-                                          setEditImageTextIdx(null);
-                                          setSelectedOriginalText('');
-                                          refreshCampaign();
-                                        }
-                                      } catch (err) {
-                                        toast.error(err.response?.data?.detail || labels.error);
-                                      } finally {
-                                        setEditImageTextLoading(false);
-                                      }
-                                    }}
-                                    disabled={editImageTextLoading || !editImageTextValue.trim()}
-                                    className="flex-1 text-[8px] py-1 rounded-lg bg-[#60A5FA] text-black font-bold hover:bg-[#93C5FD] transition disabled:opacity-50">
-                                    {editImageTextLoading ? <RefreshCw size={10} className="animate-spin mx-auto" /> : labels.editImageText}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {/* Edit Image Text — handled by modal below */}
                         {regenImageIdx === i && (
                           <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
                             <p className="text-[8px] text-[#C9A84C] font-bold mb-1.5">{labels.regenImage}</p>
@@ -1624,6 +1539,109 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
           </div>
         )}
       </div>
+      {/* ── Edit Image Text Modal ── */}
+      {editImageTextIdx !== null && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4" onClick={() => { setEditImageTextIdx(null); setSelectedOriginalText(''); }}>
+          <div className="bg-[#111] border border-[#222] rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header with image preview */}
+            <div className="p-4 border-b border-[#222] flex items-center gap-4">
+              <img src={resolveImageUrl(images[editImageTextIdx])} alt="" className="w-16 h-16 rounded-lg object-cover border border-[#333] flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-bold text-[#60A5FA]" data-testid="edit-text-modal-title">{labels.editImageText}</h3>
+                <p className="text-xs text-[#888] mt-0.5">Design {editImageTextIdx + 1}</p>
+              </div>
+            </div>
+
+            <div className="p-4 flex-1 overflow-y-auto">
+              {/* Step 1: Detecting */}
+              {detectingTexts && (
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <RefreshCw size={24} className="animate-spin text-[#60A5FA]" />
+                  <p className="text-sm text-[#888]">Analisando textos na imagem...</p>
+                </div>
+              )}
+
+              {/* Step 2: Select text */}
+              {!detectingTexts && !selectedOriginalText && (
+                <div className="space-y-3">
+                  <p className="text-xs text-[#888] text-center">
+                    {detectedTexts.length > 0 ? 'Selecione o texto que deseja editar:' : 'Nenhum texto detectado nesta imagem'}
+                  </p>
+                  <div className="space-y-2">
+                    {detectedTexts.map((txt, ti) => (
+                      <button key={ti}
+                        data-testid={`detected-text-${ti}`}
+                        onClick={() => setSelectedOriginalText(txt)}
+                        className="w-full text-left text-sm px-4 py-3 rounded-xl bg-[#1A1A1A] border border-[#333] text-white hover:border-[#60A5FA] hover:bg-[#1A1A2A] transition">
+                        {txt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Edit selected text */}
+              {!detectingTexts && selectedOriginalText && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-[#888] block mb-1">Texto original:</label>
+                    <div className="text-sm px-4 py-3 rounded-xl bg-[#1A1A1A] border border-[#60A5FA]/30 text-[#60A5FA]">{selectedOriginalText}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#888] block mb-1">Novo texto:</label>
+                    <textarea data-testid="edit-image-text-input"
+                      value={editImageTextValue} onChange={e => setEditImageTextValue(e.target.value)}
+                      placeholder={labels.imageTextPlaceholder}
+                      className="w-full text-sm bg-[#1A1A1A] border border-[#333] rounded-xl p-4 text-white placeholder-[#555] resize-none focus:border-[#60A5FA] focus:outline-none"
+                      rows={3} autoFocus />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer buttons */}
+            <div className="p-4 border-t border-[#222] flex gap-3">
+              <button onClick={() => {
+                if (selectedOriginalText) { setSelectedOriginalText(''); setEditImageTextValue(''); }
+                else { setEditImageTextIdx(null); }
+              }}
+                className="flex-1 text-sm py-2.5 rounded-xl border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition">
+                {selectedOriginalText ? 'Voltar' : 'Cancelar'}
+              </button>
+              {selectedOriginalText && (
+                <button data-testid="edit-image-text-confirm"
+                  onClick={async () => {
+                    if (!editImageTextValue.trim()) return;
+                    setEditImageTextLoading(true);
+                    try {
+                      const { data: res } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/edit-image-text`, {
+                        pipeline_id: pipelineId,
+                        image_index: editImageTextIdx,
+                        new_text: editImageTextValue.trim(),
+                        original_text: selectedOriginalText,
+                        language: stats.campaign_language || 'pt',
+                      });
+                      if (res.image_url) {
+                        toast.success(labels.imageTextUpdated);
+                        setEditImageTextIdx(null);
+                        setSelectedOriginalText('');
+                        refreshCampaign();
+                      }
+                    } catch (err) {
+                      toast.error(err.response?.data?.detail || labels.error);
+                    } finally {
+                      setEditImageTextLoading(false);
+                    }
+                  }}
+                  disabled={editImageTextLoading || !editImageTextValue.trim()}
+                  className="flex-1 text-sm py-2.5 rounded-xl bg-[#60A5FA] text-black font-bold hover:bg-[#93C5FD] transition disabled:opacity-50">
+                  {editImageTextLoading ? <RefreshCw size={16} className="animate-spin mx-auto" /> : 'Aplicar Alteracao'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

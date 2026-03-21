@@ -161,12 +161,15 @@ async def _edit_exact_image(source_image_url, edit_prompt, pipeline_id, index):
                 return None
 
             img_b64 = base64.b64encode(img_data).decode('utf-8')
-            # Detect mime type
-            mime = "image/jpeg"
-            if source_image_url.lower().endswith(".png"):
+            # Detect actual mime type from file content, not URL
+            if img_data[:3] == b'\xff\xd8\xff':
+                mime = "image/jpeg"
+            elif img_data[:8] == b'\x89PNG\r\n\x1a\n':
                 mime = "image/png"
-            elif source_image_url.lower().endswith(".webp"):
+            elif img_data[:4] == b'RIFF':
                 mime = "image/webp"
+            else:
+                mime = "image/jpeg"  # default fallback
 
             system_msg = "You are an expert product photographer and image editor. Edit the provided product photo with professional quality. Keep the EXACT product — do NOT replace it with a different or fictional version. Apply professional editing: clean background, studio lighting, color correction, and commercial-grade composition."
             prompt = f"""Edit this EXACT product photo for a marketing campaign. 
@@ -209,7 +212,13 @@ async def _edit_text_in_image(source_image_url, new_text, language, pipeline_id,
                 return None
 
             img_b64 = base64.b64encode(img_data).decode('utf-8')
-            mime = "image/png" if ".png" in source_image_url.lower() else "image/jpeg"
+            # Detect actual mime type from content
+            if img_data[:3] == b'\xff\xd8\xff':
+                mime = "image/jpeg"
+            elif img_data[:8] == b'\x89PNG\r\n\x1a\n':
+                mime = "image/png"
+            else:
+                mime = "image/jpeg"
 
             system_msg = (
                 "You are an expert image editor specialized in typography replacement. "

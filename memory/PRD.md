@@ -40,10 +40,12 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 
 ### Smart Text Detection & Targeted Editing (2026-03-21)
 - Novo endpoint `detect-image-text`: usa Gemini Vision para detectar todos os textos na imagem
-- Frontend redesenhado com fluxo de 3 passos: (1) Detectando... (2) Selecione texto → (3) Digite novo texto
-- `_edit_text_in_image` agora aceita `original_text` para substituicao direcionada
-- AI sabe EXATAMENTE qual texto trocar, preservando todos os outros + integridade visual
-- Testes: 11/11 backend + frontend flow completo (iteration_84)
+- Frontend: modal separado com fluxo de 3 passos (detectando → selecione texto → digite novo texto)
+- `_edit_text_in_image` aceita `original_text` para substituicao direcionada
+- Fix: parser agora lida com respostas truncadas e markdown code blocks da Gemini
+- Fix: deteccao de mime type usa magic bytes do conteudo (nao extensao da URL)
+- Fix: fallback URL → base64 para imagens que falham na deteccao via URL
+- Testes: 11/11 backend + frontend (iteration_84) + curl confirmado em 3 imagens
 
 ### Edit Image Text — AI In-Place Editing (2026-03-21)
 - **Antes**: O "Edit Image Text" gerava uma imagem COMPLETAMENTE nova (perdia o visual original)
