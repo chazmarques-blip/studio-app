@@ -494,7 +494,7 @@ function CampaignDemo({ lang }) {
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
                       <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">{d.brief_brand}</p>
                       <div className="flex items-center gap-3">
-                        <img src="/logo-agentzz.png" alt="AgentZZ" className="h-6" />
+                        <img src="/logo-agentzz.png" alt="AgentZZ" className="h-10" />
                         <span className="text-[12px] text-white font-semibold">AgentZZ</span>
                       </div>
                     </div>
@@ -1077,7 +1077,7 @@ export default function LandingV2() {
       {/* ═══ HEADER ═══ */}
       <header className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.04] bg-[#060606]/70 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-          <img src="/logo-agentzz.png" alt="Agents" className="h-7" data-testid="landing-logo" />
+          <img src="/logo-agentzz.png" alt="Agents" className="h-12" data-testid="landing-logo" />
           <div className="flex items-center gap-2.5">
             {/* Language selector */}
             <div className="flex items-center border border-white/[0.06] rounded-lg overflow-hidden" data-testid="lang-selector">
@@ -1825,7 +1825,7 @@ export default function LandingV2() {
       {/* ═══ FOOTER ═══ */}
       <footer className="border-t border-white/[0.04] px-5 py-5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
-          <img src="/logo-agentzz.png" alt="Agents" className="h-5 opacity-60" />
+          <img src="/logo-agentzz.png" alt="Agents" className="h-10 opacity-60" />
           <div className="flex items-center gap-4">
             <WaIcon size={12} color="#444" /><IgIcon size={12} color="#444" /><FbIcon size={12} color="#444" /><TgIcon size={12} color="#444" />
           </div>
