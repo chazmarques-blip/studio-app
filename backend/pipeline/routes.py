@@ -1083,10 +1083,10 @@ async def edit_image_text(body: EditImageTextRequest, user=Depends(get_current_u
 
 @router.post("/edit-avatar")
 async def edit_avatar_image(body: EditAvatarRequest, user=Depends(get_current_user)):
-    """Edit an avatar image using AI — keeps the original as context/reference."""
+    """Edit an avatar image using AI — uses base image for context preservation."""
     await _get_tenant(user)
 
-    # Download the original avatar image to use as reference
+    # Download current avatar image
     image_url = body.avatar_url
     if not image_url.startswith("http"):
         image_url = f"{os.environ.get('SUPABASE_URL', '')}/storage/v1/object/public/pipeline-assets/{image_url.lstrip('/')}"
@@ -1105,22 +1105,55 @@ async def edit_avatar_image(body: EditAvatarRequest, user=Depends(get_current_us
     elif image_url.lower().endswith(".webp"):
         mime = "image/webp"
 
-    system_msg = (
-        "You are a character design AI. When given a reference image and instructions, "
-        "COMPLETELY REPLACE the character with the new one described. "
-        "Use the reference image ONLY for pose and composition guidance. "
-        "The output must show ONLY the new character described — NOT the original person. "
-        "Generate the described character from scratch, keeping similar pose/framing."
-    )
-    prompt = (
-        f"REPLACE the character entirely with: {body.instruction}\n\n"
-        "DO NOT keep the original person. DO NOT add the new character as a drawing or picture frame. "
-        "The ENTIRE image must become the new character described above. "
-        "Use the original image ONLY as pose/composition reference."
-    )
+    # Download base image for context preservation (if provided and different)
+    extra_refs = []
+    if body.base_url and body.base_url != body.avatar_url:
+        base_img_url = body.base_url
+        if not base_img_url.startswith("http"):
+            base_img_url = f"{os.environ.get('SUPABASE_URL', '')}/storage/v1/object/public/pipeline-assets/{base_img_url.lstrip('/')}"
+        try:
+            breq = urllib.request.Request(base_img_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(breq, timeout=30) as bresp:
+                base_bytes = bresp.read()
+            base_b64 = base64.b64encode(base_bytes).decode()
+            base_mime = "image/png"
+            if base_img_url.lower().endswith(".jpg") or base_img_url.lower().endswith(".jpeg"):
+                base_mime = "image/jpeg"
+            extra_refs = [{"data": base_b64, "mime": base_mime}]
+        except Exception as e:
+            logger.warning(f"Could not download base image, proceeding without: {e}")
+
+    if extra_refs:
+        system_msg = (
+            "You are a character design AI. You receive TWO reference images and editing instructions. "
+            "IMAGE 1 is the CURRENT version of the character. "
+            "IMAGE 2 is the ORIGINAL BASE character that defines the character's core identity. "
+            "Apply the requested changes to IMAGE 1 while ALWAYS preserving the core identity, "
+            "style, and visual DNA from IMAGE 2 (the base). "
+            "The output must look like the SAME character with the requested modifications applied."
+        )
+        prompt = (
+            f"Apply these changes to the character: {body.instruction}\n\n"
+            "IMPORTANT: Keep the character's core identity from the BASE image (Image 2). "
+            "The result must clearly be the SAME character with the modifications applied."
+        )
+        try:
+            images = await _gemini_edit_multi_ref(system_msg, prompt, img_b64, mime, extra_refs)
+        except Exception:
+            images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
+    else:
+        system_msg = (
+            "You are a character design AI. When given a reference image and instructions, "
+            "apply the requested changes while preserving the character's core identity and style. "
+            "The output must show the SAME character with the modifications applied."
+        )
+        prompt = (
+            f"Apply these changes to the character: {body.instruction}\n\n"
+            "Keep the character's core identity. The result must be the SAME character with modifications."
+        )
+        images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
 
     try:
-        images = await _gemini_edit_image(system_msg, prompt, img_b64, mime)
         if not images:
             raise HTTPException(status_code=500, detail="AI editing returned no result")
 

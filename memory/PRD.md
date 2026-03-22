@@ -68,15 +68,15 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Locais corrigidos: imagens do campaign detail, avatar download, art gallery download, video lightbox download
 - Sem sair da pagina ao clicar no download
 
-### Edicao IA de Avatar (2026-03-21)
-- Botoes de acao (editar, excluir, editar IA) agora sempre visiveis nos avatares da galeria (sem hover)
-- Novo botao "Editar com IA" (sparkle roxo) na galeria e no modal de customizacao do avatar
-- Overlay popup com textarea para instrucoes de edicao contextual
-- Backend endpoint POST /api/campaigns/pipeline/edit-avatar usando Gemini Edit com prompt agressivo de SUBSTITUICAO
-- Prompt: "COMPLETELY REPLACE the character" em vez de "keep character identity" — permite transformacoes drasticas como humano→cartoon
-- Corrigido fluxo de CRIACAO: adicionado estilo "Custom" (padrao) que respeita prompt do usuario diretamente, sem forcar template "photorealistic professional portrait"
-- Seletor de estilo (Custom/Realistic/3D Cartoon/3D Pixar) agora visivel no modo "By Prompt"
-- Traducoes adicionadas em PT, EN, ES
+### Historico de Edicoes de Avatar + Flag Base (2026-03-21)
+- Painel de historico visual a esquerda do avatar com miniaturas de cada versao
+- Badge "BASE" dourado na primeira versao (ancora de contexto)
+- Numero de versao (v1, v2, v3...) e instrucao usada visivel no hover
+- Click em qualquer versao anterior para reverter
+- Backend: endpoint edit-avatar agora recebe base_url como parametro extra
+- Quando base_url disponivel, envia AMBAS imagens (atual + base) via _gemini_edit_multi_ref
+- Prompt instrui IA a preservar identidade do personagem base em TODAS as edicoes
+- Historico inicializado automaticamente ao criar avatar OU abrir para edicao
 
 ## Backlog
 ### P0 (In Progress)

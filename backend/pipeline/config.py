@@ -972,3 +972,4 @@ class AvatarFromPromptRequest(BaseModel):
 class EditAvatarRequest(BaseModel):
     avatar_url: str
     instruction: str
+    base_url: str = ""  # Original base character image for context preservation
