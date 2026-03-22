@@ -1916,12 +1916,13 @@ export default function PipelineView({ context }) {
                       <div className="flex gap-3 items-start">
                       {/* Edit History Panel (Left, vertical scroll, last 2 visible) */}
                       {avatarEditHistory.length > 1 && (
-                        <div className="w-24 shrink-0 flex flex-col gap-1.5" data-testid="avatar-edit-history">
+                        <div className="w-32 shrink-0 flex flex-col gap-1.5" data-testid="avatar-edit-history">
                           <div className="flex items-center gap-1">
-                            <History size={9} className="text-[#999]" />
-                            <span className="text-[7px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Historico'}</span>
+                            <History size={10} className="text-[#999]" />
+                            <span className="text-[8px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Historico'}</span>
                           </div>
-                          <div className="flex flex-col gap-1.5 overflow-y-auto pr-0.5" style={{maxHeight: '220px'}}>
+                          <div className="flex flex-col gap-2 overflow-y-auto pr-1 scroll-smooth" style={{maxHeight: '356px'}}
+                            ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
                             {avatarEditHistory.map((entry, idx) => {
                               const isCurrent = tempAvatar?.url === entry.url;
                               return (
@@ -1931,22 +1932,22 @@ export default function PipelineView({ context }) {
                                   }`}
                                   onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}>
                                   <img src={resolveImageUrl(entry.url)} alt={`v${idx + 1}`}
-                                    className="w-full aspect-[3/5] object-cover" />
+                                    className="w-full aspect-[3/4] object-cover" />
                                   {entry.isBase && (
-                                    <div className="absolute top-0.5 left-0.5 bg-[#C9A84C] rounded px-1 py-0.5">
-                                      <span className="text-[5px] text-black font-bold uppercase">BASE</span>
+                                    <div className="absolute top-1 left-1 bg-[#C9A84C] rounded px-1.5 py-0.5">
+                                      <span className="text-[6px] text-black font-bold uppercase">BASE</span>
                                     </div>
                                   )}
-                                  <div className="absolute top-0.5 right-0.5 bg-black/70 rounded px-1 py-0.5">
-                                    <span className="text-[6px] text-white font-bold">v{idx + 1}</span>
+                                  <div className="absolute top-1 right-1 bg-black/70 rounded px-1.5 py-0.5">
+                                    <span className="text-[7px] text-white font-bold">v{idx + 1}</span>
                                   </div>
                                   {isCurrent && (
-                                    <div className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#C9A84C] flex items-center justify-center">
-                                      <Check size={7} className="text-black" />
+                                    <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                                      <Check size={8} className="text-black" />
                                     </div>
                                   )}
-                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-1 opacity-0 group-hover:opacity-100 transition">
-                                    <p className="text-[5px] text-white/80 line-clamp-2 leading-tight">{entry.instruction}</p>
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition">
+                                    <p className="text-[6px] text-white/80 line-clamp-2 leading-tight">{entry.instruction}</p>
                                   </div>
                                 </div>
                               );
