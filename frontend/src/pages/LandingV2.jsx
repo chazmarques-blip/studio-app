@@ -1784,7 +1784,7 @@ export default function LandingV2() {
                         <p className="text-[9px] sm:text-[10px] text-[#B0B0B0] font-mono mb-1.5 sm:mb-3">{plan.desc}</p>
                         <div className="mb-1.5 sm:mb-3"><span className="text-lg sm:text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[9px] sm:text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
                         <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#C9A84C] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
-                        <button className="btn-gold w-full rounded-xl py-1.5 sm:py-2.5 text-[11px] sm:text-[12px] font-semibold">{plan.cta}</button>
+                        <button className="btn-gold mx-auto block rounded-lg px-6 py-1 text-[10px] sm:w-full sm:rounded-xl sm:py-1.5 sm:text-[11px] font-semibold">{plan.cta}</button>
                       </div>
                     </div>
                   </div>
@@ -1798,7 +1798,7 @@ export default function LandingV2() {
                     <div className="mb-1.5 sm:mb-3"><span className="text-lg sm:text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[9px] sm:text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
                     <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#C9A84C] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
                     {plan.note && <p className="text-center text-[8px] sm:text-[9px] text-[#B0B0B0] font-mono mb-1 sm:mb-2">{plan.note}</p>}
-                    <button className="btn-gold w-full rounded-xl py-1.5 sm:py-2.5 text-[11px] sm:text-[12px] font-semibold">{plan.cta}</button>
+                    <button className="btn-gold mx-auto block rounded-lg px-6 py-1 text-[10px] sm:w-full sm:rounded-xl sm:py-1.5 sm:text-[11px] font-semibold">{plan.cta}</button>
                   </div>
                 )}
               </motion.div>
