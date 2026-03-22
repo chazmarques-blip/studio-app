@@ -154,7 +154,7 @@ export default function Landing() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#1A1A1A]/60 bg-[#070707]/70 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-16" />
+          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-10" />
           <div className="flex items-center gap-3">
             <button data-testid="landing-login-btn" onClick={() => navigate('/login')} className="rounded-lg border border-[#222] px-4 py-2 text-sm text-[#999] hover:border-[#C9A84C]/40 hover:text-white transition-all">{t('landing.signin')}</button>
             <button data-testid="landing-signup-btn" onClick={() => navigate('/login?tab=signup')} className="btn-gold rounded-lg px-5 py-2 text-sm font-semibold">{t('landing.hero_cta')}</button>

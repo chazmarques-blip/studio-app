@@ -61,7 +61,7 @@ export default function Login() {
           <button data-testid="back-to-landing" onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-sm text-[#A0A0A0] transition hover:text-white">
             <ArrowLeft size={16} /> {t('auth.back')}
           </button>
-          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-20 mb-6" />
+          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-12 mb-6" />
           <h2 className="text-lg font-bold text-white mb-1">{isSignUp ? t('auth.choose_plan_title', 'Choose your plan') : t('auth.upgrade_title', 'Upgrade anytime')}</h2>
           <p className="text-[13px] text-[#999] mb-5">{t('auth.plan_subtitle', 'Start free, upgrade when you need more power.')}</p>
 
@@ -119,7 +119,7 @@ export default function Login() {
               <ArrowLeft size={16} /> {t('auth.back')}
             </button>
             <div className="mb-8">
-              <img src="/logo-agentzz.png" alt="AgentZZ" className="h-24" />
+              <img src="/logo-agentzz.png" alt="AgentZZ" className="h-16" />
             </div>
           </div>
 
