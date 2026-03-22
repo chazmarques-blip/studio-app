@@ -39,6 +39,7 @@ class AvatarIn(BaseModel):
     angles: Optional[dict] = None
     video_url: Optional[str] = None
     language: str = "pt"
+    edit_history: Optional[list] = None
 
 
 def _get_settings(tenant_id: str) -> dict:
@@ -148,6 +149,7 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
         "angles": data.angles,
         "video_url": data.video_url,
         "language": data.language,
+        "edit_history": data.edit_history or [],
         "updated_at": now,
     }
 
@@ -172,6 +174,24 @@ async def delete_avatar(avatar_id: str, user=Depends(get_current_user), tenant=D
     settings["studio_avatars"] = avatars
     _save_settings(tenant["id"], settings)
     return {"status": "ok"}
+
+
+@router.delete("/avatars/{avatar_id}/history/{entry_index}")
+async def delete_avatar_history_entry(avatar_id: str, entry_index: int, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    """Delete a specific edit history entry from an avatar."""
+    settings = _get_settings(tenant["id"])
+    avatars = settings.get("studio_avatars", [])
+    avatar = next((a for a in avatars if a.get("id") == avatar_id), None)
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    history = avatar.get("edit_history", [])
+    if entry_index < 0 or entry_index >= len(history):
+        raise HTTPException(status_code=400, detail="Invalid history index")
+    history.pop(entry_index)
+    avatar["edit_history"] = history
+    settings["studio_avatars"] = avatars
+    _save_settings(tenant["id"], settings)
+    return {"status": "ok", "edit_history": history}
 
 
 @router.delete("/avatars")

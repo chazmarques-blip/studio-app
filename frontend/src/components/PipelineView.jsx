@@ -462,6 +462,7 @@ export default function PipelineView({ context }) {
         language: previewLanguage,
         avatar_style: tempAvatar.avatar_style || 'realistic',
         creation_mode: tempAvatar.creation_mode || 'photo',
+        edit_history: avatarEditHistory,
       };
       const updated = avatars.map(a => a.id === editingAvatarId ? { ...a, ...editedAvatar } : a);
       saveAvatars(updated);
@@ -479,6 +480,7 @@ export default function PipelineView({ context }) {
         language: previewLanguage,
         avatar_style: tempAvatar.avatar_style || 'realistic',
         creation_mode: tempAvatar.creation_mode || 'photo',
+        edit_history: avatarEditHistory,
       };
       const updated = [...avatars, newAv];
       saveAvatars(updated);
@@ -503,6 +505,7 @@ export default function PipelineView({ context }) {
       language: previewLanguage,
       creation_mode: tempAvatar.creation_mode || 'photo',
       avatar_style: tempAvatar.avatar_style || 'realistic',
+      edit_history: avatarEditHistory,
     };
     const updated = [...avatars, newAv];
     saveAvatars(updated);
@@ -558,9 +561,16 @@ export default function PipelineView({ context }) {
     setAvatarStage('customize');
     setCustomizeTab('clothing');
     setShowAvatarModal(true);
-    // Initialize edit history with current avatar as base
-    setAvatarBaseUrl(av.url);
-    setAvatarEditHistory([{ url: av.url, instruction: 'Base original', timestamp: new Date().toISOString(), isBase: true }]);
+    // Load saved edit history or initialize with current avatar as base
+    const savedHistory = av.edit_history && av.edit_history.length > 0 ? av.edit_history : [];
+    if (savedHistory.length > 0) {
+      setAvatarEditHistory(savedHistory);
+      const baseEntry = savedHistory.find(e => e.isBase);
+      setAvatarBaseUrl(baseEntry ? baseEntry.url : av.url);
+    } else {
+      setAvatarBaseUrl(av.url);
+      setAvatarEditHistory([{ url: av.url, instruction: 'Base original', timestamp: new Date().toISOString(), isBase: true }]);
+    }
   };
 
   const resetAvatarModal = () => {
@@ -1946,8 +1956,62 @@ export default function PipelineView({ context }) {
                                       <Check size={8} className="text-black" />
                                     </div>
                                   )}
-                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition">
-                                    <p className="text-[6px] text-white/80 line-clamp-2 leading-tight">{entry.instruction}</p>
+                                  {/* Action buttons on hover */}
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-5 pb-1 px-1 opacity-0 group-hover:opacity-100 transition">
+                                    <p className="text-[5px] text-white/70 line-clamp-1 leading-tight mb-1">{entry.instruction}</p>
+                                    <div className="flex gap-1 justify-center">
+                                      <button data-testid={`history-download-${idx}`} title="Download"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          try {
+                                            const response = await fetch(resolveImageUrl(entry.url));
+                                            const blob = await response.blob();
+                                            const blobUrl = window.URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = blobUrl;
+                                            a.download = `avatar_v${idx + 1}_${Date.now()}.png`;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            window.URL.revokeObjectURL(blobUrl);
+                                          } catch { toast.error('Download failed'); }
+                                        }}
+                                        className="h-5 w-5 rounded bg-white/10 flex items-center justify-center hover:bg-white/25 transition">
+                                        <Download size={8} className="text-white" />
+                                      </button>
+                                      <button data-testid={`history-edit-${idx}`} title="Editar a partir desta versão"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setTempAvatar(p => ({ ...p, url: entry.url }));
+                                          setAiEditAvatarId('temp');
+                                          setAiEditInstruction('');
+                                        }}
+                                        className="h-5 w-5 rounded bg-purple-500/20 flex items-center justify-center hover:bg-purple-500/40 transition">
+                                        <Sparkles size={8} className="text-purple-300" />
+                                      </button>
+                                      {!entry.isBase && (
+                                        <button data-testid={`history-delete-${idx}`} title="Remover"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            const newHistory = avatarEditHistory.filter((_, i) => i !== idx);
+                                            setAvatarEditHistory(newHistory);
+                                            // If we deleted the current version, switch to the last remaining
+                                            if (isCurrent && newHistory.length > 0) {
+                                              setTempAvatar(p => ({ ...p, url: newHistory[newHistory.length - 1].url }));
+                                            }
+                                            // Auto-save to server if editing existing avatar
+                                            if (editingAvatarId) {
+                                              try {
+                                                await axios.delete(`${API}/data/avatars/${editingAvatarId}/history/${idx}`);
+                                              } catch {}
+                                            }
+                                            toast.success('Versão removida');
+                                          }}
+                                          className="h-5 w-5 rounded bg-red-500/20 flex items-center justify-center hover:bg-red-500/40 transition">
+                                          <Trash2 size={8} className="text-red-400" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -2022,12 +2086,23 @@ export default function PipelineView({ context }) {
                                 });
                                 if (data.url) {
                                   setTempAvatar(p => ({ ...p, url: data.url }));
-                                  setAvatarEditHistory(prev => [...prev, {
+                                  const newEntry = {
                                     url: data.url,
                                     instruction: aiEditInstruction,
                                     timestamp: new Date().toISOString(),
                                     isBase: false,
-                                  }]);
+                                  };
+                                  setAvatarEditHistory(prev => {
+                                    const updated = [...prev, newEntry];
+                                    // Auto-save history to server
+                                    if (editingAvatarId) {
+                                      const av = avatars.find(a => a.id === editingAvatarId);
+                                      if (av) {
+                                        persistAvatarToServer({ ...av, url: data.url, edit_history: updated });
+                                      }
+                                    }
+                                    return updated;
+                                  });
                                   toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
                                 }
                               } catch (err) {
