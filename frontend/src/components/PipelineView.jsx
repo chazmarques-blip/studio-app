@@ -81,7 +81,7 @@ export default function PipelineView({ context }) {
   const [avatarCreationMode, setAvatarCreationMode] = useState('photo'); // 'photo' | 'prompt' | '3d'
   const [avatarPromptText, setAvatarPromptText] = useState('');
   const [avatarPromptGender, setAvatarPromptGender] = useState('female');
-  const [avatarPromptStyle, setAvatarPromptStyle] = useState('realistic'); // 'realistic' | '3d_cartoon' | '3d_pixar'
+  const [avatarPromptStyle, setAvatarPromptStyle] = useState('custom'); // 'custom' | 'realistic' | '3d_cartoon' | '3d_pixar'
   const [tempAvatar, setTempAvatar] = useState(null); // { url, source_photo_url, clothing, voice }
   const [editingAvatarId, setEditingAvatarId] = useState(null); // null = new, string = editing existing
   const [customizeTab, setCustomizeTab] = useState('clothing');
@@ -402,7 +402,7 @@ export default function PipelineView({ context }) {
     setGeneratingAvatar(true);
     setAccuracyProgress({ progress: t('studio.generating_avatar') || 'Generating avatar from description...' });
     try {
-      const style = avatarCreationMode === '3d' ? avatarPromptStyle : 'realistic';
+      const style = avatarPromptStyle;
       const payload = {
         prompt: avatarPromptText,
         gender: avatarPromptGender,
@@ -560,7 +560,7 @@ export default function PipelineView({ context }) {
     setAvatarCreationMode('photo');
     setAvatarPromptText('');
     setAvatarPromptGender('female');
-    setAvatarPromptStyle('realistic');
+    setAvatarPromptStyle('custom');
     setTempAvatar(null);
     setEditingAvatarId(null);
     setCustomizeTab('clothing');
@@ -1738,6 +1738,19 @@ export default function PipelineView({ context }) {
                                 </button>
                               ))}
                             </div>
+                          </div>
+                        </div>
+                        {/* Style selector - also for prompt mode */}
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
+                          <div className="flex gap-1">
+                            {[{id:'custom', label:'Custom'}, {id:'realistic', label:'Realistic'}, {id:'3d_cartoon', label:'3D Cartoon'}, {id:'3d_pixar', label:'3D Pixar'}].map(s => (
+                              <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
+                                data-testid={`prompt-style-${s.id}`}
+                                className={`flex-1 rounded-lg py-1.5 text-[8px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                {s.label}
+                              </button>
+                            ))}
                           </div>
                         </div>
                         <button data-testid="generate-avatar-prompt-btn" onClick={generateAvatarFromPrompt}

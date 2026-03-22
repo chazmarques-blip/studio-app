@@ -152,6 +152,12 @@ async def generate_avatar_from_prompt(req: AvatarFromPromptRequest, user=Depends
                 "Clean studio background with soft gradient. "
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             ),
+            "custom": (
+                f"{req.prompt}\n\n"
+                "Full body character, standing pose, centered in frame. "
+                "High quality, detailed, clean execution. "
+                "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+            ),
         }
 
         prompt = style_prompts.get(req.style, style_prompts["realistic"])

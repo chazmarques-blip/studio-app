@@ -74,6 +74,8 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Overlay popup com textarea para instrucoes de edicao contextual
 - Backend endpoint POST /api/campaigns/pipeline/edit-avatar usando Gemini Edit com prompt agressivo de SUBSTITUICAO
 - Prompt: "COMPLETELY REPLACE the character" em vez de "keep character identity" — permite transformacoes drasticas como humano→cartoon
+- Corrigido fluxo de CRIACAO: adicionado estilo "Custom" (padrao) que respeita prompt do usuario diretamente, sem forcar template "photorealistic professional portrait"
+- Seletor de estilo (Custom/Realistic/3D Cartoon/3D Pixar) agora visivel no modo "By Prompt"
 - Traducoes adicionadas em PT, EN, ES
 
 ## Backlog
