@@ -1220,7 +1220,7 @@ export default function LandingV2() {
               </div>
             </Glass>
 
-            <div className="md:translate-y-[-12px] h-full"><AgentChat lang={lang} /></div>
+            <div className="md:translate-y-[-12px] h-[420px] md:h-full"><AgentChat lang={lang} /></div>
 
             <Glass hover className="p-4 flex flex-col">
               <div className="flex items-center gap-2 mb-2.5">
