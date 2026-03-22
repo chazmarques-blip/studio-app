@@ -1912,52 +1912,8 @@ export default function PipelineView({ context }) {
                         </div>
                       )}
 
-                      {/* Media Display + History + AI Edit Side Panel */}
+                      {/* Media Display + AI Edit Side Panel */}
                       <div className="flex gap-3 items-start">
-                      {/* Edit History Panel (Left) */}
-                      {avatarEditHistory.length > 1 && (
-                        <div className="w-20 shrink-0 flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar" data-testid="avatar-edit-history">
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <History size={9} className="text-[#999]" />
-                            <span className="text-[7px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'History'}</span>
-                          </div>
-                          {avatarEditHistory.map((entry, idx) => {
-                            const isCurrent = tempAvatar?.url === entry.url;
-                            return (
-                              <div key={idx} data-testid={`history-entry-${idx}`}
-                                className={`relative rounded-lg overflow-hidden border-2 cursor-pointer transition group ${
-                                  isCurrent ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.15)]' : 'border-[#1E1E1E] hover:border-[#333]'
-                                }`}
-                                onClick={() => {
-                                  setTempAvatar(p => ({ ...p, url: entry.url }));
-                                }}>
-                                <img src={resolveImageUrl(entry.url)} alt={`v${idx}`}
-                                  className="w-full aspect-[3/5] object-cover" />
-                                {/* Base badge */}
-                                {entry.isBase && (
-                                  <div className="absolute top-0.5 left-0.5 bg-[#C9A84C] rounded px-1 py-0.5">
-                                    <span className="text-[5px] text-black font-bold uppercase">BASE</span>
-                                  </div>
-                                )}
-                                {/* Version number */}
-                                <div className="absolute top-0.5 right-0.5 bg-black/70 rounded px-1 py-0.5">
-                                  <span className="text-[6px] text-white font-bold">v{idx + 1}</span>
-                                </div>
-                                {/* Current indicator */}
-                                {isCurrent && (
-                                  <div className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#C9A84C] flex items-center justify-center">
-                                    <Check size={7} className="text-black" />
-                                  </div>
-                                )}
-                                {/* Instruction tooltip on hover */}
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-1 opacity-0 group-hover:opacity-100 transition">
-                                  <p className="text-[5px] text-white/80 line-clamp-2 leading-tight">{entry.instruction}</p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
                       <div className="w-40 shrink-0">
                       <div className="relative aspect-[3/5]">
                         {avatarMediaTab === 'video' && previewVideoUrl ? (
@@ -1989,6 +1945,45 @@ export default function PipelineView({ context }) {
                           </div>
                         )}
                       </div>
+                      {/* Edit History Bar (horizontal scroll, last 2 visible) */}
+                      {avatarEditHistory.length > 1 && (
+                        <div className="mt-1.5" data-testid="avatar-edit-history">
+                          <div className="flex items-center gap-1 mb-1">
+                            <History size={8} className="text-[#999]" />
+                            <span className="text-[7px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Historico'}</span>
+                            <span className="text-[6px] text-[#666]">({avatarEditHistory.length})</span>
+                          </div>
+                          <div className="flex gap-1.5 overflow-x-auto pb-1" style={{maxWidth: '160px'}}>
+                            {avatarEditHistory.slice(-4).map((entry, idx) => {
+                              const realIdx = avatarEditHistory.length > 4 ? avatarEditHistory.length - 4 + idx : idx;
+                              const isCurrent = tempAvatar?.url === entry.url;
+                              return (
+                                <div key={realIdx} data-testid={`history-entry-${realIdx}`}
+                                  className={`relative shrink-0 w-[42px] rounded-lg overflow-hidden border-2 cursor-pointer transition group ${
+                                    isCurrent ? 'border-[#C9A84C]' : 'border-[#1E1E1E] hover:border-[#333]'
+                                  }`}
+                                  onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}>
+                                  <img src={resolveImageUrl(entry.url)} alt={`v${realIdx + 1}`}
+                                    className="w-full aspect-[3/4] object-cover" />
+                                  {entry.isBase && (
+                                    <div className="absolute top-0 left-0 bg-[#C9A84C] rounded-br px-0.5">
+                                      <span className="text-[4px] text-black font-bold">BASE</span>
+                                    </div>
+                                  )}
+                                  <div className="absolute top-0 right-0 bg-black/70 rounded-bl px-0.5">
+                                    <span className="text-[5px] text-white font-bold">v{realIdx + 1}</span>
+                                  </div>
+                                  {isCurrent && (
+                                    <div className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                                      <Check size={6} className="text-black" />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                       {/* AI Edit button below avatar */}
                       {avatarMediaTab !== 'video' && (
                         <button data-testid="ai-edit-avatar-modal-btn" onClick={() => setAiEditAvatarId(aiEditAvatarId === 'temp' ? null : 'temp')}
