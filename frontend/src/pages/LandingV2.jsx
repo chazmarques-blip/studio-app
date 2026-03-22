@@ -1136,13 +1136,13 @@ export default function LandingV2() {
 
           <motion.div initial="hidden" animate="visible" variants={fade} custom={3} className="flex justify-center gap-3 mb-12">
             <button onClick={() => navigate('/login?tab=signup')} data-testid="hero-cta-btn"
-              className="btn-gold flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold group">
-              {l.cta} <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              className="btn-gold flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-semibold group">
+              {l.cta} <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
             <button data-testid="hero-demo-btn"
               onClick={() => document.getElementById('demo-section')?.scrollIntoView({ behavior: 'smooth' })}
-              className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-5 py-2.5 text-[13px] text-[#888] hover:text-white hover:border-white/[0.12] transition-all">
-              <Play size={13} /> {l.demo}
+              className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.02] px-4 py-1.5 text-[11px] text-[#888] hover:text-white hover:border-white/[0.12] transition-all">
+              <Play size={11} /> {l.demo}
             </button>
           </motion.div>
 
@@ -1815,8 +1815,8 @@ export default function LandingV2() {
             <h2 className="text-3xl font-bold text-white mb-3 sm:text-4xl leading-tight">{l.cta_title}</h2>
             <p className="text-[14px] text-[#B0B0B0] mb-6">{l.cta_sub}</p>
             <button onClick={() => navigate('/login?tab=signup')} data-testid="final-cta-btn"
-              className="btn-gold rounded-xl px-7 py-2.5 text-[13px] font-semibold inline-flex items-center gap-2 group">
-              {l.cta} <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              className="btn-gold rounded-lg px-4 py-1.5 text-[11px] font-semibold inline-flex items-center gap-1.5 group">
+              {l.cta} <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
           </motion.div>
         </div>
