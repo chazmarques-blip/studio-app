@@ -246,7 +246,7 @@ export default function Chat() {
           {msg.sender === 'operator' && <p className="text-[10px] text-[#C9A84C] mb-0.5"><UserCheck size={10} className="inline mr-1" />You</p>}
           {msg.imageSrc && <img src={msg.imageSrc} alt="" className="mb-2 max-h-48 rounded-lg object-contain" />}
           <p className="text-sm text-white whitespace-pre-wrap">{msg.content}</p>
-          <p className="mt-1 text-right text-[9px] text-[#444]">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          <p className="mt-1 text-right text-[9px] text-[#999]">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
         </div>
       </div>
     );
@@ -302,9 +302,9 @@ export default function Chat() {
               <img src={imagePreview.src} alt="Preview" className="h-14 w-14 rounded-lg object-cover border border-[#2A2A2A]" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-white truncate">{imagePreview.name}</p>
-                <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Enviar para analise Vision' : 'Send for Vision analysis'}</p>
+                <p className="text-[10px] text-[#999]">{lang === 'pt' ? 'Enviar para analise Vision' : 'Send for Vision analysis'}</p>
               </div>
-              <button onClick={() => setImagePreview(null)} className="text-[#666] hover:text-red-400"><X size={16} /></button>
+              <button onClick={() => setImagePreview(null)} className="text-[#999] hover:text-red-400"><X size={16} /></button>
               <button data-testid="chat-send-image-btn" onClick={sendImageAnalysis} disabled={mediaLoading}
                 className="flex h-9 items-center gap-1.5 rounded-lg bg-[#C9A84C] px-3 text-xs font-semibold text-[#0A0A0A] disabled:opacity-50">
                 <Eye size={14} /> {lang === 'pt' ? 'Analisar' : 'Analyze'}

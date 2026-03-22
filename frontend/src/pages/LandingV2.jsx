@@ -439,7 +439,7 @@ function CampaignDemo({ lang }) {
       <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
         <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{d.tag}</p>
         <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{d.title}</h2>
-        <p className="text-sm text-[#555] max-w-lg mx-auto mt-2">{d.sub}</p>
+        <p className="text-sm text-[#B0B0B0] max-w-lg mx-auto mt-2">{d.sub}</p>
       </motion.div>
 
       {/* Step indicators */}
@@ -449,7 +449,7 @@ function CampaignDemo({ lang }) {
           return (
             <button key={i} onClick={() => { setDemoStep(i); setAutoPlay(false); }}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all duration-400 text-[9px] font-mono ${
-                demoStep === i ? 'bg-[#C9A84C]/[0.12] border border-[#C9A84C]/20 text-[#C9A84C]' : 'border border-white/[0.05] text-[#555] hover:text-[#888]'
+                demoStep === i ? 'bg-[#C9A84C]/[0.12] border border-[#C9A84C]/20 text-[#C9A84C]' : 'border border-white/[0.05] text-[#B0B0B0] hover:text-[#E5E5E5]'
               }`} data-testid={`demo-step-${i}`}>
               <Icon size={10} />
               <span className="hidden sm:inline">{s.label}</span>
@@ -468,7 +468,7 @@ function CampaignDemo({ lang }) {
               <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
               <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
             </div>
-            <span className="text-[9px] font-mono text-[#555] ml-3">AgentZZ AI Marketing Studio</span>
+            <span className="text-[9px] font-mono text-[#B0B0B0] ml-3">AgentZZ AI Marketing Studio</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[8px] font-mono text-[#C9A84C]/50 border border-[#C9A84C]/10 rounded px-2 py-0.5 bg-[#C9A84C]/[0.03]">
@@ -484,7 +484,7 @@ function CampaignDemo({ lang }) {
 
               <div className="mb-4">
                 <h3 className="text-base font-bold text-white mb-1">{d.steps[demoStep].title}</h3>
-                <p className="text-[11px] text-[#555]">{d.steps[demoStep].desc}</p>
+                <p className="text-[11px] text-[#B0B0B0]">{d.steps[demoStep].desc}</p>
               </div>
 
               {/* Step 0: Brief */}
@@ -608,7 +608,7 @@ function CampaignDemo({ lang }) {
                         ].map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2">
                             <item.icon size={10} className="text-[#C9A84C]/50" />
-                            <span className="text-[9px] text-[#555] font-mono w-16">{item.label}</span>
+                            <span className="text-[9px] text-[#B0B0B0] font-mono w-16">{item.label}</span>
                             <span className="text-[10px] text-[#ccc]">{item.value}</span>
                           </div>
                         ))}
@@ -683,11 +683,11 @@ function CampaignDemo({ lang }) {
                           <Heart size={10} className="text-[#ccc]" /><MessageSquare size={10} className="text-[#ccc]" /><Send size={10} className="text-[#ccc]" />
                         </div>
                         <p className="text-[7px] text-[#888] leading-relaxed mb-1"><span className="text-white font-semibold">agentzz </span>Seus clientes nunca mais esperam. Com AgentZZ, seus agentes IA atendem 24h no WhatsApp, Instagram e Telegram. Configure em 5 minutos.</p>
-                        <p className="text-[6px] text-[#555]">#IA #Atendimento #ChatBot #AgentZZ #Marketing</p>
+                        <p className="text-[6px] text-[#B0B0B0]">#IA #Atendimento #ChatBot #AgentZZ #Marketing</p>
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <IgIcon size={7} color="#E1306C" />
-                        <span className="text-[7px] text-[#555] font-mono">Instagram Feed</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">Instagram Feed</span>
                       </div>
                     </motion.div>
 
@@ -700,7 +700,7 @@ function CampaignDemo({ lang }) {
                         </div>
                         <div>
                           <span className="text-[8px] text-white font-semibold block leading-none">AgentZZ</span>
-                          <span className="text-[6px] text-[#555]">Sponsored</span>
+                          <span className="text-[6px] text-[#B0B0B0]">Sponsored</span>
                         </div>
                         <FbIcon size={8} color="#0084FF" className="ml-auto" />
                       </div>
@@ -717,11 +717,11 @@ function CampaignDemo({ lang }) {
                           <ThumbsUp size={8} className="text-[#0084FF]" />
                           <span className="text-[7px] text-[#888]">2.4k</span>
                         </div>
-                        <span className="text-[7px] text-[#555]">342 shares</span>
+                        <span className="text-[7px] text-[#B0B0B0]">342 shares</span>
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <FbIcon size={7} color="#0084FF" />
-                        <span className="text-[7px] text-[#555] font-mono">Facebook Ads</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">Facebook Ads</span>
                       </div>
                     </motion.div>
 
@@ -734,7 +734,7 @@ function CampaignDemo({ lang }) {
                         </div>
                         <div>
                           <span className="text-[8px] text-white font-semibold block leading-none">AgentZZ</span>
-                          <span className="text-[6px] text-[#555]">Business</span>
+                          <span className="text-[6px] text-[#B0B0B0]">Business</span>
                         </div>
                         <WaIcon size={8} color="#25D366" className="ml-auto" />
                       </div>
@@ -749,7 +749,7 @@ function CampaignDemo({ lang }) {
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <WaIcon size={7} color="#25D366" />
-                        <span className="text-[7px] text-[#555] font-mono">WhatsApp Status</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">WhatsApp Status</span>
                       </div>
                     </motion.div>
 
@@ -785,7 +785,7 @@ function CampaignDemo({ lang }) {
                       </div>
                       <div className="px-2.5 py-2 flex items-center gap-1">
                         <TkIcon size={7} color="#ff0050" />
-                        <span className="text-[7px] text-[#555] font-mono">TikTok Video — Sora 2 AI</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">TikTok Video — Sora 2 AI</span>
                       </div>
                     </motion.div>
                   </div>
@@ -803,7 +803,7 @@ function CampaignDemo({ lang }) {
               animate={{ width: `${((demoStep + 1) / 5) * 100}%` }}
               transition={{ duration: 0.5 }} />
           </div>
-          <span className="text-[8px] font-mono text-[#555]">{demoStep + 1}/5</span>
+          <span className="text-[8px] font-mono text-[#B0B0B0]">{demoStep + 1}/5</span>
         </div>
       </div>
     </div>
@@ -825,7 +825,7 @@ function PipelineStep({ icon: Icon, label, color, active, delay }) {
       }`}>
         <Icon size={20} className={active ? 'text-[#C9A84C]' : color} />
       </div>
-      <span className={`text-[9px] font-mono transition-colors ${active ? 'text-[#C9A84C]' : 'text-[#555]'}`}>{label}</span>
+      <span className={`text-[9px] font-mono transition-colors ${active ? 'text-[#C9A84C]' : 'text-[#B0B0B0]'}`}>{label}</span>
     </motion.div>
   );
 }
@@ -1091,7 +1091,7 @@ export default function LandingV2() {
                   className={`px-2.5 py-1.5 text-[10px] font-mono font-semibold transition-all ${
                     lang === lg.code
                       ? 'bg-[#C9A84C]/[0.12] text-[#C9A84C]'
-                      : 'text-[#555] hover:text-[#999]'
+                      : 'text-[#B0B0B0] hover:text-[#E5E5E5]'
                   }`}>
                   {lg.label}
                 </button>
@@ -1130,7 +1130,7 @@ export default function LandingV2() {
           </motion.div>
 
           <motion.p initial="hidden" animate="visible" variants={fade} custom={2}
-            className="text-center text-[14px] text-[#666] leading-relaxed max-w-lg mx-auto mb-8">
+            className="text-center text-[14px] text-[#999] leading-relaxed max-w-lg mx-auto mb-8">
             {l.sub}
           </motion.p>
 
@@ -1157,7 +1157,7 @@ export default function LandingV2() {
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-white">Sarah</p>
-                  <p className="text-[9px] text-[#555] font-mono">Sales Agent</p>
+                  <p className="text-[9px] text-[#B0B0B0] font-mono">Sales Agent</p>
                 </div>
                 <div className="ml-auto h-2 w-2 rounded-full bg-emerald-400" />
               </div>
@@ -1177,7 +1177,7 @@ export default function LandingV2() {
                   <Brain size={9} className="text-[#C9A84C]" />
                   <p className="text-[8px] text-white font-semibold tracking-wide">{lang === 'pt' ? 'Mentalidade' : lang === 'es' ? 'Mentalidad' : 'Mindset'}</p>
                 </div>
-                <p className="text-[7px] text-[#666] leading-relaxed">
+                <p className="text-[7px] text-[#999] leading-relaxed">
                   {lang === 'pt'
                     ? 'Sarah combina técnicas de vendas consultivas com inteligência emocional. Treinada para identificar necessidades, qualificar leads e converter com empatia — disponível 24/7 em múltiplos canais.'
                     : lang === 'es'
@@ -1244,20 +1244,20 @@ export default function LandingV2() {
               <div className="grid grid-cols-3 gap-1 mb-3">
                 <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
                   <p className="text-[9px] font-bold text-white font-mono">45k</p>
-                  <p className="text-[6px] text-[#555] font-mono">Views</p>
+                  <p className="text-[6px] text-[#B0B0B0] font-mono">Views</p>
                 </div>
                 <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
                   <p className="text-[9px] font-bold text-emerald-400 font-mono">3.8%</p>
-                  <p className="text-[6px] text-[#555] font-mono">Conv.</p>
+                  <p className="text-[6px] text-[#B0B0B0] font-mono">Conv.</p>
                 </div>
                 <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
                   <p className="text-[9px] font-bold text-[#C9A84C] font-mono">1.7k</p>
-                  <p className="text-[6px] text-[#555] font-mono">Leads</p>
+                  <p className="text-[6px] text-[#B0B0B0] font-mono">Leads</p>
                 </div>
               </div>
               {/* 3 Mini campaign cards — IG, FB, TikTok */}
               <div className="border-t border-white/[0.05] pt-3 flex-1">
-                <p className="text-[8px] text-[#555] font-mono uppercase tracking-widest mb-2">{lang === 'pt' ? 'Distribuido em' : lang === 'es' ? 'Distribuido en' : 'Distributed to'}</p>
+                <p className="text-[8px] text-[#B0B0B0] font-mono uppercase tracking-widest mb-2">{lang === 'pt' ? 'Distribuido em' : lang === 'es' ? 'Distribuido en' : 'Distributed to'}</p>
                 <div className="grid grid-cols-3 gap-1.5">
                   {/* Instagram mini */}
                   <div className="rounded-lg border border-white/[0.06] bg-[#0D0D0D] overflow-hidden hover:border-[#E1306C]/25 transition-colors">
@@ -1270,7 +1270,7 @@ export default function LandingV2() {
                       <div className="flex gap-1.5 mb-0.5">
                         <Heart size={6} className="text-[#ccc]" /><MessageSquare size={6} className="text-[#ccc]" /><Send size={6} className="text-[#ccc]" />
                       </div>
-                      <p className="text-[5px] text-[#555]">12.4k likes</p>
+                      <p className="text-[5px] text-[#B0B0B0]">12.4k likes</p>
                     </div>
                   </div>
                   {/* Facebook mini */}
@@ -1284,7 +1284,7 @@ export default function LandingV2() {
                       <p className="text-[5px] text-[#888] leading-tight mb-0.5">AI que vende por voce 24/7</p>
                       <div className="flex items-center gap-1">
                         <ThumbsUp size={5} className="text-[#0084FF]" />
-                        <span className="text-[5px] text-[#555]">3.2k</span>
+                        <span className="text-[5px] text-[#B0B0B0]">3.2k</span>
                       </div>
                     </div>
                   </div>
@@ -1307,7 +1307,7 @@ export default function LandingV2() {
                       </div>
                     </div>
                     <div className="px-1.5 py-1">
-                      <p className="text-[5px] text-[#555]">28.7k views</p>
+                      <p className="text-[5px] text-[#B0B0B0]">28.7k views</p>
                     </div>
                   </div>
                 </div>
@@ -1319,7 +1319,7 @@ export default function LandingV2() {
             {[{ v: '22+', l: l.s1 }, { v: '5', l: l.s2 }, { v: '3', l: l.s3 }, { v: '99.9%', l: l.s4 }].map((s, i) => (
               <div key={i} className="text-center">
                 <p className="text-lg font-bold font-mono text-white lg:text-xl">{s.v}</p>
-                <p className="text-[8px] text-[#555] tracking-widest uppercase mt-0.5 font-mono">{s.l}</p>
+                <p className="text-[8px] text-[#B0B0B0] tracking-widest uppercase mt-0.5 font-mono">{s.l}</p>
               </div>
             ))}
           </motion.div>
@@ -1337,7 +1337,7 @@ export default function LandingV2() {
             <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
               {l.how_title}<span className="text-[#C9A84C]">{l.how_title2}</span>
             </h2>
-            <p className="text-sm text-[#555] max-w-md mx-auto mt-2">{l.how_sub}</p>
+            <p className="text-sm text-[#B0B0B0] max-w-md mx-auto mt-2">{l.how_sub}</p>
           </motion.div>
 
           <div className="grid lg:grid-cols-5 gap-5">
@@ -1354,11 +1354,11 @@ export default function LandingV2() {
                     </div>
                     <div className="flex-1">
                       <p className="text-[11px] font-semibold text-white">{ag.name}</p>
-                      <p className="text-[8px] text-[#666] font-mono">{ag.role}</p>
+                      <p className="text-[8px] text-[#999] font-mono">{ag.role}</p>
                     </div>
                     {activeAgent === i && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="h-2 w-2 rounded-full bg-[#C9A84C]" />}
                   </div>
-                  <p className="text-[9px] text-[#555] leading-relaxed mt-1.5">{ag.desc}</p>
+                  <p className="text-[9px] text-[#B0B0B0] leading-relaxed mt-1.5">{ag.desc}</p>
                 </motion.div>
               ))}
             </div>
@@ -1388,13 +1388,13 @@ export default function LandingV2() {
                         <Brain size={8} className="text-[#C9A84C]" />
                         <p className="text-[8px] text-white font-semibold">{lang === 'pt' ? 'Mentalidade' : lang === 'es' ? 'Mentalidad' : 'Mindset'}</p>
                       </div>
-                      <p className="text-[8px] text-[#666] leading-relaxed">{current.mindset}</p>
+                      <p className="text-[8px] text-[#999] leading-relaxed">{current.mindset}</p>
                     </div>
 
                     {/* Skills + Channels row */}
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-1.5"><Settings size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Habilidades' : lang === 'es' ? 'Habilidades' : 'Skills'}</p>
+                        <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-1.5"><Settings size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Habilidades' : lang === 'es' ? 'Habilidades' : 'Skills'}</p>
                         <div className="flex flex-wrap gap-1">
                           {current.skills.map((skill, si) => (
                             <span key={si} className="flex items-center gap-1 rounded-full border border-[#C9A84C]/10 bg-[#C9A84C]/[0.04] px-2 py-0.5 text-[7px] font-mono text-[#C9A84C]/80">
@@ -1404,7 +1404,7 @@ export default function LandingV2() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-1.5"><Globe size={7} className="inline mr-1 text-[#C9A84C]" />{l.ag_channels}</p>
+                        <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-1.5"><Globe size={7} className="inline mr-1 text-[#C9A84C]" />{l.ag_channels}</p>
                         <div className="flex flex-wrap gap-1">
                           {current.channels.map((ch, ci) => (
                             <span key={ci} className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 text-[8px] text-[#888] font-mono">
@@ -1417,7 +1417,7 @@ export default function LandingV2() {
 
                     {/* Performance stats with progress bars */}
                     <div className="mb-3">
-                      <p className="text-[7px] font-mono text-[#555] uppercase tracking-widest mb-2"><BarChart3 size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Performance' : lang === 'es' ? 'Rendimiento' : 'Performance'}</p>
+                      <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-2"><BarChart3 size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Performance' : lang === 'es' ? 'Rendimiento' : 'Performance'}</p>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                         {current.stats.map((s, si) => (
                           <div key={si}>
@@ -1439,15 +1439,15 @@ export default function LandingV2() {
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-center">
                         <p className="text-[11px] font-bold text-white font-mono">{current.metrics.conversations}</p>
-                        <p className="text-[6px] text-[#555] font-mono uppercase">{lang === 'pt' ? 'Conversas' : lang === 'es' ? 'Conversaciones' : 'Conversations'}</p>
+                        <p className="text-[6px] text-[#B0B0B0] font-mono uppercase">{lang === 'pt' ? 'Conversas' : lang === 'es' ? 'Conversaciones' : 'Conversations'}</p>
                       </div>
                       <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-center">
                         <p className="text-[11px] font-bold text-emerald-400 font-mono">{current.metrics.resolved}</p>
-                        <p className="text-[6px] text-[#555] font-mono uppercase">{lang === 'pt' ? 'Resolvido' : lang === 'es' ? 'Resuelto' : 'Resolved'}</p>
+                        <p className="text-[6px] text-[#B0B0B0] font-mono uppercase">{lang === 'pt' ? 'Resolvido' : lang === 'es' ? 'Resuelto' : 'Resolved'}</p>
                       </div>
                       <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-center">
                         <p className="text-[11px] font-bold text-[#C9A84C] font-mono">{current.metrics.avgTime}</p>
-                        <p className="text-[6px] text-[#555] font-mono uppercase">{lang === 'pt' ? 'Tempo Resp.' : lang === 'es' ? 'Tiempo Resp.' : 'Avg. Response'}</p>
+                        <p className="text-[6px] text-[#B0B0B0] font-mono uppercase">{lang === 'pt' ? 'Tempo Resp.' : lang === 'es' ? 'Tiempo Resp.' : 'Avg. Response'}</p>
                       </div>
                     </div>
 
@@ -1467,7 +1467,7 @@ export default function LandingV2() {
                           <div key={ci} className="rounded border border-white/[0.04] bg-white/[0.02] p-1.5">
                             <div className="flex items-center gap-1 mb-0.5">
                               <cfg.icon size={7} className="text-[#C9A84C]/60" />
-                              <span className="text-[6px] text-[#555] font-mono uppercase">{cfg.label}</span>
+                              <span className="text-[6px] text-[#B0B0B0] font-mono uppercase">{cfg.label}</span>
                             </div>
                             <p className="text-[8px] text-white font-medium truncate">{cfg.value}</p>
                           </div>
@@ -1489,7 +1489,7 @@ export default function LandingV2() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
             <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.ch_tag}</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.ch_title}<span className="text-[#C9A84C]">{l.ch_title2}</span></h2>
-            <p className="text-sm text-[#555] max-w-md mx-auto mt-2">{l.ch_sub}</p>
+            <p className="text-sm text-[#B0B0B0] max-w-md mx-auto mt-2">{l.ch_sub}</p>
           </motion.div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {channels.map((ch, i) => (
@@ -1499,7 +1499,7 @@ export default function LandingV2() {
                     <ch.Icon size={18} color={gold} />
                   </div>
                   <p className="text-[11px] font-semibold text-white mb-0.5">{ch.name}</p>
-                  <p className="text-[8px] text-[#555] font-mono">{ch.status}</p>
+                  <p className="text-[8px] text-[#B0B0B0] font-mono">{ch.status}</p>
                 </Glass>
               </motion.div>
             ))}
@@ -1523,7 +1523,7 @@ export default function LandingV2() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-8">
             <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.camp_tag}</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.camp_title}<span className="text-[#C9A84C]">{l.camp_title2}</span></h2>
-            <p className="text-sm text-[#555] max-w-md mx-auto mt-2">{l.camp_sub}</p>
+            <p className="text-sm text-[#B0B0B0] max-w-md mx-auto mt-2">{l.camp_sub}</p>
           </motion.div>
 
           {/* Campaign selector tabs */}
@@ -1533,7 +1533,7 @@ export default function LandingV2() {
                 className={`px-4 py-2 rounded-full text-[11px] font-semibold transition-all duration-300 border ${
                   activeCamp === i
                     ? 'bg-[#C9A84C]/[0.12] border-[#C9A84C]/25 text-[#C9A84C]'
-                    : 'border-white/[0.06] text-[#555] hover:text-[#999] hover:border-white/[0.12]'
+                    : 'border-white/[0.06] text-[#B0B0B0] hover:text-[#E5E5E5] hover:border-white/[0.12]'
                 }`}>
                 {c.name}
               </button>
@@ -1565,11 +1565,11 @@ export default function LandingV2() {
                           <Heart size={10} className="text-[#ccc]" /><MessageSquare size={10} className="text-[#ccc]" /><Send size={10} className="text-[#ccc]" />
                         </div>
                         <p className="text-[7px] text-[#888] leading-relaxed mb-1"><span className="text-white font-semibold">{camp.handle} </span>{camp.igCaption}</p>
-                        <p className="text-[6px] text-[#555]">{camp.hashtags}</p>
+                        <p className="text-[6px] text-[#B0B0B0]">{camp.hashtags}</p>
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <IgIcon size={7} color="#E1306C" />
-                        <span className="text-[7px] text-[#555] font-mono">Instagram Feed</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">Instagram Feed</span>
                       </div>
                     </motion.div>
 
@@ -1582,7 +1582,7 @@ export default function LandingV2() {
                         </div>
                         <div>
                           <span className="text-[8px] text-white font-semibold block leading-none">{camp.name}</span>
-                          <span className="text-[6px] text-[#555]">Sponsored</span>
+                          <span className="text-[6px] text-[#B0B0B0]">Sponsored</span>
                         </div>
                         <FbIcon size={8} color="#0084FF" />
                       </div>
@@ -1599,11 +1599,11 @@ export default function LandingV2() {
                           <ThumbsUp size={8} className="text-[#0084FF]" />
                           <span className="text-[7px] text-[#888]">1.8k</span>
                         </div>
-                        <span className="text-[7px] text-[#555]">247 shares</span>
+                        <span className="text-[7px] text-[#B0B0B0]">247 shares</span>
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <FbIcon size={7} color="#0084FF" />
-                        <span className="text-[7px] text-[#555] font-mono">Facebook Ads</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">Facebook Ads</span>
                       </div>
                     </motion.div>
 
@@ -1616,7 +1616,7 @@ export default function LandingV2() {
                         </div>
                         <div>
                           <span className="text-[8px] text-white font-semibold block leading-none">{camp.name}</span>
-                          <span className="text-[6px] text-[#555]">Business</span>
+                          <span className="text-[6px] text-[#B0B0B0]">Business</span>
                         </div>
                         <WaIcon size={8} color="#25D366" />
                       </div>
@@ -1631,7 +1631,7 @@ export default function LandingV2() {
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <WaIcon size={7} color="#25D366" />
-                        <span className="text-[7px] text-[#555] font-mono">WhatsApp Status</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">WhatsApp Status</span>
                       </div>
                     </motion.div>
 
@@ -1660,7 +1660,7 @@ export default function LandingV2() {
                       </div>
                       <div className="px-2.5 pb-2 pt-1.5 flex items-center gap-1">
                         <TkIcon size={7} color="#ff0050" />
-                        <span className="text-[7px] text-[#555] font-mono">TikTok / Video</span>
+                        <span className="text-[7px] text-[#B0B0B0] font-mono">TikTok / Video</span>
                       </div>
                     </motion.div>
                   </>
@@ -1702,7 +1702,7 @@ export default function LandingV2() {
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold text-white">{t.name}</p>
-                      <p className="text-[9px] text-[#555] font-mono">{t.role}</p>
+                      <p className="text-[9px] text-[#B0B0B0] font-mono">{t.role}</p>
                     </div>
                   </div>
                 </Glass>
@@ -1719,7 +1719,7 @@ export default function LandingV2() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
             <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.feat_tag}</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl">{l.feat_title}</h2>
-            <p className="text-sm text-[#555] mt-2">{l.feat_sub}</p>
+            <p className="text-sm text-[#B0B0B0] mt-2">{l.feat_sub}</p>
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {features.map((f, i) => (
@@ -1729,7 +1729,7 @@ export default function LandingV2() {
                     <f.icon size={14} className="text-[#C9A84C]" />
                   </div>
                   <h3 className="text-[12px] font-semibold text-white mb-1">{f.title}</h3>
-                  <p className="text-[10px] text-[#555] leading-relaxed">{f.desc}</p>
+                  <p className="text-[10px] text-[#B0B0B0] leading-relaxed">{f.desc}</p>
                 </Glass>
               </motion.div>
             ))}
@@ -1745,14 +1745,14 @@ export default function LandingV2() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-8">
             <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">Pricing</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl">{t('landing.pricing_title')}</h2>
-            <p className="text-sm text-[#555] mt-2 mb-5">{t('landing.pricing_subtitle')}</p>
+            <p className="text-sm text-[#B0B0B0] mt-2 mb-5">{t('landing.pricing_subtitle')}</p>
             <div className="inline-flex items-center gap-0.5 rounded-full border border-white/[0.06] bg-white/[0.02] p-0.5">
               <button onClick={() => setBillingAnnual(true)}
-                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/15' : 'text-[#666] hover:text-white'}`}>
+                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/15' : 'text-[#999] hover:text-white'}`}>
                 {t('landing.billing_annual')} <span className="text-[9px] opacity-70 ml-0.5">{t('landing.billing_save')}</span>
               </button>
               <button onClick={() => setBillingAnnual(false)}
-                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/15' : 'text-[#666] hover:text-white'}`}>
+                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/15' : 'text-[#999] hover:text-white'}`}>
                 {t('landing.billing_monthly')}
               </button>
             </div>
@@ -1781,9 +1781,9 @@ export default function LandingV2() {
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full bg-[#C9A84C] px-3 py-1 text-[9px] font-mono font-bold text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/20 whitespace-nowrap">{plan.badge}</div>
                       <div className="relative z-10 flex flex-col h-full">
                         <h3 className="text-sm font-bold text-white mb-0.5">{plan.name}</h3>
-                        <p className="text-[10px] text-[#555] font-mono mb-3">{plan.desc}</p>
-                        <div className="mb-3"><span className="text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[10px] text-[#555]">{plan.period}</span></div>
-                        <ul className="flex-1 space-y-1.5 mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-2 text-[10px] text-[#666]"><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0" />{f}</li>)}</ul>
+                        <p className="text-[10px] text-[#B0B0B0] font-mono mb-3">{plan.desc}</p>
+                        <div className="mb-3"><span className="text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
+                        <ul className="flex-1 space-y-1.5 mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-2 text-[10px] text-[#999]"><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0" />{f}</li>)}</ul>
                         <button className="btn-gold w-full rounded-xl py-2.5 text-[12px] font-semibold">{plan.cta}</button>
                       </div>
                     </div>
@@ -1794,10 +1794,10 @@ export default function LandingV2() {
                     flex flex-col ${plan.badge ? 'pt-7 px-5 pb-5' : 'p-5'} h-full`}>
                     {plan.badge && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full border border-[#C9A84C]/15 bg-[#060606] px-3 py-1 text-[9px] font-mono text-[#C9A84C] whitespace-nowrap">{plan.badge}</div>}
                     <h3 className="text-sm font-bold text-white mb-0.5">{plan.name}</h3>
-                    <p className="text-[10px] text-[#555] font-mono mb-3">{plan.desc}</p>
-                    <div className="mb-3"><span className="text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[10px] text-[#555]">{plan.period}</span></div>
-                    <ul className="flex-1 space-y-1.5 mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-2 text-[10px] text-[#666]"><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0" />{f}</li>)}</ul>
-                    {plan.note && <p className="text-center text-[9px] text-[#555] font-mono mb-2">{plan.note}</p>}
+                    <p className="text-[10px] text-[#B0B0B0] font-mono mb-3">{plan.desc}</p>
+                    <div className="mb-3"><span className="text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
+                    <ul className="flex-1 space-y-1.5 mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-2 text-[10px] text-[#999]"><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0" />{f}</li>)}</ul>
+                    {plan.note && <p className="text-center text-[9px] text-[#B0B0B0] font-mono mb-2">{plan.note}</p>}
                     <button className="btn-gold w-full rounded-xl py-2.5 text-[12px] font-semibold">{plan.cta}</button>
                   </div>
                 )}
@@ -1813,7 +1813,7 @@ export default function LandingV2() {
         <div className="relative z-10 mx-auto max-w-2xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade}>
             <h2 className="text-3xl font-bold text-white mb-3 sm:text-4xl leading-tight">{l.cta_title}</h2>
-            <p className="text-[14px] text-[#555] mb-6">{l.cta_sub}</p>
+            <p className="text-[14px] text-[#B0B0B0] mb-6">{l.cta_sub}</p>
             <button onClick={() => navigate('/login?tab=signup')} data-testid="final-cta-btn"
               className="btn-gold rounded-xl px-10 py-3.5 text-sm font-semibold inline-flex items-center gap-2 group shadow-lg shadow-[#C9A84C]/10 hover:shadow-[#C9A84C]/25 transition-shadow">
               {l.cta} <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
@@ -1829,7 +1829,7 @@ export default function LandingV2() {
           <div className="flex items-center gap-4">
             <WaIcon size={12} color="#444" /><IgIcon size={12} color="#444" /><FbIcon size={12} color="#444" /><TgIcon size={12} color="#444" />
           </div>
-          <p className="text-[9px] text-[#444] font-mono">2026 Agents. All rights reserved.</p>
+          <p className="text-[9px] text-[#999] font-mono">2026 Agents. All rights reserved.</p>
         </div>
       </footer>
     </div>

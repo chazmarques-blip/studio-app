@@ -124,7 +124,7 @@ function generateAgentRecommendations(agent, campaign, metrics) {
 function MetricCard({ label, value, prefix, suffix, trend, trendPct, small }) {
   return (
     <div className={`bg-[#111] border border-[#1E1E1E] rounded-xl ${small ? 'p-2.5' : 'p-3'}`}>
-      <p className="text-[8px] text-[#555] uppercase tracking-wider">{label}</p>
+      <p className="text-[8px] text-[#B0B0B0] uppercase tracking-wider">{label}</p>
       <div className="flex items-end gap-1.5 mt-1">
         <span className={`${small ? 'text-lg' : 'text-xl'} font-bold text-white`}>
           {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
@@ -159,23 +159,23 @@ function ChannelRow({ channel, data }) {
       <div className="flex-1 grid grid-cols-5 gap-2 text-center">
         <div>
           <span className="text-[10px] text-white font-semibold">{data.impressions.toLocaleString()}</span>
-          <p className="text-[7px] text-[#555]">Impres.</p>
+          <p className="text-[7px] text-[#B0B0B0]">Impres.</p>
         </div>
         <div>
           <span className="text-[10px] text-white font-semibold">{data.clicks}</span>
-          <p className="text-[7px] text-[#555]">Cliques</p>
+          <p className="text-[7px] text-[#B0B0B0]">Cliques</p>
         </div>
         <div>
           <span className="text-[10px] font-semibold" style={{ color: parseFloat(data.ctr) > 3 ? '#4CAF50' : '#FF9800' }}>{data.ctr}%</span>
-          <p className="text-[7px] text-[#555]">CTR</p>
+          <p className="text-[7px] text-[#B0B0B0]">CTR</p>
         </div>
         <div>
           <span className="text-[10px] text-white font-semibold">${data.spend}</span>
-          <p className="text-[7px] text-[#555]">Gasto</p>
+          <p className="text-[7px] text-[#B0B0B0]">Gasto</p>
         </div>
         <div>
           <span className="text-[10px] font-semibold" style={{ color: parseFloat(data.roas) > 3 ? '#4CAF50' : '#FF9800' }}>{data.roas}x</span>
-          <p className="text-[7px] text-[#555]">ROAS</p>
+          <p className="text-[7px] text-[#B0B0B0]">ROAS</p>
         </div>
       </div>
     </div>
@@ -199,7 +199,7 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
             <span className={`text-[7px] font-bold px-2 py-0.5 rounded-full uppercase ${
               isActive ? 'bg-green-500/15 text-green-400' :
               isCreated ? 'bg-[#C9A84C]/15 text-[#C9A84C]' :
-              'bg-[#333]/50 text-[#666]'
+              'bg-[#333]/50 text-[#999]'
             }`}>
               {isActive ? 'Ativa' : isCreated ? 'Pronta' : 'Rascunho'}
             </span>
@@ -226,7 +226,7 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
               <Pause size={10} /> Pausar
             </button>
           )}
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] text-[#666] hover:text-white transition">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] text-[#999] hover:text-white transition">
             <X size={14} />
           </button>
         </div>
@@ -247,7 +247,7 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
       {/* Channel breakdown */}
       {isActive && (
         <div className="p-4 border-b border-[#1A1A1A]">
-          <p className="text-[9px] text-[#555] uppercase tracking-wider mb-2">Performance por Canal</p>
+          <p className="text-[9px] text-[#B0B0B0] uppercase tracking-wider mb-2">Performance por Canal</p>
           <div className="bg-[#0A0A0A] rounded-xl border border-[#151515] px-3">
             {platforms.map(p => metrics.channels[p] && (
               <ChannelRow key={p} channel={p} data={metrics.channels[p]} />
@@ -264,7 +264,7 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
           </div>
           <div>
             <p className="text-[10px] text-white font-semibold">{agent.name}</p>
-            <p className="text-[8px] text-[#555]">{agent.role}</p>
+            <p className="text-[8px] text-[#B0B0B0]">{agent.role}</p>
           </div>
           <Sparkles size={12} className="text-[#C9A84C] ml-auto" />
           <span className="text-[8px] text-[#C9A84C] font-semibold">Analise IA</span>
@@ -321,7 +321,7 @@ function CampaignRow({ campaign, metrics, isSelected, onClick }) {
             <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
               isActive ? 'bg-green-500/15 text-green-400' :
               isCreated ? 'bg-[#C9A84C]/15 text-[#C9A84C]' :
-              'bg-[#333]/50 text-[#555]'
+              'bg-[#333]/50 text-[#B0B0B0]'
             }`}>
               {isActive ? 'Ativa' : isCreated ? 'Pronta' : 'Rascunho'}
             </span>
@@ -333,22 +333,22 @@ function CampaignRow({ campaign, metrics, isSelected, onClick }) {
               const I = m.icon;
               return <span key={p} className="w-4 h-4 rounded flex items-center justify-center" style={{ backgroundColor: `${m.color}15` }}><I size={8} style={{ color: m.color }} /></span>;
             })}
-            {platforms.length > 5 && <span className="text-[8px] text-[#555] self-center">+{platforms.length - 5}</span>}
+            {platforms.length > 5 && <span className="text-[8px] text-[#B0B0B0] self-center">+{platforms.length - 5}</span>}
           </div>
         </div>
         <div className="text-right ml-3">
           {isActive ? (
             <>
-              <div className="text-[11px] font-bold text-white">{metrics.totals.conversions} <span className="text-[8px] text-[#555] font-normal">conv</span></div>
+              <div className="text-[11px] font-bold text-white">{metrics.totals.conversions} <span className="text-[8px] text-[#B0B0B0] font-normal">conv</span></div>
               <div className="flex items-center gap-1 justify-end">
                 <span className={`text-[9px] font-semibold flex items-center ${metrics.trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
                   {metrics.trend === 'up' ? <ArrowUpRight size={9} /> : <ArrowDownRight size={9} />}{metrics.trendPct}%
                 </span>
-                <span className="text-[8px] text-[#555]">${metrics.totals.spend}</span>
+                <span className="text-[8px] text-[#B0B0B0]">${metrics.totals.spend}</span>
               </div>
             </>
           ) : (
-            <span className="text-[9px] text-[#555]">{platforms.length} canais</span>
+            <span className="text-[9px] text-[#B0B0B0]">{platforms.length} canais</span>
           )}
         </div>
       </div>
@@ -429,7 +429,7 @@ export default function TrafficHub() {
       <div className="border-b border-[#1A1A1A] bg-[#0A0A0A]/95 backdrop-blur sticky top-0 z-30">
         <div className="max-w-[1400px] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button data-testid="traffic-back" onClick={() => navigate('/marketing')} className="text-[#666] hover:text-white transition">
+            <button data-testid="traffic-back" onClick={() => navigate('/marketing')} className="text-[#999] hover:text-white transition">
               <ArrowLeft size={18} />
             </button>
             <div>
@@ -437,7 +437,7 @@ export default function TrafficHub() {
                 <Target size={18} className="text-[#C9A84C]" />
                 Traffic Hub
               </h1>
-              <p className="text-[10px] text-[#555]">Centro de comando — performance e otimizacao de campanhas</p>
+              <p className="text-[10px] text-[#B0B0B0]">Centro de comando — performance e otimizacao de campanhas</p>
             </div>
           </div>
           {/* Global KPIs */}
@@ -452,7 +452,7 @@ export default function TrafficHub() {
                 <kpi.icon size={13} style={{ color: kpi.color }} />
                 <div>
                   <div className="text-xs font-bold text-white">{kpi.value}</div>
-                  <div className="text-[7px] text-[#555]">{kpi.label}</div>
+                  <div className="text-[7px] text-[#B0B0B0]">{kpi.label}</div>
                 </div>
               </div>
             ))}
@@ -466,7 +466,7 @@ export default function TrafficHub() {
           <div className="w-[300px] flex-shrink-0 space-y-3">
             {/* Agent selector */}
             <div className="space-y-1.5">
-              <p className="text-[8px] text-[#555] uppercase tracking-wider px-1">Especialista</p>
+              <p className="text-[8px] text-[#B0B0B0] uppercase tracking-wider px-1">Especialista</p>
               {TRAFFIC_AGENTS.map(agent => {
                 const count = campaigns.filter(c => {
                   const p = c.target_segment?.platforms || [];
@@ -486,9 +486,9 @@ export default function TrafficHub() {
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <span className="text-[10px] font-semibold text-white">{agent.name}</span>
-                      <p className="text-[8px] text-[#555] truncate">{agent.role}</p>
+                      <p className="text-[8px] text-[#B0B0B0] truncate">{agent.role}</p>
                     </div>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[#1A1A1A] text-[#666] font-bold">{count}</span>
+                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[#1A1A1A] text-[#999] font-bold">{count}</span>
                   </button>
                 );
               })}
@@ -507,7 +507,7 @@ export default function TrafficHub() {
                   className={`text-[9px] px-2.5 py-1 rounded-full border transition font-medium ${
                     filter === tab.id
                       ? 'bg-[#C9A84C]/10 border-[#C9A84C]/30 text-[#C9A84C]'
-                      : 'border-[#1E1E1E] text-[#555] hover:text-white hover:border-[#333]'
+                      : 'border-[#1E1E1E] text-[#B0B0B0] hover:text-white hover:border-[#333]'
                   }`}>
                   {tab.label}
                 </button>
@@ -522,8 +522,8 @@ export default function TrafficHub() {
                 </div>
               ) : filteredCampaigns.length === 0 ? (
                 <div className="text-center py-8 bg-[#111] border border-[#1E1E1E] rounded-xl">
-                  <Target size={24} className="mx-auto text-[#333] mb-2" />
-                  <p className="text-[10px] text-[#555]">Nenhuma campanha</p>
+                  <Target size={24} className="mx-auto text-[#999] mb-2" />
+                  <p className="text-[10px] text-[#B0B0B0]">Nenhuma campanha</p>
                 </div>
               ) : (
                 filteredCampaigns.map(c => (
@@ -547,9 +547,9 @@ export default function TrafficHub() {
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-20 bg-[#111] border border-[#1E1E1E] rounded-2xl">
-                <BarChart3 size={40} className="text-[#222] mb-3" />
-                <p className="text-sm text-[#555]">Selecione uma campanha</p>
-                <p className="text-[10px] text-[#444] mt-1">Clique em uma campanha para ver a analise do {selectedAgent.name}</p>
+                <BarChart3 size={40} className="text-[#444] mb-3" />
+                <p className="text-sm text-[#B0B0B0]">Selecione uma campanha</p>
+                <p className="text-[10px] text-[#999] mt-1">Clique em uma campanha para ver a analise do {selectedAgent.name}</p>
               </div>
             )}
           </div>
@@ -558,7 +558,7 @@ export default function TrafficHub() {
 
       {/* Simulated data notice */}
       <div className="fixed bottom-4 right-4 z-20">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1A1A1A] border border-[#333] text-[9px] text-[#666]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1A1A1A] border border-[#333] text-[9px] text-[#999]">
           <Clock size={10} className="text-[#C9A84C]" />
           Dados simulados — metricas reais quando APIs de trafego forem conectadas
         </div>

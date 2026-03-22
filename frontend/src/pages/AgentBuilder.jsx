@@ -81,7 +81,7 @@ function Section({ title, icon: Icon, children, defaultOpen = false, badge }) {
         <Icon size={15} className="text-[#C9A84C] shrink-0" />
         <span className="text-xs font-semibold text-white flex-1">{title}</span>
         {badge && <span className="rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[8px] font-bold text-[#C9A84C]">{badge}</span>}
-        {open ? <ChevronUp size={14} className="text-[#555]" /> : <ChevronDown size={14} className="text-[#555]" />}
+        {open ? <ChevronUp size={14} className="text-[#B0B0B0]" /> : <ChevronDown size={14} className="text-[#B0B0B0]" />}
       </button>
       {open && <div className="px-3.5 py-3 space-y-2.5 bg-[#0A0A0A]">{children}</div>}
     </div>
@@ -113,8 +113,8 @@ function Chips({ items, value, onChange, multi = false, cols = 3 }) {
           <span className={`text-[10px] font-medium block ${isActive(item.id) ? 'text-[#C9A84C]' : 'text-[#999]'}`}>
             {item.l}
           </span>
-          {item.d && <span className="text-[8px] text-[#555] block mt-0.5">{item.d}</span>}
-          {item.ex && <span className="text-[8px] text-[#555] italic block mt-0.5">"{item.ex}"</span>}
+          {item.d && <span className="text-[8px] text-[#B0B0B0] block mt-0.5">{item.d}</span>}
+          {item.ex && <span className="text-[8px] text-[#B0B0B0] italic block mt-0.5">"{item.ex}"</span>}
         </button>
       ))}
     </div>
@@ -126,12 +126,12 @@ function Input({ label, value, onChange, placeholder, textarea, required }) {
   const C = textarea ? 'textarea' : 'input';
   return (
     <div>
-      <label className="mb-1 block text-[10px] font-medium text-[#666]">
+      <label className="mb-1 block text-[10px] font-medium text-[#999]">
         {label} {required && <span className="text-[#C9A84C]">*</span>}
       </label>
       <C value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         rows={textarea ? 2 : undefined}
-        className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 text-xs text-white placeholder-[#333] outline-none resize-none focus:border-[#C9A84C]/40" />
+        className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C]/40" />
     </div>
   );
 }
@@ -220,7 +220,7 @@ export default function AgentBuilder() {
       {/* Header */}
       <div className="sticky top-0 z-40 border-b border-[#1A1A1A] bg-[#0A0A0A]/95 backdrop-blur-sm px-4 py-3">
         <div className="flex items-center gap-3">
-          <button data-testid="builder-back-btn" onClick={() => navigate('/agents')} className="text-[#666] hover:text-white transition">
+          <button data-testid="builder-back-btn" onClick={() => navigate('/agents')} className="text-[#999] hover:text-white transition">
             <ArrowLeft size={18} />
           </button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10">
@@ -228,7 +228,7 @@ export default function AgentBuilder() {
           </div>
           <div className="flex-1">
             <h1 className="text-sm font-bold text-white">Criar Agente com IA</h1>
-            <p className="text-[9px] text-[#555]">Preencha e gere um agente personalizado</p>
+            <p className="text-[9px] text-[#B0B0B0]">Preencha e gere um agente personalizado</p>
           </div>
           {canGenerate && !generating && (
             <button data-testid="builder-generate-btn-top" onClick={generate}
@@ -244,26 +244,26 @@ export default function AgentBuilder() {
 
         {/* ═══ IDENTIDADE ═══ */}
         <Section title="Identidade do Agente" icon={Bot} defaultOpen={true} badge={f.segment && f.objective ? '✓' : null}>
-          <p className="text-[9px] text-[#555] -mt-1 mb-2">Segmento, objetivo e tom de voz</p>
+          <p className="text-[9px] text-[#B0B0B0] -mt-1 mb-2">Segmento, objetivo e tom de voz</p>
 
-          <label className="text-[10px] font-medium text-[#666] mb-1 block">Segmento *</label>
+          <label className="text-[10px] font-medium text-[#999] mb-1 block">Segmento *</label>
           <Chips items={SEGMENTS} value={f.segment} onChange={v => set('segment', v)} cols={4} />
 
-          <label className="text-[10px] font-medium text-[#666] mb-1 block mt-3">Objetivo Principal *</label>
+          <label className="text-[10px] font-medium text-[#999] mb-1 block mt-3">Objetivo Principal *</label>
           <Chips items={OBJECTIVES} value={f.objective} onChange={v => set('objective', v)} cols={3} />
 
-          <label className="text-[10px] font-medium text-[#666] mb-1 block mt-3">Tom de Voz *</label>
+          <label className="text-[10px] font-medium text-[#999] mb-1 block mt-3">Tom de Voz *</label>
           <Chips items={TONES} value={f.tone} onChange={v => set('tone', v)} cols={3} />
         </Section>
 
         {/* ═══ MENTALIDADE ═══ */}
         <Section title="Mentalidade" icon={Brain}>
-          <p className="text-[9px] text-[#555] -mt-1 mb-2">Como o agente pensa e reage</p>
+          <p className="text-[9px] text-[#B0B0B0] -mt-1 mb-2">Como o agente pensa e reage</p>
           <div className="relative mb-2">
-            <Search size={12} className="absolute left-2.5 top-2.5 text-[#444]" />
+            <Search size={12} className="absolute left-2.5 top-2.5 text-[#999]" />
             <input data-testid="mindset-search" value={mindsetSearch} onChange={e => setMindsetSearch(e.target.value)}
               placeholder="Buscar mentalidade..."
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] pl-7 pr-3 py-2 text-xs text-white placeholder-[#333] outline-none focus:border-[#C9A84C]/40" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] pl-7 pr-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
           </div>
           <Chips items={filteredMindsets} value={f.mindset} onChange={v => set('mindset', v)} cols={2} />
         </Section>
@@ -284,20 +284,20 @@ export default function AgentBuilder() {
 
         {/* ═══ IDIOMA ═══ */}
         <Section title="Idioma" icon={Globe}>
-          <p className="text-[9px] text-[#555] -mt-1 mb-2">Idioma principal do agente (auto-detectar reconhece o idioma do cliente)</p>
+          <p className="text-[9px] text-[#B0B0B0] -mt-1 mb-2">Idioma principal do agente (auto-detectar reconhece o idioma do cliente)</p>
           <Chips items={LANGS} value={f.language} onChange={v => set('language', v)} cols={4} />
         </Section>
 
         {/* ═══ COMPORTAMENTO ═══ */}
         <Section title="Comportamento" icon={MessageSquare}>
-          <label className="text-[10px] font-medium text-[#666] mb-1 block">Tamanho das Respostas</label>
+          <label className="text-[10px] font-medium text-[#999] mb-1 block">Tamanho das Respostas</label>
           <Chips items={[
             { id: 'short', l: 'Curta', d: '1-3 frases' },
             { id: 'medium', l: 'Media', d: '2-5 frases' },
             { id: 'detailed', l: 'Detalhada', d: '4-8 frases' },
           ]} value={f.response_length} onChange={v => set('response_length', v)} cols={3} />
 
-          <label className="text-[10px] font-medium text-[#666] mb-1 block mt-3">Se o cliente nao responder</label>
+          <label className="text-[10px] font-medium text-[#999] mb-1 block mt-3">Se o cliente nao responder</label>
           <Chips items={[
             { id: 'follow_up_1h', l: 'Follow-up 1h', d: 'Msg apos 1 hora' },
             { id: 'follow_up_24h', l: 'Follow-up 24h', d: 'Msg apos 24 horas' },
@@ -312,14 +312,14 @@ export default function AgentBuilder() {
             </button>
             <div>
               <p className="text-[10px] font-medium text-white">Recuperar Contexto</p>
-              <p className="text-[8px] text-[#555]">Lembrar conversas anteriores com o mesmo cliente</p>
+              <p className="text-[8px] text-[#B0B0B0]">Lembrar conversas anteriores com o mesmo cliente</p>
             </div>
           </div>
         </Section>
 
         {/* ═══ ESCOPO DE ASSUNTO ═══ */}
         <Section title="Escopo de Assunto" icon={Shield}>
-          <p className="text-[9px] text-[#555] -mt-1 mb-2">Defina os limites do que o agente pode ou nao falar</p>
+          <p className="text-[9px] text-[#B0B0B0] -mt-1 mb-2">Defina os limites do que o agente pode ou nao falar</p>
           <Input label="Assuntos permitidos" value={f.topic_scope} onChange={v => set('topic_scope', v)}
             placeholder="Ex: Vendas de carros, financiamento, test drive, pecas..." textarea />
           <Input label="Assuntos proibidos" value={f.forbidden_topics} onChange={v => set('forbidden_topics', v)}
@@ -329,9 +329,9 @@ export default function AgentBuilder() {
 
         {/* ═══ INTEGRACOES ═══ */}
         <Section title="Integracoes" icon={Link2}>
-          <p className="text-[9px] text-[#555] -mt-1 mb-2">Conecte o agente com suas ferramentas</p>
+          <p className="text-[9px] text-[#B0B0B0] -mt-1 mb-2">Conecte o agente com suas ferramentas</p>
           <Chips items={INTEGRATIONS} value={f.integrations} onChange={v => set('integrations', v)} multi cols={3} />
-          <p className="text-[8px] text-[#555] mt-1">O agente mencionara naturalmente as integracoes ativas (ex: "Posso verificar na agenda...")</p>
+          <p className="text-[8px] text-[#B0B0B0] mt-1">O agente mencionara naturalmente as integracoes ativas (ex: "Posso verificar na agenda...")</p>
         </Section>
 
         {/* ═══ GENERATE BUTTON ═══ */}
@@ -351,7 +351,7 @@ export default function AgentBuilder() {
               <div className="absolute -inset-2 rounded-3xl border border-[#C9A84C]/20 animate-ping" style={{ animationDuration: '2s' }} />
             </div>
             <p className="text-xs text-[#888]">A IA esta criando seu agente personalizado...</p>
-            <p className="text-[10px] text-[#555] mt-1">Isso pode levar ate 60 segundos</p>
+            <p className="text-[10px] text-[#B0B0B0] mt-1">Isso pode levar ate 60 segundos</p>
           </div>
         )}
 
@@ -375,13 +375,13 @@ export default function AgentBuilder() {
             {/* Sample Conversation */}
             {result.sample_conversation?.length > 0 && (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3 space-y-1.5">
-                <p className="text-[9px] font-semibold text-[#666] uppercase tracking-wider mb-1">Conversa de Exemplo</p>
+                <p className="text-[9px] font-semibold text-[#999] uppercase tracking-wider mb-1">Conversa de Exemplo</p>
                 {result.sample_conversation.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'customer' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-xl px-2.5 py-1.5 ${
                       msg.role === 'customer' ? 'bg-[#1A1A1A]' : 'bg-[#C9A84C]/8 border border-[#C9A84C]/10'
                     }`}>
-                      <p className={`text-[8px] font-semibold mb-0.5 ${msg.role === 'customer' ? 'text-[#555]' : 'text-[#C9A84C]/60'}`}>
+                      <p className={`text-[8px] font-semibold mb-0.5 ${msg.role === 'customer' ? 'text-[#B0B0B0]' : 'text-[#C9A84C]/60'}`}>
                         {msg.role === 'customer' ? 'Cliente' : result.agent_name}
                       </p>
                       <p className="text-[10px] text-[#999] leading-relaxed">{msg.message}</p>
@@ -394,7 +394,7 @@ export default function AgentBuilder() {
             {/* Personality */}
             {result.personality && (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3 space-y-1.5">
-                <p className="text-[9px] font-semibold text-[#666] uppercase tracking-wider mb-1">Personalidade</p>
+                <p className="text-[9px] font-semibold text-[#999] uppercase tracking-wider mb-1">Personalidade</p>
                 {[
                   { l: 'Tom', v: result.personality.tone_value },
                   { l: 'Verbosidade', v: result.personality.verbosity_value },
@@ -403,7 +403,7 @@ export default function AgentBuilder() {
                   { l: 'Formalidade', v: result.personality.formality },
                 ].map((p, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-[9px] text-[#666] w-16 shrink-0">{p.l}</span>
+                    <span className="text-[9px] text-[#999] w-16 shrink-0">{p.l}</span>
                     <div className="flex-1 h-1 rounded-full bg-[#1A1A1A]">
                       <div className="h-full rounded-full bg-[#C9A84C]" style={{ width: `${(p.v || 0) * 100}%` }} />
                     </div>
@@ -416,7 +416,7 @@ export default function AgentBuilder() {
             {/* Topic Boundaries */}
             {result.topic_boundaries && (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
-                <p className="text-[9px] font-semibold text-[#666] uppercase tracking-wider mb-1.5">Escopo de Assunto</p>
+                <p className="text-[9px] font-semibold text-[#999] uppercase tracking-wider mb-1.5">Escopo de Assunto</p>
                 {result.topic_boundaries.allowed?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-1.5">
                     {result.topic_boundaries.allowed.map((t, i) => (
@@ -437,8 +437,8 @@ export default function AgentBuilder() {
             {/* System Prompt */}
             <button data-testid="toggle-prompt" onClick={() => setShowPrompt(!showPrompt)}
               className="flex w-full items-center gap-2 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-3 py-2.5">
-              <span className="text-[9px] font-semibold text-[#666] uppercase tracking-wider flex-1 text-left">System Prompt Gerado</span>
-              {showPrompt ? <ChevronUp size={12} className="text-[#555]" /> : <ChevronDown size={12} className="text-[#555]" />}
+              <span className="text-[9px] font-semibold text-[#999] uppercase tracking-wider flex-1 text-left">System Prompt Gerado</span>
+              {showPrompt ? <ChevronUp size={12} className="text-[#B0B0B0]" /> : <ChevronDown size={12} className="text-[#B0B0B0]" />}
             </button>
             {showPrompt && (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3 -mt-1">
@@ -449,14 +449,14 @@ export default function AgentBuilder() {
             {/* Knowledge */}
             {result.suggested_knowledge?.length > 0 && (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
-                <p className="text-[9px] font-semibold text-[#666] uppercase tracking-wider mb-1.5">Knowledge Base ({result.suggested_knowledge.length})</p>
+                <p className="text-[9px] font-semibold text-[#999] uppercase tracking-wider mb-1.5">Knowledge Base ({result.suggested_knowledge.length})</p>
                 <div className="space-y-1">
                   {result.suggested_knowledge.map((item, i) => (
                     <div key={i} className="flex items-start gap-1.5 p-1.5 rounded-lg bg-[#111]">
                       <span className="rounded bg-[#C9A84C]/10 px-1 py-px text-[7px] uppercase text-[#C9A84C] shrink-0 mt-0.5">{item.type}</span>
                       <div className="min-w-0">
                         <p className="text-[9px] font-medium text-white truncate">{item.title}</p>
-                        <p className="text-[8px] text-[#555] line-clamp-1">{item.content}</p>
+                        <p className="text-[8px] text-[#B0B0B0] line-clamp-1">{item.content}</p>
                       </div>
                     </div>
                   ))}

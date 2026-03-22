@@ -62,11 +62,11 @@ export default function UpsellScreen() {
         <div className="mb-5 flex justify-center">
           <div className="inline-flex items-center gap-1 rounded-full border border-[#1E1E1E] bg-[#0D0D0D] p-1">
             <button data-testid="billing-annual" onClick={() => setBillingAnnual(true)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666]'}`}>
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
               {lang === 'pt' ? 'Anual' : 'Annual'} <span className="ml-1 text-[9px] opacity-80">{lang === 'pt' ? 'Economize 14%' : 'Save 14%'}</span>
             </button>
             <button data-testid="billing-monthly" onClick={() => setBillingAnnual(false)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666]'}`}>
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
               {lang === 'pt' ? 'Mensal' : 'Monthly'}
             </button>
           </div>
@@ -90,7 +90,7 @@ export default function UpsellScreen() {
                 }`}>
                 <div className="flex items-center gap-1.5 mb-2">
                   {!isFree && <Icon size={12} className="text-[#C9A84C]" />}
-                  <p className={`text-[11px] font-semibold capitalize ${isEnterprise ? 'text-[#C9A84C]' : isFree ? 'text-[#666]' : 'text-white'}`}>
+                  <p className={`text-[11px] font-semibold capitalize ${isEnterprise ? 'text-[#C9A84C]' : isFree ? 'text-[#999]' : 'text-white'}`}>
                     {plan.key}{isFree ? (lang === 'pt' ? ' (atual)' : ' (current)') : ''}
                   </p>
                 </div>
@@ -118,10 +118,10 @@ export default function UpsellScreen() {
                 {!isFree && (
                   <div>
                     <p className={`text-base font-bold ${isEnterprise ? 'text-[#C9A84C]' : 'text-white'}`}>
-                      ${price}<span className="text-[10px] text-[#666] font-normal">/{lang === 'pt' ? 'mes' : 'mo'}</span>
+                      ${price}<span className="text-[10px] text-[#999] font-normal">/{lang === 'pt' ? 'mes' : 'mo'}</span>
                     </p>
                     {billingAnnual && plan.price.monthly > plan.price.annual && (
-                      <p className="text-[8px] text-[#555] line-through">${plan.price.monthly}/{lang === 'pt' ? 'mes' : 'mo'}</p>
+                      <p className="text-[8px] text-[#B0B0B0] line-through">${plan.price.monthly}/{lang === 'pt' ? 'mes' : 'mo'}</p>
                     )}
                   </div>
                 )}

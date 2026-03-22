@@ -68,9 +68,9 @@ export default function LeadDetail() {
     <div className="min-h-screen bg-[#0A0A0A] px-4 pt-5 pb-24">
       {/* Header */}
       <div className="mb-5 flex items-center gap-3">
-        <button data-testid="back-to-crm" onClick={() => navigate('/crm')} className="text-[#666] hover:text-white transition"><ArrowLeft size={20} /></button>
+        <button data-testid="back-to-crm" onClick={() => navigate('/crm')} className="text-[#999] hover:text-white transition"><ArrowLeft size={20} /></button>
         <h1 className="text-lg font-bold text-white flex-1">{lead.name}</h1>
-        <button data-testid="delete-lead-btn" onClick={handleDelete} disabled={deleting} className="text-[#444] hover:text-red-400 transition"><Trash2 size={16} /></button>
+        <button data-testid="delete-lead-btn" onClick={handleDelete} disabled={deleting} className="text-[#999] hover:text-red-400 transition"><Trash2 size={16} /></button>
       </div>
 
       {/* Lead info card */}
@@ -109,9 +109,9 @@ export default function LeadDetail() {
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 text-[11px]">
-          {lead.phone && <div className="flex items-center gap-1.5 text-[#888]"><Phone size={11} className="text-[#555]" />{lead.phone}</div>}
-          {lead.email && <div className="flex items-center gap-1.5 text-[#888]"><Mail size={11} className="text-[#555]" />{lead.email}</div>}
-          {lead.company && <div className="flex items-center gap-1.5 text-[#888]"><Building size={11} className="text-[#555]" />{lead.company}</div>}
+          {lead.phone && <div className="flex items-center gap-1.5 text-[#888]"><Phone size={11} className="text-[#B0B0B0]" />{lead.phone}</div>}
+          {lead.email && <div className="flex items-center gap-1.5 text-[#888]"><Mail size={11} className="text-[#B0B0B0]" />{lead.email}</div>}
+          {lead.company && <div className="flex items-center gap-1.5 text-[#888]"><Building size={11} className="text-[#B0B0B0]" />{lead.company}</div>}
           {lead.value > 0 && <div className="flex items-center gap-1.5 text-[#C9A84C] font-semibold"><Target size={11} />${parseFloat(lead.value).toLocaleString()}</div>}
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function LeadDetail() {
         {ai.reason ? (
           <div className="space-y-2.5 text-xs">
             <div>
-              <p className="text-[10px] text-[#555] mb-1">Score</p>
+              <p className="text-[10px] text-[#B0B0B0] mb-1">Score</p>
               <div className="flex items-center gap-2">
                 <div className="h-1.5 flex-1 rounded-full bg-[#1E1E1E]">
                   <div className="h-full rounded-full transition-all duration-500" style={{ width: `${ai.score || 0}%`, backgroundColor: (ai.score || 0) >= 70 ? '#4ADE80' : (ai.score || 0) >= 40 ? '#C9A84C' : '#666' }} />
@@ -135,19 +135,19 @@ export default function LeadDetail() {
                 <span className="text-xs font-bold text-white">{ai.score || 0}/100</span>
               </div>
             </div>
-            <div><p className="text-[10px] text-[#555]">Analysis</p><p className="text-[#999]">{ai.reason}</p></div>
+            <div><p className="text-[10px] text-[#B0B0B0]">Analysis</p><p className="text-[#999]">{ai.reason}</p></div>
             {ai.stage_suggestion && ai.stage_suggestion !== lead.stage && (
               <div className="flex items-center gap-2">
-                <p className="text-[10px] text-[#555]">Suggested stage:</p>
+                <p className="text-[10px] text-[#B0B0B0]">Suggested stage:</p>
                 <button onClick={() => handleStageChange(ai.stage_suggestion)} className="rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[10px] font-medium text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
                   Move to {ai.stage_suggestion}
                 </button>
               </div>
             )}
-            {ai.next_action && <div><p className="text-[10px] text-[#555]">Next action</p><p className="text-[#C9A84C]">{ai.next_action}</p></div>}
+            {ai.next_action && <div><p className="text-[10px] text-[#B0B0B0]">Next action</p><p className="text-[#C9A84C]">{ai.next_action}</p></div>}
           </div>
         ) : (
-          <p className="text-xs text-[#444]">Click "Run AI Score" to get an AI analysis of this lead</p>
+          <p className="text-xs text-[#999]">Click "Run AI Score" to get an AI analysis of this lead</p>
         )}
       </div>
 

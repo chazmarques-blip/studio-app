@@ -47,7 +47,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] px-4 pt-5 pb-24">
       <div className="mb-5 flex items-center gap-3">
-        <button onClick={() => navigate('/settings')} className="text-[#666] hover:text-white transition"><ArrowLeft size={20} /></button>
+        <button onClick={() => navigate('/settings')} className="text-[#999] hover:text-white transition"><ArrowLeft size={20} /></button>
         <h1 className="text-lg font-bold text-white">Profile</h1>
       </div>
 
@@ -57,7 +57,7 @@ export default function Profile() {
           <span className="text-2xl font-bold text-[#0A0A0A]">{(form.full_name || user?.email || 'U')[0].toUpperCase()}</span>
         </div>
         <p className="text-sm font-semibold text-white">{form.full_name || 'User'}</p>
-        <p className="text-xs text-[#555]">{user?.email}</p>
+        <p className="text-xs text-[#B0B0B0]">{user?.email}</p>
       </div>
 
       {/* Plan quick card */}
@@ -88,17 +88,17 @@ export default function Profile() {
       {/* Edit Profile */}
       <div className="space-y-3 mb-6">
         <div>
-          <label className="mb-1 block text-xs text-[#666]">Full Name</label>
+          <label className="mb-1 block text-xs text-[#999]">Full Name</label>
           <input data-testid="profile-name" value={form.full_name} onChange={e => setForm(p => ({...p, full_name: e.target.value}))}
             className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#C9A84C]/40" />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-[#666]">Company</label>
+          <label className="mb-1 block text-xs text-[#999]">Company</label>
           <input data-testid="profile-company" value={form.company_name} onChange={e => setForm(p => ({...p, company_name: e.target.value}))}
             className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#C9A84C]/40" />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-[#666]">Language</label>
+          <label className="mb-1 block text-xs text-[#999]">Language</label>
           <select data-testid="profile-lang" value={form.ui_language} onChange={e => setForm(p => ({...p, ui_language: e.target.value}))}
             className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#C9A84C]/40">
             <option value="en">English</option>
@@ -107,8 +107,8 @@ export default function Profile() {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-[#666]">Email</label>
-          <input value={user?.email || ''} disabled className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2.5 text-sm text-[#555] outline-none" />
+          <label className="mb-1 block text-xs text-[#999]">Email</label>
+          <input value={user?.email || ''} disabled className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2.5 text-sm text-[#B0B0B0] outline-none" />
         </div>
       </div>
 

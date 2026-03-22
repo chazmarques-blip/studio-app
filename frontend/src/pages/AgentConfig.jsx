@@ -43,7 +43,7 @@ function Slider({ label, desc, value, onChange, min = 0, max = 1, step = 0.05 })
             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#C9A84C]" />
         <span className="text-[11px] font-semibold text-[#C9A84C] w-8 text-right">{pct}%</span>
       </div>
-      {desc && <p className="text-[9px] text-[#444] ml-[88px] mt-0.5">{desc}</p>}
+      {desc && <p className="text-[9px] text-[#999] ml-[88px] mt-0.5">{desc}</p>}
     </div>
   );
 }
@@ -54,7 +54,7 @@ function Toggle({ label, desc, checked, onChange, testId }) {
     <div className="flex items-center justify-between py-1.5 border-b border-[#111] last:border-0">
       <div className="pr-3">
         <p className="text-[11px] font-medium text-white">{label}</p>
-        {desc && <p className="text-[9px] text-[#444]">{desc}</p>}
+        {desc && <p className="text-[9px] text-[#999]">{desc}</p>}
       </div>
       <button data-testid={testId} onClick={onChange}
         className={`h-4.5 w-8 rounded-full flex-shrink-0 transition ${checked ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
@@ -200,7 +200,7 @@ export default function AgentConfig() {
       {/* Header */}
       <div className="border-b border-[#1A1A1A] px-3 py-2.5">
         <div className="flex items-center gap-2.5">
-          <button onClick={() => navigate('/agents')} className="text-[#666] hover:text-white transition"><ArrowLeft size={18} /></button>
+          <button onClick={() => navigate('/agents')} className="text-[#999] hover:text-white transition"><ArrowLeft size={18} /></button>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10 shrink-0"><Bot size={16} className="text-[#C9A84C]" /></div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
@@ -211,11 +211,11 @@ export default function AgentConfig() {
               ) : (
                 <span className="text-sm font-semibold text-white truncate">{agent.name}</span>
               )}
-              <button data-testid="edit-name-btn" onClick={() => setEditingName(true)} className="text-[#555] hover:text-[#C9A84C] transition shrink-0">
+              <button data-testid="edit-name-btn" onClick={() => setEditingName(true)} className="text-[#B0B0B0] hover:text-[#C9A84C] transition shrink-0">
                 <Pencil size={11} />
               </button>
             </div>
-            <p className="text-[9px] capitalize text-[#555]">{agent.type} · {agent.tone}</p>
+            <p className="text-[9px] capitalize text-[#B0B0B0]">{agent.type} · {agent.tone}</p>
           </div>
           <div className="flex items-center gap-1.5">
             {agent.has_original && (
@@ -237,14 +237,14 @@ export default function AgentConfig() {
         <button onClick={() => setPromptOpen(!promptOpen)} className="flex w-full items-center gap-2 text-left">
           <Brain size={12} className="text-[#C9A84C]" />
           <span className="text-[10px] font-medium text-[#888] flex-1">{lang === 'pt' ? 'System Prompt' : 'System Prompt'}</span>
-          {promptOpen ? <ChevronUp size={12} className="text-[#555]" /> : <ChevronDown size={12} className="text-[#555]" />}
+          {promptOpen ? <ChevronUp size={12} className="text-[#B0B0B0]" /> : <ChevronDown size={12} className="text-[#B0B0B0]" />}
         </button>
         {promptOpen && (
           <textarea data-testid="agent-system-prompt" value={agent.system_prompt || ''} onChange={e => setAgent(p => ({ ...p, system_prompt: e.target.value }))} rows={6}
             className="mt-2 w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 text-[11px] leading-relaxed text-[#999] outline-none resize-none font-mono focus:border-[#C9A84C]/30" />
         )}
         {!promptOpen && agent.system_prompt && (
-          <p className="mt-1 text-[9px] text-[#444] line-clamp-2 cursor-pointer" onClick={() => setPromptOpen(true)}>{agent.system_prompt}</p>
+          <p className="mt-1 text-[9px] text-[#999] line-clamp-2 cursor-pointer" onClick={() => setPromptOpen(true)}>{agent.system_prompt}</p>
         )}
       </div>
 
@@ -253,7 +253,7 @@ export default function AgentConfig() {
         {tabs.map(tb => (
           <button key={tb.key} data-testid={`tab-${tb.key}`} onClick={() => setTab(tb.key)}
             className={`flex items-center gap-1 whitespace-nowrap px-2.5 py-2 text-[10px] font-medium transition border-b-2 ${
-              tab === tb.key ? 'border-[#C9A84C] text-[#C9A84C]' : 'border-transparent text-[#555] hover:text-[#888]'}`}>
+              tab === tb.key ? 'border-[#C9A84C] text-[#C9A84C]' : 'border-transparent text-[#B0B0B0] hover:text-[#E5E5E5]'}`}>
             <tb.icon size={11} /> {tb.label[lang] || tb.label.en}
           </button>
         ))}
@@ -271,7 +271,7 @@ export default function AgentConfig() {
                 {TONES.map(to => (
                   <button key={to.value} data-testid={`tone-${to.value}`} onClick={() => setAgent(p => ({ ...p, tone: to.value }))}
                     className={`rounded-lg border px-3 py-1.5 text-[10px] transition ${
-                      agent.tone === to.value ? 'border-[#C9A84C]/40 bg-[#C9A84C]/8 text-[#C9A84C]' : 'border-[#1A1A1A] text-[#666] hover:border-[#222]'}`}>
+                      agent.tone === to.value ? 'border-[#C9A84C]/40 bg-[#C9A84C]/8 text-[#C9A84C]' : 'border-[#1A1A1A] text-[#999] hover:border-[#222]'}`}>
                     {to.label[lang] || to.label.en}
                   </button>
                 ))}
@@ -310,7 +310,7 @@ export default function AgentConfig() {
         {tab === 'knowledge' && (
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Base de conhecimento' : 'Knowledge base'}</p>
+              <p className="text-[10px] text-[#999]">{lang === 'pt' ? 'Base de conhecimento' : 'Knowledge base'}</p>
               <button data-testid="add-knowledge-btn" onClick={() => setShowAddKb(!showAddKb)} className="btn-gold flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px]"><Plus size={11} /> {lang === 'pt' ? 'Adicionar' : 'Add'}</button>
             </div>
 
@@ -320,9 +320,9 @@ export default function AgentConfig() {
                   {KB_TYPES.map(tp => <option key={tp.value} value={tp.value}>{tp.label[lang] || tp.label.en}</option>)}
                 </select>
                 <input data-testid="kb-title" value={newKb.title} onChange={e => setNewKb(p => ({ ...p, title: e.target.value }))} placeholder={lang === 'pt' ? 'Titulo' : 'Title'}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white placeholder-[#444] outline-none" />
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white placeholder-[#666] outline-none" />
                 <textarea data-testid="kb-content" value={newKb.content} onChange={e => setNewKb(p => ({ ...p, content: e.target.value }))} rows={2}
-                  placeholder={lang === 'pt' ? 'Conteudo...' : 'Content...'} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white placeholder-[#444] outline-none resize-none" />
+                  placeholder={lang === 'pt' ? 'Conteudo...' : 'Content...'} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white placeholder-[#666] outline-none resize-none" />
                 <button data-testid="kb-save-btn" onClick={addKnowledge} className="btn-gold w-full rounded-lg py-1.5 text-[10px]">{lang === 'pt' ? 'Salvar' : 'Save'}</button>
               </div>
             )}
@@ -334,16 +334,16 @@ export default function AgentConfig() {
                     <span className="rounded bg-[#C9A84C]/15 px-1.5 py-px text-[8px] uppercase text-[#C9A84C]">{item.type}</span>
                     <h4 className="text-[11px] font-medium text-white truncate">{item.title}</h4>
                   </div>
-                  <p className="text-[10px] text-[#555] line-clamp-2">{item.content}</p>
+                  <p className="text-[10px] text-[#B0B0B0] line-clamp-2">{item.content}</p>
                 </div>
-                <button onClick={() => deleteKb(item.id)} className="text-[#444] hover:text-red-400 transition shrink-0"><Trash2 size={13} /></button>
+                <button onClick={() => deleteKb(item.id)} className="text-[#999] hover:text-red-400 transition shrink-0"><Trash2 size={13} /></button>
               </div>
             ))}
 
             {knowledge.length === 0 && !showAddKb && (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-6 text-center">
-                <BookOpen size={22} className="mx-auto mb-1.5 text-[#222]" />
-                <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Nenhum conhecimento' : 'No knowledge yet'}</p>
+                <BookOpen size={22} className="mx-auto mb-1.5 text-[#555]" />
+                <p className="text-[10px] text-[#999]">{lang === 'pt' ? 'Nenhum conhecimento' : 'No knowledge yet'}</p>
               </div>
             )}
 
@@ -351,7 +351,7 @@ export default function AgentConfig() {
               <label className="mb-1 block text-[10px] font-medium text-[#888]">{lang === 'pt' ? 'Instrucoes adicionais' : 'Additional instructions'}</label>
               <textarea value={agent.knowledge_instructions || ''} onChange={e => setAgent(p => ({ ...p, knowledge_instructions: e.target.value }))} rows={2}
                 placeholder={lang === 'pt' ? 'Ex: Sempre mencione o horario...' : 'Ex: Always mention hours...'}
-                className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-2.5 py-1.5 text-[11px] text-white placeholder-[#444] outline-none resize-none" />
+                className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-2.5 py-1.5 text-[11px] text-white placeholder-[#666] outline-none resize-none" />
             </div>
           </div>
         )}
@@ -391,7 +391,7 @@ export default function AgentConfig() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Calendar size={14} className="text-[#C9A84C]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">Google Calendar</p>
-                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events'}</p>
+                          <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events'}</p>
                         </div>
                         <button data-testid="integ-google_calendar"
                           onClick={() => {
@@ -405,7 +405,7 @@ export default function AgentConfig() {
                       </div>
                       {calEnabled && (
                         <div className="mt-2 pt-2 border-t border-[#111] space-y-1.5">
-                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'O agente podera: criar eventos, listar agenda, confirmar horarios' : 'Agent can: create events, list schedule, confirm times'}</p>
+                          <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'O agente podera: criar eventos, listar agenda, confirmar horarios' : 'Agent can: create events, list schedule, confirm times'}</p>
                           <div className="flex items-center gap-1.5">
                             <select data-testid="calendar-select"
                               value={cfg.google_calendar?.calendar_id || ''}
@@ -415,7 +415,7 @@ export default function AgentConfig() {
                               {calendars.map(c => <option key={c.id} value={c.id}>{c.name}{c.primary ? ' (primary)' : ''}</option>)}
                             </select>
                             <button data-testid="refresh-calendars-btn" onClick={fetchCalendars} disabled={loadingCalendars}
-                              className="text-[#555] hover:text-[#C9A84C] transition p-1 shrink-0">
+                              className="text-[#B0B0B0] hover:text-[#C9A84C] transition p-1 shrink-0">
                               <RotateCcw size={11} className={loadingCalendars ? 'animate-spin' : ''} />
                             </button>
                           </div>
@@ -432,7 +432,7 @@ export default function AgentConfig() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Table2 size={14} className="text-[#C9A84C]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">Google Sheets</p>
-                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets'}</p>
+                          <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets'}</p>
                         </div>
                         <button data-testid="integ-google_sheets"
                           onClick={() => {
@@ -446,7 +446,7 @@ export default function AgentConfig() {
                       </div>
                       {shEnabled && (
                         <div className="mt-2 pt-2 border-t border-[#111] space-y-1.5">
-                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Selecione a planilha que o agente deve acessar' : 'Select the spreadsheet the agent should access'}</p>
+                          <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Selecione a planilha que o agente deve acessar' : 'Select the spreadsheet the agent should access'}</p>
                           <div className="flex items-center gap-1.5">
                             <select data-testid="sheets-select"
                               value={cfg.google_sheets?.spreadsheet_id || ''}
@@ -459,14 +459,14 @@ export default function AgentConfig() {
                               {sheets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                             <button data-testid="refresh-sheets-btn" onClick={fetchSheets} disabled={loadingSheets}
-                              className="text-[#555] hover:text-[#C9A84C] transition p-1 shrink-0">
+                              className="text-[#B0B0B0] hover:text-[#C9A84C] transition p-1 shrink-0">
                               <RotateCcw size={11} className={loadingSheets ? 'animate-spin' : ''} />
                             </button>
                           </div>
                           {loadingSheets && <p className="text-[9px] text-[#C9A84C]">{lang === 'pt' ? 'Carregando planilhas...' : 'Loading sheets...'}</p>}
                           <input data-testid="sheets-range" value={cfg.google_sheets?.range || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, range: e.target.value } } }))}
                             placeholder={lang === 'pt' ? 'Intervalo (ex: Sheet1!A1:D100)' : 'Range (e.g. Sheet1!A1:D100)'}
-                            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#666] outline-none" />
                           {cfg.google_sheets?.spreadsheet_id && (
                             <a href={`https://docs.google.com/spreadsheets/d/${cfg.google_sheets.spreadsheet_id}`} target="_blank" rel="noreferrer"
                               className="text-[9px] text-[#C9A84C] hover:underline inline-flex items-center gap-1">
@@ -485,7 +485,7 @@ export default function AgentConfig() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><HardDrive size={14} className="text-[#C9A84C]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">Google Drive</p>
-                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'Documentos como base de conhecimento' : 'Docs as knowledge base'}</p>
+                          <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Documentos como base de conhecimento' : 'Docs as knowledge base'}</p>
                         </div>
                         <button data-testid="integ-google_drive"
                           onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_drive: { ...p.integrations_config?.google_drive, enabled: !drEnabled } } }))}
@@ -495,7 +495,7 @@ export default function AgentConfig() {
                       </div>
                       {drEnabled && (
                         <div className="mt-2 pt-2 border-t border-[#111]">
-                          <p className="text-[9px] text-[#555]">{lang === 'pt' ? 'O agente usara documentos do Drive como base de conhecimento' : 'Agent will use Drive documents as knowledge base'}</p>
+                          <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'O agente usara documentos do Drive como base de conhecimento' : 'Agent will use Drive documents as knowledge base'}</p>
                         </div>
                       )}
                     </div>
@@ -520,7 +520,7 @@ export default function AgentConfig() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><integ.icon size={14} className="text-[#C9A84C]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">{integ.name}</p>
-                          <p className="text-[9px] text-[#555]">{integ.desc}</p>
+                          <p className="text-[9px] text-[#B0B0B0]">{integ.desc}</p>
                         </div>
                         <button data-testid={`integ-${integ.key}`}
                           onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, [integ.key]: { ...p.integrations_config?.[integ.key], enabled: !enabled } } }))}
@@ -531,15 +531,15 @@ export default function AgentConfig() {
                       {enabled && integ.key === 'custom_api' && (
                         <div className="mt-2 space-y-1.5 pt-2 border-t border-[#111]">
                           <input value={cfg.custom_api?.url || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, custom_api: { ...p.integrations_config?.custom_api, url: e.target.value } } }))}
-                            placeholder="API URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                            placeholder="API URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#666] outline-none" />
                           <input value={cfg.custom_api?.api_key || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, custom_api: { ...p.integrations_config?.custom_api, api_key: e.target.value } } }))}
-                            placeholder="API Key" type="password" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                            placeholder="API Key" type="password" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#666] outline-none" />
                         </div>
                       )}
                       {enabled && integ.key === 'webhook' && (
                         <div className="mt-2 pt-2 border-t border-[#111]">
                           <input value={cfg.webhook?.url || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, webhook: { ...p.integrations_config?.webhook, url: e.target.value } } }))}
-                            placeholder="Webhook URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
+                            placeholder="Webhook URL" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#666] outline-none" />
                         </div>
                       )}
                     </div>
@@ -569,11 +569,11 @@ export default function AgentConfig() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><ch.icon size={14} className="text-[#C9A84C]" /></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-medium text-white">{ch.name}</p>
-                      <p className="text-[9px] text-[#555]">{ch.desc}</p>
+                      <p className="text-[9px] text-[#B0B0B0]">{ch.desc}</p>
                     </div>
                     <button data-testid={`channel-${ch.key}`}
                       onClick={() => setAgent(p => ({ ...p, channel_config: { ...p.channel_config, [ch.key]: { ...p.channel_config?.[ch.key], enabled: !enabled } } }))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${enabled ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/20' : 'bg-[#1A1A1A] text-[#666] border border-[#1E1E1E]'}`}>
+                      className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${enabled ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/20' : 'bg-[#1A1A1A] text-[#999] border border-[#1E1E1E]'}`}>
                       {enabled ? (lang === 'pt' ? 'Ativo' : 'Active') : (lang === 'pt' ? 'Ativar' : 'Enable')}
                     </button>
                   </div>
@@ -581,8 +581,8 @@ export default function AgentConfig() {
                     <div className="mt-2 space-y-1.5 pt-2 border-t border-[#111]">
                       <input data-testid="telegram-bot-token" value={chCfg.telegram?.bot_token || ''}
                         onChange={e => setAgent(p => ({ ...p, channel_config: { ...p.channel_config, telegram: { ...p.channel_config?.telegram, bot_token: e.target.value } } }))}
-                        placeholder="Bot Token (@BotFather)" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#444] outline-none" />
-                      <p className="text-[9px] text-[#444]">{lang === 'pt' ? '1. @BotFather → /newbot → Cole token' : '1. @BotFather → /newbot → Paste token'}</p>
+                        placeholder="Bot Token (@BotFather)" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#666] outline-none" />
+                      <p className="text-[9px] text-[#999]">{lang === 'pt' ? '1. @BotFather → /newbot → Cole token' : '1. @BotFather → /newbot → Paste token'}</p>
                       {chCfg.telegram?.bot_token && (
                         <button data-testid="telegram-connect-btn" onClick={async () => {
                           try { const { data } = await axios.post(`${API}/telegram/setup`, { agent_id: agentId, bot_token: chCfg.telegram.bot_token }); toast.success(data.message || 'Connected!');
@@ -609,7 +609,7 @@ export default function AgentConfig() {
                 <input data-testid="escalation-keywords" value={(agent.escalation_rules?.keywords || []).join(', ')}
                   onChange={e => setAgent(p => ({ ...p, escalation_rules: { ...p.escalation_rules, keywords: e.target.value.split(',').map(k => k.trim()).filter(Boolean) } }))}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white outline-none" />
-                <p className="mt-0.5 text-[9px] text-[#444]">{lang === 'pt' ? 'Separadas por virgula' : 'Comma separated'}</p>
+                <p className="mt-0.5 text-[9px] text-[#999]">{lang === 'pt' ? 'Separadas por virgula' : 'Comma separated'}</p>
               </div>
               <Slider label={lang === 'pt' ? 'Frustracao' : 'Frustration'} desc={lang === 'pt' ? 'Sensibilidade para escalar' : 'Sensitivity to escalate'} value={agent.escalation_rules?.sentiment_threshold || 0.3} onChange={v => setAgent(p => ({ ...p, escalation_rules: { ...p.escalation_rules, sentiment_threshold: v } }))} />
               <Toggle label={lang === 'pt' ? 'Notificar operador' : 'Notify operator'} desc={lang === 'pt' ? 'Notificacao ao escalar' : 'Notification on escalation'} checked={agent.escalation_rules?.notify_operator !== false}
@@ -631,12 +631,12 @@ export default function AgentConfig() {
               {agent.follow_up_config?.enabled && (
                 <div className="mt-2 pt-2 border-t border-[#111] grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[9px] text-[#555]">{lang === 'pt' ? 'Max. Reativacoes' : 'Max Follow-ups'}</label>
+                    <label className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Max. Reativacoes' : 'Max Follow-ups'}</label>
                     <input type="number" value={agent.follow_up_config?.max_follow_ups || 3} onChange={e => setAgent(p => ({ ...p, follow_up_config: { ...p.follow_up_config, max_follow_ups: parseInt(e.target.value) } }))}
                       className="w-full bg-transparent text-sm font-bold text-white outline-none border-b border-[#1E1E1E] focus:border-[#C9A84C]" />
                   </div>
                   <div>
-                    <label className="text-[9px] text-[#555]">{lang === 'pt' ? 'Intervalo (dias)' : 'Cooldown (days)'}</label>
+                    <label className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Intervalo (dias)' : 'Cooldown (days)'}</label>
                     <input type="number" value={agent.follow_up_config?.cool_down_days || 7} onChange={e => setAgent(p => ({ ...p, follow_up_config: { ...p.follow_up_config, cool_down_days: parseInt(e.target.value) } }))}
                       className="w-full bg-transparent text-sm font-bold text-white outline-none border-b border-[#1E1E1E] focus:border-[#C9A84C]" />
                   </div>
@@ -647,7 +647,7 @@ export default function AgentConfig() {
             {agent.follow_up_config?.enabled && (
               <>
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Regras' : 'Rules'}</p>
+                  <p className="text-[10px] text-[#999]">{lang === 'pt' ? 'Regras' : 'Rules'}</p>
                   <button data-testid="add-rule-btn" onClick={() => setShowAddRule(!showAddRule)} className="btn-gold flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px]"><Plus size={11} /> {lang === 'pt' ? 'Adicionar' : 'Add'}</button>
                 </div>
                 {showAddRule && (
@@ -658,7 +658,7 @@ export default function AgentConfig() {
                     <input type="number" value={newRule.delay_hours} onChange={e => setNewRule(p => ({ ...p, delay_hours: parseInt(e.target.value) }))} placeholder={lang === 'pt' ? 'Atraso (h)' : 'Delay (h)'}
                       className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white outline-none" />
                     <textarea data-testid="rule-template" value={newRule.message_template} onChange={e => setNewRule(p => ({ ...p, message_template: e.target.value }))} rows={2}
-                      placeholder={lang === 'pt' ? 'Mensagem... {name}' : 'Message... {name}'} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white placeholder-[#444] outline-none resize-none" />
+                      placeholder={lang === 'pt' ? 'Mensagem... {name}' : 'Message... {name}'} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[11px] text-white placeholder-[#666] outline-none resize-none" />
                     <button data-testid="rule-save-btn" onClick={addRule} className="btn-gold w-full rounded-lg py-1.5 text-[10px]">{lang === 'pt' ? 'Salvar' : 'Save'}</button>
                   </div>
                 )}
@@ -667,9 +667,9 @@ export default function AgentConfig() {
                     <Clock size={13} className="text-[#C9A84C] shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-medium text-white">{TRIGGER_TYPES.find(t => t.value === rule.trigger_type)?.label[lang] || rule.trigger_type}</p>
-                      <p className="text-[9px] text-[#555]">{lang === 'pt' ? `Apos ${rule.delay_hours}h` : `After ${rule.delay_hours}h`} — <span className="italic text-[#888]">"{rule.message_template}"</span></p>
+                      <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? `Apos ${rule.delay_hours}h` : `After ${rule.delay_hours}h`} — <span className="italic text-[#888]">"{rule.message_template}"</span></p>
                     </div>
-                    <button onClick={() => deleteRule(rule.id)} className="text-[#444] hover:text-red-400 transition shrink-0"><Trash2 size={12} /></button>
+                    <button onClick={() => deleteRule(rule.id)} className="text-[#999] hover:text-red-400 transition shrink-0"><Trash2 size={12} /></button>
                   </div>
                 ))}
               </>

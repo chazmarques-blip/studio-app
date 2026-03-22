@@ -91,7 +91,7 @@ function LiveChatDemo() {
       </div>
       <div className="border-t border-[#1A1A1A] bg-[#0A0A0A] px-3 py-2.5 flex items-center gap-2">
         <div className="flex-1 h-8 rounded-full bg-[#141414] border border-[#1E1E1E] flex items-center px-4">
-          <span className="text-[11px] text-[#444]">Type a message...</span>
+          <span className="text-[11px] text-[#999]">Type a message...</span>
         </div>
         <div className="h-8 w-8 rounded-full bg-[#C9A84C] flex items-center justify-center flex-shrink-0">
           <ArrowRight size={12} className="text-[#0A0A0A]" />
@@ -179,7 +179,7 @@ export default function Landing() {
               <span className="bg-gradient-to-r from-[#C9A84C] via-[#D9BD6A] to-[#C9A84C] bg-clip-text text-transparent">{t('landing.hero_title_2')}</span>
             </h1>
 
-            <p className="mb-5 text-sm text-[#666] leading-relaxed max-w-md mx-auto sm:text-base">{t('landing.hero_subtitle')}</p>
+            <p className="mb-5 text-sm text-[#999] leading-relaxed max-w-md mx-auto sm:text-base">{t('landing.hero_subtitle')}</p>
 
             <div className="flex flex-col gap-2.5 sm:flex-row justify-center mb-6">
               <button data-testid="hero-start-free-btn" onClick={() => navigate('/login?tab=signup')} className="btn-gold flex items-center justify-center gap-2 rounded-xl px-7 py-2.5 text-sm font-semibold group">
@@ -193,7 +193,7 @@ export default function Landing() {
               {stats.map((s, i) => (
                 <div key={i} className="relative">
                   <p className="text-lg font-bold text-white sm:text-xl">{s.value}</p>
-                  <p className="text-[10px] text-[#555]">{s.label}</p>
+                  <p className="text-[10px] text-[#B0B0B0]">{s.label}</p>
                   {i < stats.length - 1 && <div className="absolute top-0 -right-3 sm:-right-5 h-7 w-px bg-[#1E1E1E]" />}
                 </div>
               ))}
@@ -230,7 +230,7 @@ export default function Landing() {
               {lang === 'pt' ? 'Todos os canais. ' : 'Every channel. '}
               <span className="text-[#C9A84C]">{lang === 'pt' ? 'Um painel.' : 'One dashboard.'}</span>
             </h2>
-            <p className="text-sm text-[#666] max-w-md mx-auto">{lang === 'pt' ? 'Conecte todos os seus canais e gerencie tudo em um unico lugar.' : 'Connect all your channels and manage everything in one place.'}</p>
+            <p className="text-sm text-[#999] max-w-md mx-auto">{lang === 'pt' ? 'Conecte todos os seus canais e gerencie tudo em um unico lugar.' : 'Connect all your channels and manage everything in one place.'}</p>
           </div>
           {/* Channel cards - horizontal grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -240,7 +240,7 @@ export default function Landing() {
                   <ch.Icon size={20} color={gold} />
                 </div>
                 <p className="text-sm font-medium text-white mb-0.5">{ch.name}</p>
-                <p className="text-[10px] text-[#555]">{ch.desc}</p>
+                <p className="text-[10px] text-[#B0B0B0]">{ch.desc}</p>
               </div>
             ))}
           </div>
@@ -253,7 +253,7 @@ export default function Landing() {
           <div className="text-center mb-10">
             <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">Marketplace</p>
             <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{lang === 'pt' ? '22 agentes especializados' : '22 specialized agents'}</h2>
-            <p className="text-sm text-[#666] max-w-lg mx-auto">{lang === 'pt' ? 'Cada agente tem personalidade e conhecimento unicos para o seu setor' : 'Each agent has unique personality and knowledge for your industry'}</p>
+            <p className="text-sm text-[#999] max-w-lg mx-auto">{lang === 'pt' ? 'Cada agente tem personalidade e conhecimento unicos para o seu setor' : 'Each agent has unique personality and knowledge for your industry'}</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {agents.map((a, i) => (
@@ -263,7 +263,7 @@ export default function Landing() {
                 }`}>
                 <div className="h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold mb-2 bg-[#C9A84C]/10 text-[#C9A84C]">{a.name[0]}</div>
                 <p className="text-sm font-semibold text-white mb-0.5">{a.name}</p>
-                <p className="text-[10px] text-[#555]">{a.role} · {a.desc}</p>
+                <p className="text-[10px] text-[#B0B0B0]">{a.role} · {a.desc}</p>
                 {activeAgent === i && <div className="mt-2 h-0.5 rounded-full bg-gradient-to-r from-[#C9A84C] to-transparent" />}
               </button>
             ))}
@@ -281,7 +281,7 @@ export default function Landing() {
         <div className="text-center mb-10">
           <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">{lang === 'pt' ? 'Funcionalidades' : 'Features'}</p>
           <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{t('landing.features_title')}</h2>
-          <p className="text-sm text-[#666]">{t('landing.features_subtitle')}</p>
+          <p className="text-sm text-[#999]">{t('landing.features_subtitle')}</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f, i) => (
@@ -290,7 +290,7 @@ export default function Landing() {
                 <f.icon size={18} className="text-[#C9A84C]" />
               </div>
               <h3 className="mb-1.5 text-sm font-semibold text-white">{f.title}</h3>
-              <p className="text-[12px] leading-relaxed text-[#666]">{f.desc}</p>
+              <p className="text-[12px] leading-relaxed text-[#999]">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -301,15 +301,15 @@ export default function Landing() {
         <div className="text-center mb-8">
           <p className="text-[10px] font-semibold text-[#C9A84C] tracking-widest uppercase mb-2">Pricing</p>
           <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">{t('landing.pricing_title')}</h2>
-          <p className="text-sm text-[#666] mb-5">{t('landing.pricing_subtitle')}</p>
+          <p className="text-sm text-[#999] mb-5">{t('landing.pricing_subtitle')}</p>
           {/* Billing toggle */}
           <div className="inline-flex items-center gap-2 rounded-full border border-[#1E1E1E] bg-[#0D0D0D] p-1">
             <button data-testid="billing-annual" onClick={() => setBillingAnnual(true)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666] hover:text-white'}`}>
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999] hover:text-white'}`}>
               {t('landing.billing_annual')} <span className="ml-1 text-[9px] opacity-80">{t('landing.billing_save')}</span>
             </button>
             <button data-testid="billing-monthly" onClick={() => setBillingAnnual(false)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666] hover:text-white'}`}>
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999] hover:text-white'}`}>
               {t('landing.billing_monthly')}
             </button>
           </div>
@@ -318,20 +318,20 @@ export default function Landing() {
           {/* FREE */}
           <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] flex flex-col p-5 hover:border-[#1E1E1E] transition">
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_free')}</h3>
-            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_free_desc')}</p>
-            <div className="mb-4"><span className="text-2xl font-bold text-white">{t('landing.plan_free_price')}</span><span className="text-xs text-[#555]">{t('landing.plan_free_period')}</span></div>
+            <p className="mb-3 text-[11px] text-[#B0B0B0]">{t('landing.plan_free_desc')}</p>
+            <div className="mb-4"><span className="text-2xl font-bold text-white">{t('landing.plan_free_price')}</span><span className="text-xs text-[#B0B0B0]">{t('landing.plan_free_period')}</span></div>
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
               {['f1','f2','f3','f4'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_free_${k}`)}</li>)}
             </ul>
-            <p className="mb-2 text-center text-[10px] text-[#555]">{t('landing.plan_free_no_card')}</p>
+            <p className="mb-2 text-center text-[10px] text-[#B0B0B0]">{t('landing.plan_free_no_card')}</p>
             <button data-testid="plan-free-btn" onClick={() => navigate('/login?tab=signup')} className="btn-gold w-full rounded-lg py-2 text-sm font-semibold">{t('landing.plan_free_cta')}</button>
           </div>
           {/* STARTER */}
           <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] relative flex flex-col p-5 hover:border-[#1E1E1E] transition">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-[#C9A84C]/30 bg-[#0D0D0D] px-3 py-0.5 text-[10px] font-medium text-[#C9A84C]">{t('landing.plan_starter_badge')}</div>
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_starter')}</h3>
-            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_starter_desc')}</p>
-            <div className="mb-4"><span className="text-2xl font-bold text-[#C9A84C]">{t('landing.plan_starter_price')}</span><span className="text-xs text-[#555]">{t('landing.plan_starter_period')}</span></div>
+            <p className="mb-3 text-[11px] text-[#B0B0B0]">{t('landing.plan_starter_desc')}</p>
+            <div className="mb-4"><span className="text-2xl font-bold text-[#C9A84C]">{t('landing.plan_starter_price')}</span><span className="text-xs text-[#B0B0B0]">{t('landing.plan_starter_period')}</span></div>
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
               {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_starter_${k}`)}</li>)}
             </ul>
@@ -341,10 +341,10 @@ export default function Landing() {
           <div className="rounded-xl border border-[#C9A84C]/25 bg-[#0C0C0C] relative flex flex-col p-5 shadow-lg shadow-[#C9A84C]/3">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#C9A84C] px-3 py-0.5 text-[10px] font-semibold text-[#0A0A0A]">{t('landing.plan_pro_badge')}</div>
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_pro')}</h3>
-            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_pro_desc')}</p>
+            <p className="mb-3 text-[11px] text-[#B0B0B0]">{t('landing.plan_pro_desc')}</p>
             <div className="mb-4">
               <span className="text-2xl font-bold text-white">{billingAnnual ? t('landing.plan_pro_price_annual') : t('landing.plan_pro_price_monthly')}</span>
-              <span className="text-xs text-[#555]">{billingAnnual ? t('landing.plan_pro_period_annual') : t('landing.plan_pro_period_monthly')}</span>
+              <span className="text-xs text-[#B0B0B0]">{billingAnnual ? t('landing.plan_pro_period_annual') : t('landing.plan_pro_period_monthly')}</span>
             </div>
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
               {['f1','f2','f3','f4','f5'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_pro_${k}`)}</li>)}
@@ -355,10 +355,10 @@ export default function Landing() {
           <div className="rounded-xl border border-[#141414] bg-[#0C0C0C] relative flex flex-col p-5 hover:border-[#1E1E1E] transition">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-[#C9A84C]/30 bg-[#0D0D0D] px-3 py-0.5 text-[10px] font-medium text-[#C9A84C]">{t('landing.plan_enterprise_badge')}</div>
             <h3 className="mb-1 text-base font-bold text-white">{t('landing.plan_enterprise')}</h3>
-            <p className="mb-3 text-[11px] text-[#555]">{t('landing.plan_enterprise_desc')}</p>
+            <p className="mb-3 text-[11px] text-[#B0B0B0]">{t('landing.plan_enterprise_desc')}</p>
             <div className="mb-4">
               <span className="text-2xl font-bold text-white">{billingAnnual ? t('landing.plan_enterprise_price_annual') : t('landing.plan_enterprise_price_monthly')}</span>
-              <span className="text-xs text-[#555]">{billingAnnual ? t('landing.plan_enterprise_period_annual') : t('landing.plan_enterprise_period_monthly')}</span>
+              <span className="text-xs text-[#B0B0B0]">{billingAnnual ? t('landing.plan_enterprise_period_annual') : t('landing.plan_enterprise_period_monthly')}</span>
             </div>
             <ul className="mb-5 flex-1 space-y-2 text-[12px] text-[#777]">
               {['f1','f2','f3','f4','f5','f6','f7','f8'].map(k=><li key={k} className="flex items-center gap-2"><Check size={12} className="text-[#C9A84C] flex-shrink-0"/>{t(`landing.plan_enterprise_${k}`)}</li>)}
@@ -373,7 +373,7 @@ export default function Landing() {
         <div className="absolute inset-0 overflow-hidden"><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[200px] w-[400px] rounded-full bg-[#C9A84C]/3 blur-[100px]" /></div>
         <div className="relative z-10 mx-auto max-w-2xl text-center">
           <h2 className="mb-3 text-2xl font-bold text-white sm:text-3xl">{lang === 'pt' ? 'Pronto para automatizar?' : 'Ready to automate?'}</h2>
-          <p className="mb-6 text-sm text-[#666]">{lang === 'pt' ? 'Comece gratis. Sem cartao de credito.' : 'Start free. No credit card required.'}</p>
+          <p className="mb-6 text-sm text-[#999]">{lang === 'pt' ? 'Comece gratis. Sem cartao de credito.' : 'Start free. No credit card required.'}</p>
           <button onClick={() => navigate('/login?tab=signup')} className="btn-gold rounded-xl px-8 py-3 text-sm font-semibold group inline-flex items-center gap-2">
             {t('landing.hero_cta')} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </button>
@@ -387,7 +387,7 @@ export default function Landing() {
           <div className="flex items-center gap-4">
             <WaIcon size={14} color="#666" /><IgIcon size={14} color="#666" /><FbIcon size={14} color="#666" /><TgIcon size={14} color="#666" />
           </div>
-          <p className="text-[10px] text-[#444]">2026 AgentZZ</p>
+          <p className="text-[10px] text-[#999]">2026 AgentZZ</p>
         </div>
       </footer>
     </div>

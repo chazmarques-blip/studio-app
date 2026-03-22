@@ -25,16 +25,16 @@ function LeadCard({ lead, onDragStart }) {
       className="group rounded-lg border border-[#1A1A1A] bg-[#0E0E0E] p-3 cursor-grab active:cursor-grabbing hover:border-[#C9A84C]/25 transition-all"
     >
       <div className="flex items-start gap-2 mb-1.5">
-        <GripVertical size={12} className="text-[#333] mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition" />
+        <GripVertical size={12} className="text-[#999] mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition" />
         <p className="text-sm font-medium text-white truncate flex-1">{lead.name}</p>
         {lead.score > 0 && (
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-            lead.score >= 70 ? 'bg-[#4ADE80]/10 text-[#4ADE80]' : lead.score >= 40 ? 'bg-[#C9A84C]/10 text-[#C9A84C]' : 'bg-[#666]/10 text-[#666]'
+            lead.score >= 70 ? 'bg-[#4ADE80]/10 text-[#4ADE80]' : lead.score >= 40 ? 'bg-[#C9A84C]/10 text-[#C9A84C]' : 'bg-[#666]/10 text-[#999]'
           }`}>{lead.score}</span>
         )}
       </div>
-      {lead.company && <p className="flex items-center gap-1 text-[10px] text-[#555] mb-0.5"><Building size={9} />{lead.company}</p>}
-      {lead.phone && <p className="flex items-center gap-1 text-[10px] text-[#555]"><Phone size={9} />{lead.phone}</p>}
+      {lead.company && <p className="flex items-center gap-1 text-[10px] text-[#B0B0B0] mb-0.5"><Building size={9} />{lead.company}</p>}
+      {lead.phone && <p className="flex items-center gap-1 text-[10px] text-[#B0B0B0]"><Phone size={9} />{lead.phone}</p>}
       {lead.value > 0 && <p className="mt-1.5 text-xs font-semibold text-[#C9A84C]">${parseFloat(lead.value).toLocaleString()}</p>}
     </div>
   );
@@ -49,7 +49,7 @@ function StageColumn({ stage, leads, onDrop, onDragStart, t }) {
       <div className="mb-2 flex items-center gap-2">
         <div className="h-2 w-2 rounded-full" style={{ backgroundColor: stage.color }} />
         <span className="text-xs font-semibold text-white">{t(`crm.${stage.key}`)}</span>
-        <span className="ml-auto rounded-full bg-[#1A1A1A] px-1.5 py-0.5 text-[10px] text-[#555]">{stageLeads.length}</span>
+        <span className="ml-auto rounded-full bg-[#1A1A1A] px-1.5 py-0.5 text-[10px] text-[#B0B0B0]">{stageLeads.length}</span>
       </div>
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -63,7 +63,7 @@ function StageColumn({ stage, leads, onDrop, onDragStart, t }) {
           <LeadCard key={lead.id} lead={lead} onDragStart={onDragStart} />
         )) : (
           <div className="flex h-28 items-center justify-center">
-            <p className="text-center text-[10px] text-[#333]">{t('crm.no_leads')}</p>
+            <p className="text-center text-[10px] text-[#999]">{t('crm.no_leads')}</p>
           </div>
         )}
       </div>
@@ -97,14 +97,14 @@ function NewLeadModal({ open, onClose, onCreated }) {
       <div className="w-full max-w-sm rounded-2xl border border-[#1E1E1E] bg-[#0D0D0D] p-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-white">{t('crm.add_lead')}</h2>
-          <button onClick={onClose} className="text-[#666] hover:text-white"><X size={18} /></button>
+          <button onClick={onClose} className="text-[#999] hover:text-white"><X size={18} /></button>
         </div>
         <div className="space-y-3">
-          <input data-testid="lead-name-input" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} placeholder="Name *" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-phone-input" value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="Phone" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-email-input" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))} placeholder="Email" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-company-input" value={form.company} onChange={e => setForm(p => ({...p, company: e.target.value}))} placeholder="Company" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-value-input" value={form.value} onChange={e => setForm(p => ({...p, value: e.target.value}))} placeholder="Value ($)" type="number" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/40" />
+          <input data-testid="lead-name-input" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} placeholder="Name *" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
+          <input data-testid="lead-phone-input" value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="Phone" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
+          <input data-testid="lead-email-input" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))} placeholder="Email" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
+          <input data-testid="lead-company-input" value={form.company} onChange={e => setForm(p => ({...p, company: e.target.value}))} placeholder="Company" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
+          <input data-testid="lead-value-input" value={form.value} onChange={e => setForm(p => ({...p, value: e.target.value}))} placeholder="Value ($)" type="number" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
           <select data-testid="lead-stage-select" value={form.stage} onChange={e => setForm(p => ({...p, stage: e.target.value}))} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-[#C9A84C]/40">
             {STAGES.map(s => <option key={s.key} value={s.key}>{s.key.charAt(0).toUpperCase() + s.key.slice(1)}</option>)}
           </select>
@@ -158,7 +158,7 @@ export default function CRM() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-white">{t('crm.pipeline')}</h1>
-          <p className="text-[11px] text-[#555]">Drag & drop leads between stages</p>
+          <p className="text-[11px] text-[#B0B0B0]">Drag & drop leads between stages</p>
         </div>
         <button data-testid="add-lead-btn" onClick={() => setShowModal(true)} className="btn-gold flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs">
           <Plus size={14} /> {t('crm.add_lead')}
@@ -168,19 +168,19 @@ export default function CRM() {
       {/* Stats */}
       <div className="mb-4 flex gap-3 overflow-x-auto pb-1">
         <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
-          <p className="text-[10px] text-[#555]">{t('crm.total_leads')}</p>
+          <p className="text-[10px] text-[#B0B0B0]">{t('crm.total_leads')}</p>
           <p className="text-base font-bold text-white">{leads.length}</p>
         </div>
         <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
-          <p className="text-[10px] text-[#555]">{t('crm.pipeline_value')}</p>
+          <p className="text-[10px] text-[#B0B0B0]">{t('crm.pipeline_value')}</p>
           <p className="text-base font-bold text-white flex items-center gap-1"><DollarSign size={14} className="text-[#C9A84C]" />{totalValue.toLocaleString()}</p>
         </div>
         <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
-          <p className="text-[10px] text-[#555]">Won</p>
+          <p className="text-[10px] text-[#B0B0B0]">Won</p>
           <p className="text-base font-bold text-[#4ADE80]">${wonValue.toLocaleString()}</p>
         </div>
         <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
-          <p className="text-[10px] text-[#555]">{t('crm.conversion')}</p>
+          <p className="text-[10px] text-[#B0B0B0]">{t('crm.conversion')}</p>
           <p className="text-base font-bold text-white">{convRate}%</p>
         </div>
       </div>

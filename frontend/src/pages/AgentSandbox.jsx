@@ -172,12 +172,12 @@ export default function AgentSandbox() {
       {showConfig && (
         <div className="border-b border-[#2A2A2A] bg-[#111111] px-4 py-4 space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-[#666]">{t('agents.agent_name')}</label>
+            <label className="mb-1 block text-xs text-[#999]">{t('agents.agent_name')}</label>
             <input data-testid="sandbox-agent-name" value={agentConfig.name} onChange={e => setAgentConfig(p => ({ ...p, name: e.target.value }))}
               className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white outline-none focus:border-[#C9A84C]" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-[#666]">{t('agents.agent_type')}</label>
+            <label className="mb-1 block text-xs text-[#999]">{t('agents.agent_type')}</label>
             <select data-testid="sandbox-agent-type" value={agentConfig.type} onChange={e => setAgentConfig(p => ({ ...p, type: e.target.value }))}
               className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white outline-none focus:border-[#C9A84C]">
               {['sales', 'support', 'scheduling', 'sac', 'onboarding'].map(tp => (
@@ -186,10 +186,10 @@ export default function AgentSandbox() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-[#666]">{t('agents.system_prompt')}</label>
+            <label className="mb-1 block text-xs text-[#999]">{t('agents.system_prompt')}</label>
             <textarea data-testid="sandbox-prompt" value={agentConfig.prompt} onChange={e => setAgentConfig(p => ({ ...p, prompt: e.target.value }))} rows={3}
               placeholder={t('agents.system_prompt_placeholder')}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white placeholder-[#444] outline-none resize-none focus:border-[#C9A84C] font-mono" />
+              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C] font-mono" />
           </div>
           <button onClick={() => { clearChat(); setShowConfig(false); }} className="btn-gold w-full rounded-lg py-2 text-xs">
             {t('agents.test_agent')}
@@ -203,15 +203,15 @@ export default function AgentSandbox() {
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#C9A84C]/10"><Bot size={32} className="text-[#C9A84C]" /></div>
             <h3 className="mb-2 text-base font-semibold text-white">{t('agents.sandbox_title')}</h3>
-            <p className="text-xs text-[#666] max-w-[280px]">{t('agents.send_test')}</p>
+            <p className="text-xs text-[#999] max-w-[280px]">{t('agents.send_test')}</p>
             <div className="mt-4 flex gap-2">
               <div className="flex items-center gap-1.5 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-3 py-1.5">
                 <Image size={12} className="text-[#C9A84C]" />
-                <span className="text-[10px] text-[#666]">{lang === 'pt' ? 'Envie imagens' : 'Send images'}</span>
+                <span className="text-[10px] text-[#999]">{lang === 'pt' ? 'Envie imagens' : 'Send images'}</span>
               </div>
               <div className="flex items-center gap-1.5 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-3 py-1.5">
                 <Mic size={12} className="text-[#C9A84C]" />
-                <span className="text-[10px] text-[#666]">{lang === 'pt' ? 'Grave audio' : 'Record audio'}</span>
+                <span className="text-[10px] text-[#999]">{lang === 'pt' ? 'Grave audio' : 'Record audio'}</span>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function AgentSandbox() {
                 <img src={msg.imageSrc} alt="Upload" className="mb-2 max-h-48 rounded-lg object-contain" />
               )}
               <p className="text-sm text-white whitespace-pre-wrap">{msg.content}</p>
-              <p className="mt-1 text-right text-[9px] text-[#444]">{msg.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+              <p className="mt-1 text-right text-[9px] text-[#999]">{msg.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
           </div>
         ))}
@@ -259,9 +259,9 @@ export default function AgentSandbox() {
             <img src={imagePreview.src} alt="Preview" className="h-16 w-16 rounded-lg object-cover border border-[#2A2A2A]" />
             <div className="flex-1">
               <p className="text-xs text-white truncate">{imagePreview.name}</p>
-              <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Clique enviar para analisar' : 'Click send to analyze'}</p>
+              <p className="text-[10px] text-[#999]">{lang === 'pt' ? 'Clique enviar para analisar' : 'Click send to analyze'}</p>
             </div>
-            <button onClick={() => setImagePreview(null)} className="text-[#666] hover:text-red-400"><X size={16} /></button>
+            <button onClick={() => setImagePreview(null)} className="text-[#999] hover:text-red-400"><X size={16} /></button>
             <button data-testid="sandbox-send-image-btn" onClick={sendImage} disabled={loading}
               className="flex h-9 items-center gap-1.5 rounded-lg bg-[#C9A84C] px-4 text-xs font-semibold text-[#0A0A0A] disabled:opacity-50">
               <Eye size={14} /> {lang === 'pt' ? 'Analisar' : 'Analyze'}
@@ -274,11 +274,11 @@ export default function AgentSandbox() {
       {debugInfo && (
         <div className="border-t border-[#2A2A2A] bg-[#111111] px-4 py-2.5">
           <div className="flex items-center gap-4 text-[10px]">
-            <div className="flex items-center gap-1 text-[#666]"><Activity size={10} className="text-[#C9A84C]" /> {t('agents.debug_panel')}</div>
+            <div className="flex items-center gap-1 text-[#999]"><Activity size={10} className="text-[#C9A84C]" /> {t('agents.debug_panel')}</div>
             <div className="flex items-center gap-1 text-[#A0A0A0]"><Clock size={10} />{debugInfo.response_time_ms}ms</div>
             {debugInfo.tokens_estimate && <div className="flex items-center gap-1 text-[#A0A0A0]"><Zap size={10} />{debugInfo.tokens_estimate} tokens</div>}
             {debugInfo.language_detected && <div className="flex items-center gap-1 text-[#A0A0A0]"><Globe size={10} />{debugInfo.language_detected?.toUpperCase()}</div>}
-            <div className="ml-auto text-[#444]">{debugInfo.model}</div>
+            <div className="ml-auto text-[#999]">{debugInfo.model}</div>
           </div>
         </div>
       )}

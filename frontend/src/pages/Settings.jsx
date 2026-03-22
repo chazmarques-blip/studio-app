@@ -70,24 +70,24 @@ export default function SettingsPage() {
         <div data-testid="account-panel" className="mb-4 rounded-xl border border-[#C9A84C]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white">{t('settings.account')}</h2>
-            <button data-testid="account-close-btn" onClick={() => setShowAccount(false)} className="rounded-lg p-1 text-[#666] hover:bg-[#1E1E1E] hover:text-white transition">
+            <button data-testid="account-close-btn" onClick={() => setShowAccount(false)} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-white transition">
               <X size={16} />
             </button>
           </div>
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs text-[#666]">{t('profile.name')}</label>
+              <label className="mb-1 block text-xs text-[#999]">{t('profile.name')}</label>
               <input data-testid="account-name-input" value={accountForm.full_name} onChange={e => setAccountForm(p => ({ ...p, full_name: e.target.value }))}
                 className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-[#666]">{t('profile.company')}</label>
+              <label className="mb-1 block text-xs text-[#999]">{t('profile.company')}</label>
               <input data-testid="account-company-input" value={accountForm.company} onChange={e => setAccountForm(p => ({ ...p, company: e.target.value }))}
                 className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-[#666]">Email</label>
-              <input disabled value={user?.email || ''} className="w-full rounded-lg border border-[#2A2A2A] bg-[#111] px-3 py-2.5 text-sm text-[#666] cursor-not-allowed" />
+              <label className="mb-1 block text-xs text-[#999]">Email</label>
+              <input disabled value={user?.email || ''} className="w-full rounded-lg border border-[#2A2A2A] bg-[#111] px-3 py-2.5 text-sm text-[#999] cursor-not-allowed" />
             </div>
           </div>
           <button data-testid="account-save-btn" onClick={handleSaveAccount} disabled={saving}

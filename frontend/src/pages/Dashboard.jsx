@@ -46,7 +46,7 @@ const ChartTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
       <div className="rounded-lg border border-[#2A2A2A] bg-[#111] px-2.5 py-1.5 shadow-xl">
-        <p className="text-[10px] text-[#666]">{label}</p>
+        <p className="text-[10px] text-[#999]">{label}</p>
         <p className="text-xs font-bold text-[#C9A84C]">{payload[0].value} msgs</p>
       </div>
     );
@@ -97,7 +97,7 @@ export default function Dashboard() {
       {/* ── Header ── */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-[11px] text-[#555]">{t(`dashboard.${getGreeting()}`)}</p>
+          <p className="text-[11px] text-[#B0B0B0]">{t(`dashboard.${getGreeting()}`)}</p>
           <h1 data-testid="dashboard-greeting" className="text-lg font-bold text-white">{displayName}</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export default function Dashboard() {
             className="flex items-center gap-1 rounded-full border border-[#2A2A2A] bg-[#111] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/40 transition">
             <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#C9A84C]'} />
             <span className={`text-[11px] font-bold ${usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-white'}`}>{creditsLeft}</span>
-            <span className="text-[9px] text-[#555]">/{msgsLimit}</span>
+            <span className="text-[9px] text-[#B0B0B0]">/{msgsLimit}</span>
           </div>
           <div className="relative" ref={profileRef}>
             <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
@@ -116,7 +116,7 @@ export default function Dashboard() {
               <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-xl border border-[#2A2A2A] bg-[#111] p-1 shadow-2xl shadow-black/60">
                 <div className="mb-1 border-b border-[#1E1E1E] px-3 py-2">
                   <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
-                  <p className="text-[10px] text-[#555] truncate">{user?.email}</p>
+                  <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
                 </div>
                 <button data-testid="profile-edit-btn" onClick={() => { setProfileOpen(false); navigate('/settings', { state: { openAccount: true } }); }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
@@ -167,7 +167,7 @@ export default function Dashboard() {
               {s.trend && <ArrowUpRight size={10} className="text-[#C9A84C]" />}
             </div>
             <p className="text-base font-bold text-white leading-tight">{s.value}</p>
-            <p className="text-[9px] text-[#555] leading-tight mt-0.5">{s.label}</p>
+            <p className="text-[9px] text-[#B0B0B0] leading-tight mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
@@ -177,7 +177,7 @@ export default function Dashboard() {
         <div className="glass-card p-3">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-xs font-semibold text-white">{t('dashboard.messages_week')}</h2>
-            <span className="text-[9px] text-[#555]">{t('dashboard.last_7_days')}</span>
+            <span className="text-[9px] text-[#B0B0B0]">{t('dashboard.last_7_days')}</span>
           </div>
           <div className="h-[100px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -211,7 +211,7 @@ export default function Dashboard() {
                 <div key={stage} className="flex flex-1 flex-col items-center justify-end h-full">
                   <div className="w-full rounded-md transition-all hover:opacity-80" style={{ height: `${h}%`, backgroundColor: `rgba(201,168,76,${opacity})` }} />
                   <p className="mt-1 text-sm font-bold text-white">{count}</p>
-                  <p className="text-[8px] text-[#555] capitalize">{PIPELINE_LABELS[stage]}</p>
+                  <p className="text-[8px] text-[#B0B0B0] capitalize">{PIPELINE_LABELS[stage]}</p>
                 </div>
               );
             })}
@@ -235,21 +235,21 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-xs font-medium text-white">{c.contact_name}</p>
-                    <p className="text-[9px] capitalize text-[#555]">{c.channel_type}</p>
+                    <p className="text-[9px] capitalize text-[#B0B0B0]">{c.channel_type}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className={`inline-block rounded-full px-1.5 py-px text-[8px] font-medium ${c.status === 'active' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'bg-[#333]/30 text-[#666]'}`}>
+                    <span className={`inline-block rounded-full px-1.5 py-px text-[8px] font-medium ${c.status === 'active' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'bg-[#333]/30 text-[#999]'}`}>
                       {c.status}
                     </span>
-                    <p className="mt-0.5 text-[9px] text-[#444]">{timeAgo(c.last_message_at)}</p>
+                    <p className="mt-0.5 text-[9px] text-[#999]">{timeAgo(c.last_message_at)}</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="py-4 text-center">
-              <MessageSquare size={20} className="mx-auto mb-1.5 text-[#222]" />
-              <p className="text-[10px] text-[#555]">{t('dashboard.no_conversations')}</p>
+              <MessageSquare size={20} className="mx-auto mb-1.5 text-[#444]" />
+              <p className="text-[10px] text-[#B0B0B0]">{t('dashboard.no_conversations')}</p>
             </div>
           )}
         </div>
@@ -268,17 +268,17 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-xs font-medium text-white">{a.name}</p>
-                    <p className="text-[9px] capitalize text-[#555]">{a.type}</p>
+                    <p className="text-[9px] capitalize text-[#B0B0B0]">{a.type}</p>
                   </div>
                   <div className="flex items-center gap-2.5 shrink-0">
                     <div className="text-center">
                       <p className="text-xs font-bold text-white">{a.conversations}</p>
-                      <p className="text-[8px] text-[#555]">chats</p>
+                      <p className="text-[8px] text-[#B0B0B0]">chats</p>
                     </div>
                     <div className="h-4 w-px bg-[#222]" />
                     <div className="text-center">
                       <p className="text-xs font-bold text-[#C9A84C]">{a.resolved}</p>
-                      <p className="text-[8px] text-[#555]">{t('dashboard.resolved')}</p>
+                      <p className="text-[8px] text-[#B0B0B0]">{t('dashboard.resolved')}</p>
                     </div>
                   </div>
                 </div>
@@ -286,8 +286,8 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="py-4 text-center">
-              <Bot size={20} className="mx-auto mb-1.5 text-[#222]" />
-              <p className="mb-1.5 text-[10px] text-[#555]">{t('dashboard.no_agents')}</p>
+              <Bot size={20} className="mx-auto mb-1.5 text-[#444]" />
+              <p className="mb-1.5 text-[10px] text-[#B0B0B0]">{t('dashboard.no_agents')}</p>
               <button onClick={() => navigate('/agents')} className="btn-gold rounded-lg px-3 py-1 text-[10px]">{t('dashboard.create_first')}</button>
             </div>
           )}
@@ -321,7 +321,7 @@ export default function Dashboard() {
       <div className="glass-card p-3">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-[9px] text-[#555]">{t('dashboard.current_plan')}</p>
+            <p className="text-[9px] text-[#B0B0B0]">{t('dashboard.current_plan')}</p>
             <p className="text-xs font-bold text-white capitalize">{stats?.plan || 'free'}</p>
           </div>
           <button onClick={() => navigate('/pricing')} className="rounded-full border border-[#C9A84C]/25 px-2.5 py-0.5 text-[9px] font-medium text-[#C9A84C] transition hover:bg-[#C9A84C]/10">
@@ -331,7 +331,7 @@ export default function Dashboard() {
         <div className="space-y-1.5">
           <div>
             <div className="flex justify-between text-[9px] mb-0.5">
-              <span className="text-[#555]">{t('dashboard.messages_usage')}</span>
+              <span className="text-[#B0B0B0]">{t('dashboard.messages_usage')}</span>
               <span className={usagePercent > 80 ? 'text-[#FF6B6B] font-semibold' : 'text-[#888]'}>{msgsUsed}/{msgsLimit}</span>
             </div>
             <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
@@ -340,7 +340,7 @@ export default function Dashboard() {
           </div>
           <div>
             <div className="flex justify-between text-[9px] mb-0.5">
-              <span className="text-[#555]">{t('dashboard.agents_usage')}</span>
+              <span className="text-[#B0B0B0]">{t('dashboard.agents_usage')}</span>
               <span className="text-[#888]">{stats?.agents_count || 0}/{stats?.agents_limit || 1}</span>
             </div>
             <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">

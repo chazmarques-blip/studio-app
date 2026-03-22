@@ -63,7 +63,7 @@ export default function Login() {
           </button>
           <img src="/logo-agentzz.png" alt="AgentZZ" className="h-10 mb-6" />
           <h2 className="text-lg font-bold text-white mb-1">{isSignUp ? t('auth.choose_plan_title', 'Choose your plan') : t('auth.upgrade_title', 'Upgrade anytime')}</h2>
-          <p className="text-[13px] text-[#666] mb-5">{t('auth.plan_subtitle', 'Start free, upgrade when you need more power.')}</p>
+          <p className="text-[13px] text-[#999] mb-5">{t('auth.plan_subtitle', 'Start free, upgrade when you need more power.')}</p>
 
           <div className="space-y-2.5" data-testid="login-plans">
             {plans.map((plan, i) => {
@@ -78,7 +78,7 @@ export default function Login() {
                   <div className="flex items-center gap-2.5 mb-2">
                     {Icon && (
                       <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${plan.pro ? 'bg-[#C9A84C]/15' : 'bg-white/[0.03]'}`}>
-                        <Icon size={13} className={plan.pro ? 'text-[#C9A84C]' : 'text-[#666]'} />
+                        <Icon size={13} className={plan.pro ? 'text-[#C9A84C]' : 'text-[#999]'} />
                       </div>
                     )}
                     <div className="flex-1">
@@ -92,7 +92,7 @@ export default function Login() {
                       </div>
                       <div className="flex items-baseline gap-1">
                         <span className={`text-sm font-bold font-mono ${plan.pro ? 'text-[#C9A84C]' : 'text-white'}`}>{plan.price}</span>
-                        {plan.period && <span className="text-[9px] text-[#555]">/{plan.period}</span>}
+                        {plan.period && <span className="text-[9px] text-[#B0B0B0]">/{plan.period}</span>}
                       </div>
                     </div>
                   </div>

@@ -29,7 +29,7 @@ function UsageBar({ label, icon: Icon, used, limit, color = '#C9A84C' }) {
       <div className="h-2 rounded-full bg-[#1A1A1A] overflow-hidden">
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: isHigh ? '#EF4444' : color }} />
       </div>
-      <p className="mt-1 text-right text-[10px] text-[#555]">{pct}% used</p>
+      <p className="mt-1 text-right text-[10px] text-[#B0B0B0]">{pct}% used</p>
     </div>
   );
 }
@@ -67,7 +67,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-[#0A0A0A] px-4 pt-5 pb-24">
       {/* Header */}
       <div className="mb-5 flex items-center gap-3">
-        <button onClick={() => navigate('/settings')} className="text-[#666] hover:text-white transition"><ArrowLeft size={20} /></button>
+        <button onClick={() => navigate('/settings')} className="text-[#999] hover:text-white transition"><ArrowLeft size={20} /></button>
         <h1 className="text-lg font-bold text-white">Plan & Billing</h1>
       </div>
 
@@ -89,7 +89,7 @@ export default function Pricing() {
             </div>
           </div>
           {stats.period_start && (
-            <p className="text-[10px] text-[#555]">Period started: {new Date(stats.period_start).toLocaleDateString()}</p>
+            <p className="text-[10px] text-[#B0B0B0]">Period started: {new Date(stats.period_start).toLocaleDateString()}</p>
           )}
         </div>
       )}
@@ -106,11 +106,11 @@ export default function Pricing() {
       <div className="mb-5 flex justify-center">
         <div className="inline-flex items-center gap-1 rounded-full border border-[#1E1E1E] bg-[#0D0D0D] p-1">
           <button data-testid="billing-annual-btn" onClick={() => setBillingAnnual(true)}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666]'}`}>
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
             Annual <span className="ml-1 text-[9px] opacity-80">Save 14%</span>
           </button>
           <button data-testid="billing-monthly-btn" onClick={() => setBillingAnnual(false)}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666]'}`}>
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
             Monthly
           </button>
         </div>
@@ -147,18 +147,18 @@ export default function Pricing() {
                     <h3 className="text-sm font-bold text-white capitalize">{plan.key}</h3>
                     {isCurrent && <span className="rounded-full bg-[#C9A84C]/15 px-2 py-0.5 text-[9px] font-semibold text-[#C9A84C]">Current</span>}
                   </div>
-                  <p className="text-[11px] text-[#555] mt-0.5">{plan.agents} agents · {plan.msgs.toLocaleString()} msgs/month</p>
+                  <p className="text-[11px] text-[#B0B0B0] mt-0.5">{plan.agents} agents · {plan.msgs.toLocaleString()} msgs/month</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-lg font-bold text-white">${price}</p>
-                  <p className="text-[10px] text-[#555]">{price === 0 ? 'forever' : billingAnnual ? '/mo (annual)' : '/mo'}</p>
+                  <p className="text-[10px] text-[#B0B0B0]">{price === 0 ? 'forever' : billingAnnual ? '/mo (annual)' : '/mo'}</p>
                 </div>
               </div>
 
               {/* Features */}
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
                 {features.map((f, fi) => (
-                  <span key={fi} className="flex items-center gap-1 text-[11px] text-[#666]">
+                  <span key={fi} className="flex items-center gap-1 text-[11px] text-[#999]">
                     <Check size={10} className="text-[#C9A84C]" />{f}
                   </span>
                 ))}
@@ -175,7 +175,7 @@ export default function Pricing() {
                   </button>
                 ) : (
                   <button data-testid={`downgrade-${plan.key}`} onClick={() => handleUpgrade(plan.key)} disabled={upgrading === plan.key}
-                    className="w-full rounded-lg border border-[#1E1E1E] py-2.5 text-sm text-[#666] hover:border-[#C9A84C]/30 hover:text-white transition disabled:opacity-50">
+                    className="w-full rounded-lg border border-[#1E1E1E] py-2.5 text-sm text-[#999] hover:border-[#C9A84C]/30 hover:text-white transition disabled:opacity-50">
                     {upgrading === plan.key ? 'Processing...' : `Downgrade to ${plan.key.charAt(0).toUpperCase() + plan.key.slice(1)}`}
                   </button>
                 )}
@@ -186,7 +186,7 @@ export default function Pricing() {
       </div>
 
       {/* Note */}
-      <p className="mt-4 text-center text-[10px] text-[#444]">
+      <p className="mt-4 text-center text-[10px] text-[#999]">
         Only AI agent responses count as messages. Customer &amp; operator messages are free.
       </p>
     </div>

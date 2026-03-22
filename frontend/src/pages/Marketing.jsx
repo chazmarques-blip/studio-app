@@ -2071,7 +2071,7 @@ function GlobalArtGallery({ campaigns, labels }) {
       ) : (
         /* Placeholder when no asset selected */
         <div className="shrink-0 mb-2.5 rounded-xl border border-dashed border-[#1A1A1A] bg-[#080808] py-5 text-center">
-          <Play size={18} className="mx-auto mb-1 text-[#222]" />
+          <Play size={18} className="mx-auto mb-1 text-[#555]" />
           <p className="text-[9px] text-[#777]">{labels.gallerySelectHint || 'Selecione um asset para visualizar'}</p>
         </div>
       )}
@@ -2123,7 +2123,7 @@ function GlobalArtGallery({ campaigns, labels }) {
           </div>
         ) : (
           <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center">
-            <GalleryHorizontalEnd size={28} className="mx-auto mb-2 text-[#222]" />
+            <GalleryHorizontalEnd size={28} className="mx-auto mb-2 text-[#555]" />
             <p className="text-[11px] text-[#999]">{labels.galleryNoAssets}</p>
           </div>
         )}
@@ -2359,7 +2359,7 @@ export default function Marketing() {
 
             {filtered.length === 0 && !showNew && (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center mt-2">
-                <Megaphone size={28} className="mx-auto mb-2 text-[#222]" />
+                <Megaphone size={28} className="mx-auto mb-2 text-[#555]" />
                 <p className="text-[11px] text-[#888] mb-2">{labels.noCampaigns}</p>
                 <div className="flex gap-2 justify-center">
                   <button onClick={() => setShowNew(true)} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">

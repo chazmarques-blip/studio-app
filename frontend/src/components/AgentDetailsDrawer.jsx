@@ -51,7 +51,7 @@ function Section({ icon: Icon, title, children, defaultOpen = true }) {
           <Icon size={12} className="text-[#C9A84C]" />
         </div>
         <span className="text-[11px] font-bold text-white flex-1">{title}</span>
-        {open ? <ChevronUp size={14} className="text-[#555]" /> : <ChevronDown size={14} className="text-[#555]" />}
+        {open ? <ChevronUp size={14} className="text-[#B0B0B0]" /> : <ChevronDown size={14} className="text-[#B0B0B0]" />}
       </button>
       {open && <div className="px-3 pb-3 pt-0">{children}</div>}
     </div>
@@ -86,7 +86,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
         <button
           onClick={onClose}
           data-testid="close-agent-details"
-          className="absolute right-3 top-3 z-10 h-7 w-7 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-[#666] hover:text-white hover:border-[#C9A84C]/30 transition-all"
+          className="absolute right-3 top-3 z-10 h-7 w-7 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-[#999] hover:text-white hover:border-[#C9A84C]/30 transition-all"
         >
           <X size={14} />
         </button>

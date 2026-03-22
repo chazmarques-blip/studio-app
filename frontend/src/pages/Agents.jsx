@@ -31,7 +31,7 @@ function AgentCard({ agent, onDeploy, onDetails, isPersonal, lang }) {
             {isPersonal && <Crown size={8} className="text-[#C9A84C] shrink-0" />}
             {agent.rating && <><Star size={7} className="text-[#C9A84C] fill-[#C9A84C] ml-auto shrink-0" /><span className="text-[7px] font-bold text-[#C9A84C]">{agent.rating}</span></>}
           </div>
-          <p className="text-[7px] text-[#666] leading-[1.3] line-clamp-2">{agent.description}</p>
+          <p className="text-[7px] text-[#999] leading-[1.3] line-clamp-2">{agent.description}</p>
         </div>
       </div>
       <div className="flex gap-1">
@@ -61,13 +61,13 @@ function MyAgentCard({ agent }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] font-semibold text-white truncate">{agent.name}</span>
-          <span className={`rounded-full px-1.5 py-px text-[7px] font-bold ${agent.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-[#333]/50 text-[#555]'}`}>
+          <span className={`rounded-full px-1.5 py-px text-[7px] font-bold ${agent.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-[#333]/50 text-[#B0B0B0]'}`}>
             {agent.status === 'active' ? 'ON' : 'OFF'}
           </span>
         </div>
-        <span className="text-[8px] text-[#555] capitalize">{agent.type}</span>
+        <span className="text-[8px] text-[#B0B0B0] capitalize">{agent.type}</span>
       </div>
-      <ChevronRight size={14} className="text-[#333] group-hover:text-[#C9A84C] transition shrink-0" />
+      <ChevronRight size={14} className="text-[#999] group-hover:text-[#C9A84C] transition shrink-0" />
     </button>
   );
 }
@@ -122,7 +122,7 @@ export default function Agents() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-white">Agents</h1>
-            <p className="text-[9px] text-[#555]">{marketplace.length} disponiveis</p>
+            <p className="text-[9px] text-[#B0B0B0]">{marketplace.length} disponiveis</p>
           </div>
           <button data-testid="create-agent-btn" onClick={() => navigate('/agents/builder')}
             className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#B89A40] pl-1.5 pr-3 py-1.5 text-[10px] font-bold text-[#0A0A0A] transition-all hover:shadow-[0_0_20px_rgba(201,168,76,0.2)] active:scale-[0.97]">
@@ -136,7 +136,7 @@ export default function Agents() {
           {[{ id: 'marketplace', label: `Marketplace (${marketplace.length})` }, { id: 'my', label: `${t('agents.my_agents') || 'My Agents'} (${myAgents.length})` }].map(tb => (
             <button key={tb.id} data-testid={`tab-${tb.id}`} onClick={() => setTab(tb.id)}
               className={`flex-1 rounded-md py-2 text-[10px] font-semibold transition-all ${
-                tab === tb.id ? 'bg-gradient-to-r from-[#C9A84C] to-[#B89A40] text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.1)]' : 'text-[#555] hover:text-[#999]'}`}>
+                tab === tb.id ? 'bg-gradient-to-r from-[#C9A84C] to-[#B89A40] text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.1)]' : 'text-[#B0B0B0] hover:text-[#999]'}`}>
               {tb.label}
             </button>
           ))}
@@ -146,15 +146,15 @@ export default function Agents() {
       {tab === 'marketplace' && (
         <div className="px-4">
           <div className="relative mb-2">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#444]" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#999]" />
             <input data-testid="agent-search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('agents.search_placeholder') || "Search agents..."}
-              className="w-full rounded-lg border border-[#1A1A1A] bg-[#0D0D0D] pl-8 pr-3 py-2 text-[10px] text-white placeholder-[#444] outline-none focus:border-[#C9A84C]/30" />
+              className="w-full rounded-lg border border-[#1A1A1A] bg-[#0D0D0D] pl-8 pr-3 py-2 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
           </div>
           <div className="flex gap-1 overflow-x-auto no-scrollbar mb-3 pb-0.5">
             {TYPE_FILTERS.map(f => (
               <button key={f.id} data-testid={`filter-${f.id}`} onClick={() => setFilter(f.id)}
                 className={`shrink-0 rounded-md px-2.5 py-1 text-[9px] font-semibold transition-all ${
-                  filter === f.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1A1A1A] text-[#555] hover:text-[#999]'}`}>
+                  filter === f.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1A1A1A] text-[#B0B0B0] hover:text-[#999]'}`}>
                 {t(f.k) || f.id}
               </button>
             ))}
@@ -189,8 +189,8 @@ export default function Agents() {
 
           {filtered.length === 0 && !loading && (
             <div className="text-center py-10">
-              <Bot size={28} className="text-[#333] mx-auto mb-2" />
-              <p className="text-xs text-[#555]">{t('agents.no_agents_found') || 'No agents found'}</p>
+              <Bot size={28} className="text-[#999] mx-auto mb-2" />
+              <p className="text-xs text-[#B0B0B0]">{t('agents.no_agents_found') || 'No agents found'}</p>
             </div>
           )}
         </div>
@@ -200,8 +200,8 @@ export default function Agents() {
         <div className="px-4 pb-20 space-y-1.5">
           {myAgents.length === 0 && !loading ? (
             <div className="text-center py-10">
-              <Bot size={28} className="text-[#333] mx-auto mb-2" />
-              <p className="text-xs text-[#555] mb-3">{t('agents.no_agents_yet') || 'No agents yet'}</p>
+              <Bot size={28} className="text-[#999] mx-auto mb-2" />
+              <p className="text-xs text-[#B0B0B0] mb-3">{t('agents.no_agents_yet') || 'No agents yet'}</p>
               <button onClick={() => navigate('/agents/builder')}
                 className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#B89A40] px-4 py-2 text-[10px] font-bold text-[#0A0A0A] active:scale-[0.97] transition-all">
                 {t('agents.create_first') || 'Create First Agent'}

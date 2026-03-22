@@ -117,7 +117,7 @@ function WhatsAppSetup({ channel, lang, onConnect, onDisconnect }) {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">{lang === 'pt' ? 'WhatsApp Conectado' : 'WhatsApp Connected'}</p>
-            <p className="text-[10px] text-[#666]">{config.instance_name} @ {config.api_url?.replace('https://', '')?.replace('http://', '')}</p>
+            <p className="text-[10px] text-[#999]">{config.instance_name} @ {config.api_url?.replace('https://', '')?.replace('http://', '')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-[#25D366]/5 border border-[#25D366]/15 p-3 mb-3">
@@ -138,7 +138,7 @@ function WhatsAppSetup({ channel, lang, onConnect, onDisconnect }) {
       <div className="border-t border-[#1A1A1A] bg-[#0D0D0D] px-4 py-5">
         <div className="text-center mb-4">
           <p className="text-sm font-semibold text-white mb-1">{lang === 'pt' ? 'Escaneie o QR Code' : 'Scan the QR Code'}</p>
-          <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Abra o WhatsApp > Aparelhos Conectados > Conectar Aparelho' : 'Open WhatsApp > Linked Devices > Link a Device'}</p>
+          <p className="text-[10px] text-[#999]">{lang === 'pt' ? 'Abra o WhatsApp > Aparelhos Conectados > Conectar Aparelho' : 'Open WhatsApp > Linked Devices > Link a Device'}</p>
         </div>
         <div className="flex justify-center mb-4">
           {qrCode ? (
@@ -182,22 +182,22 @@ function WhatsAppSetup({ channel, lang, onConnect, onDisconnect }) {
         </div>
       )}
       <div>
-        <label className="mb-1 block text-[10px] text-[#666] uppercase tracking-wider">{lang === 'pt' ? 'URL da API' : 'API URL'}</label>
+        <label className="mb-1 block text-[10px] text-[#999] uppercase tracking-wider">{lang === 'pt' ? 'URL da API' : 'API URL'}</label>
         <input data-testid="wa-api-url" value={config.api_url} onChange={e => setConfig(p => ({ ...p, api_url: e.target.value }))}
           placeholder="https://evo.seuservidor.com"
-          className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#444] outline-none focus:border-[#25D366]/50 transition" />
+          className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#666] outline-none focus:border-[#25D366]/50 transition" />
       </div>
       <div>
-        <label className="mb-1 block text-[10px] text-[#666] uppercase tracking-wider">{lang === 'pt' ? 'Chave da API' : 'API Key'}</label>
+        <label className="mb-1 block text-[10px] text-[#999] uppercase tracking-wider">{lang === 'pt' ? 'Chave da API' : 'API Key'}</label>
         <input data-testid="wa-api-key" value={config.api_key} onChange={e => setConfig(p => ({ ...p, api_key: e.target.value }))}
           placeholder="B6D711FCDE4D4FD5936544120E713976" type="password"
-          className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#444] outline-none focus:border-[#25D366]/50 transition" />
+          className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#666] outline-none focus:border-[#25D366]/50 transition" />
       </div>
       <div>
-        <label className="mb-1 block text-[10px] text-[#666] uppercase tracking-wider">{lang === 'pt' ? 'Nome da Instancia' : 'Instance Name'}</label>
+        <label className="mb-1 block text-[10px] text-[#999] uppercase tracking-wider">{lang === 'pt' ? 'Nome da Instancia' : 'Instance Name'}</label>
         <input data-testid="wa-instance" value={config.instance_name} onChange={e => setConfig(p => ({ ...p, instance_name: e.target.value }))}
           placeholder={lang === 'pt' ? 'meu-negocio' : 'my-business'}
-          className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#444] outline-none focus:border-[#25D366]/50 transition" />
+          className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#666] outline-none focus:border-[#25D366]/50 transition" />
       </div>
       <button data-testid="wa-connect-btn" onClick={handleCreateInstance} disabled={loading}
         className="w-full rounded-lg bg-[#25D366] py-2.5 text-xs font-semibold text-white hover:bg-[#20BD5A] disabled:opacity-50 transition flex items-center justify-center gap-2">
@@ -205,7 +205,7 @@ function WhatsAppSetup({ channel, lang, onConnect, onDisconnect }) {
         {loading ? (lang === 'pt' ? 'Criando instancia...' : 'Creating instance...') : (lang === 'pt' ? 'Gerar QR Code' : 'Generate QR Code')}
       </button>
       <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3 space-y-2">
-        <p className="text-[10px] text-[#666] font-medium uppercase tracking-wider">{lang === 'pt' ? 'Como conectar' : 'How to connect'}</p>
+        <p className="text-[10px] text-[#999] font-medium uppercase tracking-wider">{lang === 'pt' ? 'Como conectar' : 'How to connect'}</p>
         <div className="space-y-1.5">
           {[
             lang === 'pt' ? '1. Instale a Evolution API no seu servidor' : '1. Install Evolution API on your server',
@@ -213,7 +213,7 @@ function WhatsAppSetup({ channel, lang, onConnect, onDisconnect }) {
             lang === 'pt' ? '3. Escolha um nome para a instancia' : '3. Choose an instance name',
             lang === 'pt' ? '4. Clique em Gerar QR Code e escaneie' : '4. Click Generate QR Code and scan',
           ].map((text, i) => (
-            <p key={i} className="text-[10px] text-[#555]">{text}</p>
+            <p key={i} className="text-[10px] text-[#B0B0B0]">{text}</p>
           ))}
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function ChannelConnection() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-semibold text-white">{ch.name}</h3>
-                  <p className="text-[10px] text-[#555]">{ch.desc[lang] || ch.desc.en}</p>
+                  <p className="text-[10px] text-[#B0B0B0]">{ch.desc[lang] || ch.desc.en}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {ch.type === 'whatsapp' ? (
@@ -317,7 +317,7 @@ export default function ChannelConnection() {
                         <Wifi size={10} className="text-green-400" />
                         <span className="text-[10px] text-green-400">{t('settings.connected')}</span>
                       </div>
-                      <button onClick={() => disconnectChannel(connected.id)} className="text-xs text-[#666] hover:text-red-400 transition">{t('channels.disconnect')}</button>
+                      <button onClick={() => disconnectChannel(connected.id)} className="text-xs text-[#999] hover:text-red-400 transition">{t('channels.disconnect')}</button>
                     </>
                   ) : isConnecting ? (
                     <div className="flex items-center gap-1 rounded-full bg-[#C9A84C]/10 px-2.5 py-1">
@@ -344,7 +344,7 @@ export default function ChannelConnection() {
               {/* Always show WhatsApp setup if waiting_qr or connected */}
               {ch.type === 'whatsapp' && (isConnected || isConnecting) && showConfig !== 'whatsapp' && (
                 <div className="border-t border-[#1A1A1A]">
-                  <button onClick={() => setShowConfig('whatsapp')} className="w-full px-4 py-2 text-[10px] text-[#666] hover:text-[#C9A84C] transition text-center">
+                  <button onClick={() => setShowConfig('whatsapp')} className="w-full px-4 py-2 text-[10px] text-[#999] hover:text-[#C9A84C] transition text-center">
                     {lang === 'pt' ? 'Ver detalhes' : 'View details'}
                   </button>
                 </div>
@@ -358,22 +358,22 @@ export default function ChannelConnection() {
                     <p className="text-xs text-[#F22F46] font-medium">Twilio</p>
                   </div>
                   <div>
-                    <label className="mb-1 block text-[10px] text-[#666] uppercase tracking-wider">Account SID</label>
+                    <label className="mb-1 block text-[10px] text-[#999] uppercase tracking-wider">Account SID</label>
                     <input data-testid="sms-account-sid" value={smsConfig.account_sid} onChange={e => setSmsConfig(p => ({ ...p, account_sid: e.target.value }))}
                       placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#444] outline-none focus:border-[#F22F46]/50 transition font-mono" />
+                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#666] outline-none focus:border-[#F22F46]/50 transition font-mono" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[10px] text-[#666] uppercase tracking-wider">Auth Token</label>
+                    <label className="mb-1 block text-[10px] text-[#999] uppercase tracking-wider">Auth Token</label>
                     <input data-testid="sms-auth-token" value={smsConfig.auth_token} onChange={e => setSmsConfig(p => ({ ...p, auth_token: e.target.value }))}
                       placeholder="your_auth_token" type="password"
-                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#444] outline-none focus:border-[#F22F46]/50 transition" />
+                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#666] outline-none focus:border-[#F22F46]/50 transition" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[10px] text-[#666] uppercase tracking-wider">{lang === 'pt' ? 'Numero Twilio' : 'Twilio Number'}</label>
+                    <label className="mb-1 block text-[10px] text-[#999] uppercase tracking-wider">{lang === 'pt' ? 'Numero Twilio' : 'Twilio Number'}</label>
                     <input data-testid="sms-phone" value={smsConfig.phone_number} onChange={e => setSmsConfig(p => ({ ...p, phone_number: e.target.value }))}
                       placeholder="+15551234567"
-                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#444] outline-none focus:border-[#F22F46]/50 transition font-mono" />
+                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#666] outline-none focus:border-[#F22F46]/50 transition font-mono" />
                   </div>
                   <button data-testid="sms-connect-btn" onClick={() => connectChannel('sms')} disabled={connecting === 'sms'}
                     className="w-full rounded-lg bg-[#F22F46] py-2.5 text-xs font-semibold text-white hover:bg-[#D92340] disabled:opacity-50 transition">
@@ -390,10 +390,10 @@ export default function ChannelConnection() {
                     <p className="text-xs text-[#0088CC] font-medium">BotFather Token</p>
                   </div>
                   <div>
-                    <label className="mb-1 block text-[10px] text-[#666] uppercase tracking-wider">Bot Token</label>
+                    <label className="mb-1 block text-[10px] text-[#999] uppercase tracking-wider">Bot Token</label>
                     <input data-testid="telegram-token" value={telegramConfig.bot_token} onChange={e => setTelegramConfig(p => ({ ...p, bot_token: e.target.value }))}
                       placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#444] outline-none focus:border-[#0088CC]/50 transition font-mono" />
+                      className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2.5 text-sm text-white placeholder-[#666] outline-none focus:border-[#0088CC]/50 transition font-mono" />
                   </div>
                   <button data-testid="telegram-connect-btn" onClick={() => connectChannel('telegram')} disabled={connecting === 'telegram'}
                     className="w-full rounded-lg bg-[#0088CC] py-2.5 text-xs font-semibold text-white hover:bg-[#0077B5] disabled:opacity-50 transition">
@@ -405,12 +405,12 @@ export default function ChannelConnection() {
               {/* Instagram / Facebook */}
               {(showConfig === 'instagram' || showConfig === 'facebook') && ch.type === showConfig && (
                 <div className="border-t border-[#1A1A1A] bg-[#0D0D0D] px-4 py-5 text-center">
-                  <p className="text-xs text-[#666] mb-3">{lang === 'pt' ? 'Conecte via Facebook Business Manager' : 'Connect via Facebook Business Manager'}</p>
+                  <p className="text-xs text-[#999] mb-3">{lang === 'pt' ? 'Conecte via Facebook Business Manager' : 'Connect via Facebook Business Manager'}</p>
                   <button onClick={() => connectChannel(ch.type)} disabled={connecting === ch.type}
                     className="btn-gold rounded-lg px-6 py-2.5 text-xs disabled:opacity-50">
                     {connecting === ch.type ? '...' : (lang === 'pt' ? 'Conectar com Facebook' : 'Connect with Facebook')}
                   </button>
-                  <p className="mt-3 text-[10px] text-[#444]">{lang === 'pt' ? 'Integracao em breve' : 'Integration coming soon'}</p>
+                  <p className="mt-3 text-[10px] text-[#999]">{lang === 'pt' ? 'Integracao em breve' : 'Integration coming soon'}</p>
                 </div>
               )}
             </div>

@@ -84,7 +84,7 @@ export default function GoogleIntegration() {
     <div className="min-h-screen bg-[#0A0A0A] px-4 pt-5 pb-24">
       {/* Header */}
       <div className="mb-5 flex items-center gap-3">
-        <button onClick={() => navigate('/settings')} className="text-[#666] hover:text-white transition"><ArrowLeft size={18} /></button>
+        <button onClick={() => navigate('/settings')} className="text-[#999] hover:text-white transition"><ArrowLeft size={18} /></button>
         <h1 className="text-lg font-bold text-white">Google</h1>
       </div>
 
@@ -101,12 +101,12 @@ export default function GoogleIntegration() {
                   <Check size={12} className="text-[#C9A84C]" />
                   <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Conectado' : 'Connected'}</p>
                 </div>
-                <p className="text-[10px] text-[#666]">{status.email}</p>
+                <p className="text-[10px] text-[#999]">{status.email}</p>
               </>
             ) : (
               <>
                 <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Nao conectado' : 'Not connected'}</p>
-                <p className="text-[10px] text-[#666]">Calendar, Sheets, Drive</p>
+                <p className="text-[10px] text-[#999]">Calendar, Sheets, Drive</p>
               </>
             )}
           </div>
@@ -133,7 +133,7 @@ export default function GoogleIntegration() {
           ].map((s, i) => (
             <div key={i} className="glass-card flex items-center gap-3 p-3.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C9A84C]/8"><s.icon size={16} className="text-[#C9A84C]" /></div>
-              <div className="flex-1"><p className="text-xs font-medium text-white">{s.name}</p><p className="text-[10px] text-[#555]">{s.desc}</p></div>
+              <div className="flex-1"><p className="text-xs font-medium text-white">{s.name}</p><p className="text-[10px] text-[#B0B0B0]">{s.desc}</p></div>
             </div>
           ))}
         </div>
@@ -148,7 +148,7 @@ export default function GoogleIntegration() {
               { key: 'sheets', icon: Table2, label: 'Sheets' },
             ].map(tb => (
               <button key={tb.key} onClick={() => setTab(tb.key)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition ${tab === tb.key ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#666]'}`}>
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition ${tab === tb.key ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
                 <tb.icon size={13} /> {tb.label}
               </button>
             ))}
@@ -159,7 +159,7 @@ export default function GoogleIntegration() {
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Proximos Eventos' : 'Upcoming Events'}</p>
-                <button onClick={loadCalendarEvents} className="text-[#666] hover:text-[#C9A84C] transition"><RefreshCw size={13} /></button>
+                <button onClick={loadCalendarEvents} className="text-[#999] hover:text-[#C9A84C] transition"><RefreshCw size={13} /></button>
               </div>
               {events.length > 0 ? (
                 <div className="space-y-1.5">
@@ -168,7 +168,7 @@ export default function GoogleIntegration() {
                       <Calendar size={14} className="text-[#C9A84C] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white truncate">{e.summary}</p>
-                        <p className="text-[9px] text-[#555]">
+                        <p className="text-[9px] text-[#B0B0B0]">
                           {new Date(e.start).toLocaleDateString(lang, { weekday: 'short', day: 'numeric', month: 'short' })}
                           {' '}{new Date(e.start).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}
                         </p>
@@ -178,8 +178,8 @@ export default function GoogleIntegration() {
                 </div>
               ) : (
                 <div className="glass-card p-6 text-center">
-                  <Calendar size={24} className="mx-auto mb-2 text-[#222]" />
-                  <p className="text-[10px] text-[#555]">{lang === 'pt' ? 'Nenhum evento proximo' : 'No upcoming events'}</p>
+                  <Calendar size={24} className="mx-auto mb-2 text-[#555]" />
+                  <p className="text-[10px] text-[#B0B0B0]">{lang === 'pt' ? 'Nenhum evento proximo' : 'No upcoming events'}</p>
                 </div>
               )}
             </div>
@@ -196,7 +196,7 @@ export default function GoogleIntegration() {
 
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Suas Planilhas' : 'Your Sheets'}</p>
-                <button onClick={loadSheets} className="text-[#666] hover:text-[#C9A84C] transition"><RefreshCw size={13} /></button>
+                <button onClick={loadSheets} className="text-[#999] hover:text-[#C9A84C] transition"><RefreshCw size={13} /></button>
               </div>
               {sheets.length > 0 ? (
                 <div className="space-y-1.5">
@@ -206,16 +206,16 @@ export default function GoogleIntegration() {
                       <FileSpreadsheet size={14} className="text-[#C9A84C] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white truncate">{s.name}</p>
-                        <p className="text-[9px] text-[#555]">{new Date(s.modified).toLocaleDateString(lang)}</p>
+                        <p className="text-[9px] text-[#B0B0B0]">{new Date(s.modified).toLocaleDateString(lang)}</p>
                       </div>
-                      <ExternalLink size={12} className="text-[#555]" />
+                      <ExternalLink size={12} className="text-[#B0B0B0]" />
                     </a>
                   ))}
                 </div>
               ) : (
                 <div className="glass-card p-6 text-center">
-                  <Table2 size={24} className="mx-auto mb-2 text-[#222]" />
-                  <p className="text-[10px] text-[#555]">{lang === 'pt' ? 'Nenhuma planilha' : 'No spreadsheets'}</p>
+                  <Table2 size={24} className="mx-auto mb-2 text-[#555]" />
+                  <p className="text-[10px] text-[#B0B0B0]">{lang === 'pt' ? 'Nenhuma planilha' : 'No spreadsheets'}</p>
                 </div>
               )}
             </div>
