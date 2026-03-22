@@ -78,6 +78,17 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Prompt instrui IA a preservar identidade do personagem base em TODAS as edicoes
 - Historico inicializado automaticamente ao criar avatar OU abrir para edicao
 
+### Persistencia do Historico de Avatar + Acoes (2026-03-22)
+- **Historico salvo no servidor**: edit_history agora persiste em Supabase (tenants.settings JSONB)
+- **Auto-save**: Cada edicao AI automaticamente salva o historico no servidor
+- **Carregamento**: Ao abrir avatar para edicao, historico salvo e carregado automaticamente
+- **Download**: Botao de download em cada versao do historico (blob download direto)
+- **Delete**: Botao de remover versao (exceto a BASE, que nao pode ser removida)
+- **Editar**: Botao para abrir edicao AI a partir de qualquer versao do historico
+- **Backend**: Novo campo `edit_history` no modelo AvatarIn + endpoint DELETE /api/data/avatars/{id}/history/{index}
+- **Layout**: Imagens maiores (w-32), aspect 3/4, maxHeight 356px (mostra 2 completas), auto-scroll
+- **Testes**: 11/11 backend + 100% frontend (iteration_85)
+
 ## Backlog
 ### P0 (In Progress)
 - Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs
