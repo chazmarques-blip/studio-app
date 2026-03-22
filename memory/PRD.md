@@ -78,7 +78,15 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Prompt instrui IA a preservar identidade do personagem base em TODAS as edicoes
 - Historico inicializado automaticamente ao criar avatar OU abrir para edicao
 
-### Persistencia do Historico de Avatar + Acoes (2026-03-22)
+### Correcao Global de Legibilidade de Texto (2026-03-22)
+- **Mapeamento sistematico de cores** em ~20 arquivos JSX para leitura perfeita no tema dark luxury
+- Texto principal: `#333-#555` → `#B0B0B0` (alto contraste)
+- Texto secundario: `#666` → `#999` (legivel)
+- Hover states: `#888` → `#E5E5E5` (evita hover mais escuro que default)
+- Placeholders: `#333/#444` → `#666` (minimo aceitavel)
+- Icones decorativos mantidos sutis (#444/#555) por design
+- **Paginas corrigidas**: AgentConfig, AgentBuilder, Dashboard, TrafficHub, ChannelConnection, GoogleIntegration, CRM, Agents, AgentSandbox, LeadDetail, Pricing, Settings, Profile, UpsellScreen, Chat, Marketing, MarketingStudio, LandingV2, Landing, Login, AgentDetailsDrawer
+- **Testes**: 15/15 paginas verificadas (iteration_86) - 100% PASS
 - **Historico salvo no servidor**: edit_history agora persiste em Supabase (tenants.settings JSONB)
 - **Auto-save**: Cada edicao AI automaticamente salva o historico no servidor
 - **Carregamento**: Ao abrir avatar para edicao, historico salvo e carregado automaticamente
