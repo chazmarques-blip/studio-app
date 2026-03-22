@@ -1738,7 +1738,7 @@ export default function LandingV2() {
       </section>
 
       {/* ═══ PRICING ═══ */}
-      <section className="py-14 px-5 relative" data-testid="pricing-section">
+      <section className="py-8 sm:py-14 px-4 sm:px-5 relative" data-testid="pricing-section">
         <TechGrid />
         <Glow className="h-[300px] w-[400px] top-[30%] left-[30%] bg-[#C9A84C]/[0.02]" />
         <div className="relative z-10 mx-auto max-w-5xl">
@@ -1758,7 +1758,7 @@ export default function LandingV2() {
             </div>
           </motion.div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 pt-4">
+          <div className="grid gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-4 pt-4">
             {[
               { name: t('landing.plan_free'), desc: t('landing.plan_free_desc'), price: t('landing.plan_free_price'), period: t('landing.plan_free_period'),
                 feats: ['f1','f2','f3','f4'].map(k => t(`landing.plan_free_${k}`)), cta: t('landing.plan_free_cta'), note: t('landing.plan_free_no_card'), pro: false, badge: null },
@@ -1776,29 +1776,29 @@ export default function LandingV2() {
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i}>
                 {plan.pro ? (
                   <div className="relative rounded-2xl p-px bg-gradient-to-b from-[#C9A84C]/30 via-[#C9A84C]/10 to-transparent h-full">
-                    <div className="rounded-2xl bg-[#090909] h-full flex flex-col pt-7 px-5 pb-5 relative">
+                    <div className="rounded-2xl bg-[#090909] h-full flex flex-col pt-5 px-3.5 pb-3.5 sm:pt-7 sm:px-5 sm:pb-5 relative">
                       <div className="absolute inset-0 bg-gradient-to-b from-[#C9A84C]/[0.03] to-transparent pointer-events-none rounded-2xl" />
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full bg-[#C9A84C] px-3 py-1 text-[9px] font-mono font-bold text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/20 whitespace-nowrap">{plan.badge}</div>
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full bg-[#C9A84C] px-3 py-0.5 sm:py-1 text-[8px] sm:text-[9px] font-mono font-bold text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/20 whitespace-nowrap">{plan.badge}</div>
                       <div className="relative z-10 flex flex-col h-full">
-                        <h3 className="text-sm font-bold text-white mb-0.5">{plan.name}</h3>
-                        <p className="text-[10px] text-[#B0B0B0] font-mono mb-3">{plan.desc}</p>
-                        <div className="mb-3"><span className="text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
-                        <ul className="flex-1 space-y-1.5 mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-2 text-[10px] text-[#999]"><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0" />{f}</li>)}</ul>
-                        <button className="btn-gold w-full rounded-xl py-2.5 text-[12px] font-semibold">{plan.cta}</button>
+                        <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{plan.name}</h3>
+                        <p className="text-[9px] sm:text-[10px] text-[#B0B0B0] font-mono mb-1.5 sm:mb-3">{plan.desc}</p>
+                        <div className="mb-1.5 sm:mb-3"><span className="text-lg sm:text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[9px] sm:text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
+                        <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#C9A84C] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
+                        <button className="btn-gold w-full rounded-xl py-1.5 sm:py-2.5 text-[11px] sm:text-[12px] font-semibold">{plan.cta}</button>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className={`relative rounded-2xl border backdrop-blur-xl transition-all duration-500
                     border-white/[0.06] bg-white/[0.015] hover:border-[#C9A84C]/20 hover:bg-white/[0.03]
-                    flex flex-col ${plan.badge ? 'pt-7 px-5 pb-5' : 'p-5'} h-full`}>
-                    {plan.badge && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full border border-[#C9A84C]/15 bg-[#060606] px-3 py-1 text-[9px] font-mono text-[#C9A84C] whitespace-nowrap">{plan.badge}</div>}
-                    <h3 className="text-sm font-bold text-white mb-0.5">{plan.name}</h3>
-                    <p className="text-[10px] text-[#B0B0B0] font-mono mb-3">{plan.desc}</p>
-                    <div className="mb-3"><span className="text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
-                    <ul className="flex-1 space-y-1.5 mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-2 text-[10px] text-[#999]"><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0" />{f}</li>)}</ul>
-                    {plan.note && <p className="text-center text-[9px] text-[#B0B0B0] font-mono mb-2">{plan.note}</p>}
-                    <button className="btn-gold w-full rounded-xl py-2.5 text-[12px] font-semibold">{plan.cta}</button>
+                    flex flex-col ${plan.badge ? 'pt-5 px-3.5 pb-3.5 sm:pt-7 sm:px-5 sm:pb-5' : 'p-3.5 sm:p-5'} h-full`}>
+                    {plan.badge && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full border border-[#C9A84C]/15 bg-[#060606] px-3 py-0.5 sm:py-1 text-[8px] sm:text-[9px] font-mono text-[#C9A84C] whitespace-nowrap">{plan.badge}</div>}
+                    <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{plan.name}</h3>
+                    <p className="text-[9px] sm:text-[10px] text-[#B0B0B0] font-mono mb-1.5 sm:mb-3">{plan.desc}</p>
+                    <div className="mb-1.5 sm:mb-3"><span className="text-lg sm:text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[9px] sm:text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
+                    <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#C9A84C] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
+                    {plan.note && <p className="text-center text-[8px] sm:text-[9px] text-[#B0B0B0] font-mono mb-1 sm:mb-2">{plan.note}</p>}
+                    <button className="btn-gold w-full rounded-xl py-1.5 sm:py-2.5 text-[11px] sm:text-[12px] font-semibold">{plan.cta}</button>
                   </div>
                 )}
               </motion.div>
