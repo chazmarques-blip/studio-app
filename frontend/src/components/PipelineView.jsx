@@ -1895,8 +1895,9 @@ export default function PipelineView({ context }) {
                         </div>
                       )}
 
-                      {/* Media Display */}
-                      <div className="w-40">
+                      {/* Media Display + AI Edit Side Panel */}
+                      <div className="flex gap-3 items-start">
+                      <div className="w-40 shrink-0">
                       <div className="relative aspect-[3/5]">
                         {avatarMediaTab === 'video' && previewVideoUrl ? (
                           <video
@@ -1906,7 +1907,7 @@ export default function PipelineView({ context }) {
                             className="w-full h-full rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg bg-black"
                           />
                         ) : (
-                          <div className="relative cursor-pointer group" onClick={() => !aiEditAvatarId && setAvatarPreviewUrl(tempAvatar?.url)}>
+                          <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
                             <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
                               className="w-full h-full rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
                             <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
@@ -1915,48 +1916,6 @@ export default function PipelineView({ context }) {
                             {applyingClothing && (
                               <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
                                 <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
-                              </div>
-                            )}
-                            {/* AI Edit overlay in modal */}
-                            {aiEditAvatarId === 'temp' && (
-                              <div className="absolute inset-0 rounded-2xl bg-black/90 flex flex-col items-center justify-center p-3 z-10" onClick={e => e.stopPropagation()}>
-                                <Sparkles size={18} className="text-purple-400 mb-2" />
-                                <p className="text-[9px] text-purple-300 font-bold mb-2">{t('studio.ai_edit') || 'Editar com IA'}</p>
-                                <textarea data-testid="ai-edit-modal-input"
-                                  value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                                  placeholder="Ex: mudar roupa para tunica bege, adicionar oculos, mudar fundo para praia..."
-                                  className="w-full text-[9px] bg-[#1A1A1A] border border-[#333] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
-                                  rows={3} />
-                                <div className="flex gap-2 mt-2 w-full">
-                                  <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                                    className="flex-1 text-[9px] py-1.5 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
-                                    {t('studio.cancel') || 'Cancelar'}
-                                  </button>
-                                  <button data-testid="ai-edit-modal-confirm" onClick={async () => {
-                                    if (!aiEditInstruction.trim() || aiEditLoading) return;
-                                    setAiEditLoading(true);
-                                    try {
-                                      const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
-                                        avatar_url: tempAvatar.url,
-                                        instruction: aiEditInstruction,
-                                      });
-                                      if (data.url) {
-                                        setTempAvatar(p => ({ ...p, url: data.url }));
-                                        toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
-                                      }
-                                    } catch (err) {
-                                      toast.error(err.response?.data?.detail || 'Erro ao editar avatar');
-                                    } finally {
-                                      setAiEditLoading(false);
-                                      setAiEditAvatarId(null);
-                                      setAiEditInstruction('');
-                                    }
-                                  }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                    className="flex-1 text-[9px] py-1.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
-                                    {aiEditLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                    {aiEditLoading ? (t('studio.editing') || 'Editando...') : (t('studio.apply') || 'Aplicar')}
-                                  </button>
-                                </div>
                               </div>
                             )}
                           </div>
@@ -1969,12 +1928,57 @@ export default function PipelineView({ context }) {
                           </div>
                         )}
                       </div>
-                      {/* AI Edit button below avatar in customize */}
+                      {/* AI Edit button below avatar */}
                       {avatarMediaTab !== 'video' && (
                         <button data-testid="ai-edit-avatar-modal-btn" onClick={() => setAiEditAvatarId(aiEditAvatarId === 'temp' ? null : 'temp')}
-                          className="mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-purple-500/30 text-[9px] text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 transition">
+                          className={`mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] transition ${aiEditAvatarId === 'temp' ? 'border-purple-500/50 bg-purple-500/10 text-purple-300' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'}`}>
                           <Sparkles size={10} /> {t('studio.ai_edit') || 'Editar com IA'}
                         </button>
+                      )}
+                      </div>
+                      {/* AI Edit Side Panel */}
+                      {aiEditAvatarId === 'temp' && (
+                        <div className="flex-1 min-w-[140px] bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles size={12} className="text-purple-400" />
+                            <span className="text-[9px] text-purple-300 font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
+                          </div>
+                          <textarea data-testid="ai-edit-modal-input"
+                            value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
+                            placeholder="Ex: mudar roupa para tunica bege, adicionar oculos, mudar fundo para praia..."
+                            className="w-full text-[9px] bg-[#0A0A0A] border border-[#222] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
+                            rows={4} />
+                          <div className="flex gap-1.5">
+                            <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
+                              className="flex-1 text-[8px] py-1.5 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                              {t('studio.cancel') || 'Cancelar'}
+                            </button>
+                            <button data-testid="ai-edit-modal-confirm" onClick={async () => {
+                              if (!aiEditInstruction.trim() || aiEditLoading) return;
+                              setAiEditLoading(true);
+                              try {
+                                const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
+                                  avatar_url: tempAvatar.url,
+                                  instruction: aiEditInstruction,
+                                });
+                                if (data.url) {
+                                  setTempAvatar(p => ({ ...p, url: data.url }));
+                                  toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
+                                }
+                              } catch (err) {
+                                toast.error(err.response?.data?.detail || 'Erro ao editar avatar');
+                              } finally {
+                                setAiEditLoading(false);
+                                setAiEditAvatarId(null);
+                                setAiEditInstruction('');
+                              }
+                            }} disabled={aiEditLoading || !aiEditInstruction.trim()}
+                              className="flex-1 text-[8px] py-1.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
+                              {aiEditLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                              {aiEditLoading ? (t('studio.editing') || 'Editando...') : (t('studio.apply') || 'Aplicar')}
+                            </button>
+                          </div>
+                        </div>
                       )}
                       </div>
                     </div>
