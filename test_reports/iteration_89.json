@@ -1,0 +1,98 @@
+{
+  "summary": "Iteration 89: Extended Profile Fields (birth_date, phone, preferred_contact) - All tests passed. Backend APIs (signup, login, /auth/me, /auth/profile) correctly handle extended profile fields stored in tenant settings JSONB. Frontend signup form shows new fields with WhatsApp default selected. Settings page profile card has 'Trocar Foto' hover overlay, account panel displays all extended fields with correct values loaded from backend.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration89_profile_fields.py",
+    "/app/test_reports/pytest/pytest_results_iteration89.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Login.jsx: Signup form correctly shows birth_date (date input), phone (tel input), and preferred_contact (WhatsApp/SMS toggle buttons)",
+    "Login.jsx: WhatsApp is selected by default (preferredContact state initialized to 'whatsapp')",
+    "Login.jsx: signUp function passes extras param with birth_date, phone, preferred_contact to AuthContext",
+    "Settings.jsx: Profile card has hover overlay with camera icon and 'Trocar' text (language-aware)",
+    "Settings.jsx: Account panel shows Nascimento, Telefone, Contato Preferido fields with correct data-testid attributes",
+    "Settings.jsx: Extended fields loaded from /api/auth/me on component mount",
+    "auth.py: Signup stores extended fields in tenant settings JSONB, not users table columns",
+    "auth.py: Login returns extended fields from tenant settings",
+    "auth.py: GET /auth/me returns birth_date, phone, preferred_contact from tenant settings",
+    "auth.py: PUT /auth/profile updates extended fields in tenant settings JSONB"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration89_profile_fields.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "None - used existing test user",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Extended profile fields (birth_date, phone, preferred_contact) are stored in tenant settings JSONB in Supabase, NOT in users table columns. Test user has birth_date=1990-05-15, phone=+5511999999999, preferred_contact=whatsapp. Profile card in Settings has CSS hover overlay showing camera icon + 'Trocar' text. Account panel shows avatar with click-to-change feature that toggles showAvatarPicker state.",
+  "features_tested": {
+    "signup_form_birth_date_input": {
+      "status": "PASS",
+      "details": "Birth date input (data-testid='input-birthdate') visible with date picker"
+    },
+    "signup_form_phone_input": {
+      "status": "PASS",
+      "details": "Phone input (data-testid='input-phone') visible with placeholder +55 11 99999-9999"
+    },
+    "signup_form_whatsapp_default": {
+      "status": "PASS",
+      "details": "WhatsApp button selected by default (green border styling)"
+    },
+    "signup_form_sms_toggle": {
+      "status": "PASS",
+      "details": "SMS button toggles correctly when clicked"
+    },
+    "settings_profile_card_hover_overlay": {
+      "status": "PASS",
+      "details": "Profile card shows 'Trocar' text with camera icon on hover"
+    },
+    "settings_account_panel_birth_date": {
+      "status": "PASS",
+      "details": "Birth date input shows 1990-05-15 (displayed as 05/15/1990)"
+    },
+    "settings_account_panel_phone": {
+      "status": "PASS",
+      "details": "Phone input shows +5511999999999"
+    },
+    "settings_account_panel_preferred_contact": {
+      "status": "PASS",
+      "details": "WhatsApp selected, SMS option available"
+    },
+    "settings_avatar_picker": {
+      "status": "PASS",
+      "details": "Clicking avatar in account panel shows Selfie/Upload buttons"
+    },
+    "api_login_extended_fields": {
+      "status": "PASS",
+      "details": "POST /api/auth/login returns birth_date, phone, preferred_contact"
+    },
+    "api_auth_me_extended_fields": {
+      "status": "PASS",
+      "details": "GET /api/auth/me returns birth_date, phone, preferred_contact"
+    },
+    "api_profile_update_extended_fields": {
+      "status": "PASS",
+      "details": "PUT /api/auth/profile updates birth_date, phone, preferred_contact in tenant settings"
+    },
+    "api_signup_extended_fields": {
+      "status": "PASS",
+      "details": "POST /api/auth/signup accepts and stores birth_date, phone, preferred_contact"
+    }
+  }
+}

@@ -46,8 +46,8 @@ export function AuthProvider({ children }) {
     }
   }, [token, setAuthHeader, applyLanguage]);
 
-  const signUp = async (email, password, fullName) => {
-    const { data } = await axios.post(`${API}/auth/signup`, { email, password, full_name: fullName });
+  const signUp = async (email, password, fullName, extras = {}) => {
+    const { data } = await axios.post(`${API}/auth/signup`, { email, password, full_name: fullName, ...extras });
     localStorage.setItem('agentzz_token', data.access_token);
     setToken(data.access_token);
     setAuthHeader(data.access_token);

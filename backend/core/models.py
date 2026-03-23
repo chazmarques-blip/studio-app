@@ -7,6 +7,9 @@ class ProfileUpdate(BaseModel):
     company_name: Optional[str] = None
     ui_language: Optional[str] = None
     onboarding_completed: Optional[bool] = None
+    birth_date: Optional[str] = None
+    phone: Optional[str] = None
+    preferred_contact: Optional[str] = None
 
 
 class SignUpRequest(BaseModel):
@@ -14,6 +17,9 @@ class SignUpRequest(BaseModel):
     password: str
     full_name: str
     company_name: Optional[str] = None
+    birth_date: Optional[str] = None
+    phone: Optional[str] = None
+    preferred_contact: Optional[str] = None
 
 
 class SignInRequest(BaseModel):
