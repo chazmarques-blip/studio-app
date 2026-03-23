@@ -78,7 +78,13 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - Prompt instrui IA a preservar identidade do personagem base em TODAS as edicoes
 - Historico inicializado automaticamente ao criar avatar OU abrir para edicao
 
-### Correcao Global de Legibilidade de Texto (2026-03-22)
+### Seletor de Tipo de Campanha (2026-03-23)
+- Adicionado seletor visual com 6 tipos: Post Imagem, Post Video, Imagem+Avatar, Video+Avatar, Carrossel, Video Dirigido
+- Icones futuristas gerados via IA no estilo dark luxury gold
+- Grid responsivo (3 colunas mobile, 6 desktop)
+- Seletor funciona como filtro — tipo enviado ao backend no payload `campaign_type`
+- Traduções em pt/en/es
+- Nenhuma funcionalidade existente alterada
 - **Mapeamento sistematico de cores** em ~20 arquivos JSX para leitura perfeita no tema dark luxury
 - Texto principal: `#333-#555` → `#B0B0B0` (alto contraste)
 - Texto secundario: `#666` → `#999` (legivel)

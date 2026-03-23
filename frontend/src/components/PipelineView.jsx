@@ -56,6 +56,8 @@ export default function PipelineView({ context }) {
   const [editingCompanyId, setEditingCompanyId] = useState(null);
   const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
 
+  // Campaign Type Selector
+  const [campaignType, setCampaignType] = useState('image_post');
   // Avatar Gallery (standalone, multiple avatars)
   const [avatars, setAvatars] = useState([]); // [{ id, url, name, source_photo_url }]
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
@@ -952,6 +954,7 @@ export default function PipelineView({ context }) {
         video_mode: skipVideo ? 'none' : videoMode,
         avatar_url: selectedAvatar?.url || '',
         avatar_voice: selectedAvatar?.voice || null,
+        campaign_type: campaignType,
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1267,6 +1270,41 @@ export default function PipelineView({ context }) {
           ) : (
             <p className="text-[9px] text-[#888] text-center py-2">{t('studio.register_company')}</p>
           )}
+        </div>
+
+        {/* Campaign Type Selector */}
+        <div data-testid="campaign-type-selector">
+          <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-2">
+            <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.campaign_type') || 'Campaign Type'}
+          </label>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+            {[
+              { id: 'image_post', label: t('studio.type_image_post') || 'Image Post', icon: '/icons/campaign-types/image-post.png' },
+              { id: 'video_post', label: t('studio.type_video_post') || 'Video Post', icon: '/icons/campaign-types/video-post.png' },
+              { id: 'image_avatar', label: t('studio.type_image_avatar') || 'Image + Avatar', icon: '/icons/campaign-types/image-avatar.png' },
+              { id: 'video_avatar', label: t('studio.type_video_avatar') || 'Video + Avatar', icon: '/icons/campaign-types/video-avatar.png' },
+              { id: 'carousel', label: t('studio.type_carousel') || 'Carousel', icon: '/icons/campaign-types/carousel.png' },
+              { id: 'directed_video', label: t('studio.type_directed_video') || 'Directed Video', icon: '/icons/campaign-types/directed-video.png' },
+            ].map(type => (
+              <button key={type.id} data-testid={`campaign-type-${type.id}`}
+                onClick={() => setCampaignType(type.id)}
+                className={`relative flex flex-col items-center gap-1 rounded-xl p-2 transition-all border ${
+                  campaignType === type.id
+                    ? 'border-[#C9A84C]/40 bg-[#C9A84C]/[0.06] shadow-[0_0_12px_rgba(201,168,76,0.1)]'
+                    : 'border-white/[0.04] bg-white/[0.01] hover:border-white/[0.08] hover:bg-white/[0.02]'
+                }`}>
+                <img src={type.icon} alt={type.label} className="h-9 w-9 object-contain" />
+                <span className={`text-[7px] font-semibold text-center leading-tight ${
+                  campaignType === type.id ? 'text-[#C9A84C]' : 'text-[#888]'
+                }`}>{type.label}</span>
+                {campaignType === type.id && (
+                  <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                    <Check size={7} className="text-black" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Presenter Avatar — selectable gallery with "+" in header */}

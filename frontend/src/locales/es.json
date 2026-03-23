@@ -337,6 +337,13 @@
         "save_error": "Error al guardar perfil"
     },
     "studio": {
+        "campaign_type": "Tipo de Campana",
+        "type_image_post": "Post Imagen",
+        "type_video_post": "Post Video",
+        "type_image_avatar": "Imagen + Avatar",
+        "type_video_avatar": "Video + Avatar",
+        "type_carousel": "Carrusel",
+        "type_directed_video": "Video Dirigido",
         "campaign_name": "Nombre de la Campana",
         "campaign_name_placeholder": "Ej: Lanzamiento Black Friday, Captacion de Leads Q2...",
         "briefing_label": "Briefing de la Campana",

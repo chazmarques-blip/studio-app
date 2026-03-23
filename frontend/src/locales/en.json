@@ -337,6 +337,13 @@
         "save_error": "Error saving profile"
     },
     "studio": {
+        "campaign_type": "Campaign Type",
+        "type_image_post": "Image Post",
+        "type_video_post": "Video Post",
+        "type_image_avatar": "Image + Avatar",
+        "type_video_avatar": "Video + Avatar",
+        "type_carousel": "Carousel",
+        "type_directed_video": "Directed Video",
         "campaign_name": "Campaign Name",
         "campaign_name_placeholder": "E.g.: Black Friday Launch, Q2 Lead Generation...",
         "briefing_label": "Campaign Briefing",
