@@ -124,15 +124,15 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
       {/* Zoom modal */}
       {zoomed && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setZoomed(null)} data-testid="avatar-zoom-modal">
-          <div className="relative max-w-[85vw] max-h-[85vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
-            <img src={zoomed} alt="Zoom" className="rounded-2xl max-w-full max-h-[70vh] object-contain" />
-            <div className="flex items-center justify-center gap-3 mt-3">
+          <div className="relative max-w-[85vw] max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <img src={zoomed} alt="Zoom" className="rounded-2xl max-w-full max-h-[80vh] object-contain" />
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
               <button onClick={() => handleDownload(zoomed)} disabled={downloading} data-testid="download-avatar-btn"
-                className="btn-gold rounded-xl px-4 py-2 text-xs font-semibold flex items-center gap-2 disabled:opacity-50">
+                className="btn-gold rounded-xl px-4 py-2 text-xs font-semibold flex items-center gap-2 disabled:opacity-50 shadow-lg">
                 <Download size={14} /> {downloading ? '...' : t.download}
               </button>
-              <button onClick={() => setZoomed(null)} className="rounded-xl border border-white/10 bg-[#1A1A1A] px-4 py-2 text-xs text-[#999] hover:text-white transition flex items-center gap-1">
-                <X size={14} /> Close
+              <button onClick={() => setZoomed(null)} className="rounded-xl border border-white/10 bg-[#1A1A1A]/80 backdrop-blur px-4 py-2 text-xs text-[#999] hover:text-white transition flex items-center gap-1 shadow-lg">
+                <X size={14} />
               </button>
             </div>
           </div>
