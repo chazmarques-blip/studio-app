@@ -49,13 +49,68 @@ export function DirectedStudio({
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Load voices, music, and past projects
+  // Load voices, music, and past projects — resume in-progress projects
   useEffect(() => {
     axios.get(`${API}/studio/voices`).then(r => setVoices(r.data.voices || [])).catch(() => {});
     axios.get(`${API}/studio/music-library`).then(r => setMusicTracks(r.data.tracks || [])).catch(() => {});
     axios.get(`${API}/studio/projects`).then(r => {
-      const projs = (r.data.projects || []).filter(p => p.outputs?.length > 0);
-      setPastProjects(projs);
+      const allProjs = r.data.projects || [];
+      setPastProjects(allProjs.filter(p => p.outputs?.length > 0));
+
+      // Check for in-progress projects — resume polling
+      const inProgress = allProjs.find(p =>
+        ['starting', 'running_agents', 'generating_video'].includes(p.status)
+      );
+      if (inProgress) {
+        setStep(4);
+        setGenerating(true);
+        setBriefing(inProgress.briefing || '');
+        setAgentStatus(inProgress.agent_status || {});
+        if (inProgress.agents_output && Object.keys(inProgress.agents_output).length > 0) {
+          setAgentsOutput(inProgress.agents_output);
+        }
+        // Resume polling
+        const poll = () => {
+          axios.get(`${API}/studio/projects/${inProgress.id}/status`).then(res => {
+            const data = res.data;
+            setAgentStatus(data.agent_status || {});
+            if (data.agents_output && Object.keys(data.agents_output).length > 0) {
+              setAgentsOutput(data.agents_output);
+            }
+            if (data.status === 'complete') {
+              const videoOut = (data.outputs || []).find(o => o.type === 'video');
+              if (videoOut) setOutputs([videoOut]);
+              setGenerating(false);
+              toast.success(lang === 'pt' ? 'Vídeo gerado com sucesso!' : 'Video generated!');
+              // Refresh history
+              axios.get(`${API}/studio/projects`).then(r2 => {
+                setPastProjects((r2.data.projects || []).filter(p => p.outputs?.length > 0));
+              }).catch(() => {});
+              return;
+            }
+            if (data.status === 'error') {
+              setGenerating(false);
+              toast.error(data.error || (lang === 'pt' ? 'Erro na produção' : 'Production error'));
+              return;
+            }
+            setTimeout(poll, 5000);
+          }).catch(() => setTimeout(poll, 8000));
+        };
+        setTimeout(poll, 2000);
+        return;
+      }
+
+      // If most recent project just completed, show it
+      const justCompleted = allProjs.find(p => p.status === 'complete' && p.outputs?.length > 0);
+      if (justCompleted) {
+        const createdAt = new Date(justCompleted.created_at);
+        const now = new Date();
+        const diffMin = (now - createdAt) / 60000;
+        if (diffMin < 10) {
+          // Show the recently completed project
+          setViewingProject(justCompleted);
+        }
+      }
     }).catch(() => {});
   }, []);
 
@@ -229,15 +284,17 @@ export function DirectedStudio({
         ))}
       </div>
 
-      {/* Project History */}
+      {/* Project History — always visible */}
       {pastProjects.length > 0 && !viewingProject && step !== 4 && (
         <div className="space-y-2">
-          <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-studio-history"
-            className="text-[10px] text-[#C9A84C] hover:underline flex items-center gap-1">
-            <Film size={10} />
-            {pastProjects.length} {lang === 'pt' ? 'produções anteriores' : 'past productions'}
-            <ChevronDown size={10} className={`transition ${showHistory ? 'rotate-180' : ''}`} />
-          </button>
+          <div className="flex items-center justify-between">
+            <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-studio-history"
+              className="text-[10px] text-[#C9A84C] hover:underline flex items-center gap-1">
+              <Film size={10} />
+              {pastProjects.length} {lang === 'pt' ? 'produções' : 'productions'}
+              <ChevronDown size={10} className={`transition ${showHistory ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
           {showHistory && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {pastProjects.slice(0, 6).map(proj => {
