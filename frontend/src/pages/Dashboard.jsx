@@ -146,9 +146,11 @@ export default function Dashboard() {
           { icon: Megaphone, label: 'Marketing', path: '/marketing' },
         ].map((a, i) => (
           <button key={i} data-testid={`quick-action-${i}`} onClick={() => navigate(a.path)}
-            className="glass-card flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/20">
-            <a.icon size={15} className="text-[#C9A84C]" />
-            <p className="text-center text-[9px] font-medium text-[#888]">{a.label}</p>
+            className="glass-card group flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/25 hover:shadow-[0_0_15px_rgba(201,168,76,0.05)]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#C9A84C]/[0.06] transition group-hover:bg-[#C9A84C]/[0.12] group-hover:shadow-[0_0_10px_rgba(201,168,76,0.1)]">
+              <a.icon size={15} className="text-[#C9A84C]" />
+            </div>
+            <p className="text-center text-[9px] font-medium text-[#888] group-hover:text-[#B0B0B0] transition">{a.label}</p>
           </button>
         ))}
       </div>
@@ -163,10 +165,10 @@ export default function Dashboard() {
         ].map((s, i) => (
           <div key={i} data-testid={`stat-${i}`} className="glass-card p-2.5 transition hover:border-[#C9A84C]/20">
             <div className="mb-1.5 flex items-center justify-between">
-              <s.icon size={13} className="text-[#C9A84C]" />
+              <s.icon size={13} className="text-[#C9A84C]/70" />
               {s.trend && <ArrowUpRight size={10} className="text-[#C9A84C]" />}
             </div>
-            <p className="text-base font-bold text-white leading-tight">{s.value}</p>
+            <p className="text-base font-bold text-white leading-tight font-mono">{s.value}</p>
             <p className="text-[9px] text-[#B0B0B0] leading-tight mt-0.5">{s.label}</p>
           </div>
         ))}
@@ -267,18 +269,16 @@ export default function Dashboard() {
                     <Bot size={13} className="text-[#C9A84C]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-xs font-medium text-white">{a.name}</p>
-                    <p className="text-[9px] capitalize text-[#B0B0B0]">{a.type}</p>
-                  </div>
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <div className="text-center">
-                      <p className="text-xs font-bold text-white">{a.conversations}</p>
-                      <p className="text-[8px] text-[#B0B0B0]">chats</p>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="truncate text-xs font-medium text-white">{a.name}</p>
+                      <span className="text-[9px] font-mono text-[#C9A84C] ml-2">{a.resolved > 0 ? Math.round((a.resolved / Math.max(a.conversations, 1)) * 100) : 0}%</span>
                     </div>
-                    <div className="h-4 w-px bg-[#222]" />
-                    <div className="text-center">
-                      <p className="text-xs font-bold text-[#C9A84C]">{a.resolved}</p>
-                      <p className="text-[8px] text-[#B0B0B0]">{t('dashboard.resolved')}</p>
+                    <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
+                      <div className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-700" style={{ width: `${a.conversations > 0 ? Math.round((a.resolved / a.conversations) * 100) : 0}%` }} />
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[8px] capitalize text-[#888]">{a.type}</p>
+                      <span className="text-[8px] text-[#666]">{a.conversations} chats / {a.resolved} resolved</span>
                     </div>
                   </div>
                 </div>
