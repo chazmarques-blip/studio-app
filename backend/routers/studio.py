@@ -2,6 +2,7 @@
 import uuid
 import base64
 import os
+import asyncio
 import urllib.request
 import litellm
 import threading
@@ -63,30 +64,48 @@ def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "im
 
 
 async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via emergentintegrations (async — for API endpoints)."""
+    """Call Claude via emergentintegrations (async — for API endpoints). Retries on transient errors."""
+    import time as _time
     from emergentintegrations.llm.chat import LlmChat, UserMessage
-    chat = LlmChat(
-        api_key=EMERGENT_KEY,
-        session_id=f"studio-{uuid.uuid4().hex[:6]}",
-        system_message=system_prompt
-    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-    response = await chat.send_message(UserMessage(text=user_prompt))
-    return response.text if hasattr(response, 'text') else str(response)
+    for attempt in range(3):
+        try:
+            chat = LlmChat(
+                api_key=EMERGENT_KEY,
+                session_id=f"studio-{uuid.uuid4().hex[:6]}",
+                system_message=system_prompt
+            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+            response = await chat.send_message(UserMessage(text=user_prompt))
+            return response.text if hasattr(response, 'text') else str(response)
+        except Exception as e:
+            if attempt < 2 and any(code in str(e) for code in ["502", "503", "529", "timeout", "disconnected"]):
+                logger.warning(f"Claude attempt {attempt+1} failed: {e}. Retrying...")
+                await asyncio.sleep(5 * (attempt + 1))
+                continue
+            raise
 
 
 def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via emergentintegrations (sync — for background threads)."""
+    """Call Claude via emergentintegrations (sync — for background threads). Retries on transient errors."""
     import asyncio
+    import time as _time
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
     async def _run():
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"studio-{uuid.uuid4().hex[:6]}",
-            system_message=system_prompt
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        response = await chat.send_message(UserMessage(text=user_prompt))
-        return response.text if hasattr(response, 'text') else str(response)
+        for attempt in range(3):
+            try:
+                chat = LlmChat(
+                    api_key=EMERGENT_KEY,
+                    session_id=f"studio-{uuid.uuid4().hex[:6]}",
+                    system_message=system_prompt
+                ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+                response = await chat.send_message(UserMessage(text=user_prompt))
+                return response.text if hasattr(response, 'text') else str(response)
+            except Exception as e:
+                if attempt < 2 and any(code in str(e) for code in ["502", "503", "529", "timeout", "disconnected"]):
+                    logger.warning(f"Claude sync attempt {attempt+1} failed: {e}. Retrying...")
+                    await asyncio.sleep(5 * (attempt + 1))
+                    continue
+                raise
 
     loop = asyncio.new_event_loop()
     try:
