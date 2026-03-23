@@ -38,11 +38,13 @@ function AppHeader() {
   const { t, i18n } = useTranslation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [stats, setStats] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const profileRef = useRef(null);
   const lang = i18n.language?.substring(0, 2) || 'en';
 
   useEffect(() => {
     axios.get(`${API}/dashboard/stats`).then(r => setStats(r.data)).catch(() => {});
+    axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -100,11 +102,11 @@ function AppHeader() {
               {user?.full_name || user?.email?.split('@')[0] || 'User'}
             </span>
             <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
-              className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30 transition hover:ring-[#C9A84C]/60 hover:shadow-md hover:shadow-[#C9A84C]/20 shrink-0">
+              className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30 transition hover:ring-[#C9A84C]/60 hover:shadow-md hover:shadow-[#C9A84C]/20 shrink-0">
               <img
-                src={user?.avatar_url || DEFAULT_AVATAR}
+                src={avatarUrl || DEFAULT_AVATAR}
                 alt={user?.full_name || 'User'}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover object-[center_20%]"
                 onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
               />
             </button>
@@ -112,7 +114,7 @@ function AppHeader() {
               <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-52 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
                 <div className="mb-1 border-b border-white/[0.04] px-3 py-2.5 flex items-center gap-2.5">
                   <div className="h-10 w-10 rounded-full overflow-hidden ring-1 ring-[#C9A84C]/20 shrink-0">
-                    <img src={user?.avatar_url || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                    <img src={avatarUrl || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover object-[center_20%]" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>

@@ -6,6 +6,7 @@ class ProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     company_name: Optional[str] = None
     ui_language: Optional[str] = None
+    onboarding_completed: Optional[bool] = None
 
 
 class SignUpRequest(BaseModel):
