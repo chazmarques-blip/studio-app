@@ -45,15 +45,14 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 - Studio backend: projects CRUD, voice generation (ElevenLabs), music library, image generation (Gemini)
 
 ## In Progress
-- Directed Studio: Full end-to-end generation flow
-- Voice generation integration with ElevenLabs (needs API key)
+- Directed Studio: Voice generation integration with ElevenLabs (needs API key)
 
 ## Recently Completed (March 2026)
+- **Directed Studio full flow working end-to-end**: Avatar selection → Scene config → Voice/Music → Image generation (Gemini) → Results with download
+- Studio backend migrated from MongoDB to Supabase (tenants.settings JSONB pattern)
 - Avatar creation/editing tools shared between Auto Pipeline and Directed Studio
-- Fixed modals (avatar creation, avatar preview, company) moved outside mode ternary for universal access
-- DirectedStudio receives presenter avatars from PipelineView with full edit/create/delete/AI-edit capabilities
+- Fixed modals moved outside mode ternary for universal access
 - JSX syntax error in PipelineView.jsx fixed
-- Music library endpoint fixed (returns array)
 
 ## Upcoming Tasks (P1)
 - Complete Directed Studio Mode end-to-end flow testing with real generation

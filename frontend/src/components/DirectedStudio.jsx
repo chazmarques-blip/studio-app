@@ -85,7 +85,13 @@ export function DirectedStudio({
         project_id: project.id,
         scene_prompt: briefing,
       });
-      setOutputs(prev => [genRes.data.output, ...prev]);
+      const result = genRes.data;
+      setOutputs(prev => [{
+        id: Date.now().toString(),
+        type: 'image',
+        url: result.image_url,
+        prompt: briefing,
+      }, ...prev]);
       toast.success(lang === 'pt' ? 'Cena gerada!' : 'Scene generated!');
       setStep(4);
     } catch (err) {
