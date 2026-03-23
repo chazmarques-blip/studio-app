@@ -5,7 +5,7 @@
         "crm": "CRM",
         "analytics": "Analytics",
         "settings": "Settings",
-        "dashboard": "Home"
+        "dashboard": "Dashboard"
     },
     "landing": {
         "hero_title_1": "Deploy AI Agents",

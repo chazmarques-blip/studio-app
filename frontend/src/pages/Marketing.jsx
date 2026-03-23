@@ -2223,7 +2223,7 @@ export default function Marketing() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] pb-20">
+    <div className="min-h-screen pb-20">
       {/* Header */}
       <div className="border-b border-[#1A1A1A] px-3 py-2.5">
         <div className="flex items-center gap-2.5">

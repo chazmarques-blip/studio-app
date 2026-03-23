@@ -345,7 +345,7 @@ export default function Chat() {
 
   // Conversation list view
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 pt-6">
+    <div className="min-h-screen px-4 pt-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">{t('chat.inbox')}</h1>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1A1A1A] border border-[#2A2A2A]"><Search size={16} className="text-[#A0A0A0]" /></div>

@@ -4,10 +4,10 @@ import { BarChart3 } from 'lucide-react';
 export default function Analytics() {
   const { t } = useTranslation();
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 pt-6">
+    <div className="min-h-screen px-4 pt-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">{t('analytics.title')}</h1>
-        <button className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-1.5 text-xs text-[#A0A0A0]">{t('analytics.last_7_days')}</button>
+        <button className="glass-card px-3 py-1.5 text-xs text-[#A0A0A0]">{t('analytics.last_7_days')}</button>
       </div>
       <div className="mb-6 grid grid-cols-2 gap-3">
         {[{ label: t('analytics.total_messages'), value: '0', color: '#C9A84C' }, { label: t('dashboard.resolution_rate'), value: '0%', color: '#4CAF50' }, { label: t('analytics.avg_response'), value: '0s', color: '#2196F3' }, { label: t('analytics.total_cost'), value: '$0.00', color: '#FF9800' }].map((s, i) => (

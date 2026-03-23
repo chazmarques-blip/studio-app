@@ -19,7 +19,7 @@ function AgentCard({ agent, onDeploy, onDetails, isPersonal, lang }) {
   const avatar = getAgentAvatar(agent.name);
   return (
     <div data-testid={`agent-card-${agent.name}`}
-      className="group relative rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-2 transition-all duration-300 hover:border-[#C9A84C]/20 hover:shadow-[0_0_20px_rgba(201,168,76,0.04)]">
+      className="group relative glass-card p-2 transition-all duration-300 hover:border-[#C9A84C]/20 hover:shadow-[0_0_20px_rgba(201,168,76,0.04)]">
       <div className="flex gap-2 mb-1.5">
         <div className="h-10 w-10 rounded-lg overflow-hidden ring-1 ring-[#C9A84C]/15 shrink-0">
           {avatar ? <img src={avatar} alt={agent.name} className="h-full w-full object-cover" loading="lazy" />
@@ -53,7 +53,7 @@ function MyAgentCard({ agent }) {
   const avatar = getAgentAvatar(agent.name);
   return (
     <button data-testid={`my-agent-${agent.id}`} onClick={() => navigate(`/agents/${agent.id}/config`)}
-      className="group flex items-center gap-2.5 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-2.5 text-left transition-all hover:border-[#C9A84C]/20 active:scale-[0.99] w-full">
+      className="group flex items-center gap-2.5 glass-card p-2.5 text-left transition-all hover:border-[#C9A84C]/20 active:scale-[0.99] w-full">
       <div className="h-9 w-9 rounded-lg overflow-hidden ring-1 ring-[#C9A84C]/15 shrink-0">
         {avatar ? <img src={avatar} alt={agent.name} className="h-full w-full object-cover" loading="lazy" />
           : <div className="h-full w-full bg-[#C9A84C]/10 flex items-center justify-center"><Bot size={16} className="text-[#C9A84C]/50" /></div>}
@@ -117,7 +117,7 @@ export default function Agents() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen">
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -125,18 +125,18 @@ export default function Agents() {
             <p className="text-[9px] text-[#B0B0B0]">{marketplace.length} disponiveis</p>
           </div>
           <button data-testid="create-agent-btn" onClick={() => navigate('/agents/builder')}
-            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#B89A40] pl-1.5 pr-3 py-1.5 text-[10px] font-bold text-[#0A0A0A] transition-all hover:shadow-[0_0_20px_rgba(201,168,76,0.2)] active:scale-[0.97]">
+            className="btn-gold flex items-center gap-1.5 rounded-xl pl-1.5 pr-3 py-1.5 text-[10px] font-bold">
             <img src={DEFAULT_AVATAR} alt="" className="h-6 w-6 rounded-lg object-cover" />
             {t('agents.builder_title') || 'Create Agent'}
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex rounded-lg border border-[#1A1A1A] bg-[#0D0D0D] p-0.5 mb-2.5">
+        <div className="flex rounded-xl glass-card p-0.5 mb-2.5">
           {[{ id: 'marketplace', label: `Marketplace (${marketplace.length})` }, { id: 'my', label: `${t('agents.my_agents') || 'My Agents'} (${myAgents.length})` }].map(tb => (
             <button key={tb.id} data-testid={`tab-${tb.id}`} onClick={() => setTab(tb.id)}
-              className={`flex-1 rounded-md py-2 text-[10px] font-semibold transition-all ${
-                tab === tb.id ? 'bg-gradient-to-r from-[#C9A84C] to-[#B89A40] text-[#0A0A0A] shadow-[0_0_12px_rgba(201,168,76,0.1)]' : 'text-[#B0B0B0] hover:text-[#999]'}`}>
+              className={`flex-1 rounded-lg py-2 text-[10px] font-semibold transition-all ${
+                tab === tb.id ? 'btn-gold shadow-[0_0_12px_rgba(201,168,76,0.1)]' : 'text-[#B0B0B0] hover:text-[#999]'}`}>
               {tb.label}
             </button>
           ))}

@@ -22,7 +22,7 @@ function LeadCard({ lead, onDragStart }) {
       draggable
       onDragStart={(e) => { e.dataTransfer.setData('lead_id', lead.id); onDragStart(lead.id); }}
       onClick={() => navigate(`/crm/lead/${lead.id}`)}
-      className="group rounded-lg border border-[#1A1A1A] bg-[#0E0E0E] p-3 cursor-grab active:cursor-grabbing hover:border-[#C9A84C]/25 transition-all"
+      className="group glass-card p-3 cursor-grab active:cursor-grabbing hover:border-[#C9A84C]/25 transition-all"
     >
       <div className="flex items-start gap-2 mb-1.5">
         <GripVertical size={12} className="text-[#999] mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition" />
@@ -55,8 +55,8 @@ function StageColumn({ stage, leads, onDrop, onDragStart, t }) {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); const id = e.dataTransfer.getData('lead_id'); if (id) onDrop(id, stage.key); }}
-        className={`min-h-[180px] rounded-xl border p-2 space-y-2 transition-all ${
-          dragOver ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1A1A1A] bg-[#0B0B0B]'
+        className={`min-h-[180px] glass-card p-2 space-y-2 transition-all ${
+          dragOver ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : ''
         }`}
       >
         {stageLeads.length > 0 ? stageLeads.map(lead => (
@@ -153,7 +153,7 @@ export default function CRM() {
   const convRate = leads.length > 0 ? Math.round((leads.filter(l => l.stage === 'won').length / leads.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 pt-5 pb-8">
+    <div className="min-h-screen px-4 pt-5 pb-8">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -167,21 +167,21 @@ export default function CRM() {
 
       {/* Stats */}
       <div className="mb-4 flex gap-3 overflow-x-auto pb-1">
-        <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
+        <div className="flex-shrink-0 glass-card px-4 py-2.5">
           <p className="text-[10px] text-[#B0B0B0]">{t('crm.total_leads')}</p>
-          <p className="text-base font-bold text-white">{leads.length}</p>
+          <p className="text-base font-bold text-white font-mono">{leads.length}</p>
         </div>
-        <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
+        <div className="flex-shrink-0 glass-card px-4 py-2.5">
           <p className="text-[10px] text-[#B0B0B0]">{t('crm.pipeline_value')}</p>
-          <p className="text-base font-bold text-white flex items-center gap-1"><DollarSign size={14} className="text-[#C9A84C]" />{totalValue.toLocaleString()}</p>
+          <p className="text-base font-bold text-white flex items-center gap-1 font-mono"><DollarSign size={14} className="text-[#C9A84C]" />{totalValue.toLocaleString()}</p>
         </div>
-        <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
+        <div className="flex-shrink-0 glass-card px-4 py-2.5">
           <p className="text-[10px] text-[#B0B0B0]">Won</p>
-          <p className="text-base font-bold text-[#4ADE80]">${wonValue.toLocaleString()}</p>
+          <p className="text-base font-bold text-[#4ADE80] font-mono">${wonValue.toLocaleString()}</p>
         </div>
-        <div className="flex-shrink-0 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-4 py-2.5">
+        <div className="flex-shrink-0 glass-card px-4 py-2.5">
           <p className="text-[10px] text-[#B0B0B0]">{t('crm.conversion')}</p>
-          <p className="text-base font-bold text-white">{convRate}%</p>
+          <p className="text-base font-bold text-white font-mono">{convRate}%</p>
         </div>
       </div>
 

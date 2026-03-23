@@ -128,27 +128,7 @@ export default function Dashboard() {
   const featuredAgent = agents[activeAgentIdx] || null;
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0A] px-3 pt-4 pb-4 overflow-hidden">
-      {/* ── Background Effects (like Landing) ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="dash-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(201,168,76,0.025)" strokeWidth="0.5" />
-            </pattern>
-            <radialGradient id="grid-fade-d" cx="50%" cy="30%" r="55%">
-              <stop offset="0%" stopColor="white" stopOpacity="1" />
-              <stop offset="100%" stopColor="white" stopOpacity="0" />
-            </radialGradient>
-            <mask id="grid-mask-d"><rect width="100%" height="100%" fill="url(#grid-fade-d)" /></mask>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#dash-grid)" mask="url(#grid-mask-d)" />
-        </svg>
-        <div className="absolute left-1/4 top-0 h-[350px] w-[450px] rounded-full bg-[#C9A84C]/[0.02] blur-[140px]" />
-        <div className="absolute right-0 top-1/3 h-[250px] w-[300px] rounded-full bg-[#C9A84C]/[0.015] blur-[120px]" />
-      </div>
-
-      <div className="relative z-10">
+    <div className="min-h-screen px-3 pt-4 pb-4">
         {/* ── Header ── */}
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
           className="mb-4 flex items-center justify-between">
@@ -501,7 +481,6 @@ export default function Dashboard() {
             </div>
           </div>
         </motion.div>
-      </div>
     </div>
   );
 }

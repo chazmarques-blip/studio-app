@@ -64,7 +64,7 @@ export default function Pricing() {
   const currentIdx = planOrder.indexOf(currentPlan);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 pt-5 pb-24">
+    <div className="min-h-screen px-4 pt-5 pb-24">
       {/* Header */}
       <div className="mb-5 flex items-center gap-3">
         <button onClick={() => navigate('/settings')} className="text-[#999] hover:text-white transition"><ArrowLeft size={20} /></button>

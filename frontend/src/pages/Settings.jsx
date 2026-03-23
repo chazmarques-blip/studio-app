@@ -53,7 +53,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 pt-6">
+    <div className="min-h-screen px-4 pt-6">
       <h1 className="mb-6 text-xl font-bold text-white">{t('settings.title')}</h1>
 
       <div data-testid="profile-card" className="glass-card mb-4 p-4 cursor-pointer transition-all hover:border-[rgba(201,168,76,0.3)]" onClick={() => setShowAccount(true)}>
@@ -122,7 +122,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <button data-testid="logout-btn" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl bg-[#1A1A1A] border border-[#2A2A2A] p-4 text-left transition hover:border-red-500/30">
+      <button data-testid="logout-btn" onClick={handleLogout} className="flex w-full items-center gap-3 glass-card p-4 text-left transition hover:border-red-500/30">
         <LogOut size={16} className="text-red-400" /><span className="text-sm font-medium text-red-400">{t('settings.sign_out')}</span>
       </button>
     </div>
