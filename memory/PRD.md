@@ -103,6 +103,16 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - **Layout**: Imagens maiores (w-32), aspect 3/4, maxHeight 356px (mostra 2 completas), auto-scroll
 - **Testes**: 11/11 backend + 100% frontend (iteration_85)
 
+### Global Glass-Morphism Redesign — Internal Pages (2026-03-23)
+- **AppLayout**: Adicionado TechGridBg (SVG grid pattern + gold glow blur) como background fixo para todas as paginas internas
+- **Nav**: "Home"/"Inicio" → "Dashboard" na barra inferior (en, pt, es)
+- **Dashboard**: Featured Agent card com avatares reais (Sarah, Carlos, Sophia, Emily, James), animacoes framer-motion, background glow
+- **Agents**: Tabs e cards migrados para glass-card, botao btn-gold
+- **CRM**: Stats cards e lead cards migrados para glass-card, font-mono nos numeros
+- **Settings**: Botao logout com glass-card, menus consistentes
+- **Analytics, Chat, Marketing, Pricing**: Background unificado (removido bg-[#0A0A0A] hardcoded)
+- **Testes**: 14/14 frontend tests PASS (iteration_87) - 100%
+
 ## Backlog
 ### P0 (In Progress)
 - Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs
