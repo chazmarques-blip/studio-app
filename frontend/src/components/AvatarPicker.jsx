@@ -46,17 +46,23 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
         body: JSON.stringify({ avatar_url: url })
       });
       if (!response.ok) throw new Error('Download failed');
-      const blob = await response.blob();
+      const blob = new Blob([await response.arrayBuffer()], { type: 'image/png' });
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = blobUrl;
-      a.download = 'agentzz_avatar.png';
+      a.download = `agentzz_avatar_${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 3000);
       toast.success(lang === 'pt' ? 'Avatar baixado!' : 'Avatar downloaded!');
-    } catch { toast.error('Download failed'); }
+    } catch (err) {
+      console.error('Download error:', err);
+      toast.error('Download failed');
+    }
     finally { setDownloading(false); }
   };
 
