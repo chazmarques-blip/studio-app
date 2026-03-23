@@ -1277,7 +1277,7 @@ export default function PipelineView({ context }) {
           <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-2">
             <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.campaign_type') || 'Campaign Type'}
           </label>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+          <div className="flex flex-wrap gap-4 sm:gap-6">
             {[
               { id: 'image_post', label: t('studio.type_image_post') || 'Image Post', icon: '/icons/campaign-types/image-post.png' },
               { id: 'video_post', label: t('studio.type_video_post') || 'Video Post', icon: '/icons/campaign-types/video-post.png' },
@@ -1288,20 +1288,17 @@ export default function PipelineView({ context }) {
             ].map(type => (
               <button key={type.id} data-testid={`campaign-type-${type.id}`}
                 onClick={() => setCampaignType(type.id)}
-                className={`relative flex flex-col items-center gap-1 rounded-xl p-2 transition-all border ${
+                className="flex flex-col items-center gap-1 group cursor-pointer">
+                <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
                   campaignType === type.id
-                    ? 'border-[#C9A84C]/40 bg-[#C9A84C]/[0.06] shadow-[0_0_12px_rgba(201,168,76,0.1)]'
-                    : 'border-white/[0.04] bg-white/[0.01] hover:border-white/[0.08] hover:bg-white/[0.02]'
+                    ? 'ring-2 ring-[#C9A84C]/60 shadow-[0_0_10px_rgba(201,168,76,0.15)]'
+                    : 'opacity-60 group-hover:opacity-100'
                 }`}>
-                <img src={type.icon} alt={type.label} className="h-9 w-9 object-contain" />
-                <span className={`text-[7px] font-semibold text-center leading-tight ${
-                  campaignType === type.id ? 'text-[#C9A84C]' : 'text-[#888]'
+                  <img src={type.icon} alt={type.label} className="h-full w-full object-contain" />
+                </div>
+                <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
+                  campaignType === type.id ? 'text-[#C9A84C]' : 'text-[#777] group-hover:text-[#B0B0B0]'
                 }`}>{type.label}</span>
-                {campaignType === type.id && (
-                  <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-[#C9A84C] flex items-center justify-center">
-                    <Check size={7} className="text-black" />
-                  </div>
-                )}
               </button>
             ))}
           </div>
