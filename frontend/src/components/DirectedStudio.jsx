@@ -40,6 +40,9 @@ export function DirectedStudio({
   const [voiceTexts, setVoiceTexts] = useState({});
   const [generatingVoice, setGeneratingVoice] = useState(null);
   const [generatedAudios, setGeneratedAudios] = useState({});
+  const [agentStatus, setAgentStatus] = useState({});
+  const [agentsOutput, setAgentsOutput] = useState(null);
+  const [videoDuration, setVideoDuration] = useState(8);
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -65,10 +68,16 @@ export function DirectedStudio({
   };
 
   const handleGenerate = async () => {
-    if (!selectedAvatars.length) { toast.error('Select at least one avatar'); return; }
-    if (!briefing.trim()) { toast.error('Add a scene description'); return; }
+    if (!selectedAvatars.length) { toast.error(lang === 'pt' ? 'Selecione ao menos um avatar' : 'Select at least one avatar'); return; }
+    if (!briefing.trim()) { toast.error(lang === 'pt' ? 'Adicione uma descrição' : 'Add a scene description'); return; }
     setGenerating(true);
+    setAgentStatus({ photography: 'pending', screenwriter: 'pending', music: 'pending', audio: 'pending', video: 'pending' });
+    setAgentsOutput(null);
+    setOutputs([]);
+    setStep(4);
+
     try {
+      // Step 1: Create project
       const projRes = await axios.post(`${API}/studio/projects`, {
         name: `Studio ${new Date().toLocaleString()}`,
         scene_type: sceneType,
@@ -79,23 +88,79 @@ export function DirectedStudio({
         music_config: selectedMusic ? { track_id: selectedMusic } : {},
         language: lang,
       });
-      const project = projRes.data;
+      const projectId = projRes.data.id;
 
-      const genRes = await axios.post(`${API}/studio/generate-image`, {
-        project_id: project.id,
+      // Step 2: Start background production pipeline
+      await axios.post(`${API}/studio/start-production`, {
+        project_id: projectId,
         scene_prompt: briefing,
+        video_duration: videoDuration,
       });
-      const result = genRes.data;
+
+      // Step 3: Poll for status every 5 seconds
+      const poll = async () => {
+        try {
+          const statusRes = await axios.get(`${API}/studio/projects/${projectId}/status`);
+          const data = statusRes.data;
+          setAgentStatus(data.agent_status || {});
+          if (data.agents_output && Object.keys(data.agents_output).length > 0) {
+            setAgentsOutput(data.agents_output);
+          }
+
+          if (data.status === 'complete') {
+            const videoOut = (data.outputs || []).find(o => o.type === 'video');
+            if (videoOut) {
+              setOutputs([videoOut]);
+            }
+            setGenerating(false);
+            toast.success(lang === 'pt' ? 'Vídeo gerado com sucesso!' : 'Video generated!');
+            return;
+          }
+
+          if (data.status === 'error') {
+            setGenerating(false);
+            toast.error(data.error || (lang === 'pt' ? 'Erro na produção' : 'Production error'));
+            return;
+          }
+
+          // Keep polling
+          setTimeout(poll, 5000);
+        } catch {
+          setTimeout(poll, 8000);
+        }
+      };
+
+      // Start polling after 3 seconds
+      setTimeout(poll, 3000);
+
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message || 'Generation failed';
+      toast.error(detail);
+      setGenerating(false);
+    }
+  };
+
+  const handleGenerateImageFallback = async () => {
+    setGenerating(true);
+    try {
+      const projList = await axios.get(`${API}/studio/projects`);
+      const lastProj = projList.data.projects?.[0];
+      if (!lastProj) return;
+
+      const imgRes = await axios.post(`${API}/studio/generate-image`, {
+        project_id: lastProj.id,
+        scene_prompt: briefing,
+      }, { timeout: 120000 });
+
       setOutputs(prev => [{
         id: Date.now().toString(),
         type: 'image',
-        url: result.image_url,
+        url: imgRes.data.image_url,
         prompt: briefing,
       }, ...prev]);
-      toast.success(lang === 'pt' ? 'Cena gerada!' : 'Scene generated!');
-      setStep(4);
+      toast.success(lang === 'pt' ? 'Imagem gerada!' : 'Image generated!');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Generation failed');
+      toast.error(err.response?.data?.detail || 'Image generation failed');
     } finally {
       setGenerating(false);
     }
@@ -429,6 +494,23 @@ export function DirectedStudio({
             </div>
           </div>
 
+          {/* Video Duration */}
+          <div>
+            <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-[#777] uppercase tracking-wider">
+              <Film size={10} /> {lang === 'pt' ? 'Duração do Vídeo' : 'Video Duration'}
+            </label>
+            <div className="flex gap-2">
+              {[4, 8, 12].map(d => (
+                <button key={d} onClick={() => setVideoDuration(d)}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                    videoDuration === d ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#222] bg-[#111] text-[#555] hover:border-[#333]'
+                  }`} data-testid={`video-duration-${d}`}>
+                  {d}s
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-2">
             <button onClick={() => setStep(2)} className="flex-1 rounded-lg border border-[#333] py-2 text-xs text-[#999] hover:text-white transition">
               ← {lang === 'pt' ? 'Voltar' : 'Back'}
@@ -441,37 +523,145 @@ export function DirectedStudio({
         </div>
       )}
 
-      {/* Step 4: Results */}
+      {/* Step 4: Production & Results */}
       {step === 4 && (
-        <div className="glass-card p-4 space-y-3" data-testid="studio-step-results">
-          <h3 className="text-sm font-semibold text-white">
-            {lang === 'pt' ? 'Resultados' : 'Results'}
-          </h3>
-
-          {outputs.length === 0 ? (
-            <div className="text-center py-8">
-              <Sparkles size={24} className="mx-auto text-[#333] mb-2" />
-              <p className="text-xs text-[#666]">{lang === 'pt' ? 'Nenhum resultado ainda' : 'No results yet'}</p>
+        <div className="glass-card p-4 space-y-4" data-testid="studio-step-results">
+          {/* Agents Status Panel */}
+          {generating && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Film size={14} className="text-[#C9A84C]" />
+                {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: 'photography', icon: '📸', label: lang === 'pt' ? 'Dir. Fotografia' : 'Photography Dir.' },
+                  { key: 'screenwriter', icon: '✍️', label: lang === 'pt' ? 'Redator/Autor' : 'Screenwriter' },
+                  { key: 'music', icon: '🎵', label: lang === 'pt' ? 'Dir. Musical' : 'Music Director' },
+                  { key: 'audio', icon: '🎙️', label: lang === 'pt' ? 'Dir. Áudio' : 'Audio Director' },
+                ].map(agent => (
+                  <div key={agent.key}
+                    className={`rounded-lg border px-3 py-2 text-[10px] flex items-center gap-2 transition-all ${
+                      agentStatus[agent.key] === 'done' ? 'border-green-500/30 bg-green-500/5 text-green-400' :
+                      agentStatus[agent.key] === 'running' ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C] animate-pulse' :
+                      'border-[#222] bg-[#111] text-[#555]'
+                    }`}>
+                    <span>{agent.icon}</span>
+                    <span className="flex-1">{agent.label}</span>
+                    {agentStatus[agent.key] === 'done' && <Check size={10} className="text-green-400" />}
+                    {agentStatus[agent.key] === 'running' && <RefreshCw size={10} className="animate-spin" />}
+                  </div>
+                ))}
+              </div>
+              {agentStatus.video === 'running' && (
+                <div className="rounded-lg border border-[#C9A84C]/30 bg-[#C9A84C]/5 px-3 py-3 flex items-center gap-3 animate-pulse">
+                  <Film size={16} className="text-[#C9A84C]" />
+                  <div>
+                    <p className="text-[11px] font-semibold text-[#C9A84C]">Sora 2 — {lang === 'pt' ? 'Gerando Vídeo' : 'Generating Video'}...</p>
+                    <p className="text-[9px] text-[#666]">{lang === 'pt' ? 'Isto pode levar 2-5 minutos' : 'This may take 2-5 minutes'}</p>
+                  </div>
+                </div>
+              )}
+              {agentStatus.error && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-[10px] text-red-400">
+                  {agentStatus.error}
+                </div>
+              )}
             </div>
-          ) : (
+          )}
+
+          {/* Agents Output Summary */}
+          {agentsOutput && !generating && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-white">{lang === 'pt' ? 'Análise dos Agentes' : 'Agents Analysis'}</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {agentsOutput.photography_director?.visual_direction && (
+                  <div className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2">
+                    <p className="text-[8px] font-bold text-[#C9A84C] uppercase mb-0.5">📸 {lang === 'pt' ? 'Dir. Fotografia' : 'Photography'}</p>
+                    <p className="text-[9px] text-[#999] line-clamp-2">{agentsOutput.photography_director.visual_direction}</p>
+                  </div>
+                )}
+                {agentsOutput.screenwriter?.narration && (
+                  <div className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2">
+                    <p className="text-[8px] font-bold text-[#C9A84C] uppercase mb-0.5">✍️ {lang === 'pt' ? 'Redator' : 'Screenwriter'}</p>
+                    <p className="text-[9px] text-[#999] line-clamp-2">{agentsOutput.screenwriter.narration}</p>
+                    {agentsOutput.screenwriter.dialogues?.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {agentsOutput.screenwriter.dialogues.slice(0, 3).map((d, i) => (
+                          <p key={i} className="text-[8px] text-[#777] italic">"{d.line}" — {d.character}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {agentsOutput.music_director?.mood && (
+                  <div className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2">
+                    <p className="text-[8px] font-bold text-[#C9A84C] uppercase mb-0.5">🎵 {lang === 'pt' ? 'Dir. Musical' : 'Music'}</p>
+                    <p className="text-[9px] text-[#999]">{agentsOutput.music_director.mood} — {agentsOutput.music_director.recommended_genre}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Results Title */}
+          {!generating && outputs.length > 0 && (
+            <h3 className="text-sm font-semibold text-white">
+              {lang === 'pt' ? 'Resultados' : 'Results'}
+            </h3>
+          )}
+
+          {/* Video/Image Results */}
+          {outputs.length > 0 && (
             <div className="space-y-3">
               {outputs.map((out, i) => (
                 <div key={out.id || i} className="rounded-xl overflow-hidden border border-white/5">
-                  {out.type === 'image' && (
-                    <div className="relative">
-                      <img src={out.url} alt="" className="w-full rounded-xl" />
-                      <div className="absolute bottom-2 right-2 flex gap-1.5">
-                        <a href={out.url} download className="btn-gold rounded-lg px-3 py-1.5 text-[10px] font-semibold flex items-center gap-1">
-                          <Download size={12} /> Download
-                        </a>
+                  {out.type === 'video' && (
+                    <div className="relative bg-black">
+                      <video
+                        controls
+                        autoPlay
+                        className="w-full rounded-xl"
+                        data-testid="studio-video-player"
+                        src={out.url}
+                      />
+                      <div className="absolute top-2 left-2 rounded-md bg-black/70 px-2 py-0.5">
+                        <span className="text-[8px] text-[#C9A84C] font-bold">SORA 2</span>
                       </div>
                     </div>
                   )}
-                  <div className="p-2">
-                    <p className="text-[9px] text-[#666] truncate">{out.prompt}</p>
+                  {out.type === 'image' && (
+                    <div className="relative">
+                      <img src={out.url} alt="" className="w-full rounded-xl" />
+                    </div>
+                  )}
+                  <div className="p-2 flex items-center justify-between">
+                    <p className="text-[9px] text-[#666] truncate flex-1">{out.prompt}</p>
+                    <a href={out.url} download className="btn-gold rounded-lg px-3 py-1.5 text-[10px] font-semibold flex items-center gap-1 ml-2 shrink-0">
+                      <Download size={12} /> Download
+                    </a>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Error fallback: offer image generation */}
+          {!generating && agentStatus.video === 'error' && outputs.length === 0 && (
+            <div className="text-center py-4 space-y-2">
+              <p className="text-xs text-[#999]">{lang === 'pt' ? 'O vídeo falhou. Deseja gerar uma imagem da cena?' : 'Video failed. Generate image instead?'}</p>
+              <button onClick={handleGenerateImageFallback}
+                className="btn-gold rounded-lg px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 mx-auto">
+                <Image size={12} /> {lang === 'pt' ? 'Gerar Imagem' : 'Generate Image'}
+              </button>
+            </div>
+          )}
+
+          {/* No results yet */}
+          {!generating && outputs.length === 0 && !agentStatus.error && (
+            <div className="text-center py-8">
+              <Sparkles size={24} className="mx-auto text-[#333] mb-2" />
+              <p className="text-xs text-[#666]">{lang === 'pt' ? 'Nenhum resultado ainda' : 'No results yet'}</p>
             </div>
           )}
 
@@ -497,12 +687,13 @@ export function DirectedStudio({
           )}
 
           <div className="flex gap-2">
-            <button onClick={() => setStep(2)} className="flex-1 rounded-lg border border-[#333] py-2 text-xs text-[#999] hover:text-white transition">
+            <button onClick={() => { setStep(2); setOutputs([]); setAgentsOutput(null); setAgentStatus({}); }}
+              className="flex-1 rounded-lg border border-[#333] py-2 text-xs text-[#999] hover:text-white transition">
               ← {lang === 'pt' ? 'Nova Cena' : 'New Scene'}
             </button>
             <button onClick={handleGenerate} disabled={generating}
               className="flex-1 btn-gold rounded-lg py-2 text-xs font-semibold disabled:opacity-30 flex items-center justify-center gap-2">
-              <Sparkles size={14} /> {lang === 'pt' ? 'Regenerar' : 'Regenerate'}
+              <Sparkles size={14} /> {generating ? '...' : (lang === 'pt' ? 'Regenerar' : 'Regenerate')}
             </button>
           </div>
         </div>
