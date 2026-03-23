@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, Upload, Sparkles, RotateCcw, Check, X, ZoomIn, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -7,38 +7,58 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const DEFAULT_AVATAR = 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/e9e9c643eda7783e1e8eebf5e075b6cae5fbdd49181a39682085dd90fe69f0b9.png';
 const MAX_GENERATIONS = 5;
 
-export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compact = false }) {
+export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compact = false, showGallery = false }) {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoBase64, setPhotoBase64] = useState(null);
-  const [generated, setGenerated] = useState([]); // [{url, variation}]
+  const [generated, setGenerated] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(-1);
   const [generating, setGenerating] = useState(false);
   const [genCount, setGenCount] = useState(0);
   const [cameraActive, setCameraActive] = useState(false);
   const [stream, setStream] = useState(null);
   const [zoomed, setZoomed] = useState(null);
+  const [gallery, setGallery] = useState([]);
+  const [downloading, setDownloading] = useState(false);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
   const L = {
-    en: { selfie: 'Selfie', upload: 'Upload', generate: 'Generate AI Avatar', regen: 'Regenerate', save: 'Save Avatar', skip: 'Skip for now', creating: 'Creating...', left: 'left', download: 'Download' },
-    pt: { selfie: 'Selfie', upload: 'Upload', generate: 'Gerar Avatar IA', regen: 'Regenerar', save: 'Salvar Avatar', skip: 'Pular por agora', creating: 'Criando...', left: 'restantes', download: 'Baixar' },
-    es: { selfie: 'Selfie', upload: 'Upload', generate: 'Generar Avatar IA', regen: 'Regenerar', save: 'Guardar Avatar', skip: 'Saltar por ahora', creating: 'Creando...', left: 'restantes', download: 'Descargar' },
+    en: { selfie: 'Selfie', upload: 'Upload', generate: 'Generate AI Avatar', regen: 'Regenerate', save: 'Save Avatar', skip: 'Skip for now', creating: 'Creating...', left: 'left', download: 'Download', myAvatars: 'My Avatars', useThis: 'Use this' },
+    pt: { selfie: 'Selfie', upload: 'Upload', generate: 'Gerar Avatar IA', regen: 'Regenerar', save: 'Salvar Avatar', skip: 'Pular por agora', creating: 'Criando...', left: 'restantes', download: 'Baixar', myAvatars: 'Meus Avatares', useThis: 'Usar este' },
+    es: { selfie: 'Selfie', upload: 'Upload', generate: 'Generar Avatar IA', regen: 'Regenerar', save: 'Guardar Avatar', skip: 'Saltar por ahora', creating: 'Creando...', left: 'restantes', download: 'Descargar', myAvatars: 'Mis Avatares', useThis: 'Usar este' },
   };
   const t = L[lang] || L.en;
 
+  useEffect(() => {
+    if (showGallery) {
+      axios.get(`${API}/avatar/me`).then(r => setGallery(r.data.gallery || [])).catch(() => {});
+    }
+  }, [showGallery]);
+
   const handleDownload = async (url) => {
+    setDownloading(true);
     try {
-      const response = await axios.post(`${API}/avatar/download`, { avatar_url: url }, { responseType: 'blob' });
-      const blobUrl = URL.createObjectURL(response.data);
+      const token = localStorage.getItem('token');
+      const fullApi = `${process.env.REACT_APP_BACKEND_URL}/api`;
+      const response = await fetch(`${fullApi}/avatar/download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ avatar_url: url })
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
       a.download = 'agentzz_avatar.png';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
       toast.success(lang === 'pt' ? 'Avatar baixado!' : 'Avatar downloaded!');
     } catch { toast.error('Download failed'); }
+    finally { setDownloading(false); }
   };
 
   const handleFile = useCallback((e) => {
@@ -85,10 +105,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
     if (!photoBase64 || genCount >= MAX_GENERATIONS) return;
     setGenerating(true);
     try {
-      const { data } = await axios.post(`${API}/avatar/generate`, {
-        photo_base64: photoBase64,
-        variation_index: genCount
-      });
+      const { data } = await axios.post(`${API}/avatar/generate`, { photo_base64: photoBase64, variation_index: genCount });
       const newGen = [...generated, { url: data.avatar_url, variation: data.variation }];
       setGenerated(newGen);
       setSelectedIdx(newGen.length - 1);
@@ -102,53 +119,59 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
     const chosen = selectedIdx >= 0 ? generated[selectedIdx]?.url : null;
     if (!chosen) return;
     try {
-      const cleanupUrls = generated.filter((_, i) => i !== selectedIdx).map(g => g.url);
-      const { data } = await axios.post(`${API}/avatar/save`, { avatar_url: chosen, cleanup_urls: cleanupUrls });
-      if (onSave) onSave(data.avatar_url);
+      await axios.post(`${API}/avatar/select`, { avatar_url: chosen });
+      if (onSave) onSave(chosen);
     } catch { toast.error('Save failed'); }
+  };
+
+  const selectFromGallery = async (url) => {
+    try {
+      await axios.post(`${API}/avatar/select`, { avatar_url: url });
+      if (onSave) onSave(url);
+      toast.success(lang === 'pt' ? 'Avatar atualizado!' : 'Avatar updated!');
+    } catch { toast.error('Failed'); }
   };
 
   const selectedUrl = selectedIdx >= 0 ? generated[selectedIdx]?.url : null;
   const displayUrl = selectedUrl || photoPreview || currentAvatar || DEFAULT_AVATAR;
   const canGenerate = photoBase64 && genCount < MAX_GENERATIONS && !generating;
   const showingPhoto = !selectedUrl && photoPreview;
+  const hasGenerated = generated.length > 0;
 
   return (
     <div className="flex flex-col items-center" data-testid="avatar-picker">
       {/* Zoom modal */}
       {zoomed && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setZoomed(null)} data-testid="avatar-zoom-modal">
-          <div className="relative max-w-[85vw] max-h-[85vh]" onClick={e => e.stopPropagation()}>
-            <img src={zoomed} alt="Zoom" className="rounded-2xl max-w-full max-h-[75vh] object-contain" />
+          <div className="relative max-w-[85vw] max-h-[85vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <img src={zoomed} alt="Zoom" className="rounded-2xl max-w-full max-h-[70vh] object-contain" />
             <div className="flex items-center justify-center gap-3 mt-3">
-              {selectedIdx >= 0 && (
-                <button onClick={() => handleDownload(zoomed)} data-testid="download-avatar-btn"
-                  className="btn-gold rounded-xl px-4 py-2 text-xs font-semibold flex items-center gap-2">
-                  <Download size={14} /> {t.download}
-                </button>
-              )}
-              <button onClick={() => setZoomed(null)} className="rounded-xl border border-white/10 bg-[#1A1A1A] px-4 py-2 text-xs text-[#999] hover:text-white transition">
-                <X size={14} />
+              <button onClick={() => handleDownload(zoomed)} disabled={downloading} data-testid="download-avatar-btn"
+                className="btn-gold rounded-xl px-4 py-2 text-xs font-semibold flex items-center gap-2 disabled:opacity-50">
+                <Download size={14} /> {downloading ? '...' : t.download}
+              </button>
+              <button onClick={() => setZoomed(null)} className="rounded-xl border border-white/10 bg-[#1A1A1A] px-4 py-2 text-xs text-[#999] hover:text-white transition flex items-center gap-1">
+                <X size={14} /> Close
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Avatar display area */}
+      {/* Avatar display area with thumbnails */}
       <div className="flex items-center justify-center gap-2 mb-3">
-        {/* Left side thumbnails */}
-        <div className="flex flex-col gap-1.5 items-center w-10">
+        {/* Left thumbnails */}
+        <div className="flex flex-col gap-1.5 items-center" style={{ width: 44 }}>
           {generated.slice(0, 2).map((g, i) => (
             <button key={i} onClick={() => setSelectedIdx(i)} data-testid={`avatar-thumb-${i}`}
-              className={`h-9 w-9 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === i ? 'ring-[#C9A84C] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
+              className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === i ? 'ring-[#C9A84C] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
               <img src={g.url} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
 
         {/* Main avatar */}
-        <div className="relative group cursor-pointer" onClick={() => setZoomed(displayUrl)}>
+        <div className="relative group cursor-pointer" onClick={() => !generating && setZoomed(displayUrl)}>
           <div className={`${compact ? 'h-24 w-24' : 'h-32 w-32'} rounded-full overflow-hidden ring-2 ${showingPhoto ? 'ring-white/20' : 'ring-[#C9A84C]/30'} transition-all group-hover:ring-[#C9A84C]/60`} data-testid="avatar-main-preview">
             {generating ? (
               <div className="h-full w-full flex flex-col items-center justify-center bg-[#111] gap-1">
@@ -171,13 +194,13 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
           )}
         </div>
 
-        {/* Right side thumbnails */}
-        <div className="flex flex-col gap-1.5 items-center w-10">
+        {/* Right thumbnails */}
+        <div className="flex flex-col gap-1.5 items-center" style={{ width: 44 }}>
           {generated.slice(2, 4).map((g, i) => {
             const realIdx = i + 2;
             return (
               <button key={realIdx} onClick={() => setSelectedIdx(realIdx)} data-testid={`avatar-thumb-${realIdx}`}
-                className={`h-9 w-9 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === realIdx ? 'ring-[#C9A84C] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
+                className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === realIdx ? 'ring-[#C9A84C] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
                 <img src={g.url} alt="" className="h-full w-full object-cover" />
               </button>
             );
@@ -210,7 +233,6 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
       {/* Action buttons */}
       {!cameraActive && (
         <div className="w-full space-y-2">
-          {/* Selfie + Upload row */}
           {!photoPreview && (
             <div className="flex gap-2">
               <button onClick={startCamera} data-testid="camera-btn"
@@ -225,11 +247,10 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
             </div>
           )}
 
-          {/* Photo loaded - Generate / Regenerate */}
           {photoPreview && (
             <>
               <div className="flex gap-2">
-                {generated.length === 0 ? (
+                {!hasGenerated ? (
                   <button onClick={generate} disabled={!canGenerate} data-testid="generate-avatar-btn"
                     className="flex-1 btn-gold rounded-xl py-2.5 text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40">
                     <Sparkles size={14} /> {t.generate}
@@ -240,10 +261,12 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
                       className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#C9A84C]/25 transition disabled:opacity-30">
                       <RotateCcw size={13} className="text-[#C9A84C]" /> {t.regen} ({MAX_GENERATIONS - genCount})
                     </button>
-                    <button onClick={() => handleDownload(selectedUrl)} data-testid="download-inline-btn"
-                      className="glass-card flex items-center justify-center px-3 py-2.5 text-[#B0B0B0] hover:text-[#C9A84C] hover:border-[#C9A84C]/25 transition">
-                      <Download size={14} />
-                    </button>
+                    {selectedUrl && (
+                      <button onClick={() => handleDownload(selectedUrl)} disabled={downloading} data-testid="download-inline-btn"
+                        className="glass-card flex items-center justify-center px-3 py-2.5 text-[#B0B0B0] hover:text-[#C9A84C] hover:border-[#C9A84C]/25 transition disabled:opacity-40">
+                        <Download size={14} />
+                      </button>
+                    )}
                     <button onClick={handleSave} disabled={selectedIdx < 0} data-testid="save-avatar-btn"
                       className="flex-1 btn-gold rounded-xl py-2.5 text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40">
                       <Check size={14} /> {t.save}
@@ -251,23 +274,41 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
                   </>
                 )}
               </div>
-              {/* Change photo */}
-              <div className="flex gap-2">
-                <button onClick={() => { setPhotoPreview(null); setPhotoBase64(null); setGenerated([]); setSelectedIdx(-1); setGenCount(0); }}
-                  className="flex-1 text-[10px] text-[#666] hover:text-[#999] transition text-center py-1">
-                  Change photo
-                </button>
-              </div>
+              <button onClick={() => { setPhotoPreview(null); setPhotoBase64(null); setGenerated([]); setSelectedIdx(-1); setGenCount(0); }}
+                className="w-full text-[10px] text-[#666] hover:text-[#999] transition text-center py-1">
+                Change photo
+              </button>
             </>
           )}
 
-          {/* Skip */}
           {onSkip && (
             <button onClick={onSkip} data-testid="skip-avatar-btn"
               className="w-full text-[10px] text-[#666] hover:text-[#C9A84C] transition text-center py-1">
               {t.skip}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Gallery of saved avatars */}
+      {showGallery && gallery.length > 0 && (
+        <div className="w-full mt-4 pt-3 border-t border-white/[0.04]" data-testid="avatar-gallery">
+          <p className="text-[10px] text-[#888] font-semibold mb-2">{t.myAvatars}</p>
+          <div className="flex flex-wrap gap-2">
+            {gallery.map((g, i) => (
+              <div key={i} className="relative group">
+                <button onClick={() => setZoomed(g.url)}
+                  className={`h-12 w-12 rounded-full overflow-hidden ring-2 transition-all ${currentAvatar === g.url ? 'ring-[#C9A84C]' : 'ring-white/10 hover:ring-white/30'}`}
+                  data-testid={`gallery-avatar-${i}`}>
+                  <img src={g.url} alt="" className="h-full w-full object-cover" />
+                </button>
+                <button onClick={() => selectFromGallery(g.url)}
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#0A0A0A] border border-white/10 rounded px-1 py-px text-[7px] text-[#888] opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                  {t.useThis}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -22,56 +22,67 @@ DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04d
 BASE_PROMPT = """Transform this person's photo into a CYBORG half-human half-machine portrait.
 
 ABSOLUTE RULES (NEVER BREAK THESE):
-1. The face MUST be the EXACT same person from the photo - same face shape, jawline, nose, lips, eyes, skin tone, hair
-2. Keep ALL accessories EXACTLY as in photo: glasses, earrings, beard, piercings, hat - everything
-3. Camera angle MUST be FRONT-FACING, looking DIRECTLY at the camera - NO side angles, NO 3/4 view
+1. The face MUST be the EXACT same person from the photo - identical face shape, jawline, nose, lips, eyes, skin tone, hair
+2. Keep ALL accessories EXACTLY as in photo: glasses, earrings, beard, piercings, hat - EVERYTHING must be preserved
+3. Camera angle MUST be FRONT-FACING, looking DIRECTLY at the camera - NO side angles, NO 3/4 view, NO tilted head
 4. The person's expression should match the photo (smiling if smiling, serious if serious)
-5. Show head, neck and upper chest - NOT just the face
+5. Show head, neck and upper chest - NOT a tight face crop
 6. Background MUST be very dark, almost black (#0A0A0A)
-7. 3D photorealistic render quality, 8K detail
-8. The human parts must look EXACTLY like the real photo - same skin texture, same features"""
+
+REALISM & QUALITY:
+- Hyper-photorealistic 3D render - must look like a real photograph, not a painting or cartoon
+- Skin texture: visible pores, natural imperfections, real skin subsurface scattering
+- Eyes: wet reflections, realistic iris detail, natural catchlights
+- Hair: individual strand detail, natural volume and shine
+- Lighting must be cinematic with realistic shadows and highlights
+- 8K resolution quality, film-grain subtle texture
+- The human parts MUST be indistinguishable from a real photograph"""
 
 STYLE_VARIATIONS = [
     """CYBORG MIX STYLE A - Classic Half Split:
-- Left half of face is fully HUMAN (identical to photo)
-- Right half transitions into exposed titanium mechanical endoskeleton
-- Glowing cyan/teal circuit lines on the mechanical half
-- Right eye replaced with cybernetic lens glowing blue
-- Mechanical jaw plates visible on right side
-- Chrome and titanium metal parts with blue LED seams""",
+- Left half of face is fully HUMAN (photo-identical, untouched)
+- Right half transitions into exposed titanium/carbon-fiber endoskeleton
+- Glowing cyan/teal micro-circuits visible in the seams between skin and metal
+- Right eye: cybernetic lens with blue-white glow, mechanical iris rings
+- Mechanical jaw and cheekbone plates with brushed titanium finish
+- Transition zone: skin gradually peeling away to reveal tech beneath
+- Blue LED pinpoints along the mechanical seam lines""",
 
-    """CYBORG MIX STYLE B - Circuit Veins:
-- Face remains 90% human (identical to photo)
-- Glowing teal/cyan circuit patterns visible UNDER the skin like luminous veins
-- Circuits spread from the right temple across cheek and down neck
-- Both eyes natural but with subtle cyan glow ring in iris
-- Small metallic implant plates at temples
-- Neck shows circuits beneath translucent skin""",
+    """CYBORG MIX STYLE B - Subdermal Circuits:
+- Face remains 90% human (photo-identical)
+- Bioluminescent circuit patterns glow BENEATH the skin like electric veins
+- Circuits spread from right temple across cheek and down neck in branching patterns
+- Both eyes natural but with subtle cyan glow ring deep in the iris
+- Small brushed-chrome implant plates at both temples (sleek, flush with skin)
+- The circuits pulse with teal light, visible through translucent skin
+- Neck area shows denser circuit patterns converging at the spine""",
 
-    """CYBORG MIX STYLE C - Armored Plates:
-- Face fully human (identical to photo) but with chrome armor additions
-- Metallic armor plates attached to jawline and cheekbones (like Iron Man faceplate pieces)
-- Forehead has a slim chrome band/implant
-- Glowing orange/amber accent lights on armor pieces
-- One ear has mechanical audio enhancement module
-- Neck protected by segmented chrome collar armor""",
+    """CYBORG MIX STYLE C - Combat Armor Integration:
+- Face fully human (photo-identical) with chrome/titanium armor additions
+- Tactical armor plates attached along jawline (like Iron Man partial faceplate)
+- Forehead: slim chrome neural-interface band with amber status LED
+- One cheek has armored plate with micro-ventilation slits
+- Ear replaced with advanced tactical audio module (chrome finish)
+- Neck protected by segmented carbon-fiber collar with orange accent lights
+- Military-grade cybernetic aesthetic, battle-ready look""",
 
-    """CYBORG MIX STYLE D - Terminator Style:
-- Face mostly human (identical to photo) with DAMAGE revealing machine underneath
-- Skin torn/peeled on one cheek showing chrome skull and red glowing eye beneath
-- Metallic endoskeleton visible at temple and jaw
-- One eye glowing red through the skin tear
-- Rest of face perfectly human
-- Dramatic contrast between flesh and metal""",
+    """CYBORG MIX STYLE D - Damaged Reveal (Terminator):
+- Face mostly human (photo-identical) with realistic battle damage
+- Skin realistically torn/scraped on one cheek revealing chrome skull and red-glowing servo eye
+- The damage looks organic - not clean cuts, but realistic wounds showing metal beneath
+- Endoskeleton visible at temple: pistons, servos, chrome bone structure
+- One eye fully cybernetic with glowing red scanner lens
+- Rest of face perfectly natural and photo-realistic
+- Dramatic contrast between vulnerable flesh and indestructible metal""",
 
-    """CYBORG MIX STYLE E - Holographic Tech:
-- Face fully human (identical to photo)
-- Holographic HUD overlay projected from a small temple device
-- Floating holographic data particles around the head
-- Eyes show holographic targeting/scan interface
-- Subtle blue holographic grid pattern floating near the skin
-- Small chrome neural-link device behind one ear
-- The most subtle and elegant variation""",
+    """CYBORG MIX STYLE E - Holographic Neural Interface:
+- Face fully human (photo-identical) - most subtle and elegant variation
+- Sleek chrome neural-link device behind right ear with holographic projector
+- Floating holographic HUD elements: data readouts, scan lines near the eyes
+- Eyes show holographic targeting interface overlay (subtle blue grid in iris)
+- Tiny floating holographic particles around the temples
+- Minimal physical modifications - emphasis on projected tech
+- The most futuristic and clean variation""",
 ]
 
 
@@ -80,9 +91,8 @@ class GenerateAvatarRequest(BaseModel):
     variation_index: Optional[int] = None
 
 
-class SaveAvatarRequest(BaseModel):
+class SelectAvatarRequest(BaseModel):
     avatar_url: str
-    cleanup_urls: Optional[List[str]] = None
 
 
 class DownloadAvatarRequest(BaseModel):
@@ -94,26 +104,24 @@ def _get_tenant(user_id: str):
     return r.data[0] if r.data else None
 
 
-def _save_avatar_url(user_id: str, avatar_url: str):
+def _get_settings(user_id: str):
     tenant = _get_tenant(user_id)
     if tenant:
-        settings = tenant.get("settings", {}) or {}
-        settings["avatar_url"] = avatar_url
-        supabase.table("tenants").update({"settings": settings}).eq("id", tenant["id"]).execute()
+        return tenant.get("settings", {}) or {}, tenant["id"]
+    return {}, None
 
 
-def get_avatar_url(user_id: str):
-    tenant = _get_tenant(user_id)
-    if tenant:
-        settings = tenant.get("settings", {}) or {}
-        return settings.get("avatar_url")
-    return None
+def _save_settings(tenant_id: str, settings: dict):
+    supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
 
 
 @router.get("/me")
 async def get_my_avatar(user=Depends(get_current_user)):
-    url = get_avatar_url(user["id"])
-    return {"avatar_url": url or DEFAULT_AVATAR}
+    settings, _ = _get_settings(user["id"])
+    return {
+        "avatar_url": settings.get("avatar_url") or DEFAULT_AVATAR,
+        "gallery": settings.get("avatar_gallery", [])
+    }
 
 
 @router.post("/generate")
@@ -132,7 +140,6 @@ async def generate_avatar(req: GenerateAvatarRequest, user=Depends(get_current_u
         idx = req.variation_index if req.variation_index is not None else random.randint(0, len(STYLE_VARIATIONS) - 1)
         idx = idx % len(STYLE_VARIATIONS)
         style = STYLE_VARIATIONS[idx]
-
         full_prompt = f"{BASE_PROMPT}\n\n{style}"
 
         session_id = f"avatar-gen-{user['id']}-{uuid.uuid4().hex[:8]}"
@@ -155,6 +162,15 @@ async def generate_avatar(req: GenerateAvatarRequest, user=Depends(get_current_u
             f.write(image_bytes)
 
         avatar_url = f"/avatars/{filename}"
+
+        # Save to gallery in DB
+        settings, tenant_id = _get_settings(user["id"])
+        if tenant_id:
+            gallery = settings.get("avatar_gallery", [])
+            gallery.append({"url": avatar_url, "variation": idx, "style": ["Classic Split", "Subdermal Circuits", "Combat Armor", "Terminator", "Holographic"][idx]})
+            settings["avatar_gallery"] = gallery
+            _save_settings(tenant_id, settings)
+
         return {"avatar_url": avatar_url, "variation": idx, "status": "ok"}
 
     except HTTPException:
@@ -164,18 +180,12 @@ async def generate_avatar(req: GenerateAvatarRequest, user=Depends(get_current_u
         raise HTTPException(status_code=500, detail=f"Avatar generation failed: {str(e)}")
 
 
-@router.post("/save")
-async def save_avatar(req: SaveAvatarRequest, user=Depends(get_current_user)):
-    _save_avatar_url(user["id"], req.avatar_url)
-    if req.cleanup_urls:
-        for url in req.cleanup_urls:
-            if url.startswith("/avatars/") and url != req.avatar_url:
-                filepath = f"/app/frontend/public{url}"
-                try:
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
-                except Exception:
-                    pass
+@router.post("/select")
+async def select_avatar(req: SelectAvatarRequest, user=Depends(get_current_user)):
+    settings, tenant_id = _get_settings(user["id"])
+    if tenant_id:
+        settings["avatar_url"] = req.avatar_url
+        _save_settings(tenant_id, settings)
     return {"avatar_url": req.avatar_url, "status": "ok"}
 
 
@@ -199,7 +209,7 @@ async def download_avatar(req: DownloadAvatarRequest, user=Depends(get_current_u
         img = Image.open(avatar_path).convert("RGBA")
         w, h = img.size
 
-        bar_height = max(40, int(h * 0.06))
+        bar_height = max(50, int(h * 0.07))
         result = Image.new("RGBA", (w, h + bar_height), (10, 10, 10, 255))
         result.paste(img, (0, 0))
 
@@ -209,27 +219,16 @@ async def download_avatar(req: DownloadAvatarRequest, user=Depends(get_current_u
         logo_path = "/app/frontend/public/logo-agentzz.png"
         if os.path.exists(logo_path):
             logo = Image.open(logo_path).convert("RGBA")
-            logo_h = int(bar_height * 0.6)
+            logo_h = int(bar_height * 0.55)
             logo_w = int(logo.width * (logo_h / logo.height))
             logo = logo.resize((logo_w, logo_h), Image.LANCZOS)
             lx = (w - logo_w) // 2
             ly = h + (bar_height - logo_h) // 2
             result.paste(logo, (lx, ly), logo)
-        else:
-            try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(bar_height * 0.4))
-            except Exception:
-                font = ImageFont.load_default()
-            text = "agentZZ"
-            bbox = draw.textbbox((0, 0), text, font=font)
-            tw = bbox[2] - bbox[0]
-            tx = (w - tw) // 2
-            ty = h + (bar_height - (bbox[3] - bbox[1])) // 2
-            draw.text((tx, ty), text, fill=(201, 168, 76, 255), font=font)
 
         result_rgb = result.convert("RGB")
         buf = BytesIO()
-        result_rgb.save(buf, format="PNG", quality=95)
+        result_rgb.save(buf, format="PNG")
         buf.seek(0)
 
         return StreamingResponse(buf, media_type="image/png", headers={
@@ -245,5 +244,8 @@ async def download_avatar(req: DownloadAvatarRequest, user=Depends(get_current_u
 
 @router.post("/set-default")
 async def set_default_avatar(user=Depends(get_current_user)):
-    _save_avatar_url(user["id"], DEFAULT_AVATAR)
+    settings, tenant_id = _get_settings(user["id"])
+    if tenant_id:
+        settings["avatar_url"] = DEFAULT_AVATAR
+        _save_settings(tenant_id, settings)
     return {"avatar_url": DEFAULT_AVATAR, "status": "ok"}
