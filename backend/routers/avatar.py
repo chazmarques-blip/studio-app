@@ -21,43 +21,46 @@ DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04d
 
 BASE_PROMPT = """Transform this person's photo into a CYBORG half-human half-machine portrait.
 
-ABSOLUTE RULES (NEVER BREAK THESE):
-1. The face MUST be the EXACT same person from the photo - identical face shape, jawline, nose, lips, eyes, skin tone, hair
-2. Keep ALL accessories EXACTLY as in photo: glasses, earrings, beard, piercings, hat - EVERYTHING must be preserved
-3. The person's expression should match the photo (smiling if smiling, serious if serious)
-4. Background MUST be very dark, almost black (#0A0A0A)
+IDENTITY PRESERVATION (NEVER BREAK):
+1. The face MUST be the EXACT same person - identical face shape, jawline, nose, lips, eyes, skin tone, hair style and color
+2. Keep ALL accessories from the photo: glasses, earrings, beard, piercings, necklaces, chains — EVERYTHING preserved exactly
+3. The person's expression MUST match the photo (smiling if smiling, serious if serious)
 
-POSE CORRECTION (CRITICAL):
-- The output MUST ALWAYS show the person looking STRAIGHT AHEAD, DIRECTLY at the camera
-- Even if the input photo is at an angle, tilted, or from the side — CORRECT IT to be perfectly FRONTAL and CENTERED
-- Head must be perfectly straight and level — NO tilt left, right, up, or down
-- Both eyes must be at the same horizontal level
-- Nose pointing directly at the camera
-- Symmetric composition — face centered in the frame
+POSE & FRAMING:
+- Face MUST be perfectly FRONTAL, looking DIRECTLY at the camera — correct any angle from the source photo
+- Head straight and level, both eyes at same horizontal line
+- Frame from above the head to mid-chest — leave 15% empty space above the head
+- Shoulders and upper chest visible — NOT a tight face crop
+- Background: solid very dark, almost black (#0A0A0A)
 
-FRAMING (CRITICAL - DO NOT CROP TIGHT):
-- Wide medium shot: show from ABOVE the head down to MID-CHEST
-- Leave generous empty space (15-20%) above the top of the head
-- Shoulders and upper torso MUST be fully visible on both sides
-- The face should occupy only about 35-40% of the total image height
-- Think "professional headshot" or "corporate portrait" — NOT a selfie crop
-- NEVER fill the frame with just the face — always show the full head + shoulders + upper chest
+MECHANICAL AUGMENTATION DESIGN (FOLLOW THIS EXACT STYLE):
+- Metallic jaw frame: a sleek brushed-steel guard that wraps around the lower jaw and chin, with subtle ventilation slits and clean panel lines
+- Carbon fiber neck armor: a fitted neckpiece in matte black carbon fiber texture, covering the neck and upper chest, with small integrated amber/orange LED strip lights
+- Ear mechanism: a compact, intricate metallic device attached to one or both ears, suggesting advanced auditory augmentation
+- Forehead band: a thin, minimalist metallic visor/band across the forehead with tiny amber indicator lights
+- All mechanical parts must be brushed steel / matte silver color — NOT gold, NOT chrome, NOT black metal
+- Small amber/orange LED accent lights integrated into mechanical pieces for visual continuity
+- Mechanical parts must seamlessly blend with skin at the borders — smooth organic-to-metal transitions
 
-SKIN & HUMAN-MACHINE BALANCE:
-- Overall balance: 60% machine / 40% human
-- Skin MUST be very smooth, almost porcelain-like — NO visible pores, NO wrinkles, NO blemishes
-- Skin should look slightly artificial — like high-end silicone or bioengineered tissue
-- A subtle synthetic sheen across the skin surface — slightly reflective, like polished material
-- Skin tone slightly cooled with a faint metallic/steel undertone
-- Eyes: keep original iris color but add a soft inner glow, as if lit from within
-- Hair: add subtle metallic or fiber-optic strands woven throughout
-- Some areas of skin should subtly blend into mechanical plating — transitions should be seamless and organic
+SKIN & TEXTURE:
+- Skin must be SMOOTH — reduced visible pores, no wrinkles, no blemishes
+- Slight synthetic sheen on the skin surface — like high-quality silicone or bioengineered tissue
+- Skin tone slightly cooled with a subtle steel/blue undertone — less organic, more artificial
+- Subsurface scattering still present for realism — skin should glow slightly from within
+- The overall feel: a real human who has been enhanced — smooth, polished, slightly artificial skin
 
-REALISM & QUALITY:
-- Hyper-photorealistic 3D render quality — cinematic, NOT cartoon or painting
-- Cinematic lighting: cool blue/teal accent on the mechanical side, warm on the human side
-- 8K resolution quality with subtle film grain
-- The result should feel like a real augmented human — not a robot, but clearly more than human"""
+LIGHTING (CRITICAL FOR CONSISTENCY):
+- Strong key light from upper left — warm, casting defined highlights on the left side of face
+- Cool blue/teal fill light from the right — subtle, creating contrast with warm skin tones
+- Amber/orange glow from the LED elements on mechanical parts
+- High contrast between light and shadow — dramatic, cinematic portrait lighting
+- Realistic shadow depth without obscuring facial details
+
+QUALITY:
+- Hyper-photorealistic 3D render — must look like a cinematic still, NOT a painting or cartoon
+- 8K resolution detail with subtle film grain
+- Material contrast: soft organic skin vs hard brushed metal vs textured carbon fiber
+- The result must feel like a real augmented human — sophisticated, advanced, not a cheap robot costume"""
 
 STYLE_VARIATIONS = [
     """CYBORG MIX STYLE A - Classic Half Split:
