@@ -94,7 +94,7 @@ export function DirectedStudio({
     setTimeout(poll, 3000);
   };
 
-  // Send message to Screenwriter
+  // Send message to Screenwriter (background + polling)
   const sendChat = async () => {
     if (!chatInput.trim() || chatLoading) return;
     const msg = chatInput.trim();
@@ -106,17 +106,50 @@ export function DirectedStudio({
         project_id: projectId,
         message: msg,
         language: lang,
-      }, { timeout: 120000 });
-      setProjectId(res.data.project_id);
-      setScenes(res.data.scenes || []);
-      setCharacters(res.data.characters || []);
-      setChatMessages(prev => [...prev, { role: 'assistant', text: res.data.message }]);
+      }, { timeout: 15000 });
+      const pid = res.data.project_id;
+      setProjectId(pid);
+      // Poll for screenwriter result
+      pollChatResult(pid);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Screenwriter error');
       setChatMessages(prev => [...prev, { role: 'assistant', text: '❌ Erro ao processar. Tente novamente.' }]);
-    } finally {
       setChatLoading(false);
     }
+  };
+
+  const pollChatResult = (pid) => {
+    const poll = () => {
+      axios.get(`${API}/studio/projects/${pid}/status`).then(res => {
+        const d = res.data;
+        if (d.chat_status === 'done') {
+          // Get the last assistant message from chat_history
+          const history = d.chat_history || [];
+          const lastAssistant = [...history].reverse().find(m => m.role === 'assistant');
+          if (lastAssistant) {
+            setChatMessages(prev => {
+              // Avoid duplicating if already added
+              const lastMsg = prev[prev.length - 1];
+              if (lastMsg?.role === 'assistant' && lastMsg?.text === lastAssistant.text) return prev;
+              return [...prev, { role: 'assistant', text: lastAssistant.text }];
+            });
+          }
+          setScenes(d.scenes || []);
+          setCharacters(d.characters || []);
+          setChatLoading(false);
+          return;
+        }
+        if (d.chat_status === 'error') {
+          toast.error(d.error || 'Erro ao processar');
+          setChatMessages(prev => [...prev, { role: 'assistant', text: `❌ ${d.error || 'Erro ao processar. Tente novamente.'}` }]);
+          setChatLoading(false);
+          return;
+        }
+        // Still thinking
+        setTimeout(poll, 3000);
+      }).catch(() => setTimeout(poll, 5000));
+    };
+    setTimeout(poll, 2000);
   };
 
   // Link existing avatars to characters

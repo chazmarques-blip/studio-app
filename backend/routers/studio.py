@@ -182,6 +182,8 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         raise HTTPException(status_code=404, detail="Project not found")
     return {
         "status": project.get("status"),
+        "chat_status": project.get("chat_status"),
+        "chat_history": project.get("chat_history", []),
         "agent_status": project.get("agent_status", {}),
         "agents_output": project.get("agents_output", {}),
         "scenes": project.get("scenes", []),
@@ -243,65 +245,41 @@ RULES:
 - Language: {lang}"""
 
 
-@router.post("/chat")
-async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)):
-    """Interactive chat with the Screenwriter agent."""
-    lang = req.language or "pt"
-
-    # Get or create project
-    if req.project_id:
-        settings, projects, project = _get_project(tenant["id"], req.project_id)
+def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, lang: str):
+    """Background thread: call Claude screenwriter and save result."""
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
         if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
-    else:
-        # Create new project
-        settings = _get_settings(tenant["id"])
-        projects = settings.get("studio_projects", [])
-        now = datetime.now(timezone.utc).isoformat()
-        project = {
-            "id": uuid.uuid4().hex[:12],
-            "name": req.message[:50],
-            "scene_type": "multi_scene",
-            "briefing": req.message,
-            "scenes": [],
-            "characters": [],
-            "chat_history": [],
-            "agents_output": {},
-            "agent_status": {},
-            "outputs": [],
-            "status": "scripting",
-            "error": None,
-            "language": lang,
-            "created_at": now,
-            "updated_at": now,
-        }
-        projects.insert(0, project)
+            return
 
-    # Build chat context
-    chat_history = project.get("chat_history", [])
-    chat_history.append({"role": "user", "text": req.message})
+        chat_history = project.get("chat_history", [])
 
-    # Build full prompt with history
-    history_text = "\n".join([
-        f"{'USER' if m['role']=='user' else 'SCREENWRITER'}: {m['text'][:500]}"
-        for m in chat_history[-6:]
-    ])
+        history_text = "\n".join([
+            f"{'USER' if m['role']=='user' else 'SCREENWRITER'}: {m['text'][:500]}"
+            for m in chat_history[-6:]
+        ])
 
-    system = SCREENWRITER_SYSTEM.replace("{lang}", lang)
-    user_prompt = f"""Previous conversation:
+        system = SCREENWRITER_SYSTEM.replace("{lang}", lang)
+        user_prompt = f"""Previous conversation:
 {history_text}
 
-Current request: {req.message}
+Current request: {message}
 
 Create or update the screenplay based on this conversation. Return the complete screenplay as JSON."""
 
-    try:
-        result = await _call_claude_async(system, user_prompt)
+        result = _call_claude_sync(system, user_prompt)
         parsed = _parse_json(result)
+
+        # Re-read project (may have changed)
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+        chat_history = project.get("chat_history", [])
 
         if parsed:
             project["scenes"] = parsed.get("scenes", [])
             project["characters"] = parsed.get("characters", [])
+            project["agents_output"] = project.get("agents_output", {})
             project["agents_output"]["screenwriter"] = {
                 "title": parsed.get("title", ""),
                 "research_notes": parsed.get("research_notes", ""),
@@ -323,20 +301,77 @@ Create or update the screenplay based on this conversation. Return the complete 
         chat_history.append({"role": "assistant", "text": assistant_text})
         project["chat_history"] = chat_history[-20:]
         project["status"] = "scripting"
+        project["chat_status"] = "done"
         project["updated_at"] = datetime.now(timezone.utc).isoformat()
-        settings["studio_projects"] = projects
-        _save_settings(tenant["id"], settings)
+        _save_project(tenant_id, settings, projects)
 
-        return {
-            "project_id": project["id"],
-            "message": assistant_text,
-            "scenes": project.get("scenes", []),
-            "characters": project.get("characters", []),
-            "screenplay": parsed,
-        }
+        logger.info(f"Studio [{project_id}]: Screenwriter done — {len(project.get('scenes',[]))} scenes")
+
     except Exception as e:
-        logger.error(f"Screenwriter chat error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Studio [{project_id}] screenwriter error: {e}")
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project:
+            project["chat_status"] = "error"
+            project["error"] = str(e)[:300]
+            _save_project(tenant_id, settings, projects)
+
+
+@router.post("/chat")
+async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)):
+    """Start screenwriter in background (avoids K8s 60s proxy timeout)."""
+    lang = req.language or "pt"
+
+    if req.project_id:
+        settings, projects, project = _get_project(tenant["id"], req.project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+    else:
+        settings = _get_settings(tenant["id"])
+        projects = settings.get("studio_projects", [])
+        now = datetime.now(timezone.utc).isoformat()
+        project = {
+            "id": uuid.uuid4().hex[:12],
+            "name": req.message[:50],
+            "scene_type": "multi_scene",
+            "briefing": req.message,
+            "scenes": [],
+            "characters": [],
+            "chat_history": [],
+            "agents_output": {},
+            "agent_status": {},
+            "outputs": [],
+            "status": "scripting",
+            "chat_status": "thinking",
+            "error": None,
+            "language": lang,
+            "created_at": now,
+            "updated_at": now,
+        }
+        projects.insert(0, project)
+
+    # Save user message and set thinking status
+    chat_history = project.get("chat_history", [])
+    chat_history.append({"role": "user", "text": req.message})
+    project["chat_history"] = chat_history[-20:]
+    project["chat_status"] = "thinking"
+    project["error"] = None
+    _save_project(tenant["id"], settings, projects)
+
+    # Start background thread
+    thread = threading.Thread(
+        target=_run_screenwriter_background,
+        args=(tenant["id"], project["id"], req.message, lang),
+        daemon=True,
+    )
+    thread.start()
+
+    return {
+        "project_id": project["id"],
+        "status": "thinking",
+        "message": None,
+        "scenes": project.get("scenes", []),
+        "characters": project.get("characters", []),
+    }
 
 
 # ── STEP 3: Multi-Scene Production Pipeline ──
