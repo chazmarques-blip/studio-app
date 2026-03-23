@@ -180,3 +180,6 @@ video:-webkit-full-screen { position: fixed; top: 0; left: 0; width: 100vw; heig
 video:fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; }
 dialog::backdrop, [role="dialog"]::backdrop { z-index: 99990; }
 
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

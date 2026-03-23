@@ -6,6 +6,7 @@ import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Ca
 import { toast } from 'sonner';
 import axios from 'axios';
 import { AvatarPicker } from '../components/AvatarPicker';
+import { DateScrollPicker } from '../components/DateScrollPicker';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const DEFAULT_AVATAR = 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/e9e9c643eda7783e1e8eebf5e075b6cae5fbdd49181a39682085dd90fe69f0b9.png';
@@ -30,25 +31,6 @@ function applyMask(value, mask) {
     result += mask[i] === '#' ? digits[di++] : mask[i];
   }
   return result;
-}
-
-function isoToDisplay(iso) {
-  if (!iso || !iso.includes('-')) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-function displayToISO(display) {
-  const parts = display.split('/');
-  if (parts.length === 3 && parts[2].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  return '';
-}
-
-function formatDateInput(value) {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
 }
 
 function parsePhoneCountry(fullPhone) {
@@ -83,7 +65,7 @@ export default function SettingsPage() {
   const [lastName, setLastName] = useState('');
   const [company, setCompany] = useState('');
   const [preferredContact, setPreferredContact] = useState('whatsapp');
-  const [birthDisplay, setBirthDisplay] = useState('');
+  const [birthDateISO, setBirthDateISO] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneCountry, setPhoneCountry] = useState(COUNTRIES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -99,7 +81,7 @@ export default function SettingsPage() {
       setFirstName(nameParts[0] || '');
       setLastName(nameParts.slice(1).join(' ') || '');
       setCompany(r.data.company_name || '');
-      setBirthDisplay(isoToDisplay(r.data.birth_date || ''));
+      setBirthDateISO(r.data.birth_date || '');
       const parsed = parsePhoneCountry(r.data.phone || '');
       setPhoneCountry(parsed.country);
       setPhoneNumber(parsed.number);
@@ -111,23 +93,17 @@ export default function SettingsPage() {
     setPhoneNumber(applyMask(e.target.value, phoneCountry.mask));
   }, [phoneCountry]);
 
-  const handleDateChange = useCallback((e) => {
-    const formatted = formatDateInput(e.target.value);
-    if (formatted.length <= 10) setBirthDisplay(formatted);
-  }, []);
-
   const handleLogout = async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); };
 
   const handleSaveAccount = async () => {
     setSaving(true);
     try {
       const fullPhone = phoneNumber ? `${phoneCountry.dial} ${phoneNumber}` : '';
-      const birthISO = displayToISO(birthDisplay);
       const fullName = `${firstName} ${lastName}`.trim();
       await updateProfile({
         full_name: fullName,
         company_name: company,
-        birth_date: birthISO,
+        birth_date: birthDateISO,
         phone: fullPhone,
         preferred_contact: preferredContact,
       });
@@ -230,11 +206,10 @@ export default function SettingsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 flex items-center gap-1 text-xs text-[#999]">
-                  <Calendar size={11} /> {lang === 'pt' ? 'Nascimento' : lang === 'es' ? 'Nacimiento' : 'Birth Date'}
+                <label className="mb-1 block text-xs text-[#999]">
+                  {lang === 'pt' ? 'Nascimento' : lang === 'es' ? 'Nacimiento' : 'Birth Date'}
                 </label>
-                <input data-testid="account-birthdate-input" type="text" value={birthDisplay} onChange={handleDateChange} placeholder="dd/mm/yyyy" maxLength={10}
-                  className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                <DateScrollPicker value={birthDateISO} onChange={setBirthDateISO} compact />
               </div>
               <div>
                 <label className="mb-1 block text-xs text-[#999]">

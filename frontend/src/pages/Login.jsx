@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ArrowLeft, Check, Zap, Star, Crown, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { DateScrollPicker } from '../components/DateScrollPicker';
 
 const PLAN_ICONS = [null, Zap, Star, Crown];
 
@@ -36,13 +37,6 @@ function applyMask(value, mask) {
   return result;
 }
 
-function formatDateInput(value) {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
-}
-
 function capitalizeWord(str) {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -59,7 +53,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [birthDateDisplay, setBirthDateDisplay] = useState('');
+  const [birthDateISO, setBirthDateISO] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -76,20 +70,14 @@ export default function Login() {
     setPhoneNumber(masked);
   }, [selectedCountry]);
 
-  const handleDateChange = useCallback((e) => {
-    const formatted = formatDateInput(e.target.value);
-    if (formatted.length <= 10) setBirthDateDisplay(formatted);
-  }, []);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (isSignUp) {
         const fullPhone = phoneNumber ? `${selectedCountry.dial} ${phoneNumber}` : '';
-        const birthISO = dateDisplayToISO(birthDateDisplay);
         const fullName = `${firstName} ${lastName}`.trim();
-        await signUp(email, password, fullName, { birth_date: birthISO, phone: fullPhone, preferred_contact: preferredContact });
+        await signUp(email, password, fullName, { birth_date: birthDateISO, phone: fullPhone, preferred_contact: preferredContact });
         navigate('/onboarding');
       } else {
         const { data } = await signIn(email, password);
@@ -223,8 +211,7 @@ export default function Login() {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">Birth Date</label>
-                      <input data-testid="input-birthdate" type="text" value={birthDateDisplay} onChange={handleDateChange} placeholder="dd/mm/yyyy" maxLength={10}
-                        className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                      <DateScrollPicker value={birthDateISO} onChange={setBirthDateISO} />
                     </div>
                     <div>
                       <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">Preferred Contact</label>
