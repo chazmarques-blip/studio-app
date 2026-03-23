@@ -43,12 +43,13 @@ function formatDateInput(value) {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
 }
 
-function dateDisplayToISO(display) {
-  const parts = display.split('/');
-  if (parts.length === 3 && parts[2].length === 4) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
-  return '';
+function capitalizeWord(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function capitalizeName(str) {
+  return str.split(' ').map(w => w ? capitalizeWord(w) : '').join(' ');
 }
 
 export default function Login() {
@@ -56,7 +57,8 @@ export default function Login() {
   const [isSignUp, setIsSignUp] = useState(searchParams.get('tab') === 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [birthDateDisplay, setBirthDateDisplay] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
@@ -86,6 +88,7 @@ export default function Login() {
       if (isSignUp) {
         const fullPhone = phoneNumber ? `${selectedCountry.dial} ${phoneNumber}` : '';
         const birthISO = dateDisplayToISO(birthDateDisplay);
+        const fullName = `${firstName} ${lastName}`.trim();
         await signUp(email, password, fullName, { birth_date: birthISO, phone: fullPhone, preferred_contact: preferredContact });
         navigate('/onboarding');
       } else {
@@ -205,10 +208,17 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-2.5">
               {isSignUp && (
                 <>
-                  <div>
-                    <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">Full Name</label>
-                    <input data-testid="input-fullname" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name"
-                      className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">First Name</label>
+                      <input data-testid="input-firstname" type="text" value={firstName} onChange={(e) => setFirstName(capitalizeName(e.target.value))} placeholder="John"
+                        className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                    </div>
+                    <div>
+                      <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">Last Name</label>
+                      <input data-testid="input-lastname" type="text" value={lastName} onChange={(e) => setLastName(capitalizeName(e.target.value))} placeholder="Smith"
+                        className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>

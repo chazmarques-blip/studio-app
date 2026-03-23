@@ -62,6 +62,10 @@ function parsePhoneCountry(fullPhone) {
   return { country: COUNTRIES[0], number: fullPhone };
 }
 
+function capitalizeName(str) {
+  return str.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
+}
+
 const channelStatus = [
   { name: 'WhatsApp', connected: false },
   { name: 'Instagram', connected: false },
@@ -75,11 +79,10 @@ export default function SettingsPage() {
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const [showAccount, setShowAccount] = useState(location.state?.openAccount || false);
-  const [accountForm, setAccountForm] = useState({
-    full_name: user?.full_name || '',
-    company: user?.company || '',
-    preferred_contact: user?.preferred_contact || 'whatsapp',
-  });
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [company, setCompany] = useState('');
+  const [preferredContact, setPreferredContact] = useState('whatsapp');
   const [birthDisplay, setBirthDisplay] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneCountry, setPhoneCountry] = useState(COUNTRIES[0]);
@@ -92,14 +95,15 @@ export default function SettingsPage() {
   useEffect(() => {
     axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
     axios.get(`${API}/auth/me`).then(r => {
+      const nameParts = (r.data.full_name || '').split(' ');
+      setFirstName(nameParts[0] || '');
+      setLastName(nameParts.slice(1).join(' ') || '');
+      setCompany(r.data.company_name || '');
       setBirthDisplay(isoToDisplay(r.data.birth_date || ''));
       const parsed = parsePhoneCountry(r.data.phone || '');
       setPhoneCountry(parsed.country);
       setPhoneNumber(parsed.number);
-      setAccountForm(prev => ({
-        ...prev,
-        preferred_contact: r.data.preferred_contact || 'whatsapp',
-      }));
+      setPreferredContact(r.data.preferred_contact || 'whatsapp');
     }).catch(() => {});
   }, []);
 
@@ -119,12 +123,13 @@ export default function SettingsPage() {
     try {
       const fullPhone = phoneNumber ? `${phoneCountry.dial} ${phoneNumber}` : '';
       const birthISO = displayToISO(birthDisplay);
+      const fullName = `${firstName} ${lastName}`.trim();
       await updateProfile({
-        full_name: accountForm.full_name,
-        company_name: accountForm.company,
+        full_name: fullName,
+        company_name: company,
         birth_date: birthISO,
         phone: fullPhone,
-        preferred_contact: accountForm.preferred_contact,
+        preferred_contact: preferredContact,
       });
       toast.success(t('profile.saved'));
       setShowAccount(false);
@@ -206,14 +211,21 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs text-[#999]">{t('profile.name')}</label>
-              <input data-testid="account-name-input" value={accountForm.full_name} onChange={e => setAccountForm(p => ({ ...p, full_name: e.target.value }))}
-                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs text-[#999]">{lang === 'pt' ? 'Nome' : lang === 'es' ? 'Nombre' : 'First Name'}</label>
+                <input data-testid="account-firstname-input" value={firstName} onChange={e => setFirstName(capitalizeName(e.target.value))}
+                  placeholder="John" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-[#999]">{lang === 'pt' ? 'Sobrenome' : lang === 'es' ? 'Apellido' : 'Last Name'}</label>
+                <input data-testid="account-lastname-input" value={lastName} onChange={e => setLastName(capitalizeName(e.target.value))}
+                  placeholder="Smith" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+              </div>
             </div>
             <div>
               <label className="mb-1 block text-xs text-[#999]">{t('profile.company')}</label>
-              <input data-testid="account-company-input" value={accountForm.company} onChange={e => setAccountForm(p => ({ ...p, company: e.target.value }))}
+              <input data-testid="account-company-input" value={company} onChange={e => setCompany(e.target.value)}
                 className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -229,12 +241,12 @@ export default function SettingsPage() {
                   {lang === 'pt' ? 'Contato Preferido' : lang === 'es' ? 'Contacto' : 'Preferred Contact'}
                 </label>
                 <div className="flex gap-1.5">
-                  <button type="button" data-testid="settings-contact-whatsapp" onClick={() => setAccountForm(p => ({ ...p, preferred_contact: 'whatsapp' }))}
-                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${accountForm.preferred_contact === 'whatsapp' ? 'border-[#25D366]/50 bg-[#25D366]/10 text-[#25D366]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
+                  <button type="button" data-testid="settings-contact-whatsapp" onClick={() => setPreferredContact('whatsapp')}
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'whatsapp' ? 'border-[#25D366]/50 bg-[#25D366]/10 text-[#25D366]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
                     WhatsApp
                   </button>
-                  <button type="button" data-testid="settings-contact-sms" onClick={() => setAccountForm(p => ({ ...p, preferred_contact: 'sms' }))}
-                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${accountForm.preferred_contact === 'sms' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
+                  <button type="button" data-testid="settings-contact-sms" onClick={() => setPreferredContact('sms')}
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'sms' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
                     SMS
                   </button>
                 </div>
