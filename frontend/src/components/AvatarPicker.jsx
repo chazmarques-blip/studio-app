@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Camera, Upload, Sparkles, RotateCcw, Check, X, ZoomIn } from 'lucide-react';
+import { Camera, Upload, Sparkles, RotateCcw, Check, X, ZoomIn, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -22,11 +22,24 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
   const canvasRef = useRef(null);
 
   const L = {
-    en: { selfie: 'Selfie', upload: 'Upload', generate: 'Generate AI Avatar', regen: 'Regenerate', save: 'Save Avatar', skip: 'Skip for now', creating: 'Creating...', left: 'left', zoom: 'Tap to zoom' },
-    pt: { selfie: 'Selfie', upload: 'Upload', generate: 'Gerar Avatar IA', regen: 'Regenerar', save: 'Salvar Avatar', skip: 'Pular por agora', creating: 'Criando...', left: 'restantes', zoom: 'Toque p/ ampliar' },
-    es: { selfie: 'Selfie', upload: 'Upload', generate: 'Generar Avatar IA', regen: 'Regenerar', save: 'Guardar Avatar', skip: 'Saltar por ahora', creating: 'Creando...', left: 'restantes', zoom: 'Toca p/ ampliar' },
+    en: { selfie: 'Selfie', upload: 'Upload', generate: 'Generate AI Avatar', regen: 'Regenerate', save: 'Save Avatar', skip: 'Skip for now', creating: 'Creating...', left: 'left', download: 'Download' },
+    pt: { selfie: 'Selfie', upload: 'Upload', generate: 'Gerar Avatar IA', regen: 'Regenerar', save: 'Salvar Avatar', skip: 'Pular por agora', creating: 'Criando...', left: 'restantes', download: 'Baixar' },
+    es: { selfie: 'Selfie', upload: 'Upload', generate: 'Generar Avatar IA', regen: 'Regenerar', save: 'Guardar Avatar', skip: 'Saltar por ahora', creating: 'Creando...', left: 'restantes', download: 'Descargar' },
   };
   const t = L[lang] || L.en;
+
+  const handleDownload = async (url) => {
+    try {
+      const response = await axios.post(`${API}/avatar/download`, { avatar_url: url }, { responseType: 'blob' });
+      const blobUrl = URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = 'agentzz_avatar.png';
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+      toast.success(lang === 'pt' ? 'Avatar baixado!' : 'Avatar downloaded!');
+    } catch { toast.error('Download failed'); }
+  };
 
   const handleFile = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -105,11 +118,19 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
       {/* Zoom modal */}
       {zoomed && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setZoomed(null)} data-testid="avatar-zoom-modal">
-          <div className="relative max-w-[85vw] max-h-[85vh]">
-            <img src={zoomed} alt="Zoom" className="rounded-2xl max-w-full max-h-[85vh] object-contain" />
-            <button onClick={() => setZoomed(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#1A1A1A] border border-white/10 flex items-center justify-center text-white">
-              <X size={14} />
-            </button>
+          <div className="relative max-w-[85vw] max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <img src={zoomed} alt="Zoom" className="rounded-2xl max-w-full max-h-[75vh] object-contain" />
+            <div className="flex items-center justify-center gap-3 mt-3">
+              {selectedIdx >= 0 && (
+                <button onClick={() => handleDownload(zoomed)} data-testid="download-avatar-btn"
+                  className="btn-gold rounded-xl px-4 py-2 text-xs font-semibold flex items-center gap-2">
+                  <Download size={14} /> {t.download}
+                </button>
+              )}
+              <button onClick={() => setZoomed(null)} className="rounded-xl border border-white/10 bg-[#1A1A1A] px-4 py-2 text-xs text-[#999] hover:text-white transition">
+                <X size={14} />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -218,6 +239,10 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
                     <button onClick={generate} disabled={!canGenerate} data-testid="regenerate-btn"
                       className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#C9A84C]/25 transition disabled:opacity-30">
                       <RotateCcw size={13} className="text-[#C9A84C]" /> {t.regen} ({MAX_GENERATIONS - genCount})
+                    </button>
+                    <button onClick={() => handleDownload(selectedUrl)} data-testid="download-inline-btn"
+                      className="glass-card flex items-center justify-center px-3 py-2.5 text-[#B0B0B0] hover:text-[#C9A84C] hover:border-[#C9A84C]/25 transition">
+                      <Download size={14} />
                     </button>
                     <button onClick={handleSave} disabled={selectedIdx < 0} data-testid="save-avatar-btn"
                       className="flex-1 btn-gold rounded-xl py-2.5 text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40">

@@ -26,10 +26,13 @@ emergentintegrations==0.1.0
 fal_client==0.13.1
 fastapi==0.110.1
 fastuuid==0.14.0
+ffmpeg-python==0.2.0
 filelock==3.25.0
 flake8==7.3.0
+fonttools==4.62.1
 frozenlist==1.8.0
 fsspec==2026.2.0
+future==1.0.0
 google-ai-generativelanguage==0.6.15
 google-api-core==2.30.0
 google-api-python-client==2.191.0

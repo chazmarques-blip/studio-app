@@ -3,7 +3,9 @@ import uuid
 import base64
 import logging
 import random
+from io import BytesIO
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from dotenv import load_dotenv
@@ -19,58 +21,57 @@ DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04d
 
 BASE_PROMPT = """Transform this person's photo into a CYBORG half-human half-machine portrait.
 
-CRITICAL RULES - MUST FOLLOW:
-- The avatar MUST be an exact likeness of the person in the photo
-- Keep ALL accessories: if wearing glasses, avatar MUST have glasses. If has beard, keep beard. Earrings, hat, piercings - keep everything.
-- Preserve the person's exact facial features, skin tone, hair color, hair style, and expression
-- Front-facing portrait looking directly at camera
-
-COMPOSITION:
-- Head, neck, and upper chest visible - show from top of head to mid-chest
-- Slightly zoomed out with breathing room around the head
-- Centered, suitable for circular profile picture
-- High-end 3D photorealistic render, 8K detail"""
+ABSOLUTE RULES (NEVER BREAK THESE):
+1. The face MUST be the EXACT same person from the photo - same face shape, jawline, nose, lips, eyes, skin tone, hair
+2. Keep ALL accessories EXACTLY as in photo: glasses, earrings, beard, piercings, hat - everything
+3. Camera angle MUST be FRONT-FACING, looking DIRECTLY at the camera - NO side angles, NO 3/4 view
+4. The person's expression should match the photo (smiling if smiling, serious if serious)
+5. Show head, neck and upper chest - NOT just the face
+6. Background MUST be very dark, almost black (#0A0A0A)
+7. 3D photorealistic render quality, 8K detail
+8. The human parts must look EXACTLY like the real photo - same skin texture, same features"""
 
 STYLE_VARIATIONS = [
-    """CYBORG STYLE - VARIANT A (Classic Split):
-- Left side fully HUMAN and natural
-- Right side transitions into ROBOTIC parts with exposed titanium plates
-- Glowing blue/cyan circuit lines on the mechanical side
-- Cybernetic eye with blue glow on right side
-- Gradual organic transition between human and machine
-LIGHTING: Dark background, cool blue rim light on mechanical side, warm light on human side""",
+    """CYBORG MIX STYLE A - Classic Half Split:
+- Left half of face is fully HUMAN (identical to photo)
+- Right half transitions into exposed titanium mechanical endoskeleton
+- Glowing cyan/teal circuit lines on the mechanical half
+- Right eye replaced with cybernetic lens glowing blue
+- Mechanical jaw plates visible on right side
+- Chrome and titanium metal parts with blue LED seams""",
 
-    """CYBORG STYLE - VARIANT B (Circuit Overlay):
-- Full face remains mostly human/natural looking
-- Subtle glowing circuit patterns visible BENEATH the skin on both sides
-- Circuits glow in teal/cyan, visible like veins of light
-- One eye has a subtle digital HUD overlay (holographic iris)
-- Metallic accents only at temples and jawline
-LIGHTING: Dark background, purple and teal accent lighting, subtle neon glow from circuits""",
+    """CYBORG MIX STYLE B - Circuit Veins:
+- Face remains 90% human (identical to photo)
+- Glowing teal/cyan circuit patterns visible UNDER the skin like luminous veins
+- Circuits spread from the right temple across cheek and down neck
+- Both eyes natural but with subtle cyan glow ring in iris
+- Small metallic implant plates at temples
+- Neck shows circuits beneath translucent skin""",
 
-    """CYBORG STYLE - VARIANT C (Battle-Worn):
-- Face is mostly human but with visible cybernetic repairs
-- Metallic plate on one cheekbone, like a healed wound replaced with tech
-- One ear replaced with sleek mechanical audio implant
-- Thin glowing orange/amber circuit scar running from temple to jaw
-- Weathered, experienced look - like a veteran cyborg operative
-LIGHTING: Dark moody background, warm amber accent light mixed with cool blue""",
+    """CYBORG MIX STYLE C - Armored Plates:
+- Face fully human (identical to photo) but with chrome armor additions
+- Metallic armor plates attached to jawline and cheekbones (like Iron Man faceplate pieces)
+- Forehead has a slim chrome band/implant
+- Glowing orange/amber accent lights on armor pieces
+- One ear has mechanical audio enhancement module
+- Neck protected by segmented chrome collar armor""",
 
-    """CYBORG STYLE - VARIANT D (Sleek Chrome):
-- Human face with chrome/silver metallic patches seamlessly integrated
-- Smooth chrome temple implants on both sides (like premium headphones built into skull)
-- One eye with chrome iris ring glowing white
-- Neck has visible chrome vertebrae/spine implants
-- Clean, elegant, luxury cyborg aesthetic - like a high-end android
-LIGHTING: Dark background, clean white studio lighting with subtle blue reflections on chrome""",
+    """CYBORG MIX STYLE D - Terminator Style:
+- Face mostly human (identical to photo) with DAMAGE revealing machine underneath
+- Skin torn/peeled on one cheek showing chrome skull and red glowing eye beneath
+- Metallic endoskeleton visible at temple and jaw
+- One eye glowing red through the skin tear
+- Rest of face perfectly human
+- Dramatic contrast between flesh and metal""",
 
-    """CYBORG STYLE - VARIANT E (Bio-Luminescent):
-- Face mostly natural but with bioluminescent patterns
-- Glowing green/teal organic-looking patterns under the skin, like bioluminescent tattoos
-- One side of the neck shows translucent skin revealing glowing mechanical parts beneath
-- Eyes enhanced with subtle luminous ring around iris
-- Futuristic but organic feeling, like biotech rather than hard metal
-LIGHTING: Dark background, green/teal bioluminescent glow as primary light source, cinematic""",
+    """CYBORG MIX STYLE E - Holographic Tech:
+- Face fully human (identical to photo)
+- Holographic HUD overlay projected from a small temple device
+- Floating holographic data particles around the head
+- Eyes show holographic targeting/scan interface
+- Subtle blue holographic grid pattern floating near the skin
+- Small chrome neural-link device behind one ear
+- The most subtle and elegant variation""",
 ]
 
 
@@ -82,6 +83,10 @@ class GenerateAvatarRequest(BaseModel):
 class SaveAvatarRequest(BaseModel):
     avatar_url: str
     cleanup_urls: Optional[List[str]] = None
+
+
+class DownloadAvatarRequest(BaseModel):
+    avatar_url: str
 
 
 def _get_tenant(user_id: str):
@@ -150,7 +155,6 @@ async def generate_avatar(req: GenerateAvatarRequest, user=Depends(get_current_u
             f.write(image_bytes)
 
         avatar_url = f"/avatars/{filename}"
-
         return {"avatar_url": avatar_url, "variation": idx, "status": "ok"}
 
     except HTTPException:
@@ -163,7 +167,6 @@ async def generate_avatar(req: GenerateAvatarRequest, user=Depends(get_current_u
 @router.post("/save")
 async def save_avatar(req: SaveAvatarRequest, user=Depends(get_current_user)):
     _save_avatar_url(user["id"], req.avatar_url)
-    # Cleanup non-selected files
     if req.cleanup_urls:
         for url in req.cleanup_urls:
             if url.startswith("/avatars/") and url != req.avatar_url:
@@ -174,6 +177,70 @@ async def save_avatar(req: SaveAvatarRequest, user=Depends(get_current_user)):
                 except Exception:
                     pass
     return {"avatar_url": req.avatar_url, "status": "ok"}
+
+
+@router.post("/download")
+async def download_avatar(req: DownloadAvatarRequest, user=Depends(get_current_user)):
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        avatar_path = None
+        if req.avatar_url.startswith("/avatars/"):
+            avatar_path = f"/app/frontend/public{req.avatar_url}"
+        elif req.avatar_url.startswith("http"):
+            import urllib.request
+            tmp_path = f"/tmp/avatar_dl_{uuid.uuid4().hex[:8]}.png"
+            urllib.request.urlretrieve(req.avatar_url, tmp_path)
+            avatar_path = tmp_path
+
+        if not avatar_path or not os.path.exists(avatar_path):
+            raise HTTPException(status_code=404, detail="Avatar not found")
+
+        img = Image.open(avatar_path).convert("RGBA")
+        w, h = img.size
+
+        bar_height = max(40, int(h * 0.06))
+        result = Image.new("RGBA", (w, h + bar_height), (10, 10, 10, 255))
+        result.paste(img, (0, 0))
+
+        draw = ImageDraw.Draw(result)
+        draw.rectangle([(0, h), (w, h + bar_height)], fill=(10, 10, 10, 255))
+
+        logo_path = "/app/frontend/public/logo-agentzz.png"
+        if os.path.exists(logo_path):
+            logo = Image.open(logo_path).convert("RGBA")
+            logo_h = int(bar_height * 0.6)
+            logo_w = int(logo.width * (logo_h / logo.height))
+            logo = logo.resize((logo_w, logo_h), Image.LANCZOS)
+            lx = (w - logo_w) // 2
+            ly = h + (bar_height - logo_h) // 2
+            result.paste(logo, (lx, ly), logo)
+        else:
+            try:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(bar_height * 0.4))
+            except Exception:
+                font = ImageFont.load_default()
+            text = "agentZZ"
+            bbox = draw.textbbox((0, 0), text, font=font)
+            tw = bbox[2] - bbox[0]
+            tx = (w - tw) // 2
+            ty = h + (bar_height - (bbox[3] - bbox[1])) // 2
+            draw.text((tx, ty), text, fill=(201, 168, 76, 255), font=font)
+
+        result_rgb = result.convert("RGB")
+        buf = BytesIO()
+        result_rgb.save(buf, format="PNG", quality=95)
+        buf.seek(0)
+
+        return StreamingResponse(buf, media_type="image/png", headers={
+            "Content-Disposition": f"attachment; filename=agentzz_avatar_{uuid.uuid4().hex[:6]}.png"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar download failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
 
 
 @router.post("/set-default")
