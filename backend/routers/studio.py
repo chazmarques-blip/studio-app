@@ -587,38 +587,41 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
             _add_milestone(project, "agents_complete", f"Agentes de cinema concluídos — {total} cenas processadas")
             _save_project(tenant_id, settings, projects)
 
-        # ── Generate Videos (one per scene) ──
+        # ── Generate Videos (PARALLEL — 3 at a time for speed) ──
         from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
-        scene_videos = []
 
-        for i, sp in enumerate(scene_prompts):
+        # Skip scenes that already have videos saved (resume support)
+        settings_check, projects_check, proj_check = _get_project(tenant_id, project_id)
+        existing_outputs = proj_check.get("outputs", []) if proj_check else []
+        existing_scene_nums = {o.get("scene_number") for o in existing_outputs if o.get("url") and o.get("type") == "video"}
+
+        remaining_prompts = [sp for sp in scene_prompts if sp["scene_number"] not in existing_scene_nums]
+        scene_videos = [{"scene_number": sn, "url": next(o["url"] for o in existing_outputs if o.get("scene_number") == sn), "type": "video", "duration": 12}
+                        for sn in existing_scene_nums]
+
+        if remaining_prompts:
+            logger.info(f"Studio [{project_id}]: Generating {len(remaining_prompts)} videos ({len(existing_scene_nums)} already done)")
+        else:
+            logger.info(f"Studio [{project_id}]: All {total} videos already exist, skipping to concatenation")
+
+        def _generate_one_video(sp):
+            """Generate a single scene video. Returns dict."""
             scene_num = sp["scene_number"]
-            _update_project_field(tenant_id, project_id, {
-                "agent_status": {"current_scene": scene_num, "total_scenes": total, "phase": "generating_video",
-                                 "videos_done": len([sv for sv in scene_videos if sv.get("url")]),
-                                 "scene_status": {str(sv["scene_number"]): ("done" if sv.get("url") else "error") for sv in scene_videos}}
-            })
-
-            logger.info(f"Studio [{project_id}]: Generating video for scene {scene_num}/{total}")
-
+            ref_image_path = None
             try:
-                # Download reference avatar if available
-                ref_image_path = None
                 if sp.get("reference_avatar_url"):
                     try:
                         avatar_url = sp["reference_avatar_url"]
-                        # Resolve relative URLs
                         if avatar_url.startswith("/"):
                             supa_url = os.environ.get("SUPABASE_URL", "")
                             avatar_url = f"{supa_url}/storage/v1/object/public{avatar_url}"
                         ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
                         urllib.request.urlretrieve(avatar_url, ref_file.name)
                         ref_image_path = ref_file.name
-                        logger.info(f"Studio [{project_id}]: Scene {scene_num} using avatar reference image")
-                    except Exception as ae:
-                        logger.warning(f"Studio [{project_id}]: Could not download avatar reference: {ae}")
+                    except Exception:
                         ref_image_path = None
 
                 gen_kwargs = {
@@ -635,49 +638,49 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
                 if video_bytes:
                     filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-                    scene_videos.append({
-                        "scene_number": scene_num,
-                        "url": video_url,
-                        "type": "video",
-                        "duration": 12,
-                    })
-                    logger.info(f"Studio [{project_id}]: Scene {scene_num} video uploaded")
-
-                    # SAVE each video immediately so progress is never lost
-                    settings2, projects2, proj2 = _get_project(tenant_id, project_id)
-                    if proj2:
-                        partial_outputs = proj2.get("outputs", [])
-                        partial_outputs.append({
-                            "id": uuid.uuid4().hex[:8],
-                            "type": "video",
-                            "url": video_url,
-                            "scene_number": scene_num,
-                            "duration": 12,
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                        })
-                        proj2["outputs"] = partial_outputs
-                        proj2["agent_status"] = {
-                            "current_scene": scene_num,
-                            "total_scenes": total,
-                            "phase": "generating_video",
-                            "videos_done": len([sv for sv in scene_videos if sv.get("url")]),
-                            "scene_status": {str(sv["scene_number"]): ("done" if sv.get("url") else "error") for sv in scene_videos},
-                        }
-                        _add_milestone(proj2, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
-                        _save_project(tenant_id, settings2, projects2)
+                    return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 12}
                 else:
-                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} returned empty video")
-                    scene_videos.append({"scene_number": scene_num, "url": None, "type": "video", "error": "empty"})
+                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "empty"}
             except Exception as ve:
-                logger.error(f"Studio [{project_id}]: Scene {scene_num} video error: {ve}")
-                scene_videos.append({"scene_number": scene_num, "url": None, "type": "video", "error": str(ve)[:200]})
+                return {"scene_number": scene_num, "url": None, "type": "video", "error": str(ve)[:200]}
             finally:
-                # Cleanup temp avatar file
                 if ref_image_path:
                     try:
                         os.unlink(ref_image_path)
                     except OSError:
                         pass
+
+        # Run up to 3 videos in parallel
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(_generate_one_video, sp): sp for sp in remaining_prompts}
+            for future in as_completed(futures):
+                result = future.result()
+                scene_num = result["scene_number"]
+                scene_videos.append(result)
+                done_count = len([sv for sv in scene_videos if sv.get("url")])
+
+                if result.get("url"):
+                    logger.info(f"Studio [{project_id}]: Scene {scene_num} video uploaded ({done_count}/{total})")
+                    # Save immediately
+                    settings2, projects2, proj2 = _get_project(tenant_id, project_id)
+                    if proj2:
+                        partial_outputs = proj2.get("outputs", [])
+                        if not any(o.get("scene_number") == scene_num for o in partial_outputs):
+                            partial_outputs.append({
+                                "id": uuid.uuid4().hex[:8], "type": "video", "url": result["url"],
+                                "scene_number": scene_num, "duration": 12,
+                                "created_at": datetime.now(timezone.utc).isoformat(),
+                            })
+                        proj2["outputs"] = partial_outputs
+                        proj2["agent_status"] = {
+                            "current_scene": scene_num, "total_scenes": total,
+                            "phase": "generating_video", "videos_done": done_count,
+                            "scene_status": {str(sv["scene_number"]): ("done" if sv.get("url") else "error") for sv in scene_videos},
+                        }
+                        _add_milestone(proj2, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
+                        _save_project(tenant_id, settings2, projects2)
+                else:
+                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} failed: {result.get('error','?')}")
 
         # ── Concatenate Videos ──
         successful_videos = [sv for sv in scene_videos if sv.get("url")]
