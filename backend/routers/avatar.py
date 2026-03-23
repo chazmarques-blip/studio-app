@@ -29,14 +29,20 @@ ABSOLUTE RULES (NEVER BREAK THESE):
 5. Show head, neck and upper chest - NOT a tight face crop
 6. Background MUST be very dark, almost black (#0A0A0A)
 
+HUMAN-MACHINE BALANCE:
+- The overall result should lean 60% machine / 40% human — more cyborg than human
+- Skin should have a slight synthetic sheen, as if partially artificial or bioengineered
+- Natural skin pores subtly reduced — smoother, almost like polished silicone in some areas
+- Eyes: keep the original iris color but add a faint digital glow or micro-circuitry reflection inside
+- Hair can have subtle metallic strands or fiber-optic highlights woven in
+- Skin tone slightly cooled (hint of blue/steel undertone) to feel less organic
+
 REALISM & QUALITY:
 - Hyper-photorealistic 3D render - must look like a real photograph, not a painting or cartoon
-- Skin texture: visible pores, natural imperfections, real skin subsurface scattering
-- Eyes: wet reflections, realistic iris detail, natural catchlights
-- Hair: individual strand detail, natural volume and shine
-- Lighting must be cinematic with realistic shadows and highlights
+- Cinematic lighting with cool blue/teal accent light on the mechanical side
+- Warm light on remaining human features for contrast
 - 8K resolution quality, film-grain subtle texture
-- The human parts MUST be indistinguishable from a real photograph"""
+- The result should feel like a real person who has been heavily augmented — not a robot wearing a face"""
 
 STYLE_VARIATIONS = [
     """CYBORG MIX STYLE A - Classic Half Split:
