@@ -167,6 +167,13 @@ class GenerateAvatarRequest(BaseModel):
     character_description: str
     style: str = "cinematic"
 
+class GenerateNarrationRequest(BaseModel):
+    project_id: str
+    voice_id: str = "21m00Tcm4TlvDq8ikWAM"  # Rachel default
+    stability: float = 0.30
+    similarity: float = 0.80
+    style_val: float = 0.55
+
 
 # ── Projects CRUD ──
 
@@ -219,6 +226,9 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "characters": project.get("characters", []),
         "outputs": project.get("outputs", []),
         "milestones": project.get("milestones", []),
+        "narrations": project.get("narrations", []),
+        "narration_status": project.get("narration_status", {}),
+        "voice_config": project.get("voice_config", {}),
         "error": project.get("error"),
     }
 
@@ -891,3 +901,155 @@ async def get_voices(user=Depends(get_current_user)):
 async def get_music_library(user=Depends(get_current_user)):
     tracks = [{"id": k, **v} for k, v in MUSIC_LIBRARY.items()]
     return {"tracks": tracks}
+
+
+
+# ── Narration Generation (ElevenLabs) ──
+
+def _generate_narration_audio(text: str, voice_id: str, stability: float, similarity: float, style_val: float) -> bytes:
+    """Generate narration audio using ElevenLabs TTS. Returns mp3 bytes."""
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not elevenlabs_key:
+        raise RuntimeError("ELEVENLABS_API_KEY not configured")
+
+    from elevenlabs import ElevenLabs as ELClient, VoiceSettings
+
+    client = ELClient(api_key=elevenlabs_key)
+    voice_settings = VoiceSettings(
+        stability=stability,
+        similarity_boost=similarity,
+        style=style_val,
+        use_speaker_boost=True,
+    )
+    audio_gen = client.text_to_speech.convert(
+        text=text,
+        voice_id=voice_id,
+        model_id="eleven_multilingual_v2",
+        voice_settings=voice_settings,
+    )
+    audio_bytes = b""
+    for chunk in audio_gen:
+        audio_bytes += chunk
+    return audio_bytes
+
+
+def _run_narration_background(tenant_id: str, project_id: str, voice_id: str, stability: float, similarity: float, style_val: float):
+    """Background: generate narration for each scene and save to project."""
+    import tempfile
+
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+
+        scenes = project.get("scenes", [])
+        lang = project.get("language", "pt")
+
+        _update_project_field(tenant_id, project_id, {
+            "narration_status": {"phase": "generating_script", "done": 0, "total": len(scenes)},
+        })
+
+        # Generate narration scripts via Claude
+        narration_system = f"""You are a NARRATOR for cinematic storytelling. Given scenes, write compelling narration text for EACH scene.
+Rules:
+- Each scene narration is MAX 25 words (fits 12 seconds)
+- Be dramatic, evocative, emotional
+- Use the scene dialogue and description as basis
+- Language: {lang}
+- Output ONLY valid JSON array: [{{"scene_number": 1, "narration": "text..."}}]"""
+
+        scene_summaries = "\n".join([
+            f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} — {s.get('description','')} — Dialogue: {s.get('dialogue','')}"
+            for i, s in enumerate(scenes)
+        ])
+
+        script_result = _call_claude_sync(narration_system, f"Scenes:\n{scene_summaries}")
+
+        # Parse narration scripts
+        import json as json_mod
+        narrations = []
+        if '[' in script_result:
+            try:
+                start = script_result.index('[')
+                end = script_result.rindex(']') + 1
+                narrations = json_mod.loads(script_result[start:end])
+            except Exception:
+                pass
+
+        if not narrations:
+            narrations = [{"scene_number": i+1, "narration": s.get("dialogue", s.get("description", ""))[:80]} for i, s in enumerate(scenes)]
+
+        _update_project_field(tenant_id, project_id, {
+            "narration_status": {"phase": "generating_audio", "done": 0, "total": len(narrations)},
+        })
+
+        # Generate audio for each scene
+        narration_outputs = []
+        for i, narr in enumerate(narrations):
+            scene_num = narr.get("scene_number", i + 1)
+            text = narr.get("narration", "")
+            if not text.strip():
+                narration_outputs.append({"scene_number": scene_num, "text": "", "audio_url": None})
+                continue
+            try:
+                audio_bytes = _generate_narration_audio(text, voice_id, stability, similarity, style_val)
+                filename = f"studio/{project_id}_narration_{scene_num}.mp3"
+                audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
+                narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": audio_url})
+                logger.info(f"Studio [{project_id}]: Narration scene {scene_num} done ({len(audio_bytes)//1024}KB)")
+            except Exception as e:
+                logger.warning(f"Studio [{project_id}]: Narration scene {scene_num} failed: {e}")
+                narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": None, "error": str(e)[:100]})
+
+            _update_project_field(tenant_id, project_id, {
+                "narration_status": {"phase": "generating_audio", "done": i + 1, "total": len(narrations)},
+            })
+
+        # Save all narrations to project
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project:
+            project["narrations"] = narration_outputs
+            project["narration_status"] = {"phase": "complete", "done": len(narration_outputs), "total": len(narration_outputs)}
+            project["voice_config"] = {"voice_id": voice_id, "stability": stability, "similarity": similarity, "style_val": style_val}
+            _add_milestone(project, "narration_generated", f"Narração gerada — {len([n for n in narration_outputs if n.get('audio_url')])} cenas")
+            _save_project(tenant_id, settings, projects)
+
+        logger.info(f"Studio [{project_id}]: All narrations done")
+
+    except Exception as e:
+        logger.error(f"Studio [{project_id}] narration error: {e}")
+        _update_project_field(tenant_id, project_id, {
+            "narration_status": {"phase": "error", "error": str(e)[:300]},
+        })
+
+
+@router.post("/projects/{project_id}/generate-narration")
+async def generate_narration(project_id: str, req: GenerateNarrationRequest, tenant=Depends(get_current_tenant)):
+    """Generate ElevenLabs narration for all scenes in a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not project.get("scenes"):
+        raise HTTPException(status_code=400, detail="No scenes. Use the Screenwriter first.")
+
+    thread = threading.Thread(
+        target=_run_narration_background,
+        args=(tenant["id"], project_id, req.voice_id, req.stability, req.similarity, req.style_val),
+        daemon=True,
+    )
+    thread.start()
+
+    return {"status": "started", "total_scenes": len(project["scenes"])}
+
+
+@router.get("/projects/{project_id}/narrations")
+async def get_narrations(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get narration status and outputs for a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {
+        "narrations": project.get("narrations", []),
+        "narration_status": project.get("narration_status", {}),
+        "voice_config": project.get("voice_config", {}),
+    }

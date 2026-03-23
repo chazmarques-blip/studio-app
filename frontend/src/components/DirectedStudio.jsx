@@ -33,6 +33,11 @@ export function DirectedStudio({
   const [editingChar, setEditingChar] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', description: '', age: '', role: '' });
   const [showNewProject, setShowNewProject] = useState(false);
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState('21m00Tcm4TlvDq8ikWAM');
+  const [narrations, setNarrations] = useState([]);
+  const [narrationStatus, setNarrationStatus] = useState({});
+  const [narrationGenerating, setNarrationGenerating] = useState(false);
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -70,7 +75,11 @@ export function DirectedStudio({
     });
   };
 
-  useEffect(() => { loadProjects(); }, []);
+  useEffect(() => { loadProjects(); loadVoices(); }, []);
+
+  const loadVoices = () => {
+    axios.get(`${API}/studio/voices`).then(r => setVoices(r.data.voices || [])).catch(() => {});
+  };
 
   // Reload projects when going back to step 0
   useEffect(() => {
@@ -101,6 +110,8 @@ export function DirectedStudio({
     setChatMessages(proj.chat_history || []);
     setOutputs(proj.outputs || []);
     setCharacterAvatars({});
+    setNarrations(proj.narrations || []);
+    setNarrationStatus(proj.narration_status || {});
     setViewingProject(null);
 
     if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
@@ -148,9 +159,7 @@ export function DirectedStudio({
           setGenerating(false);
           setStep(4);
           toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
-          axios.get(`${API}/studio/projects`).then(r2 => {
-            setPastProjects((r2.data.projects || []).filter(p => p.outputs?.length > 0));
-          }).catch(() => {});
+          loadProjects();
           return;
         }
         if (d.status === 'error') {
@@ -263,6 +272,86 @@ export function DirectedStudio({
     toast.success(lang === 'pt' ? 'Personagem atualizado!' : 'Character updated!');
   };
 
+  // Delete a project
+  const deleteProject = async (e, projId) => {
+    e.stopPropagation();
+    if (!window.confirm(lang === 'pt' ? 'Eliminar este projecto?' : 'Delete this project?')) return;
+    try {
+      await axios.delete(`${API}/studio/projects/${projId}`);
+      setAllProjects(prev => prev.filter(p => p.id !== projId));
+      toast.success(lang === 'pt' ? 'Projecto eliminado' : 'Project deleted');
+    } catch {
+      toast.error(lang === 'pt' ? 'Erro ao eliminar' : 'Delete failed');
+    }
+  };
+
+  // Resume production for error/incomplete projects
+  const resumeProduction = async (e, proj) => {
+    e.stopPropagation();
+    setProjectId(proj.id);
+    setProjectName(proj.name || '');
+    setScenes(proj.scenes || []);
+    setCharacters(proj.characters || []);
+    setOutputs(proj.outputs || []);
+    setGenerating(true);
+    setStep(3);
+    try {
+      await axios.post(`${API}/studio/start-production`, {
+        project_id: proj.id,
+        video_duration: 12,
+        character_avatars: {},
+      });
+      startPolling(proj.id);
+      toast.success(lang === 'pt' ? 'Retomando produção...' : 'Resuming production...');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed');
+      setGenerating(false);
+    }
+  };
+
+  // Generate narration with ElevenLabs
+  const generateNarration = async () => {
+    if (!projectId || scenes.length === 0) return;
+    setNarrationGenerating(true);
+    setNarrationStatus({ phase: 'starting' });
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/generate-narration`, {
+        project_id: projectId,
+        voice_id: selectedVoice,
+        stability: 0.30,
+        similarity: 0.80,
+        style_val: 0.55,
+      });
+      toast.success(lang === 'pt' ? 'Gerando narração...' : 'Generating narration...');
+      pollNarrationStatus(projectId);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Narration failed');
+      setNarrationGenerating(false);
+    }
+  };
+
+  const pollNarrationStatus = (pid) => {
+    const poll = () => {
+      axios.get(`${API}/studio/projects/${pid}/narrations`).then(res => {
+        const d = res.data;
+        setNarrationStatus(d.narration_status || {});
+        setNarrations(d.narrations || []);
+        if (d.narration_status?.phase === 'complete') {
+          setNarrationGenerating(false);
+          toast.success(lang === 'pt' ? 'Narração completa!' : 'Narration complete!');
+          return;
+        }
+        if (d.narration_status?.phase === 'error') {
+          setNarrationGenerating(false);
+          toast.error(d.narration_status?.error || 'Narration error');
+          return;
+        }
+        setTimeout(poll, 3000);
+      }).catch(() => setTimeout(poll, 5000));
+    };
+    setTimeout(poll, 2000);
+  };
+
   // Link existing avatars to characters
   const linkAvatar = (charName, avatarUrl) => {
     setCharacterAvatars(prev => ({ ...prev, [charName]: avatarUrl }));
@@ -372,7 +461,7 @@ export function DirectedStudio({
                 const milestones = proj.milestones || [];
                 return (
                   <button key={proj.id} onClick={() => resumeProject(proj)} data-testid={`project-${proj.id}`}
-                    className="w-full glass-card p-2.5 hover:border-[#C9A84C]/30 transition text-left group">
+                    className="w-full glass-card p-2.5 hover:border-[#C9A84C]/30 transition text-left group relative">
                     <div className="flex items-center gap-2.5">
                       <div className="h-14 w-12 rounded-lg bg-[#111] flex-shrink-0 overflow-hidden border border-[#222] relative">
                         {vid ? (
@@ -398,12 +487,27 @@ export function DirectedStudio({
                           {videosCount > 0 && <span className="text-[7px] text-emerald-500">{videosCount} {lang === 'pt' ? 'vídeos' : 'videos'}</span>}
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
                         {['starting', 'running_agents'].includes(proj.status) ? (
                           <RefreshCw size={12} className="text-orange-400 animate-spin" />
                         ) : proj.status === 'complete' ? (
                           <Check size={12} className="text-emerald-400" />
                         ) : null}
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {proj.status === 'error' && (proj.scenes || []).length > 0 && (
+                            <button onClick={e => resumeProduction(e, proj)} data-testid={`resume-project-${proj.id}`}
+                              title={lang === 'pt' ? 'Retomar produção' : 'Resume production'}
+                              className="h-5 w-5 rounded flex items-center justify-center text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 transition">
+                              <RefreshCw size={10} />
+                            </button>
+                          )}
+                          <button onClick={e => deleteProject(e, proj.id)} data-testid={`delete-project-${proj.id}`}
+                            title={lang === 'pt' ? 'Eliminar projecto' : 'Delete project'}
+                            className="h-5 w-5 rounded flex items-center justify-center text-red-500/50 hover:text-red-400 hover:bg-red-500/10 transition">
+                            <Trash2 size={10} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     {/* Milestones */}
@@ -710,6 +814,56 @@ export function DirectedStudio({
             ))}
           </div>
 
+          {/* ── Voice Narration (ElevenLabs) ── */}
+          <div className="border-t border-[#222] pt-3 space-y-2" data-testid="studio-narration-section">
+            <h4 className="text-[10px] font-semibold text-white flex items-center gap-1.5">
+              <Volume2 size={11} className="text-[#C9A84C]" />
+              {lang === 'pt' ? 'Narração por Voz' : 'Voice Narration'}
+              <span className="text-[7px] text-[#555] font-normal ml-1">ElevenLabs</span>
+            </h4>
+
+            {/* Voice selector */}
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className="text-[8px] text-[#666] mb-0.5 block">{lang === 'pt' ? 'Voz' : 'Voice'}</label>
+                <select value={selectedVoice} onChange={e => setSelectedVoice(e.target.value)}
+                  data-testid="voice-selector"
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50">
+                  {voices.map(v => (
+                    <option key={v.id} value={v.id}>{v.name} — {v.gender} • {v.accent} • {v.style}</option>
+                  ))}
+                </select>
+              </div>
+              <button onClick={generateNarration} disabled={narrationGenerating || scenes.length === 0}
+                data-testid="generate-narration-btn"
+                className="btn-gold rounded-lg px-3 py-1.5 text-[9px] font-semibold disabled:opacity-30 flex items-center gap-1 whitespace-nowrap">
+                {narrationGenerating ? <RefreshCw size={10} className="animate-spin" /> : <Volume2 size={10} />}
+                {narrationGenerating
+                  ? `${narrationStatus.done || 0}/${narrationStatus.total || '?'}`
+                  : (lang === 'pt' ? 'Gerar Narração' : 'Generate Narration')
+                }
+              </button>
+            </div>
+
+            {/* Narration results */}
+            {narrations.length > 0 && (
+              <div className="space-y-1 max-h-[150px] overflow-y-auto hide-scrollbar">
+                {narrations.map((n, i) => (
+                  <div key={i} className={`rounded-md border px-2 py-1.5 flex items-center gap-2 ${
+                    n.audio_url ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[#222] bg-[#0A0A0A]'
+                  }`}>
+                    <span className="text-[8px] font-bold text-[#C9A84C] shrink-0">C{n.scene_number}</span>
+                    <p className="text-[8px] text-[#999] flex-1 truncate">{n.text || '—'}</p>
+                    {n.audio_url && (
+                      <audio src={n.audio_url} controls className="h-6 w-24 shrink-0" style={{maxHeight: '24px'}} />
+                    )}
+                    {n.error && <span className="text-[7px] text-red-400 shrink-0">Erro</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <button onClick={() => setStep(1)} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
               ← {lang === 'pt' ? 'Roteiro' : 'Script'}
@@ -891,13 +1045,12 @@ export function DirectedStudio({
 
           <div className="flex gap-2">
             <button onClick={() => {
-              setStep(1); setChatMessages([]); setScenes([]); setCharacters([]);
-              setProjectId(null); setOutputs([]); setAgentStatus({});
-              axios.get(`${API}/studio/projects`).then(r => {
-                setPastProjects((r.data.projects || []).filter(p => p.outputs?.length > 0));
-              }).catch(() => {});
+              skipAutoResume.current = true;
+              setStep(0); setProjectId(null); setChatMessages([]); setScenes([]);
+              setCharacters([]); setOutputs([]); setAgentStatus({});
+              loadProjects();
             }} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
-              ← {lang === 'pt' ? 'Nova Produção' : 'New Production'}
+              ← {lang === 'pt' ? 'Projectos' : 'Projects'}
             </button>
           </div>
         </div>
