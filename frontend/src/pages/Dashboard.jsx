@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { MessageSquare, Target, DollarSign, TrendingUp, Bot, CreditCard, LogOut, UserCog, Zap, Lightbulb, ChevronRight, ArrowUpRight, Megaphone, Sparkles, Shield, BarChart3, Send } from 'lucide-react';
+import { MessageSquare, Target, DollarSign, TrendingUp, Bot, Zap, Lightbulb, ArrowUpRight, Megaphone, Shield } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
-import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -84,19 +83,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeAgentIdx, setActiveAgentIdx] = useState(0);
-  const profileRef = useRef(null);
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     axios.get(`${API}/dashboard/stats`).then(r => { setStats(r.data); setLoading(false); }).catch(() => setLoading(false));
@@ -108,11 +97,6 @@ export default function Dashboard() {
     const interval = setInterval(() => setActiveAgentIdx(p => (p + 1) % stats.agents.length), 5000);
     return () => clearInterval(interval);
   }, [stats?.agents?.length]);
-
-  const msgsUsed = stats?.messages_used || 0;
-  const msgsLimit = stats?.messages_limit || 50;
-  const usagePercent = msgsLimit > 0 ? Math.min(100, Math.round((msgsUsed / msgsLimit) * 100)) : 0;
-  const creditsLeft = msgsLimit - msgsUsed;
 
   if (loading) {
     return (
@@ -126,51 +110,17 @@ export default function Dashboard() {
   const pipelineMax = Math.max(...Object.values(pipeline).filter((_, i) => i < 4), 1);
   const agents = stats?.agents || [];
   const featuredAgent = agents[activeAgentIdx] || null;
+  const msgsUsed = stats?.messages_used || 0;
+  const msgsLimit = stats?.messages_limit || 50;
+  const usagePercent = msgsLimit > 0 ? Math.min(100, Math.round((msgsUsed / msgsLimit) * 100)) : 0;
 
   return (
-    <div className="min-h-screen px-3 pt-4 pb-4">
-        {/* ── Header ── */}
+    <div className="min-h-screen px-3 pt-2 pb-4">
+        {/* ── Greeting ── */}
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
-          className="mb-4 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-[#B0B0B0]">{t(`dashboard.${getGreeting()}`)}</p>
-            <h1 data-testid="dashboard-greeting" className="text-lg font-bold text-white">{displayName}</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <div data-testid="credit-counter" onClick={() => navigate('/pricing')}
-              className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/30 transition">
-              <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#C9A84C]'} />
-              <span className={`text-[11px] font-bold ${usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-white'}`}>{creditsLeft}</span>
-              <span className="text-[9px] text-[#B0B0B0]">/{msgsLimit}</span>
-            </div>
-            <div className="relative" ref={profileRef}>
-              <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] transition hover:shadow-md hover:shadow-[#C9A84C]/20">
-                <span className="text-xs font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
-              </button>
-              {profileOpen && (
-                <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
-                  <div className="mb-1 border-b border-white/[0.04] px-3 py-2">
-                    <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
-                    <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
-                  </div>
-                  <button data-testid="profile-edit-btn" onClick={() => { setProfileOpen(false); navigate('/settings', { state: { openAccount: true } }); }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
-                    <UserCog size={13} /> {t('profile.edit')}
-                  </button>
-                  <button data-testid="profile-billing-btn" onClick={() => { setProfileOpen(false); navigate('/pricing'); }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
-                    <CreditCard size={13} /> {t('profile.billing')}
-                  </button>
-                  <div className="my-0.5 border-t border-white/[0.04]" />
-                  <button data-testid="profile-logout-btn" onClick={async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-[#FF6B6B]">
-                    <LogOut size={13} /> {t('settings.sign_out')}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          className="mb-3">
+          <p className="text-[11px] text-[#B0B0B0]">{t(`dashboard.${getGreeting()}`)}</p>
+          <h1 data-testid="dashboard-greeting" className="text-lg font-bold text-white">{displayName}</h1>
         </motion.div>
 
         {/* ── Featured Agent Showcase (Hero from Landing style) ── */}

@@ -1,5 +1,13 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useRef, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../contexts/AuthContext';
 import { BottomNav } from './BottomNav';
+import { Zap, UserCog, CreditCard, LogOut } from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function TechGridBg() {
   return (
@@ -23,11 +31,111 @@ function TechGridBg() {
   );
 }
 
+function AppHeader() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [stats, setStats] = useState(null);
+  const profileRef = useRef(null);
+  const lang = i18n.language?.substring(0, 2) || 'en';
+
+  useEffect(() => {
+    axios.get(`${API}/dashboard/stats`).then(r => setStats(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const msgsUsed = stats?.messages_used || 0;
+  const msgsLimit = stats?.messages_limit || 50;
+  const usagePercent = msgsLimit > 0 ? Math.min(100, Math.round((msgsUsed / msgsLimit) * 100)) : 0;
+  const creditsLeft = msgsLimit - msgsUsed;
+
+  return (
+    <header className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.04] bg-[#060606]/70 backdrop-blur-2xl" data-testid="app-header">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5">
+        {/* Logo */}
+        <button onClick={() => navigate('/dashboard')} className="shrink-0" data-testid="header-logo">
+          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-7 sm:h-8" />
+        </button>
+
+        <div className="flex items-center gap-2">
+          {/* Language Selector */}
+          <div className="hidden sm:flex items-center border border-white/[0.06] rounded-lg overflow-hidden" data-testid="header-lang-selector">
+            {[
+              { code: 'en', label: 'EN' },
+              { code: 'pt', label: 'PT' },
+              { code: 'es', label: 'ES' },
+            ].map(lg => (
+              <button key={lg.code} data-testid={`header-lang-${lg.code}`}
+                onClick={() => i18n.changeLanguage(lg.code)}
+                className={`px-2 py-1.5 text-[10px] font-mono font-semibold transition-all ${
+                  lang === lg.code
+                    ? 'bg-[#C9A84C]/[0.12] text-[#C9A84C]'
+                    : 'text-[#B0B0B0] hover:text-[#E5E5E5]'
+                }`}>
+                {lg.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Credits */}
+          <div data-testid="header-credits" onClick={() => navigate('/pricing')}
+            className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/30 transition">
+            <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#C9A84C]'} />
+            <span className={`text-[11px] font-bold font-mono ${usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-white'}`}>{creditsLeft}</span>
+            <span className="text-[9px] text-[#B0B0B0] font-mono">/{msgsLimit}</span>
+          </div>
+
+          {/* Profile Avatar */}
+          <div className="relative" ref={profileRef}>
+            <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] transition hover:shadow-md hover:shadow-[#C9A84C]/20">
+              <span className="text-xs font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
+            </button>
+            {profileOpen && (
+              <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
+                <div className="mb-1 border-b border-white/[0.04] px-3 py-2">
+                  <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
+                  <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
+                  <span className="mt-1 inline-block text-[8px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#C9A84C]/10 text-[#C9A84C]">
+                    {stats?.plan || 'free'}
+                  </span>
+                </div>
+                <button data-testid="profile-edit-btn" onClick={() => { setProfileOpen(false); navigate('/settings', { state: { openAccount: true } }); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
+                  <UserCog size={13} /> {t('profile.edit')}
+                </button>
+                <button data-testid="profile-billing-btn" onClick={() => { setProfileOpen(false); navigate('/pricing'); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
+                  <CreditCard size={13} /> {t('profile.billing')}
+                </button>
+                <div className="my-0.5 border-t border-white/[0.04]" />
+                <button data-testid="profile-logout-btn" onClick={async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-[#FF6B6B]">
+                  <LogOut size={13} /> {t('settings.sign_out')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export function AppLayout() {
   return (
     <div className="relative min-h-screen bg-[#0A0A0A]">
       <TechGridBg />
-      <main className="relative z-10 pb-20">
+      <AppHeader />
+      <main className="relative z-10 pt-14 pb-20">
         <Outlet />
       </main>
       <BottomNav />
