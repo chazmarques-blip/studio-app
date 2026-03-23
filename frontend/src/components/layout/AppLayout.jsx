@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const DEFAULT_AVATAR = 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/36152c5b792ad0e3a5369214cbd423ca6b327833cf834f94d65f76c7c348c7a7.png';
 
 function TechGridBg() {
   return (
@@ -93,20 +94,33 @@ function AppHeader() {
             <span className="text-[9px] text-[#B0B0B0] font-mono">/{msgsLimit}</span>
           </div>
 
-          {/* Profile Avatar */}
-          <div className="relative" ref={profileRef}>
+          {/* User Name + Avatar */}
+          <div className="relative flex items-center gap-2" ref={profileRef}>
+            <span className="hidden sm:block text-[11px] font-semibold text-[#E5E5E5] truncate max-w-[120px]" data-testid="header-user-name">
+              {user?.full_name || user?.email?.split('@')[0] || 'User'}
+            </span>
             <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] transition hover:shadow-md hover:shadow-[#C9A84C]/20">
-              <span className="text-xs font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
+              className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30 transition hover:ring-[#C9A84C]/60 hover:shadow-md hover:shadow-[#C9A84C]/20 shrink-0">
+              <img
+                src={user?.avatar_url || DEFAULT_AVATAR}
+                alt={user?.full_name || 'User'}
+                className="h-full w-full object-cover"
+                onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+              />
             </button>
             {profileOpen && (
-              <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
-                <div className="mb-1 border-b border-white/[0.04] px-3 py-2">
-                  <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
-                  <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
-                  <span className="mt-1 inline-block text-[8px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#C9A84C]/10 text-[#C9A84C]">
-                    {stats?.plan || 'free'}
-                  </span>
+              <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-52 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
+                <div className="mb-1 border-b border-white/[0.04] px-3 py-2.5 flex items-center gap-2.5">
+                  <div className="h-10 w-10 rounded-full overflow-hidden ring-1 ring-[#C9A84C]/20 shrink-0">
+                    <img src={user?.avatar_url || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
+                    <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
+                    <span className="mt-0.5 inline-block text-[7px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#C9A84C]/10 text-[#C9A84C]">
+                      {stats?.plan || 'free'}
+                    </span>
+                  </div>
                 </div>
                 <button data-testid="profile-edit-btn" onClick={() => { setProfileOpen(false); navigate('/settings', { state: { openAccount: true } }); }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
