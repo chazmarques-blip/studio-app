@@ -45,7 +45,7 @@ function timeAgo(dateStr) {
 const ChartTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
-      <div className="rounded-lg border border-[#2A2A2A] bg-[#111] px-2.5 py-1.5 shadow-xl">
+      <div className="rounded-xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl px-2.5 py-1.5 shadow-xl">
         <p className="text-[10px] text-[#999]">{label}</p>
         <p className="text-xs font-bold text-[#C9A84C]">{payload[0].value} msgs</p>
       </div>
@@ -102,7 +102,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <div data-testid="credit-counter" onClick={() => navigate('/pricing')}
-            className="flex items-center gap-1 rounded-full border border-[#2A2A2A] bg-[#111] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/40 transition">
+            className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/30 transition">
             <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#C9A84C]'} />
             <span className={`text-[11px] font-bold ${usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-white'}`}>{creditsLeft}</span>
             <span className="text-[9px] text-[#B0B0B0]">/{msgsLimit}</span>
@@ -113,8 +113,8 @@ export default function Dashboard() {
               <span className="text-xs font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
             </button>
             {profileOpen && (
-              <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-xl border border-[#2A2A2A] bg-[#111] p-1 shadow-2xl shadow-black/60">
-                <div className="mb-1 border-b border-[#1E1E1E] px-3 py-2">
+              <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
+                <div className="mb-1 border-b border-white/[0.04] px-3 py-2">
                   <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
                   <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
                 </div>
@@ -126,7 +126,7 @@ export default function Dashboard() {
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
                   <CreditCard size={13} /> {t('profile.billing')}
                 </button>
-                <div className="my-0.5 border-t border-[#1E1E1E]" />
+                <div className="my-0.5 border-t border-white/[0.04]" />
                 <button data-testid="profile-logout-btn" onClick={async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); }}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-[#FF6B6B]">
                   <LogOut size={13} /> {t('settings.sign_out')}
@@ -188,8 +188,8 @@ export default function Dashboard() {
                     <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 9, fill: '#444' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: '#777' }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
                 <Area type="monotone" dataKey="count" stroke="#C9A84C" strokeWidth={1.5} fill="url(#gld)" dot={{ r: 2, fill: '#C9A84C', strokeWidth: 0 }} activeDot={{ r: 4, fill: '#C9A84C' }} />
               </AreaChart>
@@ -229,8 +229,8 @@ export default function Dashboard() {
           {(stats?.recent_conversations || []).length > 0 ? (
             <div className="space-y-1">
               {stats.recent_conversations.map(c => (
-                <div key={c.id} className="flex items-center gap-2.5 rounded-lg bg-[#0D0D0D] p-2 transition hover:bg-[#151515] cursor-pointer" onClick={() => navigate('/chat')}>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A1A1A]">
+                <div key={c.id} className="flex items-center gap-2.5 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2 transition hover:bg-white/[0.03] hover:border-white/[0.08] cursor-pointer" onClick={() => navigate('/chat')}>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.03]">
                     <ChannelIcon type={c.channel_type} size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -262,8 +262,8 @@ export default function Dashboard() {
           {(stats?.agents || []).length > 0 ? (
             <div className="space-y-1">
               {stats.agents.map(a => (
-                <div key={a.id} className="flex items-center gap-2.5 rounded-lg bg-[#0D0D0D] p-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C9A84C]/10">
+                <div key={a.id} className="flex items-center gap-2.5 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C9A84C]/8">
                     <Bot size={13} className="text-[#C9A84C]" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -309,7 +309,7 @@ export default function Dashboard() {
             { text: t('dashboard.insight_2', { count: stats?.agents_count || 0 }), type: 'tip' },
             { text: t('dashboard.insight_3'), type: 'opportunity' },
           ].map((insight, i) => (
-            <div key={i} className="flex items-start gap-2 rounded-lg bg-[#0D0D0D] p-2">
+            <div key={i} className="flex items-start gap-2 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2">
               <div className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-[#C9A84C]" />
               <p className="text-[10px] leading-relaxed text-[#999]">{insight.text}</p>
             </div>
