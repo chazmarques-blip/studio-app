@@ -14,27 +14,37 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/avatar", tags=["avatar"])
 
-DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/a8605e94e5c6af1d2e335c12fd5b50643e2f4c2aaad4cda320b5e404af96e2f6.png"
+DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/e9e9c643eda7783e1e8eebf5e075b6cae5fbdd49181a39682085dd90fe69f0b9.png"
 
-AVATAR_PROMPT = """Create a hyper-realistic 3D rendered portrait based on this person's photo.
+AVATAR_PROMPT = """Transform this person's photo into a CYBORG half-human half-machine portrait.
 
-CRITICAL RULES:
-- The avatar MUST look exactly like the person in the photo - same face shape, same features, same expression
-- Front-facing portrait, looking directly at camera
-- Natural human skin tones - NOT gold, NOT metallic skin
-- Keep the person's actual skin color, hair color, and facial features
+CRITICAL RULES - MUST FOLLOW:
+- The avatar MUST be an exact likeness of the person in the photo
+- Keep ALL accessories from the photo: if wearing glasses, the avatar MUST have glasses. If has beard, keep beard. If has earrings, keep them.
+- Preserve the person's exact facial features, skin tone, hair color, hair style, and expression
+- Front-facing portrait looking directly at camera
 
-STYLE (futuristic humanoid):
-- Subtle cyberpunk/sci-fi aesthetic - think Deus Ex or Westworld
-- Add small futuristic tech elements: slim headset earpiece, tiny LED accents near temples, or a subtle holographic collar
-- Lighting: cinematic three-point lighting with a subtle cool blue or teal rim light on one side
-- Background: very dark, almost black (#0A0A0A), with a faint blue or teal glow halo behind the head
-- Hair should look natural but perfectly styled
-- Eyes should be sharp and vivid, slightly enhanced
-- Skin should be smooth and flawless but natural-looking, not plastic or metallic
-- The overall feel should be a premium professional headshot from the year 2050
-- Portrait crop: head and upper shoulders, centered
-- High-end 3D render quality, 8K detail"""
+CYBORG STYLE:
+- One side of the face (left side) remains fully HUMAN and natural
+- The other side (right side) transitions into ROBOTIC/MECHANICAL parts
+- The machine side reveals metallic plates, glowing blue/teal circuits beneath the skin, exposed mechanical jaw or cheekbone
+- Glowing blue/cyan circuit lines running along the machine side of the face and neck
+- Small LED dots glowing along the mechanical seams
+- The transition between human and machine should be gradual and organic, not a hard line
+- Subtle mechanical parts visible: titanium jaw plate, cybernetic eye implant with blue glow, metallic temple plates
+
+LIGHTING AND ATMOSPHERE:
+- Dark background (#0A0A0A to #111111)
+- Cool blue/teal rim light illuminating the mechanical side
+- Warm natural light on the human side
+- Subtle blue glow emanating from the circuit patterns
+- Cinematic depth of field
+
+COMPOSITION:
+- Head and upper shoulders, centered in frame
+- Portrait orientation suitable for a circular profile picture
+- High-end 3D photorealistic render quality
+- 8K detail level"""
 
 
 class GenerateAvatarRequest(BaseModel):
