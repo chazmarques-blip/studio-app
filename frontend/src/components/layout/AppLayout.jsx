@@ -35,6 +35,7 @@ function TechGridBg() {
 function AppHeader() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [stats, setStats] = useState(null);
@@ -42,16 +43,21 @@ function AppHeader() {
   const profileRef = useRef(null);
   const lang = i18n.language?.substring(0, 2) || 'en';
 
+  const fetchAvatar = () => {
+    axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
+  };
+
   useEffect(() => {
     axios.get(`${API}/dashboard/stats`).then(r => setStats(r.data)).catch(() => {});
-    axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
-
-    const handleAvatarChange = () => {
-      axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
-    };
+    fetchAvatar();
+    const handleAvatarChange = () => fetchAvatar();
     window.addEventListener('avatar-changed', handleAvatarChange);
     return () => window.removeEventListener('avatar-changed', handleAvatarChange);
   }, []);
+
+  useEffect(() => {
+    fetchAvatar();
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
