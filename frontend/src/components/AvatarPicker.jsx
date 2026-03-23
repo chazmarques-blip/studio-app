@@ -122,6 +122,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
     if (!chosen) return;
     try {
       await axios.post(`${API}/avatar/select`, { avatar_url: chosen });
+      window.dispatchEvent(new Event('avatar-changed'));
       if (onSave) onSave(chosen);
     } catch { toast.error('Save failed'); }
   };
@@ -129,6 +130,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
   const selectFromGallery = async (url) => {
     try {
       await axios.post(`${API}/avatar/select`, { avatar_url: url });
+      window.dispatchEvent(new Event('avatar-changed'));
       if (onSave) onSave(url);
       toast.success(lang === 'pt' ? 'Avatar atualizado!' : 'Avatar updated!');
     } catch { toast.error('Failed'); }

@@ -45,6 +45,12 @@ function AppHeader() {
   useEffect(() => {
     axios.get(`${API}/dashboard/stats`).then(r => setStats(r.data)).catch(() => {});
     axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
+
+    const handleAvatarChange = () => {
+      axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
+    };
+    window.addEventListener('avatar-changed', handleAvatarChange);
+    return () => window.removeEventListener('avatar-changed', handleAvatarChange);
   }, []);
 
   useEffect(() => {
