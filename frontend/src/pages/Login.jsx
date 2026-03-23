@@ -272,6 +272,9 @@ export default function Login() {
                 </div>
               </div>
               <button data-testid="auth-submit-btn" type="submit" disabled={loading} className="btn-gold w-full rounded-lg py-2 text-[11px] font-semibold disabled:opacity-50">{loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}</button>
+              {isSignUp && (
+                <p data-testid="no-credit-card-msg" className="text-center text-[10px] text-[#666]">No credit card required</p>
+              )}
             </form>
             <div className="mt-4 text-center">
               <button data-testid="auth-toggle-btn" onClick={() => setIsSignUp(!isSignUp)} className="text-[11px] text-[#888] transition hover:text-[#C9A84C]">{isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Start Free"}</button>
