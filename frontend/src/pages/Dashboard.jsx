@@ -116,13 +116,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen px-3 pt-2 pb-4">
-        {/* ── Greeting ── */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
-          className="mb-3">
-          <p className="text-[11px] text-[#B0B0B0]">{t(`dashboard.${getGreeting()}`)}</p>
-          <h1 data-testid="dashboard-greeting" className="text-lg font-bold text-white">{displayName}</h1>
-        </motion.div>
-
         {/* ── Featured Agent Showcase (Hero from Landing style) ── */}
         {agents.length > 0 && (
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1}
