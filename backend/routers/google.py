@@ -16,8 +16,6 @@ router = APIRouter(prefix="/api/google", tags=["google"])
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
-FRONTEND_URL = os.environ.get("REACT_APP_BACKEND_URL", "")
-REDIRECT_URI = f"{FRONTEND_URL}/api/google/callback"
 SCOPES = [
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/spreadsheets",
@@ -26,37 +24,66 @@ SCOPES = [
 ]
 
 
+def _get_base_url(request: Request) -> str:
+    """Extract the base URL from the incoming request for dynamic redirect."""
+    origin = request.headers.get("origin", "")
+    if origin:
+        return origin.rstrip("/")
+    forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+    forwarded_host = request.headers.get("x-forwarded-host", request.headers.get("host", ""))
+    if forwarded_host:
+        return f"{forwarded_proto}://{forwarded_host}".rstrip("/")
+    return os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
+
+
 # ── OAuth Flow ──
 
 @router.get("/connect")
-async def google_connect(user=Depends(get_current_user)):
+async def google_connect(request: Request, user=Depends(get_current_user)):
     """Start Google OAuth flow - returns authorization URL"""
+    base_url = _get_base_url(request)
+    redirect_uri = f"{base_url}/api/google/callback"
+    state_data = json.dumps({"user_id": user["id"], "origin": base_url})
     params = {
         "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": " ".join(SCOPES),
         "access_type": "offline",
         "prompt": "consent",
-        "state": user["id"],
+        "state": state_data,
     }
     url = "https://accounts.google.com/o/oauth2/v2/auth?" + "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
     return {"authorization_url": url}
 
 
 @router.get("/callback")
-async def google_callback(code: str, state: str = ""):
+async def google_callback(request: Request, code: str, state: str = ""):
     """Handle Google OAuth callback"""
+    # Parse state to get origin and user_id
+    try:
+        state_data = json.loads(state)
+        user_id = state_data.get("user_id", state)
+        origin = state_data.get("origin", "")
+    except (json.JSONDecodeError, TypeError):
+        user_id = state
+        origin = ""
+
+    if not origin:
+        origin = _get_base_url(request)
+
+    redirect_uri = f"{origin}/api/google/callback"
+
     token_resp = requests.post("https://oauth2.googleapis.com/token", data={
         "code": code,
         "client_id": GOOGLE_CLIENT_ID,
         "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
     }).json()
 
     if "error" in token_resp:
-        return RedirectResponse(f"{FRONTEND_URL}/settings?google_error={token_resp.get('error_description', 'OAuth failed')}")
+        return RedirectResponse(f"{origin}/settings?google_error={token_resp.get('error_description', 'OAuth failed')}")
 
     # Get user email from Google
     userinfo = requests.get(
@@ -67,8 +94,8 @@ async def google_callback(code: str, state: str = ""):
     google_email = userinfo.get("email", "")
 
     # Save tokens to tenant
-    if state:
-        tenant_result = supabase.table("tenants").select("id, settings").eq("owner_id", state).execute()
+    if user_id:
+        tenant_result = supabase.table("tenants").select("id, settings").eq("owner_id", user_id).execute()
         if tenant_result.data:
             tenant = tenant_result.data[0]
             settings = tenant.get("settings") or {}
@@ -82,7 +109,7 @@ async def google_callback(code: str, state: str = ""):
             }
             supabase.table("tenants").update({"settings": settings}).eq("id", tenant["id"]).execute()
 
-    return RedirectResponse(f"{FRONTEND_URL}/settings?google_connected=true")
+    return RedirectResponse(f"{origin}/settings?google_connected=true")
 
 
 @router.get("/status")
