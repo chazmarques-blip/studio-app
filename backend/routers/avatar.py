@@ -14,21 +14,27 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/avatar", tags=["avatar"])
 
-DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/36152c5b792ad0e3a5369214cbd423ca6b327833cf834f94d65f76c7c348c7a7.png"
+DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/a8605e94e5c6af1d2e335c12fd5b50643e2f4c2aaad4cda320b5e404af96e2f6.png"
 
-AVATAR_PROMPT = """Transform this person's photo into a futuristic premium 3D humanoid avatar portrait.
-CRITICAL: The avatar MUST face directly forward, looking straight at the camera. Front-facing portrait only.
-Style requirements:
-- Frontal face view, eyes looking directly at the viewer
-- Golden metallic skin tones with subtle reflections
-- Sleek dark background (#0A0A0A)
-- Soft professional studio lighting with golden accent lights
-- High-end 3D rendered quality
-- The avatar should clearly resemble the person in the photo but stylized as a futuristic humanoid
-- Premium luxury aesthetic with gold and black color palette
-- Head and upper shoulders, centered in frame
-- Clean, sharp details suitable for a circular profile picture
-- No sunglasses, no accessories covering the face"""
+AVATAR_PROMPT = """Create a hyper-realistic 3D rendered portrait based on this person's photo.
+
+CRITICAL RULES:
+- The avatar MUST look exactly like the person in the photo - same face shape, same features, same expression
+- Front-facing portrait, looking directly at camera
+- Natural human skin tones - NOT gold, NOT metallic skin
+- Keep the person's actual skin color, hair color, and facial features
+
+STYLE (futuristic humanoid):
+- Subtle cyberpunk/sci-fi aesthetic - think Deus Ex or Westworld
+- Add small futuristic tech elements: slim headset earpiece, tiny LED accents near temples, or a subtle holographic collar
+- Lighting: cinematic three-point lighting with a subtle cool blue or teal rim light on one side
+- Background: very dark, almost black (#0A0A0A), with a faint blue or teal glow halo behind the head
+- Hair should look natural but perfectly styled
+- Eyes should be sharp and vivid, slightly enhanced
+- Skin should be smooth and flawless but natural-looking, not plastic or metallic
+- The overall feel should be a premium professional headshot from the year 2050
+- Portrait crop: head and upper shoulders, centered
+- High-end 3D render quality, 8K detail"""
 
 
 class GenerateAvatarRequest(BaseModel):
