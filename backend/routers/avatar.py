@@ -24,32 +24,40 @@ BASE_PROMPT = """Transform this person's photo into a CYBORG half-human half-mac
 ABSOLUTE RULES (NEVER BREAK THESE):
 1. The face MUST be the EXACT same person from the photo - identical face shape, jawline, nose, lips, eyes, skin tone, hair
 2. Keep ALL accessories EXACTLY as in photo: glasses, earrings, beard, piercings, hat - EVERYTHING must be preserved
-3. Camera angle MUST be FRONT-FACING, looking DIRECTLY at the camera - NO side angles, NO 3/4 view, NO tilted head
-4. The person's expression should match the photo (smiling if smiling, serious if serious)
-5. Background MUST be very dark, almost black (#0A0A0A)
+3. The person's expression should match the photo (smiling if smiling, serious if serious)
+4. Background MUST be very dark, almost black (#0A0A0A)
+
+POSE CORRECTION (CRITICAL):
+- The output MUST ALWAYS show the person looking STRAIGHT AHEAD, DIRECTLY at the camera
+- Even if the input photo is at an angle, tilted, or from the side — CORRECT IT to be perfectly FRONTAL and CENTERED
+- Head must be perfectly straight and level — NO tilt left, right, up, or down
+- Both eyes must be at the same horizontal level
+- Nose pointing directly at the camera
+- Symmetric composition — face centered in the frame
 
 FRAMING (CRITICAL - DO NOT CROP TIGHT):
-- Medium shot framing: show from the TOP OF THE HEAD down to MID-CHEST (like a passport photo but wider)
-- There MUST be visible space/padding above the head (at least 10% of image height)
-- Shoulders and upper torso MUST be visible — NOT just a floating head
-- The face should occupy about 40-50% of the image height, NOT 80-90%
-- Think "LinkedIn profile photo" framing — head + shoulders + some chest
-- NEVER crop at the chin or neck — always show below the collarbone
+- Wide medium shot: show from ABOVE the head down to MID-CHEST
+- Leave generous empty space (15-20%) above the top of the head
+- Shoulders and upper torso MUST be fully visible on both sides
+- The face should occupy only about 35-40% of the total image height
+- Think "professional headshot" or "corporate portrait" — NOT a selfie crop
+- NEVER fill the frame with just the face — always show the full head + shoulders + upper chest
 
-HUMAN-MACHINE BALANCE:
-- The overall result should lean 60% machine / 40% human — more cyborg than human
-- Skin should have a slight synthetic sheen, as if partially artificial or bioengineered
-- Natural skin pores subtly reduced — smoother, almost like polished silicone in some areas
-- Eyes: keep the original iris color but add a faint digital glow or micro-circuitry reflection inside
-- Hair can have subtle metallic strands or fiber-optic highlights woven in
-- Skin tone slightly cooled (hint of blue/steel undertone) to feel less organic
+SKIN & HUMAN-MACHINE BALANCE:
+- Overall balance: 60% machine / 40% human
+- Skin MUST be very smooth, almost porcelain-like — NO visible pores, NO wrinkles, NO blemishes
+- Skin should look slightly artificial — like high-end silicone or bioengineered tissue
+- A subtle synthetic sheen across the skin surface — slightly reflective, like polished material
+- Skin tone slightly cooled with a faint metallic/steel undertone
+- Eyes: keep original iris color but add a soft inner glow, as if lit from within
+- Hair: add subtle metallic or fiber-optic strands woven throughout
+- Some areas of skin should subtly blend into mechanical plating — transitions should be seamless and organic
 
 REALISM & QUALITY:
-- Hyper-photorealistic 3D render - must look like a real photograph, not a painting or cartoon
-- Cinematic lighting with cool blue/teal accent light on the mechanical side
-- Warm light on remaining human features for contrast
-- 8K resolution quality, film-grain subtle texture
-- The result should feel like a real person who has been heavily augmented — not a robot wearing a face"""
+- Hyper-photorealistic 3D render quality — cinematic, NOT cartoon or painting
+- Cinematic lighting: cool blue/teal accent on the mechanical side, warm on the human side
+- 8K resolution quality with subtle film grain
+- The result should feel like a real augmented human — not a robot, but clearly more than human"""
 
 STYLE_VARIATIONS = [
     """CYBORG MIX STYLE A - Classic Half Split:
