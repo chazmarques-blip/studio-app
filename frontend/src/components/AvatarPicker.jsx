@@ -172,7 +172,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
 
         {/* Main avatar */}
         <div className="relative group cursor-pointer" onClick={() => !generating && setZoomed(displayUrl)}>
-          <div className={`${compact ? 'h-24 w-24' : 'h-32 w-32'} rounded-full overflow-hidden ring-2 ${showingPhoto ? 'ring-white/20' : 'ring-[#C9A84C]/30'} transition-all group-hover:ring-[#C9A84C]/60`} data-testid="avatar-main-preview">
+          <div className={`${compact ? 'h-20 w-20' : 'h-28 w-28'} rounded-full overflow-hidden ring-2 ${showingPhoto ? 'ring-white/20' : 'ring-[#C9A84C]/30'} transition-all group-hover:ring-[#C9A84C]/60`} data-testid="avatar-main-preview">
             {generating ? (
               <div className="h-full w-full flex flex-col items-center justify-center bg-[#111] gap-1">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#C9A84C]" />
