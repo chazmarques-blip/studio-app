@@ -36,34 +36,10 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
     }
   }, [showGallery]);
 
-  const handleDownload = async (url) => {
-    setDownloading(true);
-    try {
-      const token = localStorage.getItem('agentzz_token');
-      const response = await fetch(`${API}/avatar/download`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ avatar_url: url })
-      });
-      if (!response.ok) throw new Error('Download failed');
-      const blob = new Blob([await response.arrayBuffer()], { type: 'image/png' });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = blobUrl;
-      a.download = `agentzz_avatar_${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      }, 3000);
-      toast.success(lang === 'pt' ? 'Avatar baixado!' : 'Avatar downloaded!');
-    } catch (err) {
-      console.error('Download error:', err);
-      toast.error('Download failed');
-    }
-    finally { setDownloading(false); }
+  const handleDownload = (url) => {
+    const token = localStorage.getItem('agentzz_token');
+    const downloadUrl = `${API}/avatar/download-file?avatar_url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`;
+    window.open(downloadUrl, '_blank');
   };
 
   const handleFile = useCallback((e) => {

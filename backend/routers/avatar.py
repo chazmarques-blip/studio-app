@@ -204,16 +204,31 @@ async def select_avatar(req: SelectAvatarRequest, user=Depends(get_current_user)
 
 @router.post("/download")
 async def download_avatar(req: DownloadAvatarRequest, user=Depends(get_current_user)):
+    return _build_download(req.avatar_url)
+
+
+@router.get("/download-file")
+async def download_avatar_get(avatar_url: str, token: str):
+    from jose import jwt
+    secret = os.environ.get("JWT_SECRET", "agentzz-secret-key-2025")
     try:
-        from PIL import Image, ImageDraw, ImageFont
+        jwt.decode(token, secret, algorithms=["HS256"])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return _build_download(avatar_url)
+
+
+def _build_download(avatar_url: str):
+    try:
+        from PIL import Image, ImageDraw
 
         avatar_path = None
-        if req.avatar_url.startswith("/avatars/"):
-            avatar_path = f"/app/frontend/public{req.avatar_url}"
-        elif req.avatar_url.startswith("http"):
+        if avatar_url.startswith("/avatars/"):
+            avatar_path = f"/app/frontend/public{avatar_url}"
+        elif avatar_url.startswith("http"):
             import urllib.request
             tmp_path = f"/tmp/avatar_dl_{uuid.uuid4().hex[:8]}.png"
-            urllib.request.urlretrieve(req.avatar_url, tmp_path)
+            urllib.request.urlretrieve(avatar_url, tmp_path)
             avatar_path = tmp_path
 
         if not avatar_path or not os.path.exists(avatar_path):
