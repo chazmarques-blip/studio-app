@@ -2,12 +2,31 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Target, DollarSign, TrendingUp, Bot, CreditCard, LogOut, UserCog, Zap, Lightbulb, ChevronRight, ArrowUpRight, Megaphone } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { MessageSquare, Target, DollarSign, TrendingUp, Bot, CreditCard, LogOut, UserCog, Zap, Lightbulb, ChevronRight, ArrowUpRight, Megaphone, Sparkles, Shield, BarChart3, Send } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+/* ── Avatar URLs (same as Landing) ── */
+const AVATARS = {
+  Sarah: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/4d686b82885d8f4f90f35055251245df4e68fbfb5f3c8b9fc5b6296511151a5a.png",
+  Emily: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/7cf1f980e31d97ccb986f55c090c7303614a2952d6ca744b7ef14418e2ba6a4a.png",
+  Sophia: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/7f7b2e7ab2562fa5619f6e4f6546512e49d14080b6600d8874ae7ab6c99d109a.png",
+  Carlos: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/3f76d9a72b1b7c775b44da50a077ee6f03cdbb1232efcfd607bfabc6eb3185af.png",
+  James: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/88cfe39c6a5319218155267be07401ca74245e2076c5805a10e5c4aa82e5da90.png",
+};
+const AVATAR_LIST = Object.values(AVATARS);
+const AVATAR_NAMES = Object.keys(AVATARS);
+
+/* Map agent type/name to an avatar */
+function getAgentAvatar(agent, index) {
+  const nameMatch = AVATAR_NAMES.find(n => agent.name?.toLowerCase().includes(n.toLowerCase()));
+  if (nameMatch) return AVATARS[nameMatch];
+  return AVATAR_LIST[index % AVATAR_LIST.length];
+}
 
 /* ── Channel SVG Icons ── */
 const ChannelIcon = ({ type, size = 14 }) => {
@@ -54,6 +73,12 @@ const ChartTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+/* ── Motion variants ── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  visible: (d = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay: d * 0.06, ease: [0.25, 0.46, 0.45, 0.94] } }),
+};
+
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -61,6 +86,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeAgentIdx, setActiveAgentIdx] = useState(0);
   const profileRef = useRef(null);
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
 
@@ -75,6 +101,13 @@ export default function Dashboard() {
   useEffect(() => {
     axios.get(`${API}/dashboard/stats`).then(r => { setStats(r.data); setLoading(false); }).catch(() => setLoading(false));
   }, []);
+
+  /* Rotate featured agent */
+  useEffect(() => {
+    if (!stats?.agents?.length) return;
+    const interval = setInterval(() => setActiveAgentIdx(p => (p + 1) % stats.agents.length), 5000);
+    return () => clearInterval(interval);
+  }, [stats?.agents?.length]);
 
   const msgsUsed = stats?.messages_used || 0;
   const msgsLimit = stats?.messages_limit || 50;
@@ -91,263 +124,383 @@ export default function Dashboard() {
 
   const pipeline = stats?.crm_pipeline || {};
   const pipelineMax = Math.max(...Object.values(pipeline).filter((_, i) => i < 4), 1);
+  const agents = stats?.agents || [];
+  const featuredAgent = agents[activeAgentIdx] || null;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-3 pt-4 pb-4">
-      {/* ── Header ── */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-[11px] text-[#B0B0B0]">{t(`dashboard.${getGreeting()}`)}</p>
-          <h1 data-testid="dashboard-greeting" className="text-lg font-bold text-white">{displayName}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <div data-testid="credit-counter" onClick={() => navigate('/pricing')}
-            className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/30 transition">
-            <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#C9A84C]'} />
-            <span className={`text-[11px] font-bold ${usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-white'}`}>{creditsLeft}</span>
-            <span className="text-[9px] text-[#B0B0B0]">/{msgsLimit}</span>
+    <div className="relative min-h-screen bg-[#0A0A0A] px-3 pt-4 pb-4 overflow-hidden">
+      {/* ── Background Effects (like Landing) ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="dash-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(201,168,76,0.025)" strokeWidth="0.5" />
+            </pattern>
+            <radialGradient id="grid-fade-d" cx="50%" cy="30%" r="55%">
+              <stop offset="0%" stopColor="white" stopOpacity="1" />
+              <stop offset="100%" stopColor="white" stopOpacity="0" />
+            </radialGradient>
+            <mask id="grid-mask-d"><rect width="100%" height="100%" fill="url(#grid-fade-d)" /></mask>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#dash-grid)" mask="url(#grid-mask-d)" />
+        </svg>
+        <div className="absolute left-1/4 top-0 h-[350px] w-[450px] rounded-full bg-[#C9A84C]/[0.02] blur-[140px]" />
+        <div className="absolute right-0 top-1/3 h-[250px] w-[300px] rounded-full bg-[#C9A84C]/[0.015] blur-[120px]" />
+      </div>
+
+      <div className="relative z-10">
+        {/* ── Header ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
+          className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-[#B0B0B0]">{t(`dashboard.${getGreeting()}`)}</p>
+            <h1 data-testid="dashboard-greeting" className="text-lg font-bold text-white">{displayName}</h1>
           </div>
-          <div className="relative" ref={profileRef}>
-            <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] transition hover:shadow-md hover:shadow-[#C9A84C]/20">
-              <span className="text-xs font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
-            </button>
-            {profileOpen && (
-              <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
-                <div className="mb-1 border-b border-white/[0.04] px-3 py-2">
-                  <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
-                  <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
+          <div className="flex items-center gap-2">
+            <div data-testid="credit-counter" onClick={() => navigate('/pricing')}
+              className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/30 transition">
+              <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#C9A84C]'} />
+              <span className={`text-[11px] font-bold ${usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-white'}`}>{creditsLeft}</span>
+              <span className="text-[9px] text-[#B0B0B0]">/{msgsLimit}</span>
+            </div>
+            <div className="relative" ref={profileRef}>
+              <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] transition hover:shadow-md hover:shadow-[#C9A84C]/20">
+                <span className="text-xs font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
+              </button>
+              {profileOpen && (
+                <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-48 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
+                  <div className="mb-1 border-b border-white/[0.04] px-3 py-2">
+                    <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
+                    <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
+                  </div>
+                  <button data-testid="profile-edit-btn" onClick={() => { setProfileOpen(false); navigate('/settings', { state: { openAccount: true } }); }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
+                    <UserCog size={13} /> {t('profile.edit')}
+                  </button>
+                  <button data-testid="profile-billing-btn" onClick={() => { setProfileOpen(false); navigate('/pricing'); }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
+                    <CreditCard size={13} /> {t('profile.billing')}
+                  </button>
+                  <div className="my-0.5 border-t border-white/[0.04]" />
+                  <button data-testid="profile-logout-btn" onClick={async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-[#FF6B6B]">
+                    <LogOut size={13} /> {t('settings.sign_out')}
+                  </button>
                 </div>
-                <button data-testid="profile-edit-btn" onClick={() => { setProfileOpen(false); navigate('/settings', { state: { openAccount: true } }); }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
-                  <UserCog size={13} /> {t('profile.edit')}
-                </button>
-                <button data-testid="profile-billing-btn" onClick={() => { setProfileOpen(false); navigate('/pricing'); }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-white">
-                  <CreditCard size={13} /> {t('profile.billing')}
-                </button>
-                <div className="my-0.5 border-t border-white/[0.04]" />
-                <button data-testid="profile-logout-btn" onClick={async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#888] transition hover:bg-[#1A1A1A] hover:text-[#FF6B6B]">
-                  <LogOut size={13} /> {t('settings.sign_out')}
-                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Featured Agent Showcase (Hero from Landing style) ── */}
+        {agents.length > 0 && (
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1}
+            className="mb-3 glass-card p-3 overflow-hidden" data-testid="featured-agent-card">
+            <div className="flex items-center gap-3">
+              {/* Avatar */}
+              <div className="relative shrink-0">
+                {featuredAgent && (
+                  <motion.div key={activeAgentIdx} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+                    <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/20 shadow-lg shadow-[#C9A84C]/10">
+                      <img src={getAgentAvatar(featuredAgent, activeAgentIdx)} alt={featuredAgent.name} className="h-full w-full object-cover" />
+                    </div>
+                  </motion.div>
+                )}
+                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0A0A0A] bg-emerald-400" />
+              </div>
+
+              {/* Agent info */}
+              <div className="flex-1 min-w-0">
+                {featuredAgent && (
+                  <motion.div key={activeAgentIdx} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                      <p className="text-sm font-bold text-white truncate max-w-[140px] sm:max-w-none">{featuredAgent.name}</p>
+                      <span className="text-[7px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#C9A84C]/10 text-[#C9A84C] shrink-0">
+                        {featuredAgent.type}
+                      </span>
+                      <span className={`text-[7px] px-1.5 py-0.5 rounded font-mono shrink-0 ${featuredAgent.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[#333]/30 text-[#999]'}`}>
+                        {featuredAgent.status || 'active'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <div className="flex items-center gap-1">
+                        <MessageSquare size={9} className="text-[#C9A84C]/50" />
+                        <span className="text-[10px] text-[#B0B0B0] font-mono">{featuredAgent.conversations} chats</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Shield size={9} className="text-[#C9A84C]/50" />
+                        <span className="text-[10px] text-[#B0B0B0] font-mono">{featuredAgent.resolved} resolved</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-[#1A1A1A]">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${featuredAgent.conversations > 0 ? Math.round((featuredAgent.resolved / featuredAgent.conversations) * 100) : 0}%` }}
+                          transition={{ duration: 0.8, delay: 0.3 }}
+                          className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A]" />
+                      </div>
+                      <span className="text-[9px] font-mono text-[#C9A84C]">
+                        {featuredAgent.conversations > 0 ? Math.round((featuredAgent.resolved / featuredAgent.conversations) * 100) : 0}%
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            {/* Agent selector row + CTA */}
+            <div className="mt-2.5 flex items-center justify-between">
+              <div className="flex gap-1.5">
+                {agents.slice(0, 5).map((a, i) => (
+                  <button key={i} onClick={() => setActiveAgentIdx(i)}
+                    className={`h-7 w-7 rounded-full overflow-hidden ring-1 transition-all ${i === activeAgentIdx ? 'ring-[#C9A84C]/50 scale-110' : 'ring-white/[0.06] opacity-40 hover:opacity-70'}`}>
+                    <img src={getAgentAvatar(a, i)} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => navigate('/agents')} data-testid="featured-agent-manage-btn"
+                className="btn-gold rounded-lg px-3 py-1.5 text-[10px] flex items-center gap-1.5">
+                <Bot size={11} />
+                <span className="hidden sm:inline">{t('dashboard.create_agent')}</span>
+                <span className="sm:hidden">Agents</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Quick Actions ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2}
+          className="mb-3 grid grid-cols-4 gap-2">
+          {[
+            { icon: Bot, label: t('dashboard.create_agent'), path: '/agents' },
+            { icon: MessageSquare, label: t('dashboard.view_inbox'), path: '/chat' },
+            { icon: Target, label: t('dashboard.view_crm'), path: '/crm' },
+            { icon: Megaphone, label: 'Marketing', path: '/marketing' },
+          ].map((a, i) => (
+            <button key={i} data-testid={`quick-action-${i}`} onClick={() => navigate(a.path)}
+              className="glass-card group flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/25 hover:shadow-[0_0_15px_rgba(201,168,76,0.05)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#C9A84C]/[0.06] transition group-hover:bg-[#C9A84C]/[0.12] group-hover:shadow-[0_0_10px_rgba(201,168,76,0.1)]">
+                <a.icon size={15} className="text-[#C9A84C]" />
+              </div>
+              <p className="text-center text-[9px] font-medium text-[#888] group-hover:text-[#B0B0B0] transition">{a.label}</p>
+            </button>
+          ))}
+        </motion.div>
+
+        {/* ── KPI Cards ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3}
+          className="mb-3 grid grid-cols-4 gap-2">
+          {[
+            { label: t('dashboard.messages_today'), value: stats?.messages_today || 0, icon: MessageSquare, trend: stats?.messages_today > 0 },
+            { label: t('dashboard.resolution_rate'), value: `${stats?.resolution_rate || 0}%`, icon: TrendingUp },
+            { label: t('dashboard.active_leads'), value: stats?.active_leads || 0, icon: Target, sub: `${stats?.total_leads || 0}` },
+            { label: t('dashboard.revenue'), value: `$${(stats?.revenue || 0).toLocaleString()}`, icon: DollarSign },
+          ].map((s, i) => (
+            <div key={i} data-testid={`stat-${i}`} className="glass-card p-2.5 transition hover:border-[#C9A84C]/20">
+              <div className="mb-1.5 flex items-center justify-between">
+                <s.icon size={13} className="text-[#C9A84C]/70" />
+                {s.trend && <ArrowUpRight size={10} className="text-[#C9A84C]" />}
+              </div>
+              <p className="text-base font-bold text-white leading-tight font-mono">{s.value}</p>
+              <p className="text-[9px] text-[#B0B0B0] leading-tight mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* ── Messages Chart + CRM Pipeline ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={4}
+          className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+          <div className="glass-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-white">{t('dashboard.messages_week')}</h2>
+              <span className="text-[9px] text-[#B0B0B0]">{t('dashboard.last_7_days')}</span>
+            </div>
+            <div className="h-[100px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stats?.messages_by_day || []} margin={{ top: 2, right: 2, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gld" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#C9A84C" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: '#777' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area type="monotone" dataKey="count" stroke="#C9A84C" strokeWidth={1.5} fill="url(#gld)" dot={{ r: 2, fill: '#C9A84C', strokeWidth: 0 }} activeDot={{ r: 4, fill: '#C9A84C' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="glass-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-white">{t('dashboard.crm_pipeline')}</h2>
+              <button onClick={() => navigate('/crm')} className="text-[9px] text-[#C9A84C] hover:underline">{t('dashboard.view_all')}</button>
+            </div>
+            <div className="flex items-end gap-2 h-[100px]">
+              {['new', 'qualified', 'proposal', 'won'].map((stage, i) => {
+                const count = pipeline[stage] || 0;
+                const h = Math.max(15, (count / pipelineMax) * 70);
+                const opacity = 1 - i * 0.15;
+                return (
+                  <div key={stage} className="flex flex-1 flex-col items-center justify-end h-full">
+                    <div className="w-full rounded-md transition-all hover:opacity-80" style={{ height: `${h}%`, backgroundColor: `rgba(201,168,76,${opacity})` }} />
+                    <p className="mt-1 text-sm font-bold text-white">{count}</p>
+                    <p className="text-[8px] text-[#B0B0B0] capitalize">{PIPELINE_LABELS[stage]}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Recent Conversations + Agent Team ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={5}
+          className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+          {/* Recent Conversations */}
+          <div className="glass-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-white">{t('dashboard.recent_chats')}</h2>
+              <button onClick={() => navigate('/chat')} className="text-[9px] text-[#C9A84C] hover:underline">{t('dashboard.view_all')}</button>
+            </div>
+            {(stats?.recent_conversations || []).length > 0 ? (
+              <div className="space-y-1">
+                {stats.recent_conversations.map(c => (
+                  <div key={c.id} className="flex items-center gap-2.5 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2 transition hover:bg-white/[0.03] hover:border-white/[0.08] cursor-pointer" onClick={() => navigate('/chat')}>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.03]">
+                      <ChannelIcon type={c.channel_type} size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-xs font-medium text-white">{c.contact_name}</p>
+                      <p className="text-[9px] capitalize text-[#B0B0B0]">{c.channel_type}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={`inline-block rounded-full px-1.5 py-px text-[8px] font-medium ${c.status === 'active' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'bg-[#333]/30 text-[#999]'}`}>
+                        {c.status}
+                      </span>
+                      <p className="mt-0.5 text-[9px] text-[#999]">{timeAgo(c.last_message_at)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-4 text-center">
+                <MessageSquare size={20} className="mx-auto mb-1.5 text-[#444]" />
+                <p className="text-[10px] text-[#B0B0B0]">{t('dashboard.no_conversations')}</p>
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* ── Quick Actions ── */}
-      <div className="mb-3 grid grid-cols-4 gap-2">
-        {[
-          { icon: Bot, label: t('dashboard.create_agent'), path: '/agents' },
-          { icon: MessageSquare, label: t('dashboard.view_inbox'), path: '/chat' },
-          { icon: Target, label: t('dashboard.view_crm'), path: '/crm' },
-          { icon: Megaphone, label: 'Marketing', path: '/marketing' },
-        ].map((a, i) => (
-          <button key={i} data-testid={`quick-action-${i}`} onClick={() => navigate(a.path)}
-            className="glass-card group flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/25 hover:shadow-[0_0_15px_rgba(201,168,76,0.05)]">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#C9A84C]/[0.06] transition group-hover:bg-[#C9A84C]/[0.12] group-hover:shadow-[0_0_10px_rgba(201,168,76,0.1)]">
-              <a.icon size={15} className="text-[#C9A84C]" />
+          {/* Agent Team (with Avatars like Landing Page) */}
+          <div className="glass-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-white">{t('dashboard.agent_performance')}</h2>
+              <button onClick={() => navigate('/agents')} className="text-[9px] text-[#C9A84C] hover:underline">{t('dashboard.view_all')}</button>
             </div>
-            <p className="text-center text-[9px] font-medium text-[#888] group-hover:text-[#B0B0B0] transition">{a.label}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* ── KPI Cards ── */}
-      <div className="mb-3 grid grid-cols-4 gap-2">
-        {[
-          { label: t('dashboard.messages_today'), value: stats?.messages_today || 0, icon: MessageSquare, trend: stats?.messages_today > 0 },
-          { label: t('dashboard.resolution_rate'), value: `${stats?.resolution_rate || 0}%`, icon: TrendingUp },
-          { label: t('dashboard.active_leads'), value: stats?.active_leads || 0, icon: Target, sub: `${stats?.total_leads || 0}` },
-          { label: t('dashboard.revenue'), value: `$${(stats?.revenue || 0).toLocaleString()}`, icon: DollarSign },
-        ].map((s, i) => (
-          <div key={i} data-testid={`stat-${i}`} className="glass-card p-2.5 transition hover:border-[#C9A84C]/20">
-            <div className="mb-1.5 flex items-center justify-between">
-              <s.icon size={13} className="text-[#C9A84C]/70" />
-              {s.trend && <ArrowUpRight size={10} className="text-[#C9A84C]" />}
-            </div>
-            <p className="text-base font-bold text-white leading-tight font-mono">{s.value}</p>
-            <p className="text-[9px] text-[#B0B0B0] leading-tight mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Messages Chart + CRM Pipeline ── */}
-      <div className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
-        <div className="glass-card p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-white">{t('dashboard.messages_week')}</h2>
-            <span className="text-[9px] text-[#B0B0B0]">{t('dashboard.last_7_days')}</span>
-          </div>
-          <div className="h-[100px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats?.messages_by_day || []} margin={{ top: 2, right: 2, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gld" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#C9A84C" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 9, fill: '#777' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="count" stroke="#C9A84C" strokeWidth={1.5} fill="url(#gld)" dot={{ r: 2, fill: '#C9A84C', strokeWidth: 0 }} activeDot={{ r: 4, fill: '#C9A84C' }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="glass-card p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-white">{t('dashboard.crm_pipeline')}</h2>
-            <button onClick={() => navigate('/crm')} className="text-[9px] text-[#C9A84C] hover:underline">{t('dashboard.view_all')}</button>
-          </div>
-          <div className="flex items-end gap-2 h-[100px]">
-            {['new', 'qualified', 'proposal', 'won'].map((stage, i) => {
-              const count = pipeline[stage] || 0;
-              const h = Math.max(15, (count / pipelineMax) * 70);
-              const opacity = 1 - i * 0.15;
-              return (
-                <div key={stage} className="flex flex-1 flex-col items-center justify-end h-full">
-                  <div className="w-full rounded-md transition-all hover:opacity-80" style={{ height: `${h}%`, backgroundColor: `rgba(201,168,76,${opacity})` }} />
-                  <p className="mt-1 text-sm font-bold text-white">{count}</p>
-                  <p className="text-[8px] text-[#B0B0B0] capitalize">{PIPELINE_LABELS[stage]}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Recent Conversations + Agents ── */}
-      <div className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
-        <div className="glass-card p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-white">{t('dashboard.recent_chats')}</h2>
-            <button onClick={() => navigate('/chat')} className="text-[9px] text-[#C9A84C] hover:underline">{t('dashboard.view_all')}</button>
-          </div>
-          {(stats?.recent_conversations || []).length > 0 ? (
-            <div className="space-y-1">
-              {stats.recent_conversations.map(c => (
-                <div key={c.id} className="flex items-center gap-2.5 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2 transition hover:bg-white/[0.03] hover:border-white/[0.08] cursor-pointer" onClick={() => navigate('/chat')}>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.03]">
-                    <ChannelIcon type={c.channel_type} size={14} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-xs font-medium text-white">{c.contact_name}</p>
-                    <p className="text-[9px] capitalize text-[#B0B0B0]">{c.channel_type}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className={`inline-block rounded-full px-1.5 py-px text-[8px] font-medium ${c.status === 'active' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'bg-[#333]/30 text-[#999]'}`}>
-                      {c.status}
-                    </span>
-                    <p className="mt-0.5 text-[9px] text-[#999]">{timeAgo(c.last_message_at)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-4 text-center">
-              <MessageSquare size={20} className="mx-auto mb-1.5 text-[#444]" />
-              <p className="text-[10px] text-[#B0B0B0]">{t('dashboard.no_conversations')}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="glass-card p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-white">{t('dashboard.agent_performance')}</h2>
-            <button onClick={() => navigate('/agents')} className="text-[9px] text-[#C9A84C] hover:underline">{t('dashboard.view_all')}</button>
-          </div>
-          {(stats?.agents || []).length > 0 ? (
-            <div className="space-y-1">
-              {stats.agents.map(a => (
-                <div key={a.id} className="flex items-center gap-2.5 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C9A84C]/8">
-                    <Bot size={13} className="text-[#C9A84C]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <p className="truncate text-xs font-medium text-white">{a.name}</p>
-                      <span className="text-[9px] font-mono text-[#C9A84C] ml-2">{a.resolved > 0 ? Math.round((a.resolved / Math.max(a.conversations, 1)) * 100) : 0}%</span>
+            {agents.length > 0 ? (
+              <div className="space-y-1">
+                {agents.map((a, idx) => (
+                  <div key={a.id} className="flex items-center gap-2.5 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2 transition hover:bg-white/[0.03] hover:border-white/[0.08]">
+                    {/* Avatar photo instead of generic icon */}
+                    <div className="relative">
+                      <div className="h-8 w-8 rounded-full overflow-hidden ring-1 ring-[#C9A84C]/15">
+                        <img src={getAgentAvatar(a, idx)} alt={a.name} className="h-full w-full object-cover" />
+                      </div>
+                      <div className={`absolute -bottom-px -right-px h-2 w-2 rounded-full border border-[#0A0A0A] ${a.status === 'active' ? 'bg-emerald-400' : 'bg-[#666]'}`} />
                     </div>
-                    <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
-                      <div className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-700" style={{ width: `${a.conversations > 0 ? Math.round((a.resolved / a.conversations) * 100) : 0}%` }} />
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-[8px] capitalize text-[#888]">{a.type}</p>
-                      <span className="text-[8px] text-[#666]">{a.conversations} chats / {a.resolved} resolved</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="truncate text-xs font-medium text-white">{a.name}</p>
+                        <span className="text-[9px] font-mono text-[#C9A84C] ml-2">{a.resolved > 0 ? Math.round((a.resolved / Math.max(a.conversations, 1)) * 100) : 0}%</span>
+                      </div>
+                      <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
+                        <div className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-700" style={{ width: `${a.conversations > 0 ? Math.round((a.resolved / a.conversations) * 100) : 0}%` }} />
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[8px] capitalize text-[#888]">{a.type}</p>
+                        <span className="text-[8px] text-[#666]">{a.conversations} chats / {a.resolved} resolved</span>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-4 text-center">
+                {/* Avatar collage for empty state */}
+                <div className="flex justify-center -space-x-2 mb-3">
+                  {AVATAR_LIST.slice(0, 4).map((av, i) => (
+                    <div key={i} className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-[#0A0A0A] opacity-40">
+                      <img src={av} alt="" className="h-full w-full object-cover" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-4 text-center">
-              <Bot size={20} className="mx-auto mb-1.5 text-[#444]" />
-              <p className="mb-1.5 text-[10px] text-[#B0B0B0]">{t('dashboard.no_agents')}</p>
-              <button onClick={() => navigate('/agents')} className="btn-gold rounded-lg px-3 py-1 text-[10px]">{t('dashboard.create_first')}</button>
-            </div>
-          )}
-        </div>
-      </div>
+                <p className="mb-1.5 text-[10px] text-[#B0B0B0]">{t('dashboard.no_agents')}</p>
+                <button onClick={() => navigate('/agents')} className="btn-gold rounded-lg px-3 py-1 text-[10px]">{t('dashboard.create_first')}</button>
+              </div>
+            )}
+          </div>
+        </motion.div>
 
-      {/* ── AI Insights Widget ── */}
-      <div data-testid="ai-insights-widget" className="mb-3 glass-card p-3 border-[#C9A84C]/15">
-        <div className="mb-2 flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#C9A84C]/10">
-            <Lightbulb size={12} className="text-[#C9A84C]" />
-          </div>
-          <h2 className="text-xs font-semibold text-white">{t('dashboard.ai_insights')}</h2>
-          <span className="ml-auto rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[8px] font-semibold text-[#C9A84C] uppercase tracking-wide">AI</span>
-        </div>
-        <div className="space-y-1.5">
-          {[
-            { text: t('dashboard.insight_1', { count: pipeline.qualified || 0 }), type: 'alert' },
-            { text: t('dashboard.insight_2', { count: stats?.agents_count || 0 }), type: 'tip' },
-            { text: t('dashboard.insight_3'), type: 'opportunity' },
-          ].map((insight, i) => (
-            <div key={i} className="flex items-start gap-2 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2">
-              <div className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-[#C9A84C]" />
-              <p className="text-[10px] leading-relaxed text-[#999]">{insight.text}</p>
+        {/* ── AI Insights Widget ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={6}
+          data-testid="ai-insights-widget" className="mb-3 glass-card p-3 border-[#C9A84C]/15">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#C9A84C]/10">
+              <Lightbulb size={12} className="text-[#C9A84C]" />
             </div>
-          ))}
-        </div>
-      </div>
+            <h2 className="text-xs font-semibold text-white">{t('dashboard.ai_insights')}</h2>
+            <span className="ml-auto rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[8px] font-semibold text-[#C9A84C] uppercase tracking-wide">AI</span>
+          </div>
+          <div className="space-y-1.5">
+            {[
+              { text: t('dashboard.insight_1', { count: pipeline.qualified || 0 }), type: 'alert' },
+              { text: t('dashboard.insight_2', { count: stats?.agents_count || 0 }), type: 'tip' },
+              { text: t('dashboard.insight_3'), type: 'opportunity' },
+            ].map((insight, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2">
+                <div className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-[#C9A84C]" />
+                <p className="text-[10px] leading-relaxed text-[#999]">{insight.text}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
 
-      {/* ── Plan & Usage ── */}
-      <div className="glass-card p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-[9px] text-[#B0B0B0]">{t('dashboard.current_plan')}</p>
-            <p className="text-xs font-bold text-white capitalize">{stats?.plan || 'free'}</p>
+        {/* ── Plan & Usage ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={7}
+          className="glass-card p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-[9px] text-[#B0B0B0]">{t('dashboard.current_plan')}</p>
+              <p className="text-xs font-bold text-white capitalize">{stats?.plan || 'free'}</p>
+            </div>
+            <button onClick={() => navigate('/pricing')} className="rounded-full border border-[#C9A84C]/25 px-2.5 py-0.5 text-[9px] font-medium text-[#C9A84C] transition hover:bg-[#C9A84C]/10">
+              {t('dashboard.upgrade')}
+            </button>
           </div>
-          <button onClick={() => navigate('/pricing')} className="rounded-full border border-[#C9A84C]/25 px-2.5 py-0.5 text-[9px] font-medium text-[#C9A84C] transition hover:bg-[#C9A84C]/10">
-            {t('dashboard.upgrade')}
-          </button>
-        </div>
-        <div className="space-y-1.5">
-          <div>
-            <div className="flex justify-between text-[9px] mb-0.5">
-              <span className="text-[#B0B0B0]">{t('dashboard.messages_usage')}</span>
-              <span className={usagePercent > 80 ? 'text-[#FF6B6B] font-semibold' : 'text-[#888]'}>{msgsUsed}/{msgsLimit}</span>
+          <div className="space-y-1.5">
+            <div>
+              <div className="flex justify-between text-[9px] mb-0.5">
+                <span className="text-[#B0B0B0]">{t('dashboard.messages_usage')}</span>
+                <span className={usagePercent > 80 ? 'text-[#FF6B6B] font-semibold' : 'text-[#888]'}>{msgsUsed}/{msgsLimit}</span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
+                <div className={`h-full rounded-full transition-all duration-500 ${usagePercent > 80 ? 'bg-[#FF6B6B]' : 'bg-gradient-to-r from-[#C9A84C] to-[#D4B85A]'}`} style={{ width: `${usagePercent}%` }} />
+              </div>
             </div>
-            <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
-              <div className={`h-full rounded-full transition-all duration-500 ${usagePercent > 80 ? 'bg-[#FF6B6B]' : 'bg-gradient-to-r from-[#C9A84C] to-[#D4B85A]'}`} style={{ width: `${usagePercent}%` }} />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-[9px] mb-0.5">
-              <span className="text-[#B0B0B0]">{t('dashboard.agents_usage')}</span>
-              <span className="text-[#888]">{stats?.agents_count || 0}/{stats?.agents_limit || 1}</span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
-              <div className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-500" style={{ width: `${Math.min(100, ((stats?.agents_count || 0) / (stats?.agents_limit || 1)) * 100)}%` }} />
+            <div>
+              <div className="flex justify-between text-[9px] mb-0.5">
+                <span className="text-[#B0B0B0]">{t('dashboard.agents_usage')}</span>
+                <span className="text-[#888]">{stats?.agents_count || 0}/{stats?.agents_limit || 1}</span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-[#1A1A1A]">
+                <div className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-500" style={{ width: `${Math.min(100, ((stats?.agents_count || 0) / (stats?.agents_limit || 1)) * 100)}%` }} />
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
