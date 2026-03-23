@@ -7,7 +7,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts, Lucide Icons
 - **Backend**: FastAPI (Python)
 - **Database**: Supabase (PostgreSQL) — tenants.settings JSONB
-- **AI**: Claude Sonnet 4.5 (cinema agents + screenwriter), Sora 2 (video gen with avatar image_path reference), Gemini (image gen), Whisper (voice)
+- **AI**: Claude Sonnet 4.5 (cinema agents + screenwriter, 3x retry), Sora 2 (video gen with avatar image_path), Gemini (image gen), Whisper (voice)
 - **Video**: FFmpeg for multi-scene concatenation
 - **Design**: Dark luxury monochrome + gold accents
 
@@ -20,28 +20,27 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - Settings page
 - Marketing AI Studio (auto pipeline: image, video, carousel, avatar)
 - **Directed Studio v2** — COMPLETE:
-  - Interactive Screenwriter Chat (background + polling)
-  - Character & Avatar Management (edit inline, copy prompt, preview zoom, AI edit, create new)
-  - Multi-Scene Production Pipeline:
-    - Dir. Fotografia with auto art-style detection (cartoon/anime/realistic)
-    - Avatar reference images sent to Sora 2 via image_path
-    - Dir. Musical + Dir. Audio per scene
-  - FFmpeg video concatenation
-  - Results Viewer with download
-  - Project History with auto-resume
+  - **Step 0: Project Management** — List all projects with status, resume from any step, create new with name+description
+  - **Step 1: Interactive Screenwriter** — Background thread + polling (K8s safe), 3x retry on 502/503
+  - **Step 2: Characters & Avatars** — Edit inline, copy prompt, preview zoom, AI edit, create new
+  - **Step 3: Multi-Scene Production** — 3 Cinema Agents per scene, avatar reference via image_path, art style auto-detection
+  - **Step 4: Results** — Watch complete film + individual scenes with download
+  - Auto-resume for in-progress productions
+  - E2E tested: Abraham & Isaac (3 scenes, 36s film)
 
 ## Key API Endpoints
+- POST /api/studio/projects — Create project (name + briefing)
 - POST /api/studio/chat — Screenwriter (background + polling)
-- GET /api/studio/projects/{id}/status — Poll status
+- GET /api/studio/projects/{id}/status — Poll status (chat_status, chat_history)
 - POST /api/studio/projects/{id}/update-characters — Update characters
-- POST /api/studio/start-production — Start production (accepts character_avatars dict)
-- GET /api/studio/projects — List projects
+- POST /api/studio/start-production — Start production (with character_avatars)
+- GET /api/studio/projects — List all projects
 - DELETE /api/studio/projects/{id} — Delete project
 
 ## Upcoming Tasks (P1)
 - ElevenLabs voice generation for scene narration
+- Delete projects from UI
 - Story templates (Biblical, Commercial, Documentary, Fiction)
-- Retry logic for empty Sora 2 video responses
 
 ## Future Tasks (P2-P4)
 - Phase 8: Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram)
@@ -50,7 +49,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - Refactor PipelineView.jsx (3000+ lines)
 
 ## Known Issues
-- Universal Key budget can be exceeded during multi-scene generation (10+ scenes)
+- Universal Key budget may be exceeded during multi-scene generation
 - User needs to add balance: Profile → Universal Key → Add Balance
 
 ## Test Credentials

@@ -14,8 +14,10 @@ export function DirectedStudio({
   const { i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'pt';
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // 0 = project list, 1-4 = workflow
   const [projectId, setProjectId] = useState(null);
+  const [projectName, setProjectName] = useState('');
+  const [projectDesc, setProjectDesc] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -25,11 +27,12 @@ export function DirectedStudio({
   const [generating, setGenerating] = useState(false);
   const [agentStatus, setAgentStatus] = useState({});
   const [outputs, setOutputs] = useState([]);
-  const [pastProjects, setPastProjects] = useState([]);
+  const [allProjects, setAllProjects] = useState([]);
   const [viewingProject, setViewingProject] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [editingChar, setEditingChar] = useState(null); // index of character being edited
+  const [editingChar, setEditingChar] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', description: '', age: '', role: '' });
+  const [showNewProject, setShowNewProject] = useState(false);
   const chatEndRef = useRef(null);
 
   const STEPS = [
@@ -39,30 +42,74 @@ export function DirectedStudio({
     { n: 4, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
   ];
 
-  // Load past projects & resume in-progress
-  useEffect(() => {
+  const STATUS_LABELS = {
+    draft: { pt: 'Rascunho', en: 'Draft', color: 'text-[#888]' },
+    scripting: { pt: 'Roteiro', en: 'Scripting', color: 'text-blue-400' },
+    starting: { pt: 'Iniciando', en: 'Starting', color: 'text-yellow-400' },
+    running_agents: { pt: 'Produzindo', en: 'Producing', color: 'text-orange-400' },
+    complete: { pt: 'Concluído', en: 'Complete', color: 'text-emerald-400' },
+    error: { pt: 'Erro', en: 'Error', color: 'text-red-400' },
+  };
+
+  // Load all projects
+  const loadProjects = () => {
     axios.get(`${API}/studio/projects`).then(r => {
-      const allProjs = r.data.projects || [];
-      setPastProjects(allProjs.filter(p => p.outputs?.length > 0));
-      const inProgress = allProjs.find(p =>
-        ['starting', 'running_agents', 'generating_video'].includes(p.status)
-      );
-      if (inProgress) {
-        setProjectId(inProgress.id);
-        setScenes(inProgress.scenes || []);
-        setCharacters(inProgress.characters || []);
-        setStep(3);
-        setGenerating(true);
-        startPolling(inProgress.id);
-        return;
-      }
-      const recent = allProjs.find(p => p.status === 'complete' && p.outputs?.length > 0);
-      if (recent) {
-        const diffMin = (Date.now() - new Date(recent.created_at).getTime()) / 60000;
-        if (diffMin < 15) setViewingProject(recent);
-      }
+      setAllProjects(r.data.projects || []);
     }).catch(() => {});
-  }, []);
+  };
+
+  useEffect(() => { loadProjects(); }, []);
+
+  // Auto-resume in-progress project
+  useEffect(() => {
+    const inProgress = allProjects.find(p =>
+      ['starting', 'running_agents', 'generating_video'].includes(p.status)
+    );
+    if (inProgress && !projectId) {
+      resumeProject(inProgress);
+    }
+  }, [allProjects]);
+
+  // Resume a project from its current step
+  const resumeProject = (proj) => {
+    setProjectId(proj.id);
+    setProjectName(proj.name || '');
+    setProjectDesc(proj.briefing || '');
+    setScenes(proj.scenes || []);
+    setCharacters(proj.characters || []);
+    setChatMessages(proj.chat_history || []);
+    setOutputs(proj.outputs || []);
+    setCharacterAvatars({});
+    setViewingProject(null);
+
+    if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
+      setStep(3); setGenerating(true); startPolling(proj.id);
+    } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
+      setStep(4); setOutputs(proj.outputs);
+    } else if ((proj.scenes || []).length > 0) {
+      setStep(2);
+    } else {
+      setStep(1);
+    }
+  };
+
+  // Create a new project (name + description first)
+  const createNewProject = async () => {
+    if (!projectName.trim()) {
+      toast.error(lang === 'pt' ? 'Dê um nome ao projecto' : 'Give the project a name');
+      return;
+    }
+    try {
+      const res = await axios.post(`${API}/studio/projects`, { name: projectName.trim(), briefing: projectDesc.trim() });
+      setProjectId(res.data.id);
+      setStep(1); setChatMessages([]); setScenes([]); setCharacters([]); setOutputs([]);
+      setShowNewProject(false);
+      loadProjects();
+      toast.success(lang === 'pt' ? 'Projecto criado!' : 'Project created!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Error');
+    }
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -221,51 +268,120 @@ export function DirectedStudio({
 
   return (
     <div className="space-y-3" data-testid="directed-studio">
-      {/* Step indicator */}
-      <div className="flex items-center justify-center gap-0.5">
-        {STEPS.map((s, i) => (
-          <div key={s.n} className="flex items-center">
-            <button onClick={() => { if (!generating) { setViewingProject(null); setStep(s.n); }}}
-              data-testid={`studio-step-${s.n}`}
-              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-medium transition ${
-                step === s.n && !viewingProject ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] hover:text-[#888]'
-              }`}>
-              <s.icon size={11} />
-              <span className="hidden sm:inline">{s.label}</span>
-            </button>
-            {i < STEPS.length - 1 && <div className="w-3 h-px bg-[#333] mx-0.5" />}
-          </div>
-        ))}
-      </div>
-
-      {/* History */}
-      {pastProjects.length > 0 && !viewingProject && step === 1 && !chatMessages.length && (
-        <div>
-          <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-studio-history"
-            className="text-[10px] text-[#C9A84C] hover:underline flex items-center gap-1 mb-1">
-            <Film size={10} /> {pastProjects.length} {lang === 'pt' ? 'produções' : 'productions'}
-            <ChevronDown size={10} className={`transition ${showHistory ? 'rotate-180' : ''}`} />
+      {/* Step Navigation — only when inside a project */}
+      {step >= 1 && (
+        <div className="flex items-center justify-between mb-1">
+          <button onClick={() => { setStep(0); setViewingProject(null); }}
+            className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
+            ← {lang === 'pt' ? 'Projectos' : 'Projects'}
           </button>
-          {showHistory && (
-            <div className="grid grid-cols-3 gap-1.5">
-              {pastProjects.slice(0, 6).map(proj => {
-                const vid = proj.outputs?.find(o => o.type === 'video');
+          <p className="text-[9px] text-[#666] truncate max-w-[200px]">{projectName}</p>
+        </div>
+      )}
+      {step >= 1 && (
+        <div className="flex items-center justify-center gap-1 my-1">
+          {STEPS.map((s, i) => (
+            <div key={s.n} className="flex items-center">
+              <button onClick={() => { if (!generating) { setViewingProject(null); setStep(s.n); }}}
+                data-testid={`studio-step-${s.n}`}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-medium transition ${
+                  step === s.n && !viewingProject ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] hover:text-[#888]'
+                }`}>
+                <s.icon size={11} />
+                <span className="hidden sm:inline">{s.label}</span>
+              </button>
+              {i < STEPS.length - 1 && <div className="w-3 h-px bg-[#333] mx-0.5" />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ═══ STEP 0: Project List ═══ */}
+      {step === 0 && !viewingProject && (
+        <div className="space-y-3" data-testid="studio-project-list">
+          {!showNewProject ? (
+            <button onClick={() => setShowNewProject(true)} data-testid="new-project-btn"
+              className="w-full glass-card p-3 flex items-center gap-3 hover:border-[#C9A84C]/30 transition group border border-dashed border-[#333]">
+              <div className="h-10 w-10 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center group-hover:bg-[#C9A84C]/20 transition">
+                <Plus size={18} className="text-[#C9A84C]" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Novo Projecto' : 'New Project'}</p>
+                <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Crie uma nova produção com IA' : 'Create a new AI production'}</p>
+              </div>
+            </button>
+          ) : (
+            <div className="glass-card p-3 space-y-2 border border-[#C9A84C]/20" data-testid="new-project-form">
+              <h3 className="text-xs font-semibold text-white flex items-center gap-2">
+                <Clapperboard size={12} className="text-[#C9A84C]" />
+                {lang === 'pt' ? 'Novo Projecto' : 'New Project'}
+              </h3>
+              <input value={projectName} onChange={e => setProjectName(e.target.value)}
+                placeholder={lang === 'pt' ? 'Nome do projecto (ex: A História de Abraão)' : 'Project name'}
+                data-testid="new-project-name"
+                className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-[11px] text-white outline-none focus:border-[#C9A84C]/50 placeholder-[#555]" />
+              <textarea value={projectDesc} onChange={e => setProjectDesc(e.target.value)}
+                placeholder={lang === 'pt' ? 'Descreva brevemente o projecto...' : 'Brief description...'}
+                data-testid="new-project-desc"
+                rows={2}
+                className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-[10px] text-white outline-none focus:border-[#C9A84C]/50 placeholder-[#555] resize-none" />
+              <div className="flex gap-2">
+                <button onClick={() => { setShowNewProject(false); setProjectName(''); setProjectDesc(''); }}
+                  className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
+                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button onClick={createNewProject} disabled={!projectName.trim()} data-testid="create-project-btn"
+                  className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
+                  <Sparkles size={10} /> {lang === 'pt' ? 'Criar Projecto' : 'Create Project'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {allProjects.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-[#666] uppercase tracking-wider font-medium">
+                {allProjects.length} {lang === 'pt' ? 'projectos' : 'projects'}
+              </p>
+              {allProjects.map(proj => {
+                const sl = STATUS_LABELS[proj.status] || STATUS_LABELS.draft;
+                const scenesCount = (proj.scenes || []).length;
+                const videosCount = (proj.outputs || []).filter(o => o.type === 'video').length;
+                const vid = proj.outputs?.find(o => o.type === 'video' && o.label === 'complete') || proj.outputs?.find(o => o.type === 'video');
                 return (
-                  <button key={proj.id} onClick={() => setViewingProject(proj)} data-testid={`history-project-${proj.id}`}
-                    className="rounded-lg border border-[#222] bg-[#0A0A0A] overflow-hidden text-left hover:border-[#C9A84C]/30 transition group">
-                    <div className="aspect-video bg-[#111] relative flex items-center justify-center">
+                  <button key={proj.id} onClick={() => resumeProject(proj)} data-testid={`project-${proj.id}`}
+                    className="w-full glass-card p-2.5 flex items-center gap-2.5 hover:border-[#C9A84C]/30 transition text-left group">
+                    <div className="h-14 w-12 rounded-lg bg-[#111] flex-shrink-0 overflow-hidden border border-[#222] relative">
                       {vid ? (
                         <>
                           <video src={vid.url} className="w-full h-full object-cover" muted />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <Play size={14} className="text-[#C9A84C]" />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <Play size={12} className="text-[#C9A84C]" />
                           </div>
-                          <span className="absolute top-0.5 left-0.5 bg-[#C9A84C] text-[5px] font-bold text-black px-1 rounded">SORA 2</span>
                         </>
-                      ) : <Film size={12} className="text-[#333]" />}
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Film size={16} className="text-[#333]" />
+                        </div>
+                      )}
                     </div>
-                    <div className="p-1">
-                      <p className="text-[7px] text-[#999] truncate">{proj.briefing || proj.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-white truncate group-hover:text-[#C9A84C] transition">
+                        {proj.name || proj.briefing?.slice(0, 40) || 'Sem nome'}
+                      </p>
+                      <p className="text-[8px] text-[#666] truncate mt-0.5">{proj.briefing?.slice(0, 60) || ''}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[7px] font-medium ${sl.color}`}>{sl[lang] || sl.en}</span>
+                        {scenesCount > 0 && <span className="text-[7px] text-[#555]">{scenesCount} {lang === 'pt' ? 'cenas' : 'scenes'}</span>}
+                        {videosCount > 0 && <span className="text-[7px] text-emerald-500">{videosCount} {lang === 'pt' ? 'vídeos' : 'videos'}</span>}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {['starting', 'running_agents'].includes(proj.status) ? (
+                        <RefreshCw size={12} className="text-orange-400 animate-spin" />
+                      ) : proj.status === 'complete' ? (
+                        <Check size={12} className="text-emerald-400" />
+                      ) : null}
                     </div>
                   </button>
                 );
