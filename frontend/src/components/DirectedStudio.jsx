@@ -43,13 +43,20 @@ export function DirectedStudio({
   const [agentStatus, setAgentStatus] = useState({});
   const [agentsOutput, setAgentsOutput] = useState(null);
   const [videoDuration, setVideoDuration] = useState(8);
+  const [pastProjects, setPastProjects] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [viewingProject, setViewingProject] = useState(null);
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Load voices and music
+  // Load voices, music, and past projects
   useEffect(() => {
     axios.get(`${API}/studio/voices`).then(r => setVoices(r.data.voices || [])).catch(() => {});
     axios.get(`${API}/studio/music-library`).then(r => setMusicTracks(r.data.tracks || [])).catch(() => {});
+    axios.get(`${API}/studio/projects`).then(r => {
+      const projs = (r.data.projects || []).filter(p => p.outputs?.length > 0);
+      setPastProjects(projs);
+    }).catch(() => {});
   }, []);
 
   const toggleAvatar = (url) => {
@@ -210,9 +217,9 @@ export function DirectedStudio({
       <div className="flex items-center justify-center gap-1">
         {STEPS.map((s, i) => (
           <div key={s.n} className="flex items-center">
-            <button onClick={() => setStep(s.n)} data-testid={`studio-step-${s.n}`}
+            <button onClick={() => { setViewingProject(null); setStep(s.n); }} data-testid={`studio-step-${s.n}`}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-medium transition ${
-                step === s.n ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#666] hover:text-[#999]'
+                step === s.n && !viewingProject ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#666] hover:text-[#999]'
               }`}>
               <s.icon size={12} />
               <span className="hidden sm:inline">{s.label}</span>
@@ -222,8 +229,123 @@ export function DirectedStudio({
         ))}
       </div>
 
+      {/* Project History */}
+      {pastProjects.length > 0 && !viewingProject && step !== 4 && (
+        <div className="space-y-2">
+          <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-studio-history"
+            className="text-[10px] text-[#C9A84C] hover:underline flex items-center gap-1">
+            <Film size={10} />
+            {pastProjects.length} {lang === 'pt' ? 'produções anteriores' : 'past productions'}
+            <ChevronDown size={10} className={`transition ${showHistory ? 'rotate-180' : ''}`} />
+          </button>
+          {showHistory && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {pastProjects.slice(0, 6).map(proj => {
+                const vid = proj.outputs?.find(o => o.type === 'video');
+                const img = proj.outputs?.find(o => o.type === 'image');
+                const thumb = vid || img;
+                return (
+                  <button key={proj.id} onClick={() => { setViewingProject(proj); }}
+                    data-testid={`history-project-${proj.id}`}
+                    className="rounded-xl border border-[#222] bg-[#0A0A0A] overflow-hidden text-left hover:border-[#C9A84C]/30 transition group">
+                    <div className="aspect-video bg-[#111] relative flex items-center justify-center">
+                      {thumb?.type === 'video' ? (
+                        <>
+                          <video src={thumb.url} className="w-full h-full object-cover" muted />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <Play size={20} className="text-[#C9A84C] group-hover:scale-110 transition" />
+                          </div>
+                          <span className="absolute top-1 left-1 bg-[#C9A84C]/90 text-[6px] font-bold text-black px-1 rounded">SORA 2</span>
+                        </>
+                      ) : thumb?.type === 'image' ? (
+                        <img src={thumb.url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Film size={16} className="text-[#333]" />
+                      )}
+                    </div>
+                    <div className="p-1.5">
+                      <p className="text-[8px] text-[#999] truncate">{proj.briefing || proj.name}</p>
+                      <p className="text-[7px] text-[#555]">{new Date(proj.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Viewing Past Project */}
+      {viewingProject && (
+        <div className="glass-card p-4 space-y-3" data-testid="viewing-past-project">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Film size={14} className="text-[#C9A84C]" />
+              {viewingProject.name || viewingProject.briefing?.slice(0, 40)}
+            </h3>
+            <button onClick={() => setViewingProject(null)} className="text-[#666] hover:text-white">
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Agents Analysis */}
+          {viewingProject.agents_output && Object.keys(viewingProject.agents_output).length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-bold text-[#C9A84C] uppercase">{lang === 'pt' ? 'Análise dos Agentes' : 'Agents Analysis'}</p>
+              {viewingProject.agents_output.photography_director?.visual_direction && (
+                <div className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2">
+                  <p className="text-[7px] font-bold text-[#C9A84C] uppercase">📸 {lang === 'pt' ? 'Dir. Fotografia' : 'Photography'}</p>
+                  <p className="text-[8px] text-[#999] line-clamp-2">{viewingProject.agents_output.photography_director.visual_direction}</p>
+                </div>
+              )}
+              {viewingProject.agents_output.screenwriter?.narration && (
+                <div className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2">
+                  <p className="text-[7px] font-bold text-[#C9A84C] uppercase">✍️ {lang === 'pt' ? 'Redator' : 'Screenwriter'}</p>
+                  <p className="text-[8px] text-[#999] line-clamp-2">{viewingProject.agents_output.screenwriter.narration}</p>
+                  {viewingProject.agents_output.screenwriter.dialogues?.slice(0, 3).map((d, i) => (
+                    <p key={i} className="text-[7px] text-[#777] italic mt-0.5">"{d.line}" — {d.character}</p>
+                  ))}
+                </div>
+              )}
+              {viewingProject.agents_output.music_director?.mood && (
+                <div className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2">
+                  <p className="text-[7px] font-bold text-[#C9A84C] uppercase">🎵 {lang === 'pt' ? 'Dir. Musical' : 'Music'}</p>
+                  <p className="text-[8px] text-[#999]">{viewingProject.agents_output.music_director.mood}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Outputs */}
+          {viewingProject.outputs?.map((out, i) => (
+            <div key={out.id || i} className="rounded-xl overflow-hidden border border-white/5">
+              {out.type === 'video' && (
+                <div className="relative bg-black">
+                  <video controls autoPlay className="w-full rounded-xl" data-testid="history-video-player" src={out.url} />
+                  <span className="absolute top-2 left-2 bg-black/70 text-[8px] text-[#C9A84C] font-bold px-2 py-0.5 rounded">SORA 2</span>
+                </div>
+              )}
+              {out.type === 'image' && (
+                <img src={out.url} alt="" className="w-full rounded-xl" />
+              )}
+              <div className="p-2 flex items-center justify-between">
+                <p className="text-[9px] text-[#666] truncate flex-1">{out.prompt}</p>
+                <a href={out.url} download className="btn-gold rounded-lg px-3 py-1.5 text-[10px] font-semibold flex items-center gap-1 ml-2 shrink-0">
+                  <Download size={12} /> Download
+                </a>
+              </div>
+            </div>
+          ))}
+
+          <button onClick={() => setViewingProject(null)}
+            className="w-full rounded-lg border border-[#333] py-2 text-xs text-[#999] hover:text-white transition">
+            ← {lang === 'pt' ? 'Voltar' : 'Back'}
+          </button>
+        </div>
+      )}
+
       {/* Step 1: Avatar Selection */}
-      {step === 1 && (
+      {step === 1 && !viewingProject && (
         <div className="glass-card p-4 space-y-3" data-testid="studio-step-avatars">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white">
@@ -687,7 +809,12 @@ export function DirectedStudio({
           )}
 
           <div className="flex gap-2">
-            <button onClick={() => { setStep(2); setOutputs([]); setAgentsOutput(null); setAgentStatus({}); }}
+            <button onClick={() => {
+              setStep(1); setOutputs([]); setAgentsOutput(null); setAgentStatus({});
+              axios.get(`${API}/studio/projects`).then(r => {
+                setPastProjects((r.data.projects || []).filter(p => p.outputs?.length > 0));
+              }).catch(() => {});
+            }}
               className="flex-1 rounded-lg border border-[#333] py-2 text-xs text-[#999] hover:text-white transition">
               ← {lang === 'pt' ? 'Nova Cena' : 'New Scene'}
             </button>
