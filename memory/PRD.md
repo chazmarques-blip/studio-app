@@ -21,7 +21,13 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - Marketing AI Studio (auto pipeline: image, video, carousel, avatar)
 - **Directed Studio v2** — COMPLETE:
   - Interactive Screenwriter Chat (background thread + polling, K8s proxy safe)
-  - Character & Avatar Management with **Edit inline + Copy Prompt + AI Edit**
+  - Character & Avatar Management:
+    - Edit character inline (name, description, age, role) + persist to backend
+    - Copy character prompt to clipboard (execCommand fallback for iframes)
+    - Avatar preview with zoom (modal)
+    - AI Edit avatar (create new version via overlay)
+    - Edit avatar (open editor)
+    - Create new avatar button
   - Multi-Scene Production Pipeline (3 Cinema Agents per scene + Sora 2)
   - FFmpeg video concatenation into complete film
   - Results Viewer with download
@@ -30,14 +36,14 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 
 ## Key API Endpoints
 - POST /api/studio/chat — Screenwriter (background + polling)
-- GET /api/studio/projects/{id}/status — Poll status (includes chat_status)
+- GET /api/studio/projects/{id}/status — Poll status (includes chat_status, chat_history)
 - POST /api/studio/projects/{id}/update-characters — Update characters
 - POST /api/studio/start-production — Start multi-scene production
 - GET /api/studio/projects — List projects
 - DELETE /api/studio/projects/{id} — Delete project
 
 ## Upcoming Tasks (P1)
-- ElevenLabs voice generation
+- ElevenLabs voice generation for scene narration
 - Whisper speech-to-text input
 - Story templates (Biblical, Commercial, Documentary, Fiction)
 

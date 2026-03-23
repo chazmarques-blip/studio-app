@@ -481,65 +481,79 @@ export function DirectedStudio({
                   </div>
                 )}
 
-                {/* Avatar selection */}
+                {/* Avatar selection with full controls */}
                 <div className="flex gap-1.5 flex-wrap items-center">
-                  {avatars.map((av, ai) => (
-                    <button key={ai} onClick={() => linkAvatar(char.name, av.url)}
-                      title={av.name || `Avatar ${ai + 1}`}
-                      className={`h-11 w-9 rounded overflow-hidden border-2 transition hover:scale-105 ${
-                        characterAvatars[char.name] === av.url ? 'border-[#C9A84C] shadow-[0_0_6px_rgba(201,168,76,0.3)]' : 'border-[#222] hover:border-[#444]'
-                      }`}>
-                      <img src={resolveImageUrl(av.url)} alt={av.name} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+                  {avatars.map((av, ai) => {
+                    const isLinked = characterAvatars[char.name] === av.url;
+                    const isEditing = aiEditAvatarId === av.id;
+                    return (
+                      <div key={ai} className={`relative rounded-lg overflow-hidden border-2 transition cursor-pointer group ${
+                        isLinked ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.25)]' : 'border-[#222] hover:border-[#444]'
+                      }`} style={{ width: 52, height: 68 }}>
+                        <img src={resolveImageUrl(av.url)} alt={av.name}
+                          className="w-full h-full object-cover"
+                          onClick={() => linkAvatar(char.name, av.url)} />
+                        {isLinked && (
+                          <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                            <Check size={8} className="text-black" />
+                          </div>
+                        )}
+                        {/* Action bar — always visible on hover */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-0.5 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={e => { e.stopPropagation(); onPreviewAvatar(av.url); }}
+                            className="h-5 w-5 rounded flex items-center justify-center text-white/70 hover:text-white transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
+                            <Eye size={9} />
+                          </button>
+                          <div className="flex items-center gap-0.5">
+                            <button onClick={e => { e.stopPropagation(); setAiEditAvatarId(isEditing ? null : av.id); setAiEditInstruction(char.description || ''); }}
+                              className="h-5 w-5 rounded flex items-center justify-center text-purple-400 hover:text-purple-300 transition" title={lang === 'pt' ? 'Editar com IA' : 'AI Edit'}>
+                              <Sparkles size={9} />
+                            </button>
+                            <button onClick={e => { e.stopPropagation(); onEditAvatar(av); }}
+                              className="h-5 w-5 rounded flex items-center justify-center text-[#C9A84C] hover:text-[#D4B85C] transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
+                              <PenTool size={9} />
+                            </button>
+                          </div>
+                        </div>
+                        {/* AI Edit overlay */}
+                        {isEditing && (
+                          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-1 z-10" onClick={e => e.stopPropagation()}>
+                            <Sparkles size={10} className="text-purple-400 mb-0.5" />
+                            <textarea value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
+                              placeholder={lang === 'pt' ? 'Ex: mudar roupa...' : 'Ex: change outfit...'}
+                              className="w-full text-[7px] bg-[#1A1A1A] border border-[#333] rounded p-1 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
+                              rows={2} />
+                            <div className="flex gap-0.5 mt-0.5 w-full">
+                              <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
+                                className="flex-1 text-[6px] py-0.5 rounded border border-[#333] text-[#888] hover:text-white transition">
+                                {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                              </button>
+                              <button onClick={() => onAiEditAvatar(av.id)} disabled={aiEditLoading || !aiEditInstruction.trim()}
+                                className="flex-1 text-[6px] py-0.5 rounded bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-0.5">
+                                {aiEditLoading ? <RefreshCw size={7} className="animate-spin" /> : <Sparkles size={7} />}
+                                {aiEditLoading ? '' : (lang === 'pt' ? 'Criar' : 'Create')}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {/* Create new avatar button */}
                   <button onClick={onAddAvatar} data-testid={`add-avatar-${ci}`}
                     title={lang === 'pt' ? 'Criar novo avatar' : 'Create new avatar'}
-                    className="h-11 w-9 rounded border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#C9A84C]/50 hover:bg-[#C9A84C]/5 transition group">
-                    <Plus size={10} className="text-[#555] group-hover:text-[#C9A84C]" />
-                    <span className="text-[5px] text-[#555] group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Novo' : 'New'}</span>
+                    className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#C9A84C]/50 hover:bg-[#C9A84C]/5 transition group"
+                    style={{ width: 52, height: 68 }}>
+                    <Plus size={12} className="text-[#555] group-hover:text-[#C9A84C]" />
+                    <span className="text-[6px] text-[#555] group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Novo' : 'New'}</span>
                   </button>
                 </div>
 
-                {/* AI Edit for selected avatar */}
-                {characterAvatars[char.name] && (
-                  <div className="mt-2 pt-2 border-t border-[#1A1A1A]">
-                    {aiEditAvatarId === avatars.find(a => a.url === characterAvatars[char.name])?.id ? (
-                      <div className="flex gap-1.5">
-                        <input value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                          placeholder={lang === 'pt' ? 'Ex: mudar roupa para túnica branca...' : 'Ex: change outfit to white tunic...'}
-                          className="flex-1 bg-[#111] border border-[#333] rounded px-2 py-1 text-[8px] text-white outline-none focus:border-[#C9A84C]/40"
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              const av = avatars.find(a => a.url === characterAvatars[char.name]);
-                              if (av) onAiEditAvatar(av.id);
-                            }
-                          }}
-                        />
-                        <button onClick={() => {
-                            const av = avatars.find(a => a.url === characterAvatars[char.name]);
-                            if (av) onAiEditAvatar(av.id);
-                          }}
-                          disabled={aiEditLoading || !aiEditInstruction.trim()}
-                          className="btn-gold rounded px-2 py-1 text-[8px] disabled:opacity-30 flex items-center gap-1">
-                          {aiEditLoading ? <RefreshCw size={9} className="animate-spin" /> : <Wand2 size={9} />}
-                          {lang === 'pt' ? 'Gerar' : 'Generate'}
-                        </button>
-                        <button onClick={() => setAiEditAvatarId(null)} className="border border-[#333] text-[#888] rounded px-1.5 py-1 text-[8px] hover:text-white">
-                          <X size={9} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button onClick={() => {
-                          const av = avatars.find(a => a.url === characterAvatars[char.name]);
-                          if (av) { setAiEditAvatarId(av.id); setAiEditInstruction(char.description || ''); }
-                        }}
-                        data-testid={`ai-edit-avatar-${ci}`}
-                        className="flex items-center gap-1 text-[7px] text-[#888] hover:text-[#C9A84C] transition">
-                        <Wand2 size={8} /> {lang === 'pt' ? 'Editar avatar com IA' : 'AI edit avatar'}
-                      </button>
-                    )}
-                  </div>
+                {/* Selected avatar AI edit hint (when avatar is linked but overlay not open) */}
+                {characterAvatars[char.name] && !avatars.find(a => a.url === characterAvatars[char.name] && aiEditAvatarId === a.id) && (
+                  <p className="text-[7px] text-[#555] mt-1.5 italic">
+                    {lang === 'pt' ? 'Passe o mouse sobre o avatar para ver, editar ou criar nova versão com IA' : 'Hover over avatar to preview, edit or create new AI version'}
+                  </p>
                 )}
               </div>
             ))}
