@@ -2,17 +2,29 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Upload, Mic, Music, Play, Pause, Image, Film, Users, Sparkles, Download, X, ChevronDown, Plus, Volume2 } from 'lucide-react';
+import { Upload, Mic, Music, Play, Pause, Image, Film, Users, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, Trash2, RefreshCw, Check, Crown } from 'lucide-react';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export function DirectedStudio() {
+export function DirectedStudio({
+  avatars = [],
+  onAddAvatar,
+  onEditAvatar,
+  onRemoveAvatar,
+  onPreviewAvatar,
+  onAiEditAvatar,
+  aiEditAvatarId,
+  setAiEditAvatarId,
+  aiEditInstruction,
+  setAiEditInstruction,
+  aiEditLoading,
+}) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'en';
 
   // State
   const [step, setStep] = useState(1); // 1=avatars, 2=assets+briefing, 3=voice+music, 4=generate
-  const [avatarGallery, setAvatarGallery] = useState([]);
   const [selectedAvatars, setSelectedAvatars] = useState([]);
   const [assets, setAssets] = useState([]);
   const [briefing, setBriefing] = useState('');
@@ -31,12 +43,8 @@ export function DirectedStudio() {
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Load data — presenter avatars from AI Studio, not profile avatars
+  // Load voices and music
   useEffect(() => {
-    axios.get(`${API}/data/avatars`).then(r => {
-      const avatars = Array.isArray(r.data) ? r.data : [];
-      setAvatarGallery(avatars.map(a => ({ url: a.url, label: a.name || '', id: a.id })));
-    }).catch(() => {});
     axios.get(`${API}/studio/voices`).then(r => setVoices(r.data.voices || [])).catch(() => {});
     axios.get(`${API}/studio/music-library`).then(r => setMusicTracks(r.data.tracks || [])).catch(() => {});
   }, []);
@@ -150,38 +158,96 @@ export function DirectedStudio() {
             <h3 className="text-sm font-semibold text-white">
               {lang === 'pt' ? 'Selecione os Avatares' : 'Select Avatars'}
             </h3>
-            <span className="text-[10px] text-[#C9A84C]">{selectedAvatars.length} {lang === 'pt' ? 'selecionado(s)' : 'selected'}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-[#C9A84C]">{selectedAvatars.length} {lang === 'pt' ? 'selecionado(s)' : 'selected'}</span>
+              {onAddAvatar && (
+                <button onClick={onAddAvatar} data-testid="studio-add-avatar-btn"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#999] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                  <Plus size={10} /> {lang === 'pt' ? 'Criar' : 'Create'}
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-[10px] text-[#666]">
             {lang === 'pt' ? 'Escolha 1 ou mais avatares para a cena. Para interação, selecione 2+' : 'Pick 1 or more avatars for the scene. For interaction, select 2+'}
           </p>
 
-          {avatarGallery.length === 0 ? (
+          {avatars.length === 0 ? (
             <div className="text-center py-6">
               <Users size={24} className="mx-auto text-[#333] mb-2" />
-              <p className="text-xs text-[#666]">{lang === 'pt' ? 'Nenhum avatar criado. Crie no AI Studio (modo auto).' : 'No avatars yet. Create one in AI Studio (auto mode).'}</p>
+              <p className="text-xs text-[#666]">{lang === 'pt' ? 'Nenhum avatar criado ainda.' : 'No avatars yet.'}</p>
+              {onAddAvatar && (
+                <button onClick={onAddAvatar} className="mt-2 btn-gold rounded-lg px-4 py-1.5 text-[10px] font-semibold">
+                  <Plus size={10} className="inline mr-1" /> {lang === 'pt' ? 'Criar Avatar' : 'Create Avatar'}
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {avatarGallery.map((av, i) => {
+            <div className="flex gap-2 flex-wrap">
+              {avatars.map((av, i) => {
                 const selected = selectedAvatars.includes(av.url);
                 return (
-                  <button key={av.id || i} onClick={() => toggleAvatar(av.url)} data-testid={`studio-avatar-${i}`}
-                    className={`relative rounded-xl overflow-hidden aspect-[3/4] transition-all ${
-                      selected ? 'ring-2 ring-[#C9A84C] scale-95' : 'ring-1 ring-white/5 hover:ring-white/20'
+                  <div key={av.id || i} data-testid={`studio-avatar-${i}`}
+                    className={`relative rounded-xl overflow-hidden border-2 transition cursor-pointer ${
+                      selected ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'
                     }`}>
-                    <img src={av.url} alt={av.label} className="w-full h-full object-cover" />
+                    <img src={resolveImageUrl(av.url)} alt={av.name} className="h-24 w-16 object-cover"
+                      onClick={() => toggleAvatar(av.url)} />
                     {selected && (
-                      <div className="absolute top-1 right-1 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                      <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
                         <span className="text-[8px] text-black font-bold">{selectedAvatars.indexOf(av.url) + 1}</span>
                       </div>
                     )}
-                    {av.label && (
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-1">
-                        <span className="text-[7px] text-white/80 truncate block">{av.label}</span>
+                    {av.voice && (
+                      <div className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full flex items-center justify-center ${av.voice.type === 'elevenlabs' ? 'bg-[#C9A84C]/90' : 'bg-black/70'}`}>
+                        {av.voice.type === 'elevenlabs' ? <Crown size={7} className="text-black" /> : <Volume2 size={7} className="text-[#C9A84C]" />}
                       </div>
                     )}
-                  </button>
+                    {/* Action bar */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5 flex items-center justify-between">
+                      <button onClick={e => { e.stopPropagation(); onRemoveAvatar?.(av.id); }}
+                        className="h-5 w-5 rounded flex items-center justify-center text-red-400/70 hover:text-red-400 transition">
+                        <X size={9} />
+                      </button>
+                      <div className="flex items-center gap-0.5">
+                        <button onClick={e => { e.stopPropagation(); setAiEditAvatarId?.(aiEditAvatarId === av.id ? null : av.id); setAiEditInstruction?.(''); }}
+                          className="h-5 w-5 rounded flex items-center justify-center text-purple-400 hover:text-purple-300 transition" title="Editar com IA">
+                          <Sparkles size={9} />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); onEditAvatar?.(av); }}
+                          className="h-5 w-5 rounded flex items-center justify-center text-[#C9A84C] hover:text-[#D4B85C] transition" title="Editar">
+                          <PenTool size={9} />
+                        </button>
+                      </div>
+                    </div>
+                    {av.creation_mode && av.creation_mode !== 'photo' && (
+                      <div className="absolute top-0.5 left-0.5 rounded-md bg-black/70 px-1 py-0.5">
+                        <span className="text-[6px] text-[#C9A84C] font-bold uppercase">{av.creation_mode === '3d' ? '3D' : 'AI'}</span>
+                      </div>
+                    )}
+                    {/* AI Edit popover */}
+                    {aiEditAvatarId === av.id && (
+                      <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-1.5 z-10" onClick={e => e.stopPropagation()}>
+                        <Sparkles size={12} className="text-purple-400 mb-1" />
+                        <textarea data-testid={`studio-ai-edit-input-${av.id}`}
+                          value={aiEditInstruction || ''} onChange={e => setAiEditInstruction?.(e.target.value)}
+                          placeholder="Ex: mudar roupa para terno azul, adicionar oculos..."
+                          className="w-full text-[8px] bg-[#1A1A1A] border border-[#333] rounded-lg p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
+                          rows={2} />
+                        <div className="flex gap-1 mt-1 w-full">
+                          <button onClick={() => { setAiEditAvatarId?.(null); setAiEditInstruction?.(''); }}
+                            className="flex-1 text-[7px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                            {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                          </button>
+                          <button onClick={() => onAiEditAvatar?.(av.id)} disabled={aiEditLoading || !(aiEditInstruction || '').trim()}
+                            className="flex-1 text-[7px] py-1 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
+                            {aiEditLoading ? <RefreshCw size={8} className="animate-spin" /> : <Sparkles size={8} />}
+                            {aiEditLoading ? '' : 'Editar'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

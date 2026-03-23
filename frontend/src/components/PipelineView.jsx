@@ -1360,7 +1360,19 @@ export default function PipelineView({ context }) {
 
         {/* DIRECTED STUDIO MODE */}
         {isDirectedMode ? (
-          <DirectedStudio />
+          <DirectedStudio
+            avatars={avatars}
+            onAddAvatar={() => { resetAvatarModal(); setShowAvatarModal(true); }}
+            onEditAvatar={openAvatarForEdit}
+            onRemoveAvatar={removeAvatar}
+            onPreviewAvatar={setAvatarPreviewUrl}
+            onAiEditAvatar={aiEditAvatar}
+            aiEditAvatarId={aiEditAvatarId}
+            setAiEditAvatarId={setAiEditAvatarId}
+            aiEditInstruction={aiEditInstruction}
+            setAiEditInstruction={setAiEditInstruction}
+            aiEditLoading={aiEditLoading}
+          />
         ) : (
         <>
         {/* Presenter Avatar — selectable gallery with "+" in header */}
@@ -1450,6 +1462,420 @@ export default function PipelineView({ context }) {
             <p className="text-[9px] text-[#888] text-center py-2">{t('studio.no_avatar_yet')}</p>
           )}
         </div>
+
+        {/* Campaign Name */}
+        <div>
+          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_name')}</label>
+          <input data-testid="pipeline-campaign-name" value={campaignName} onChange={e => setCampaignName(e.target.value)}
+            placeholder={t('studio.campaign_name_placeholder')}
+            className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+        </div>
+
+        {/* Briefing */}
+        <div>
+          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-2">{t('studio.briefing_label')}</label>
+          <div className="flex gap-1 mb-3 p-0.5 bg-[#0A0A0A] rounded-lg border border-[#1A1A1A] w-fit">
+            <button data-testid="briefing-mode-free" onClick={() => setBriefingMode('free')}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'free' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#999] hover:text-white'}`}>
+              <FileText size={10} className="inline mr-1" />{t('studio.briefing_free')}
+            </button>
+            <button data-testid="briefing-mode-guided" onClick={() => setBriefingMode('guided')}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'guided' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#999] hover:text-white'}`}>
+              <CheckCircle size={10} className="inline mr-1" />{t('studio.briefing_guided')}
+            </button>
+          </div>
+
+          {briefingMode === 'free' ? (
+            <div>
+              <textarea data-testid="pipeline-briefing" value={briefing} onChange={e => setBriefing(e.target.value)} rows={4}
+                placeholder={t('studio.briefing_placeholder')}
+                className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
+              {savedBriefings.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5">{t('studio.previous_briefings') || 'Previous Briefings'}</p>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                    {savedBriefings.map((sb, i) => (
+                      <button key={i} onClick={() => {
+                        setBriefing(sb.briefing);
+                        if (sb.campaign_name && !campaignName) setCampaignName(sb.campaign_name);
+                        if (sb.campaign_language) setCampaignLang(sb.campaign_language);
+                        if (sb.platforms?.length) setPlatforms(sb.platforms);
+                        toast.success(t('studio.briefing_loaded') || 'Briefing loaded!');
+                      }}
+                        className="w-full text-left rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 hover:border-[#C9A84C]/30 transition group">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          {sb.campaign_name && <span className="text-[10px] font-semibold text-white">{sb.campaign_name}</span>}
+                          {sb.campaign_language && <span className="text-[8px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
+                          <span className="text-[7px] text-[#777] ml-auto group-hover:text-[#C9A84C]">{t('studio.use') || 'Use'}</span>
+                        </div>
+                        <p className="text-[9px] text-[#999] line-clamp-2">{sb.briefing}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 bg-[#0A0A0A] rounded-xl border border-[#1A1A1A] p-3">
+              <p className="text-[9px] text-[#C9A84C] font-medium mb-1">{t('studio.guided_intro')}</p>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">1. {t('studio.q_product')}</label>
+                <input data-testid="q-product" value={questionnaire.product} onChange={e => setQuestionnaire(p => ({...p, product: e.target.value}))}
+                  placeholder={t('studio.q_product_placeholder')}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">2. {t('studio.q_goal')}</label>
+                <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  {[{k:'goal_leads'},{k:'goal_sales'},{k:'goal_awareness'},{k:'goal_engagement'},{k:'goal_launch'},{k:'goal_promo'}].map(({k}) => (
+                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, goal: p.goal === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.goal === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      {t(`studio.${k}`)}
+                    </button>
+                  ))}
+                </div>
+                <input value={questionnaire.goal} onChange={e => setQuestionnaire(p => ({...p, goal: e.target.value}))}
+                  placeholder={t('studio.q_goal_placeholder')}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">3. {t('studio.q_audience')}</label>
+
+                {/* Gender */}
+                <p className="text-[8px] text-[#999] mb-1 mt-1">{t('studio.q_gender') || 'Gender'}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['All', 'Male', 'Female', 'LGBTQ+', 'Non-binary'].map(g => (
+                    <button key={g} onClick={() => setQuestionnaire(p => ({...p, gender: p.gender === g ? '' : g}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.gender === g ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      {g}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Age Range */}
+                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_age_range') || 'Age range'}</p>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <input data-testid="q-age-min" value={questionnaire.ageMin} onChange={e => setQuestionnaire(p => ({...p, ageMin: e.target.value}))}
+                    placeholder="18" type="number" min="13" max="99"
+                    className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
+                  <span className="text-[9px] text-[#888]">—</span>
+                  <input data-testid="q-age-max" value={questionnaire.ageMax} onChange={e => setQuestionnaire(p => ({...p, ageMax: e.target.value}))}
+                    placeholder="65+" type="text"
+                    className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
+                  <div className="flex gap-1 ml-2">
+                    {['13-17', '18-24', '25-34', '35-44', '45-54', '55+'].map(r => (
+                      <button key={r} onClick={() => { const [min, max] = r.split('-'); setQuestionnaire(p => ({...p, ageMin: min, ageMax: max || '65+'})); }}
+                        className={`rounded-md px-1.5 py-0.5 text-[8px] border transition ${questionnaire.ageMin === r.split('-')[0] ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Social Class */}
+                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_social_class') || 'Social class'}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['A (Luxury)', 'B (Upper-middle)', 'C (Middle)', 'D (Lower-middle)', 'E (Low income)', 'All classes'].map(c => (
+                    <button key={c} onClick={() => setQuestionnaire(p => ({...p, socialClass: p.socialClass === c ? '' : c}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.socialClass === c ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Lifestyle / Interests */}
+                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_lifestyle') || 'Lifestyle & Interests'}</p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {['Fitness', 'Tech', 'Fashion', 'Gaming', 'Travel', 'Food', 'Music', 'Sports', 'Business', 'Eco-friendly', 'Luxury', 'Family'].map(l => (
+                    <button key={l} onClick={() => setQuestionnaire(p => ({...p, lifestyle: p.lifestyle?.includes(l) ? p.lifestyle.replace(l, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '') : (p.lifestyle ? `${p.lifestyle}, ${l}` : l)}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.lifestyle?.includes(l) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Free-text audience */}
+                <input data-testid="q-audience" value={questionnaire.audience} onChange={e => setQuestionnaire(p => ({...p, audience: e.target.value}))}
+                  placeholder={t('studio.q_audience_placeholder')}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">4. {t('studio.q_tone')}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[{k:'tone_professional'},{k:'tone_casual'},{k:'tone_urgent'},{k:'tone_inspiring'},{k:'tone_fun'},{k:'tone_sophisticated'}].map(({k}) => (
+                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, tone: p.tone === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.tone === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      {t(`studio.${k}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">5. {t('studio.q_offer')}</label>
+                <input data-testid="q-offer" value={questionnaire.offer} onChange={e => setQuestionnaire(p => ({...p, offer: e.target.value}))}
+                  placeholder={t('studio.q_offer_placeholder')}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">6. {t('studio.q_differentials')}</label>
+                <input data-testid="q-differentials" value={questionnaire.differentials} onChange={e => setQuestionnaire(p => ({...p, differentials: e.target.value}))}
+                  placeholder={t('studio.q_differentials_placeholder')}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">7. {t('studio.q_pain_points') || 'What problems does your audience face?'}</label>
+                <input data-testid="q-pain-points" value={questionnaire.painPoints} onChange={e => setQuestionnaire(p => ({...p, painPoints: e.target.value}))}
+                  placeholder={t('studio.q_pain_points_placeholder') || 'E.g.: High costs, lack of time, complexity...'}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">8. {t('studio.q_visual_style') || 'Visual style preference'}</label>
+                <div className="flex flex-wrap gap-1">
+                  {['Minimalist', 'Bold & Vibrant', 'Luxury & Elegant', 'Natural & Organic', 'Tech & Modern', 'Retro & Vintage', 'Dark & Moody', 'Playful & Colorful'].map(s => (
+                    <button key={s} onClick={() => setQuestionnaire(p => ({...p, visualStyle: p.visualStyle === s ? '' : s}))}
+                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.visualStyle === s ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">9. {t('studio.q_cta')}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[{k:'cta_signup'},{k:'cta_demo'},{k:'cta_buy'},{k:'cta_learn'},{k:'cta_download'},{k:'cta_whatsapp'}].map(({k}) => (
+                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, cta: p.cta === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
+                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.cta === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      {t(`studio.${k}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] text-[#999] block mb-1">10. {t('studio.q_urgency')}</label>
+                <input data-testid="q-urgency" value={questionnaire.urgency} onChange={e => setQuestionnaire(p => ({...p, urgency: e.target.value}))}
+                  placeholder={t('studio.q_urgency_placeholder')}
+                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
+              </div>
+
+              {compileBriefing().trim() && (
+                <div className="mt-2 p-2.5 rounded-lg bg-[#111] border border-[#1A1A1A]">
+                  <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1">{t('studio.briefing_preview')}</p>
+                  <pre className="text-[10px] text-[#999] whitespace-pre-wrap font-sans leading-relaxed">{compileBriefing()}</pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Campaign Language */}
+        <div>
+          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_language')}</label>
+          <p className="text-[8px] text-[#888] mb-1.5">{t('studio.campaign_language_desc')}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { code: '', label: 'Auto', flag: '🌐' },
+              { code: 'pt', label: 'Portugues', flag: '🇧🇷' },
+              { code: 'en', label: 'English', flag: '🇺🇸' },
+              { code: 'es', label: 'Espanol', flag: '🇪🇸' },
+              { code: 'fr', label: 'Francais', flag: '🇫🇷' },
+              { code: 'ht', label: 'Kreyol Ayisyen', flag: '🇭🇹' },
+            ].map(lang => (
+              <button key={lang.code} data-testid={`lang-${lang.code || 'auto'}`}
+                onClick={() => setCampaignLang(lang.code)}
+                className={`rounded-lg px-3 py-1.5 text-[10px] font-medium border transition flex items-center gap-1.5 ${campaignLang === lang.code ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                <span className="text-sm">{lang.flag}</span> {lang.label}
+              </button>
+            ))}
+            <input value={campaignLang && !['', 'pt', 'en', 'es', 'fr', 'ht'].includes(campaignLang) ? campaignLang : ''}
+              onChange={e => setCampaignLang(e.target.value)}
+              placeholder="Other language..."
+              className="rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition w-32" />
+          </div>
+        </div>
+
+        {/* Brand Data Toggle */}
+        {activeCompany && (
+          <div data-testid="brand-data-toggle">
+            <button data-testid="brand-data-btn" onClick={() => setApplyBrandData(!applyBrandData)}
+              className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-3 transition ${
+                applyBrandData ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition ${
+                applyBrandData ? 'bg-[#C9A84C] border-[#C9A84C]' : 'border-[#555]'}`}>
+                {applyBrandData && <Check size={10} className="text-black" />}
+              </div>
+              {activeCompany.logo_url ? (
+                <img src={resolveImageUrl(activeCompany.logo_url)} alt="" className="h-8 w-8 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-[#1E1E1E] flex items-center justify-center shrink-0">
+                  <Building2 size={12} className="text-[#999]" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-[9px] text-white font-medium truncate">{activeCompany.name}</p>
+                <p className="text-[7px] text-[#999] truncate">
+                  {[activeCompany.phone, activeCompany.website_url].filter(Boolean).join(' · ') || t('studio.brand_no_extra_info')}
+                </p>
+              </div>
+              <span className="text-[8px] text-[#999] uppercase tracking-wider shrink-0">{t('studio.apply_brand')}</span>
+            </button>
+            {applyBrandData && (
+              <p className="text-[7px] text-[#C9A84C]/50 mt-1 px-1">{t('studio.brand_applied_hint')}</p>
+            )}
+          </div>
+        )}
+
+        {/* Product Images: Exact + Reference */}
+        <AssetUploader assets={uploadedAssets} onAssetsChange={setUploadedAssets} />
+
+        {/* Music Library - Compact with Genre Tabs */}
+        {musicLibrary.length > 0 && (
+          <div>
+            <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.music_library') || 'Background Music (Video)'}</label>
+            {/* Genre Tabs */}
+            <div className="flex gap-1 flex-wrap mb-1.5">
+              {['All', ...new Set(musicLibrary.map(t => t.category || 'General'))].map(cat => (
+                <button key={cat} onClick={() => setMusicGenre(cat)}
+                  className={`rounded-md px-2 py-0.5 text-[8px] border transition ${musicGenre === cat ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C] font-semibold' : 'border-[#1A1A1A] text-[#999] hover:text-white'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            {/* Scrollable Track List */}
+            <div className="max-h-[160px] overflow-y-auto space-y-0.5 pr-1" style={{scrollbarWidth:'thin', scrollbarColor:'#333 transparent'}}>
+              {(musicGenre === 'All' ? musicLibrary : musicLibrary.filter(t => (t.category || 'General') === musicGenre)).map(track => (
+                <div key={track.id} data-testid={`music-${track.id}`}
+                  onClick={() => setSelectedMusic(selectedMusic === track.id ? '' : track.id)}
+                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1 cursor-pointer transition ${selectedMusic === track.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1A1A1A] hover:border-[#2A2A2A]'}`}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); togglePlayTrack(track.id); }}
+                    className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#888] hover:text-white'}`}>
+                    {playingTrack === track.id ? <span className="text-[5px] font-bold">||</span> : <Play size={7} />}
+                  </button>
+                  <span className="text-[8px] font-medium text-white truncate flex-1">{track.name}</span>
+                  <span className="text-[7px] text-[#888] truncate max-w-[100px] hidden sm:block">{track.description}</span>
+                  {selectedMusic === track.id && <Check size={9} className="text-[#C9A84C] shrink-0" />}
+                </div>
+              ))}
+            </div>
+            {selectedMusic && (
+              <p className="text-[8px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
+                <Check size={8} /> {t('studio.music_selected') || 'Music selected for video'}
+              </p>
+            )}
+            {!selectedMusic && (
+              <p className="text-[8px] text-[#888] mt-0.5">{t('studio.music_auto') || 'No selection = AI picks automatically based on campaign mood'}</p>
+            )}
+          </div>
+        )}
+
+
+
+        {/* Platforms */}
+        <div>
+          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.platforms')}</label>
+          <div className="flex flex-wrap gap-1.5">
+            {PLATFORMS.filter(p => !p.parent).map(p => (
+              <button key={p.id} data-testid={`platform-${p.id}`} onClick={() => togglePlatform(p.id)}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-medium border transition ${platforms.includes(p.id) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Video Mode */}
+        <div>
+          <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-1.5">
+            <Film size={10} /> {t('studio.video_mode')}
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button data-testid="video-mode-none" onClick={() => { setSkipVideo(true); setVideoMode('none'); }}
+              className={`rounded-xl border p-2 text-center transition ${skipVideo ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <X size={14} className={`mx-auto mb-1 ${skipVideo ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
+              <p className="text-[9px] font-semibold text-white">{t('studio.no_video')}</p>
+              <p className="text-[7px] text-[#999]">{t('studio.faster')}</p>
+            </button>
+            <button data-testid="video-mode-narration" onClick={() => { setSkipVideo(false); setVideoMode('narration'); }}
+              className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'narration' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <MessageSquare size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'narration' ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
+              <p className="text-[9px] font-semibold text-white">{t('studio.narration')}</p>
+              <p className="text-[7px] text-[#999]">{t('studio.voice_scenes')}</p>
+            </button>
+            <button data-testid="video-mode-presenter" onClick={() => { setSkipVideo(false); setVideoMode('presenter'); }}
+              className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'presenter' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <Eye size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'presenter' ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
+              <p className="text-[9px] font-semibold text-white">{t('studio.presenter')}</p>
+              <p className="text-[7px] text-[#999]">{t('studio.talking_avatar')}</p>
+            </button>
+          </div>
+          {!skipVideo && videoMode === 'presenter' && !selectedAvatar && (
+            <p className="text-[8px] text-amber-400/80 mt-1.5 flex items-center gap-1">
+              <AlertTriangle size={9} /> {t('studio.presenter_warning')}
+            </p>
+          )}
+        </div>
+
+        {/* Mode */}
+        <div>
+          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.execution_mode')}</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button data-testid="mode-semi-auto" onClick={() => setMode('semi_auto')}
+              className={`rounded-xl border p-3 text-left transition ${mode === 'semi_auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_semi')}</p>
+              <p className="text-[9px] text-[#999]">{t('studio.mode_semi_desc')}</p>
+            </button>
+            <button data-testid="mode-auto" onClick={() => setMode('auto')}
+              className={`rounded-xl border p-3 text-left transition ${mode === 'auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+              <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_auto')}</p>
+              <p className="text-[9px] text-[#999]">{t('studio.mode_auto_desc')}</p>
+            </button>
+          </div>
+        </div>
+
+        {/* Previous Pipelines */}
+        {pipelines.length > 0 && (
+          <div>
+            <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-history"
+              className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
+              {showHistory ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              {pipelines.length} {t('studio.previous_pipelines')}
+            </button>
+            {showHistory && (
+              <div className="mt-1.5 space-y-1.5">
+                {pipelines.map(p => (
+                  <HistoryCard key={p.id} pipeline={p}
+                    onSelect={pl => { setActivePipeline(pl); setExpandedSteps({}); }}
+                    onDelete={deletePipeline} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        </>
+        )}
+      </div>
+
+      {/* Start Button — only in auto mode */}
+      {!isDirectedMode && (
+      <div className="px-4 py-3 border-t border-[#1A1A1A]">
+        <button data-testid="start-pipeline-btn" onClick={createPipeline}
+          disabled={creating || !campaignName.trim() || !(briefingMode === 'guided' ? compileBriefing().trim() : briefing.trim()) || platforms.length === 0}
+          className="w-full rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-[13px] font-bold text-black transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
+          {creating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+          {creating ? t('studio.starting') : `${mode === 'auto' ? t('studio.start_pipeline_auto') : t('studio.start_pipeline_semi')}`}
+        </button>
+      </div>
+      )}
 
         {/* Avatar Zoom Preview */}
         {avatarPreviewUrl && (
@@ -2651,419 +3077,6 @@ export default function PipelineView({ context }) {
           </div>
         )}
 
-        {/* Campaign Name */}
-        <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_name')}</label>
-          <input data-testid="pipeline-campaign-name" value={campaignName} onChange={e => setCampaignName(e.target.value)}
-            placeholder={t('studio.campaign_name_placeholder')}
-            className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-        </div>
-
-        {/* Briefing */}
-        <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-2">{t('studio.briefing_label')}</label>
-          <div className="flex gap-1 mb-3 p-0.5 bg-[#0A0A0A] rounded-lg border border-[#1A1A1A] w-fit">
-            <button data-testid="briefing-mode-free" onClick={() => setBriefingMode('free')}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'free' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#999] hover:text-white'}`}>
-              <FileText size={10} className="inline mr-1" />{t('studio.briefing_free')}
-            </button>
-            <button data-testid="briefing-mode-guided" onClick={() => setBriefingMode('guided')}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'guided' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#999] hover:text-white'}`}>
-              <CheckCircle size={10} className="inline mr-1" />{t('studio.briefing_guided')}
-            </button>
-          </div>
-
-          {briefingMode === 'free' ? (
-            <div>
-              <textarea data-testid="pipeline-briefing" value={briefing} onChange={e => setBriefing(e.target.value)} rows={4}
-                placeholder={t('studio.briefing_placeholder')}
-                className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
-              {savedBriefings.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5">{t('studio.previous_briefings') || 'Previous Briefings'}</p>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                    {savedBriefings.map((sb, i) => (
-                      <button key={i} onClick={() => {
-                        setBriefing(sb.briefing);
-                        if (sb.campaign_name && !campaignName) setCampaignName(sb.campaign_name);
-                        if (sb.campaign_language) setCampaignLang(sb.campaign_language);
-                        if (sb.platforms?.length) setPlatforms(sb.platforms);
-                        toast.success(t('studio.briefing_loaded') || 'Briefing loaded!');
-                      }}
-                        className="w-full text-left rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 hover:border-[#C9A84C]/30 transition group">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          {sb.campaign_name && <span className="text-[10px] font-semibold text-white">{sb.campaign_name}</span>}
-                          {sb.campaign_language && <span className="text-[8px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
-                          <span className="text-[7px] text-[#777] ml-auto group-hover:text-[#C9A84C]">{t('studio.use') || 'Use'}</span>
-                        </div>
-                        <p className="text-[9px] text-[#999] line-clamp-2">{sb.briefing}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3 bg-[#0A0A0A] rounded-xl border border-[#1A1A1A] p-3">
-              <p className="text-[9px] text-[#C9A84C] font-medium mb-1">{t('studio.guided_intro')}</p>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">1. {t('studio.q_product')}</label>
-                <input data-testid="q-product" value={questionnaire.product} onChange={e => setQuestionnaire(p => ({...p, product: e.target.value}))}
-                  placeholder={t('studio.q_product_placeholder')}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">2. {t('studio.q_goal')}</label>
-                <div className="flex flex-wrap gap-1.5 mb-1.5">
-                  {[{k:'goal_leads'},{k:'goal_sales'},{k:'goal_awareness'},{k:'goal_engagement'},{k:'goal_launch'},{k:'goal_promo'}].map(({k}) => (
-                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, goal: p.goal === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.goal === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                      {t(`studio.${k}`)}
-                    </button>
-                  ))}
-                </div>
-                <input value={questionnaire.goal} onChange={e => setQuestionnaire(p => ({...p, goal: e.target.value}))}
-                  placeholder={t('studio.q_goal_placeholder')}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">3. {t('studio.q_audience')}</label>
-
-                {/* Gender */}
-                <p className="text-[8px] text-[#999] mb-1 mt-1">{t('studio.q_gender') || 'Gender'}</p>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {['All', 'Male', 'Female', 'LGBTQ+', 'Non-binary'].map(g => (
-                    <button key={g} onClick={() => setQuestionnaire(p => ({...p, gender: p.gender === g ? '' : g}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.gender === g ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                      {g}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Age Range */}
-                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_age_range') || 'Age range'}</p>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <input data-testid="q-age-min" value={questionnaire.ageMin} onChange={e => setQuestionnaire(p => ({...p, ageMin: e.target.value}))}
-                    placeholder="18" type="number" min="13" max="99"
-                    className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
-                  <span className="text-[9px] text-[#888]">—</span>
-                  <input data-testid="q-age-max" value={questionnaire.ageMax} onChange={e => setQuestionnaire(p => ({...p, ageMax: e.target.value}))}
-                    placeholder="65+" type="text"
-                    className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
-                  <div className="flex gap-1 ml-2">
-                    {['13-17', '18-24', '25-34', '35-44', '45-54', '55+'].map(r => (
-                      <button key={r} onClick={() => { const [min, max] = r.split('-'); setQuestionnaire(p => ({...p, ageMin: min, ageMax: max || '65+'})); }}
-                        className={`rounded-md px-1.5 py-0.5 text-[8px] border transition ${questionnaire.ageMin === r.split('-')[0] ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Social Class */}
-                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_social_class') || 'Social class'}</p>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {['A (Luxury)', 'B (Upper-middle)', 'C (Middle)', 'D (Lower-middle)', 'E (Low income)', 'All classes'].map(c => (
-                    <button key={c} onClick={() => setQuestionnaire(p => ({...p, socialClass: p.socialClass === c ? '' : c}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.socialClass === c ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                      {c}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Lifestyle / Interests */}
-                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_lifestyle') || 'Lifestyle & Interests'}</p>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {['Fitness', 'Tech', 'Fashion', 'Gaming', 'Travel', 'Food', 'Music', 'Sports', 'Business', 'Eco-friendly', 'Luxury', 'Family'].map(l => (
-                    <button key={l} onClick={() => setQuestionnaire(p => ({...p, lifestyle: p.lifestyle?.includes(l) ? p.lifestyle.replace(l, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '') : (p.lifestyle ? `${p.lifestyle}, ${l}` : l)}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.lifestyle?.includes(l) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Free-text audience */}
-                <input data-testid="q-audience" value={questionnaire.audience} onChange={e => setQuestionnaire(p => ({...p, audience: e.target.value}))}
-                  placeholder={t('studio.q_audience_placeholder')}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">4. {t('studio.q_tone')}</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[{k:'tone_professional'},{k:'tone_casual'},{k:'tone_urgent'},{k:'tone_inspiring'},{k:'tone_fun'},{k:'tone_sophisticated'}].map(({k}) => (
-                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, tone: p.tone === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.tone === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                      {t(`studio.${k}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">5. {t('studio.q_offer')}</label>
-                <input data-testid="q-offer" value={questionnaire.offer} onChange={e => setQuestionnaire(p => ({...p, offer: e.target.value}))}
-                  placeholder={t('studio.q_offer_placeholder')}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">6. {t('studio.q_differentials')}</label>
-                <input data-testid="q-differentials" value={questionnaire.differentials} onChange={e => setQuestionnaire(p => ({...p, differentials: e.target.value}))}
-                  placeholder={t('studio.q_differentials_placeholder')}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">7. {t('studio.q_pain_points') || 'What problems does your audience face?'}</label>
-                <input data-testid="q-pain-points" value={questionnaire.painPoints} onChange={e => setQuestionnaire(p => ({...p, painPoints: e.target.value}))}
-                  placeholder={t('studio.q_pain_points_placeholder') || 'E.g.: High costs, lack of time, complexity...'}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">8. {t('studio.q_visual_style') || 'Visual style preference'}</label>
-                <div className="flex flex-wrap gap-1">
-                  {['Minimalist', 'Bold & Vibrant', 'Luxury & Elegant', 'Natural & Organic', 'Tech & Modern', 'Retro & Vintage', 'Dark & Moody', 'Playful & Colorful'].map(s => (
-                    <button key={s} onClick={() => setQuestionnaire(p => ({...p, visualStyle: p.visualStyle === s ? '' : s}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.visualStyle === s ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">9. {t('studio.q_cta')}</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[{k:'cta_signup'},{k:'cta_demo'},{k:'cta_buy'},{k:'cta_learn'},{k:'cta_download'},{k:'cta_whatsapp'}].map(({k}) => (
-                    <button key={k} onClick={() => setQuestionnaire(p => ({...p, cta: p.cta === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] border transition ${questionnaire.cta === t(`studio.${k}`) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                      {t(`studio.${k}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[9px] text-[#999] block mb-1">10. {t('studio.q_urgency')}</label>
-                <input data-testid="q-urgency" value={questionnaire.urgency} onChange={e => setQuestionnaire(p => ({...p, urgency: e.target.value}))}
-                  placeholder={t('studio.q_urgency_placeholder')}
-                  className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
-              </div>
-
-              {compileBriefing().trim() && (
-                <div className="mt-2 p-2.5 rounded-lg bg-[#111] border border-[#1A1A1A]">
-                  <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1">{t('studio.briefing_preview')}</p>
-                  <pre className="text-[10px] text-[#999] whitespace-pre-wrap font-sans leading-relaxed">{compileBriefing()}</pre>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Campaign Language */}
-        <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_language')}</label>
-          <p className="text-[8px] text-[#888] mb-1.5">{t('studio.campaign_language_desc')}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { code: '', label: 'Auto', flag: '🌐' },
-              { code: 'pt', label: 'Portugues', flag: '🇧🇷' },
-              { code: 'en', label: 'English', flag: '🇺🇸' },
-              { code: 'es', label: 'Espanol', flag: '🇪🇸' },
-              { code: 'fr', label: 'Francais', flag: '🇫🇷' },
-              { code: 'ht', label: 'Kreyol Ayisyen', flag: '🇭🇹' },
-            ].map(lang => (
-              <button key={lang.code} data-testid={`lang-${lang.code || 'auto'}`}
-                onClick={() => setCampaignLang(lang.code)}
-                className={`rounded-lg px-3 py-1.5 text-[10px] font-medium border transition flex items-center gap-1.5 ${campaignLang === lang.code ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                <span className="text-sm">{lang.flag}</span> {lang.label}
-              </button>
-            ))}
-            <input value={campaignLang && !['', 'pt', 'en', 'es', 'fr', 'ht'].includes(campaignLang) ? campaignLang : ''}
-              onChange={e => setCampaignLang(e.target.value)}
-              placeholder="Other language..."
-              className="rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition w-32" />
-          </div>
-        </div>
-
-        {/* Brand Data Toggle */}
-        {activeCompany && (
-          <div data-testid="brand-data-toggle">
-            <button data-testid="brand-data-btn" onClick={() => setApplyBrandData(!applyBrandData)}
-              className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-3 transition ${
-                applyBrandData ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition ${
-                applyBrandData ? 'bg-[#C9A84C] border-[#C9A84C]' : 'border-[#555]'}`}>
-                {applyBrandData && <Check size={10} className="text-black" />}
-              </div>
-              {activeCompany.logo_url ? (
-                <img src={resolveImageUrl(activeCompany.logo_url)} alt="" className="h-8 w-8 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
-              ) : (
-                <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-[#1E1E1E] flex items-center justify-center shrink-0">
-                  <Building2 size={12} className="text-[#999]" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-[9px] text-white font-medium truncate">{activeCompany.name}</p>
-                <p className="text-[7px] text-[#999] truncate">
-                  {[activeCompany.phone, activeCompany.website_url].filter(Boolean).join(' · ') || t('studio.brand_no_extra_info')}
-                </p>
-              </div>
-              <span className="text-[8px] text-[#999] uppercase tracking-wider shrink-0">{t('studio.apply_brand')}</span>
-            </button>
-            {applyBrandData && (
-              <p className="text-[7px] text-[#C9A84C]/50 mt-1 px-1">{t('studio.brand_applied_hint')}</p>
-            )}
-          </div>
-        )}
-
-        {/* Product Images: Exact + Reference */}
-        <AssetUploader assets={uploadedAssets} onAssetsChange={setUploadedAssets} />
-
-        {/* Music Library - Compact with Genre Tabs */}
-        {musicLibrary.length > 0 && (
-          <div>
-            <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.music_library') || 'Background Music (Video)'}</label>
-            {/* Genre Tabs */}
-            <div className="flex gap-1 flex-wrap mb-1.5">
-              {['All', ...new Set(musicLibrary.map(t => t.category || 'General'))].map(cat => (
-                <button key={cat} onClick={() => setMusicGenre(cat)}
-                  className={`rounded-md px-2 py-0.5 text-[8px] border transition ${musicGenre === cat ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C] font-semibold' : 'border-[#1A1A1A] text-[#999] hover:text-white'}`}>
-                  {cat}
-                </button>
-              ))}
-            </div>
-            {/* Scrollable Track List */}
-            <div className="max-h-[160px] overflow-y-auto space-y-0.5 pr-1" style={{scrollbarWidth:'thin', scrollbarColor:'#333 transparent'}}>
-              {(musicGenre === 'All' ? musicLibrary : musicLibrary.filter(t => (t.category || 'General') === musicGenre)).map(track => (
-                <div key={track.id} data-testid={`music-${track.id}`}
-                  onClick={() => setSelectedMusic(selectedMusic === track.id ? '' : track.id)}
-                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1 cursor-pointer transition ${selectedMusic === track.id ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1A1A1A] hover:border-[#2A2A2A]'}`}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); togglePlayTrack(track.id); }}
-                    className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#888] hover:text-white'}`}>
-                    {playingTrack === track.id ? <span className="text-[5px] font-bold">||</span> : <Play size={7} />}
-                  </button>
-                  <span className="text-[8px] font-medium text-white truncate flex-1">{track.name}</span>
-                  <span className="text-[7px] text-[#888] truncate max-w-[100px] hidden sm:block">{track.description}</span>
-                  {selectedMusic === track.id && <Check size={9} className="text-[#C9A84C] shrink-0" />}
-                </div>
-              ))}
-            </div>
-            {selectedMusic && (
-              <p className="text-[8px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
-                <Check size={8} /> {t('studio.music_selected') || 'Music selected for video'}
-              </p>
-            )}
-            {!selectedMusic && (
-              <p className="text-[8px] text-[#888] mt-0.5">{t('studio.music_auto') || 'No selection = AI picks automatically based on campaign mood'}</p>
-            )}
-          </div>
-        )}
-
-
-
-        {/* Platforms */}
-        <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.platforms')}</label>
-          <div className="flex flex-wrap gap-1.5">
-            {PLATFORMS.filter(p => !p.parent).map(p => (
-              <button key={p.id} data-testid={`platform-${p.id}`} onClick={() => togglePlatform(p.id)}
-                className={`rounded-lg px-3 py-1.5 text-[11px] font-medium border transition ${platforms.includes(p.id) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Video Mode */}
-        <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-1.5">
-            <Film size={10} /> {t('studio.video_mode')}
-          </label>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button data-testid="video-mode-none" onClick={() => { setSkipVideo(true); setVideoMode('none'); }}
-              className={`rounded-xl border p-2 text-center transition ${skipVideo ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <X size={14} className={`mx-auto mb-1 ${skipVideo ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
-              <p className="text-[9px] font-semibold text-white">{t('studio.no_video')}</p>
-              <p className="text-[7px] text-[#999]">{t('studio.faster')}</p>
-            </button>
-            <button data-testid="video-mode-narration" onClick={() => { setSkipVideo(false); setVideoMode('narration'); }}
-              className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'narration' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <MessageSquare size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'narration' ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
-              <p className="text-[9px] font-semibold text-white">{t('studio.narration')}</p>
-              <p className="text-[7px] text-[#999]">{t('studio.voice_scenes')}</p>
-            </button>
-            <button data-testid="video-mode-presenter" onClick={() => { setSkipVideo(false); setVideoMode('presenter'); }}
-              className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'presenter' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <Eye size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'presenter' ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
-              <p className="text-[9px] font-semibold text-white">{t('studio.presenter')}</p>
-              <p className="text-[7px] text-[#999]">{t('studio.talking_avatar')}</p>
-            </button>
-          </div>
-          {!skipVideo && videoMode === 'presenter' && !selectedAvatar && (
-            <p className="text-[8px] text-amber-400/80 mt-1.5 flex items-center gap-1">
-              <AlertTriangle size={9} /> {t('studio.presenter_warning')}
-            </p>
-          )}
-        </div>
-
-        {/* Mode */}
-        <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.execution_mode')}</label>
-          <div className="grid grid-cols-2 gap-2">
-            <button data-testid="mode-semi-auto" onClick={() => setMode('semi_auto')}
-              className={`rounded-xl border p-3 text-left transition ${mode === 'semi_auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_semi')}</p>
-              <p className="text-[9px] text-[#999]">{t('studio.mode_semi_desc')}</p>
-            </button>
-            <button data-testid="mode-auto" onClick={() => setMode('auto')}
-              className={`rounded-xl border p-3 text-left transition ${mode === 'auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-              <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_auto')}</p>
-              <p className="text-[9px] text-[#999]">{t('studio.mode_auto_desc')}</p>
-            </button>
-          </div>
-        </div>
-
-        {/* Previous Pipelines */}
-        {pipelines.length > 0 && (
-          <div>
-            <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-history"
-              className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
-              {showHistory ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-              {pipelines.length} {t('studio.previous_pipelines')}
-            </button>
-            {showHistory && (
-              <div className="mt-1.5 space-y-1.5">
-                {pipelines.map(p => (
-                  <HistoryCard key={p.id} pipeline={p}
-                    onSelect={pl => { setActivePipeline(pl); setExpandedSteps({}); }}
-                    onDelete={deletePipeline} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        </>
-        )}
-      </div>
-
-      {/* Start Button — only in auto mode */}
-      {!isDirectedMode && (
-      <div className="px-4 py-3 border-t border-[#1A1A1A]">
-        <button data-testid="start-pipeline-btn" onClick={createPipeline}
-          disabled={creating || !campaignName.trim() || !(briefingMode === 'guided' ? compileBriefing().trim() : briefing.trim()) || platforms.length === 0}
-          className="w-full rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-[13px] font-bold text-black transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
-          {creating ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-          {creating ? t('studio.starting') : `${mode === 'auto' ? t('studio.start_pipeline_auto') : t('studio.start_pipeline_semi')}`}
-        </button>
-      </div>
-      )}
     </div>
   );
 }
