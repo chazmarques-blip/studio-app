@@ -13,7 +13,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 7. AI Avatar Generator (Cyborg half-human/half-machine)
 8. Real-time Google Calendar/Sheets integration
 9. AI Marketing Studio with auto pipeline + directed studio mode
-10. Directed Video Production Studio with 4 AI Cinema Agents + Multi-Scene Generation
+10. Directed Video Production Studio with Interactive Screenwriter + Multi-Scene Generation + FFmpeg Concatenation
 
 ## Tech Stack
 - **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts
@@ -26,9 +26,9 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 ## Architecture
 - Studio projects stored in `tenants.settings.studio_projects` (Supabase JSONB)
 - Background processing with polling for long-running tasks (K8s proxy-safe)
-- 4 Cinema Agents run sequentially via Claude, saving progress to Supabase after each
-- Video generation via Sora 2 runs as background thread with status polling
-- Multi-scene: Each 12s scene gets its own Sora 2 video, then FFmpeg concatenates all
+- Async Claude calls for API endpoints, sync Claude calls for background threads
+- Video generation via Sora 2 runs per-scene as background thread with status polling
+- FFmpeg concat demuxer stitches all scene videos into one final film
 
 ## Completed Features
 - Landing page with premium design
@@ -41,17 +41,19 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - AI Avatar Generator (Gemini cyborg, gallery, download with watermark)
 - Settings page with profile management
 - Marketing AI Studio - Auto Pipeline (image, video, carousel, avatar modes)
-- **Directed Studio Mode v2** — COMPLETE:
-  - Interactive Screenwriter Chat (Step 1) - Conversational AI that researches and creates multi-scene screenplays
+- **Directed Studio Mode v2** — COMPLETE & E2E TESTED:
+  - Interactive Screenwriter Chat (Step 1) - Claude researches & creates multi-scene screenplays
   - Character & Avatar Management (Step 2) - Link existing avatars to screenplay characters
-  - Multi-Scene Production Pipeline (Step 3) - 3 AI Cinema Agents per scene + Sora 2 video generation
+  - Multi-Scene Production Pipeline (Step 3):
     - Dir. Fotografia: visual composition, camera, lighting, Sora 2 prompts
     - Dir. Musical: mood, genre, instruments (once for all scenes)
     - Dir. Audio: sound design per scene
-  - Video Concatenation with FFmpeg - Stitches all 12s scene videos into one complete film
+  - Sora 2 video generation for each 12s scene
+  - FFmpeg video concatenation into one complete film
   - Results Viewer (Step 4) - Watch complete film + individual scenes with download
   - Project History with auto-resume for in-progress productions
   - Real-time progress tracking (scene-by-scene status with phase indicators)
+  - **E2E Test Case PASSED**: Abraham & Isaac biblical story (Gênesis 22:1-19) — 3 scenes, 36s total film generated and concatenated successfully
 - Avatar creation/editing tools shared between Auto Pipeline and Directed Studio
 
 ## In Progress
@@ -72,3 +74,13 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 ## Test Credentials
 - Email: test@agentflow.com
 - Password: password123
+
+## Key API Endpoints
+- POST /api/studio/chat — Interactive screenwriter (creates/updates screenplay)
+- POST /api/studio/start-production — Starts multi-scene background production
+- GET /api/studio/projects/{id}/status — Poll production status
+- GET /api/studio/projects — List all projects
+- DELETE /api/studio/projects/{id} — Delete project
+
+## Test Reports
+- iteration_92.json: Directed Studio v2 — 100% pass (15/15 backend, 100% frontend)
