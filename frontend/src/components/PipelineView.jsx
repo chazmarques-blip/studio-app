@@ -57,7 +57,25 @@ export default function PipelineView({ context }) {
   const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
 
   // Campaign Type Selector
-  const [campaignType, setCampaignType] = useState('image_post');
+  const [campaignTypes, setCampaignTypes] = useState(['image_post']);
+  const isDirectedMode = campaignTypes.includes('directed_studio');
+
+  const toggleCampaignType = (typeId) => {
+    if (typeId === 'directed_studio') {
+      // Directed is exclusive — toggle it and clear others
+      setCampaignTypes(prev => prev.includes('directed_studio') ? ['image_post'] : ['directed_studio']);
+    } else {
+      // Auto types — multi-select, but clear directed if active
+      setCampaignTypes(prev => {
+        const without = prev.filter(t => t !== 'directed_studio');
+        if (without.includes(typeId)) {
+          const removed = without.filter(t => t !== typeId);
+          return removed.length === 0 ? ['image_post'] : removed;
+        }
+        return [...without, typeId];
+      });
+    }
+  };
   // Avatar Gallery (standalone, multiple avatars)
   const [avatars, setAvatars] = useState([]); // [{ id, url, name, source_photo_url }]
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
@@ -954,7 +972,7 @@ export default function PipelineView({ context }) {
         video_mode: skipVideo ? 'none' : videoMode,
         avatar_url: selectedAvatar?.url || '',
         avatar_voice: selectedAvatar?.voice || null,
-        campaign_type: campaignType,
+        campaign_type: campaignTypes,
       });
       setActivePipeline(data);
       setBriefing(''); setCampaignName(''); setExpandedSteps({}); setUploadedAssets([]);
@@ -1277,30 +1295,69 @@ export default function PipelineView({ context }) {
           <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-2">
             <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.campaign_type') || 'Campaign Type'}
           </label>
-          <div className="flex flex-wrap gap-4 sm:gap-6">
+          <div className="flex items-end gap-3 sm:gap-5">
+            {/* Auto mode icons (multi-select) */}
             {[
               { id: 'image_post', label: t('studio.type_image_post') || 'Image Post', icon: '/icons/campaign-types/image-post.png' },
               { id: 'video_post', label: t('studio.type_video_post') || 'Video Post', icon: '/icons/campaign-types/video-post.png' },
               { id: 'image_avatar', label: t('studio.type_image_avatar') || 'Image + Avatar', icon: '/icons/campaign-types/image-avatar.png' },
               { id: 'video_avatar', label: t('studio.type_video_avatar') || 'Video + Avatar', icon: '/icons/campaign-types/video-avatar.png' },
               { id: 'carousel', label: t('studio.type_carousel') || 'Carousel', icon: '/icons/campaign-types/carousel.png' },
-              { id: 'directed_video', label: t('studio.type_directed_video') || 'Directed Video', icon: '/icons/campaign-types/directed-video.png' },
-            ].map(type => (
-              <button key={type.id} data-testid={`campaign-type-${type.id}`}
-                onClick={() => setCampaignType(type.id)}
-                className="flex flex-col items-center gap-1 group cursor-pointer">
-                <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
-                  campaignType === type.id
-                    ? 'ring-2 ring-[#C9A84C]/60 shadow-[0_0_10px_rgba(201,168,76,0.15)]'
-                    : 'opacity-60 group-hover:opacity-100'
-                }`}>
-                  <img src={type.icon} alt={type.label} className="h-full w-full object-contain" />
-                </div>
-                <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
-                  campaignType === type.id ? 'text-[#C9A84C]' : 'text-[#777] group-hover:text-[#B0B0B0]'
-                }`}>{type.label}</span>
-              </button>
-            ))}
+            ].map(type => {
+              const active = campaignTypes.includes(type.id);
+              return (
+                <button key={type.id} data-testid={`campaign-type-${type.id}`}
+                  onClick={() => toggleCampaignType(type.id)}
+                  className="flex flex-col items-center gap-1 group cursor-pointer">
+                  <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
+                    active
+                      ? 'ring-2 ring-[#C9A84C]/60 shadow-[0_0_10px_rgba(201,168,76,0.15)]'
+                      : isDirectedMode ? 'opacity-30' : 'opacity-50 group-hover:opacity-90'
+                  }`}>
+                    <img src={type.icon} alt={type.label} className="h-full w-full object-contain" />
+                  </div>
+                  <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
+                    active ? 'text-[#C9A84C]' : 'text-[#777] group-hover:text-[#B0B0B0]'
+                  }`}>{type.label}</span>
+                </button>
+              );
+            })}
+
+            {/* Divider */}
+            <div className="h-12 w-px bg-white/[0.06] mx-1" />
+
+            {/* Directed Studio (exclusive) */}
+            {(() => {
+              const active = isDirectedMode;
+              return (
+                <button data-testid="campaign-type-directed_studio"
+                  onClick={() => toggleCampaignType('directed_studio')}
+                  className="flex flex-col items-center gap-1 group cursor-pointer">
+                  <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
+                    active
+                      ? 'ring-2 ring-[#C9A84C]/60 shadow-[0_0_10px_rgba(201,168,76,0.15)]'
+                      : 'opacity-50 group-hover:opacity-90'
+                  }`}>
+                    <img src="/icons/campaign-types/directed-video.png" alt="Directed Studio" className="h-full w-full object-contain" />
+                  </div>
+                  <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
+                    active ? 'text-[#C9A84C]' : 'text-[#777] group-hover:text-[#B0B0B0]'
+                  }`}>{t('studio.type_directed_studio') || 'Studio'}</span>
+                </button>
+              );
+            })()}
+          </div>
+          {/* Mode indicator */}
+          <div className="mt-2">
+            <span className={`text-[7px] font-mono uppercase tracking-wider px-2 py-0.5 rounded ${
+              isDirectedMode
+                ? 'text-[#C9A84C] bg-[#C9A84C]/[0.06]'
+                : 'text-[#888] bg-white/[0.02]'
+            }`}>
+              {isDirectedMode
+                ? (t('studio.mode_directed') || 'Directed Studio Mode')
+                : (t('studio.mode_auto') || `Auto Mode — ${campaignTypes.length} output${campaignTypes.length > 1 ? 's' : ''}`)}
+            </span>
           </div>
         </div>
 
