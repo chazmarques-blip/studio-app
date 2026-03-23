@@ -1295,7 +1295,7 @@ export default function PipelineView({ context }) {
           <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-2">
             <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.campaign_type') || 'Campaign Type'}
           </label>
-          <div className="flex items-center gap-3 sm:gap-5">
+          <div className="flex items-start gap-3 sm:gap-5">
             {/* Auto mode icons (multi-select) */}
             {[
               { id: 'image_post', label: t('studio.type_image_post') || 'Image Post', icon: '/icons/campaign-types/image-post.png' },
@@ -1308,13 +1308,13 @@ export default function PipelineView({ context }) {
               return (
                 <button key={type.id} data-testid={`campaign-type-${type.id}`}
                   onClick={() => toggleCampaignType(type.id)}
-                  className="flex flex-col items-center gap-1 group cursor-pointer">
-                  <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
+                  className="flex flex-col items-center gap-1 group cursor-pointer w-[50px]">
+                  <div className={`h-10 w-10 rounded-lg overflow-hidden transition-all shrink-0 ${
                     active ? 'ring-2 ring-[#C9A84C]' : ''
                   }`}>
-                    <img src={type.icon} alt={type.label} className="h-full w-full object-contain" />
+                    <img src={type.icon} alt={type.label} className="h-full w-full object-cover" />
                   </div>
-                  <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
+                  <span className={`text-[7px] font-semibold text-center leading-tight w-full ${
                     active ? 'text-[#C9A84C]' : 'text-[#999]'
                   }`}>{type.label}</span>
                 </button>
@@ -1322,7 +1322,7 @@ export default function PipelineView({ context }) {
             })}
 
             {/* Divider */}
-            <div className="h-12 w-px bg-white/[0.06] mx-1" />
+            <div className="h-12 w-px bg-white/[0.06] mx-1 shrink-0" />
 
             {/* Directed Studio (exclusive) */}
             {(() => {
@@ -1330,13 +1330,13 @@ export default function PipelineView({ context }) {
               return (
                 <button data-testid="campaign-type-directed_studio"
                   onClick={() => toggleCampaignType('directed_studio')}
-                  className="flex flex-col items-center gap-1 group cursor-pointer">
-                  <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
+                  className="flex flex-col items-center gap-1 group cursor-pointer w-[50px]">
+                  <div className={`h-10 w-10 rounded-lg overflow-hidden transition-all shrink-0 ${
                     active ? 'ring-2 ring-[#C9A84C]' : ''
                   }`}>
-                    <img src="/icons/campaign-types/directed-video.png" alt="Directed Studio" className="h-full w-full object-contain" />
+                    <img src="/icons/campaign-types/directed-video.png" alt="Directed Studio" className="h-full w-full object-cover" />
                   </div>
-                  <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
+                  <span className={`text-[7px] font-semibold text-center leading-tight w-full ${
                     active ? 'text-[#C9A84C]' : 'text-[#999]'
                   }`}>{t('studio.type_directed_studio') || 'Studio'}</span>
                 </button>
