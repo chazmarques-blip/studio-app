@@ -62,8 +62,20 @@ def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "im
     return supabase.storage.from_(STORAGE_BUCKET).get_public_url(filename)
 
 
-def _call_claude(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via emergentintegrations."""
+async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
+    """Call Claude via emergentintegrations (async — for API endpoints)."""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    chat = LlmChat(
+        api_key=EMERGENT_KEY,
+        session_id=f"studio-{uuid.uuid4().hex[:6]}",
+        system_message=system_prompt
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+    response = await chat.send_message(UserMessage(text=user_prompt))
+    return response.text if hasattr(response, 'text') else str(response)
+
+
+def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
+    """Call Claude via emergentintegrations (sync — for background threads)."""
     import asyncio
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -76,7 +88,11 @@ def _call_claude(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -
         response = await chat.send_message(UserMessage(text=user_prompt))
         return response.text if hasattr(response, 'text') else str(response)
 
-    return asyncio.run(_run())
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(_run())
+    finally:
+        loop.close()
 
 
 def _parse_json(text):
@@ -280,7 +296,7 @@ Current request: {req.message}
 Create or update the screenplay based on this conversation. Return the complete screenplay as JSON."""
 
     try:
-        result = _call_claude(system, user_prompt)
+        result = await _call_claude_async(system, user_prompt)
         parsed = _parse_json(result)
 
         if parsed:
@@ -376,7 +392,7 @@ Camera: {scene.get('camera','')}
 Characters: {'; '.join(char_descriptions)}
 Transition to next: {scene.get('transition','')}"""
 
-            photo_result = _call_claude(photo_system, photo_prompt)
+            photo_result = _call_claude_sync(photo_system, photo_prompt)
             photo_data = _parse_json(photo_result) or {"sora_prompt": scene.get("description", "")}
 
             # ── Music Director (once for all scenes) ──
@@ -387,7 +403,7 @@ Transition to next: {scene.get('transition','')}"""
                 avail = ", ".join(MUSIC_LIBRARY.keys())
                 music_system = f"""You are a MUSIC DIRECTOR. Define the musical atmosphere for this story.
 Output ONLY JSON: {{"mood": "...", "recommended_genre": "...", "tempo": "...", "selected_category": "one of: {avail}"}}"""
-                music_result = _call_claude(music_system, f"Story: {project.get('briefing','')}\nScenes: {total}\nTone: {scene.get('emotion','')}")
+                music_result = _call_claude_sync(music_system, f"Story: {project.get('briefing','')}\nScenes: {total}\nTone: {scene.get('emotion','')}")
                 music_data = _parse_json(music_result) or {"mood": "cinematic"}
 
                 _update_project_field(tenant_id, project_id, {
@@ -404,7 +420,7 @@ Output ONLY JSON: {{"mood": "...", "recommended_genre": "...", "tempo": "...", "
 
             audio_system = """You are an AUDIO DIRECTOR. Define sound design for this scene.
 Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..."}"""
-            audio_result = _call_claude(audio_system, photo_prompt)
+            audio_result = _call_claude_sync(audio_system, photo_prompt)
             audio_data = _parse_json(audio_result) or {"sound_effects": []}
 
             # Save the Sora prompt for this scene
