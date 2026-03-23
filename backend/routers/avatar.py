@@ -17,15 +17,18 @@ router = APIRouter(prefix="/api/avatar", tags=["avatar"])
 DEFAULT_AVATAR = "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/36152c5b792ad0e3a5369214cbd423ca6b327833cf834f94d65f76c7c348c7a7.png"
 
 AVATAR_PROMPT = """Transform this person's photo into a futuristic premium 3D humanoid avatar portrait.
+CRITICAL: The avatar MUST face directly forward, looking straight at the camera. Front-facing portrait only.
 Style requirements:
+- Frontal face view, eyes looking directly at the viewer
 - Golden metallic skin tones with subtle reflections
 - Sleek dark background (#0A0A0A)
 - Soft professional studio lighting with golden accent lights
 - High-end 3D rendered quality
 - The avatar should clearly resemble the person in the photo but stylized as a futuristic humanoid
 - Premium luxury aesthetic with gold and black color palette
-- Portrait crop showing head and upper shoulders
-- Clean, sharp details suitable for a circular profile picture"""
+- Head and upper shoulders, centered in frame
+- Clean, sharp details suitable for a circular profile picture
+- No sunglasses, no accessories covering the face"""
 
 
 class GenerateAvatarRequest(BaseModel):

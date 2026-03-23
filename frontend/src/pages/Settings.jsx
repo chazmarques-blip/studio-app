@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Calendar } from 'lucide-react';
+import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Calendar, Camera, Upload, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const DEFAULT_AVATAR = 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/36152c5b792ad0e3a5369214cbd423ca6b327833cf834f94d65f76c7c348c7a7.png';
 
 const channelStatus = [
   { name: 'WhatsApp', connected: false },
@@ -23,6 +27,19 @@ export default function SettingsPage() {
     company: user?.company || '',
   });
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoBase64, setPhotoBase64] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [stream, setStream] = useState(null);
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
+  }, []);
 
   const handleLogout = async () => {
     await signOut();
@@ -43,6 +60,56 @@ export default function SettingsPage() {
     }
   };
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => { setPhotoPreview(ev.target.result); setPhotoBase64(ev.target.result); };
+    reader.readAsDataURL(file);
+  };
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 512, height: 512 } });
+      setStream(mediaStream);
+      setCameraActive(true);
+      if (videoRef.current) videoRef.current.srcObject = mediaStream;
+    } catch { toast.error('Camera access denied'); }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    setPhotoPreview(dataUrl);
+    setPhotoBase64(dataUrl);
+    stopCamera();
+  };
+
+  const stopCamera = () => {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); setStream(null); }
+    setCameraActive(false);
+  };
+
+  const generateAvatar = async () => {
+    if (!photoBase64) return;
+    setGenerating(true);
+    try {
+      const { data } = await axios.post(`${API}/avatar/generate`, { photo_base64: photoBase64 });
+      setAvatarUrl(data.avatar_url);
+      setPhotoPreview(null);
+      setPhotoBase64(null);
+      toast.success('Avatar generated!');
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Failed to generate avatar');
+    } finally { setGenerating(false); }
+  };
+
   const menuItems = [
     { icon: User, label: t('settings.account'), desc: t('settings.account_desc'), action: () => setShowAccount(true) },
     { icon: Globe, label: t('settings.language'), desc: t('settings.language_desc'), path: '/onboarding' },
@@ -56,10 +123,11 @@ export default function SettingsPage() {
     <div className="min-h-screen px-4 pt-6">
       <h1 className="mb-6 text-xl font-bold text-white">{t('settings.title')}</h1>
 
+      {/* Profile Card with Avatar */}
       <div data-testid="profile-card" className="glass-card mb-4 p-4 cursor-pointer transition-all hover:border-[rgba(201,168,76,0.3)]" onClick={() => setShowAccount(true)}>
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D]">
-            <span className="text-lg font-bold text-[#0A0A0A]">{(user?.full_name || user?.email || 'U')[0].toUpperCase()}</span>
+          <div className="h-12 w-12 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30 shrink-0">
+            <img src={avatarUrl || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover object-[center_20%]" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
           </div>
           <div><p className="text-sm font-semibold text-white">{user?.full_name || 'User'}</p><p className="text-xs text-[#666666]">{user?.email}</p></div>
           <ChevronRight size={16} className="ml-auto text-[#3A3A3A]" />
@@ -74,6 +142,68 @@ export default function SettingsPage() {
               <X size={16} />
             </button>
           </div>
+
+          {/* Avatar Section */}
+          <div className="mb-4 flex flex-col items-center">
+            <div className="relative mb-3">
+              <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30" data-testid="settings-avatar-preview">
+                {generating ? (
+                  <div className="h-full w-full flex items-center justify-center bg-[#111]">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#C9A84C]" />
+                  </div>
+                ) : photoPreview ? (
+                  <img src={photoPreview} alt="Photo" className="h-full w-full object-cover" />
+                ) : (
+                  <img src={avatarUrl || DEFAULT_AVATAR} alt="Avatar" className="h-full w-full object-cover object-[center_20%]" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
+                )}
+              </div>
+            </div>
+
+            {/* Camera view */}
+            {cameraActive && (
+              <div className="mb-3 w-full relative rounded-xl overflow-hidden border border-white/[0.06]">
+                <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-square object-cover" />
+                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2">
+                  <button onClick={capturePhoto} data-testid="settings-capture-btn"
+                    className="h-12 w-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                    <div className="h-10 w-10 rounded-full border-2 border-[#0A0A0A]" />
+                  </button>
+                  <button onClick={stopCamera} className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 self-end text-xs">X</button>
+                </div>
+              </div>
+            )}
+            <canvas ref={canvasRef} className="hidden" />
+
+            {/* Avatar action buttons */}
+            {!cameraActive && (
+              <div className="flex gap-2 w-full">
+                <button onClick={startCamera} data-testid="settings-camera-btn"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] py-2 text-[10px] text-[#B0B0B0] hover:text-white hover:border-[#C9A84C]/25 transition">
+                  <Camera size={13} className="text-[#C9A84C]" /> Selfie
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} data-testid="settings-upload-btn"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] py-2 text-[10px] text-[#B0B0B0] hover:text-white hover:border-[#C9A84C]/25 transition">
+                  <Upload size={13} className="text-[#C9A84C]" /> Upload
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+              </div>
+            )}
+
+            {/* Generate button */}
+            {photoPreview && !generating && (
+              <button onClick={generateAvatar} data-testid="settings-generate-avatar-btn"
+                className="btn-gold mt-2 w-full rounded-lg py-2 text-[11px] font-semibold flex items-center justify-center gap-1.5">
+                <Sparkles size={13} /> Generate AI Avatar
+              </button>
+            )}
+            {generating && (
+              <div className="mt-2 flex items-center gap-2 text-[#C9A84C] text-[11px]">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#C9A84C]" />
+                Creating avatar...
+              </div>
+            )}
+          </div>
+
           <div className="space-y-3">
             <div>
               <label className="mb-1 block text-xs text-[#999]">{t('profile.name')}</label>
