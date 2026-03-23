@@ -7,50 +7,41 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts, Lucide Icons
 - **Backend**: FastAPI (Python)
 - **Database**: Supabase (PostgreSQL) — tenants.settings JSONB
-- **AI**: Claude Sonnet 4.5 (cinema agents + screenwriter, 3x retry), Sora 2 (video gen with avatar image_path), Gemini (image gen), Whisper (voice)
+- **AI**: Claude Sonnet 4.5 (3x retry), Sora 2 (video gen with avatar image_path), Gemini (image gen), Whisper (voice)
 - **Video**: FFmpeg for multi-scene concatenation
-- **Design**: Dark luxury monochrome + gold accents
 
 ## Completed Features
-- Landing page, Auth, Onboarding, Dashboard
-- Agent Management (marketplace, config, sandbox)
-- CRM with Kanban pipeline
-- Google Calendar/Sheets integration
-- AI Avatar Generator (Gemini cyborg)
-- Settings page
+- Landing, Auth, Onboarding, Dashboard, Agent Management, CRM, Google Integration, Avatar Generator, Settings
 - Marketing AI Studio (auto pipeline: image, video, carousel, avatar)
 - **Directed Studio v2** — COMPLETE:
-  - **Step 0: Project Management** — List all projects with status, resume from any step, create new with name+description
-  - **Step 1: Interactive Screenwriter** — Background thread + polling (K8s safe), 3x retry on 502/503
+  - **Step 0: Project Management** — List all projects with milestones, create new (name+description), resume from any step, fix stuck projects
+  - **Step 1: Interactive Screenwriter** — Background thread + polling, 3x retry on 502/503
   - **Step 2: Characters & Avatars** — Edit inline, copy prompt, preview zoom, AI edit, create new
-  - **Step 3: Multi-Scene Production** — 3 Cinema Agents per scene, avatar reference via image_path, art style auto-detection
+  - **Step 3: Multi-Scene Production** — 3 Cinema Agents per scene, avatar reference via image_path, art style auto-detection (cartoon/anime/realistic)
   - **Step 4: Results** — Watch complete film + individual scenes with download
-  - Auto-resume for in-progress productions
-  - E2E tested: Abraham & Isaac (3 scenes, 36s film)
+  - **Milestones System** — Tracks: project_created → screenplay_created → characters_updated → avatars_linked → production_started → agents_complete → videos_generated → film_complete
+  - Auto-resume for in-progress productions (30 min window)
 
 ## Key API Endpoints
-- POST /api/studio/projects — Create project (name + briefing)
+- POST /api/studio/projects — Create project
 - POST /api/studio/chat — Screenwriter (background + polling)
-- GET /api/studio/projects/{id}/status — Poll status (chat_status, chat_history)
+- GET /api/studio/projects/{id}/status — Poll status with milestones
 - POST /api/studio/projects/{id}/update-characters — Update characters
+- POST /api/studio/projects/{id}/fix-stuck — Fix stuck projects
 - POST /api/studio/start-production — Start production (with character_avatars)
 - GET /api/studio/projects — List all projects
 - DELETE /api/studio/projects/{id} — Delete project
 
 ## Upcoming Tasks (P1)
-- ElevenLabs voice generation for scene narration
+- ElevenLabs voice narration
 - Delete projects from UI
-- Story templates (Biblical, Commercial, Documentary, Fiction)
+- Story templates
 
 ## Future Tasks (P2-P4)
-- Phase 8: Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram)
+- Phase 8: Omnichannel
 - Admin Management System
-- Stripe payment gateway
-- Refactor PipelineView.jsx (3000+ lines)
-
-## Known Issues
-- Universal Key budget may be exceeded during multi-scene generation
-- User needs to add balance: Profile → Universal Key → Add Balance
+- Stripe payment
+- Refactor PipelineView.jsx
 
 ## Test Credentials
 - Email: test@agentflow.com

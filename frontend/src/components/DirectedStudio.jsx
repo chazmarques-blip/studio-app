@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2 } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -33,6 +33,7 @@ export function DirectedStudio({
   const [editingChar, setEditingChar] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', description: '', age: '', role: '' });
   const [showNewProject, setShowNewProject] = useState(false);
+  const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
   const STEPS = [
@@ -54,17 +55,37 @@ export function DirectedStudio({
   // Load all projects
   const loadProjects = () => {
     axios.get(`${API}/studio/projects`).then(r => {
-      setAllProjects(r.data.projects || []);
-    }).catch(() => {});
+      const projs = r.data.projects || [];
+      console.log('[DirectedStudio] Loaded projects:', projs.length);
+      setAllProjects(projs);
+    }).catch(err => {
+      console.error('[DirectedStudio] Failed to load projects:', err?.response?.status, err?.message);
+      setTimeout(() => {
+        axios.get(`${API}/studio/projects`).then(r => {
+          const projs = r.data.projects || [];
+          console.log('[DirectedStudio] Retry loaded projects:', projs.length);
+          setAllProjects(projs);
+        }).catch(() => {});
+      }, 1500);
+    });
   };
 
   useEffect(() => { loadProjects(); }, []);
 
-  // Auto-resume in-progress project
+  // Reload projects when going back to step 0
   useEffect(() => {
-    const inProgress = allProjects.find(p =>
-      ['starting', 'running_agents', 'generating_video'].includes(p.status)
-    );
+    if (step === 0) loadProjects();
+  }, [step]);
+
+  // Auto-resume in-progress project (only truly running, within last 30 min)
+  useEffect(() => {
+    if (skipAutoResume.current) return;
+    const now = Date.now();
+    const inProgress = allProjects.find(p => {
+      if (!['starting', 'running_agents'].includes(p.status)) return false;
+      const updated = new Date(p.updated_at).getTime();
+      return (now - updated) < 30 * 60 * 1000; // last 30 minutes
+    });
     if (inProgress && !projectId) {
       resumeProject(inProgress);
     }
@@ -271,7 +292,7 @@ export function DirectedStudio({
       {/* Step Navigation — only when inside a project */}
       {step >= 1 && (
         <div className="flex items-center justify-between mb-1">
-          <button onClick={() => { setStep(0); setViewingProject(null); }}
+          <button onClick={() => { skipAutoResume.current = true; setStep(0); setProjectId(null); setViewingProject(null); loadProjects(); }}
             className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
             ← {lang === 'pt' ? 'Projectos' : 'Projects'}
           </button>
@@ -348,41 +369,54 @@ export function DirectedStudio({
                 const scenesCount = (proj.scenes || []).length;
                 const videosCount = (proj.outputs || []).filter(o => o.type === 'video').length;
                 const vid = proj.outputs?.find(o => o.type === 'video' && o.label === 'complete') || proj.outputs?.find(o => o.type === 'video');
+                const milestones = proj.milestones || [];
                 return (
                   <button key={proj.id} onClick={() => resumeProject(proj)} data-testid={`project-${proj.id}`}
-                    className="w-full glass-card p-2.5 flex items-center gap-2.5 hover:border-[#C9A84C]/30 transition text-left group">
-                    <div className="h-14 w-12 rounded-lg bg-[#111] flex-shrink-0 overflow-hidden border border-[#222] relative">
-                      {vid ? (
-                        <>
-                          <video src={vid.url} className="w-full h-full object-cover" muted />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                            <Play size={12} className="text-[#C9A84C]" />
+                    className="w-full glass-card p-2.5 hover:border-[#C9A84C]/30 transition text-left group">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-14 w-12 rounded-lg bg-[#111] flex-shrink-0 overflow-hidden border border-[#222] relative">
+                        {vid ? (
+                          <>
+                            <video src={vid.url} className="w-full h-full object-cover" muted />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <Play size={12} className="text-[#C9A84C]" />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Film size={16} className="text-[#333]" />
                           </div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Film size={16} className="text-[#333]" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-semibold text-white truncate group-hover:text-[#C9A84C] transition">
+                          {proj.name || proj.briefing?.slice(0, 40) || 'Sem nome'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={`text-[7px] font-medium ${sl.color}`}>{sl[lang] || sl.en}</span>
+                          {scenesCount > 0 && <span className="text-[7px] text-[#555]">{scenesCount} {lang === 'pt' ? 'cenas' : 'scenes'}</span>}
+                          {videosCount > 0 && <span className="text-[7px] text-emerald-500">{videosCount} {lang === 'pt' ? 'vídeos' : 'videos'}</span>}
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-white truncate group-hover:text-[#C9A84C] transition">
-                        {proj.name || proj.briefing?.slice(0, 40) || 'Sem nome'}
-                      </p>
-                      <p className="text-[8px] text-[#666] truncate mt-0.5">{proj.briefing?.slice(0, 60) || ''}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[7px] font-medium ${sl.color}`}>{sl[lang] || sl.en}</span>
-                        {scenesCount > 0 && <span className="text-[7px] text-[#555]">{scenesCount} {lang === 'pt' ? 'cenas' : 'scenes'}</span>}
-                        {videosCount > 0 && <span className="text-[7px] text-emerald-500">{videosCount} {lang === 'pt' ? 'vídeos' : 'videos'}</span>}
+                      </div>
+                      <div className="flex-shrink-0">
+                        {['starting', 'running_agents'].includes(proj.status) ? (
+                          <RefreshCw size={12} className="text-orange-400 animate-spin" />
+                        ) : proj.status === 'complete' ? (
+                          <Check size={12} className="text-emerald-400" />
+                        ) : null}
                       </div>
                     </div>
-                    <div className="flex-shrink-0">
-                      {['starting', 'running_agents'].includes(proj.status) ? (
-                        <RefreshCw size={12} className="text-orange-400 animate-spin" />
-                      ) : proj.status === 'complete' ? (
-                        <Check size={12} className="text-emerald-400" />
-                      ) : null}
-                    </div>
+                    {/* Milestones */}
+                    {milestones.length > 0 && (
+                      <div className="mt-1.5 pt-1.5 border-t border-[#1A1A1A] flex flex-wrap gap-x-3 gap-y-0.5">
+                        {milestones.map((ms, mi) => (
+                          <span key={mi} className="flex items-center gap-1 text-[7px] text-[#666]">
+                            <Check size={7} className="text-emerald-500 flex-shrink-0" />
+                            {ms.label?.split('—')[0]?.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </button>
                 );
               })}

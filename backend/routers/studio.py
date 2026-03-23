@@ -55,6 +55,14 @@ def _update_project_field(tenant_id: str, project_id: str, updates: dict):
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     _save_project(tenant_id, settings, projects)
 
+
+def _add_milestone(project: dict, key: str, label: str):
+    """Add a milestone to the project if not already present."""
+    milestones = project.get("milestones", [])
+    if not any(m.get("key") == key for m in milestones):
+        milestones.append({"key": key, "label": label, "done": True, "at": datetime.now(timezone.utc).isoformat()})
+        project["milestones"] = milestones
+
 def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "image/png") -> str:
     supabase.storage.from_(STORAGE_BUCKET).upload(
         filename, file_bytes,
@@ -179,6 +187,7 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "agents_output": {},
         "agent_status": {},
         "outputs": [],
+        "milestones": [{"key": "project_created", "label": "Projecto criado", "done": True, "at": now}],
         "status": "draft",
         "error": None,
         "language": req.language,
@@ -209,6 +218,7 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "scenes": project.get("scenes", []),
         "characters": project.get("characters", []),
         "outputs": project.get("outputs", []),
+        "milestones": project.get("milestones", []),
         "error": project.get("error"),
     }
 
@@ -222,6 +232,24 @@ async def delete_project(project_id: str, tenant=Depends(get_current_tenant)):
     return {"status": "ok"}
 
 
+@router.post("/projects/{project_id}/fix-stuck")
+async def fix_stuck_project(project_id: str, tenant=Depends(get_current_tenant)):
+    """Fix a stuck project by marking it as error or complete."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    outputs = project.get("outputs", [])
+    if any(o.get("url") for o in outputs):
+        project["status"] = "complete"
+        _add_milestone(project, "fixed_stuck", "Projecto recuperado automaticamente")
+    else:
+        project["status"] = "error"
+        project["error"] = "Produção interrompida"
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": project["status"]}
+
+
 
 @router.post("/projects/{project_id}/update-characters")
 async def update_characters(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
@@ -231,6 +259,7 @@ async def update_characters(project_id: str, payload: dict = Body(...), tenant=D
         raise HTTPException(status_code=404, detail="Project not found")
     project["characters"] = payload.get("characters", [])
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _add_milestone(project, "characters_updated", f"Personagens editados — {len(payload.get('characters', []))} personagens")
     _save_project(tenant["id"], settings, projects)
     return {"status": "ok"}
 
@@ -336,6 +365,9 @@ Create or update the screenplay based on this conversation. Return the complete 
         project["status"] = "scripting"
         project["chat_status"] = "done"
         project["updated_at"] = datetime.now(timezone.utc).isoformat()
+        n_scenes = len(project.get('scenes', []))
+        n_chars = len(project.get('characters', []))
+        _add_milestone(project, "screenplay_created", f"Roteiro criado — {n_scenes} cenas, {n_chars} personagens")
         _save_project(tenant_id, settings, projects)
 
         logger.info(f"Studio [{project_id}]: Screenwriter done — {len(project.get('scenes',[]))} scenes")
@@ -546,6 +578,12 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
 
         logger.info(f"Studio [{project_id}]: All agents done. Generating {total} videos...")
 
+        # Add milestone for agents completion
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project:
+            _add_milestone(project, "agents_complete", f"Agentes de cinema concluídos — {total} cenas processadas")
+            _save_project(tenant_id, settings, projects)
+
         # ── Generate Videos (one per scene) ──
         from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
 
@@ -668,6 +706,14 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
 
         logger.info(f"Studio [{project_id}]: COMPLETE! {len(successful_videos)} videos, final={final_url}")
 
+        # Final milestones
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project:
+            _add_milestone(project, "videos_generated", f"Vídeos gerados — {len(successful_videos)} cenas")
+            if final_url:
+                _add_milestone(project, "film_complete", f"Filme completo — {len(successful_videos) * 12}s concatenado")
+            _save_project(tenant_id, settings, projects)
+
     except Exception as e:
         logger.error(f"Studio [{project_id}] pipeline error: {e}")
         _update_project_field(tenant_id, project_id, {
@@ -744,6 +790,9 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     project["outputs"] = []
     total = len(project.get("scenes", []))
     project["agent_status"] = {"current_scene": 0, "total_scenes": total, "phase": "starting"}
+    _add_milestone(project, "production_started", f"Produção iniciada — {total} cenas")
+    if req.character_avatars:
+        _add_milestone(project, "avatars_linked", f"Avatares vinculados — {len(req.character_avatars)} personagens")
     _save_project(tenant["id"], settings, projects)
 
     thread = threading.Thread(
