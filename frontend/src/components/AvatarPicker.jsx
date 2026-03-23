@@ -36,10 +36,31 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
     }
   }, [showGallery]);
 
-  const handleDownload = (url) => {
+  const handleDownload = async (url) => {
     const token = localStorage.getItem('agentzz_token');
     const downloadUrl = `${API}/avatar/download-file?avatar_url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile && navigator.share) {
+      try {
+        const res = await fetch(downloadUrl);
+        const blob = await res.blob();
+        const file = new File([blob], 'agentzz_avatar.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] });
+          toast.success(lang === 'pt' ? 'Avatar salvo no álbum de fotos!' : 'Avatar saved to photos!');
+          return;
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed, falling back to download', err);
+        } else {
+          return;
+        }
+      }
+    }
     window.location.href = downloadUrl;
+    toast.success(lang === 'pt' ? 'Avatar salvo em Downloads!' : 'Avatar saved to Downloads!');
   };
 
   const handleFile = useCallback((e) => {
