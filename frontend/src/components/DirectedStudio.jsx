@@ -460,8 +460,8 @@ export function DirectedStudio({
                 const vid = proj.outputs?.find(o => o.type === 'video' && o.label === 'complete') || proj.outputs?.find(o => o.type === 'video');
                 const milestones = proj.milestones || [];
                 return (
-                  <button key={proj.id} onClick={() => resumeProject(proj)} data-testid={`project-${proj.id}`}
-                    className="w-full glass-card p-2.5 hover:border-[#C9A84C]/30 transition text-left group relative">
+                  <div key={proj.id} onClick={() => resumeProject(proj)} data-testid={`project-${proj.id}`}
+                    className="w-full glass-card p-2.5 hover:border-[#C9A84C]/30 transition text-left group relative cursor-pointer">
                     <div className="flex items-center gap-2.5">
                       <div className="h-14 w-12 rounded-lg bg-[#111] flex-shrink-0 overflow-hidden border border-[#222] relative">
                         {vid ? (
@@ -521,7 +521,7 @@ export function DirectedStudio({
                         ))}
                       </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
