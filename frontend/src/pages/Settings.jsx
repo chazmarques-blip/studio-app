@@ -70,12 +70,16 @@ export default function SettingsPage() {
   const [phoneCountry, setPhoneCountry] = useState(COUNTRIES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('agentzz_avatar') || null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const lang = i18n.language?.substring(0, 2) || 'en';
 
   useEffect(() => {
-    axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
+    axios.get(`${API}/avatar/me`).then(r => {
+      const url = r.data.avatar_url;
+      setAvatarUrl(url);
+      if (url) localStorage.setItem('agentzz_avatar', url);
+    }).catch(() => {});
     axios.get(`${API}/auth/me`).then(r => {
       const nameParts = (r.data.full_name || '').split(' ');
       setFirstName(nameParts[0] || '');
@@ -165,7 +169,7 @@ export default function SettingsPage() {
                 lang={lang}
                 compact={true}
                 showGallery={true}
-                onSave={(url) => { setAvatarUrl(url); setShowAvatarPicker(false); toast.success('Avatar saved!'); }}
+                onSave={(url) => { setAvatarUrl(url); if (url) localStorage.setItem('agentzz_avatar', url); setShowAvatarPicker(false); toast.success('Avatar saved!'); }}
               />
             ) : (
               <div className="flex flex-col items-center">

@@ -39,12 +39,16 @@ function AppHeader() {
   const { t, i18n } = useTranslation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [stats, setStats] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('agentzz_avatar') || null);
   const profileRef = useRef(null);
   const lang = i18n.language?.substring(0, 2) || 'en';
 
   const fetchAvatar = () => {
-    axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
+    axios.get(`${API}/avatar/me`).then(r => {
+      const url = r.data.avatar_url;
+      setAvatarUrl(url);
+      if (url) localStorage.setItem('agentzz_avatar', url);
+    }).catch(() => {});
   };
 
   useEffect(() => {
