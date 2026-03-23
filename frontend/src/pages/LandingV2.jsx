@@ -1122,7 +1122,7 @@ export default function LandingV2() {
           </motion.div>
 
           <motion.div initial="hidden" animate="visible" variants={fade} custom={1} className="text-center max-w-3xl mx-auto mb-4">
-            <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-[3.5rem]">
+            <h1 className="text-2xl font-semibold leading-[1.15] tracking-tight sm:text-3xl lg:text-4xl">
               <span className="text-white">{l.h1a}</span>{' '}
               <span className="bg-gradient-to-r from-[#C9A84C] to-[#E0C76B] bg-clip-text text-transparent">{l.h1b}</span>{' '}
               <span className="text-white">{l.h1c}</span>
