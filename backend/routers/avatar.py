@@ -41,7 +41,9 @@ LIGHTING AND ATMOSPHERE:
 - Cinematic depth of field
 
 COMPOSITION:
-- Head and upper shoulders, centered in frame
+- Head, neck, and upper chest visible - NOT just the face, include some space below the neck
+- Slightly zoomed out compared to a tight face crop - show from top of head to mid-chest area
+- Centered in frame with some breathing room around the head
 - Portrait orientation suitable for a circular profile picture
 - High-end 3D photorealistic render quality
 - 8K detail level"""
