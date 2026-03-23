@@ -1,153 +1,57 @@
-# AgentZZ - PRD
+# AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS). Includes AI Marketing Studio for multimodal campaign generation.
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows SMB owners to deploy and configure pre-built AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS).
 
-## Core Architecture
-- Frontend: React + Tailwind + shadcn-ui + Framer Motion + recharts
-- Backend: FastAPI (Python)
-- Database: Supabase (PostgreSQL) — ALL data stored in Supabase (no MongoDB)
-- AI: Claude Sonnet 4.5, Gemini Flash, Gemini Nano Banana (images), Sora 2 (video), ElevenLabs (voice/music)
-- Auth: Supabase Auth
-- Pipeline: Multi-agent AI directors (Sofia, Lee, Ana, Lucas, Rafael, George, Stefan, Dylan, Roger, Marcos, Pedro)
+## Core Requirements
+1. Omnichannel AI chatbot management platform
+2. Multi-language support (EN, PT, ES)
+3. Agent Marketplace with 20+ pre-built agents
+4. Integrated CRM with Kanban board
+5. Premium "dark luxury" design (glass-morphism, gold accents)
+6. Freemium pricing model with plan-gated features
+7. AI Avatar Generator (Cyborg half-human/half-machine)
+8. Real-time Google Calendar/Sheets integration
 
-## Implemented Features (Completed)
-- Dashboard with recharts analytics
-- Agent Management + Marketplace
-- Agent Configuration with Google Calendar/Sheets integration
-- AI Marketing Studio with full pipeline
-- Campaign Gallery with Art Style Generator (14 styles)
-- Avatar 3D Creator with 360-degree views
-- Video generation pipeline (Sora 2 + FFmpeg)
-- Audio Pre-Approval (pipeline pauses before video)
-- FFmpeg quality: CRF 16, scale+crop, 256k/320k audio
-- Landing Page V2
-- Multi-language support (PT/EN/ES)
+## Tech Stack
+- **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts
+- **Backend**: FastAPI (Python)
+- **Database**: Supabase (PostgreSQL) + MongoDB
+- **AI**: Gemini (image gen), Claude (text), OpenAI Whisper (voice)
+- **Design**: .glass-card, .btn-gold, dark luxury monochrome theme
 
-## Completed This Session (2026-03-21)
+## Architecture
+- Extended profile fields (birth_date, phone, preferred_contact) stored in tenant settings JSONB
+- Avatar gallery stored in tenant settings JSONB
+- MongoDB used for flexible-schema features (campaigns, creatives)
 
-### Bug Fix: Art Gallery Images Disappearing + Mockup Mismatch
-**Two root causes found and fixed:**
-1. **Campo `images` vs `image_urls`**: engine.py salvava como `image_urls`, mas regenerate-single-image/edit-image-text liam de `images` (vazio). Corrigido com logica de merge com deduplicacao em todos os endpoints.
-2. **Mockup mostrando imagem errada**: `platform_variants` tinha indices desincronizados com `images`. Mockup agora usa `images[safeIdx]` diretamente.
+## Completed Features
+- Landing page with premium design
+- Auth flow (login/signup) with extended profile fields (birth_date, phone, preferred_contact)
+- Onboarding with language selection + AI Avatar generation
+- Dashboard with Quick Actions grid
+- Agent Management (marketplace, config, sandbox)
+- CRM with Kanban pipeline
+- Google Calendar/Sheets integration in Agent Config
+- AI Avatar Generator (Gemini cyborg generation, gallery, download with watermark)
+- Global AppHeader with logo, credits, language selector
+- Glass-morphism redesign across all internal pages
+- Settings page with "Trocar Foto" overlay on profile photo
+- Extended registration fields: birth date, phone, preferred communication (WhatsApp/SMS)
 
-**Correcoes aplicadas:**
-- `pipeline/engine.py`: Merge images/image_urls antes de publicar campanha
-- `pipeline/routes.py`: 4 endpoints corrigidos + endpoint de migracao
-- `Marketing.jsx`: Mockup usa images diretamente, ArtGalleryModal refresh ao abrir/fechar
-- **Migracao executada**: 64 pipelines + 54 campanhas corrigidas
-- **Testes**: 11/11 backend + 8/8 frontend (iteration_83)
+## Pending/In Progress
+- Avatar Download button fix (needs verification)
+- Avatar Gallery (save all generated avatars to profile) - partially implemented
 
-### Smart Text Detection & Targeted Editing (2026-03-21)
-- Novo endpoint `detect-image-text`: usa Gemini Vision para detectar todos os textos na imagem
-- Frontend: modal separado com fluxo de 3 passos (detectando → selecione texto → digite novo texto)
-- `_edit_text_in_image` aceita `original_text` para substituicao direcionada
-- Fix: parser agora lida com respostas truncadas e markdown code blocks da Gemini
-- Fix: deteccao de mime type usa magic bytes do conteudo (nao extensao da URL)
-- Fix: fallback URL → base64 para imagens que falham na deteccao via URL
-- Testes: 11/11 backend + frontend (iteration_84) + curl confirmado em 3 imagens
+## Upcoming Tasks (P1)
+- Directed Studio Mode Workspace
+- Presenter Mode / Lip-Sync (D-ID/HeyGen)
 
-### Edit Image Text — AI In-Place Editing (2026-03-21)
-- **Antes**: O "Edit Image Text" gerava uma imagem COMPLETAMENTE nova (perdia o visual original)
-- **Agora**: Usa Gemini image editing para alterar APENAS o texto, preservando background/composicao/cores
-- Nova funcao `_edit_text_in_image` em `media.py` com prompts especializados em preservacao visual
-- Endpoint `edit-image-text` reescrito para usar edicao in-place em vez de geracao do zero
-- Testado com campanha Hercules: texto mudou de "Banheiro dos Sonhos AGORA" → "Banheiro de Luxo Premium" mantendo imagem identica
-- Files: `pipeline/media.py`, `pipeline/routes.py`, `Marketing.jsx`
-
-### UI Readability Fix — AI Studio & Marketing (2026-03-21)
-- Corrigido contraste de texto em 11 arquivos do ecossistema AI Studio (2 rodadas de ajuste)
-- Mapeamento final: `#555→#999` (labels), `#444→#888` (terciario), `#333→#777` (sutil)
-- Placeholders: `#333/#444` → `#666`
-- Avatares: formato quadrado (h-16 w-16) → retangular portrait (h-24 w-16) para mostrar corpo inteiro
-- ~200+ ajustes de cor + forma dos avatares, mantendo estetica "dark luxury"
-
-### Download Fix — Botoes de Download (2026-03-21)
-- Corrigido todos os botoes de download que abriam zoom/nova aba (target="_blank") → agora fazem download direto via blob fetch
-- Adicionado spinner animado (RefreshCw) enquanto o download esta em progresso
-- Locais corrigidos: imagens do campaign detail, avatar download, art gallery download, video lightbox download
-- Sem sair da pagina ao clicar no download
-
-### Historico de Edicoes de Avatar + Flag Base (2026-03-21)
-- Painel de historico visual a esquerda do avatar com miniaturas de cada versao
-- Badge "BASE" dourado na primeira versao (ancora de contexto)
-- Numero de versao (v1, v2, v3...) e instrucao usada visivel no hover
-- Click em qualquer versao anterior para reverter
-- Backend: endpoint edit-avatar agora recebe base_url como parametro extra
-- Quando base_url disponivel, envia AMBAS imagens (atual + base) via _gemini_edit_multi_ref
-- Prompt instrui IA a preservar identidade do personagem base em TODAS as edicoes
-- Historico inicializado automaticamente ao criar avatar OU abrir para edicao
-
-### Seletor de Tipo de Campanha (2026-03-23)
-- Adicionado seletor visual com 6 tipos: Post Imagem, Post Video, Imagem+Avatar, Video+Avatar, Carrossel, Video Dirigido
-- Icones futuristas gerados via IA no estilo dark luxury gold
-- Grid responsivo (3 colunas mobile, 6 desktop)
-- Seletor funciona como filtro — tipo enviado ao backend no payload `campaign_type`
-- Traduções em pt/en/es
-- Nenhuma funcionalidade existente alterada
-- **Mapeamento sistematico de cores** em ~20 arquivos JSX para leitura perfeita no tema dark luxury
-- Texto principal: `#333-#555` → `#B0B0B0` (alto contraste)
-- Texto secundario: `#666` → `#999` (legivel)
-- Hover states: `#888` → `#E5E5E5` (evita hover mais escuro que default)
-- Placeholders: `#333/#444` → `#666` (minimo aceitavel)
-- Icones decorativos mantidos sutis (#444/#555) por design
-- **Paginas corrigidas**: AgentConfig, AgentBuilder, Dashboard, TrafficHub, ChannelConnection, GoogleIntegration, CRM, Agents, AgentSandbox, LeadDetail, Pricing, Settings, Profile, UpsellScreen, Chat, Marketing, MarketingStudio, LandingV2, Landing, Login, AgentDetailsDrawer
-- **Testes**: 15/15 paginas verificadas (iteration_86) - 100% PASS
-- **Historico salvo no servidor**: edit_history agora persiste em Supabase (tenants.settings JSONB)
-- **Auto-save**: Cada edicao AI automaticamente salva o historico no servidor
-- **Carregamento**: Ao abrir avatar para edicao, historico salvo e carregado automaticamente
-- **Download**: Botao de download em cada versao do historico (blob download direto)
-- **Delete**: Botao de remover versao (exceto a BASE, que nao pode ser removida)
-- **Editar**: Botao para abrir edicao AI a partir de qualquer versao do historico
-- **Backend**: Novo campo `edit_history` no modelo AvatarIn + endpoint DELETE /api/data/avatars/{id}/history/{index}
-- **Layout**: Imagens maiores (w-32), aspect 3/4, maxHeight 356px (mostra 2 completas), auto-scroll
-- **Testes**: 11/11 backend + 100% frontend (iteration_85)
-
-### Global Glass-Morphism Redesign — Internal Pages (2026-03-23)
-- **AppLayout**: Adicionado TechGridBg (SVG grid pattern + gold glow blur) como background fixo para todas as paginas internas
-- **Nav**: "Home"/"Inicio" → "Dashboard" na barra inferior (en, pt, es)
-- **Dashboard**: Featured Agent card com avatares reais (Sarah, Carlos, Sophia, Emily, James), animacoes framer-motion, background glow
-- **Agents**: Tabs e cards migrados para glass-card, botao btn-gold
-- **CRM**: Stats cards e lead cards migrados para glass-card, font-mono nos numeros
-- **Settings**: Botao logout com glass-card, menus consistentes
-- **Analytics, Chat, Marketing, Pricing**: Background unificado (removido bg-[#0A0A0A] hardcoded)
-- **Testes**: 14/14 frontend tests PASS (iteration_87) - 100%
-
-### Global Header com Avatar e Nome (2026-03-23)
-- **Header replicado da Landing Page**: Logo AgentZZ + seletor idioma (EN/PT/ES) + creditos + nome usuario + avatar
-- **Avatar humanoide padrao**: Gerado via IA (3D golden metallic portrait) como placeholder universal
-- **Avatar no header**: Imagem circular com ring dourado, substitui letra inicial
-- **Nome do usuario**: Visivel no desktop (hidden sm:block), truncado com max-w
-- **Dropdown perfil**: Avatar maior + nome + email + badge do plano + opcoes
-- **API /api/avatar/me**: Retorna avatar_url do usuario (armazenado em tenants.settings JSONB)
-- **API /api/avatar/set-default**: Seta avatar padrao humanoide
-- **API /api/avatar/generate**: Gera avatar IA personalizado via Gemini (foto → avatar futurista)
-- **Onboarding 2 passos**: Passo 1 (Idioma) + Passo 2 (Avatar - Selfie/Upload/Pular)
-- **Testes**: 12/12 PASS (iteration_88) - 100% backend + frontend
-
-## Backlog
-### P0 (In Progress)
-- Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs
-- Color grading via FFmpeg (contrast + saturation + warmth)
-- Fade-in/out suaves, dissolve transitions
-
-### P1
-- Omnichannel integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
-- CRM Kanban board
-
-### P2
+## Future Tasks (P2-P4)
+- Phase 8: Omnichannel integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
 - Admin Management System
-- Payment Gateway
-- Terms of Use / Privacy Policy
-
-### P3
-- Refactor PipelineView.jsx (>2700 lines)
-- Scalability hardening
-
-## Known Issues
-- `_extract_dylan_voice_settings` fails with UUID error for "_preview" suffixed pipeline IDs (non-critical)
-- Live social channel integrations are mocked
-- Legacy pipelines have mismatch between `images` and `image_urls` fields (handled by fallback)
+- Payment Gateway Integration
+- Refactor PipelineView.jsx (3000+ lines)
 
 ## Test Credentials
 - Email: test@agentflow.com
