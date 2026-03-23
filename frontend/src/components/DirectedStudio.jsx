@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -28,6 +28,8 @@ export function DirectedStudio({
   const [pastProjects, setPastProjects] = useState([]);
   const [viewingProject, setViewingProject] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [editingChar, setEditingChar] = useState(null); // index of character being edited
+  const [editForm, setEditForm] = useState({ name: '', description: '', age: '', role: '' });
   const chatEndRef = useRef(null);
 
   const STEPS = [
@@ -150,6 +152,37 @@ export function DirectedStudio({
       }).catch(() => setTimeout(poll, 5000));
     };
     setTimeout(poll, 2000);
+  };
+
+  // Copy character prompt to clipboard
+  const copyPrompt = (char) => {
+    const prompt = `${char.name}: ${char.description}. ${char.age || ''}, ${char.role || ''}`.trim();
+    navigator.clipboard.writeText(prompt).then(() => {
+      toast.success(lang === 'pt' ? 'Prompt copiado!' : 'Prompt copied!');
+    });
+  };
+
+  // Start editing a character
+  const startEditChar = (idx) => {
+    const c = characters[idx];
+    setEditForm({ name: c.name || '', description: c.description || '', age: c.age || '', role: c.role || '' });
+    setEditingChar(idx);
+  };
+
+  // Save edited character
+  const saveEditChar = async () => {
+    if (editingChar === null) return;
+    const updated = [...characters];
+    updated[editingChar] = { ...updated[editingChar], ...editForm };
+    setCharacters(updated);
+    setEditingChar(null);
+    // Persist to backend
+    if (projectId) {
+      try {
+        await axios.post(`${API}/studio/projects/${projectId}/update-characters`, { characters: updated });
+      } catch { /* silent */ }
+    }
+    toast.success(lang === 'pt' ? 'Personagem atualizado!' : 'Character updated!');
   };
 
   // Link existing avatars to characters
@@ -362,46 +395,142 @@ export function DirectedStudio({
             {lang === 'pt' ? 'Personagens & Avatares' : 'Characters & Avatars'}
           </h3>
           <p className="text-[9px] text-[#666]">
-            {lang === 'pt' ? 'Vincule avatares existentes ou crie novos para cada personagem' : 'Link existing avatars or create new ones'}
+            {lang === 'pt' ? 'Edite, vincule avatares ou copie o prompt de cada personagem' : 'Edit, link avatars or copy each character prompt'}
           </p>
 
           <div className="space-y-2">
             {characters.map((char, ci) => (
-              <div key={ci} className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2">
-                <div className="flex items-center gap-2 mb-1.5">
-                  {characterAvatars[char.name] ? (
-                    <img src={resolveImageUrl(characterAvatars[char.name])} alt="" className="h-10 w-8 rounded-lg object-cover border border-[#C9A84C]/30" />
-                  ) : (
-                    <div className="h-10 w-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-dashed border-[#333]">
-                      <Users size={12} className="text-[#444]" />
+              <div key={ci} className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2.5">
+                {/* Character header */}
+                {editingChar === ci ? (
+                  /* ── Inline Edit Mode ── */
+                  <div className="space-y-2 mb-2">
+                    <div className="flex gap-2">
+                      <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                        placeholder={lang === 'pt' ? 'Nome' : 'Name'}
+                        data-testid={`edit-char-name-${ci}`}
+                        className="flex-1 bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white outline-none focus:border-[#C9A84C]/50" />
+                      <input value={editForm.age} onChange={e => setEditForm(p => ({ ...p, age: e.target.value }))}
+                        placeholder={lang === 'pt' ? 'Idade' : 'Age'}
+                        className="w-16 bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white outline-none focus:border-[#C9A84C]/50" />
+                      <input value={editForm.role} onChange={e => setEditForm(p => ({ ...p, role: e.target.value }))}
+                        placeholder={lang === 'pt' ? 'Papel' : 'Role'}
+                        className="w-24 bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white outline-none focus:border-[#C9A84C]/50" />
                     </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-[10px] font-semibold text-white">{char.name}</p>
-                    <p className="text-[8px] text-[#666]">{char.description}</p>
-                    <p className="text-[7px] text-[#555]">{char.age} • {char.role}</p>
+                    <textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+                      placeholder={lang === 'pt' ? 'Descrição visual do personagem...' : 'Visual description...'}
+                      data-testid={`edit-char-desc-${ci}`}
+                      rows={2}
+                      className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-[9px] text-white outline-none focus:border-[#C9A84C]/50 resize-none" />
+                    <div className="flex gap-1.5">
+                      <button onClick={saveEditChar} data-testid={`save-char-${ci}`}
+                        className="flex items-center gap-1 bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-[#C9A84C] rounded px-2 py-1 text-[8px] font-medium hover:bg-[#C9A84C]/25 transition">
+                        <Save size={9} /> {lang === 'pt' ? 'Salvar' : 'Save'}
+                      </button>
+                      <button onClick={() => setEditingChar(null)}
+                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-2 py-1 text-[8px] hover:text-white transition">
+                        <X size={9} /> {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                      </button>
+                    </div>
                   </div>
-                  {!characterAvatars[char.name] && (
-                    <span className="text-[7px] bg-red-500/10 text-red-400 border border-red-500/20 rounded px-1.5 py-0.5">
-                      {lang === 'pt' ? 'Sem avatar' : 'No avatar'}
-                    </span>
-                  )}
-                </div>
+                ) : (
+                  /* ── View Mode ── */
+                  <div className="flex items-start gap-2 mb-2">
+                    {characterAvatars[char.name] ? (
+                      <img src={resolveImageUrl(characterAvatars[char.name])} alt="" className="h-12 w-10 rounded-lg object-cover border border-[#C9A84C]/30 flex-shrink-0" />
+                    ) : (
+                      <div className="h-12 w-10 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-dashed border-[#333] flex-shrink-0">
+                        <Users size={14} className="text-[#444]" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[11px] font-bold text-white">{char.name}</p>
+                        {!characterAvatars[char.name] && (
+                          <span className="text-[6px] bg-red-500/10 text-red-400 border border-red-500/20 rounded px-1 py-0.5">
+                            {lang === 'pt' ? 'Sem avatar' : 'No avatar'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[8px] text-[#888] leading-relaxed mt-0.5">{char.description}</p>
+                      <p className="text-[7px] text-[#555] mt-0.5">{char.age} • {char.role}</p>
+                    </div>
+                    {/* Action buttons */}
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button onClick={() => copyPrompt(char)} data-testid={`copy-prompt-${ci}`}
+                        title={lang === 'pt' ? 'Copiar prompt' : 'Copy prompt'}
+                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[7px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                        <Copy size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Copiar' : 'Copy'}</span>
+                      </button>
+                      <button onClick={() => startEditChar(ci)} data-testid={`edit-char-${ci}`}
+                        title={lang === 'pt' ? 'Editar personagem' : 'Edit character'}
+                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[7px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                        <Edit3 size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Editar' : 'Edit'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Avatar selection */}
-                <div className="flex gap-1 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap items-center">
                   {avatars.map((av, ai) => (
                     <button key={ai} onClick={() => linkAvatar(char.name, av.url)}
-                      className={`h-10 w-8 rounded overflow-hidden border-2 transition ${
-                        characterAvatars[char.name] === av.url ? 'border-[#C9A84C]' : 'border-[#222] hover:border-[#444]'
+                      title={av.name || `Avatar ${ai + 1}`}
+                      className={`h-11 w-9 rounded overflow-hidden border-2 transition hover:scale-105 ${
+                        characterAvatars[char.name] === av.url ? 'border-[#C9A84C] shadow-[0_0_6px_rgba(201,168,76,0.3)]' : 'border-[#222] hover:border-[#444]'
                       }`}>
                       <img src={resolveImageUrl(av.url)} alt={av.name} className="w-full h-full object-cover" />
                     </button>
                   ))}
-                  <button onClick={onAddAvatar} className="h-10 w-8 rounded border border-dashed border-[#333] flex items-center justify-center hover:border-[#C9A84C]/40 transition">
-                    <Plus size={10} className="text-[#555]" />
+                  {/* Create new avatar button */}
+                  <button onClick={onAddAvatar} data-testid={`add-avatar-${ci}`}
+                    title={lang === 'pt' ? 'Criar novo avatar' : 'Create new avatar'}
+                    className="h-11 w-9 rounded border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#C9A84C]/50 hover:bg-[#C9A84C]/5 transition group">
+                    <Plus size={10} className="text-[#555] group-hover:text-[#C9A84C]" />
+                    <span className="text-[5px] text-[#555] group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Novo' : 'New'}</span>
                   </button>
                 </div>
+
+                {/* AI Edit for selected avatar */}
+                {characterAvatars[char.name] && (
+                  <div className="mt-2 pt-2 border-t border-[#1A1A1A]">
+                    {aiEditAvatarId === avatars.find(a => a.url === characterAvatars[char.name])?.id ? (
+                      <div className="flex gap-1.5">
+                        <input value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
+                          placeholder={lang === 'pt' ? 'Ex: mudar roupa para túnica branca...' : 'Ex: change outfit to white tunic...'}
+                          className="flex-1 bg-[#111] border border-[#333] rounded px-2 py-1 text-[8px] text-white outline-none focus:border-[#C9A84C]/40"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              const av = avatars.find(a => a.url === characterAvatars[char.name]);
+                              if (av) onAiEditAvatar(av.id);
+                            }
+                          }}
+                        />
+                        <button onClick={() => {
+                            const av = avatars.find(a => a.url === characterAvatars[char.name]);
+                            if (av) onAiEditAvatar(av.id);
+                          }}
+                          disabled={aiEditLoading || !aiEditInstruction.trim()}
+                          className="btn-gold rounded px-2 py-1 text-[8px] disabled:opacity-30 flex items-center gap-1">
+                          {aiEditLoading ? <RefreshCw size={9} className="animate-spin" /> : <Wand2 size={9} />}
+                          {lang === 'pt' ? 'Gerar' : 'Generate'}
+                        </button>
+                        <button onClick={() => setAiEditAvatarId(null)} className="border border-[#333] text-[#888] rounded px-1.5 py-1 text-[8px] hover:text-white">
+                          <X size={9} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => {
+                          const av = avatars.find(a => a.url === characterAvatars[char.name]);
+                          if (av) { setAiEditAvatarId(av.id); setAiEditInstruction(char.description || ''); }
+                        }}
+                        data-testid={`ai-edit-avatar-${ci}`}
+                        className="flex items-center gap-1 text-[7px] text-[#888] hover:text-[#C9A84C] transition">
+                        <Wand2 size={8} /> {lang === 'pt' ? 'Editar avatar com IA' : 'AI edit avatar'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

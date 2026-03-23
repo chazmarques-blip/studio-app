@@ -3,84 +3,50 @@
 ## Original Problem Statement
 Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for managing AI-powered chatbot agents on social media channels with an integrated AI Marketing Studio and Directed Video Production Studio.
 
-## Core Requirements
-1. Omnichannel AI chatbot management platform
-2. Multi-language support (EN, PT, ES)
-3. Agent Marketplace with 20+ pre-built agents
-4. Integrated CRM with Kanban board
-5. Premium "dark luxury" design (glass-morphism, gold accents)
-6. Freemium pricing model with plan-gated features
-7. AI Avatar Generator (Cyborg half-human/half-machine)
-8. Real-time Google Calendar/Sheets integration
-9. AI Marketing Studio with auto pipeline + directed studio mode
-10. Directed Video Production Studio with Interactive Screenwriter + Multi-Scene Generation + FFmpeg Concatenation
-
 ## Tech Stack
-- **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts
+- **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts, Lucide Icons
 - **Backend**: FastAPI (Python)
-- **Database**: Supabase (PostgreSQL) for ALL data (tenants.settings JSONB)
-- **AI**: Gemini (image gen), Claude Sonnet 4.5 (cinema agents + screenwriter), OpenAI Sora 2 (video gen), OpenAI Whisper (voice)
-- **Video**: FFmpeg for multi-scene video concatenation
-- **Design**: .glass-card, .btn-gold, dark luxury monochrome theme
-
-## Architecture
-- Studio projects stored in `tenants.settings.studio_projects` (Supabase JSONB)
-- Background processing with polling for long-running tasks (K8s proxy-safe)
-- Async Claude calls for API endpoints, sync Claude calls for background threads
-- Video generation via Sora 2 runs per-scene as background thread with status polling
-- FFmpeg concat demuxer stitches all scene videos into one final film
+- **Database**: Supabase (PostgreSQL) — tenants.settings JSONB
+- **AI**: Claude Sonnet 4.5 (cinema agents + screenwriter), Sora 2 (video gen), Gemini (image gen), Whisper (voice)
+- **Video**: FFmpeg for multi-scene concatenation
+- **Design**: Dark luxury monochrome + gold accents
 
 ## Completed Features
-- Landing page with premium design
-- Auth flow (login/signup) with extended profile fields
-- Onboarding with language selection + AI Avatar generation
-- Dashboard with Quick Actions grid
+- Landing page, Auth, Onboarding, Dashboard
 - Agent Management (marketplace, config, sandbox)
 - CRM with Kanban pipeline
-- Google Calendar/Sheets integration in Agent Config
-- AI Avatar Generator (Gemini cyborg, gallery, download with watermark)
-- Settings page with profile management
-- Marketing AI Studio - Auto Pipeline (image, video, carousel, avatar modes)
-- **Directed Studio Mode v2** — COMPLETE & E2E TESTED:
-  - Interactive Screenwriter Chat (Step 1) - Claude researches & creates multi-scene screenplays
-  - Character & Avatar Management (Step 2) - Link existing avatars to screenplay characters
-  - Multi-Scene Production Pipeline (Step 3):
-    - Dir. Fotografia: visual composition, camera, lighting, Sora 2 prompts
-    - Dir. Musical: mood, genre, instruments (once for all scenes)
-    - Dir. Audio: sound design per scene
-  - Sora 2 video generation for each 12s scene
-  - FFmpeg video concatenation into one complete film
-  - Results Viewer (Step 4) - Watch complete film + individual scenes with download
-  - Project History with auto-resume for in-progress productions
-  - Real-time progress tracking (scene-by-scene status with phase indicators)
-  - **E2E Test Case PASSED**: Abraham & Isaac biblical story (Gênesis 22:1-19) — 3 scenes, 36s total film generated and concatenated successfully
-- Avatar creation/editing tools shared between Auto Pipeline and Directed Studio
+- Google Calendar/Sheets integration
+- AI Avatar Generator (Gemini cyborg)
+- Settings page
+- Marketing AI Studio (auto pipeline: image, video, carousel, avatar)
+- **Directed Studio v2** — COMPLETE:
+  - Interactive Screenwriter Chat (background thread + polling, K8s proxy safe)
+  - Character & Avatar Management with **Edit inline + Copy Prompt + AI Edit**
+  - Multi-Scene Production Pipeline (3 Cinema Agents per scene + Sora 2)
+  - FFmpeg video concatenation into complete film
+  - Results Viewer with download
+  - Project History with auto-resume
+  - E2E tested: Abraham & Isaac story (3 scenes, 36s film)
 
-## In Progress
-- Voice generation with ElevenLabs (needs API key)
-- Speech-to-text input via Whisper
+## Key API Endpoints
+- POST /api/studio/chat — Screenwriter (background + polling)
+- GET /api/studio/projects/{id}/status — Poll status (includes chat_status)
+- POST /api/studio/projects/{id}/update-characters — Update characters
+- POST /api/studio/start-production — Start multi-scene production
+- GET /api/studio/projects — List projects
+- DELETE /api/studio/projects/{id} — Delete project
 
 ## Upcoming Tasks (P1)
-- Complete ElevenLabs voice generation integration
-- Add speech-to-text (Whisper) for briefing/description input
-- Dedicated voice generation area with research agent
+- ElevenLabs voice generation
+- Whisper speech-to-text input
+- Story templates (Biblical, Commercial, Documentary, Fiction)
 
 ## Future Tasks (P2-P4)
-- Phase 8: Omnichannel integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
+- Phase 8: Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram)
 - Admin Management System
-- Payment Gateway Integration
+- Stripe payment gateway
 - Refactor PipelineView.jsx (3000+ lines)
 
 ## Test Credentials
 - Email: test@agentflow.com
 - Password: password123
-
-## Key API Endpoints
-- POST /api/studio/chat — Interactive screenwriter (creates/updates screenplay)
-- POST /api/studio/start-production — Starts multi-scene background production
-- GET /api/studio/projects/{id}/status — Poll production status
-- GET /api/studio/projects — List all projects
-- DELETE /api/studio/projects/{id} — Delete project
-
-## Test Reports
-- iteration_92.json: Directed Studio v2 — 100% pass (15/15 backend, 100% frontend)

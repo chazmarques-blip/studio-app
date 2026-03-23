@@ -7,7 +7,7 @@ import litellm
 import threading
 import subprocess
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 from typing import Optional, List
 from dotenv import load_dotenv
@@ -199,6 +199,19 @@ async def delete_project(project_id: str, tenant=Depends(get_current_tenant)):
     projects = [p for p in projects if p.get("id") != project_id]
     settings["studio_projects"] = projects
     _save_settings(tenant["id"], settings)
+    return {"status": "ok"}
+
+
+
+@router.post("/projects/{project_id}/update-characters")
+async def update_characters(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update characters list for a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project["characters"] = payload.get("characters", [])
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
     return {"status": "ok"}
 
 
