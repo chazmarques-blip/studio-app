@@ -7,7 +7,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts, Lucide Icons
 - **Backend**: FastAPI (Python)
 - **Database**: Supabase (PostgreSQL) — tenants.settings JSONB
-- **AI**: Claude Sonnet 4.5 (cinema agents + screenwriter), Sora 2 (video gen), Gemini (image gen), Whisper (voice)
+- **AI**: Claude Sonnet 4.5 (cinema agents + screenwriter), Sora 2 (video gen with avatar image_path reference), Gemini (image gen), Whisper (voice)
 - **Video**: FFmpeg for multi-scene concatenation
 - **Design**: Dark luxury monochrome + gold accents
 
@@ -20,38 +20,38 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - Settings page
 - Marketing AI Studio (auto pipeline: image, video, carousel, avatar)
 - **Directed Studio v2** — COMPLETE:
-  - Interactive Screenwriter Chat (background thread + polling, K8s proxy safe)
-  - Character & Avatar Management:
-    - Edit character inline (name, description, age, role) + persist to backend
-    - Copy character prompt to clipboard (execCommand fallback for iframes)
-    - Avatar preview with zoom (modal)
-    - AI Edit avatar (create new version via overlay)
-    - Edit avatar (open editor)
-    - Create new avatar button
-  - Multi-Scene Production Pipeline (3 Cinema Agents per scene + Sora 2)
-  - FFmpeg video concatenation into complete film
+  - Interactive Screenwriter Chat (background + polling)
+  - Character & Avatar Management (edit inline, copy prompt, preview zoom, AI edit, create new)
+  - Multi-Scene Production Pipeline:
+    - Dir. Fotografia with auto art-style detection (cartoon/anime/realistic)
+    - Avatar reference images sent to Sora 2 via image_path
+    - Dir. Musical + Dir. Audio per scene
+  - FFmpeg video concatenation
   - Results Viewer with download
   - Project History with auto-resume
-  - E2E tested: Abraham & Isaac story (3 scenes, 36s film)
 
 ## Key API Endpoints
 - POST /api/studio/chat — Screenwriter (background + polling)
-- GET /api/studio/projects/{id}/status — Poll status (includes chat_status, chat_history)
+- GET /api/studio/projects/{id}/status — Poll status
 - POST /api/studio/projects/{id}/update-characters — Update characters
-- POST /api/studio/start-production — Start multi-scene production
+- POST /api/studio/start-production — Start production (accepts character_avatars dict)
 - GET /api/studio/projects — List projects
 - DELETE /api/studio/projects/{id} — Delete project
 
 ## Upcoming Tasks (P1)
 - ElevenLabs voice generation for scene narration
-- Whisper speech-to-text input
 - Story templates (Biblical, Commercial, Documentary, Fiction)
+- Retry logic for empty Sora 2 video responses
 
 ## Future Tasks (P2-P4)
 - Phase 8: Omnichannel (WhatsApp, SMS, Instagram, Facebook, Telegram)
 - Admin Management System
 - Stripe payment gateway
 - Refactor PipelineView.jsx (3000+ lines)
+
+## Known Issues
+- Universal Key budget can be exceeded during multi-scene generation (10+ scenes)
+- User needs to add balance: Profile → Universal Key → Add Balance
 
 ## Test Credentials
 - Email: test@agentflow.com

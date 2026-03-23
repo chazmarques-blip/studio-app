@@ -210,6 +210,7 @@ export function DirectedStudio({
       await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
         video_duration: 12,
+        character_avatars: characterAvatars,
       });
       startPolling(projectId);
     } catch (err) {

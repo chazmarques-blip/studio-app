@@ -133,6 +133,7 @@ class ChatMessage(BaseModel):
 class StartProductionRequest(BaseModel):
     project_id: str
     video_duration: int = 12
+    character_avatars: dict = {}  # {character_name: avatar_url}
 
 class GenerateAvatarRequest(BaseModel):
     character_name: str
@@ -389,9 +390,12 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
 
 # ── STEP 3: Multi-Scene Production Pipeline ──
 
-def _run_multi_scene_production(tenant_id: str, project_id: str):
-    """Background: run 3 agents per scene, then generate videos."""
+def _run_multi_scene_production(tenant_id: str, project_id: str, character_avatars: dict = None):
+    """Background: run 3 agents per scene, then generate videos.
+    character_avatars: dict mapping character name -> avatar URL (from frontend)
+    """
     import json as json_mod
+    import tempfile
 
     try:
         settings, projects, project = _get_project(tenant_id, project_id)
@@ -402,6 +406,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str):
         characters = project.get("characters", [])
         lang = project.get("language", "pt")
         total = len(scenes)
+        char_avatars = character_avatars or {}
 
         if total == 0:
             _update_project_field(tenant_id, project_id, {"status": "error", "error": "No scenes to produce"})
@@ -424,20 +429,41 @@ def _run_multi_scene_production(tenant_id: str, project_id: str):
             })
 
             photo_system = """You are a DIRECTOR OF PHOTOGRAPHY. Create the visual composition for this scene.
-Output ONLY valid JSON: {"visual_direction": "...", "camera_angle": "...", "lighting": "...", "sora_prompt": "single detailed English paragraph for Sora 2 video generation describing the exact visual scene"}"""
+
+IMPORTANT RULES:
+1. If characters have AVATAR REFERENCES, describe the characters EXACTLY matching their avatar appearance
+2. Maintain VISUAL CONSISTENCY across all scenes — same characters must look identical
+3. Include the art style specified (cartoon, realistic, anime, etc.)
+4. The sora_prompt must be a SINGLE detailed English paragraph for Sora 2 video generation
+
+Output ONLY valid JSON: {"visual_direction": "...", "camera_angle": "...", "lighting": "...", "art_style": "...", "sora_prompt": "single detailed English paragraph describing the exact visual scene with character appearances matching their avatars"}"""
 
             chars_in_scene = scene.get("characters_in_scene", [])
             char_descriptions = []
             for ch in characters:
                 if ch.get("name") in chars_in_scene:
-                    char_descriptions.append(f"{ch['name']}: {ch.get('description','')}")
+                    desc = f"{ch['name']}: {ch.get('description','')}"
+                    if ch.get("name") in char_avatars:
+                        desc += " [HAS AVATAR REFERENCE IMAGE — maintain this exact visual appearance]"
+                    char_descriptions.append(desc)
+
+            # Detect art style from briefing
+            briefing = project.get("briefing", "")
+            style_hint = ""
+            briefing_lower = briefing.lower()
+            if any(w in briefing_lower for w in ["cartoon", "desenho", "animado", "criança", "infantil", "kids"]):
+                style_hint = "\nART STYLE: Colorful cartoon/animated style for children. Warm, friendly, vibrant colors."
+            elif any(w in briefing_lower for w in ["anime", "mangá"]):
+                style_hint = "\nART STYLE: Japanese anime style with expressive characters."
+            elif any(w in briefing_lower for w in ["realistic", "realista", "cinema"]):
+                style_hint = "\nART STYLE: Cinematic photorealistic style."
 
             photo_prompt = f"""Scene {scene_num}: {scene.get('title','')}
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')}
 Camera: {scene.get('camera','')}
-Characters: {'; '.join(char_descriptions)}
+Characters: {'; '.join(char_descriptions)}{style_hint}
 Transition to next: {scene.get('transition','')}"""
 
             photo_result = _call_claude_sync(photo_system, photo_prompt)
@@ -471,14 +497,23 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
             audio_result = _call_claude_sync(audio_system, photo_prompt)
             audio_data = _parse_json(audio_result) or {"sound_effects": []}
 
-            # Save the Sora prompt for this scene
+            # Save the Sora prompt for this scene + identify reference avatar
             sora_prompt = photo_data.get("sora_prompt", scene.get("description", ""))
+
+            # Find the best reference avatar for this scene (first character with avatar)
+            reference_avatar_url = None
+            for ch_name in chars_in_scene:
+                if ch_name in char_avatars and char_avatars[ch_name]:
+                    reference_avatar_url = char_avatars[ch_name]
+                    break
+
             scene_prompts.append({
                 "scene_number": scene_num,
                 "sora_prompt": sora_prompt,
                 "photography": photo_data,
                 "audio": audio_data,
                 "transition": scene.get("transition", "cut"),
+                "reference_avatar_url": reference_avatar_url,
             })
 
         # Save all scene analysis
@@ -508,13 +543,34 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
             logger.info(f"Studio [{project_id}]: Generating video for scene {scene_num}/{total}")
 
             try:
-                video_bytes = video_gen.text_to_video(
-                    prompt=sp["sora_prompt"][:1000],
-                    model="sora-2",
-                    size="1280x720",
-                    duration=12,
-                    max_wait_time=600,
-                )
+                # Download reference avatar if available
+                ref_image_path = None
+                if sp.get("reference_avatar_url"):
+                    try:
+                        avatar_url = sp["reference_avatar_url"]
+                        # Resolve relative URLs
+                        if avatar_url.startswith("/"):
+                            supa_url = os.environ.get("SUPABASE_URL", "")
+                            avatar_url = f"{supa_url}/storage/v1/object/public{avatar_url}"
+                        ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                        urllib.request.urlretrieve(avatar_url, ref_file.name)
+                        ref_image_path = ref_file.name
+                        logger.info(f"Studio [{project_id}]: Scene {scene_num} using avatar reference image")
+                    except Exception as ae:
+                        logger.warning(f"Studio [{project_id}]: Could not download avatar reference: {ae}")
+                        ref_image_path = None
+
+                gen_kwargs = {
+                    "prompt": sp["sora_prompt"][:1000],
+                    "model": "sora-2",
+                    "size": "1280x720",
+                    "duration": 12,
+                    "max_wait_time": 600,
+                }
+                if ref_image_path:
+                    gen_kwargs["image_path"] = ref_image_path
+
+                video_bytes = video_gen.text_to_video(**gen_kwargs)
                 if video_bytes:
                     filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
@@ -531,6 +587,13 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
             except Exception as ve:
                 logger.error(f"Studio [{project_id}]: Scene {scene_num} video error: {ve}")
                 scene_videos.append({"scene_number": scene_num, "url": None, "type": "video", "error": str(ve)[:200]})
+            finally:
+                # Cleanup temp avatar file
+                if ref_image_path:
+                    try:
+                        os.unlink(ref_image_path)
+                    except OSError:
+                        pass
 
         # ── Concatenate Videos ──
         successful_videos = [sv for sv in scene_videos if sv.get("url")]
@@ -666,7 +729,7 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
 
     thread = threading.Thread(
         target=_run_multi_scene_production,
-        args=(tenant["id"], req.project_id),
+        args=(tenant["id"], req.project_id, req.character_avatars),
         daemon=True,
     )
     thread.start()
