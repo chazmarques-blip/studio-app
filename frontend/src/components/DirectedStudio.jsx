@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
+import { useStudioProduction } from '../contexts/StudioProductionContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -13,6 +14,7 @@ export function DirectedStudio({
 }) {
   const { i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'pt';
+  const studioCtx = useStudioProduction();
 
   const [step, setStep] = useState(0); // 0 = project list, 1-4 = workflow
   const [projectId, setProjectId] = useState(null);
@@ -76,6 +78,24 @@ export function DirectedStudio({
   };
 
   useEffect(() => { loadProjects(); loadVoices(); }, []);
+
+  // Sync with global production context when returning from another page
+  useEffect(() => {
+    if (studioCtx?.activeProduction?.projectId && !projectId) {
+      const ap = studioCtx.activeProduction;
+      setProjectId(ap.projectId);
+      setProjectName(ap.projectName || '');
+      setScenes(ap.scenes || []);
+      setOutputs(ap.outputs || []);
+      setAgentStatus(ap.agentStatus || {});
+      setNarrations(ap.narrations || []);
+      if (ap.status === 'complete') {
+        setStep(4); setGenerating(false);
+      } else if (['running_agents', 'starting'].includes(ap.status)) {
+        setStep(3); setGenerating(true); startPolling(ap.projectId);
+      }
+    }
+  }, []);
 
   const loadVoices = () => {
     axios.get(`${API}/studio/voices`).then(r => setVoices(r.data.voices || [])).catch(() => {});
@@ -149,11 +169,18 @@ export function DirectedStudio({
 
   // Polling for production status
   const startPolling = (pid) => {
+    // Register in global context so banner shows on other pages
+    studioCtx?.startTracking(pid, projectName, scenes);
+
     const poll = () => {
       axios.get(`${API}/studio/projects/${pid}/status`).then(res => {
         const d = res.data;
         setAgentStatus(d.agent_status || {});
         setScenes(d.scenes || []);
+        // Update outputs in real-time (partial videos as they complete)
+        if (d.outputs?.length > 0) setOutputs(d.outputs);
+        if (d.narrations?.length > 0) setNarrations(d.narrations);
+
         if (d.status === 'complete') {
           setOutputs(d.outputs || []);
           setGenerating(false);
@@ -951,6 +978,9 @@ export function DirectedStudio({
               const isProcessing = isCurrentScene && ['photography', 'music', 'audio'].includes(agentStatus.phase);
               const isVideoGen = isCurrentScene && agentStatus.phase?.startsWith('generating_video') && !videoDone;
 
+              // Find the video output for this scene
+              const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
+
               // Time bar for each scene
               const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 60 : isProcessing ? 30 : agentsDone ? 50 : 0;
               const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isProcessing || isVideoGen ? 'bg-[#C9A84C]' : agentsDone ? 'bg-blue-500' : 'bg-[#222]';
@@ -978,7 +1008,7 @@ export function DirectedStudio({
                       <p className="text-[7px] text-[#666] truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
                     </div>
                     <div className="text-[7px] shrink-0">
-                      {videoDone && <span className="text-emerald-400 font-medium">Salvo</span>}
+                      {videoDone && <span className="text-emerald-400 font-medium">Pronto</span>}
                       {videoError && <span className="text-red-400">Erro</span>}
                       {isVideoGen && <span className="text-[#C9A84C]">Sora 2...</span>}
                       {isProcessing && <RefreshCw size={8} className="animate-spin text-[#C9A84C]" />}
@@ -991,18 +1021,30 @@ export function DirectedStudio({
                     <div className={`h-1 rounded-full transition-all duration-700 ${barColor} ${isProcessing || isVideoGen ? 'animate-pulse' : ''}`}
                       style={{ width: `${sceneProgress}%` }} />
                   </div>
+                  {/* Real-time video preview when scene is done */}
+                  {sceneVideo && (
+                    <div className="mt-1.5 rounded-lg overflow-hidden border border-emerald-500/20 bg-black">
+                      <video src={sceneVideo.url} controls preload="metadata" data-testid={`scene-preview-${sceneNum}`}
+                        className="w-full max-h-[120px] object-contain" />
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* Phase indicator */}
+          {/* Phase indicator with time estimate */}
           {generating && agentStatus.phase?.startsWith('generating_video') && (
             <div className="rounded-lg border border-[#C9A84C]/20 bg-[#C9A84C]/5 p-2 flex items-center gap-2">
               <Film size={14} className="text-[#C9A84C] animate-pulse" />
-              <div>
+              <div className="flex-1">
                 <p className="text-[10px] font-semibold text-[#C9A84C]">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
-                <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Cada cena é salva ao completar. Se interromper, continuará de onde parou.' : 'Each scene is saved on completion.'}</p>
+                <p className="text-[8px] text-[#666]">
+                  {lang === 'pt'
+                    ? `~${Math.ceil(scenes.length / 3) * 8} min estimados (${Math.ceil(scenes.length / 3)} lotes de 3). Pode navegar — avisaremos quando terminar.`
+                    : `~${Math.ceil(scenes.length / 3) * 8} min estimated. You can navigate away — we'll notify you.`
+                  }
+                </p>
               </div>
             </div>
           )}

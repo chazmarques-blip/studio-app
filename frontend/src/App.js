@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { StudioProductionProvider } from './contexts/StudioProductionContext';
+import { StudioProductionBanner } from './components/StudioProductionBanner';
 import { AppLayout } from './components/layout/AppLayout';
 import LandingV2 from './pages/LandingV2';
 import Login from './pages/Login';
@@ -70,7 +72,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <StudioProductionProvider>
         <Toaster position="top-center" toastOptions={{ style: { background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#FFFFFF', fontSize: '13px' } }} />
+        <StudioProductionBanner />
         <Routes>
           {/* Public */}
           <Route path="/" element={<PublicRoute><LandingV2 /></PublicRoute>} />
@@ -104,6 +108,7 @@ function App() {
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </StudioProductionProvider>
       </AuthProvider>
     </BrowserRouter>
   );
