@@ -20,7 +20,7 @@ const languages = [
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
-  const [selectedLang, setSelectedLang] = useState('pt');
+  const [selectedLang, setSelectedLang] = useState('en');
   const [loading, setLoading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoBase64, setPhotoBase64] = useState(null);
