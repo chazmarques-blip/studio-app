@@ -113,6 +113,18 @@ Mobile-first, no-code SaaS platform for deploying pre-built AI agents on social 
 - **Analytics, Chat, Marketing, Pricing**: Background unificado (removido bg-[#0A0A0A] hardcoded)
 - **Testes**: 14/14 frontend tests PASS (iteration_87) - 100%
 
+### Global Header com Avatar e Nome (2026-03-23)
+- **Header replicado da Landing Page**: Logo AgentZZ + seletor idioma (EN/PT/ES) + creditos + nome usuario + avatar
+- **Avatar humanoide padrao**: Gerado via IA (3D golden metallic portrait) como placeholder universal
+- **Avatar no header**: Imagem circular com ring dourado, substitui letra inicial
+- **Nome do usuario**: Visivel no desktop (hidden sm:block), truncado com max-w
+- **Dropdown perfil**: Avatar maior + nome + email + badge do plano + opcoes
+- **API /api/avatar/me**: Retorna avatar_url do usuario (armazenado em tenants.settings JSONB)
+- **API /api/avatar/set-default**: Seta avatar padrao humanoide
+- **API /api/avatar/generate**: Gera avatar IA personalizado via Gemini (foto → avatar futurista)
+- **Onboarding 2 passos**: Passo 1 (Idioma) + Passo 2 (Avatar - Selfie/Upload/Pular)
+- **Testes**: 12/12 PASS (iteration_88) - 100% backend + frontend
+
 ## Backlog
 ### P0 (In Progress)
 - Presenter mode: lip-sync integration (avatar talks in video) — needs API like HeyGen/D-ID/Sync Labs
