@@ -840,6 +840,10 @@ export default function LandingV2() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.startsWith('pt') ? 'pt' : i18n.language?.startsWith('es') ? 'es' : 'en';
+
+  /* Landing always defaults to English for new visitors */
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  useState(() => { if (!localStorage.getItem('agentzz_lang')) i18n.changeLanguage('en'); });
   const [billingAnnual, setBillingAnnual] = useState(true);
   const [activeAgent, setActiveAgent] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
@@ -1087,7 +1091,7 @@ export default function LandingV2() {
                 { code: 'es', label: 'ES' },
               ].map(lg => (
                 <button key={lg.code} data-testid={`lang-${lg.code}`}
-                  onClick={() => i18n.changeLanguage(lg.code)}
+                  onClick={() => { i18n.changeLanguage(lg.code); localStorage.setItem('agentzz_lang', lg.code); }}}
                   className={`px-2.5 py-1.5 text-[10px] font-mono font-semibold transition-all ${
                     lang === lg.code
                       ? 'bg-[#C9A84C]/[0.12] text-[#C9A84C]'
@@ -1122,7 +1126,7 @@ export default function LandingV2() {
           </motion.div>
 
           <motion.div initial="hidden" animate="visible" variants={fade} custom={1} className="text-center max-w-3xl mx-auto mb-4">
-            <h1 className="text-2xl font-semibold leading-[1.15] tracking-tight sm:text-3xl lg:text-4xl">
+            <h1 className="text-2xl font-semibold leading-[1.15] tracking-tight whitespace-nowrap sm:text-3xl lg:text-4xl">
               <span className="text-white">{l.h1a}</span>{' '}
               <span className="bg-gradient-to-r from-[#C9A84C] to-[#E0C76B] bg-clip-text text-transparent">{l.h1b}</span>{' '}
               <span className="text-white">{l.h1c}</span>
