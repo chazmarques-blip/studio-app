@@ -20,6 +20,7 @@ from routers.pipeline import router as pipeline_router
 from routers.agent_generator import router as agent_generator_router
 from routers.data import router as data_router
 from routers.avatar import router as avatar_router
+from routers.studio import router as studio_router
 
 app = FastAPI(title="AgentZZ API")
 api_router = APIRouter(prefix="/api")
@@ -175,6 +176,7 @@ app.include_router(campaigns_router)
 app.include_router(agent_generator_router)
 app.include_router(data_router)
 app.include_router(avatar_router)
+app.include_router(studio_router)
 app.include_router(api_router)
 
 # Serve uploaded files (pipeline images, etc.)

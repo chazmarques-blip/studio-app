@@ -5,6 +5,7 @@ import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDo
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
+import { DirectedStudio } from './DirectedStudio';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import {
   cleanDisplayText, STEP_META, STEP_ORDER, PLATFORMS,
@@ -1357,6 +1358,11 @@ export default function PipelineView({ context }) {
           </div>
         </div>
 
+        {/* DIRECTED STUDIO MODE */}
+        {isDirectedMode ? (
+          <DirectedStudio />
+        ) : (
+        <>
         {/* Presenter Avatar — selectable gallery with "+" in header */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
@@ -3054,6 +3060,8 @@ export default function PipelineView({ context }) {
           {creating ? t('studio.starting') : `${mode === 'auto' ? t('studio.start_pipeline_auto') : t('studio.start_pipeline_semi')}`}
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }
