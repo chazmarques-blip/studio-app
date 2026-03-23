@@ -26,8 +26,15 @@ ABSOLUTE RULES (NEVER BREAK THESE):
 2. Keep ALL accessories EXACTLY as in photo: glasses, earrings, beard, piercings, hat - EVERYTHING must be preserved
 3. Camera angle MUST be FRONT-FACING, looking DIRECTLY at the camera - NO side angles, NO 3/4 view, NO tilted head
 4. The person's expression should match the photo (smiling if smiling, serious if serious)
-5. Show head, neck and upper chest - NOT a tight face crop
-6. Background MUST be very dark, almost black (#0A0A0A)
+5. Background MUST be very dark, almost black (#0A0A0A)
+
+FRAMING (CRITICAL - DO NOT CROP TIGHT):
+- Medium shot framing: show from the TOP OF THE HEAD down to MID-CHEST (like a passport photo but wider)
+- There MUST be visible space/padding above the head (at least 10% of image height)
+- Shoulders and upper torso MUST be visible — NOT just a floating head
+- The face should occupy about 40-50% of the image height, NOT 80-90%
+- Think "LinkedIn profile photo" framing — head + shoulders + some chest
+- NEVER crop at the chin or neck — always show below the collarbone
 
 HUMAN-MACHINE BALANCE:
 - The overall result should lean 60% machine / 40% human — more cyborg than human
