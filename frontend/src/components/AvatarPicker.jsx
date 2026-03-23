@@ -39,11 +39,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
   const handleDownload = (url) => {
     const token = localStorage.getItem('agentzz_token');
     const downloadUrl = `${API}/avatar/download-file?avatar_url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`;
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = downloadUrl;
-    document.body.appendChild(iframe);
-    setTimeout(() => document.body.removeChild(iframe), 10000);
+    window.location.href = downloadUrl;
   };
 
   const handleFile = useCallback((e) => {
