@@ -154,12 +154,22 @@ export function DirectedStudio({
     setTimeout(poll, 2000);
   };
 
-  // Copy character prompt to clipboard
+  // Copy character prompt to clipboard (with fallback for iframe/permissions)
   const copyPrompt = (char) => {
     const prompt = `${char.name}: ${char.description}. ${char.age || ''}, ${char.role || ''}`.trim();
-    navigator.clipboard.writeText(prompt).then(() => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = prompt;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
       toast.success(lang === 'pt' ? 'Prompt copiado!' : 'Prompt copied!');
-    });
+    } catch {
+      toast.error(lang === 'pt' ? 'Erro ao copiar' : 'Copy failed');
+    }
   };
 
   // Start editing a character
