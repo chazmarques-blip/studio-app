@@ -731,67 +731,111 @@ export function DirectedStudio({
             {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
           </h3>
 
-          {/* Overall progress */}
-          {agentStatus.total_scenes > 0 && (
+          {/* Segmented progress bar */}
+          {scenes.length > 0 && (
             <div>
-              <div className="flex items-center justify-between text-[9px] mb-1">
+              <div className="flex items-center justify-between text-[9px] mb-1.5">
                 <span className="text-[#999]">
-                  {agentStatus.phase === 'photography' && `📸 Dir. Fotografia — Cena ${agentStatus.current_scene}/${agentStatus.total_scenes}`}
-                  {agentStatus.phase === 'music' && `🎵 Dir. Musical`}
-                  {agentStatus.phase === 'audio' && `🎙️ Dir. Áudio — Cena ${agentStatus.current_scene}/${agentStatus.total_scenes}`}
-                  {agentStatus.phase === 'generating_video' && `🎬 Aguardando geração de vídeos...`}
-                  {agentStatus.phase === 'generating_videos' && `🎬 Aguardando geração de vídeos...`}
-                  {agentStatus.phase === 'concatenating' && `🔗 Concatenando vídeos...`}
-                  {agentStatus.phase === 'complete' && `✅ Produção concluída!`}
-                  {agentStatus.phase === 'starting' && `⏳ Iniciando produção...`}
+                  {agentStatus.phase === 'photography' && `Dir. Fotografia — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
+                  {agentStatus.phase === 'music' && `Dir. Musical`}
+                  {agentStatus.phase === 'audio' && `Dir. Áudio — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
+                  {agentStatus.phase?.startsWith('generating_video') && `Sora 2 — Gerando vídeos`}
+                  {agentStatus.phase === 'concatenating' && `Concatenando filme final...`}
+                  {agentStatus.phase === 'complete' && `Produção concluída!`}
+                  {agentStatus.phase === 'starting' && `Iniciando produção...`}
                 </span>
                 <span className="text-[#C9A84C] font-semibold">
-                  {agentStatus.videos_done !== undefined ? `${agentStatus.videos_done}/${agentStatus.total_scenes} vídeos` : ''}
+                  {agentStatus.videos_done !== undefined ? `${agentStatus.videos_done}/${agentStatus.total_scenes || scenes.length} vídeos` : ''}
                 </span>
               </div>
-              <div className="w-full bg-[#1A1A1A] rounded-full h-1.5">
-                <div className="bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] h-1.5 rounded-full transition-all duration-500"
-                  style={{ width: `${_calcProgress(agentStatus)}%` }} />
+              {/* Main segmented bar — one segment per scene */}
+              <div className="flex gap-0.5 w-full">
+                {scenes.map((s, i) => {
+                  const sn = String(s.scene_number || i + 1);
+                  const ss = agentStatus.scene_status || {};
+                  const videoDone = ss[sn] === 'done';
+                  const agentsDone = ss[sn] === 'agents_done';
+                  const videoError = ss[sn] === 'error';
+                  const isCurrentScene = agentStatus.current_scene === (s.scene_number || i + 1);
+                  const phase = agentStatus.phase || '';
+
+                  let segColor = 'bg-[#1A1A1A]'; // pending
+                  if (videoDone) segColor = 'bg-emerald-500';
+                  else if (videoError) segColor = 'bg-red-500';
+                  else if (agentsDone && phase.startsWith('generating_video')) segColor = 'bg-blue-500';
+                  else if (agentsDone) segColor = 'bg-blue-500/60';
+                  else if (isCurrentScene) segColor = 'bg-[#C9A84C] animate-pulse';
+
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`Cena ${sn}: ${s.title || ''}`}>
+                      <div className={`w-full h-2 rounded-sm transition-all duration-500 ${segColor}`} />
+                      <span className="text-[6px] text-[#555]">{sn}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Legend */}
+              <div className="flex items-center gap-3 mt-1.5">
+                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" /> {lang === 'pt' ? 'Vídeo pronto' : 'Video done'}</span>
+                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-blue-500" /> {lang === 'pt' ? 'Agentes prontos' : 'Agents done'}</span>
+                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-[#C9A84C]" /> {lang === 'pt' ? 'Processando' : 'Processing'}</span>
+                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-red-500" /> {lang === 'pt' ? 'Erro' : 'Error'}</span>
               </div>
             </div>
           )}
 
-          {/* Scene-by-scene status */}
+          {/* Scene-by-scene detail */}
           <div className="space-y-1">
             {scenes.map((s, i) => {
               const sceneNum = s.scene_number || i + 1;
-              const currentScene = agentStatus.current_scene || 0;
-              const videosGenerated = agentStatus.videos_done || 0;
-              const isAgentProcessing = ['photography', 'music', 'audio'].includes(agentStatus.phase) && currentScene === sceneNum;
-              const agentsDone = currentScene > sceneNum || ['generating_video', 'generating_videos', 'concatenating', 'complete'].includes(agentStatus.phase);
-              const videoGenerated = videosGenerated >= sceneNum;
-              const isVideoGenerating = agentStatus.phase?.startsWith('generating_video') && !videoGenerated && agentsDone;
+              const ss = agentStatus.scene_status || {};
+              const sceneState = ss[String(sceneNum)] || '';
+              const videoDone = sceneState === 'done';
+              const agentsDone = sceneState === 'agents_done' || videoDone;
+              const videoError = sceneState === 'error';
+              const isCurrentScene = agentStatus.current_scene === sceneNum;
+              const isProcessing = isCurrentScene && ['photography', 'music', 'audio'].includes(agentStatus.phase);
+              const isVideoGen = isCurrentScene && agentStatus.phase?.startsWith('generating_video') && !videoDone;
+
+              // Time bar for each scene
+              const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 60 : isProcessing ? 30 : agentsDone ? 50 : 0;
+              const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isProcessing || isVideoGen ? 'bg-[#C9A84C]' : agentsDone ? 'bg-blue-500' : 'bg-[#222]';
 
               return (
-                <div key={i} className={`rounded-lg border px-2.5 py-1.5 flex items-center gap-2 transition-all ${
-                  isAgentProcessing ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5 animate-pulse' :
-                  videoGenerated ? 'border-green-500/20 bg-green-500/5' :
+                <div key={i} className={`rounded-lg border px-2.5 py-1.5 transition-all ${
+                  isProcessing ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5' :
+                  videoDone ? 'border-emerald-500/20 bg-emerald-500/5' :
+                  videoError ? 'border-red-500/20 bg-red-500/5' :
                   agentsDone ? 'border-blue-500/20 bg-blue-500/5' :
                   'border-[#1A1A1A] bg-[#0A0A0A]'
                 }`}>
-                  <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold ${
-                    videoGenerated ? 'bg-green-500 text-black' :
-                    isAgentProcessing ? 'bg-[#C9A84C] text-black' :
-                    agentsDone ? 'bg-blue-500 text-white' :
-                    'bg-[#222] text-[#666]'
-                  }`}>
-                    {videoGenerated ? <Check size={8} /> : sceneNum}
+                  <div className="flex items-center gap-2">
+                    <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold ${
+                      videoDone ? 'bg-emerald-500 text-black' :
+                      videoError ? 'bg-red-500 text-white' :
+                      isProcessing || isVideoGen ? 'bg-[#C9A84C] text-black' :
+                      agentsDone ? 'bg-blue-500 text-white' :
+                      'bg-[#222] text-[#666]'
+                    }`}>
+                      {videoDone ? <Check size={8} /> : videoError ? <X size={8} /> : sceneNum}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[8px] font-semibold text-white truncate">{s.title || `Cena ${sceneNum}`}</p>
+                      <p className="text-[7px] text-[#666] truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
+                    </div>
+                    <div className="text-[7px] shrink-0">
+                      {videoDone && <span className="text-emerald-400 font-medium">Salvo</span>}
+                      {videoError && <span className="text-red-400">Erro</span>}
+                      {isVideoGen && <span className="text-[#C9A84C]">Sora 2...</span>}
+                      {isProcessing && <RefreshCw size={8} className="animate-spin text-[#C9A84C]" />}
+                      {!agentsDone && !isProcessing && !videoDone && !videoError && <span className="text-[#444]">—</span>}
+                      {agentsDone && !videoDone && !isVideoGen && !videoError && <span className="text-blue-400">Pronto</span>}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[8px] font-semibold text-white truncate">{s.title || `Cena ${sceneNum}`}</p>
-                    <p className="text-[7px] text-[#666] truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
-                  </div>
-                  <div className="text-[7px] shrink-0">
-                    {videoGenerated && <span className="text-green-400">✓ Vídeo</span>}
-                    {isVideoGenerating && <span className="text-[#C9A84C]">Sora 2...</span>}
-                    {isAgentProcessing && <RefreshCw size={8} className="animate-spin text-[#C9A84C]" />}
-                    {!agentsDone && !isAgentProcessing && <span className="text-[#444]">—</span>}
-                    {agentsDone && !videoGenerated && !isVideoGenerating && <span className="text-blue-400">Pronto</span>}
+                  {/* Per-scene progress bar */}
+                  <div className="mt-1 w-full bg-[#111] rounded-full h-1">
+                    <div className={`h-1 rounded-full transition-all duration-700 ${barColor} ${isProcessing || isVideoGen ? 'animate-pulse' : ''}`}
+                      style={{ width: `${sceneProgress}%` }} />
                   </div>
                 </div>
               );
@@ -804,7 +848,7 @@ export function DirectedStudio({
               <Film size={14} className="text-[#C9A84C] animate-pulse" />
               <div>
                 <p className="text-[10px] font-semibold text-[#C9A84C]">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
-                <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Cada cena leva 2-5 minutos' : 'Each scene takes 2-5 minutes'}</p>
+                <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Cada cena é salva ao completar. Se interromper, continuará de onde parou.' : 'Each scene is saved on completion.'}</p>
               </div>
             </div>
           )}

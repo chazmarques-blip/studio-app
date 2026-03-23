@@ -476,7 +476,10 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
 
             # ── Photography Director ──
             _update_project_field(tenant_id, project_id, {
-                "agent_status": {"current_scene": scene_num, "total_scenes": total, "phase": "photography"}
+                "agent_status": {
+                    "current_scene": scene_num, "total_scenes": total, "phase": "photography",
+                    "scene_status": {str(j+1): "agents_done" for j in range(scene_num - 1)},
+                }
             })
 
             photo_system = """You are a DIRECTOR OF PHOTOGRAPHY. Create the visual composition for this scene.
@@ -594,7 +597,8 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
             scene_num = sp["scene_number"]
             _update_project_field(tenant_id, project_id, {
                 "agent_status": {"current_scene": scene_num, "total_scenes": total, "phase": "generating_video",
-                                 "videos_done": len(scene_videos)}
+                                 "videos_done": len([sv for sv in scene_videos if sv.get("url")]),
+                                 "scene_status": {str(sv["scene_number"]): ("done" if sv.get("url") else "error") for sv in scene_videos}}
             })
 
             logger.info(f"Studio [{project_id}]: Generating video for scene {scene_num}/{total}")
@@ -638,6 +642,29 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
                         "duration": 12,
                     })
                     logger.info(f"Studio [{project_id}]: Scene {scene_num} video uploaded")
+
+                    # SAVE each video immediately so progress is never lost
+                    settings2, projects2, proj2 = _get_project(tenant_id, project_id)
+                    if proj2:
+                        partial_outputs = proj2.get("outputs", [])
+                        partial_outputs.append({
+                            "id": uuid.uuid4().hex[:8],
+                            "type": "video",
+                            "url": video_url,
+                            "scene_number": scene_num,
+                            "duration": 12,
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        })
+                        proj2["outputs"] = partial_outputs
+                        proj2["agent_status"] = {
+                            "current_scene": scene_num,
+                            "total_scenes": total,
+                            "phase": "generating_video",
+                            "videos_done": len([sv for sv in scene_videos if sv.get("url")]),
+                            "scene_status": {str(sv["scene_number"]): ("done" if sv.get("url") else "error") for sv in scene_videos},
+                        }
+                        _add_milestone(proj2, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
+                        _save_project(tenant_id, settings2, projects2)
                 else:
                     logger.warning(f"Studio [{project_id}]: Scene {scene_num} returned empty video")
                     scene_videos.append({"scene_number": scene_num, "url": None, "type": "video", "error": "empty"})
