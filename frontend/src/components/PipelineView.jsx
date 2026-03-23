@@ -1295,7 +1295,7 @@ export default function PipelineView({ context }) {
           <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-2">
             <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.campaign_type') || 'Campaign Type'}
           </label>
-          <div className="flex items-end gap-3 sm:gap-5">
+          <div className="flex items-center gap-3 sm:gap-5">
             {/* Auto mode icons (multi-select) */}
             {[
               { id: 'image_post', label: t('studio.type_image_post') || 'Image Post', icon: '/icons/campaign-types/image-post.png' },
@@ -1310,14 +1310,12 @@ export default function PipelineView({ context }) {
                   onClick={() => toggleCampaignType(type.id)}
                   className="flex flex-col items-center gap-1 group cursor-pointer">
                   <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
-                    active
-                      ? 'ring-2 ring-[#C9A84C]/60 shadow-[0_0_10px_rgba(201,168,76,0.15)]'
-                      : isDirectedMode ? 'opacity-30' : 'opacity-50 group-hover:opacity-90'
+                    active ? 'ring-2 ring-[#C9A84C]' : ''
                   }`}>
                     <img src={type.icon} alt={type.label} className="h-full w-full object-contain" />
                   </div>
                   <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
-                    active ? 'text-[#C9A84C]' : 'text-[#777] group-hover:text-[#B0B0B0]'
+                    active ? 'text-[#C9A84C]' : 'text-[#999]'
                   }`}>{type.label}</span>
                 </button>
               );
@@ -1334,14 +1332,12 @@ export default function PipelineView({ context }) {
                   onClick={() => toggleCampaignType('directed_studio')}
                   className="flex flex-col items-center gap-1 group cursor-pointer">
                   <div className={`relative h-10 w-10 rounded-lg overflow-hidden transition-all ${
-                    active
-                      ? 'ring-2 ring-[#C9A84C]/60 shadow-[0_0_10px_rgba(201,168,76,0.15)]'
-                      : 'opacity-50 group-hover:opacity-90'
+                    active ? 'ring-2 ring-[#C9A84C]' : ''
                   }`}>
                     <img src="/icons/campaign-types/directed-video.png" alt="Directed Studio" className="h-full w-full object-contain" />
                   </div>
                   <span className={`text-[7px] font-semibold text-center leading-tight max-w-[50px] ${
-                    active ? 'text-[#C9A84C]' : 'text-[#777] group-hover:text-[#B0B0B0]'
+                    active ? 'text-[#C9A84C]' : 'text-[#999]'
                   }`}>{t('studio.type_directed_studio') || 'Studio'}</span>
                 </button>
               );
