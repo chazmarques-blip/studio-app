@@ -31,13 +31,11 @@ export function DirectedStudio() {
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Load data
+  // Load data — presenter avatars from AI Studio, not profile avatars
   useEffect(() => {
-    axios.get(`${API}/avatar/me`).then(r => {
-      const gallery = r.data.gallery || [];
-      const current = r.data.avatar_url;
-      const all = current ? [{ url: current, label: 'Current' }, ...gallery.map(g => ({ url: g.url || g, label: '' }))] : gallery.map(g => ({ url: g.url || g, label: '' }));
-      setAvatarGallery(all);
+    axios.get(`${API}/data/avatars`).then(r => {
+      const avatars = Array.isArray(r.data) ? r.data : [];
+      setAvatarGallery(avatars.map(a => ({ url: a.url, label: a.name || '', id: a.id })));
     }).catch(() => {});
     axios.get(`${API}/studio/voices`).then(r => setVoices(r.data.voices || [])).catch(() => {});
     axios.get(`${API}/studio/music-library`).then(r => setMusicTracks(r.data.tracks || [])).catch(() => {});
@@ -161,22 +159,26 @@ export function DirectedStudio() {
           {avatarGallery.length === 0 ? (
             <div className="text-center py-6">
               <Users size={24} className="mx-auto text-[#333] mb-2" />
-              <p className="text-xs text-[#666]">{lang === 'pt' ? 'Nenhum avatar gerado. Vá em Ajustes para criar.' : 'No avatars yet. Go to Settings to create one.'}</p>
+              <p className="text-xs text-[#666]">{lang === 'pt' ? 'Nenhum avatar criado. Crie no AI Studio (modo auto).' : 'No avatars yet. Create one in AI Studio (auto mode).'}</p>
             </div>
           ) : (
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {avatarGallery.map((av, i) => {
-                const url = typeof av === 'string' ? av : av.url;
-                const selected = selectedAvatars.includes(url);
+                const selected = selectedAvatars.includes(av.url);
                 return (
-                  <button key={i} onClick={() => toggleAvatar(url)} data-testid={`studio-avatar-${i}`}
-                    className={`relative rounded-xl overflow-hidden aspect-square transition-all ${
+                  <button key={av.id || i} onClick={() => toggleAvatar(av.url)} data-testid={`studio-avatar-${i}`}
+                    className={`relative rounded-xl overflow-hidden aspect-[3/4] transition-all ${
                       selected ? 'ring-2 ring-[#C9A84C] scale-95' : 'ring-1 ring-white/5 hover:ring-white/20'
                     }`}>
-                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <img src={av.url} alt={av.label} className="w-full h-full object-cover" />
                     {selected && (
                       <div className="absolute top-1 right-1 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
-                        <span className="text-[8px] text-black font-bold">{selectedAvatars.indexOf(url) + 1}</span>
+                        <span className="text-[8px] text-black font-bold">{selectedAvatars.indexOf(av.url) + 1}</span>
+                      </div>
+                    )}
+                    {av.label && (
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-1">
+                        <span className="text-[7px] text-white/80 truncate block">{av.label}</span>
                       </div>
                     )}
                   </button>
