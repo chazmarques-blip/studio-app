@@ -3049,9 +3049,12 @@ export default function PipelineView({ context }) {
             )}
           </div>
         )}
+        </>
+        )}
       </div>
 
-      {/* Start Button */}
+      {/* Start Button — only in auto mode */}
+      {!isDirectedMode && (
       <div className="px-4 py-3 border-t border-[#1A1A1A]">
         <button data-testid="start-pipeline-btn" onClick={createPipeline}
           disabled={creating || !campaignName.trim() || !(briefingMode === 'guided' ? compileBriefing().trim() : briefing.trim()) || platforms.length === 0}
@@ -3060,7 +3063,6 @@ export default function PipelineView({ context }) {
           {creating ? t('studio.starting') : `${mode === 'auto' ? t('studio.start_pipeline_auto') : t('studio.start_pipeline_semi')}`}
         </button>
       </div>
-      </>
       )}
     </div>
   );

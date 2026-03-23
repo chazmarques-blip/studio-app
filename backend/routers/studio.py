@@ -209,6 +209,7 @@ async def generate_voice(req: VoiceGenerateRequest, user=Depends(get_current_use
 
 @router.get("/music-library")
 async def get_music_library(user=Depends(get_current_user)):
-    """Return available background music tracks."""
+    """Return available background music tracks as a list."""
     from pipeline.config import MUSIC_LIBRARY
-    return {"tracks": MUSIC_LIBRARY}
+    tracks = [{"id": k, **v} for k, v in MUSIC_LIBRARY.items()]
+    return {"tracks": tracks}
