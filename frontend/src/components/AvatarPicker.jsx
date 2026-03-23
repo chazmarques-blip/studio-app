@@ -39,9 +39,8 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
   const handleDownload = async (url) => {
     setDownloading(true);
     try {
-      const token = localStorage.getItem('token');
-      const fullApi = `${process.env.REACT_APP_BACKEND_URL}/api`;
-      const response = await fetch(`${fullApi}/avatar/download`, {
+      const token = localStorage.getItem('agentzz_token');
+      const response = await fetch(`${API}/avatar/download`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ avatar_url: url })
