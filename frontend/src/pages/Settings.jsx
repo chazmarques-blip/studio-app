@@ -1,14 +1,66 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Calendar, Camera, Phone, MessageSquare } from 'lucide-react';
+import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Calendar, Camera, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { AvatarPicker } from '../components/AvatarPicker';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const DEFAULT_AVATAR = 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/e9e9c643eda7783e1e8eebf5e075b6cae5fbdd49181a39682085dd90fe69f0b9.png';
+
+const COUNTRIES = [
+  { code: 'US', dial: '+1', flag: '\u{1F1FA}\u{1F1F8}', mask: '(###) ###-####', placeholder: '(727) 459-2334' },
+  { code: 'BR', dial: '+55', flag: '\u{1F1E7}\u{1F1F7}', mask: '(##) #####-####', placeholder: '(11) 99999-9999' },
+  { code: 'PT', dial: '+351', flag: '\u{1F1F5}\u{1F1F9}', mask: '### ### ###', placeholder: '912 345 678' },
+  { code: 'GB', dial: '+44', flag: '\u{1F1EC}\u{1F1E7}', mask: '#### ######', placeholder: '7911 123456' },
+  { code: 'ES', dial: '+34', flag: '\u{1F1EA}\u{1F1F8}', mask: '### ### ###', placeholder: '612 345 678' },
+  { code: 'FR', dial: '+33', flag: '\u{1F1EB}\u{1F1F7}', mask: '# ## ## ## ##', placeholder: '6 12 34 56 78' },
+  { code: 'DE', dial: '+49', flag: '\u{1F1E9}\u{1F1EA}', mask: '### #######', placeholder: '151 1234567' },
+  { code: 'MX', dial: '+52', flag: '\u{1F1F2}\u{1F1FD}', mask: '## #### ####', placeholder: '55 1234 5678' },
+  { code: 'AR', dial: '+54', flag: '\u{1F1E6}\u{1F1F7}', mask: '## ####-####', placeholder: '11 2345-6789' },
+  { code: 'CO', dial: '+57', flag: '\u{1F1E8}\u{1F1F4}', mask: '### ### ####', placeholder: '301 234 5678' },
+];
+
+function applyMask(value, mask) {
+  const digits = value.replace(/\D/g, '');
+  let result = '', di = 0;
+  for (let i = 0; i < mask.length && di < digits.length; i++) {
+    result += mask[i] === '#' ? digits[di++] : mask[i];
+  }
+  return result;
+}
+
+function isoToDisplay(iso) {
+  if (!iso || !iso.includes('-')) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function displayToISO(display) {
+  const parts = display.split('/');
+  if (parts.length === 3 && parts[2].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return '';
+}
+
+function formatDateInput(value) {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+}
+
+function parsePhoneCountry(fullPhone) {
+  if (!fullPhone) return { country: COUNTRIES[0], number: '' };
+  for (const c of COUNTRIES) {
+    if (fullPhone.startsWith(c.dial)) {
+      const rest = fullPhone.slice(c.dial.length).trim();
+      return { country: c, number: applyMask(rest, c.mask) };
+    }
+  }
+  return { country: COUNTRIES[0], number: fullPhone };
+}
 
 const channelStatus = [
   { name: 'WhatsApp', connected: false },
@@ -26,10 +78,12 @@ export default function SettingsPage() {
   const [accountForm, setAccountForm] = useState({
     full_name: user?.full_name || '',
     company: user?.company || '',
-    birth_date: user?.birth_date || '',
-    phone: user?.phone || '',
     preferred_contact: user?.preferred_contact || 'whatsapp',
   });
+  const [birthDisplay, setBirthDisplay] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState(COUNTRIES[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -37,15 +91,25 @@ export default function SettingsPage() {
 
   useEffect(() => {
     axios.get(`${API}/avatar/me`).then(r => setAvatarUrl(r.data.avatar_url)).catch(() => {});
-    // Load extended profile fields
     axios.get(`${API}/auth/me`).then(r => {
+      setBirthDisplay(isoToDisplay(r.data.birth_date || ''));
+      const parsed = parsePhoneCountry(r.data.phone || '');
+      setPhoneCountry(parsed.country);
+      setPhoneNumber(parsed.number);
       setAccountForm(prev => ({
         ...prev,
-        birth_date: r.data.birth_date || '',
-        phone: r.data.phone || '',
         preferred_contact: r.data.preferred_contact || 'whatsapp',
       }));
     }).catch(() => {});
+  }, []);
+
+  const handlePhoneChange = useCallback((e) => {
+    setPhoneNumber(applyMask(e.target.value, phoneCountry.mask));
+  }, [phoneCountry]);
+
+  const handleDateChange = useCallback((e) => {
+    const formatted = formatDateInput(e.target.value);
+    if (formatted.length <= 10) setBirthDisplay(formatted);
   }, []);
 
   const handleLogout = async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); };
@@ -53,11 +117,13 @@ export default function SettingsPage() {
   const handleSaveAccount = async () => {
     setSaving(true);
     try {
+      const fullPhone = phoneNumber ? `${phoneCountry.dial} ${phoneNumber}` : '';
+      const birthISO = displayToISO(birthDisplay);
       await updateProfile({
         full_name: accountForm.full_name,
         company_name: accountForm.company,
-        birth_date: accountForm.birth_date,
-        phone: accountForm.phone,
+        birth_date: birthISO,
+        phone: fullPhone,
         preferred_contact: accountForm.preferred_contact,
       });
       toast.success(t('profile.saved'));
@@ -143,47 +209,70 @@ export default function SettingsPage() {
             <div>
               <label className="mb-1 block text-xs text-[#999]">{t('profile.name')}</label>
               <input data-testid="account-name-input" value={accountForm.full_name} onChange={e => setAccountForm(p => ({ ...p, full_name: e.target.value }))}
-                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-[#999]">{t('profile.company')}</label>
               <input data-testid="account-company-input" value={accountForm.company} onChange={e => setAccountForm(p => ({ ...p, company: e.target.value }))}
-                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 flex items-center gap-1 text-xs text-[#999]">
                   <Calendar size={11} /> {lang === 'pt' ? 'Nascimento' : lang === 'es' ? 'Nacimiento' : 'Birth Date'}
                 </label>
-                <input data-testid="account-birthdate-input" type="date" value={accountForm.birth_date} onChange={e => setAccountForm(p => ({ ...p, birth_date: e.target.value }))}
-                  className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#C9A84C]/50 [color-scheme:dark]" />
+                <input data-testid="account-birthdate-input" type="text" value={birthDisplay} onChange={handleDateChange} placeholder="dd/mm/yyyy" maxLength={10}
+                  className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
               </div>
               <div>
-                <label className="mb-1 flex items-center gap-1 text-xs text-[#999]">
-                  <Phone size={11} /> {lang === 'pt' ? 'Telefone' : lang === 'es' ? 'Teléfono' : 'Phone'}
+                <label className="mb-1 block text-xs text-[#999]">
+                  {lang === 'pt' ? 'Contato Preferido' : lang === 'es' ? 'Contacto' : 'Preferred Contact'}
                 </label>
-                <input data-testid="account-phone-input" type="tel" value={accountForm.phone} onChange={e => setAccountForm(p => ({ ...p, phone: e.target.value }))} placeholder="+55 11 99999-9999"
-                  className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                <div className="flex gap-1.5">
+                  <button type="button" data-testid="settings-contact-whatsapp" onClick={() => setAccountForm(p => ({ ...p, preferred_contact: 'whatsapp' }))}
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${accountForm.preferred_contact === 'whatsapp' ? 'border-[#25D366]/50 bg-[#25D366]/10 text-[#25D366]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
+                    WhatsApp
+                  </button>
+                  <button type="button" data-testid="settings-contact-sms" onClick={() => setAccountForm(p => ({ ...p, preferred_contact: 'sms' }))}
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${accountForm.preferred_contact === 'sms' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
+                    SMS
+                  </button>
+                </div>
               </div>
             </div>
             <div>
-              <label className="mb-1 flex items-center gap-1 text-xs text-[#999]">
-                <MessageSquare size={11} /> {lang === 'pt' ? 'Contato Preferido' : lang === 'es' ? 'Contacto Preferido' : 'Preferred Contact'}
+              <label className="mb-1 block text-xs text-[#999]">
+                {lang === 'pt' ? 'Telefone' : lang === 'es' ? 'Teléfono' : 'Phone'}
               </label>
-              <div className="flex gap-2">
-                <button type="button" data-testid="settings-contact-whatsapp" onClick={() => setAccountForm(p => ({ ...p, preferred_contact: 'whatsapp' }))}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition ${accountForm.preferred_contact === 'whatsapp' ? 'border-[#25D366]/50 bg-[#25D366]/10 text-[#25D366]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
-                  WhatsApp
-                </button>
-                <button type="button" data-testid="settings-contact-sms" onClick={() => setAccountForm(p => ({ ...p, preferred_contact: 'sms' }))}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition ${accountForm.preferred_contact === 'sms' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
-                  SMS
-                </button>
+              <div className="flex gap-1.5">
+                <div className="relative">
+                  <button type="button" data-testid="settings-country-picker-btn" onClick={() => setShowCountryPicker(!showCountryPicker)}
+                    className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-2 text-[11px] text-white transition hover:border-[#333] whitespace-nowrap">
+                    <span>{phoneCountry.flag}</span>
+                    <span className="text-[#999] font-mono text-[10px]">{phoneCountry.dial}</span>
+                    <ChevronDown size={10} className="text-[#555]" />
+                  </button>
+                  {showCountryPicker && (
+                    <div className="absolute top-full left-0 mt-1 z-50 max-h-40 w-44 overflow-y-auto rounded-lg border border-[#2A2A2A] bg-[#141414] shadow-xl">
+                      {COUNTRIES.map(c => (
+                        <button type="button" key={c.code}
+                          onClick={() => { setPhoneCountry(c); setShowCountryPicker(false); setPhoneNumber(''); }}
+                          className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-white/5 ${phoneCountry.code === c.code ? 'bg-[#C9A84C]/10 text-[#C9A84C]' : 'text-white'}`}>
+                          <span>{c.flag}</span>
+                          <span className="font-mono text-[#999]">{c.dial}</span>
+                          <span className="text-[#666]">{c.code}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <input data-testid="account-phone-input" type="tel" value={phoneNumber} onChange={handlePhoneChange} placeholder={phoneCountry.placeholder}
+                  className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
               </div>
             </div>
             <div>
               <label className="mb-1 block text-xs text-[#999]">Email</label>
-              <input disabled value={user?.email || ''} className="w-full rounded-lg border border-[#2A2A2A] bg-[#111] px-3 py-2.5 text-sm text-[#999] cursor-not-allowed" />
+              <input disabled value={user?.email || ''} className="w-full rounded-lg border border-[#2A2A2A] bg-[#111] px-3 py-2 text-sm text-[#999] cursor-not-allowed" />
             </div>
           </div>
           <button data-testid="account-save-btn" onClick={handleSaveAccount} disabled={saving}
