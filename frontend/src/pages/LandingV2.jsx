@@ -1091,7 +1091,7 @@ export default function LandingV2() {
                 { code: 'es', label: 'ES' },
               ].map(lg => (
                 <button key={lg.code} data-testid={`lang-${lg.code}`}
-                  onClick={() => { i18n.changeLanguage(lg.code); localStorage.setItem('agentzz_lang', lg.code); }}}
+                  onClick={() => { i18n.changeLanguage(lg.code); localStorage.setItem('agentzz_lang', lg.code); }}
                   className={`px-2.5 py-1.5 text-[10px] font-mono font-semibold transition-all ${
                     lang === lg.code
                       ? 'bg-[#C9A84C]/[0.12] text-[#C9A84C]'
