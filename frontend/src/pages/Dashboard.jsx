@@ -3,29 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { MessageSquare, Target, DollarSign, TrendingUp, Bot, Zap, Lightbulb, ArrowUpRight, Megaphone, Shield } from 'lucide-react';
+import { MessageSquare, Target, DollarSign, TrendingUp, Bot, Lightbulb, ArrowUpRight, Megaphone, Shield } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-
-/* ── Avatar URLs (same as Landing) ── */
-const AVATARS = {
-  Sarah: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/4d686b82885d8f4f90f35055251245df4e68fbfb5f3c8b9fc5b6296511151a5a.png",
-  Emily: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/7cf1f980e31d97ccb986f55c090c7303614a2952d6ca744b7ef14418e2ba6a4a.png",
-  Sophia: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/7f7b2e7ab2562fa5619f6e4f6546512e49d14080b6600d8874ae7ab6c99d109a.png",
-  Carlos: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/3f76d9a72b1b7c775b44da50a077ee6f03cdbb1232efcfd607bfabc6eb3185af.png",
-  James: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/88cfe39c6a5319218155267be07401ca74245e2076c5805a10e5c4aa82e5da90.png",
-};
-const AVATAR_LIST = Object.values(AVATARS);
-const AVATAR_NAMES = Object.keys(AVATARS);
-
-/* Map agent type/name to an avatar */
-function getAgentAvatar(agent, index) {
-  const nameMatch = AVATAR_NAMES.find(n => agent.name?.toLowerCase().includes(n.toLowerCase()));
-  if (nameMatch) return AVATARS[nameMatch];
-  return AVATAR_LIST[index % AVATAR_LIST.length];
-}
 
 /* ── Channel SVG Icons ── */
 const ChannelIcon = ({ type, size = 14 }) => {
@@ -84,19 +66,10 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeAgentIdx, setActiveAgentIdx] = useState(0);
-  const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
 
   useEffect(() => {
     axios.get(`${API}/dashboard/stats`).then(r => { setStats(r.data); setLoading(false); }).catch(() => setLoading(false));
   }, []);
-
-  /* Rotate featured agent */
-  useEffect(() => {
-    if (!stats?.agents?.length) return;
-    const interval = setInterval(() => setActiveAgentIdx(p => (p + 1) % stats.agents.length), 5000);
-    return () => clearInterval(interval);
-  }, [stats?.agents?.length]);
 
   if (loading) {
     return (
@@ -109,105 +82,34 @@ export default function Dashboard() {
   const pipeline = stats?.crm_pipeline || {};
   const pipelineMax = Math.max(...Object.values(pipeline).filter((_, i) => i < 4), 1);
   const agents = stats?.agents || [];
-  const featuredAgent = agents[activeAgentIdx] || null;
   const msgsUsed = stats?.messages_used || 0;
   const msgsLimit = stats?.messages_limit || 50;
   const usagePercent = msgsLimit > 0 ? Math.min(100, Math.round((msgsUsed / msgsLimit) * 100)) : 0;
 
   return (
     <div className="min-h-screen px-3 pt-2 pb-4">
-        {/* ── Featured Agent Showcase (Hero from Landing style) ── */}
-        {agents.length > 0 && (
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1}
-            className="mb-3 glass-card p-3 overflow-hidden" data-testid="featured-agent-card">
-            <div className="flex items-center gap-3">
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                {featuredAgent && (
-                  <motion.div key={activeAgentIdx} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
-                    <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/20 shadow-lg shadow-[#C9A84C]/10">
-                      <img src={getAgentAvatar(featuredAgent, activeAgentIdx)} alt={featuredAgent.name} className="h-full w-full object-cover" />
-                    </div>
-                  </motion.div>
-                )}
-                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0A0A0A] bg-emerald-400" />
-              </div>
-
-              {/* Agent info */}
-              <div className="flex-1 min-w-0">
-                {featuredAgent && (
-                  <motion.div key={activeAgentIdx} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                      <p className="text-sm font-bold text-white truncate max-w-[140px] sm:max-w-none">{featuredAgent.name}</p>
-                      <span className="text-[7px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#C9A84C]/10 text-[#C9A84C] shrink-0">
-                        {featuredAgent.type}
-                      </span>
-                      <span className={`text-[7px] px-1.5 py-0.5 rounded font-mono shrink-0 ${featuredAgent.status === 'active' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[#333]/30 text-[#999]'}`}>
-                        {featuredAgent.status || 'active'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <div className="flex items-center gap-1">
-                        <MessageSquare size={9} className="text-[#C9A84C]/50" />
-                        <span className="text-[10px] text-[#B0B0B0] font-mono">{featuredAgent.conversations} chats</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Shield size={9} className="text-[#C9A84C]/50" />
-                        <span className="text-[10px] text-[#B0B0B0] font-mono">{featuredAgent.resolved} resolved</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-[#1A1A1A]">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${featuredAgent.conversations > 0 ? Math.round((featuredAgent.resolved / featuredAgent.conversations) * 100) : 0}%` }}
-                          transition={{ duration: 0.8, delay: 0.3 }}
-                          className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A]" />
-                      </div>
-                      <span className="text-[9px] font-mono text-[#C9A84C]">
-                        {featuredAgent.conversations > 0 ? Math.round((featuredAgent.resolved / featuredAgent.conversations) * 100) : 0}%
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            </div>
-
-            {/* Agent selector row + CTA */}
-            <div className="mt-2.5 flex items-center justify-between">
-              <div className="flex gap-1.5">
-                {agents.slice(0, 5).map((a, i) => (
-                  <button key={i} onClick={() => setActiveAgentIdx(i)}
-                    className={`h-7 w-7 rounded-full overflow-hidden ring-1 transition-all ${i === activeAgentIdx ? 'ring-[#C9A84C]/50 scale-110' : 'ring-white/[0.06] opacity-40 hover:opacity-70'}`}>
-                    <img src={getAgentAvatar(a, i)} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => navigate('/agents')} data-testid="featured-agent-manage-btn"
-                className="btn-gold rounded-lg px-3 py-1.5 text-[10px] flex items-center gap-1.5">
-                <Bot size={11} />
-                <span className="hidden sm:inline">{t('dashboard.create_agent')}</span>
-                <span className="sm:hidden">Agents</span>
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── Quick Actions ── */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2}
-          className="mb-3 grid grid-cols-4 gap-2">
+        {/* ── Premium Quick Actions (replaces carousel) ── */}
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1}
+          className="mb-3 grid grid-cols-2 gap-2" data-testid="quick-actions-grid">
           {[
-            { icon: Bot, label: t('dashboard.create_agent'), path: '/agents' },
-            { icon: MessageSquare, label: t('dashboard.view_inbox'), path: '/chat' },
-            { icon: Target, label: t('dashboard.view_crm'), path: '/crm' },
-            { icon: Megaphone, label: 'Marketing', path: '/marketing' },
+            { icon: Bot, label: t('dashboard.create_agent'), sub: `${agents.length} ${agents.length === 1 ? 'agent' : 'agents'}`, path: '/agents', accent: true },
+            { icon: MessageSquare, label: t('dashboard.view_inbox'), sub: `${stats?.messages_today || 0} today`, path: '/chat' },
+            { icon: Target, label: t('dashboard.view_crm'), sub: `${stats?.active_leads || 0} leads`, path: '/crm' },
+            { icon: Megaphone, label: 'Marketing', sub: 'Campaigns', path: '/marketing' },
           ].map((a, i) => (
             <button key={i} data-testid={`quick-action-${i}`} onClick={() => navigate(a.path)}
-              className="glass-card group flex flex-col items-center gap-1.5 p-3 transition hover:border-[#C9A84C]/25 hover:shadow-[0_0_15px_rgba(201,168,76,0.05)]">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#C9A84C]/[0.06] transition group-hover:bg-[#C9A84C]/[0.12] group-hover:shadow-[0_0_10px_rgba(201,168,76,0.1)]">
-                <a.icon size={15} className="text-[#C9A84C]" />
+              className={`group glass-card flex items-center gap-3 p-3.5 text-left transition-all hover:border-[#C9A84C]/30 hover:shadow-[0_0_20px_rgba(201,168,76,0.04)] ${a.accent ? 'border-[#C9A84C]/15' : ''}`}>
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all ${
+                a.accent
+                  ? 'bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 shadow-[0_0_20px_rgba(201,168,76,0.08)] group-hover:shadow-[0_0_25px_rgba(201,168,76,0.15)]'
+                  : 'bg-white/[0.03] group-hover:bg-[#C9A84C]/[0.08]'
+              }`}>
+                <a.icon size={18} className="text-[#C9A84C]" />
               </div>
-              <p className="text-center text-[9px] font-medium text-[#888] group-hover:text-[#B0B0B0] transition">{a.label}</p>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{a.label}</p>
+                <p className="text-[9px] text-[#888] font-mono">{a.sub}</p>
+              </div>
             </button>
           ))}
         </motion.div>
@@ -317,7 +219,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Agent Team (with Avatars like Landing Page) */}
+          {/* Agent Team */}
           <div className="glass-card p-3">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-xs font-semibold text-white">{t('dashboard.agent_performance')}</h2>
@@ -325,12 +227,11 @@ export default function Dashboard() {
             </div>
             {agents.length > 0 ? (
               <div className="space-y-1">
-                {agents.map((a, idx) => (
+                {agents.map((a) => (
                   <div key={a.id} className="flex items-center gap-2.5 rounded-xl bg-white/[0.015] border border-white/[0.04] p-2 transition hover:bg-white/[0.03] hover:border-white/[0.08]">
-                    {/* Avatar photo instead of generic icon */}
                     <div className="relative">
-                      <div className="h-8 w-8 rounded-full overflow-hidden ring-1 ring-[#C9A84C]/15">
-                        <img src={getAgentAvatar(a, idx)} alt={a.name} className="h-full w-full object-cover" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#C9A84C]/10 ring-1 ring-[#C9A84C]/15">
+                        <Bot size={14} className="text-[#C9A84C]" />
                       </div>
                       <div className={`absolute -bottom-px -right-px h-2 w-2 rounded-full border border-[#0A0A0A] ${a.status === 'active' ? 'bg-emerald-400' : 'bg-[#666]'}`} />
                     </div>
@@ -352,14 +253,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="py-4 text-center">
-                {/* Avatar collage for empty state */}
-                <div className="flex justify-center -space-x-2 mb-3">
-                  {AVATAR_LIST.slice(0, 4).map((av, i) => (
-                    <div key={i} className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-[#0A0A0A] opacity-40">
-                      <img src={av} alt="" className="h-full w-full object-cover" />
-                    </div>
-                  ))}
-                </div>
+                <Bot size={20} className="mx-auto mb-1.5 text-[#444]" />
                 <p className="mb-1.5 text-[10px] text-[#B0B0B0]">{t('dashboard.no_agents')}</p>
                 <button onClick={() => navigate('/agents')} className="btn-gold rounded-lg px-3 py-1 text-[10px]">{t('dashboard.create_first')}</button>
               </div>
