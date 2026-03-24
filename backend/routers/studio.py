@@ -452,13 +452,15 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
 # ── STEP 3: Multi-Scene Production Pipeline ──
 
 def _run_multi_scene_production(tenant_id: str, project_id: str, character_avatars: dict = None):
-    """Background: run 3 agents per scene, then generate videos.
+    """Background: run batched agents, then generate videos in parallel.
     character_avatars: dict mapping character name -> avatar URL (from frontend)
     """
     import json as json_mod
     import tempfile
+    import time as _time
 
     try:
+        t_start = _time.time()
         settings, projects, project = _get_project(tenant_id, project_id)
         if not project:
             return
@@ -478,95 +480,116 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "photography"}
         })
 
-        scene_prompts = []
+        # Detect art style from briefing
+        briefing = project.get("briefing", "")
+        style_hint = ""
+        briefing_lower = briefing.lower()
+        if any(w in briefing_lower for w in ["cartoon", "desenho", "animado", "criança", "infantil", "kids"]):
+            style_hint = "ART STYLE: Colorful cartoon/animated style for children. Warm, friendly, vibrant colors."
+        elif any(w in briefing_lower for w in ["anime", "mangá"]):
+            style_hint = "ART STYLE: Japanese anime style with expressive characters."
+        elif any(w in briefing_lower for w in ["realistic", "realista", "cinema"]):
+            style_hint = "ART STYLE: Cinematic photorealistic style."
 
+        # ══ BATCHED AGENTS — All scenes in ONE Claude call each ══
+
+        # Build scene summaries for all scenes
+        scene_blocks = []
         for i, scene in enumerate(scenes):
-            scene_num = i + 1
-            logger.info(f"Studio [{project_id}]: Processing scene {scene_num}/{total}")
-
-            # ── Photography Director ──
-            _update_project_field(tenant_id, project_id, {
-                "agent_status": {
-                    "current_scene": scene_num, "total_scenes": total, "phase": "photography",
-                    "scene_status": {str(j+1): "agents_done" for j in range(scene_num - 1)},
-                }
-            })
-
-            photo_system = """You are a DIRECTOR OF PHOTOGRAPHY. Create the visual composition for this scene.
-
-IMPORTANT RULES:
-1. If characters have AVATAR REFERENCES, describe the characters EXACTLY matching their avatar appearance
-2. Maintain VISUAL CONSISTENCY across all scenes — same characters must look identical
-3. Include the art style specified (cartoon, realistic, anime, etc.)
-4. The sora_prompt must be a SINGLE detailed English paragraph for Sora 2 video generation
-
-Output ONLY valid JSON: {"visual_direction": "...", "camera_angle": "...", "lighting": "...", "art_style": "...", "sora_prompt": "single detailed English paragraph describing the exact visual scene with character appearances matching their avatars"}"""
-
+            sn = i + 1
             chars_in_scene = scene.get("characters_in_scene", [])
-            char_descriptions = []
+            char_descs = []
             for ch in characters:
                 if ch.get("name") in chars_in_scene:
                     desc = f"{ch['name']}: {ch.get('description','')}"
                     if ch.get("name") in char_avatars:
-                        desc += " [HAS AVATAR REFERENCE IMAGE — maintain this exact visual appearance]"
-                    char_descriptions.append(desc)
+                        desc += " [HAS AVATAR — maintain this exact appearance]"
+                    char_descs.append(desc)
 
-            # Detect art style from briefing
-            briefing = project.get("briefing", "")
-            style_hint = ""
-            briefing_lower = briefing.lower()
-            if any(w in briefing_lower for w in ["cartoon", "desenho", "animado", "criança", "infantil", "kids"]):
-                style_hint = "\nART STYLE: Colorful cartoon/animated style for children. Warm, friendly, vibrant colors."
-            elif any(w in briefing_lower for w in ["anime", "mangá"]):
-                style_hint = "\nART STYLE: Japanese anime style with expressive characters."
-            elif any(w in briefing_lower for w in ["realistic", "realista", "cinema"]):
-                style_hint = "\nART STYLE: Cinematic photorealistic style."
+            scene_blocks.append(
+                f"SCENE {sn}: {scene.get('title','')}\n"
+                f"Description: {scene.get('description','')}\n"
+                f"Dialogue: {scene.get('dialogue','')}\n"
+                f"Emotion: {scene.get('emotion','')} | Camera: {scene.get('camera','')} | Transition: {scene.get('transition','')}\n"
+                f"Characters: {'; '.join(char_descs)}"
+            )
+        all_scenes_text = "\n---\n".join(scene_blocks)
 
-            photo_prompt = f"""Scene {scene_num}: {scene.get('title','')}
-Description: {scene.get('description','')}
-Dialogue: {scene.get('dialogue','')}
-Emotion: {scene.get('emotion','')}
-Camera: {scene.get('camera','')}
-Characters: {'; '.join(char_descriptions)}{style_hint}
-Transition to next: {scene.get('transition','')}"""
+        # ── BATCH 1: Photography Director — ALL scenes in ONE call ──
+        t_photo = _time.time()
+        photo_system = f"""You are a DIRECTOR OF PHOTOGRAPHY. Create visual composition for ALL {total} scenes.
 
-            photo_result = _call_claude_sync(photo_system, photo_prompt)
-            photo_data = _parse_json(photo_result) or {"sora_prompt": scene.get("description", "")}
+RULES:
+1. If characters have AVATAR REFERENCES, describe them EXACTLY matching their appearance
+2. Maintain VISUAL CONSISTENCY across ALL scenes — same characters must look identical
+3. Each sora_prompt must be a SINGLE detailed English paragraph for Sora 2 video generation
+4. {style_hint}
 
-            # ── Music Director (once for all scenes) ──
-            if i == 0:
-                _update_project_field(tenant_id, project_id, {
-                    "agent_status": {"current_scene": scene_num, "total_scenes": total, "phase": "music"}
-                })
-                avail = ", ".join(MUSIC_LIBRARY.keys())
-                music_system = f"""You are a MUSIC DIRECTOR. Define the musical atmosphere for this story.
+Output ONLY valid JSON array — one object per scene:
+[{{"scene_number": 1, "visual_direction": "...", "camera_angle": "...", "lighting": "...", "sora_prompt": "detailed English paragraph..."}}]"""
+
+        photo_result = _call_claude_sync(photo_system, f"Story: {briefing[:300]}\n\n{all_scenes_text}")
+        logger.info(f"Studio [{project_id}]: Photography Director done in {_time.time()-t_photo:.1f}s")
+
+        # Parse batched photography results
+        photo_data_list = []
+        if '[' in photo_result:
+            try:
+                start = photo_result.index('[')
+                end = photo_result.rindex(']') + 1
+                photo_data_list = json_mod.loads(photo_result[start:end])
+            except Exception:
+                pass
+        # Fallback: if parsing failed, use scene descriptions
+        if not photo_data_list or len(photo_data_list) < total:
+            photo_data_list = [{"scene_number": i+1, "sora_prompt": s.get("description", "")} for i, s in enumerate(scenes)]
+
+        # ── BATCH 2: Music Director — ONE call ──
+        _update_project_field(tenant_id, project_id, {
+            "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "music"}
+        })
+        t_music = _time.time()
+        avail = ", ".join(MUSIC_LIBRARY.keys())
+        music_system = f"""You are a MUSIC DIRECTOR. Define musical atmosphere.
 Output ONLY JSON: {{"mood": "...", "recommended_genre": "...", "tempo": "...", "selected_category": "one of: {avail}"}}"""
-                music_result = _call_claude_sync(music_system, f"Story: {project.get('briefing','')}\nScenes: {total}\nTone: {scene.get('emotion','')}")
-                music_data = _parse_json(music_result) or {"mood": "cinematic"}
+        music_result = _call_claude_sync(music_system, f"Story: {briefing[:300]}\nScenes: {total}\nTone: {scenes[0].get('emotion','')}")
+        music_data = _parse_json(music_result) or {"mood": "cinematic"}
+        logger.info(f"Studio [{project_id}]: Music Director done in {_time.time()-t_music:.1f}s")
 
-                _update_project_field(tenant_id, project_id, {
-                    "agents_output": {
-                        **project.get("agents_output", {}),
-                        "music_director": music_data,
-                    }
-                })
+        # ── BATCH 3: Audio Director — ALL scenes in ONE call ──
+        _update_project_field(tenant_id, project_id, {
+            "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "audio"}
+        })
+        t_audio = _time.time()
+        audio_system = f"""You are an AUDIO DIRECTOR. Define sound design for ALL {total} scenes.
+Output ONLY valid JSON array:
+[{{"scene_number": 1, "sound_effects": ["..."], "voice_tone": "...", "ambient": "..."}}]"""
+        audio_result = _call_claude_sync(audio_system, all_scenes_text)
+        logger.info(f"Studio [{project_id}]: Audio Director done in {_time.time()-t_audio:.1f}s")
 
-            # ── Audio Director ──
-            _update_project_field(tenant_id, project_id, {
-                "agent_status": {"current_scene": scene_num, "total_scenes": total, "phase": "audio"}
-            })
+        audio_data_list = []
+        if '[' in audio_result:
+            try:
+                start = audio_result.index('[')
+                end = audio_result.rindex(']') + 1
+                audio_data_list = json_mod.loads(audio_result[start:end])
+            except Exception:
+                pass
 
-            audio_system = """You are an AUDIO DIRECTOR. Define sound design for this scene.
-Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..."}"""
-            audio_result = _call_claude_sync(audio_system, photo_prompt)
-            audio_data = _parse_json(audio_result) or {"sound_effects": []}
+        t_agents_total = _time.time() - t_start
+        logger.info(f"Studio [{project_id}]: ALL AGENTS done in {t_agents_total:.1f}s ({total} scenes)")
 
-            # Save the Sora prompt for this scene + identify reference avatar
-            sora_prompt = photo_data.get("sora_prompt", scene.get("description", ""))
+        # Assemble scene_prompts
+        scene_prompts = []
+        for i, scene in enumerate(scenes):
+            scene_num = i + 1
+            photo = next((p for p in photo_data_list if p.get("scene_number") == scene_num), photo_data_list[i] if i < len(photo_data_list) else {})
+            audio = next((a for a in audio_data_list if a.get("scene_number") == scene_num), {}) if audio_data_list else {}
+            sora_prompt = photo.get("sora_prompt", scene.get("description", ""))
 
-            # Find the best reference avatar for this scene (first character with avatar)
+            # Find reference avatar
             reference_avatar_url = None
-            for ch_name in chars_in_scene:
+            for ch_name in scene.get("characters_in_scene", []):
                 if ch_name in char_avatars and char_avatars[ch_name]:
                     reference_avatar_url = char_avatars[ch_name]
                     break
@@ -574,36 +597,50 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
             scene_prompts.append({
                 "scene_number": scene_num,
                 "sora_prompt": sora_prompt,
-                "photography": photo_data,
-                "audio": audio_data,
+                "photography": photo,
+                "audio": audio,
                 "transition": scene.get("transition", "cut"),
                 "reference_avatar_url": reference_avatar_url,
             })
 
-        # Save all scene analysis
-        _update_project_field(tenant_id, project_id, {
-            "agents_output": {
-                **project.get("agents_output", {}),
-                "scene_prompts": scene_prompts,
-            },
-            "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "generating_videos"}
-        })
-
-        logger.info(f"Studio [{project_id}]: All agents done. Generating {total} videos...")
-
-        # Add milestone for agents completion
+        # Save all scene analysis + mark agents complete
         settings, projects, project = _get_project(tenant_id, project_id)
         if project:
-            _add_milestone(project, "agents_complete", f"Agentes de cinema concluídos — {total} cenas processadas")
+            project["agents_output"] = {
+                **project.get("agents_output", {}),
+                "scene_prompts": scene_prompts,
+                "music_director": music_data,
+            }
+            project["agent_status"] = {"current_scene": 0, "total_scenes": total, "phase": "generating_videos"}
+            _add_milestone(project, "agents_complete", f"Agentes concluídos em {t_agents_total:.0f}s — {total} cenas")
             _save_project(tenant_id, settings, projects)
 
-        # ── Generate Videos (PARALLEL — 3 at a time for speed) ──
+        logger.info(f"Studio [{project_id}]: Starting video generation for {total} scenes...")
+
+        # ══ GENERATE VIDEOS (PARALLEL) ══
         from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
         video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
 
-        # Skip scenes that already have videos saved (resume support)
+        # Pre-download avatars ONCE (cache)
+        avatar_cache = {}
+        for sp in scene_prompts:
+            avatar_url = sp.get("reference_avatar_url")
+            if avatar_url and avatar_url not in avatar_cache:
+                try:
+                    full_url = avatar_url
+                    if full_url.startswith("/"):
+                        supa_url = os.environ.get("SUPABASE_URL", "")
+                        full_url = f"{supa_url}/storage/v1/object/public{full_url}"
+                    ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    urllib.request.urlretrieve(full_url, ref_file.name)
+                    avatar_cache[avatar_url] = ref_file.name
+                    logger.info(f"Studio [{project_id}]: Cached avatar: {avatar_url[:60]}")
+                except Exception:
+                    avatar_cache[avatar_url] = None
+
+        # Skip scenes that already have videos (resume support)
         settings_check, projects_check, proj_check = _get_project(tenant_id, project_id)
         existing_outputs = proj_check.get("outputs", []) if proj_check else []
         existing_scene_nums = {o.get("scene_number") for o in existing_outputs if o.get("url") and o.get("type") == "video"}
@@ -613,26 +650,14 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
                         for sn in existing_scene_nums]
 
         if remaining_prompts:
-            logger.info(f"Studio [{project_id}]: Generating {len(remaining_prompts)} videos ({len(existing_scene_nums)} already done)")
-        else:
-            logger.info(f"Studio [{project_id}]: All {total} videos already exist, skipping to concatenation")
+            logger.info(f"Studio [{project_id}]: Generating {len(remaining_prompts)} videos ({len(existing_scene_nums)} cached)")
 
         def _generate_one_video(sp):
-            """Generate a single scene video. Returns dict."""
+            """Generate a single scene video."""
             scene_num = sp["scene_number"]
-            ref_image_path = None
+            t_vid = _time.time()
             try:
-                if sp.get("reference_avatar_url"):
-                    try:
-                        avatar_url = sp["reference_avatar_url"]
-                        if avatar_url.startswith("/"):
-                            supa_url = os.environ.get("SUPABASE_URL", "")
-                            avatar_url = f"{supa_url}/storage/v1/object/public{avatar_url}"
-                        ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                        urllib.request.urlretrieve(avatar_url, ref_file.name)
-                        ref_image_path = ref_file.name
-                    except Exception:
-                        ref_image_path = None
+                ref_image_path = avatar_cache.get(sp.get("reference_avatar_url"))
 
                 gen_kwargs = {
                     "prompt": sp["sora_prompt"][:1000],
@@ -644,24 +669,22 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
                 if ref_image_path:
                     gen_kwargs["image_path"] = ref_image_path
 
+                logger.info(f"Studio [{project_id}]: Sora 2 scene {scene_num} started (avatar={'yes' if ref_image_path else 'no'})")
                 video_bytes = video_gen.text_to_video(**gen_kwargs)
                 if video_bytes:
                     filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+                    logger.info(f"Studio [{project_id}]: Scene {scene_num} done in {_time.time()-t_vid:.0f}s ({len(video_bytes)//1024}KB)")
                     return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 12}
                 else:
                     return {"scene_number": scene_num, "url": None, "type": "video", "error": "empty"}
             except Exception as ve:
+                logger.warning(f"Studio [{project_id}]: Scene {scene_num} FAILED in {_time.time()-t_vid:.0f}s: {ve}")
                 return {"scene_number": scene_num, "url": None, "type": "video", "error": str(ve)[:200]}
-            finally:
-                if ref_image_path:
-                    try:
-                        os.unlink(ref_image_path)
-                    except OSError:
-                        pass
 
-        # Run up to 3 videos in parallel
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        # Run up to 5 videos in parallel
+        t_video_start = _time.time()
+        with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {executor.submit(_generate_one_video, sp): sp for sp in remaining_prompts}
             for future in as_completed(futures):
                 result = future.result()
@@ -670,8 +693,8 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
                 done_count = len([sv for sv in scene_videos if sv.get("url")])
 
                 if result.get("url"):
-                    logger.info(f"Studio [{project_id}]: Scene {scene_num} video uploaded ({done_count}/{total})")
-                    # Save immediately
+                    logger.info(f"Studio [{project_id}]: Video {done_count}/{total} complete")
+                    # Save immediately for real-time preview
                     settings2, projects2, proj2 = _get_project(tenant_id, project_id)
                     if proj2:
                         partial_outputs = proj2.get("outputs", [])
@@ -689,8 +712,15 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
                         }
                         _add_milestone(proj2, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
                         _save_project(tenant_id, settings2, projects2)
-                else:
-                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} failed: {result.get('error','?')}")
+
+        t_video_total = _time.time() - t_video_start
+        logger.info(f"Studio [{project_id}]: ALL VIDEOS done in {t_video_total:.0f}s")
+
+        # Cleanup avatar cache
+        for path in avatar_cache.values():
+            if path:
+                try: os.unlink(path)
+                except OSError: pass
 
         # ── Concatenate Videos ──
         successful_videos = [sv for sv in scene_videos if sv.get("url")]
@@ -745,6 +775,8 @@ Output ONLY JSON: {"sound_effects": ["..."], "voice_tone": "...", "ambient": "..
             _save_project(tenant_id, settings, projects)
 
         logger.info(f"Studio [{project_id}]: COMPLETE! {len(successful_videos)} videos, final={final_url}")
+        t_total = _time.time() - t_start
+        logger.info(f"Studio [{project_id}]: TOTAL PIPELINE TIME: {t_total:.0f}s ({t_total/60:.1f}min) — Agents: {t_agents_total:.0f}s, Videos: {t_video_total:.0f}s")
 
         # Final milestones
         settings, projects, project = _get_project(tenant_id, project_id)

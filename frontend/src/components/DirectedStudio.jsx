@@ -1041,8 +1041,8 @@ export function DirectedStudio({
                 <p className="text-[10px] font-semibold text-[#C9A84C]">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
                 <p className="text-[8px] text-[#666]">
                   {lang === 'pt'
-                    ? `~${Math.ceil(scenes.length / 3) * 8} min estimados (${Math.ceil(scenes.length / 3)} lotes de 3). Pode navegar — avisaremos quando terminar.`
-                    : `~${Math.ceil(scenes.length / 3) * 8} min estimated. You can navigate away — we'll notify you.`
+                    ? `~${Math.ceil(scenes.length / 5) * 8 + 1} min estimados (${Math.ceil(scenes.length / 5)} lotes × 5 paralelos). Pode navegar — avisaremos quando terminar.`
+                    : `~${Math.ceil(scenes.length / 5) * 8 + 1} min estimated. You can navigate away — we'll notify you.`
                   }
                 </p>
               </div>
