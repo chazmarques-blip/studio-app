@@ -1,67 +1,60 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform for managing AI-powered chatbot agents on social media channels. Includes a "Directed Studio Mode" for multi-agent video production using Sora 2.
+A comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows users to deploy and configure pre-built AI agents on social media channels. Features a Directed Studio Mode for AI video production pipelines.
 
-## Tech Stack
-- **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts
-- **Backend**: FastAPI (Python), ThreadPoolExecutor for parallel processing
-- **Database**: Supabase (PostgreSQL) + MongoDB for flexible-schema features
-
-## API Keys Configuration
-| Service | Key Type | Env Var | Status |
-|---|---|---|---|
-| Anthropic (Claude) | DIRECT | ANTHROPIC_API_KEY | Active - No proxy |
-| OpenAI (Sora 2, GPT) | DIRECT | OPENAI_API_KEY | Active - No proxy |
-| Google (Gemini) | DIRECT | GEMINI_API_KEY | Quota exceeded - needs billing |
-| ElevenLabs (Voice) | DIRECT | ELEVENLABS_API_KEY | Active |
-| Supabase (DB/Auth) | DIRECT | SUPABASE_URL + keys | Active |
-| Google OAuth | DIRECT | GOOGLE_CLIENT_ID + SECRET | Active |
-| Emergent (fallback) | PROXY | EMERGENT_LLM_KEY | Backup only |
-
-## Credentials
-- Email: test@agentflow.com
-- Password: password123
+## Core Architecture
+- **Frontend**: React + Tailwind CSS + shadcn-ui + Framer Motion + recharts
+- **Backend**: FastAPI (Python) + LiteLLM
+- **Database**: Supabase (PostgreSQL) + MongoDB (flexible-schema features)
+- **AI Stack**: Direct API keys for ALL providers (no proxy)
+  - Claude Sonnet 4.5 (Anthropic) — text generation, chat, analysis
+  - Sora 2 (OpenAI) — video generation
+  - Whisper (OpenAI) — speech-to-text
+  - TTS (OpenAI) — text-to-speech
+  - Gemini 2.5 Flash (Google) — image generation, agent generation, vision
+- **Central LLM Module**: `/app/backend/core/llm.py` — all AI calls routed through here
 
 ## What's Been Implemented
 
-### Core Platform
-- Landing page, Auth (Supabase), Dashboard with recharts
-- Agent Management, Agent Marketplace, Agent Configuration
+### Phase 1-5: Core Platform (DONE)
+- Auth, Dashboard, Agent Management, CRM, Conversations, Lead Scoring
+- Agent Marketplace with plan gating
+- Multi-language UI (EN, PT, ES)
+
+### Phase 6: Google Integration (DONE)
 - Google Calendar/Sheets integration in Agent Config
-- Multi-language UI (PT/EN/ES), Dark luxury theme
 
-### Directed Studio Mode (Pipeline v3)
-- Full parallel multi-agent video production pipeline
-- One AI team per scene (Claude Director → Sora 2) running simultaneously
-- ElevenLabs voice narration, Global Background Processing UI
-- Real-time video previews per scene, Analytics Dashboard
+### Directed Studio Mode (DONE)
+- Pipeline v3: Screenwriter → Scene Director → Video Generator
+- Per-scene retry, edit, visual style selection
+- Character avatar persistence
+- Chunked prompt generation for large projects
 
-### Mar 24, 2026 — API Migration & Studio Enhancements
-- **MIGRATED**: Claude from Emergent proxy → Anthropic API direct
-- **MIGRATED**: Sora 2 from Emergent proxy → OpenAI API direct
-- **CONFIGURED**: Gemini for direct Google API (needs billing activation)
-- **Language Selection**: PT/EN/ES dropdown at project creation
-- **Visual Style Selection**: Animation 3D / Cartoon 2D / Anime / Realistic / Watercolor
-- **Character Avatar Persistence**: Saved to project, restored on resume
-- **Per-Scene Regeneration**: Retry individual failed scenes via API + UI
-- **Per-Scene Editing**: Edit title/description/dialogue inline
-- **Chunked Screenwriter**: Phase 1 (8 scenes) + Phase 2 (continuation) for reliability
-- **Enhanced Prompts**: Rich environmental/cinematic details in Scene Director
-- **Sora 2 Retry Logic**: 3 attempts with exponential backoff
-- **FFmpeg Compression**: Auto-compress concat video if >45MB
-- **Reset/Retry Chat**: Unstick screenwriter with backend endpoints + UI button
-- **JSON Repair**: Parser handles truncated JSON + markdown code blocks
+### Direct API Migration (DONE - 2026-03-24)
+- **ALL** AI calls migrated from Emergent LLM Proxy to direct API keys
+- Created central module `/app/backend/core/llm.py` with:
+  - DirectChat (session-based, replaces LlmChat)
+  - direct_completion (single-shot)
+  - multi_turn_completion (with history)
+  - speech_to_text (Whisper)
+  - text_to_speech_sync (OpenAI TTS)
+  - generate_image_gemini / generate_image_gemini_sync
+  - DirectSora2Client (Sora 2 video gen)
+- Migrated routers: ai.py, conversations.py, leads.py, campaigns.py, agent_generator.py, telegram.py, whatsapp.py, avatar.py, studio.py
+- Migrated pipeline: utils.py, engine.py, media.py, avatar_routes.py, routes.py
+- Test results: 94% backend, 100% frontend (iteration_98)
 
-## Known Issues
-1. Gemini direct key needs billing activation (falls back to Emergent)
-2. Sora 2 DirectSora2Client needs production testing (may need API format adjustments)
-3. FFmpeg disappears on container restart (auto-install check added)
+## Pending Issues
+- **P0**: Supabase 413 Payload Too Large on final video concatenation (>48MB uploads fail)
+- **P1**: FFmpeg disappears on container restarts
 
-## Prioritized Backlog
-- P1: Test full production pipeline with direct API keys
-- P1: Dubbing in another language (ElevenLabs translation)
-- P1: Subtitle/SRT generation and overlay
-- P2: Phase 8 Omnichannel Integrations
-- P3: Admin Management System & Stripe
-- P4: Refactor PipelineView.jsx (3000+ lines)
+## Upcoming Tasks
+- **P1**: Implement chunked/resumable upload for large concatenated videos
+- **P2**: Phase 8 Omnichannel Integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
+- **P3**: Admin Management System & Stripe payment
+- **P4**: Refactor PipelineView.jsx (3000+ lines)
+
+## Credentials
+- Test: test@agentflow.com / password123
+- API keys in /app/backend/.env (Anthropic, OpenAI, Gemini)
