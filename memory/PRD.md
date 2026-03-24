@@ -8,7 +8,7 @@ A comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allow
 - **Backend**: FastAPI (Python) + LiteLLM
 - **Database**: Supabase (PostgreSQL) + MongoDB (flexible-schema features)
 - **AI Stack**: Direct API keys for ALL providers (no proxy)
-  - Claude Sonnet 4.5 (Anthropic) — text generation, chat, analysis
+  - Claude Sonnet 4.5 (Anthropic) — text generation, chat, analysis, **Vision (avatar analysis)**
   - Sora 2 (OpenAI) — video generation (with 1280x720 image resize)
   - Whisper (OpenAI) — speech-to-text
   - TTS (OpenAI) — text-to-speech
@@ -25,43 +25,66 @@ A comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allow
 ### Phase 6: Google Integration (DONE)
 - Google Calendar/Sheets integration in Agent Config
 
-### Directed Studio Mode (DONE)
-- **Pipeline v4 (Decoupled)**: 
-  - PHASE A: ALL Scene Directors run in parallel (~16s for 15 scenes)
-  - PHASE B: Sora 2 queue with 5 concurrent slots
+### Directed Studio Mode — Pipeline v5 (DONE - 2026-03-24)
+- **Pipeline v5 (Pre-Production Intelligence)**:
+  - NEW: Pre-production phase with Claude Vision avatar analysis
+  - NEW: Production Design Document (ONE Claude call for style, locations, continuity, music, voice)
+  - NEW: Composite avatar images for multi-character scenes
+  - PHASE A: Scene Directors use Production Design Bible for canonical character descriptions
+  - PHASE B: Sora 2 queue with 5 concurrent slots + composite avatar reference
   - FFmpeg concat + compression
 - Per-scene retry, edit, visual style selection
 - Character avatar persistence with auto-resize to video dimensions
-- Chunked prompt generation for large projects
+- Screenwriter enforces character type (animal/human) from briefing
 
-### Direct API Migration (DONE - 2026-03-24)
-- ALL AI calls migrated from Emergent LLM Proxy to direct API keys
-- Created central module `/app/backend/core/llm.py`
-- Migrated ALL routers + ALL pipeline modules
+### Previous Pipeline Versions
+- **v4**: Decoupled parallel directors + queued Sora renders
+- **v3**: Per-scene parallel teams
+- **v2**: Batched pipeline
+- **v1**: Sequential pipeline
 
-### Sora 2 Client Fix (DONE - 2026-03-24)
-- Fixed `reference_image` → `input_reference` (multipart)
-- Fixed status polling: `succeeded` → `completed`
-- Fixed download: `/videos/{id}/content` with streaming + retry
-- Added auto-resize of reference images to match video dimensions
-- Verified: 15/15 scenes completed, 0 errors, 14.1 min total
+## Pipeline v5 Architecture
+```
+PRE-PRODUCTION (2 Claude calls):
+├─ Avatar Analyzer (Claude Vision) — ONE call, all avatars → canonical descriptions
+└─ Production Designer (Claude) — ONE call → style_anchors, character_bible, location_bible, 
+                                              scene_directions, color_palette, music_plan, voice_plan
 
-## Production Results (2026-03-24)
-- Project "Abraão e Isaac" (15 scenes): 15/15 OK, 0 errors
-- PHASE A: 16.5s for 15 directors
-- PHASE B: ~11min for 15 Sora 2 renders
-- Concat: 123MB → 15MB compressed
-- Total: 14.1 minutes
+PHASE A (Directors — N parallel calls, token-efficient):
+├─ Scene Director 1 (uses PD bible) ─┐
+├─ Scene Director 2 (uses PD bible) ─┤  ALL PARALLEL → N Sora prompts
+└─ Scene Director N (uses PD bible) ─┘
+
+PHASE B (Sora 2 — 5 concurrent slots):
+├─ Sora Queue → [1..5] → [6..10] → [11..15]
+└─ Each scene gets COMPOSITE avatar image (collage of all characters)
+
+POST-PRODUCTION:
+└─ FFmpeg concat + compression → Final upload
+```
+
+## Token Optimization (v5 vs v4)
+- v4: ~30,000 input tokens (N×2000 per director + music call)
+- v5: ~18,000 input tokens (2×3000 pre-prod + N×800 per director) — ~40% reduction
+- Music planning absorbed into Production Design (saves 1 Claude call)
 
 ## Pending Issues
 - **P1**: FFmpeg disappears on container restarts (auto-install workaround in place)
+- **P1**: Supabase 413 Payload Too Large for large final videos (compression workaround)
 
 ## Upcoming Tasks
-- **P1**: Upgrade AI agent prompts (Robert McKee narrative, Roger Deakins cinematography)
-- **P1**: Add Quality Supervisor agent (review prompts before Sora 2)
+- **P0**: Run a full production test with the new Pipeline v5 to verify continuity improvements
+- **P1**: Add Quality Supervisor agent (optional review of all prompts before Sora 2)
 - **P2**: Phase 8 Omnichannel Integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
 - **P3**: Admin Management System & Stripe payment
 - **P4**: Refactor PipelineView.jsx (3000+ lines)
+
+## Key Files
+- `/app/backend/routers/studio.py` — Core pipeline logic, pre-production, scene direction
+- `/app/backend/core/llm.py` — All AI client integrations
+- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI
+- `/app/frontend/src/components/StudioProductionBanner.jsx` — Production progress banner
+- `/app/frontend/src/components/PipelineView.jsx` — Pipeline visualization
 
 ## Credentials
 - Test: test@agentflow.com / password123
