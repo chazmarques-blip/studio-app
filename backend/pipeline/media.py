@@ -12,11 +12,8 @@ from datetime import datetime, timezone
 from io import BytesIO
 
 from PIL import Image
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
-from emergentintegrations.llm.openai import OpenAITextToSpeech
-
-from core.deps import supabase, EMERGENT_KEY, logger
+from core.deps import supabase, logger
+from core.llm import GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, generate_image_gemini_sync, text_to_speech_sync
 from pipeline.config import (
     EMERGENT_PROXY_URL, UPLOADS_DIR, ASSETS_DIR, STORAGE_BUCKET,
     PLATFORM_ASPECT_RATIOS, VIDEO_PLATFORM_FORMATS, MUSIC_LIBRARY,
@@ -275,28 +272,20 @@ The result should be IDENTICAL to the original image except the text content has
 
 
 async def _generate_image(prompt_text, pipeline_id, index, brand_logo_path=None):
-    """Generate a single image using Gemini Nano Banana and upload to Supabase Storage"""
+    """Generate a single image using Gemini direct API and upload to Supabase Storage"""
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            chat = LlmChat(
-                api_key=EMERGENT_KEY,
-                session_id=f"img-{pipeline_id}-{index}-{uuid.uuid4().hex[:6]}-{attempt}",
-                system_message="You are an expert AI image generator. Generate exactly the image described. Focus on photorealistic quality, professional lighting, and magazine-quality composition."
-            )
-            chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+            full_prompt = f"You are an expert AI image generator. Generate exactly the image described. Focus on photorealistic quality, professional lighting, and magazine-quality composition.\n\n{prompt_text}"
+            img_bytes = await asyncio.to_thread(generate_image_gemini_sync, full_prompt)
 
-            msg = UserMessage(text=prompt_text)
-            text_response, images = await chat.send_message_multimodal_response(msg)
-
-            if images and len(images) > 0:
-                img_bytes = base64.b64decode(images[0]['data'])
+            if img_bytes:
                 filename = f"{pipeline_id}_{index}_{uuid.uuid4().hex[:6]}.png"
                 public_url = _upload_to_storage(img_bytes, filename, "image/png")
-                logger.info(f"Image generated with Nano Banana and uploaded: {filename}")
+                logger.info(f"Image generated with Gemini Direct and uploaded: {filename}")
                 return public_url
         except Exception as e:
-            logger.warning(f"Nano Banana attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
+            logger.warning(f"Gemini Direct attempt {attempt+1}/{max_retries} failed for index {index}: {e}")
             if attempt < max_retries - 1:
                 await asyncio.sleep(3 * (attempt + 1))
     return None
@@ -433,7 +422,8 @@ async def _ai_analyze_video_for_crops(pipeline_id: str, master_path: str, master
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
         if r.returncode == 0 and os.path.exists(frame_path):
             with open(frame_path, "rb") as f:
-                keyframes.append(ImageContent(image_base64=base64.b64encode(f.read()).decode()))
+                kf_b64 = base64.b64encode(f.read()).decode()
+                keyframes.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{kf_b64}"}})
             os.remove(frame_path)
     if not keyframes:
         logger.warning("AI Director: no keyframes extracted")
@@ -471,14 +461,22 @@ Rules:
 - For vertical crops from horizontal video, focus on the center third"""
 
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"ai-director-{pipeline_id}-{int(time.time())}",
-            system_message="You are a professional video editor specializing in social media content optimization."
-        ).with_model("gemini", "gemini-2.0-flash")
-
-        msg = UserMessage(text=prompt, file_contents=keyframes)
-        response = await asyncio.wait_for(chat.send_message(msg), timeout=30)
+        import litellm
+        content = [{"type": "text", "text": prompt}] + keyframes
+        messages = [
+            {"role": "system", "content": "You are a professional video editor specializing in social media content optimization."},
+            {"role": "user", "content": content}
+        ]
+        response_obj = await asyncio.wait_for(
+            litellm.acompletion(
+                model="gemini/gemini-2.5-flash",
+                messages=messages,
+                api_key=GEMINI_API_KEY,
+                max_tokens=2000,
+            ),
+            timeout=30
+        )
+        response = response_obj.choices[0].message.content
 
         # Parse response with multiple format patterns (Gemini can vary)
         crops = {}
@@ -748,41 +746,21 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
     max_retries = 2
     for attempt in range(max_retries):
         try:
-            video_gen = OpenAIVideoGeneration(api_key=EMERGENT_KEY)
-            logger.info(f"Sora 2 {clip_name} started (attempt {attempt+1}): size={size}, duration={duration}s, key={EMERGENT_KEY[:15]}...")
+            from core.llm import DirectSora2Client
+            video_gen = DirectSora2Client()
+            logger.info(f"Sora 2 {clip_name} started (attempt {attempt+1}): size={size}, duration={duration}s")
 
-            # Step 1: Initiate generation
-            operation_id = video_gen._generate_video(
+            video_bytes = video_gen.text_to_video(
                 prompt=prompt_text, model="sora-2",
-                size=size, duration=duration
+                size=size, duration=duration, max_wait_time=600
             )
-            if not operation_id:
-                logger.error(f"Sora 2 {clip_name}: _generate_video returned None (no operation_id)")
-                if attempt < max_retries - 1:
-                    time.sleep(5)
-                continue
-
-            logger.info(f"Sora 2 {clip_name}: operation_id={operation_id}, polling...")
-
-            # Step 2: Wait for completion
-            video_uri = video_gen._wait_for_completion(operation_id, max_wait_time=600)
-            if not video_uri:
-                logger.error(f"Sora 2 {clip_name}: _wait_for_completion returned None")
-                if attempt < max_retries - 1:
-                    time.sleep(5)
-                continue
-
-            logger.info(f"Sora 2 {clip_name}: video_uri={video_uri[:80]}...")
-
-            # Step 3: Download
-            video_bytes = video_gen._download_video_bytes(video_uri)
             if video_bytes:
                 path = f"/tmp/{pipeline_id}_{clip_name}.mp4"
                 with open(path, "wb") as f:
                     f.write(video_bytes)
                 logger.info(f"Sora 2 {clip_name} generated: {len(video_bytes)/1024:.0f}KB")
                 return path
-            logger.warning(f"Sora 2 {clip_name}: download returned empty bytes")
+            logger.warning(f"Sora 2 {clip_name}: generation returned empty bytes")
         except Exception as e:
             logger.warning(f"Sora 2 {clip_name} attempt {attempt+1} failed: {type(e).__name__}: {e}")
             if attempt < max_retries - 1:
@@ -1012,12 +990,8 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
             if voice_config and isinstance(voice_config, dict):
                 if voice_config.get("type") == "openai" and voice_config.get("voice_id"):
                     tts_voice = voice_config["voice_id"]
-            tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
-            audio_bytes = await tts.generate_speech(
-                text=text, model="tts-1-hd",
-                voice=tts_voice, speed=1.0, response_format="mp3"
-            )
-            logger.info(f"OpenAI TTS fallback: {len(audio_bytes)/1024:.0f}KB, voice={tts_voice}")
+            audio_bytes = text_to_speech_sync(text=text, voice=tts_voice, model="tts-1-hd")
+            logger.info(f"OpenAI TTS Direct: {len(audio_bytes)/1024:.0f}KB, voice={tts_voice}")
         except Exception as e:
             logger.warning(f"OpenAI TTS also failed: {e}")
             return None

@@ -3,9 +3,8 @@ from typing import Optional
 from datetime import datetime, timezone
 import uuid
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, logger
+from core.llm import direct_completion, DEFAULT_MODEL
 from core.models import LeadCreate, LeadUpdate
 
 router = APIRouter(prefix="/api", tags=["leads"])
@@ -106,13 +105,10 @@ Lead data:
     prompt += "\n\nRespond ONLY with valid JSON, no extra text."
 
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"score-{uuid.uuid4().hex[:8]}",
-            system_message="You are a sales lead scoring AI. Analyze leads and return JSON with score, stage_suggestion, reason, and next_action."
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        response = await chat.send_message(UserMessage(text=prompt))
+        response = await direct_completion(
+            system_prompt="You are a sales lead scoring AI. Analyze leads and return JSON with score, stage_suggestion, reason, and next_action.",
+            user_message=prompt,
+        )
 
         import json
         # Try to parse JSON from response

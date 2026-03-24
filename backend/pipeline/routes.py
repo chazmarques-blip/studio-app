@@ -15,8 +15,7 @@ from fastapi import Depends, UploadFile, File, Form, HTTPException, BackgroundTa
 from fastapi.responses import FileResponse
 from PIL import Image
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, logger
 from pipeline.router import router
 from pipeline.config import (
     STEP_ORDER, STEP_LABELS, PAUSE_AFTER, MUSIC_LIBRARY,

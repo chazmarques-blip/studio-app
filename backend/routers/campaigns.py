@@ -5,9 +5,8 @@ from datetime import datetime, timezone
 import uuid
 import time
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, logger
+from core.llm import DirectChat, DEFAULT_MODEL
 
 router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
 
@@ -383,11 +382,7 @@ async def studio_generate(data: StudioRequest, user=Depends(get_current_user)):
     session_id = data.session_id or f"studio-{user['id']}-{data.agent_type}-{uuid.uuid4().hex[:8]}"
 
     if session_id not in studio_sessions:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=session_id,
-            system_message=agent_cfg["system"]
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        chat = DirectChat(system_message=agent_cfg["system"])
         studio_sessions[session_id] = chat
     else:
         chat = studio_sessions[session_id]
@@ -410,7 +405,7 @@ async def studio_generate(data: StudioRequest, user=Depends(get_current_user)):
         prompt = f"{prompt}\n\nContext:{context_str}"
 
     start = time.time()
-    response = await chat.send_message(UserMessage(text=prompt))
+    response = await chat.send_message(prompt)
     elapsed = round((time.time() - start) * 1000)
 
     return {

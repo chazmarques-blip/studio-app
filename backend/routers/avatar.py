@@ -151,11 +151,8 @@ async def get_my_avatar(user=Depends(get_current_user)):
 @router.post("/generate")
 async def generate_avatar(req: GenerateAvatarRequest, user=Depends(get_current_user)):
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-
-        api_key = os.environ.get("EMERGENT_LLM_KEY")
-        if not api_key:
-            raise HTTPException(status_code=500, detail="LLM key not configured")
+        import base64 as b64_mod
+        from core.llm import generate_image_gemini
 
         photo_b64 = req.photo_base64
         if "," in photo_b64:
@@ -166,18 +163,11 @@ async def generate_avatar(req: GenerateAvatarRequest, user=Depends(get_current_u
         style = STYLE_VARIATIONS[idx]
         full_prompt = f"{BASE_PROMPT}\n\n{style}"
 
-        session_id = f"avatar-gen-{user['id']}-{uuid.uuid4().hex[:8]}"
-        chat = LlmChat(api_key=api_key, session_id=session_id, system_message="You are a professional avatar artist.")
-        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
+        photo_bytes = b64_mod.b64decode(photo_b64)
+        image_bytes = await generate_image_gemini(prompt=full_prompt, input_image_bytes=photo_bytes)
 
-        msg = UserMessage(text=full_prompt, file_contents=[ImageContent(photo_b64)])
-        text, images = await chat.send_message_multimodal_response(msg)
-
-        if not images:
+        if not image_bytes:
             raise HTTPException(status_code=500, detail="Failed to generate avatar image")
-
-        img_data = images[0]
-        image_bytes = base64.b64decode(img_data["data"])
 
         filename = f"user_avatar_{user['id']}_{uuid.uuid4().hex[:8]}.png"
         filepath = f"/app/frontend/public/avatars/{filename}"

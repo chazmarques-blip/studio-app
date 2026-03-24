@@ -5,9 +5,8 @@ import time
 import threading
 from datetime import datetime, timezone
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-from core.deps import supabase, EMERGENT_KEY, logger
+from core.deps import supabase, logger
+from core.llm import direct_completion, DEFAULT_MODEL, DEFAULT_GEMINI_MODEL, ANTHROPIC_API_KEY, GEMINI_API_KEY
 from pipeline.config import STEP_ORDER, STEP_SYSTEMS, PAUSE_AFTER
 from pipeline.prompts import _build_prompt
 from pipeline.utils import (
@@ -181,15 +180,14 @@ async def _execute_step(pipeline_id, step):
 
         for attempt in range(max_attempts):
             try:
-                chat = LlmChat(
-                    api_key=EMERGENT_KEY,
-                    session_id=f"pipe-{pipeline_id}-{step}-{int(time.time())}-{attempt}",
-                    system_message=system
-                ).with_model(provider, model)
-
+                model_str = f"{provider}/{model}" if "/" not in model else model
                 start = time.time()
                 response = await asyncio.wait_for(
-                    chat.send_message(UserMessage(text=prompt)),
+                    direct_completion(
+                        system_prompt=system,
+                        user_message=prompt,
+                        model=model_str,
+                    ),
                     timeout=timeout_per_attempt
                 )
                 elapsed = round((time.time() - start) * 1000)
@@ -206,16 +204,15 @@ async def _execute_step(pipeline_id, step):
 
         # Fallback to Gemini Flash if Claude failed (for creative steps)
         if response is None and provider == "anthropic":
-            logger.info(f"Claude failed for {step}, falling back to gemini-2.0-flash")
+            logger.info(f"Claude failed for {step}, falling back to gemini-2.5-flash")
             try:
-                chat = LlmChat(
-                    api_key=EMERGENT_KEY,
-                    session_id=f"pipe-{pipeline_id}-{step}-fallback-{int(time.time())}",
-                    system_message=system
-                ).with_model("gemini", "gemini-2.0-flash")
                 start = time.time()
                 response = await asyncio.wait_for(
-                    chat.send_message(UserMessage(text=prompt)),
+                    direct_completion(
+                        system_prompt=system,
+                        user_message=prompt,
+                        model=DEFAULT_GEMINI_MODEL,
+                    ),
                     timeout=timeout_per_attempt
                 )
                 elapsed = round((time.time() - start) * 1000)

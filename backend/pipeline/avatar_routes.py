@@ -12,10 +12,8 @@ from io import BytesIO
 
 from fastapi import Depends, UploadFile, File, Form, HTTPException
 from PIL import Image
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-from emergentintegrations.llm.openai import OpenAITextToSpeech
-
-from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, logger
+from core.llm import generate_image_gemini, text_to_speech_sync, GEMINI_API_KEY, OPENAI_API_KEY
 from pipeline.router import router
 from pipeline.config import (
     EMERGENT_PROXY_URL, STORAGE_BUCKET, PREVIEW_TEXTS,
@@ -101,17 +99,10 @@ async def generate_avatar(req: AvatarGenerateRequest, user=Depends(get_current_u
             "Photorealistic, 4K detail. "
             "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
         )
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"avatar-{uuid.uuid4().hex[:8]}",
-            system_message=system_msg
-        )
-        msg = UserMessage(text=prompt)
-        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
-        text_response, images = await chat.send_message_multimodal_response(msg)
+        full_prompt = f"{system_msg}\n\n{prompt}"
+        img_bytes = await generate_image_gemini(full_prompt)
 
-        if images and len(images) > 0:
-            img_bytes = base64.b64decode(images[0]['data'])
+        if img_bytes:
             filename = f"avatars/avatar_{uuid.uuid4().hex[:8]}.png"
             public_url = _upload_to_storage(img_bytes, filename, "image/png")
             return {"avatar_url": public_url}
@@ -211,19 +202,12 @@ async def generate_avatar_from_prompt(req: AvatarFromPromptRequest, user=Depends
             except Exception as ref_err:
                 logger.warning(f"Reference photo processing failed, falling back to text-only: {ref_err}")
 
-        # --- Path B: No reference photo or reference failed → text-only via LlmChat ---
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"avatar-prompt-{uuid.uuid4().hex[:8]}",
-            system_message=system_msg
-        )
-        msg = UserMessage(text=prompt)
-        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
-        text_response, images = await chat.send_message_multimodal_response(msg)
-        logger.info(f"Avatar prompt gen (text-only): text={text_response[:100] if text_response else 'None'}, images={len(images) if images else 0}")
+        # --- Path B: No reference photo or reference failed → text-only via Gemini Direct ---
+        full_prompt = f"{system_msg}\n\n{prompt}"
+        raw_bytes = await generate_image_gemini(full_prompt)
+        logger.info(f"Avatar prompt gen (text-only): got {len(raw_bytes) if raw_bytes else 0} bytes")
 
-        if images and len(images) > 0:
-            raw_bytes = base64.b64decode(images[0]['data'])
+        if raw_bytes:
             fname = f"avatars/{user.get('id', 'anon')}/{uuid.uuid4().hex[:8]}_prompt_{req.style}.png"
             avatar_url = _upload_to_storage(raw_bytes, fname, "image/png")
 
@@ -601,11 +585,7 @@ async def voice_preview(req: VoicePreviewRequest, user=Depends(get_current_user)
         # ── OpenAI TTS ──
         valid_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
         voice_id = req.voice_id if req.voice_id in valid_voices else "onyx"
-        tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
-        audio_bytes = await tts.generate_speech(
-            text=text, model="tts-1-hd",
-            voice=voice_id, speed=1.0, response_format="mp3"
-        )
+        audio_bytes = text_to_speech_sync(text=text, voice=voice_id, model="tts-1-hd")
         filename = f"voice_previews/preview_{voice_id}_{uuid.uuid4().hex[:6]}.mp3"
         public_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
         return {"audio_url": public_url, "voice_id": voice_id, "voice_type": "openai"}
@@ -739,14 +719,10 @@ def _run_preview_generation(job_id: str, avatar_url: str, voice_url: str, voice_
             # OpenAI TTS fallback
             if not audio_url:
                 tts_voice = voice_id if voice_id in ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] else "onyx"
-                tts = OpenAITextToSpeech(api_key=EMERGENT_KEY)
-                audio_bytes = loop.run_until_complete(tts.generate_speech(
-                    text=text, model="tts-1-hd",
-                    voice=tts_voice, speed=1.0, response_format="mp3"
-                ))
+                audio_bytes = text_to_speech_sync(text=text, voice=tts_voice, model="tts-1-hd")
                 audio_filename = f"voice_previews/preview_tts_{uuid.uuid4().hex[:6]}.mp3"
                 audio_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
-                logger.info(f"OpenAI preview TTS generated: {audio_filename}")
+                logger.info(f"OpenAI Direct TTS generated: {audio_filename}")
 
         _preview_jobs[job_id] = {"status": "generating_video", "progress": "Lip-sync..."}
 
@@ -909,16 +885,9 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
                     return {"avatar_url": public_url, "clothing": req.clothing, "angle": req.angle}
 
         # Fallback without image reference
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"avatar-var-{uuid.uuid4().hex[:8]}",
-            system_message=system_msg
-        )
-        msg = UserMessage(text=prompt)
-        chat.with_model("gemini", "gemini-3-pro-image-preview").with_params(modalities=["image", "text"])
-        text_response, images = await chat.send_message_multimodal_response(msg)
-        if images and len(images) > 0:
-            img_bytes = base64.b64decode(images[0]['data'])
+        full_prompt = f"{system_msg}\n\n{prompt}"
+        img_bytes = await generate_image_gemini(full_prompt)
+        if img_bytes:
             filename = f"avatars/avatar_var_{uuid.uuid4().hex[:8]}.png"
             public_url = _upload_to_storage(img_bytes, filename, "image/png")
             return {"avatar_url": public_url, "clothing": req.clothing, "angle": req.angle}

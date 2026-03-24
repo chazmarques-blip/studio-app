@@ -3,15 +3,14 @@ from datetime import datetime, timezone
 import httpx
 import os
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, logger
+from core.llm import DirectChat, DEFAULT_MODEL
 from core.models import TelegramSetupRequest
 from core.utils import build_agent_system_prompt
 
 router = APIRouter(prefix="/api", tags=["telegram"])
 
-# In-memory map of active telegram sessions: chat_id -> LlmChat
+# In-memory map of active telegram sessions: chat_id -> DirectChat
 telegram_sessions: dict = {}
 
 
@@ -135,17 +134,13 @@ async def telegram_webhook(agent_id: str, request: Request):
         # Get or create conversation session
         session_key = f"tg-{agent_id}-{chat_id}"
         if session_key not in telegram_sessions:
-            chat = LlmChat(
-                api_key=EMERGENT_KEY,
-                session_id=session_key,
-                system_message=system_prompt
-            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+            chat = DirectChat(system_message=system_prompt)
             telegram_sessions[session_key] = chat
         else:
             chat = telegram_sessions[session_key]
 
         # Get AI response
-        response = await chat.send_message(UserMessage(text=text))
+        response = await chat.send_message(text)
 
         # Send response back to Telegram
         await tg_request(bot_token, "sendMessage", {

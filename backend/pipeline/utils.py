@@ -7,8 +7,8 @@ import litellm
 from io import BytesIO
 from PIL import Image
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent, FileContent
-from core.deps import supabase, EMERGENT_KEY, logger
+from core.deps import supabase, logger
+from core.llm import GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY
 from pipeline.config import STORAGE_BUCKET, EMERGENT_PROXY_URL
 
 
@@ -187,9 +187,7 @@ async def _detect_texts_in_image(img_b64_or_url: str, mime: str = "image/png", i
         response = litellm.completion(
             model="gemini/gemini-2.5-flash",
             messages=messages,
-            api_key=EMERGENT_KEY,
-            api_base=EMERGENT_PROXY_URL,
-            custom_llm_provider="openai",
+            api_key=GEMINI_API_KEY,
             max_tokens=800,
         )
         raw = response.choices[0].message.content or "[]"
@@ -255,9 +253,7 @@ async def _describe_person(img_b64: str, mime: str = "image/png") -> str:
         response = litellm.completion(
             model="gemini/gemini-2.5-flash",
             messages=messages,
-            api_key=EMERGENT_KEY,
-            api_base=EMERGENT_PROXY_URL,
-            custom_llm_provider="openai",
+            api_key=GEMINI_API_KEY,
             max_tokens=350,
         )
         desc = response.choices[0].message.content or ""
@@ -296,9 +292,7 @@ async def _accuracy_compare(source_b64: str, source_mime: str, avatar_b64: str, 
         response = litellm.completion(
             model="gemini/gemini-2.5-flash",
             messages=messages,
-            api_key=EMERGENT_KEY,
-            api_base=EMERGENT_PROXY_URL,
-            custom_llm_provider="openai",
+            api_key=GEMINI_API_KEY,
             max_tokens=200,
         )
         raw = response.choices[0].message.content or ""
@@ -361,9 +355,7 @@ async def _describe_person_from_video(frames: list) -> str:
         response = litellm.completion(
             model="gemini/gemini-2.5-flash",
             messages=messages,
-            api_key=EMERGENT_KEY,
-            api_base=EMERGENT_PROXY_URL,
-            custom_llm_provider="openai",
+            api_key=GEMINI_API_KEY,
             max_tokens=250,
         )
         desc = response.choices[0].message.content or ""
@@ -376,73 +368,66 @@ async def _describe_person_from_video(frames: list) -> str:
 
 
 async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: str = "image/png") -> list:
-    """Send text+image in the SAME multimodal message to Gemini for image editing.
+    """Send text+image to Gemini for image editing using direct Google GenAI SDK.
     Returns list of image dicts [{mime_type, data}]."""
-    messages = [
-        {"role": "system", "content": system_msg},
-        {"role": "user", "content": [
-            {"type": "text", "text": prompt},
-            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}}
-        ]}
+    from google import genai
+    from google.genai import types
+    import asyncio
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    full_prompt = f"{system_msg}\n\n{prompt}"
+
+    contents = [
+        types.Part.from_bytes(data=base64.b64decode(img_b64), mime_type=mime),
+        full_prompt,
     ]
-    params = {
-        "model": "gemini/gemini-3-pro-image-preview",
-        "messages": messages,
-        "api_key": EMERGENT_KEY,
-        "api_base": EMERGENT_PROXY_URL,
-        "custom_llm_provider": "openai",
-        "modalities": ["image", "text"],
-    }
-    response = litellm.completion(**params)
+
+    response = await asyncio.to_thread(
+        client.models.generate_content,
+        model="gemini-2.5-flash-image",
+        contents=contents,
+        config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+    )
+
     images = []
-    if response.choices and response.choices[0].message:
-        msg = response.choices[0].message
-        if hasattr(msg, 'images') and msg.images:
-            for img_data in msg.images:
-                if 'image_url' in img_data and 'url' in img_data['image_url']:
-                    url = img_data['image_url']['url']
-                    if 'data:' in url and ';base64,' in url:
-                        parts = url.split(';base64,', 1)
-                        m_type = parts[0].replace('data:', '')
-                        b64 = parts[1]
-                        images.append({"mime_type": m_type, "data": b64})
+    for part in response.candidates[0].content.parts:
+        if part.inline_data:
+            img_b64_out = base64.b64encode(part.inline_data.data).decode()
+            images.append({"mime_type": part.inline_data.mime_type or "image/png", "data": img_b64_out})
     return images
 
 
 
 
 async def _gemini_edit_multi_ref(system_msg: str, prompt: str, primary_b64: str, primary_mime: str, extra_refs: list = None) -> list:
-    """Send text + MULTIPLE reference images to Gemini for better identity preservation.
+    """Send text + MULTIPLE reference images to Gemini using direct Google GenAI SDK.
     extra_refs: list of {"data": b64, "mime": mime_type}"""
-    content = [{"type": "text", "text": prompt}]
-    content.append({"type": "image_url", "image_url": {"url": f"data:{primary_mime};base64,{primary_b64}"}})
-    for ref in (extra_refs or [])[:5]:
-        content.append({"type": "image_url", "image_url": {"url": f"data:{ref['mime']};base64,{ref['data']}"}})
-    messages = [
-        {"role": "system", "content": system_msg},
-        {"role": "user", "content": content}
+    from google import genai
+    from google.genai import types
+    import asyncio
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    full_prompt = f"{system_msg}\n\n{prompt}"
+
+    contents = [
+        types.Part.from_bytes(data=base64.b64decode(primary_b64), mime_type=primary_mime),
     ]
-    params = {
-        "model": "gemini/gemini-3-pro-image-preview",
-        "messages": messages,
-        "api_key": EMERGENT_KEY,
-        "api_base": EMERGENT_PROXY_URL,
-        "custom_llm_provider": "openai",
-        "modalities": ["image", "text"],
-    }
-    response = litellm.completion(**params)
+    for ref in (extra_refs or [])[:5]:
+        contents.append(types.Part.from_bytes(data=base64.b64decode(ref["data"]), mime_type=ref.get("mime", "image/png")))
+    contents.append(full_prompt)
+
+    response = await asyncio.to_thread(
+        client.models.generate_content,
+        model="gemini-2.5-flash-image",
+        contents=contents,
+        config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+    )
+
     images = []
-    if response.choices and response.choices[0].message:
-        msg = response.choices[0].message
-        if hasattr(msg, 'images') and msg.images:
-            for img_data in msg.images:
-                if 'image_url' in img_data and 'url' in img_data['image_url']:
-                    url = img_data['image_url']['url']
-                    if 'data:' in url and ';base64,' in url:
-                        parts = url.split(';base64,', 1)
-                        m_type = parts[0].replace('data:', '')
-                        b64 = parts[1]
-                        images.append({"mime_type": m_type, "data": b64})
+    for part in response.candidates[0].content.parts:
+        if part.inline_data:
+            img_b64_out = base64.b64encode(part.inline_data.data).decode()
+            images.append({"mime_type": part.inline_data.mime_type or "image/png", "data": img_b64_out})
     return images
 
 # FFmpeg binary path - from imageio_ffmpeg package

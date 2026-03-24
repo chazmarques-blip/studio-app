@@ -2,9 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 import os
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, logger
+from core.llm import DirectChat, DEFAULT_MODEL
 from core.models import WhatsAppInstanceCreate, WhatsAppSendMessage
 from core.utils import build_agent_system_prompt, check_escalation, evo_request
 
@@ -94,18 +93,18 @@ async def whatsapp_webhook(payload: dict):
 
                     recent = supabase.table("messages").select("*").eq("conversation_id", convo_id).order("created_at", desc=False).limit(20).execute()
 
-                    session_id = f"auto-{convo_id}"
-                    chat = LlmChat(
-                        api_key=EMERGENT_KEY,
-                        session_id=session_id,
-                        system_message=system_prompt
-                    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
+                    # Build message history and make ONE efficient API call
+                    from core.llm import multi_turn_completion
+                    history = []
                     for m in recent.data[:-1]:
-                        if m["sender"] == "customer":
-                            await chat.send_message(UserMessage(text=m["content"]))
+                        role = "user" if m["sender"] == "customer" else "assistant"
+                        history.append({"role": role, "content": m["content"]})
+                    history.append({"role": "user", "content": content})
 
-                    ai_response = await chat.send_message(UserMessage(text=content))
+                    ai_response = await multi_turn_completion(
+                        system_prompt=system_prompt,
+                        messages_history=history,
+                    )
 
                     ai_msg = {
                         "conversation_id": convo_id,

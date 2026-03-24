@@ -6,9 +6,8 @@ import uuid
 import json
 import asyncio
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-from core.deps import supabase, get_current_user, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, logger
+from core.llm import direct_completion, DEFAULT_MODEL, DEFAULT_GEMINI_MODEL
 
 router = APIRouter(prefix="/api", tags=["agent-generator"])
 
@@ -146,21 +145,21 @@ RESPOND IN {lang_name}. Output ONLY valid JSON:
 async def _run_generation(task_id: str, prompt: str):
     """Background task that generates the agent and stores result."""
     models = [
-        ("gemini", "gemini-2.0-flash"),
-        ("anthropic", "claude-sonnet-4-5-20250929"),
+        DEFAULT_GEMINI_MODEL,
+        DEFAULT_MODEL,
     ]
 
-    for provider, model in models:
+    for model in models:
         try:
-            logger.info(f"Agent gen [{task_id}]: trying {provider}/{model}")
-            chat = LlmChat(
-                api_key=EMERGENT_KEY,
-                session_id=f"agent-gen-{task_id}",
-                system_message="You are a JSON generator. Output ONLY valid JSON, no markdown, no code blocks."
-            ).with_model(provider, model)
+            logger.info(f"Agent gen [{task_id}]: trying {model}")
 
             start = time.time()
-            response = await chat.send_message(UserMessage(text=prompt))
+            response = await direct_completion(
+                system_prompt="You are a JSON generator. Output ONLY valid JSON, no markdown, no code blocks.",
+                user_message=prompt,
+                model=model,
+                max_tokens=8000,
+            )
             elapsed = round((time.time() - start) * 1000)
 
             cleaned = response.strip()
@@ -174,10 +173,10 @@ async def _run_generation(task_id: str, prompt: str):
 
             result = json.loads(cleaned)
             result["generation_time_ms"] = elapsed
-            result["model_used"] = f"{provider}/{model}"
+            result["model_used"] = model
 
             _generation_tasks[task_id] = {"status": "completed", "result": result}
-            logger.info(f"Agent gen [{task_id}]: OK with {provider}/{model} in {elapsed}ms")
+            logger.info(f"Agent gen [{task_id}]: OK with {model} in {elapsed}ms")
             return
 
         except json.JSONDecodeError as e:

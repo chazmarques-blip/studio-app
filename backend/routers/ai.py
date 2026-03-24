@@ -6,10 +6,8 @@ import tempfile
 import uuid
 import time
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-from emergentintegrations.llm.openai import OpenAISpeechToText
-
-from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, EMERGENT_KEY, logger
+from core.deps import supabase, get_current_user, get_tenant as get_tenant_helper, logger
+from core.llm import DirectChat, direct_completion, speech_to_text as stt_direct, DEFAULT_MODEL
 from core.constants import AGENT_TYPE_DESCRIPTIONS
 from core.models import SandboxChatRequest
 from core.utils import sandbox_sessions
@@ -28,18 +26,13 @@ If the customer writes in Portuguese, respond in Portuguese. If in English, resp
 Keep responses under 3 sentences unless more detail is needed."""
 
     if session_id not in sandbox_sessions:
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=session_id,
-            system_message=system
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        chat = DirectChat(system_message=system, model=DEFAULT_MODEL)
         sandbox_sessions[session_id] = chat
     else:
         chat = sandbox_sessions[session_id]
 
-    msg = UserMessage(text=req.content)
     start = time.time()
-    response = await chat.send_message(msg)
+    response = await chat.send_message(req.content)
     elapsed = round((time.time() - start) * 1000)
 
     detected_lang = "en"
@@ -87,22 +80,17 @@ async def analyze_image(
         else:
             raise HTTPException(status_code=400, detail="Provide image file or image_base64")
 
-        img_content = ImageContent(image_base64=b64)
-
         lang_instruction = ""
         if language and language != "auto":
             lang_map = {"pt": "Portuguese", "es": "Spanish", "en": "English"}
             lang_instruction = f" Respond in {lang_map.get(language, language)}."
 
-        chat = LlmChat(
-            api_key=EMERGENT_KEY,
-            session_id=f"vision-{uuid.uuid4().hex[:8]}",
-            system_message=f"You are an image analysis assistant.{lang_instruction}"
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        msg = UserMessage(text=prompt, file_contents=[img_content])
         start = time.time()
-        response = await chat.send_message(msg)
+        response = await direct_completion(
+            system_prompt=f"You are an image analysis assistant.{lang_instruction}",
+            user_message=prompt,
+            images=[b64],
+        )
         elapsed = round((time.time() - start) * 1000)
 
         return {
@@ -123,8 +111,6 @@ async def transcribe_audio(
     user=Depends(get_current_user)
 ):
     try:
-        stt = OpenAISpeechToText(api_key=EMERGENT_KEY)
-
         if audio:
             content = await audio.read()
             suffix = Path(audio.filename).suffix if audio.filename else '.mp3'
@@ -140,13 +126,11 @@ async def transcribe_audio(
 
         try:
             start = time.time()
-            with open(tmp_path, "rb") as f:
-                result = await stt.transcribe(
-                    file=f,
-                    model="whisper-1",
-                    response_format="verbose_json",
-                    language=language,
-                )
+            result = await stt_direct(
+                file_path=tmp_path,
+                language=language,
+                response_format="verbose_json",
+            )
             elapsed = round((time.time() - start) * 1000)
 
             return {
@@ -185,14 +169,11 @@ async def route_to_best_agent(convo_id: str, user=Depends(get_current_user)):
 
     agent_list = "\n".join([f"- {a['name']} ({a['type']}): {AGENT_TYPE_DESCRIPTIONS.get(a['type'], a['type'])}" for a in agents.data])
 
-    chat = LlmChat(
-        api_key=EMERGENT_KEY,
-        session_id=f"router-{uuid.uuid4().hex[:8]}",
-        system_message="You are a conversation router. Given a conversation context and available agents, respond with ONLY the agent name that best handles this conversation. No explanation."
-    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
     prompt = f"Available agents:\n{agent_list}\n\nConversation:\n{context}\n\nWhich agent name should handle this?"
-    best_name = (await chat.send_message(UserMessage(text=prompt))).strip()
+    best_name = (await direct_completion(
+        system_prompt="You are a conversation router. Given a conversation context and available agents, respond with ONLY the agent name that best handles this conversation. No explanation.",
+        user_message=prompt,
+    )).strip()
 
     selected = None
     for a in agents.data:
