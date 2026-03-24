@@ -153,6 +153,7 @@ class StudioProject(BaseModel):
     voice_config: Optional[dict] = None
     music_config: Optional[dict] = None
     language: str = "pt"
+    visual_style: str = "animation"  # animation, realistic, anime, cartoon
 
 class ChatMessage(BaseModel):
     project_id: Optional[str] = None
@@ -163,6 +164,11 @@ class StartProductionRequest(BaseModel):
     project_id: str
     video_duration: int = 12
     character_avatars: dict = {}  # {character_name: avatar_url}
+    visual_style: str = ""  # override style for this run
+
+class RegenerateSceneRequest(BaseModel):
+    scene_number: int
+    custom_prompt: Optional[str] = None  # optional custom Sora prompt override
 
 class GenerateAvatarRequest(BaseModel):
     character_name: str
@@ -192,6 +198,7 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "avatar_urls": req.avatar_urls,
         "scenes": [],
         "characters": [],
+        "character_avatars": {},
         "chat_history": [],
         "agents_output": {},
         "agent_status": {},
@@ -200,6 +207,7 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "status": "draft",
         "error": None,
         "language": req.language,
+        "visual_style": req.visual_style or "animation",
         "created_at": now,
         "updated_at": now,
     }
@@ -226,11 +234,14 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "agents_output": project.get("agents_output", {}),
         "scenes": project.get("scenes", []),
         "characters": project.get("characters", []),
+        "character_avatars": project.get("character_avatars", {}),
         "outputs": project.get("outputs", []),
         "milestones": project.get("milestones", []),
         "narrations": project.get("narrations", []),
         "narration_status": project.get("narration_status", {}),
         "voice_config": project.get("voice_config", {}),
+        "visual_style": project.get("visual_style", "animation"),
+        "language": project.get("language", "pt"),
         "error": project.get("error"),
     }
 
@@ -278,20 +289,21 @@ async def update_characters(project_id: str, payload: dict = Body(...), tenant=D
 
 # ── STEP 1: Screenwriter Chat ──
 
-SCREENWRITER_SYSTEM = """You are a MASTER SCREENWRITER and RESEARCHER for cinema and advertising.
+SCREENWRITER_SYSTEM = """You are a MASTER SCREENWRITER, RESEARCHER, and WORLD-BUILDER for cinema and animation.
 
 YOUR ROLE:
 1. When the user describes a story, you DEEPLY RESEARCH the topic using your knowledge
 2. For biblical stories: use EXACT biblical passages, real names, real events
 3. For historical stories: use real historical facts
 4. Create a COMPLETE screenplay divided into scenes of EXACTLY 12 seconds each
+5. You are ALSO a world-builder: describe the ENVIRONMENT, LANDSCAPE, and ATMOSPHERE in vivid detail
 
 OUTPUT FORMAT — You MUST return valid JSON:
 {{
   "title": "Story Title",
   "total_scenes": N,
   "characters": [
-    {{"name": "Character Name", "description": "Physical appearance for avatar generation", "age": "young/adult/old", "role": "protagonist/supporting"}}
+    {{"name": "Character Name", "description": "DETAILED physical appearance: height, build, skin color, hair, clothing, distinguishing features. This will be used to create the character's visual avatar", "age": "young/adult/old", "role": "protagonist/supporting"}}
   ],
   "scenes": [
     {{
@@ -299,11 +311,11 @@ OUTPUT FORMAT — You MUST return valid JSON:
       "time_start": "0:00",
       "time_end": "0:12",
       "title": "Scene Title",
-      "description": "Visual description of what happens",
-      "dialogue": "Character dialogue for this scene",
+      "description": "RICH visual description: WHERE (landscape, architecture, nature), WHEN (time of day, weather), WHAT (action, movement), ATMOSPHERE (light, colors, mood). Example: 'On a vast desert plain under a canopy of stars, Abraham kneels on sun-baked earth near his goat-hair tent. Warm firelight flickers against the dark, casting long shadows. A gentle breeze stirs the tent fabric.'",
+      "dialogue": "Character dialogue or narration for this scene",
       "characters_in_scene": ["Character1", "Character2"],
       "emotion": "dramatic/joyful/tense/peaceful",
-      "camera": "wide shot/close up/medium shot",
+      "camera": "wide shot/close up/medium shot/aerial/tracking",
       "transition": "fade/cut/dissolve"
     }}
   ],
@@ -314,7 +326,9 @@ OUTPUT FORMAT — You MUST return valid JSON:
 RULES:
 - Each scene is EXACTLY 12 seconds
 - Plan smooth transitions between scenes
-- Describe characters physically so avatars can be generated
+- Describe characters PHYSICALLY in great detail so avatars can be generated to look EXACTLY right
+- Every scene description MUST include: location/landscape, time of day, weather/atmosphere, background elements (birds, clouds, water, etc.)
+- Think like a Pixar art director: every frame should be a painting
 - Be faithful to source material (bible, history, etc.)
 - Language: {lang}"""
 
@@ -496,20 +510,14 @@ def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url
 
 
 def _run_multi_scene_production(tenant_id: str, project_id: str, character_avatars: dict = None):
-    """v3 — Per-scene parallel pipeline. Each scene has its own production team.
+    """v3 — Per-scene parallel pipeline with enhanced Scene Director and Sora 2 retry.
 
     Architecture:
-    ┌─ Scene 1: SceneDirector(Claude) → Sora 2 ─┐
-    ├─ Scene 2: SceneDirector(Claude) → Sora 2 ─┤  ALL SIMULTANEOUS
-    ├─ Scene N: SceneDirector(Claude) → Sora 2 ─┤  (Sora limited to 5 slots)
-    └─ MusicDirector (1 global call)             ┘
-    → FFmpeg concat → Complete
-
-    Key optimizations:
-    - 3 agents merged into 1 "Scene Director" (1 Claude call, not 3)
-    - Video gen starts per-scene as soon as prompt is ready
-    - Avatars cached once globally
-    - Sora 2 rate-limited by semaphore (max 5 concurrent)
+    ┌─ Scene 1: SceneDirector(Claude) → Sora 2 (3 retries) ─┐
+    ├─ Scene 2: SceneDirector(Claude) → Sora 2 (3 retries) ─┤  ALL SIMULTANEOUS
+    ├─ Scene N: SceneDirector(Claude) → Sora 2 (3 retries) ─┤  (Sora limited to 5 slots)
+    └─ MusicDirector (1 global call)                         ┘
+    → FFmpeg concat (compressed) → Complete
     """
     import json as json_mod
     import tempfile
@@ -524,7 +532,8 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         scenes = project.get("scenes", [])
         characters = project.get("characters", [])
         total = len(scenes)
-        char_avatars = character_avatars or {}
+        char_avatars = character_avatars or project.get("character_avatars", {})
+        visual_style = project.get("visual_style", "animation")
 
         if total == 0:
             _update_project_field(tenant_id, project_id, {"status": "error", "error": "No scenes"})
@@ -536,21 +545,29 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                              "scene_status": {str(i+1): "queued" for i in range(total)}}
         })
 
+        # ── Visual Style Mapping ──
+        STYLE_PROMPTS = {
+            "animation": "ART STYLE: High-quality 3D animation like Pixar/DreamWorks. Colorful, warm, expressive characters with large eyes. Smooth cinematic camera movements. Rich detailed environments.",
+            "cartoon": "ART STYLE: Vibrant 2D cartoon style. Bold outlines, saturated colors, exaggerated expressions. Playful and fun atmosphere.",
+            "anime": "ART STYLE: Japanese anime style. Detailed backgrounds, expressive eyes, dramatic lighting. Fluid motion.",
+            "realistic": "ART STYLE: Cinematic photorealistic live-action. Film grain, natural lighting, professional cinematography.",
+            "watercolor": "ART STYLE: Watercolor painting style. Soft edges, pastel tones, dreamy ethereal atmosphere.",
+        }
+        style_hint = STYLE_PROMPTS.get(visual_style, STYLE_PROMPTS["animation"])
+
         # ── Shared context ──
         briefing = project.get("briefing", "")
-        briefing_lower = briefing.lower()
-        style_hint = ""
-        if any(w in briefing_lower for w in ["cartoon", "desenho", "animado", "criança", "infantil", "kids"]):
-            style_hint = "ART STYLE: Colorful cartoon/animated. Warm, friendly, vibrant."
-        elif any(w in briefing_lower for w in ["anime", "mangá"]):
-            style_hint = "ART STYLE: Japanese anime style."
-        elif any(w in briefing_lower for w in ["realistic", "realista", "cinema"]):
-            style_hint = "ART STYLE: Cinematic photorealistic."
 
         char_sheet = "\n".join([
             f"- {ch['name']}: {ch.get('description','')} ({ch.get('age','')}, {ch.get('role','')})"
-            + (" [HAS AVATAR — match EXACTLY]" if ch.get("name") in char_avatars else "")
+            + (" [HAS REFERENCE AVATAR — MUST match this character's appearance EXACTLY]" if ch.get("name") in char_avatars else "")
             for ch in characters
+        ])
+
+        # Full scene list for global context
+        all_scenes_summary = "\n".join([
+            f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} - {s.get('description','')}"
+            for i, s in enumerate(scenes)
         ])
 
         # ── Pre-download avatars ONCE ──
@@ -562,13 +579,21 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                     ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
                     urllib.request.urlretrieve(full_url, ref_file.name)
                     avatar_cache[url] = ref_file.name
-                except Exception:
+                    logger.info(f"Studio [{project_id}]: Avatar cached for {name}")
+                except Exception as e:
+                    logger.warning(f"Studio [{project_id}]: Avatar download failed for {name}: {e}")
                     avatar_cache[url] = None
 
-        # ── Resume support ──
+        # ── Resume support — find already completed videos ──
         _, _, proj_check = _get_project(tenant_id, project_id)
         existing_outputs = proj_check.get("outputs", []) if proj_check else []
-        completed_videos = {o["scene_number"]: o["url"] for o in existing_outputs if o.get("url") and o.get("type") == "video"}
+        completed_videos = {}
+        for o in existing_outputs:
+            sn = o.get("scene_number")
+            if sn and o.get("url") and o.get("type") == "video" and sn > 0:
+                completed_videos[sn] = o["url"]
+        if completed_videos:
+            logger.info(f"Studio [{project_id}]: Resuming — {len(completed_videos)} scenes already cached: {sorted(completed_videos.keys())}")
 
         # ── Rate limiter for Sora 2 ──
         sora_semaphore = threading.Semaphore(5)
@@ -580,11 +605,13 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         budget_exhausted = threading.Event()
 
         def _scene_team(scene, scene_num):
-            """Full production for ONE scene: Director(Claude) → Sora 2."""
+            """Full production for ONE scene: Director(Claude) → Sora 2 with 3 retries."""
             t_scene = _time.time()
 
+            # Skip already completed scenes
             if scene_num in completed_videos:
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} CACHED")
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} CACHED — skipping")
+                _update_scene_status(tenant_id, project_id, scene_num, "done", total)
                 return {"scene_number": scene_num, "url": completed_videos[scene_num], "type": "video", "duration": 12}
 
             # Skip if budget already exhausted
@@ -593,96 +620,143 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                 _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                 return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
 
-            # A) Scene Director — ONE Claude call
+            # A) Enhanced Scene Director — ONE Claude call with rich context
             chars_in_scene = scene.get("characters_in_scene", [])
             scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
 
-            director_system = f"""You are a SCENE DIRECTOR. Design the COMPLETE visual scene for Sora 2 video generation.
+            director_system = f"""You are a MASTER SCENE DIRECTOR and CINEMATOGRAPHER. You design COMPLETE, richly detailed visual scenes for Sora 2 AI video generation.
+
 {style_hint}
-CHARACTERS:\n{char_sheet}
+
+CHARACTERS IN THIS FILM:
+{char_sheet}
+
+FULL STORY CONTEXT:
+{all_scenes_summary[:1500]}
+
+YOUR EXPERTISE:
+- You think like Hayao Miyazaki for animation: every frame is a painting with rich environments
+- You add environmental details that bring scenes to life: weather, time of day, natural elements (birds, wind, clouds, water reflections)
+- You describe background elements: distant mountains, rolling hills, ancient cities, starry skies, golden sunsets
+- You specify camera movements: slow dolly, tracking shot, crane shot, push-in
+- You describe lighting meticulously: golden hour glow, moonlit shadows, divine light rays through clouds
+- You add atmospheric details: dust particles in light, morning mist, evening fireflies
+
+CRITICAL RULES:
+- Return ONLY valid JSON
+- The sora_prompt MUST be in ENGLISH (Sora 2 works best in English)
+- Include RICH environmental/atmospheric details — this is what makes the video cinematic
+- Describe characters by their PHYSICAL APPEARANCE (from the character sheet), not by name
+- If a character has a REFERENCE AVATAR, describe their exact appearance from the avatar
+- Max 250 words for sora_prompt
 
 Return ONLY JSON:
-{{"sora_prompt": "ONE detailed English paragraph for Sora 2. Describe the scene visually: characters (match avatar if available), camera, lighting, emotion, action. Max 200 words."}}"""
+{{"sora_prompt": "ONE detailed English paragraph describing the complete visual scene for Sora 2..."}}"""
 
-            director_prompt = f"""Scene {scene_num}/{total}: {scene.get('title','')}
-Desc: {scene.get('description','')}
-Dialogue: {scene.get('dialogue','')}
+            director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
+Visual description: {scene.get('description','')}
+Dialogue/narration: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')} | Camera: {scene.get('camera','')}
-Characters: {scene_chars}
-Story: {briefing[:150]}"""
+Characters present: {scene_chars}
+Transition: {scene.get('transition', 'cut')}
+Story context: {briefing[:300]}
+
+Create a RICHLY DETAILED visual prompt. Include:
+1. Environment: Where exactly does this scene take place? Describe the landscape, architecture, nature
+2. Atmosphere: Time of day, weather, lighting quality, mood
+3. Background details: What's happening in the background? (birds, clouds, distant elements)
+4. Character action: What are the characters doing physically? Their expressions, gestures
+5. Camera: Specific camera movement and framing
+6. Color palette: Dominant colors and mood"""
 
             _update_scene_status(tenant_id, project_id, scene_num, "directing", total)
             try:
                 t_p = _time.time()
-                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1200)
+                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1500)
                 data = _parse_json(result_text) or {}
                 sora_prompt = data.get("sora_prompt", scene.get("description", ""))
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} directed in {_time.time()-t_p:.1f}s")
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} directed in {_time.time()-t_p:.1f}s — prompt: {sora_prompt[:100]}...")
             except Exception as e:
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} director error: {e}")
-                sora_prompt = scene.get("description", "")
+                # Fallback: build a basic prompt from scene data
+                sora_prompt = f"{style_hint} {scene.get('description', '')}. Characters: {scene_chars}. {scene.get('emotion', '')} mood, {scene.get('camera', 'wide shot')}."
 
-            # B) Sora 2 Video — rate-limited + budget-aware
+            # B) Sora 2 Video — rate-limited + 3 retries + budget-aware
             ref_path = None
             for ch_name in chars_in_scene:
                 if ch_name in char_avatars and char_avatars[ch_name] in avatar_cache:
                     ref_path = avatar_cache[char_avatars[ch_name]]
                     break
 
-            # Check budget again before waiting for semaphore
             if budget_exhausted.is_set():
                 _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                 return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
 
             _update_scene_status(tenant_id, project_id, scene_num, "waiting_sora", total)
 
+            max_retries = 3
+            last_error = None
+
             with sora_semaphore:
-                if budget_exhausted.is_set():
-                    _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
+                for attempt in range(max_retries):
+                    if budget_exhausted.is_set():
+                        _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                        return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
 
-                _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
-                t_v = _time.time()
-                try:
-                    gen_kwargs = {"prompt": sora_prompt[:1000], "model": "sora-2", "size": "1280x720", "duration": 12, "max_wait_time": 600}
-                    if ref_path:
-                        gen_kwargs["image_path"] = ref_path
+                    _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
+                    t_v = _time.time()
+                    try:
+                        gen_kwargs = {"prompt": sora_prompt[:1000], "model": "sora-2", "size": "1280x720", "duration": 12, "max_wait_time": 600}
+                        if ref_path:
+                            gen_kwargs["image_path"] = ref_path
 
-                    logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora 2 started (avatar={'Y' if ref_path else 'N'})")
-                    video_bytes = video_gen.text_to_video(**gen_kwargs)
-                    elapsed = _time.time() - t_v
+                        logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora 2 attempt {attempt+1}/{max_retries} (avatar={'Y' if ref_path else 'N'})")
+                        video_bytes = video_gen.text_to_video(**gen_kwargs)
+                        elapsed = _time.time() - t_v
 
-                    if video_bytes and len(video_bytes) > 1000:
-                        filename = f"studio/{project_id}_scene_{scene_num}.mp4"
-                        video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-                        t_total_scene = _time.time() - t_scene
-                        logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {t_total_scene:.0f}s (sora: {elapsed:.0f}s, {len(video_bytes)//1024}KB)")
-                        _save_scene_video(tenant_id, project_id, scene_num, video_url, total)
-                        return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 12}
-                    else:
-                        # Empty/tiny response — likely budget exceeded
-                        sz = len(video_bytes) if video_bytes else 0
-                        if elapsed < 30:
-                            # Returned too fast = budget exceeded (real generation takes minutes)
-                            logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET EXHAUSTED (returned {sz}B in {elapsed:.0f}s)")
+                        if video_bytes and len(video_bytes) > 1000:
+                            filename = f"studio/{project_id}_scene_{scene_num}.mp4"
+                            video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+                            t_total_scene = _time.time() - t_scene
+                            logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {t_total_scene:.0f}s (sora: {elapsed:.0f}s, {len(video_bytes)//1024}KB)")
+                            _save_scene_video(tenant_id, project_id, scene_num, video_url, total)
+                            return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 12}
+                        else:
+                            sz = len(video_bytes) if video_bytes else 0
+                            if elapsed < 30:
+                                logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET EXHAUSTED (returned {sz}B in {elapsed:.0f}s)")
+                                budget_exhausted.set()
+                                _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                                return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
+                            else:
+                                last_error = f"empty_video_{sz}B"
+                                logger.warning(f"Studio [{project_id}]: Scene {scene_num} attempt {attempt+1} empty video ({sz}B in {elapsed:.0f}s). {'Retrying...' if attempt < max_retries-1 else 'FAILED'}")
+                                if attempt < max_retries - 1:
+                                    _time.sleep(10)
+                                    continue
+
+                    except Exception as ve:
+                        err_str = str(ve).lower()
+                        elapsed = _time.time() - t_v
+                        if "budget" in err_str or "exceeded" in err_str or "insufficient" in err_str:
+                            logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET ERROR: {ve}")
                             budget_exhausted.set()
                             _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                             return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
-                        else:
-                            logger.warning(f"Studio [{project_id}]: Scene {scene_num} empty video ({sz}B in {elapsed:.0f}s)")
-                            _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                            return {"scene_number": scene_num, "url": None, "type": "video", "error": f"empty_video_{sz}B"}
 
-                except Exception as ve:
-                    err_str = str(ve).lower()
-                    elapsed = _time.time() - t_v
-                    if "budget" in err_str or "exceeded" in err_str or "insufficient" in err_str:
-                        logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET ERROR: {ve}")
-                        budget_exhausted.set()
-                    else:
-                        logger.warning(f"Studio [{project_id}]: Scene {scene_num} Sora FAIL {elapsed:.0f}s: {ve}")
-                    _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                    return {"scene_number": scene_num, "url": None, "type": "video", "error": str(ve)[:200]}
+                        last_error = str(ve)[:200]
+                        is_retryable = any(k in err_str for k in ["disconnect", "server", "timeout", "connection", "reset", "eof"])
+                        if is_retryable and attempt < max_retries - 1:
+                            wait = 15 * (attempt + 1)
+                            logger.warning(f"Studio [{project_id}]: Scene {scene_num} Sora attempt {attempt+1} FAIL: {ve}. Retrying in {wait}s...")
+                            _time.sleep(wait)
+                            continue
+                        else:
+                            logger.warning(f"Studio [{project_id}]: Scene {scene_num} Sora FAIL after {attempt+1} attempts: {ve}")
+
+                # All retries exhausted
+                _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                return {"scene_number": scene_num, "url": None, "type": "video", "error": last_error or "unknown"}
 
         def _music_team():
             try:
@@ -796,8 +870,17 @@ Story: {briefing[:150]}"""
 
 
 def _concatenate_videos(scene_videos: list, project_id: str) -> str:
-    """Download scene videos, concatenate with FFmpeg, upload result."""
+    """Download scene videos, concatenate with FFmpeg, compress for upload, upload result."""
     import tempfile
+    import shutil
+
+    # Ensure FFmpeg is available
+    try:
+        subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
+    except FileNotFoundError:
+        logger.warning(f"Studio [{project_id}]: FFmpeg not found, attempting install...")
+        subprocess.run(["apt-get", "install", "-y", "-qq", "ffmpeg"], capture_output=True, timeout=60)
+
     tmpdir = tempfile.mkdtemp()
     files = []
 
@@ -805,6 +888,7 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
         local_path = f"{tmpdir}/scene_{i:03d}.mp4"
         urllib.request.urlretrieve(sv["url"], local_path)
         files.append(local_path)
+        logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB)")
 
     # Create concat file
     concat_file = f"{tmpdir}/concat.txt"
@@ -814,6 +898,7 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
 
     output_path = f"{tmpdir}/final_{project_id}.mp4"
 
+    # First try stream copy (fastest, no quality loss)
     cmd = [
         "ffmpeg", "-y", "-f", "concat", "-safe", "0",
         "-i", concat_file,
@@ -828,12 +913,39 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
         cmd_reencode = [
             "ffmpeg", "-y", "-f", "concat", "-safe", "0",
             "-i", concat_file,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "28",
             "-c:a", "aac", "-b:a", "128k",
             "-movflags", "+faststart",
             output_path
         ]
         subprocess.run(cmd_reencode, capture_output=True, timeout=300)
+
+    # Check file size — if > 45MB, re-encode with higher compression
+    file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+    logger.info(f"Studio [{project_id}]: Concatenated video size: {file_size//1024//1024}MB ({file_size//1024}KB)")
+
+    if file_size > 45 * 1024 * 1024:  # > 45MB
+        compressed_path = f"{tmpdir}/final_{project_id}_compressed.mp4"
+        cmd_compress = [
+            "ffmpeg", "-y", "-i", output_path,
+            "-c:v", "libx264", "-preset", "medium", "-crf", "32",
+            "-vf", "scale=1280:720",
+            "-c:a", "aac", "-b:a", "96k",
+            "-movflags", "+faststart",
+            compressed_path
+        ]
+        result = subprocess.run(cmd_compress, capture_output=True, timeout=300)
+        if result.returncode == 0 and os.path.exists(compressed_path):
+            new_size = os.path.getsize(compressed_path)
+            logger.info(f"Studio [{project_id}]: Compressed {file_size//1024//1024}MB → {new_size//1024//1024}MB")
+            output_path = compressed_path
+            file_size = new_size
+
+    # If still too large (> 48MB), skip upload and return None
+    if file_size > 48 * 1024 * 1024:
+        logger.warning(f"Studio [{project_id}]: Final video still too large ({file_size//1024//1024}MB), skipping concat upload")
+        shutil.rmtree(tmpdir, ignore_errors=True)
+        return None
 
     with open(output_path, 'rb') as f:
         video_bytes = f.read()
@@ -842,7 +954,6 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
     url = _upload_to_storage(video_bytes, filename, "video/mp4")
 
     # Cleanup
-    import shutil
     shutil.rmtree(tmpdir, ignore_errors=True)
 
     return url
@@ -858,9 +969,14 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     if not project.get("scenes"):
         raise HTTPException(status_code=400, detail="No scenes defined. Use the Screenwriter first.")
 
+    # Persist character avatars and visual style to project
+    if req.character_avatars:
+        project["character_avatars"] = req.character_avatars
+    if req.visual_style:
+        project["visual_style"] = req.visual_style
+
     project["status"] = "starting"
     project["error"] = None
-    project["outputs"] = []
     total = len(project.get("scenes", []))
     project["agent_status"] = {"current_scene": 0, "total_scenes": total, "phase": "starting"}
     _add_milestone(project, "production_started", f"Produção iniciada — {total} cenas")
@@ -868,14 +984,251 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
         _add_milestone(project, "avatars_linked", f"Avatares vinculados — {len(req.character_avatars)} personagens")
     _save_project(tenant["id"], settings, projects)
 
+    # Use saved character_avatars (merge request + saved)
+    char_avatars = {**project.get("character_avatars", {}), **req.character_avatars}
+
     thread = threading.Thread(
         target=_run_multi_scene_production,
-        args=(tenant["id"], req.project_id, req.character_avatars),
+        args=(tenant["id"], req.project_id, char_avatars),
         daemon=True,
     )
     thread.start()
 
     return {"status": "started", "project_id": req.project_id, "total_scenes": total}
+
+
+# ── Per-Scene Regeneration ──
+
+def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, custom_prompt: str = None):
+    """Regenerate a single scene video using the same pipeline logic."""
+    import time as _time
+    import tempfile
+
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+
+        scenes = project.get("scenes", [])
+        characters = project.get("characters", [])
+        char_avatars = project.get("character_avatars", {})
+        visual_style = project.get("visual_style", "animation")
+        total = len(scenes)
+
+        scene = next((s for s in scenes if s.get("scene_number") == scene_num), None)
+        if not scene:
+            logger.error(f"Studio [{project_id}]: Scene {scene_num} not found for regeneration")
+            return
+
+        _update_scene_status(tenant_id, project_id, scene_num, "directing", total)
+
+        STYLE_PROMPTS = {
+            "animation": "ART STYLE: High-quality 3D animation like Pixar/DreamWorks. Colorful, warm, expressive characters with large eyes. Smooth cinematic camera movements. Rich detailed environments.",
+            "cartoon": "ART STYLE: Vibrant 2D cartoon style. Bold outlines, saturated colors, exaggerated expressions.",
+            "anime": "ART STYLE: Japanese anime style. Detailed backgrounds, expressive eyes, dramatic lighting.",
+            "realistic": "ART STYLE: Cinematic photorealistic live-action. Film grain, natural lighting.",
+            "watercolor": "ART STYLE: Watercolor painting style. Soft edges, pastel tones, dreamy atmosphere.",
+        }
+        style_hint = STYLE_PROMPTS.get(visual_style, STYLE_PROMPTS["animation"])
+
+        briefing = project.get("briefing", "")
+        char_sheet = "\n".join([
+            f"- {ch['name']}: {ch.get('description','')} ({ch.get('age','')}, {ch.get('role','')})"
+            for ch in characters
+        ])
+        all_scenes_summary = "\n".join([
+            f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} - {s.get('description','')}"
+            for i, s in enumerate(scenes)
+        ])
+
+        # Use custom prompt or generate via Claude
+        if custom_prompt:
+            sora_prompt = custom_prompt
+        else:
+            chars_in_scene = scene.get("characters_in_scene", [])
+            scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
+
+            director_system = f"""You are a MASTER SCENE DIRECTOR. Design a richly detailed visual scene for Sora 2.
+{style_hint}
+CHARACTERS: {char_sheet}
+STORY: {all_scenes_summary[:1000]}
+Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words."}}"""
+
+            director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
+Description: {scene.get('description','')}
+Dialogue: {scene.get('dialogue','')}
+Emotion: {scene.get('emotion','')} | Camera: {scene.get('camera','')}
+Characters: {scene_chars}
+Story: {briefing[:300]}"""
+
+            try:
+                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1500)
+                data = _parse_json(result_text) or {}
+                sora_prompt = data.get("sora_prompt", scene.get("description", ""))
+            except Exception as e:
+                logger.warning(f"Studio [{project_id}]: Scene {scene_num} regen director error: {e}")
+                sora_prompt = f"{style_hint} {scene.get('description', '')}"
+
+        # Download avatar if available
+        chars_in_scene = scene.get("characters_in_scene", [])
+        ref_path = None
+        for ch_name in chars_in_scene:
+            url = char_avatars.get(ch_name)
+            if url:
+                try:
+                    full_url = url if not url.startswith("/") else f"{os.environ.get('SUPABASE_URL','')}/storage/v1/object/public{url}"
+                    ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    urllib.request.urlretrieve(full_url, ref_file.name)
+                    ref_path = ref_file.name
+                    break
+                except Exception:
+                    pass
+
+        # Generate video with Sora 2 (3 retries)
+        _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
+
+        from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+        video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
+
+        for attempt in range(3):
+            t_v = _time.time()
+            try:
+                gen_kwargs = {"prompt": sora_prompt[:1000], "model": "sora-2", "size": "1280x720", "duration": 12, "max_wait_time": 600}
+                if ref_path:
+                    gen_kwargs["image_path"] = ref_path
+
+                logger.info(f"Studio [{project_id}]: Regen scene {scene_num} attempt {attempt+1}/3")
+                video_bytes = video_gen.text_to_video(**gen_kwargs)
+                elapsed = _time.time() - t_v
+
+                if video_bytes and len(video_bytes) > 1000:
+                    filename = f"studio/{project_id}_scene_{scene_num}.mp4"
+                    video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
+                    logger.info(f"Studio [{project_id}]: Regen scene {scene_num} DONE ({len(video_bytes)//1024}KB)")
+
+                    # Update project outputs
+                    settings, projects, project = _get_project(tenant_id, project_id)
+                    if project:
+                        outputs = project.get("outputs", [])
+                        # Remove old output for this scene
+                        outputs = [o for o in outputs if o.get("scene_number") != scene_num]
+                        outputs.append({
+                            "id": uuid.uuid4().hex[:8], "type": "video", "url": video_url,
+                            "scene_number": scene_num, "duration": 12,
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        })
+                        project["outputs"] = outputs
+                        _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                        _add_milestone(project, f"regen_scene_{scene_num}", f"Cena {scene_num} regenerada")
+                        _save_project(tenant_id, settings, projects)
+
+                    if ref_path:
+                        try: os.unlink(ref_path)
+                        except OSError: pass
+                    return
+
+                else:
+                    logger.warning(f"Studio [{project_id}]: Regen scene {scene_num} attempt {attempt+1} empty video")
+                    if attempt < 2:
+                        _time.sleep(10)
+                        continue
+
+            except Exception as ve:
+                err_str = str(ve).lower()
+                is_retryable = any(k in err_str for k in ["disconnect", "server", "timeout", "connection"])
+                if is_retryable and attempt < 2:
+                    logger.warning(f"Studio [{project_id}]: Regen scene {scene_num} attempt {attempt+1} error: {ve}. Retrying...")
+                    _time.sleep(15 * (attempt + 1))
+                    continue
+                logger.error(f"Studio [{project_id}]: Regen scene {scene_num} FAILED: {ve}")
+                break
+
+        # All retries failed
+        _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+        if ref_path:
+            try: os.unlink(ref_path)
+            except OSError: pass
+
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: Regen scene {scene_num} error: {e}")
+        _update_scene_status(tenant_id, project_id, scene_num, "error", len(project.get("scenes", [])) if project else 0)
+
+
+@router.post("/projects/{project_id}/regenerate-scene")
+async def regenerate_scene(project_id: str, req: RegenerateSceneRequest, tenant=Depends(get_current_tenant)):
+    """Regenerate a single scene video."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scene = next((s for s in project.get("scenes", []) if s.get("scene_number") == req.scene_number), None)
+    if not scene:
+        raise HTTPException(status_code=404, detail=f"Scene {req.scene_number} not found")
+
+    thread = threading.Thread(
+        target=_regenerate_single_scene,
+        args=(tenant["id"], project_id, req.scene_number, req.custom_prompt),
+        daemon=True,
+    )
+    thread.start()
+
+    return {"status": "started", "scene_number": req.scene_number}
+
+
+@router.post("/projects/{project_id}/save-character-avatars")
+async def save_character_avatars(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Persist character avatar links to the project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project["character_avatars"] = payload.get("character_avatars", {})
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok"}
+
+
+@router.post("/projects/{project_id}/update-visual-style")
+async def update_visual_style(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update visual style for a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project["visual_style"] = payload.get("visual_style", "animation")
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok"}
+
+
+@router.post("/projects/{project_id}/update-language")
+async def update_language(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update language for a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project["language"] = payload.get("language", "pt")
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok"}
+
+
+@router.post("/projects/{project_id}/update-scene")
+async def update_scene(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update a single scene's description, dialogue, etc."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    scene_num = payload.get("scene_number")
+    scenes = project.get("scenes", [])
+    for s in scenes:
+        if s.get("scene_number") == scene_num:
+            for key in ["title", "description", "dialogue", "emotion", "camera", "transition"]:
+                if key in payload:
+                    s[key] = payload[key]
+            break
+    project["scenes"] = scenes
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok"}
 
 
 # ── Image Generation (for scene thumbnails or fallback) ──

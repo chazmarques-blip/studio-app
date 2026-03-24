@@ -1,0 +1,87 @@
+{
+  "summary": "Iteration 97: Testing NEW Studio Features - Language selection, Visual style selection, Character avatar persistence, Per-scene retry/edit buttons. All 20 backend API tests passed (100%). Frontend testing verified all new UI elements including Language selector (PT/EN/ES), Visual Style selector (Animation/Cartoon/Anime/Realistic/Watercolor), per-scene Regenerar/Editar buttons in Step 3 and Step 4, and failed scenes summary with Regenerar buttons.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration97_studio_new_features.py",
+    "/app/test_reports/pytest/pytest_results_iteration97.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "studio.py: StudioProject model has language field with default 'pt' and visual_style field with default 'animation'",
+    "studio.py: STYLE_PROMPTS mapping defines 5 visual styles: animation, cartoon, anime, realistic, watercolor",
+    "studio.py: Sora 2 retry logic has max_retries = 3 with exponential backoff",
+    "studio.py: FFmpeg compression implemented with CRF 28/32 for video concatenation",
+    "studio.py: POST /api/studio/projects/{id}/save-character-avatars persists character_avatars to project",
+    "studio.py: POST /api/studio/projects/{id}/update-visual-style updates visual_style field",
+    "studio.py: POST /api/studio/projects/{id}/update-language updates language field",
+    "studio.py: POST /api/studio/projects/{id}/update-scene updates scene data (title, description, dialogue, emotion, camera, transition)",
+    "studio.py: POST /api/studio/projects/{id}/regenerate-scene starts single scene regeneration with optional custom_prompt",
+    "studio.py: GET /api/studio/projects/{id}/status returns character_avatars, visual_style, language fields",
+    "DirectedStudio.jsx: Language selector (data-testid='project-language-select') with PT/EN/ES options",
+    "DirectedStudio.jsx: Visual Style selector (data-testid='project-visual-style-select') with 5 style options",
+    "DirectedStudio.jsx: Per-scene Regenerar/Editar buttons in Step 3 (data-testid='regen-scene-{n}', 'edit-scene-{n}')",
+    "DirectedStudio.jsx: Per-scene Refazer/Editar buttons in Step 4 (data-testid='result-regen-{n}', 'result-edit-{n}')",
+    "DirectedStudio.jsx: Failed scenes summary with Regenerar buttons (data-testid='failed-regen-{n}')"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration97_studio_new_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "No new seed data created - used existing projects for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All new studio features tested and working: Language selector (PT/EN/ES), Visual Style selector (5 options), Character avatar persistence, Per-scene retry/edit buttons. DirectedStudio is accessed via: Login -> /marketing/studio -> Click 'Estudio' campaign type. Project list shows 41 projects. Per-scene buttons appear in Step 3 (Production) and Step 4 (Results) views. Failed scenes summary shows at bottom of Step 4 with individual Regenerar buttons.",
+  "features_tested": {
+    "backend_api_tests": {
+      "POST /api/studio/projects (language=pt)": "PASS - Creates project with language='pt'",
+      "POST /api/studio/projects (language=en)": "PASS - Creates project with language='en'",
+      "POST /api/studio/projects (language=es)": "PASS - Creates project with language='es'",
+      "POST /api/studio/projects (all visual styles)": "PASS - Creates projects with animation/cartoon/anime/realistic/watercolor",
+      "GET /api/studio/projects/{id}/status (character_avatars)": "PASS - Returns character_avatars field",
+      "GET /api/studio/projects/{id}/status (visual_style)": "PASS - Returns visual_style field",
+      "GET /api/studio/projects/{id}/status (language)": "PASS - Returns language field",
+      "POST /api/studio/projects/{id}/save-character-avatars": "PASS - Persists character avatars",
+      "POST /api/studio/projects/{id}/update-visual-style": "PASS - Updates visual style",
+      "POST /api/studio/projects/{id}/update-language": "PASS - Updates language",
+      "POST /api/studio/projects/{id}/update-scene": "PASS - Endpoint exists and accepts scene data",
+      "POST /api/studio/projects/{id}/regenerate-scene": "PASS - Endpoint exists and starts regeneration",
+      "POST /api/studio/start-production (character_avatars)": "PASS - Accepts character_avatars field",
+      "GET /api/studio/projects": "PASS - Returns project list",
+      "StudioProject model language field": "PASS - Code review verified",
+      "StudioProject model visual_style field": "PASS - Code review verified",
+      "Sora 2 retry logic (3 attempts)": "PASS - Code review verified max_retries=3",
+      "FFmpeg compression": "PASS - Code review verified CRF compression",
+      "STYLE_PROMPTS mapping": "PASS - Code review verified 5 styles"
+    },
+    "frontend_ui_tests": {
+      "DirectedStudio component": "PASS - data-testid='directed-studio' found",
+      "Project list (Step 0)": "PASS - data-testid='studio-project-list' found, 41 projects",
+      "New Project button": "PASS - data-testid='new-project-btn' found and clickable",
+      "Language selector": "PASS - data-testid='project-language-select' with PT/EN/ES options",
+      "Visual Style selector": "PASS - data-testid='project-visual-style-select' with 5 options",
+      "Project name input": "PASS - data-testid='new-project-name' found",
+      "Create Project button": "PASS - data-testid='create-project-btn' found",
+      "Per-scene Regenerate buttons (Step 3)": "PASS - 10 buttons found",
+      "Per-scene Edit buttons (Step 3)": "PASS - 10 buttons found",
+      "Per-scene Refazer buttons (Step 4)": "PASS - 10 buttons found",
+      "Per-scene Editar buttons (Step 4)": "PASS - 10 buttons found",
+      "Failed scenes Regenerar buttons": "PASS - 5 buttons found",
+      "Step navigation": "PASS - 5 step buttons found (Roteiro/Personagens/Produção/Resultado)"
+    }
+  }
+}

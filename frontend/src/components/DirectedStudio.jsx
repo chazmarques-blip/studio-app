@@ -35,6 +35,11 @@ export function DirectedStudio({
   const [editingChar, setEditingChar] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', description: '', age: '', role: '' });
   const [showNewProject, setShowNewProject] = useState(false);
+  const [visualStyle, setVisualStyle] = useState('animation');
+  const [projectLang, setProjectLang] = useState('pt');
+  const [regenScene, setRegenScene] = useState(null);
+  const [editingScene, setEditingScene] = useState(null);
+  const [editSceneForm, setEditSceneForm] = useState({});
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState('21m00Tcm4TlvDq8ikWAM');
   const [narrations, setNarrations] = useState([]);
@@ -142,7 +147,9 @@ export function DirectedStudio({
     setCharacters(proj.characters || []);
     setChatMessages(proj.chat_history || []);
     setOutputs(proj.outputs || []);
-    setCharacterAvatars({});
+    setCharacterAvatars(proj.character_avatars || {});
+    setVisualStyle(proj.visual_style || 'animation');
+    setProjectLang(proj.language || 'pt');
     setNarrations(proj.narrations || []);
     setNarrationStatus(proj.narration_status || {});
     setViewingProject(null);
@@ -165,7 +172,12 @@ export function DirectedStudio({
       return;
     }
     try {
-      const res = await axios.post(`${API}/studio/projects`, { name: projectName.trim(), briefing: projectDesc.trim() });
+      const res = await axios.post(`${API}/studio/projects`, {
+        name: projectName.trim(),
+        briefing: projectDesc.trim(),
+        language: projectLang,
+        visual_style: visualStyle,
+      });
       setProjectId(res.data.id);
       setStep(1); setChatMessages([]); setScenes([]); setCharacters([]); setOutputs([]);
       setShowNewProject(false);
@@ -193,6 +205,10 @@ export function DirectedStudio({
         // Update outputs in real-time (partial videos as they complete)
         if (d.outputs?.length > 0) setOutputs(d.outputs);
         if (d.narrations?.length > 0) setNarrations(d.narrations);
+        // Restore persisted data
+        if (d.character_avatars && Object.keys(d.character_avatars).length > 0) setCharacterAvatars(d.character_avatars);
+        if (d.visual_style) setVisualStyle(d.visual_style);
+        if (d.language) setProjectLang(d.language);
 
         if (d.status === 'complete') {
           setOutputs(d.outputs || []);
@@ -333,13 +349,14 @@ export function DirectedStudio({
     setScenes(proj.scenes || []);
     setCharacters(proj.characters || []);
     setOutputs(proj.outputs || []);
+    setCharacterAvatars(proj.character_avatars || {});
     setGenerating(true);
     setStep(3);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: proj.id,
         video_duration: 12,
-        character_avatars: {},
+        character_avatars: proj.character_avatars || {},
       });
       startPolling(proj.id);
       toast.success(lang === 'pt' ? 'Retomando produção...' : 'Resuming production...');
@@ -392,9 +409,52 @@ export function DirectedStudio({
     setTimeout(poll, 2000);
   };
 
-  // Link existing avatars to characters
-  const linkAvatar = (charName, avatarUrl) => {
-    setCharacterAvatars(prev => ({ ...prev, [charName]: avatarUrl }));
+  // Link existing avatars to characters and persist to backend
+  const linkAvatar = async (charName, avatarUrl) => {
+    const newAvatars = { ...characterAvatars, [charName]: avatarUrl };
+    setCharacterAvatars(newAvatars);
+    // Persist to backend
+    if (projectId) {
+      try {
+        await axios.post(`${API}/studio/projects/${projectId}/save-character-avatars`, { character_avatars: newAvatars });
+      } catch (e) { /* silent */ }
+    }
+  };
+
+  // Regenerate a single scene
+  const regenerateScene = async (sceneNum, customPrompt = null) => {
+    setRegenScene(sceneNum);
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/regenerate-scene`, {
+        scene_number: sceneNum,
+        custom_prompt: customPrompt,
+      });
+      toast.success(`Regenerando cena ${sceneNum}...`);
+      startPolling(projectId);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao regenerar');
+    } finally {
+      setRegenScene(null);
+    }
+  };
+
+  // Update a scene's description
+  const saveSceneEdit = async (sceneNum) => {
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/update-scene`, {
+        scene_number: sceneNum,
+        ...editSceneForm,
+      });
+      // Update local state
+      setScenes(prev => prev.map(s =>
+        s.scene_number === sceneNum ? { ...s, ...editSceneForm } : s
+      ));
+      setEditingScene(null);
+      setEditSceneForm({});
+      toast.success('Cena atualizada!');
+    } catch (err) {
+      toast.error('Erro ao salvar cena');
+    }
   };
 
   // Start multi-scene production
@@ -402,12 +462,12 @@ export function DirectedStudio({
     if (!projectId || scenes.length === 0) return;
     setGenerating(true);
     setStep(3);
-    setOutputs([]);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
         video_duration: 12,
         character_avatars: characterAvatars,
+        visual_style: visualStyle,
       });
       startPolling(projectId);
     } catch (err) {
@@ -596,6 +656,35 @@ export function DirectedStudio({
                 data-testid="new-project-desc"
                 rows={2}
                 className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-[10px] text-white outline-none focus:border-[#C9A84C]/50 placeholder-[#555] resize-none" />
+              {/* Language + Visual Style selectors */}
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
+                    {lang === 'pt' ? 'Idioma' : 'Language'}
+                  </label>
+                  <select value={projectLang} onChange={e => setProjectLang(e.target.value)}
+                    data-testid="project-language-select"
+                    className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50">
+                    <option value="pt">Portugu&ecirc;s</option>
+                    <option value="en">English</option>
+                    <option value="es">Espa&ntilde;ol</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
+                    {lang === 'pt' ? 'Estilo Visual' : 'Visual Style'}
+                  </label>
+                  <select value={visualStyle} onChange={e => setVisualStyle(e.target.value)}
+                    data-testid="project-visual-style-select"
+                    className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50">
+                    <option value="animation">Anima&ccedil;&atilde;o 3D (Pixar)</option>
+                    <option value="cartoon">Cartoon 2D</option>
+                    <option value="anime">Anime</option>
+                    <option value="realistic">Cinematogr&aacute;fico</option>
+                    <option value="watercolor">Aquarela</option>
+                  </select>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <button onClick={() => { setShowNewProject(false); setProjectName(''); setProjectDesc(''); }}
                   className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
@@ -1164,6 +1253,62 @@ export function DirectedStudio({
                         className="w-full max-h-[120px] object-contain" />
                     </div>
                   )}
+                  {/* Per-scene action buttons: Retry + Edit */}
+                  {(videoError || videoDone) && !generating && (
+                    <div className="mt-1.5 flex gap-1">
+                      <button
+                        onClick={() => regenerateScene(sceneNum)}
+                        disabled={regenScene === sceneNum}
+                        data-testid={`regen-scene-${sceneNum}`}
+                        className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[8px] font-medium transition ${
+                          videoError
+                            ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
+                            : 'bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#C9A84C]/30'
+                        } ${regenScene === sceneNum ? 'opacity-50' : ''}`}>
+                        <RefreshCw size={8} className={regenScene === sceneNum ? 'animate-spin' : ''} />
+                        {regenScene === sceneNum ? (lang === 'pt' ? 'Regenerando...' : 'Regenerating...') : (lang === 'pt' ? 'Regenerar' : 'Retry')}
+                      </button>
+                      <button
+                        onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }}
+                        data-testid={`edit-scene-${sceneNum}`}
+                        className="flex items-center gap-1 rounded-md py-1 px-2 text-[8px] bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                        <Edit3 size={8} />
+                        {lang === 'pt' ? 'Editar' : 'Edit'}
+                      </button>
+                    </div>
+                  )}
+                  {/* Scene edit form (inline) */}
+                  {editingScene === sceneNum && (
+                    <div className="mt-2 space-y-1.5 p-2 rounded-lg bg-[#0A0A0A] border border-[#C9A84C]/20">
+                      <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Título da cena" className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
+                      <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Descrição visual da cena" rows={2}
+                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none resize-none" />
+                      <textarea value={editSceneForm.dialogue || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, dialogue: e.target.value }))}
+                        placeholder="Diálogo/Narração" rows={2}
+                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none resize-none" />
+                      <div className="flex gap-1">
+                        <input value={editSceneForm.emotion || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, emotion: e.target.value }))}
+                          placeholder="Emoção" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
+                        <input value={editSceneForm.camera || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, camera: e.target.value }))}
+                          placeholder="Câmera" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[8px] text-[#999] hover:text-white">
+                          {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                        </button>
+                        <button onClick={() => saveSceneEdit(sceneNum)}
+                          className="flex-1 btn-gold rounded py-1 text-[8px] font-semibold">
+                          {lang === 'pt' ? 'Salvar' : 'Save'}
+                        </button>
+                        <button onClick={() => { saveSceneEdit(sceneNum); setTimeout(() => regenerateScene(sceneNum), 500); }}
+                          className="flex-1 rounded py-1 text-[8px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/30">
+                          {lang === 'pt' ? 'Salvar & Regenerar' : 'Save & Regen'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1213,24 +1358,79 @@ export function DirectedStudio({
             </div>
           )}
 
-          {outputs.map((out, i) => (
+          {outputs.map((out, i) => {
+            const sceneState = (agentStatus.scene_status || {})[String(out.scene_number)] || '';
+            const isRegenerating = regenScene === out.scene_number;
+            return (
             <div key={out.id || i} className="rounded-lg overflow-hidden border border-white/5">
               {out.type === 'video' && out.url && (
                 <div className="relative bg-black">
                   <video controls autoPlay={i === 0} className="w-full rounded-lg" data-testid={`result-video-${i}`} src={out.url} />
                   <span className="absolute top-1.5 left-1.5 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
-                    {out.label === 'complete' ? `🎬 FILME COMPLETO (${out.duration}s)` : `CENA ${out.scene_number}`}
+                    {out.label === 'complete' ? `FILME COMPLETO (${out.duration}s)` : `CENA ${out.scene_number}`}
                   </span>
                 </div>
               )}
               <div className="p-1.5 flex items-center justify-between">
                 <span className="text-[8px] text-[#666]">{out.label === 'complete' ? 'Todas as cenas' : `Cena ${out.scene_number} • 12s`}</span>
-                <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[8px] font-semibold flex items-center gap-1">
-                  <Download size={10} /> Download
-                </a>
+                <div className="flex gap-1 items-center">
+                  {out.scene_number && out.label !== 'complete' && (
+                    <>
+                      <button onClick={() => { setEditingScene(out.scene_number); const sc = scenes.find(s => s.scene_number === out.scene_number); setEditSceneForm({ title: sc?.title, description: sc?.description, dialogue: sc?.dialogue, emotion: sc?.emotion, camera: sc?.camera }); }}
+                        data-testid={`result-edit-${out.scene_number}`}
+                        className="rounded px-2 py-1 text-[8px] bg-[#111] border border-[#333] text-[#888] hover:text-white transition flex items-center gap-0.5">
+                        <Edit3 size={8} /> {lang === 'pt' ? 'Editar' : 'Edit'}
+                      </button>
+                      <button onClick={() => regenerateScene(out.scene_number)} disabled={isRegenerating}
+                        data-testid={`result-regen-${out.scene_number}`}
+                        className="rounded px-2 py-1 text-[8px] bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 transition flex items-center gap-0.5 disabled:opacity-50">
+                        <RefreshCw size={8} className={isRegenerating ? 'animate-spin' : ''} /> {lang === 'pt' ? 'Refazer' : 'Redo'}
+                      </button>
+                    </>
+                  )}
+                  <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[8px] font-semibold flex items-center gap-1">
+                    <Download size={10} /> Download
+                  </a>
+                </div>
               </div>
+              {/* Inline edit for this scene in results */}
+              {editingScene === out.scene_number && (
+                <div className="p-2 space-y-1.5 bg-[#0A0A0A] border-t border-[#C9A84C]/20">
+                  <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Título" className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
+                  <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Descrição visual" rows={2} className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none resize-none" />
+                  <div className="flex gap-1">
+                    <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[8px] text-[#999]">{lang === 'pt' ? 'Cancelar' : 'Cancel'}</button>
+                    <button onClick={() => saveSceneEdit(out.scene_number)} className="flex-1 btn-gold rounded py-1 text-[8px] font-semibold">{lang === 'pt' ? 'Salvar' : 'Save'}</button>
+                    <button onClick={() => { saveSceneEdit(out.scene_number); setTimeout(() => regenerateScene(out.scene_number), 500); }}
+                      className="flex-1 rounded py-1 text-[8px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C]">{lang === 'pt' ? 'Salvar & Refazer' : 'Save & Redo'}</button>
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
+
+          {/* Show failed scenes summary */}
+          {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).length > 0 && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 space-y-2">
+              <p className="text-[9px] font-semibold text-red-400">
+                {lang === 'pt' ? 'Cenas que falharam:' : 'Failed scenes:'}
+              </p>
+              {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).map(s => (
+                <div key={s.scene_number} className="flex items-center gap-2">
+                  <span className="text-[8px] text-red-300 flex-1">Cena {s.scene_number}: {s.title}</span>
+                  <button onClick={() => regenerateScene(s.scene_number)} disabled={regenScene === s.scene_number}
+                    data-testid={`failed-regen-${s.scene_number}`}
+                    className="rounded px-2 py-0.5 text-[7px] bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50">
+                    <RefreshCw size={7} className={regenScene === s.scene_number ? 'animate-spin' : ''} />
+                    {lang === 'pt' ? 'Regenerar' : 'Retry'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <button onClick={() => {
