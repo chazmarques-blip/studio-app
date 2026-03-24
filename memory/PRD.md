@@ -26,65 +26,53 @@ A comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allow
 - Google Calendar/Sheets integration in Agent Config
 
 ### Directed Studio Mode — Pipeline v5 (DONE - 2026-03-24)
-- **Pipeline v5 (Pre-Production Intelligence)**:
-  - NEW: Pre-production phase with Claude Vision avatar analysis
-  - NEW: Production Design Document (ONE Claude call for style, locations, continuity, music, voice)
-  - NEW: Composite avatar images for multi-character scenes
-  - PHASE A: Scene Directors use Production Design Bible for canonical character descriptions
-  - PHASE B: Sora 2 queue with 5 concurrent slots + composite avatar reference
-  - FFmpeg concat + compression
-- Per-scene retry, edit, visual style selection
-- Character avatar persistence with auto-resize to video dimensions
-- Screenwriter enforces character type (animal/human) from briefing
+- **Pre-Production Intelligence** (2 Claude calls total):
+  - Avatar Analyzer: Claude Vision analyzes ALL character avatars in ONE call → canonical descriptions
+  - Production Designer: ONE call → style_anchors, character_bible, location_bible, scene_directions, color_palette, music_plan, voice_plan
+  - Composite avatar images for multi-character scenes (Pillow collage)
+- **Preview Board** (NEW - 2026-03-24):
+  - `POST /api/studio/projects/{id}/generate-preview` — runs pre-production in background
+  - `GET /api/studio/projects/{id}/preview` — returns production design document
+  - Visual frontend component showing: style anchors, color palette, character bible with avatar comparison, locations, scene flow timeline, music plan, voice direction
+  - "Approve & Produce" or "Regenerate Preview" options
+  - Pipeline automatically skips pre-production if preview was already approved
+- **Scene Directors**: Use Production Design Bible for canonical character descriptions (40% token reduction)
+- **Sora 2**: Composite avatar reference images, 5 concurrent slots, auto-resize
+- **Screenwriter**: Enforces character type (animal/human) from briefing
+- **Post-Production**: FFmpeg concat + compression
 
-### Previous Pipeline Versions
-- **v4**: Decoupled parallel directors + queued Sora renders
-- **v3**: Per-scene parallel teams
-- **v2**: Batched pipeline
-- **v1**: Sequential pipeline
-
-## Pipeline v5 Architecture
+### Pipeline v5 Architecture
 ```
-PRE-PRODUCTION (2 Claude calls):
-├─ Avatar Analyzer (Claude Vision) — ONE call, all avatars → canonical descriptions
-└─ Production Designer (Claude) — ONE call → style_anchors, character_bible, location_bible, 
-                                              scene_directions, color_palette, music_plan, voice_plan
+USER ACTION: "Preview Design" button
+├─ POST /generate-preview (background)
+│  ├─ Avatar Analyzer (Claude Vision) — 1 call
+│  └─ Production Designer (Claude) — 1 call
+└─ GET /preview → PreviewBoard component
 
-PHASE A (Directors — N parallel calls, token-efficient):
-├─ Scene Director 1 (uses PD bible) ─┐
-├─ Scene Director 2 (uses PD bible) ─┤  ALL PARALLEL → N Sora prompts
-└─ Scene Director N (uses PD bible) ─┘
-
-PHASE B (Sora 2 — 5 concurrent slots):
-├─ Sora Queue → [1..5] → [6..10] → [11..15]
-└─ Each scene gets COMPOSITE avatar image (collage of all characters)
-
-POST-PRODUCTION:
-└─ FFmpeg concat + compression → Final upload
+USER ACTION: "Approve & Produce" button  
+├─ Pipeline detects existing production_design → SKIPS pre-production
+├─ PHASE A: N Scene Directors (parallel, PD-guided, token-efficient)
+├─ PHASE B: Sora 2 queue (5 concurrent)
+└─ POST-PRODUCTION: FFmpeg concat + compress + upload
 ```
-
-## Token Optimization (v5 vs v4)
-- v4: ~30,000 input tokens (N×2000 per director + music call)
-- v5: ~18,000 input tokens (2×3000 pre-prod + N×800 per director) — ~40% reduction
-- Music planning absorbed into Production Design (saves 1 Claude call)
 
 ## Pending Issues
 - **P1**: FFmpeg disappears on container restarts (auto-install workaround in place)
 - **P1**: Supabase 413 Payload Too Large for large final videos (compression workaround)
 
 ## Upcoming Tasks
-- **P0**: Run a full production test with the new Pipeline v5 to verify continuity improvements
+- **P0**: Run a full production test with Pipeline v5 + Preview Board to verify continuity improvements
 - **P1**: Add Quality Supervisor agent (optional review of all prompts before Sora 2)
 - **P2**: Phase 8 Omnichannel Integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
 - **P3**: Admin Management System & Stripe payment
 - **P4**: Refactor PipelineView.jsx (3000+ lines)
 
 ## Key Files
-- `/app/backend/routers/studio.py` — Core pipeline logic, pre-production, scene direction
+- `/app/backend/routers/studio.py` — Core pipeline logic, pre-production, preview endpoints, scene direction
 - `/app/backend/core/llm.py` — All AI client integrations
-- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI
+- `/app/frontend/src/components/PreviewBoard.jsx` — Production Design visual review component
+- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI with Preview Board integration
 - `/app/frontend/src/components/StudioProductionBanner.jsx` — Production progress banner
-- `/app/frontend/src/components/PipelineView.jsx` — Pipeline visualization
 
 ## Credentials
 - Test: test@agentflow.com / password123
