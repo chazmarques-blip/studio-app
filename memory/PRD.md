@@ -1,48 +1,52 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for managing AI-powered chatbot agents on social media channels with an integrated AI Marketing Studio and Directed Video Production Studio.
+Mobile-first SaaS platform "AgentZZ" for managing AI chatbot agents + Directed Video Production Studio.
 
 ## Tech Stack
-- Frontend: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts, Lucide Icons
-- Backend: FastAPI (Python)
-- Database: Supabase (PostgreSQL) — tenants.settings JSONB
-- AI: Claude Sonnet 4.5 (3x retry), Sora 2 (video gen with avatar image_path), Gemini (image gen)
+- Frontend: React, Tailwind CSS, shadcn-ui, Lucide Icons
+- Backend: FastAPI (Python), Supabase (PostgreSQL)
+- AI: Claude Sonnet (Scene Director), Sora 2 (video gen), Gemini (image gen)
 - Voice: ElevenLabs (24 voices, eleven_multilingual_v2)
-- Video: FFmpeg for multi-scene concatenation
+- Video: FFmpeg for concatenation
 
-## Completed Features
-- Landing, Auth, Onboarding, Dashboard, Agent Management, CRM, Google Integration, Avatar Generator, Settings
-- Marketing AI Studio (auto pipeline: image, video, carousel, avatar)
-- **Directed Studio v2**:
-  - Step 0: Project Management — create/resume/list/DELETE projects with milestones
-  - Step 1: Interactive Screenwriter — background + polling, 3x retry
-  - Step 2: Characters & Avatars — edit, copy prompt, AI edit, create + **Voice Narration (ElevenLabs)** with 24-voice selector
-  - Step 3: Multi-Scene Production — **parallel video generation (3 at a time via ThreadPoolExecutor)**, segmented progress bar, **real-time scene video preview**, time estimation
-  - Step 4: Results — watch/download complete film + individual scenes
-  - **Background Production** — StudioProductionContext persists polling across all pages + floating StudioProductionBanner with progress/minimize/navigate
-  - Resume production button for error/incomplete projects
-  - Delete projects from UI
+## Directed Studio v3 Pipeline Architecture
+```
+Per-scene parallel teams (not sequential phases):
+┌─ Scene 1: SceneDirector(Claude) → Sora 2 ─┐
+├─ Scene 2: SceneDirector(Claude) → Sora 2 ─┤  ALL SIMULTANEOUS
+├─ Scene N: SceneDirector(Claude) → Sora 2 ─┤  (Sora max 5 concurrent)
+└─ MusicDirector (1 global call)             ┘
+→ FFmpeg concat → Complete
+```
+
+### Optimizations Applied:
+- 3 agents merged into 1 "Scene Director" (1 Claude call not 3)
+- Video gen starts per-scene as soon as prompt ready
+- Avatars cached once globally (not per scene)
+- Sora 2 rate-limited by threading.Semaphore(5)
+- Per-scene status: queued → directing → waiting_sora → generating_video → done/error
+- Real-time video preview per scene
+- Background production with global banner across all pages
+- Estimated time: ~8-9min regardless of scene count (limited by Sora 2)
 
 ## Key API Endpoints
 - POST/GET/DELETE /api/studio/projects
-- POST /api/studio/chat — Screenwriter (background)
-- GET /api/studio/projects/{id}/status — Poll with scene_status + milestones + narrations
-- POST /api/studio/start-production — with character_avatars (parallel 3x)
-- POST /api/studio/projects/{id}/generate-narration — ElevenLabs narration (background)
+- POST /api/studio/chat (background screenwriter)
+- GET /api/studio/projects/{id}/status (poll with per-scene status)
+- POST /api/studio/start-production (launches parallel teams)
+- POST /api/studio/projects/{id}/generate-narration (ElevenLabs)
 - GET /api/studio/projects/{id}/narrations
-- GET /api/studio/voices — 24 ElevenLabs voices
-- GET /api/google/connect — Dynamic redirect_uri OAuth
+- GET /api/studio/voices (24 voices)
 
 ## Upcoming
-- Merge narration audio with final video output (FFmpeg audio overlay)
-- Voice preview/sample playback before selecting
-- Story templates for quick screenwriter start
+- Merge narration audio with video (FFmpeg overlay)
+- Voice preview before selecting
+- Story templates
 
 ## Future
 - Phase 8: Omnichannel (WhatsApp, Telegram, etc.)
-- Admin System
-- Stripe payments
+- Admin System & Stripe payments
 - Refactor PipelineView.jsx (3000+ lines)
 
 ## Test Credentials
