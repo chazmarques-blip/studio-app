@@ -869,20 +869,35 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             logger.info(f"Studio [{project_id}]: Resuming — {len(completed_videos)} scenes already cached: {sorted(completed_videos.keys())}")
 
         # ══ PRE-PRODUCTION: Avatar Analysis + Production Design Document ══
-        _update_project_field(tenant_id, project_id, {
-            "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production",
-                             "scene_status": {str(i+1): "queued" for i in range(total)}}
-        })
-        logger.info(f"Studio [{project_id}]: PRE-PRODUCTION — Analyzing avatars and building production design")
+        # Check if pre-production was already done via Preview Board
+        existing_pd = project.get("agents_output", {}).get("production_design")
+        existing_ad = project.get("agents_output", {}).get("avatar_descriptions")
 
-        # Step 1: Analyze avatars with Claude Vision (ONE call for all avatars)
-        avatar_descriptions = _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
+        if existing_pd and isinstance(existing_pd, dict) and existing_pd.get("character_bible"):
+            logger.info(f"Studio [{project_id}]: PRE-PRODUCTION already done via Preview Board — skipping")
+            production_design = existing_pd
+            avatar_descriptions = existing_ad or {}
+        else:
+            _update_project_field(tenant_id, project_id, {
+                "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production",
+                                 "scene_status": {str(i+1): "queued" for i in range(total)}}
+            })
+            logger.info(f"Studio [{project_id}]: PRE-PRODUCTION — Analyzing avatars and building production design")
 
-        # Step 2: Build Production Design Document (ONE call — replaces music, style, location, continuity planning)
-        production_design = _build_production_design(
-            briefing, characters, scenes, avatar_descriptions, visual_style,
-            project.get("language", "pt"), project_id
-        )
+            # Step 1: Analyze avatars with Claude Vision (ONE call for all avatars)
+            avatar_descriptions = _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
+
+            # Step 2: Build Production Design Document (ONE call — replaces music, style, location, continuity planning)
+            production_design = _build_production_design(
+                briefing, characters, scenes, avatar_descriptions, visual_style,
+                project.get("language", "pt"), project_id
+            )
+
+            _update_project_field(tenant_id, project_id, {
+                "agents_output": {**project.get("agents_output", {}),
+                                  "production_design": production_design,
+                                  "avatar_descriptions": avatar_descriptions},
+            })
 
         # Extract production design elements for efficient access by directors
         pd_style = production_design.get("style_anchors", style_hint)
@@ -895,12 +910,10 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         t_preproduction = _time.time() - t_start
         logger.info(f"Studio [{project_id}]: PRE-PRODUCTION complete in {t_preproduction:.1f}s — {len(pd_chars)} characters, {len(pd_locations)} locations")
 
+        _add_milestone(project, "preproduction_done", f"Pré-produção — {t_preproduction:.0f}s")
         _update_project_field(tenant_id, project_id, {
             "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production_done",
-                             "scene_status": {str(i+1): "queued" for i in range(total)}},
-            "agents_output": {**project.get("agents_output", {}),
-                              "production_design": production_design,
-                              "avatar_descriptions": avatar_descriptions},
+                             "scene_status": {str(i+1): "queued" for i in range(total)}}
         })
 
         # ── Rate limiter for Sora 2 ──
@@ -1587,6 +1600,109 @@ async def update_scene(project_id: str, payload: dict = Body(...), tenant=Depend
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     _save_project(tenant["id"], settings, projects)
     return {"status": "ok"}
+
+
+# ── Production Preview (Pre-Production Only) ──
+
+def _generate_preview_task(tenant_id, project_id):
+    """Background task: runs ONLY avatar analysis + production design."""
+    import time as _time
+    import tempfile
+    t0 = _time.time()
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+
+        characters = project.get("characters", [])
+        scenes = project.get("scenes", [])
+        char_avatars = project.get("character_avatars", {})
+        visual_style = project.get("visual_style", "animation")
+        briefing = project.get("briefing", "")
+
+        # Download avatars
+        avatar_cache = {}
+        for name, url in char_avatars.items():
+            if url and url not in avatar_cache:
+                try:
+                    full_url = url if not url.startswith("/") else f"{os.environ.get('SUPABASE_URL','')}/storage/v1/object/public{url}"
+                    ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    urllib.request.urlretrieve(full_url, ref_file.name)
+                    avatar_cache[url] = ref_file.name
+                except Exception:
+                    avatar_cache[url] = None
+
+        # Step 1: Avatar analysis with Claude Vision
+        avatar_descriptions = _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
+
+        # Step 2: Production Design Document
+        production_design = _build_production_design(
+            briefing, characters, scenes, avatar_descriptions, visual_style,
+            project.get("language", "pt"), project_id
+        )
+
+        # Cleanup
+        for p in avatar_cache.values():
+            if p:
+                try: os.unlink(p)
+                except OSError: pass
+
+        # Save
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project:
+            project["agents_output"] = {
+                **project.get("agents_output", {}),
+                "production_design": production_design,
+                "avatar_descriptions": avatar_descriptions,
+            }
+            project["preview_status"] = "complete"
+            project["preview_time"] = round(_time.time() - t0, 1)
+            _save_project(tenant_id, settings, projects)
+            logger.info(f"Studio [{project_id}]: Preview generated in {project['preview_time']}s")
+
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: Preview generation failed: {e}")
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project:
+            project["preview_status"] = "error"
+            project["preview_error"] = str(e)
+            _save_project(tenant_id, settings, projects)
+
+
+@router.post("/projects/{project_id}/generate-preview")
+async def generate_production_preview(project_id: str, tenant=Depends(get_current_tenant)):
+    """Start pre-production preview: avatar analysis + production design document."""
+    tenant_id = tenant["id"]
+    settings, projects, project = _get_project(tenant_id, project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if not project.get("scenes"):
+        raise HTTPException(400, "No scenes available")
+
+    project["preview_status"] = "generating"
+    _save_project(tenant_id, settings, projects)
+
+    thread = threading.Thread(target=_generate_preview_task, args=(tenant_id, project_id), daemon=True)
+    thread.start()
+
+    return {"status": "generating", "message": "Pre-production preview started"}
+
+
+@router.get("/projects/{project_id}/preview")
+async def get_production_preview(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get pre-production preview data (production design document)."""
+    tenant_id = tenant["id"]
+    settings, projects, project = _get_project(tenant_id, project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    agents_output = project.get("agents_output", {})
+    return {
+        "preview_status": project.get("preview_status", "none"),
+        "preview_time": project.get("preview_time"),
+        "production_design": agents_output.get("production_design"),
+        "avatar_descriptions": agents_output.get("avatar_descriptions"),
+    }
 
 
 # ── Image Generation (for scene thumbnails or fallback) ──

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
+import { PreviewBoard } from './PreviewBoard';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -48,6 +49,9 @@ export function DirectedStudio({
   const [analyticsData, setAnalyticsData] = useState(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -160,6 +164,15 @@ export function DirectedStudio({
       setStep(4); setOutputs(proj.outputs);
     } else if ((proj.scenes || []).length > 0) {
       setStep(2);
+      // Load existing preview if available
+      const existingPD = proj.agents_output?.production_design;
+      if (existingPD && existingPD.character_bible) {
+        setPreviewData({
+          production_design: existingPD,
+          avatar_descriptions: proj.agents_output?.avatar_descriptions,
+          preview_time: proj.preview_time,
+        });
+      }
     } else {
       setStep(1);
     }
@@ -476,6 +489,46 @@ export function DirectedStudio({
     } catch (err) {
       toast.error('Erro ao salvar cena');
     }
+  };
+
+  // Generate production preview (pre-production only)
+  const generatePreview = async () => {
+    if (!projectId || scenes.length === 0) return;
+    setPreviewLoading(true);
+    setPreviewData(null);
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/generate-preview`);
+      // Poll for preview completion
+      const pollPreview = () => {
+        axios.get(`${API}/studio/projects/${projectId}/preview`).then(r => {
+          const d = r.data;
+          if (d.preview_status === 'complete') {
+            setPreviewData(d);
+            setPreviewLoading(false);
+            setShowPreview(true);
+            toast.success(lang === 'pt' ? 'Design de produção pronto!' : 'Production design ready!');
+          } else if (d.preview_status === 'error') {
+            setPreviewLoading(false);
+            toast.error(lang === 'pt' ? 'Erro ao gerar preview' : 'Preview generation failed');
+          } else {
+            setTimeout(pollPreview, 2000);
+          }
+        }).catch(() => {
+          setPreviewLoading(false);
+          toast.error(lang === 'pt' ? 'Erro ao verificar preview' : 'Preview check failed');
+        });
+      };
+      setTimeout(pollPreview, 3000);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Preview failed');
+      setPreviewLoading(false);
+    }
+  };
+
+  // Approve preview and start production
+  const approveAndProduce = async () => {
+    setShowPreview(false);
+    startProduction();
   };
 
   // Start multi-scene production
@@ -1148,16 +1201,46 @@ export function DirectedStudio({
             )}
           </div>
 
-          <div className="flex gap-2">
-            <button onClick={() => setStep(1)} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
-              ← {lang === 'pt' ? 'Roteiro' : 'Script'}
-            </button>
-            <button onClick={startProduction} disabled={generating || scenes.length === 0}
-              data-testid="start-production-btn"
-              className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
-              <Clapperboard size={12} /> {lang === 'pt' ? `Produzir ${scenes.length} Cenas` : `Produce ${scenes.length} Scenes`}
-            </button>
-          </div>
+          {/* ── Preview Board (when preview is generated) ── */}
+          {showPreview && previewData?.production_design && (
+            <div className="border-t border-[#222] pt-3">
+              <PreviewBoard
+                productionDesign={previewData.production_design}
+                avatarDescriptions={previewData.avatar_descriptions}
+                characters={characters}
+                characterAvatars={characterAvatars}
+                scenes={scenes}
+                lang={lang}
+                previewTime={previewData.preview_time}
+                onApprove={approveAndProduce}
+                onRegenerate={generatePreview}
+                regenerating={previewLoading}
+              />
+            </div>
+          )}
+
+          {/* Action buttons — only show when preview is NOT open */}
+          {!showPreview && (
+            <div className="flex gap-2">
+              <button onClick={() => setStep(1)} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
+                ← {lang === 'pt' ? 'Roteiro' : 'Script'}
+              </button>
+              <button onClick={generatePreview} disabled={generating || previewLoading || scenes.length === 0}
+                data-testid="preview-production-btn"
+                className="flex-1 rounded-lg border border-[#C9A84C]/30 bg-[#C9A84C]/5 py-2 text-[10px] font-semibold text-[#C9A84C] hover:bg-[#C9A84C]/10 transition disabled:opacity-30 flex items-center justify-center gap-1">
+                {previewLoading ? <RefreshCw size={10} className="animate-spin" /> : <Eye size={12} />}
+                {previewLoading
+                  ? (lang === 'pt' ? 'Gerando preview...' : 'Generating preview...')
+                  : (lang === 'pt' ? 'Preview Design' : 'Preview Design')
+                }
+              </button>
+              <button onClick={startProduction} disabled={generating || scenes.length === 0}
+                data-testid="start-production-btn"
+                className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
+                <Clapperboard size={12} /> {lang === 'pt' ? `Produzir` : `Produce`}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
