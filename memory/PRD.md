@@ -7,7 +7,17 @@ Build a comprehensive, mobile-first, no-code SaaS platform for managing AI-power
 - **Frontend**: React, Tailwind CSS, shadcn-ui, Framer Motion, recharts
 - **Backend**: FastAPI (Python), ThreadPoolExecutor for parallel processing
 - **Database**: Supabase (PostgreSQL) + MongoDB for flexible-schema features
-- **3rd Party**: Anthropic Claude 3.5 Sonnet, OpenAI Sora 2, ElevenLabs, Gemini, Google APIs
+
+## API Keys Configuration
+| Service | Key Type | Env Var | Status |
+|---|---|---|---|
+| Anthropic (Claude) | DIRECT | ANTHROPIC_API_KEY | Active - No proxy |
+| OpenAI (Sora 2, GPT) | DIRECT | OPENAI_API_KEY | Active - No proxy |
+| Google (Gemini) | DIRECT | GEMINI_API_KEY | Quota exceeded - needs billing |
+| ElevenLabs (Voice) | DIRECT | ELEVENLABS_API_KEY | Active |
+| Supabase (DB/Auth) | DIRECT | SUPABASE_URL + keys | Active |
+| Google OAuth | DIRECT | GOOGLE_CLIENT_ID + SECRET | Active |
+| Emergent (fallback) | PROXY | EMERGENT_LLM_KEY | Backup only |
 
 ## Credentials
 - Email: test@agentflow.com
@@ -19,38 +29,39 @@ Build a comprehensive, mobile-first, no-code SaaS platform for managing AI-power
 - Landing page, Auth (Supabase), Dashboard with recharts
 - Agent Management, Agent Marketplace, Agent Configuration
 - Google Calendar/Sheets integration in Agent Config
-- Multi-language UI (PT/EN/ES)
-- Dark luxury monochrome theme (gold/black/white)
+- Multi-language UI (PT/EN/ES), Dark luxury theme
 
 ### Directed Studio Mode (Pipeline v3)
 - Full parallel multi-agent video production pipeline
 - One AI team per scene (Claude Director → Sora 2) running simultaneously
-- ElevenLabs voice narration integration
-- Global Background Processing UI (StudioProductionContext + floating banner)
-- Real-time video previews per scene as they complete
-- Analytics Dashboard for pipeline performance
+- ElevenLabs voice narration, Global Background Processing UI
+- Real-time video previews per scene, Analytics Dashboard
 
-### Phase 7 (Mar 24, 2026) — Studio Enhancements
-- **Language Selection**: Dropdown (PT/EN/ES) when creating projects
-- **Visual Style Selection**: 5 styles (Animation 3D/Cartoon 2D/Anime/Realistic/Watercolor) 
-- **Character Avatar Persistence**: Avatars saved to project, restored on resume
-- **Per-Scene Regeneration**: API + UI buttons to retry individual failed scenes
-- **Per-Scene Editing**: Edit title/description/dialogue/emotion/camera inline
-- **Enhanced Scene Director Prompt**: Rich environmental/atmospheric/cinematic details
-- **Enhanced Screenwriter Prompt**: World-building with landscape/weather/atmosphere
-- **Sora 2 Retry Logic**: 3 attempts with exponential backoff for disconnects/empty videos
-- **FFmpeg Compression**: Auto-compress concat video if >45MB (CRF 28→32)
-- **Failed Scenes Summary**: Results view shows which scenes failed with retry buttons
+### Mar 24, 2026 — API Migration & Studio Enhancements
+- **MIGRATED**: Claude from Emergent proxy → Anthropic API direct
+- **MIGRATED**: Sora 2 from Emergent proxy → OpenAI API direct
+- **CONFIGURED**: Gemini for direct Google API (needs billing activation)
+- **Language Selection**: PT/EN/ES dropdown at project creation
+- **Visual Style Selection**: Animation 3D / Cartoon 2D / Anime / Realistic / Watercolor
+- **Character Avatar Persistence**: Saved to project, restored on resume
+- **Per-Scene Regeneration**: Retry individual failed scenes via API + UI
+- **Per-Scene Editing**: Edit title/description/dialogue inline
+- **Chunked Screenwriter**: Phase 1 (8 scenes) + Phase 2 (continuation) for reliability
+- **Enhanced Prompts**: Rich environmental/cinematic details in Scene Director
+- **Sora 2 Retry Logic**: 3 attempts with exponential backoff
+- **FFmpeg Compression**: Auto-compress concat video if >45MB
+- **Reset/Retry Chat**: Unstick screenwriter with backend endpoints + UI button
+- **JSON Repair**: Parser handles truncated JSON + markdown code blocks
 
-## Known Issues (P0/P1)
-1. **Supabase 413 Payload Too Large**: Mitigated with FFmpeg compression, but very long videos (20+ scenes) may still exceed limit
-2. **FFmpeg disappears on restart**: Added check before use, but ephemeral container issue persists
-3. **Sora 2 API flakiness**: Mitigated with 3 retries, but budget exhaustion can still halt production
+## Known Issues
+1. Gemini direct key needs billing activation (falls back to Emergent)
+2. Sora 2 DirectSora2Client needs production testing (may need API format adjustments)
+3. FFmpeg disappears on container restart (auto-install check added)
 
 ## Prioritized Backlog
-- P2: Phase 8 Omnichannel Integrations (WhatsApp, SMS, Instagram, Facebook, Telegram)
-- P2: Dubbing in another language (ElevenLabs translation)
-- P2: Subtitle/SRT generation and overlay
-- P3: Admin Management System
-- P3: Stripe payment gateway integration
+- P1: Test full production pipeline with direct API keys
+- P1: Dubbing in another language (ElevenLabs translation)
+- P1: Subtitle/SRT generation and overlay
+- P2: Phase 8 Omnichannel Integrations
+- P3: Admin Management System & Stripe
 - P4: Refactor PipelineView.jsx (3000+ lines)

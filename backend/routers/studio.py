@@ -24,6 +24,69 @@ from pipeline.config import STORAGE_BUCKET, EMERGENT_PROXY_URL, ELEVENLABS_VOICE
 router = APIRouter(prefix="/api/studio", tags=["studio"])
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+
+# ── Direct Sora 2 Client (no proxy) ──
+
+class DirectSora2Client:
+    """Direct OpenAI Sora 2 video generation — bypasses Emergent proxy."""
+
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = "https://api.openai.com/v1"
+        self.headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
+    def text_to_video(self, prompt: str, model: str = "sora-2", size: str = "1280x720",
+                      duration: int = 12, max_wait_time: int = 600, image_path: str = None) -> bytes:
+        import requests
+        import base64
+        import time as _time
+
+        payload = {"model": model, "prompt": prompt, "size": size, "seconds": str(duration)}
+
+        if image_path:
+            with open(image_path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode("utf-8")
+            mime = "image/jpeg" if image_path.endswith(".jpg") else "image/png"
+            payload["reference_image"] = {"data": f"data:{mime};base64,{encoded}"}
+
+        # Start generation
+        resp = requests.post(f"{self.base_url}/videos", headers=self.headers, json=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        op_id = data.get("id") or data.get("operation_id") or data.get("generation_id")
+        if not op_id:
+            raise Exception(f"No operation ID: {data}")
+
+        # Poll for completion
+        start = _time.time()
+        while _time.time() - start < max_wait_time:
+            _time.sleep(10)
+            poll = requests.get(f"{self.base_url}/videos/{op_id}", headers=self.headers, timeout=30)
+            if poll.status_code == 200:
+                pdata = poll.json()
+                status = pdata.get("status", "")
+                if status == "succeeded":
+                    video_url = pdata.get("video", {}).get("url") or pdata.get("url")
+                    if not video_url:
+                        outputs = pdata.get("outputs", [])
+                        if outputs:
+                            video_url = outputs[0].get("url")
+                    if video_url:
+                        vid_resp = requests.get(video_url, timeout=120)
+                        vid_resp.raise_for_status()
+                        return vid_resp.content
+                    raise Exception(f"No video URL in response: {pdata}")
+                elif status == "failed":
+                    raise Exception(f"Sora 2 generation failed: {pdata.get('error', pdata)}")
+
+        raise Exception(f"Sora 2 timeout after {max_wait_time}s")
 
 
 # ── Helpers ──
@@ -75,43 +138,38 @@ def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "im
 
 
 async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via litellm through Emergent proxy (async). 3 retries with timeout."""
-    PROXY_URL = "https://integrations.emergentagent.com/llm"
+    """Call Claude via Anthropic API directly (async). 3 retries with timeout."""
     for attempt in range(3):
         try:
             response = await litellm.acompletion(
-                model="claude-sonnet-4-5-20250929",
+                model="anthropic/claude-sonnet-4-5-20250929",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
                 max_tokens=max_tokens,
-                timeout=60,
+                timeout=120,
                 num_retries=0,
-                api_key=EMERGENT_KEY,
-                api_base=PROXY_URL,
-                custom_llm_provider="openai",
+                api_key=ANTHROPIC_API_KEY,
             )
             return response.choices[0].message.content
         except Exception as e:
-            if attempt < 2 and any(code in str(e) for code in ["502", "503", "529", "timeout", "disconnected"]):
+            if attempt < 2 and any(code in str(e) for code in ["502", "503", "529", "timeout", "disconnected", "overloaded"]):
                 logger.warning(f"Claude async attempt {attempt+1} failed: {e}. Retrying...")
                 await asyncio.sleep(5 * (attempt + 1))
                 continue
             raise
 
 
-def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000, timeout_per_attempt: int = 90) -> str:
-    """Call Claude via litellm through Emergent proxy (sync). 3 retries, no internal OpenAI retries."""
+def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000, timeout_per_attempt: int = 120) -> str:
+    """Call Claude via Anthropic API directly (sync). 3 retries, no proxy."""
     import time as _time
-
-    PROXY_URL = "https://integrations.emergentagent.com/llm"
 
     for attempt in range(3):
         t_start = _time.time()
         try:
             response = litellm.completion(
-                model="claude-sonnet-4-5-20250929",
+                model="anthropic/claude-sonnet-4-5-20250929",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -119,9 +177,7 @@ def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 40
                 max_tokens=max_tokens,
                 timeout=timeout_per_attempt,
                 num_retries=0,
-                api_key=EMERGENT_KEY,
-                api_base=PROXY_URL,
-                custom_llm_provider="openai",
+                api_key=ANTHROPIC_API_KEY,
             )
             text = response.choices[0].message.content
             elapsed = _time.time() - t_start
@@ -718,8 +774,13 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         # ── Rate limiter for Sora 2 ──
         sora_semaphore = threading.Semaphore(5)
 
-        from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
-        video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
+        # Use direct OpenAI key or fall back to Emergent proxy
+        if OPENAI_API_KEY:
+            video_gen = DirectSora2Client(api_key=OPENAI_API_KEY)
+            logger.info(f"Studio [{project_id}]: Using DIRECT OpenAI key for Sora 2")
+        else:
+            from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+            video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
 
         # Track budget state across threads
         budget_exhausted = threading.Event()
@@ -1207,8 +1268,11 @@ Story: {briefing[:300]}"""
         # Generate video with Sora 2 (3 retries)
         _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
 
-        from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
-        video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
+        if OPENAI_API_KEY:
+            video_gen = DirectSora2Client(api_key=OPENAI_API_KEY)
+        else:
+            from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+            video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
 
         for attempt in range(3):
             t_v = _time.time()
@@ -1375,10 +1439,10 @@ async def generate_directed_image(req: StartProductionRequest, tenant=Depends(ge
             pass
 
     response = litellm.completion(
-        model="gemini/gemini-3-pro-image-preview",
+        model="gemini/gemini-2.0-flash",
         messages=[{"role": "user", "content": content}],
-        api_key=EMERGENT_KEY, api_base=EMERGENT_PROXY_URL,
-        custom_llm_provider="openai", modalities=["image", "text"],
+        api_key=GEMINI_API_KEY if GEMINI_API_KEY else EMERGENT_KEY,
+        **({"api_base": "https://integrations.emergentagent.com/llm", "custom_llm_provider": "openai"} if not GEMINI_API_KEY else {}),
     )
     images = []
     if response.choices and response.choices[0].message:
