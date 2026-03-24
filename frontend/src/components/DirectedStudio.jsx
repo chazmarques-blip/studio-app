@@ -1561,6 +1561,18 @@ export function DirectedStudio({
             }} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
               ← {lang === 'pt' ? 'Projectos' : 'Projects'}
             </button>
+            {previewData?.production_design && (
+              <button onClick={() => { setStep(2); setShowPreview(true); }}
+                data-testid="view-design-btn"
+                className="flex-1 rounded-lg border border-[#C9A84C]/30 bg-[#C9A84C]/5 py-2 text-[10px] text-[#C9A84C] hover:bg-[#C9A84C]/10 transition flex items-center justify-center gap-1">
+                <Eye size={10} /> {lang === 'pt' ? 'Ver Design' : 'View Design'}
+              </button>
+            )}
+            <button onClick={() => setStep(2)}
+              data-testid="go-to-config-btn"
+              className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold flex items-center justify-center gap-1">
+              <RefreshCw size={10} /> {lang === 'pt' ? 'Re-produzir' : 'Re-produce'}
+            </button>
           </div>
         </div>
       )}

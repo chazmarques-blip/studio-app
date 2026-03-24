@@ -214,9 +214,19 @@ Return ONLY valid JSON: {"Character Name": "Precise 50-word visual description"}
             continue
         try:
             with open(local_path, 'rb') as f:
-                img_b64 = base64.b64encode(f.read()).decode()
+                img_bytes = f.read()
+                img_b64 = base64.b64encode(img_bytes).decode()
+            # Detect MIME type from file content
+            if img_bytes[:3] == b'\xff\xd8\xff':
+                mime = "image/jpeg"
+            elif img_bytes[:8] == b'\x89PNG\r\n\x1a\n':
+                mime = "image/png"
+            elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
+                mime = "image/webp"
+            else:
+                mime = "image/jpeg"  # default fallback
             content_parts.append({"type": "text", "text": f"CHARACTER: {name}"})
-            content_parts.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}})
+            content_parts.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}})
             names_with_images.append(name)
         except Exception as e:
             logger.warning(f"Studio [{project_id}]: Avatar read error for {name}: {e}")
@@ -490,6 +500,18 @@ async def update_characters(project_id: str, payload: dict = Body(...), tenant=D
     _add_milestone(project, "characters_updated", f"Personagens editados — {len(payload.get('characters', []))} personagens")
     _save_project(tenant["id"], settings, projects)
     return {"status": "ok"}
+
+
+@router.put("/projects/{project_id}/character-avatars")
+async def update_character_avatars(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update character avatar URLs for a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project["character_avatars"] = payload.get("character_avatars", {})
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok", "avatars": len(project["character_avatars"])}
 
 
 # ── STEP 1: Screenwriter Chat ──

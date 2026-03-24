@@ -222,6 +222,7 @@ class DirectSora2Client:
 
             if resp.status_code == 400:
                 err_text = resp.text.lower()
+                logger.warning(f"Sora 2: 400 error body: {resp.text[:300]}")
                 if "face" in err_text or "moderation" in err_text or "inpaint" in err_text:
                     logger.warning(f"Sora 2: Image ref rejected ({resp.text[:80]}). Text-only fallback.")
                     resp = requests.post(
