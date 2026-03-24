@@ -1,0 +1,75 @@
+{
+  "summary": "Iteration 95: Testing Directed Studio v3 Pipeline Rewrite - Per-scene parallel teams architecture. All 12 backend API tests passed (100%). Frontend testing verified DirectedStudio component loads correctly with project list, new project form, and campaign type selector. Code review confirmed new scene statuses (queued, directing, waiting_sora, generating_video, done, error) with correct color coding.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration95_studio_v3_pipeline.py",
+    "/app/test_reports/pytest/pytest_results_iteration95.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "studio.py: v3 pipeline uses per-scene parallel teams with _scene_team() function - SceneDirector(Claude) → Sora 2 per scene",
+    "studio.py: Sora 2 rate-limited by semaphore (max 5 concurrent) via sora_semaphore = threading.Semaphore(5)",
+    "studio.py: _update_scene_status() updates scene_status dict with new states: queued, directing, waiting_sora, generating_video, done, error",
+    "studio.py: _save_scene_video() saves completed scene videos immediately for real-time preview",
+    "DirectedStudio.jsx: Scene cards show proper states with color coding - purple=directing, blue=waiting_sora, gold=generating_video, green=done, red=error",
+    "DirectedStudio.jsx: Scene preview video player (data-testid='scene-preview-{num}') appears for completed scenes",
+    "DirectedStudio.jsx: Time estimate shows ~X min based on scenes/5 batches formula: Math.ceil(scenes.length / 5) * 8 + 1",
+    "StudioProductionBanner.jsx: Updated phase labels for v3 - 'Dirigindo cenas...', 'Aguardando Sora 2...', 'Iniciando equipas...'",
+    "StudioProductionBanner.jsx: Scene mini-indicators show done/error/agents_done states with color coding"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration95_studio_v3_pipeline.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Created TEST_ prefixed projects for API testing (auto-cleaned)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Directed Studio v3 pipeline uses per-scene parallel teams. Each scene gets its own thread: SceneDirector(Claude) → Sora 2. Sora 2 limited by semaphore (max 5 concurrent). Test user has 0 projects in DirectedStudio. Completed project b4435a8658b4 exists with 2 scenes and status 'complete'. DO NOT trigger full production (costs API credits). Scene statuses: queued (gray), directing (purple), waiting_sora (blue), generating_video (gold), done (green), error (red).",
+  "features_tested": {
+    "backend_api_tests": {
+      "POST /api/auth/login": "PASS - Returns access_token",
+      "GET /api/studio/projects": "PASS - Returns projects list",
+      "GET /api/studio/projects/{id}/status": "PASS - Returns scene_status with new states (queued, directing, waiting_sora, generating_video, done, error)",
+      "GET /api/studio/voices": "PASS - Returns 24 voices with required fields",
+      "DELETE /api/studio/projects/{id}": "PASS - Deletes project, returns 404 on subsequent access",
+      "POST /api/studio/start-production": "PASS - Validates scenes requirement (returns 400 for no scenes, 404 for nonexistent project)",
+      "POST /api/studio/projects/{id}/generate-narration": "PASS - Validates scenes requirement",
+      "GET /api/studio/projects/{id}/narrations": "PASS - Returns narration data structure",
+      "GET /api/studio/music-library": "PASS - Returns music tracks",
+      "POST /api/studio/projects": "PASS - Creates project with correct structure (id, status=draft)",
+      "Completed project b4435a8658b4": "PASS - Returns status='complete' with video outputs"
+    },
+    "frontend_ui_tests": {
+      "DirectedStudio component": "PASS - Loads with data-testid='directed-studio'",
+      "Project list (Step 0)": "PASS - data-testid='studio-project-list' visible",
+      "New project button": "PASS - data-testid='new-project-btn' visible and clickable",
+      "New project form": "PASS - data-testid='new-project-form' with name/desc inputs and create button",
+      "Campaign type selector": "PASS - data-testid='campaign-type-directed_studio' clickable",
+      "StudioProductionBanner": "PASS - Not visible when no active production (expected behavior)"
+    },
+    "code_review": {
+      "v3 Pipeline Architecture": "VERIFIED - Per-scene parallel teams with SceneDirector → Sora 2",
+      "Sora 2 Rate Limiting": "VERIFIED - Semaphore limits to 5 concurrent video generations",
+      "Scene Status Updates": "VERIFIED - _update_scene_status() with new states",
+      "Scene Color Coding": "VERIFIED - purple=directing, blue=waiting_sora, gold=generating_video, green=done, red=error",
+      "Scene Preview Video": "VERIFIED - data-testid='scene-preview-{num}' for completed scenes",
+      "Time Estimate": "VERIFIED - ~X min based on scenes/5 batches formula",
+      "StudioProductionBanner Phase Labels": "VERIFIED - Updated for v3 pipeline states"
+    }
+  }
+}

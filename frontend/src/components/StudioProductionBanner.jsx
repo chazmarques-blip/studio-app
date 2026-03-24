@@ -32,11 +32,11 @@ export function StudioProductionBanner() {
   const phaseLabel = isComplete ? 'Concluído!'
     : isError ? 'Erro na produção'
     : phase === 'concatenating' ? 'Montando filme...'
-    : phase?.startsWith('generating_video') ? `Sora 2 — ${videosDone}/${totalScenes} vídeos`
-    : phase === 'photography' ? `Agentes — Cena ${agentStatus?.current_scene || 0}/${totalScenes}`
-    : phase === 'music' ? 'Dir. Musical'
-    : phase === 'audio' ? `Dir. Áudio — Cena ${agentStatus?.current_scene || 0}/${totalScenes}`
-    : 'Iniciando...';
+    : phase === 'generating_video' ? `Sora 2 — ${videosDone}/${totalScenes} vídeos`
+    : phase === 'directing' ? `Dirigindo cenas...`
+    : phase === 'waiting_sora' ? 'Aguardando Sora 2...'
+    : phase === 'starting_teams' ? 'Iniciando equipas...'
+    : 'Produzindo...';
 
   if (minimized && isRunning) {
     return (

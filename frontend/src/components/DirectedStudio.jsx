@@ -970,55 +970,57 @@ export function DirectedStudio({
             {scenes.map((s, i) => {
               const sceneNum = s.scene_number || i + 1;
               const ss = agentStatus.scene_status || {};
-              const sceneState = ss[String(sceneNum)] || '';
+              const sceneState = ss[String(sceneNum)] || 'queued';
               const videoDone = sceneState === 'done';
-              const agentsDone = sceneState === 'agents_done' || videoDone;
               const videoError = sceneState === 'error';
-              const isCurrentScene = agentStatus.current_scene === sceneNum;
-              const isProcessing = isCurrentScene && ['photography', 'music', 'audio'].includes(agentStatus.phase);
-              const isVideoGen = isCurrentScene && agentStatus.phase?.startsWith('generating_video') && !videoDone;
+              const isDirecting = sceneState === 'directing';
+              const isWaiting = sceneState === 'waiting_sora';
+              const isVideoGen = sceneState === 'generating_video';
+              const isActive = isDirecting || isWaiting || isVideoGen;
 
               // Find the video output for this scene
               const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
 
-              // Time bar for each scene
-              const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 60 : isProcessing ? 30 : agentsDone ? 50 : 0;
-              const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isProcessing || isVideoGen ? 'bg-[#C9A84C]' : agentsDone ? 'bg-blue-500' : 'bg-[#222]';
+              // Progress per state
+              const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 65 : isWaiting ? 40 : isDirecting ? 20 : 0;
+              const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isVideoGen ? 'bg-[#C9A84C]' : isWaiting ? 'bg-blue-400' : isDirecting ? 'bg-purple-400' : 'bg-[#222]';
 
               return (
                 <div key={i} className={`rounded-lg border px-2.5 py-1.5 transition-all ${
-                  isProcessing ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5' :
+                  isVideoGen ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5' :
+                  isDirecting ? 'border-purple-500/20 bg-purple-500/5' :
+                  isWaiting ? 'border-blue-500/20 bg-blue-500/5' :
                   videoDone ? 'border-emerald-500/20 bg-emerald-500/5' :
                   videoError ? 'border-red-500/20 bg-red-500/5' :
-                  agentsDone ? 'border-blue-500/20 bg-blue-500/5' :
                   'border-[#1A1A1A] bg-[#0A0A0A]'
                 }`}>
                   <div className="flex items-center gap-2">
                     <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold ${
                       videoDone ? 'bg-emerald-500 text-black' :
                       videoError ? 'bg-red-500 text-white' :
-                      isProcessing || isVideoGen ? 'bg-[#C9A84C] text-black' :
-                      agentsDone ? 'bg-blue-500 text-white' :
+                      isVideoGen ? 'bg-[#C9A84C] text-black' :
+                      isDirecting ? 'bg-purple-500 text-white' :
+                      isWaiting ? 'bg-blue-500 text-white' :
                       'bg-[#222] text-[#666]'
                     }`}>
-                      {videoDone ? <Check size={8} /> : videoError ? <X size={8} /> : sceneNum}
+                      {videoDone ? <Check size={8} /> : videoError ? <X size={8} /> : isActive ? <RefreshCw size={8} className="animate-spin" /> : sceneNum}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[8px] font-semibold text-white truncate">{s.title || `Cena ${sceneNum}`}</p>
                       <p className="text-[7px] text-[#666] truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
                     </div>
                     <div className="text-[7px] shrink-0">
-                      {videoDone && <span className="text-emerald-400 font-medium">Pronto</span>}
+                      {videoDone && <span className="text-emerald-400 font-medium">{lang === 'pt' ? 'Pronto' : 'Done'}</span>}
                       {videoError && <span className="text-red-400">Erro</span>}
                       {isVideoGen && <span className="text-[#C9A84C]">Sora 2...</span>}
-                      {isProcessing && <RefreshCw size={8} className="animate-spin text-[#C9A84C]" />}
-                      {!agentsDone && !isProcessing && !videoDone && !videoError && <span className="text-[#444]">—</span>}
-                      {agentsDone && !videoDone && !isVideoGen && !videoError && <span className="text-blue-400">Pronto</span>}
+                      {isWaiting && <span className="text-blue-400">{lang === 'pt' ? 'Fila Sora' : 'Sora Queue'}</span>}
+                      {isDirecting && <span className="text-purple-400">{lang === 'pt' ? 'Dirigindo' : 'Directing'}</span>}
+                      {sceneState === 'queued' && <span className="text-[#444]">—</span>}
                     </div>
                   </div>
                   {/* Per-scene progress bar */}
                   <div className="mt-1 w-full bg-[#111] rounded-full h-1">
-                    <div className={`h-1 rounded-full transition-all duration-700 ${barColor} ${isProcessing || isVideoGen ? 'animate-pulse' : ''}`}
+                    <div className={`h-1 rounded-full transition-all duration-700 ${barColor} ${isActive ? 'animate-pulse' : ''}`}
                       style={{ width: `${sceneProgress}%` }} />
                   </div>
                   {/* Real-time video preview when scene is done */}
