@@ -193,20 +193,43 @@ class DirectSora2Client:
 
         # --- Start render job ---
         if image_path and os.path.exists(image_path):
-            mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
-            with open(image_path, "rb") as img_f:
-                files = {"input_reference": (os.path.basename(image_path), img_f, mime)}
-                data = {"model": model, "prompt": prompt, "size": size, "seconds": str(duration)}
-                resp = requests.post(f"{self.base_url}/videos", headers=auth_header, data=data, files=files, timeout=60)
+            # Resize reference image to match video dimensions (required by Sora 2 API)
+            from PIL import Image as _PILImage
+            import io as _io
+            _img = _PILImage.open(image_path)
+            w, h = [int(x) for x in size.split("x")]
+            if _img.size != (w, h):
+                canvas = _PILImage.new("RGB", (w, h), (0, 0, 0))
+                ratio = min(w / _img.width, h / _img.height)
+                nw, nh = int(_img.width * ratio), int(_img.height * ratio)
+                resized = _img.resize((nw, nh), _PILImage.LANCZOS)
+                canvas.paste(resized, ((w - nw) // 2, (h - nh) // 2))
+                buf = _io.BytesIO()
+                canvas.save(buf, format="PNG")
+                buf.seek(0)
+                img_data = buf
+                img_name, img_mime = "reference.png", "image/png"
+            else:
+                img_data = open(image_path, "rb")
+                img_name = os.path.basename(image_path)
+                img_mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
 
-            if resp.status_code == 400 and "face" in resp.text.lower():
-                logger.warning("Sora 2: Image reference rejected (face detected). Retrying text-only.")
-                resp = requests.post(
-                    f"{self.base_url}/videos",
-                    headers={**auth_header, "Content-Type": "application/json"},
-                    json={"model": model, "prompt": prompt, "size": size, "seconds": str(duration)},
-                    timeout=60,
-                )
+            files = {"input_reference": (img_name, img_data, img_mime)}
+            data = {"model": model, "prompt": prompt, "size": size, "seconds": str(duration)}
+            resp = requests.post(f"{self.base_url}/videos", headers=auth_header, data=data, files=files, timeout=60)
+            if hasattr(img_data, 'close'):
+                img_data.close()
+
+            if resp.status_code == 400:
+                err_text = resp.text.lower()
+                if "face" in err_text or "moderation" in err_text or "inpaint" in err_text:
+                    logger.warning(f"Sora 2: Image ref rejected ({resp.text[:80]}). Text-only fallback.")
+                    resp = requests.post(
+                        f"{self.base_url}/videos",
+                        headers={**auth_header, "Content-Type": "application/json"},
+                        json={"model": model, "prompt": prompt, "size": size, "seconds": str(duration)},
+                        timeout=60,
+                    )
         else:
             resp = requests.post(
                 f"{self.base_url}/videos",
