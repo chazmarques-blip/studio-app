@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2 } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 
@@ -40,8 +40,21 @@ export function DirectedStudio({
   const [narrations, setNarrations] = useState([]);
   const [narrationStatus, setNarrationStatus] = useState({});
   const [narrationGenerating, setNarrationGenerating] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
+
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const r = await axios.get(`${API}/studio/analytics/performance`);
+      setAnalyticsData(r.data);
+      setShowAnalytics(true);
+    } catch { toast.error('Erro ao carregar analytics'); }
+    setAnalyticsLoading(false);
+  };
 
   const STEPS = [
     { n: 1, icon: MessageSquare, label: lang === 'pt' ? 'Roteiro' : 'Script' },
@@ -436,17 +449,138 @@ export function DirectedStudio({
       {/* ═══ STEP 0: Project List ═══ */}
       {step === 0 && !viewingProject && (
         <div className="space-y-3" data-testid="studio-project-list">
+
+          {/* Analytics Panel */}
+          {showAnalytics && analyticsData && (
+            <div className="glass-card border border-[#C9A84C]/20 p-3 space-y-3" data-testid="studio-analytics-panel">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                  <BarChart3 size={12} className="text-[#C9A84C]" />
+                  {lang === 'pt' ? 'Relatório de Performance' : 'Performance Report'}
+                </h3>
+                <button onClick={() => setShowAnalytics(false)} className="text-[#666] hover:text-white">
+                  <X size={12} />
+                </button>
+              </div>
+
+              {/* Summary cards */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { label: lang === 'pt' ? 'Produções' : 'Productions', value: analyticsData.summary?.completed || 0, color: 'text-emerald-400' },
+                  { label: lang === 'pt' ? 'Cenas' : 'Scenes', value: analyticsData.summary?.total_scenes_produced || 0, color: 'text-blue-400' },
+                  { label: lang === 'pt' ? 'Vídeos' : 'Videos', value: analyticsData.summary?.total_videos_generated || 0, color: 'text-[#C9A84C]' },
+                  { label: lang === 'pt' ? 'Erros' : 'Errors', value: analyticsData.summary?.errored || 0, color: 'text-red-400' },
+                ].map((s, i) => (
+                  <div key={i} className="rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-2 text-center">
+                    <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+                    <p className="text-[7px] text-[#666]">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Timing */}
+              <div className="rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-2 space-y-1.5">
+                <p className="text-[8px] font-semibold text-[#999]">{lang === 'pt' ? 'TEMPOS MÉDIOS' : 'AVG TIMING'}</p>
+                {[
+                  { label: 'Agentes (Claude)', value: analyticsData.timing?.avg_agent_seconds, color: 'bg-purple-500' },
+                  { label: 'Vídeos (Sora 2)', value: analyticsData.timing?.avg_video_seconds, color: 'bg-[#C9A84C]' },
+                  { label: 'TOTAL', value: analyticsData.timing?.avg_total_seconds, color: 'bg-emerald-500' },
+                ].map((t, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className={`h-1.5 w-1.5 rounded-full ${t.color}`} />
+                    <span className="text-[8px] text-[#999] w-24">{t.label}</span>
+                    <div className="flex-1 bg-[#111] rounded-full h-1.5">
+                      <div className={`h-1.5 rounded-full ${t.color} transition-all`}
+                        style={{ width: `${Math.min((t.value || 0) / Math.max(analyticsData.timing?.avg_total_seconds || 1, 1) * 100, 100)}%` }} />
+                    </div>
+                    <span className="text-[8px] font-mono text-white w-12 text-right">
+                      {t.value ? (t.value > 60 ? `${(t.value/60).toFixed(1)}m` : `${t.value}s`) : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pipeline versions */}
+              <div className="flex gap-1.5">
+                {[
+                  { label: 'v1 seq', count: analyticsData.pipeline_versions?.v1_sequential || 0, color: 'border-red-500/30 text-red-400' },
+                  { label: 'v2 batch', count: analyticsData.pipeline_versions?.v2_batched || 0, color: 'border-orange-500/30 text-orange-400' },
+                  { label: 'v3 parallel', count: analyticsData.pipeline_versions?.v3_parallel_teams || 0, color: 'border-emerald-500/30 text-emerald-400' },
+                ].map((v, i) => (
+                  <div key={i} className={`flex-1 rounded-lg border bg-[#0A0A0A] p-1.5 text-center ${v.color}`}>
+                    <p className="text-xs font-bold">{v.count}</p>
+                    <p className="text-[7px]">{v.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Cost savings */}
+              {analyticsData.cost_estimate && (
+                <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-2">
+                  <p className="text-[8px] font-semibold text-emerald-400">{lang === 'pt' ? 'ECONOMIA' : 'SAVINGS'}</p>
+                  <p className="text-[7px] text-[#999] mt-0.5">{analyticsData.cost_estimate.optimization_note}</p>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {analyticsData.recommendations?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[8px] font-semibold text-[#999]">{lang === 'pt' ? 'RECOMENDAÇÕES' : 'RECOMMENDATIONS'}</p>
+                  {analyticsData.recommendations.map((r, i) => (
+                    <div key={i} className={`rounded-md px-2 py-1.5 text-[8px] border ${
+                      r.type === 'critical' ? 'border-red-500/30 bg-red-500/5 text-red-300' :
+                      r.type === 'warning' ? 'border-orange-500/30 bg-orange-500/5 text-orange-300' :
+                      r.type === 'success' ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300' :
+                      'border-blue-500/30 bg-blue-500/5 text-blue-300'
+                    }`}>{r.text}</div>
+                  ))}
+                </div>
+              )}
+
+              {/* Per-production breakdown */}
+              {analyticsData.productions?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[8px] font-semibold text-[#999]">{lang === 'pt' ? 'PRODUÇÕES (por velocidade)' : 'PRODUCTIONS (by speed)'}</p>
+                  <div className="max-h-[120px] overflow-y-auto hide-scrollbar space-y-0.5">
+                    {analyticsData.productions.map((p, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-md bg-[#0A0A0A] px-2 py-1 border border-[#1A1A1A]">
+                        <span className={`text-[7px] font-mono px-1 rounded ${
+                          p.pipeline_version === 'v3' ? 'bg-emerald-500/20 text-emerald-400' :
+                          p.pipeline_version === 'v2' ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>{p.pipeline_version}</span>
+                        <span className="text-[8px] text-white flex-1 truncate">{p.name}</span>
+                        <span className="text-[7px] text-[#666]">{p.scenes}c</span>
+                        <span className="text-[8px] font-mono text-[#C9A84C]">
+                          {p.total_seconds ? (p.total_seconds > 60 ? `${(p.total_seconds/60).toFixed(1)}m` : `${p.total_seconds}s`) : '—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* New Project + Analytics buttons */}
           {!showNewProject ? (
-            <button onClick={() => setShowNewProject(true)} data-testid="new-project-btn"
-              className="w-full glass-card p-3 flex items-center gap-3 hover:border-[#C9A84C]/30 transition group border border-dashed border-[#333]">
-              <div className="h-10 w-10 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center group-hover:bg-[#C9A84C]/20 transition">
-                <Plus size={18} className="text-[#C9A84C]" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Novo Projecto' : 'New Project'}</p>
-                <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Crie uma nova produção com IA' : 'Create a new AI production'}</p>
-              </div>
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setShowNewProject(true)} data-testid="new-project-btn"
+                className="flex-1 glass-card p-3 flex items-center gap-3 hover:border-[#C9A84C]/30 transition group border border-dashed border-[#333]">
+                <div className="h-10 w-10 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center group-hover:bg-[#C9A84C]/20 transition">
+                  <Plus size={18} className="text-[#C9A84C]" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Novo Projecto' : 'New Project'}</p>
+                  <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Crie uma nova produção com IA' : 'Create a new AI production'}</p>
+                </div>
+              </button>
+              <button onClick={loadAnalytics} disabled={analyticsLoading} data-testid="analytics-btn"
+                className="glass-card p-3 flex flex-col items-center justify-center gap-1 hover:border-[#C9A84C]/30 transition border border-[#333] w-16">
+                {analyticsLoading ? <RefreshCw size={14} className="text-[#C9A84C] animate-spin" /> : <BarChart3 size={14} className="text-[#C9A84C]" />}
+                <span className="text-[7px] text-[#666]">Analytics</span>
+              </button>
+            </div>
           ) : (
             <div className="glass-card p-3 space-y-2 border border-[#C9A84C]/20" data-testid="new-project-form">
               <h3 className="text-xs font-semibold text-white flex items-center gap-2">

@@ -93,13 +93,12 @@ async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: i
 
 
 def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via emergentintegrations (sync — for background threads). Retries on transient errors."""
+    """Call Claude via emergentintegrations (sync — for background threads). 5 retries with exponential backoff."""
     import asyncio
-    import time as _time
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
     async def _run():
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 chat = LlmChat(
                     api_key=EMERGENT_KEY,
@@ -109,9 +108,12 @@ def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 40
                 response = await chat.send_message(UserMessage(text=user_prompt))
                 return response.text if hasattr(response, 'text') else str(response)
             except Exception as e:
-                if attempt < 2 and any(code in str(e) for code in ["502", "503", "529", "timeout", "disconnected"]):
-                    logger.warning(f"Claude sync attempt {attempt+1} failed: {e}. Retrying...")
-                    await asyncio.sleep(5 * (attempt + 1))
+                err_str = str(e).lower()
+                retryable = any(k in err_str for k in ["502", "503", "529", "timeout", "disconnected", "overloaded", "connection", "reset", "eof", "broken pipe", "server"])
+                if attempt < 4 and retryable:
+                    wait = min(5 * (2 ** attempt), 60)
+                    logger.warning(f"Claude attempt {attempt+1}/5 failed: {e}. Retry in {wait}s...")
+                    await asyncio.sleep(wait)
                     continue
                 raise
 
@@ -1046,3 +1048,153 @@ async def get_narrations(project_id: str, tenant=Depends(get_current_tenant)):
         "narration_status": project.get("narration_status", {}),
         "voice_config": project.get("voice_config", {}),
     }
+
+
+
+# ── Performance Analytics ──
+
+@router.get("/analytics/performance")
+async def get_performance_analytics(tenant=Depends(get_current_tenant)):
+    """Analyze performance data from all productions — timing, costs, efficiency."""
+    from datetime import datetime as dt
+
+    settings = _get_settings(tenant["id"])
+    projects = settings.get("studio_projects", [])
+
+    # Collect data
+    completed = [p for p in projects if p.get("status") == "complete" and p.get("milestones")]
+    errored = [p for p in projects if p.get("status") == "error"]
+    all_projects = projects
+
+    # Parse milestones for timing
+    productions = []
+    for proj in completed:
+        ms = proj.get("milestones", [])
+        ms_dict = {m["key"]: m["at"] for m in ms if "at" in m}
+        scenes_count = len(proj.get("scenes", []))
+        videos_count = len([o for o in proj.get("outputs", []) if o.get("url") and o.get("type") == "video" and o.get("scene_number", 0) > 0])
+
+        # Calculate durations from milestones
+        created_at = ms_dict.get("project_created", "")
+        agents_at = ms_dict.get("agents_complete", "")
+        videos_at = ms_dict.get("videos_generated", "")
+        film_at = ms_dict.get("film_complete", "")
+
+        def _parse_ts(ts_str):
+            if not ts_str:
+                return None
+            try:
+                return dt.fromisoformat(ts_str.replace("Z", "+00:00"))
+            except Exception:
+                return None
+
+        t_created = _parse_ts(created_at)
+        t_agents = _parse_ts(agents_at)
+        t_videos = _parse_ts(videos_at)
+        t_film = _parse_ts(film_at)
+
+        agent_duration = (t_agents - t_created).total_seconds() if t_created and t_agents else None
+        video_duration = (t_videos - t_agents).total_seconds() if t_agents and t_videos else None
+        total_duration = (t_film - t_created).total_seconds() if t_created and t_film else None
+
+        # Extract timing from milestone labels (e.g., "Produção paralela — 523s")
+        for m in ms:
+            label = m.get("label", "")
+            if "s" in label and any(c.isdigit() for c in label):
+                import re
+                nums = re.findall(r'(\d+)s', label)
+                if nums:
+                    if "agente" in label.lower() or "paralela" in label.lower():
+                        agent_duration = float(nums[0])
+                    elif "vídeo" in label.lower():
+                        video_duration = float(nums[0])
+
+        # Per-scene video timing from milestones
+        scene_times = []
+        for m in ms:
+            if m["key"].startswith("video_scene_"):
+                scene_times.append(m["at"])
+
+        productions.append({
+            "project_id": proj["id"],
+            "name": proj.get("name", "Sem nome"),
+            "scenes": scenes_count,
+            "videos": videos_count,
+            "agent_seconds": round(agent_duration) if agent_duration else None,
+            "video_seconds": round(video_duration) if video_duration else None,
+            "total_seconds": round(total_duration) if total_duration else None,
+            "milestones": len(ms),
+            "pipeline_version": "v3" if any("paralela" in m.get("label", "") for m in ms) else "v2" if any("Agentes de cinema" in m.get("label", "") for m in ms) else "v1",
+        })
+
+    # Compute aggregated stats
+    agent_times = [p["agent_seconds"] for p in productions if p["agent_seconds"]]
+    video_times = [p["video_seconds"] for p in productions if p["video_seconds"]]
+    total_times = [p["total_seconds"] for p in productions if p["total_seconds"]]
+    all_scenes = [p["scenes"] for p in productions if p["scenes"] > 0]
+
+    avg = lambda lst: round(sum(lst) / len(lst)) if lst else 0
+
+    # Estimated Claude tokens used (rough: ~1500 tokens per scene director call)
+    total_scenes_produced = sum(p["scenes"] for p in productions)
+    est_claude_tokens = total_scenes_produced * 1500
+    # v1: 3 calls per scene, v2: 3 batch calls, v3: 1 call per scene
+    v1_count = len([p for p in productions if p["pipeline_version"] == "v1"])
+    v2_count = len([p for p in productions if p["pipeline_version"] == "v2"])
+    v3_count = len([p for p in productions if p["pipeline_version"] == "v3"])
+
+    return {
+        "summary": {
+            "total_projects": len(all_projects),
+            "completed": len(completed),
+            "errored": len(errored),
+            "total_scenes_produced": total_scenes_produced,
+            "total_videos_generated": sum(p["videos"] for p in productions),
+        },
+        "timing": {
+            "avg_agent_seconds": avg(agent_times),
+            "avg_video_seconds": avg(video_times),
+            "avg_total_seconds": avg(total_times),
+            "min_total_seconds": min(total_times) if total_times else 0,
+            "max_total_seconds": max(total_times) if total_times else 0,
+            "avg_scenes_per_project": avg(all_scenes),
+        },
+        "pipeline_versions": {
+            "v1_sequential": v1_count,
+            "v2_batched": v2_count,
+            "v3_parallel_teams": v3_count,
+        },
+        "cost_estimate": {
+            "claude_calls_total": total_scenes_produced + len(completed),
+            "claude_tokens_est": est_claude_tokens,
+            "sora2_videos": sum(p["videos"] for p in productions),
+            "optimization_note": f"v3 saves ~{(total_scenes_produced * 2) if total_scenes_produced > 0 else 0} Claude calls vs v1 ({total_scenes_produced}×3 → {total_scenes_produced}×1)",
+        },
+        "productions": sorted(productions, key=lambda x: x.get("total_seconds") or 999999),
+        "recommendations": _generate_recommendations(productions, completed, errored),
+    }
+
+
+def _generate_recommendations(productions, completed, errored):
+    """AI-like performance recommendations based on data."""
+    recs = []
+    if errored:
+        error_rate = len(errored) / (len(completed) + len(errored)) * 100 if (len(completed) + len(errored)) > 0 else 0
+        if error_rate > 30:
+            recs.append({"type": "critical", "text": f"Taxa de erro alta: {error_rate:.0f}%. Verificar estabilidade da conexão Claude/Sora 2."})
+
+    agent_times = [p["agent_seconds"] for p in productions if p["agent_seconds"]]
+    if agent_times and max(agent_times) > 120:
+        recs.append({"type": "warning", "text": f"Agentes lentos (máx {max(agent_times)}s). Pipeline v3 com equipas paralelas reduz para ~15s."})
+
+    video_times = [p["video_seconds"] for p in productions if p["video_seconds"]]
+    if video_times and max(video_times) > 600:
+        recs.append({"type": "info", "text": f"Sora 2 é o gargalo principal (máx {max(video_times)//60}min). Considerar reduzir duração de 12s→8s para cenas simples."})
+
+    v3_count = len([p for p in productions if p["pipeline_version"] == "v3"])
+    if v3_count == 0:
+        recs.append({"type": "info", "text": "Nenhuma produção v3 concluída ainda. Pipeline paralelo reduzirá tempo ~60%."})
+
+    if not recs:
+        recs.append({"type": "success", "text": "Pipeline optimizado. Todas as produções estão eficientes."})
+    return recs
