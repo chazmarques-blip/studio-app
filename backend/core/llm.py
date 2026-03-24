@@ -178,55 +178,88 @@ def text_to_speech_sync(text: str, voice: str = "alloy", model: str = "tts-1") -
 
 
 class DirectSora2Client:
-    """Direct OpenAI Sora 2 video generation — bypasses Emergent proxy."""
+    """Direct OpenAI Sora 2 video generation — based on official API docs (2025)."""
 
     def __init__(self, api_key: str = None):
         self.api_key = api_key or OPENAI_API_KEY
         self.base_url = "https://api.openai.com/v1"
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
 
     def text_to_video(self, prompt: str, model: str = "sora-2", size: str = "1280x720",
                       duration: int = 12, max_wait_time: int = 600, image_path: str = None) -> bytes:
         import requests
         import time as _time
 
-        payload = {"model": model, "prompt": prompt, "size": size, "seconds": str(duration)}
+        auth_header = {"Authorization": f"Bearer {self.api_key}"}
 
-        if image_path:
-            with open(image_path, "rb") as f:
-                encoded = base64.b64encode(f.read()).decode("utf-8")
-            mime = "image/jpeg" if image_path.endswith(".jpg") else "image/png"
-            payload["reference_image"] = {"data": f"data:{mime};base64,{encoded}"}
+        # --- Start render job ---
+        if image_path and os.path.exists(image_path):
+            mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
+            with open(image_path, "rb") as img_f:
+                files = {"input_reference": (os.path.basename(image_path), img_f, mime)}
+                data = {"model": model, "prompt": prompt, "size": size, "seconds": str(duration)}
+                resp = requests.post(f"{self.base_url}/videos", headers=auth_header, data=data, files=files, timeout=60)
 
-        resp = requests.post(f"{self.base_url}/videos", headers=self.headers, json=payload, timeout=30)
+            if resp.status_code == 400 and "face" in resp.text.lower():
+                logger.warning("Sora 2: Image reference rejected (face detected). Retrying text-only.")
+                resp = requests.post(
+                    f"{self.base_url}/videos",
+                    headers={**auth_header, "Content-Type": "application/json"},
+                    json={"model": model, "prompt": prompt, "size": size, "seconds": str(duration)},
+                    timeout=60,
+                )
+        else:
+            resp = requests.post(
+                f"{self.base_url}/videos",
+                headers={**auth_header, "Content-Type": "application/json"},
+                json={"model": model, "prompt": prompt, "size": size, "seconds": str(duration)},
+                timeout=60,
+            )
+
         resp.raise_for_status()
-        data = resp.json()
-        op_id = data.get("id") or data.get("operation_id") or data.get("generation_id")
-        if not op_id:
-            raise Exception(f"No operation ID: {data}")
+        job = resp.json()
+        video_id = job.get("id")
+        if not video_id:
+            raise Exception(f"No video ID in response: {job}")
 
+        logger.info(f"Sora 2 job created: {video_id} (status={job.get('status')}, model={model})")
+
+        # --- Poll until completed/failed ---
         start = _time.time()
+        last_log = 0
         while _time.time() - start < max_wait_time:
             _time.sleep(10)
-            poll = requests.get(f"{self.base_url}/videos/{op_id}", headers=self.headers, timeout=30)
-            if poll.status_code == 200:
-                pdata = poll.json()
-                status = pdata.get("status", "")
-                if status == "succeeded":
-                    video_url = pdata.get("video", {}).get("url") or pdata.get("url")
-                    if not video_url:
-                        outputs = pdata.get("outputs", [])
-                        if outputs:
-                            video_url = outputs[0].get("url")
-                    if video_url:
-                        vid_resp = requests.get(video_url, timeout=120)
-                        vid_resp.raise_for_status()
-                        return vid_resp.content
-                    raise Exception(f"No video URL in response: {pdata}")
-                elif status == "failed":
-                    raise Exception(f"Sora 2 generation failed: {pdata.get('error', pdata)}")
+            poll = requests.get(f"{self.base_url}/videos/{video_id}", headers=auth_header, timeout=30)
+            if poll.status_code != 200:
+                continue
+
+            pdata = poll.json()
+            status = pdata.get("status", "")
+            progress = pdata.get("progress", 0)
+
+            if _time.time() - last_log > 30:
+                logger.info(f"Sora 2 [{video_id[:20]}]: {status} ({progress}%)")
+                last_log = _time.time()
+
+            if status == "completed":
+                for dl_try in range(3):
+                    try:
+                        dl = requests.get(f"{self.base_url}/videos/{video_id}/content", headers=auth_header, timeout=300, stream=True)
+                        dl.raise_for_status()
+                        chunks = []
+                        for chunk in dl.iter_content(chunk_size=1024*1024):
+                            chunks.append(chunk)
+                        video_bytes = b"".join(chunks)
+                        logger.info(f"Sora 2 [{video_id[:20]}]: Downloaded {len(video_bytes)//1024}KB")
+                        return video_bytes
+                    except Exception as dl_err:
+                        logger.warning(f"Sora 2 [{video_id[:20]}]: Download attempt {dl_try+1}/3 failed: {dl_err}")
+                        if dl_try < 2:
+                            _time.sleep(5)
+                raise Exception(f"Sora 2 download failed after 3 attempts")
+
+            elif status == "failed":
+                error = pdata.get("error", {})
+                msg = error.get("message", str(error)) if isinstance(error, dict) else str(error)
+                raise Exception(f"Sora 2 failed: {msg}")
 
         raise Exception(f"Sora 2 timeout after {max_wait_time}s")

@@ -630,14 +630,20 @@ def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url
 
 
 def _run_multi_scene_production(tenant_id: str, project_id: str, character_avatars: dict = None):
-    """v3 — Per-scene parallel pipeline with enhanced Scene Director and Sora 2 retry.
+    """v4 — Decoupled Pipeline: ALL Directors first (parallel) → ALL Sora jobs queued.
 
     Architecture:
-    ┌─ Scene 1: SceneDirector(Claude) → Sora 2 (3 retries) ─┐
-    ├─ Scene 2: SceneDirector(Claude) → Sora 2 (3 retries) ─┤  ALL SIMULTANEOUS
-    ├─ Scene N: SceneDirector(Claude) → Sora 2 (3 retries) ─┤  (Sora limited to 5 slots)
-    └─ MusicDirector (1 global call)                         ┘
-    → FFmpeg concat (compressed) → Complete
+    PHASE A (Preparation — ~5s):
+    ┌─ Director(Claude) Scene 1  ─┐
+    ├─ Director(Claude) Scene 2  ─┤  ALL PARALLEL → 15 Sora prompts ready
+    ├─ Director(Claude) Scene N  ─┤
+    └─ MusicDirector              ┘
+
+    PHASE B (Production — priority queue):
+    Sora Queue → [1,2,3,4,5] → [6,7,8,9,10] → [11,12,13,14,15]
+                  5 slots simultaneous
+
+    → FFmpeg concat → Complete
     """
     import json as json_mod
     import tempfile
@@ -725,23 +731,11 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         # Track budget state across threads
         budget_exhausted = threading.Event()
 
-        def _scene_team(scene, scene_num):
-            """Full production for ONE scene: Director(Claude) → Sora 2 with 3 retries."""
-            t_scene = _time.time()
-
-            # Skip already completed scenes
+        def _scene_director(scene, scene_num):
+            """PHASE A — Scene Director only: generates the Sora prompt via Claude."""
             if scene_num in completed_videos:
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} CACHED — skipping")
-                _update_scene_status(tenant_id, project_id, scene_num, "done", total)
-                return {"scene_number": scene_num, "url": completed_videos[scene_num], "type": "video", "duration": 12}
+                return {"scene_number": scene_num, "sora_prompt": None, "cached": True}
 
-            # Skip if budget already exhausted
-            if budget_exhausted.is_set():
-                logger.warning(f"Studio [{project_id}]: Scene {scene_num} SKIPPED — budget exhausted")
-                _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
-
-            # A) Enhanced Scene Director — ONE Claude call with rich context
             chars_in_scene = scene.get("characters_in_scene", [])
             scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
 
@@ -796,22 +790,34 @@ Create a RICHLY DETAILED visual prompt. Include:
                 result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1500)
                 data = _parse_json(result_text) or {}
                 sora_prompt = data.get("sora_prompt", scene.get("description", ""))
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} directed in {_time.time()-t_p:.1f}s — prompt: {sora_prompt[:100]}...")
+                elapsed = _time.time() - t_p
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} directed in {elapsed:.1f}s — {sora_prompt[:80]}...")
+                return {"scene_number": scene_num, "sora_prompt": sora_prompt, "cached": False}
             except Exception as e:
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} director error: {e}")
-                # Fallback: build a basic prompt from scene data
-                sora_prompt = f"{style_hint} {scene.get('description', '')}. Characters: {scene_chars}. {scene.get('emotion', '')} mood, {scene.get('camera', 'wide shot')}."
+                fallback = f"{style_hint} {scene.get('description', '')}. Characters: {scene_chars}. {scene.get('emotion', '')} mood, {scene.get('camera', 'wide shot')}."
+                return {"scene_number": scene_num, "sora_prompt": fallback, "cached": False}
 
-            # B) Sora 2 Video — rate-limited + 3 retries + budget-aware
+        def _sora_render(directed_scene, scene):
+            """PHASE B — Sora 2 video render with retries and budget awareness."""
+            scene_num = directed_scene["scene_number"]
+
+            if directed_scene.get("cached"):
+                _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                return {"scene_number": scene_num, "url": completed_videos[scene_num], "type": "video", "duration": 12}
+
+            if budget_exhausted.is_set():
+                _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
+
+            sora_prompt = directed_scene["sora_prompt"]
+            chars_in_scene = scene.get("characters_in_scene", [])
+
             ref_path = None
             for ch_name in chars_in_scene:
                 if ch_name in char_avatars and char_avatars[ch_name] in avatar_cache:
                     ref_path = avatar_cache[char_avatars[ch_name]]
                     break
-
-            if budget_exhausted.is_set():
-                _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
 
             _update_scene_status(tenant_id, project_id, scene_num, "waiting_sora", total)
 
@@ -838,23 +844,21 @@ Create a RICHLY DETAILED visual prompt. Include:
                         if video_bytes and len(video_bytes) > 1000:
                             filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                             video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-                            t_total_scene = _time.time() - t_scene
-                            logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {t_total_scene:.0f}s (sora: {elapsed:.0f}s, {len(video_bytes)//1024}KB)")
+                            logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {elapsed:.0f}s ({len(video_bytes)//1024}KB)")
                             _save_scene_video(tenant_id, project_id, scene_num, video_url, total)
                             return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 12}
                         else:
                             sz = len(video_bytes) if video_bytes else 0
                             if elapsed < 30:
-                                logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET EXHAUSTED (returned {sz}B in {elapsed:.0f}s)")
+                                logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET EXHAUSTED ({sz}B in {elapsed:.0f}s)")
                                 budget_exhausted.set()
                                 _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                                 return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
                             else:
                                 last_error = f"empty_video_{sz}B"
-                                logger.warning(f"Studio [{project_id}]: Scene {scene_num} attempt {attempt+1} empty video ({sz}B in {elapsed:.0f}s). {'Retrying...' if attempt < max_retries-1 else 'FAILED'}")
+                                logger.warning(f"Studio [{project_id}]: Scene {scene_num} attempt {attempt+1} empty ({sz}B in {elapsed:.0f}s)")
                                 if attempt < max_retries - 1:
                                     _time.sleep(10)
-                                    continue
 
                     except Exception as ve:
                         err_str = str(ve).lower()
@@ -869,7 +873,7 @@ Create a RICHLY DETAILED visual prompt. Include:
                         is_retryable = any(k in err_str for k in ["disconnect", "server", "timeout", "connection", "reset", "eof"])
                         if is_retryable and attempt < max_retries - 1:
                             wait = 15 * (attempt + 1)
-                            logger.warning(f"Studio [{project_id}]: Scene {scene_num} Sora attempt {attempt+1} FAIL: {ve}. Retrying in {wait}s...")
+                            logger.warning(f"Studio [{project_id}]: Scene {scene_num} Sora attempt {attempt+1} FAIL: {ve}. Retry in {wait}s...")
                             _time.sleep(wait)
                             continue
                         else:
@@ -889,25 +893,54 @@ Create a RICHLY DETAILED visual prompt. Include:
             except Exception:
                 return {"mood": "cinematic"}
 
-        # ══ LAUNCH ALL TEAMS ══
+        # ══ PHASE A: ALL DIRECTORS IN PARALLEL (fast — ~2s each) ══
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        logger.info(f"Studio [{project_id}]: LAUNCHING {total} scene teams + music (5 Sora slots)")
+        logger.info(f"Studio [{project_id}]: PHASE A — Launching {total} Scene Directors + Music (parallel)")
+
+        directed_scenes = []
+        with ThreadPoolExecutor(max_workers=total + 1) as executor:
+            music_future = executor.submit(_music_team)
+            director_futures = {
+                executor.submit(_scene_director, s, s.get("scene_number", i+1)): (i, s)
+                for i, s in enumerate(scenes)
+            }
+
+            for future in as_completed(director_futures):
+                result = future.result()
+                directed_scenes.append(result)
+                cached = result.get("cached", False)
+                logger.info(f"Studio [{project_id}]: Director {result['scene_number']}/{total} done {'(CACHED)' if cached else ''}")
+
+            music_data = music_future.result()
+
+        t_phase_a = _time.time() - t_start
+        logger.info(f"Studio [{project_id}]: PHASE A complete in {t_phase_a:.1f}s — {len(directed_scenes)} prompts ready")
+
+        # Sort by scene number for ordered Sora queue
+        directed_scenes.sort(key=lambda x: x["scene_number"])
+
+        # ══ PHASE B: ALL SORA RENDERS (queued — 5 concurrent slots) ══
+        logger.info(f"Studio [{project_id}]: PHASE B — Queueing {total} Sora 2 renders (5 slots)")
 
         scene_videos = []
-        with ThreadPoolExecutor(max_workers=total + 2) as executor:
-            music_future = executor.submit(_music_team)
-            scene_futures = {executor.submit(_scene_team, s, s.get("scene_number", i+1)): i
-                           for i, s in enumerate(scenes)}
+        scene_map = {s.get("scene_number", i+1): s for i, s in enumerate(scenes)}
 
-            for future in as_completed(scene_futures):
+        with ThreadPoolExecutor(max_workers=total) as executor:
+            sora_futures = {
+                executor.submit(_sora_render, ds, scene_map.get(ds["scene_number"], scenes[0])): ds["scene_number"]
+                for ds in directed_scenes
+            }
+
+            for future in as_completed(sora_futures):
                 result = future.result()
                 scene_videos.append(result)
                 done = len([v for v in scene_videos if v.get("url")])
+                sn = result.get("scene_number", "?")
                 if result.get("url"):
-                    logger.info(f"Studio [{project_id}]: Progress {done}/{total}")
-
-            music_data = music_future.result()
+                    logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {sn} OK)")
+                elif result.get("error"):
+                    logger.warning(f"Studio [{project_id}]: Scene {sn} FAILED: {result.get('error','')}")
 
         t_prod = _time.time() - t_start
         successful = len([v for v in scene_videos if v.get("url")])
