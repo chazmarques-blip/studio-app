@@ -254,16 +254,17 @@ export function DirectedStudio({
   };
 
   const pollChatResult = (pid) => {
+    let pollCount = 0;
+    const MAX_POLLS = 40; // ~2 min (3s each)
     const poll = () => {
+      pollCount++;
       axios.get(`${API}/studio/projects/${pid}/status`).then(res => {
         const d = res.data;
         if (d.chat_status === 'done') {
-          // Get the last assistant message from chat_history
           const history = d.chat_history || [];
           const lastAssistant = [...history].reverse().find(m => m.role === 'assistant');
           if (lastAssistant) {
             setChatMessages(prev => {
-              // Avoid duplicating if already added
               const lastMsg = prev[prev.length - 1];
               if (lastMsg?.role === 'assistant' && lastMsg?.text === lastAssistant.text) return prev;
               return [...prev, { role: 'assistant', text: lastAssistant.text }];
@@ -276,15 +277,35 @@ export function DirectedStudio({
         }
         if (d.chat_status === 'error') {
           toast.error(d.error || 'Erro ao processar');
-          setChatMessages(prev => [...prev, { role: 'assistant', text: `❌ ${d.error || 'Erro ao processar. Tente novamente.'}` }]);
+          setChatMessages(prev => [...prev, { role: 'assistant', text: `Erro: ${d.error || 'Erro ao processar. Clique "Tentar Novamente"'}` }]);
           setChatLoading(false);
           return;
         }
-        // Still thinking
+        // Still thinking — check if stuck too long
+        if (pollCount >= MAX_POLLS) {
+          setChatMessages(prev => [...prev, { role: 'assistant', text: 'O redator está demorando mais que o esperado. Use o botão "Tentar Novamente" abaixo.' }]);
+          setChatLoading(false);
+          return;
+        }
         setTimeout(poll, 3000);
       }).catch(() => setTimeout(poll, 5000));
     };
     setTimeout(poll, 2000);
+  };
+
+  // Retry a stuck screenwriter
+  const retryChat = async () => {
+    setChatLoading(true);
+    // Remove last error/timeout message
+    setChatMessages(prev => prev.filter(m => !(m.role === 'assistant' && (m.text.includes('demorando') || m.text.includes('Erro')))));
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/retry-chat`);
+      toast.success(lang === 'pt' ? 'Reenviando ao Redator...' : 'Retrying Screenwriter...');
+      pollChatResult(projectId);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao reenviar');
+      setChatLoading(false);
+    }
   };
 
   // Copy character prompt to clipboard (with fallback for iframe/permissions)
@@ -854,6 +875,19 @@ export function DirectedStudio({
                   <RefreshCw size={10} className="animate-spin text-[#C9A84C]" />
                   <span className="text-[9px] text-[#666]">{lang === 'pt' ? 'Pesquisando e escrevendo...' : 'Researching and writing...'}</span>
                 </div>
+              </div>
+            )}
+            {/* Retry button when stuck or error */}
+            {!chatLoading && chatMessages.length > 0 && projectId && (
+              chatMessages[chatMessages.length - 1]?.text?.includes('demorando') ||
+              chatMessages[chatMessages.length - 1]?.text?.includes('Erro')
+            ) && (
+              <div className="flex justify-center">
+                <button onClick={retryChat} data-testid="retry-chat-btn"
+                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[10px] font-medium bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+                  <RefreshCw size={10} />
+                  {lang === 'pt' ? 'Tentar Novamente' : 'Try Again'}
+                </button>
               </div>
             )}
             <div ref={chatEndRef} />

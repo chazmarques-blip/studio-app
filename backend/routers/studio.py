@@ -15,6 +15,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Set OpenAI client to NOT retry internally (we handle retries ourselves)
+os.environ["OPENAI_MAX_RETRIES"] = "0"
+
 from core.deps import supabase, get_current_user, get_current_tenant, EMERGENT_KEY, logger
 from pipeline.config import STORAGE_BUCKET, EMERGENT_PROXY_URL, ELEVENLABS_VOICES, MUSIC_LIBRARY
 
@@ -72,72 +75,117 @@ def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "im
 
 
 async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via emergentintegrations (async — for API endpoints). Retries on transient errors."""
-    import time as _time
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    """Call Claude via litellm through Emergent proxy (async). 3 retries with timeout."""
+    PROXY_URL = "https://integrations.emergentagent.com/llm"
     for attempt in range(3):
         try:
-            chat = LlmChat(
+            response = await litellm.acompletion(
+                model="claude-sonnet-4-5-20250929",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                max_tokens=max_tokens,
+                timeout=60,
+                num_retries=0,
                 api_key=EMERGENT_KEY,
-                session_id=f"studio-{uuid.uuid4().hex[:6]}",
-                system_message=system_prompt
-            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-            response = await chat.send_message(UserMessage(text=user_prompt))
-            return response.text if hasattr(response, 'text') else str(response)
+                api_base=PROXY_URL,
+                custom_llm_provider="openai",
+            )
+            return response.choices[0].message.content
         except Exception as e:
             if attempt < 2 and any(code in str(e) for code in ["502", "503", "529", "timeout", "disconnected"]):
-                logger.warning(f"Claude attempt {attempt+1} failed: {e}. Retrying...")
+                logger.warning(f"Claude async attempt {attempt+1} failed: {e}. Retrying...")
                 await asyncio.sleep(5 * (attempt + 1))
                 continue
             raise
 
 
-def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via emergentintegrations (sync — for background threads). 5 retries with exponential backoff."""
-    import asyncio
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000, timeout_per_attempt: int = 90) -> str:
+    """Call Claude via litellm through Emergent proxy (sync). 3 retries, no internal OpenAI retries."""
+    import time as _time
 
-    async def _run():
-        for attempt in range(5):
-            try:
-                chat = LlmChat(
-                    api_key=EMERGENT_KEY,
-                    session_id=f"studio-{uuid.uuid4().hex[:6]}",
-                    system_message=system_prompt
-                ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-                response = await chat.send_message(UserMessage(text=user_prompt))
-                return response.text if hasattr(response, 'text') else str(response)
-            except Exception as e:
-                err_str = str(e).lower()
-                retryable = any(k in err_str for k in ["502", "503", "529", "timeout", "disconnected", "overloaded", "connection", "reset", "eof", "broken pipe", "server"])
-                if attempt < 4 and retryable:
-                    wait = min(5 * (2 ** attempt), 60)
-                    logger.warning(f"Claude attempt {attempt+1}/5 failed: {e}. Retry in {wait}s...")
-                    await asyncio.sleep(wait)
-                    continue
-                raise
+    PROXY_URL = "https://integrations.emergentagent.com/llm"
 
-    loop = asyncio.new_event_loop()
-    try:
-        return loop.run_until_complete(_run())
-    finally:
-        loop.close()
+    for attempt in range(3):
+        t_start = _time.time()
+        try:
+            response = litellm.completion(
+                model="claude-sonnet-4-5-20250929",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                max_tokens=max_tokens,
+                timeout=timeout_per_attempt,
+                num_retries=0,
+                api_key=EMERGENT_KEY,
+                api_base=PROXY_URL,
+                custom_llm_provider="openai",
+            )
+            text = response.choices[0].message.content
+            elapsed = _time.time() - t_start
+            logger.info(f"Claude responded in {elapsed:.1f}s ({len(text)} chars)")
+            return text
+        except Exception as e:
+            elapsed = _time.time() - t_start
+            err_str = str(e).lower()
+            retryable = any(k in err_str for k in ["502", "503", "529", "timeout", "disconnected", "overloaded", "connection", "reset", "eof", "broken pipe", "server"])
+
+            logger.warning(f"Claude attempt {attempt+1}/3 failed ({elapsed:.0f}s): {str(e)[:150]}. {'Retrying...' if attempt < 2 else 'FAILED'}")
+
+            if attempt < 2 and retryable:
+                _time.sleep(5)
+                continue
+            raise Exception(f"Claude failed after 3 attempts: {e}")
 
 
 def _parse_json(text):
     import json
-    if '{' in text:
+    import re
+
+    # Strip markdown code blocks
+    code_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
+    if code_match:
+        text = code_match.group(1).strip()
+
+    if '{' not in text:
+        return None
+
+    try:
+        start = text.index('{')
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == '{': depth += 1
+            elif text[i] == '}': depth -= 1
+            if depth == 0:
+                return json.loads(text[start:i+1])
+
+        # JSON was truncated — try to repair by closing open braces/brackets
+        raw = text[start:]
+        # Count open structures
+        open_brackets = raw.count('[') - raw.count(']')
+        open_braces = raw.count('{') - raw.count('}')
+        # Close them
+        repair = raw
+        if repair.rstrip().endswith(','):
+            repair = repair.rstrip()[:-1]  # remove trailing comma
+        repair += ']' * max(0, open_brackets) + '}' * max(0, open_braces)
         try:
-            start = text.index('{')
-            depth = 0
-            for i in range(start, len(text)):
-                if text[i] == '{': depth += 1
-                elif text[i] == '}': depth -= 1
-                if depth == 0:
-                    return json.loads(text[start:i+1])
-            return json.loads(text[start:text.rindex('}')+1])
-        except:
-            pass
+            return json.loads(repair)
+        except json.JSONDecodeError:
+            # Try more aggressive repair: truncate to last complete scene
+            last_complete = repair.rfind('},')
+            if last_complete > 0:
+                truncated = repair[:last_complete+1]
+                truncated += ']' * max(0, truncated.count('[') - truncated.count(']'))
+                truncated += '}' * max(0, truncated.count('{') - truncated.count('}'))
+                try:
+                    return json.loads(truncated)
+                except json.JSONDecodeError:
+                    pass
+    except Exception:
+        pass
     return None
 
 
@@ -289,52 +337,34 @@ async def update_characters(project_id: str, payload: dict = Body(...), tenant=D
 
 # ── STEP 1: Screenwriter Chat ──
 
-SCREENWRITER_SYSTEM = """You are a MASTER SCREENWRITER, RESEARCHER, and WORLD-BUILDER for cinema and animation.
+SCREENWRITER_SYSTEM_PHASE1 = """You are a MASTER SCREENWRITER and WORLD-BUILDER.
 
-YOUR ROLE:
-1. When the user describes a story, you DEEPLY RESEARCH the topic using your knowledge
-2. For biblical stories: use EXACT biblical passages, real names, real events
-3. For historical stories: use real historical facts
-4. Create a COMPLETE screenplay divided into scenes of EXACTLY 12 seconds each
-5. You are ALSO a world-builder: describe the ENVIRONMENT, LANDSCAPE, and ATMOSPHERE in vivid detail
-
-OUTPUT FORMAT — You MUST return valid JSON:
+TASK: Create a screenplay structure. Return ONLY valid JSON:
 {{
   "title": "Story Title",
   "total_scenes": N,
   "characters": [
-    {{"name": "Character Name", "description": "DETAILED physical appearance: height, build, skin color, hair, clothing, distinguishing features. This will be used to create the character's visual avatar", "age": "young/adult/old", "role": "protagonist/supporting"}}
+    {{"name": "Name", "description": "DETAILED physical: height, build, skin, hair, clothes", "age": "young/adult/old", "role": "protagonist/supporting"}}
   ],
-  "scenes": [
-    {{
-      "scene_number": 1,
-      "time_start": "0:00",
-      "time_end": "0:12",
-      "title": "Scene Title",
-      "description": "RICH visual description: WHERE (landscape, architecture, nature), WHEN (time of day, weather), WHAT (action, movement), ATMOSPHERE (light, colors, mood). Example: 'On a vast desert plain under a canopy of stars, Abraham kneels on sun-baked earth near his goat-hair tent. Warm firelight flickers against the dark, casting long shadows. A gentle breeze stirs the tent fabric.'",
-      "dialogue": "Character dialogue or narration for this scene",
-      "characters_in_scene": ["Character1", "Character2"],
-      "emotion": "dramatic/joyful/tense/peaceful",
-      "camera": "wide shot/close up/medium shot/aerial/tracking",
-      "transition": "fade/cut/dissolve"
-    }}
-  ],
-  "research_notes": "Sources and references used",
-  "narration": "Brief narrator text for context"
+  "scenes": [SCENES_HERE],
+  "research_notes": "Sources used",
+  "narration": "Brief context"
 }}
 
+Each scene:
+{{"scene_number": N, "time_start": "M:SS", "time_end": "M:SS", "title": "Title", "description": "RICH visual: WHERE (landscape, nature), WHEN (time of day, weather), WHAT (action), ATMOSPHERE (light, colors)", "dialogue": "Text or narration", "characters_in_scene": ["Name"], "emotion": "mood", "camera": "shot type", "transition": "fade/cut"}}
+
 RULES:
-- Each scene is EXACTLY 12 seconds
-- Plan smooth transitions between scenes
-- Describe characters PHYSICALLY in great detail so avatars can be generated to look EXACTLY right
-- Every scene description MUST include: location/landscape, time of day, weather/atmosphere, background elements (birds, clouds, water, etc.)
-- Think like a Pixar art director: every frame should be a painting
+- Each scene = EXACTLY 12 seconds
+- Max 8 scenes per response (if more needed, note it)
+- Describe characters PHYSICALLY in detail
+- Every scene description MUST include: location, time of day, atmosphere, background elements
 - Be faithful to source material (bible, history, etc.)
 - Language: {lang}"""
 
 
 def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, lang: str):
-    """Background thread: call Claude screenwriter and save result."""
+    """Background thread: call Claude screenwriter and save result. Uses chunked approach for reliability."""
     try:
         settings, projects, project = _get_project(tenant_id, project_id)
         if not project:
@@ -347,16 +377,24 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
             for m in chat_history[-6:]
         ])
 
-        system = SCREENWRITER_SYSTEM.replace("{lang}", lang)
+        system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang)
         user_prompt = f"""Previous conversation:
 {history_text}
 
 Current request: {message}
 
-Create or update the screenplay based on this conversation. Return the complete screenplay as JSON."""
+Create the screenplay. If the story needs more than 8 scenes, generate the first 8 now. Return ONLY valid JSON."""
 
-        result = _call_claude_sync(system, user_prompt)
+        # Phase 1: Get first batch of scenes (up to 8)
+        result = _call_claude_sync(system, user_prompt, max_tokens=6000)
         parsed = _parse_json(result)
+
+        if not parsed:
+            # Try to extract from markdown code blocks
+            import re
+            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', result)
+            if json_match:
+                parsed = _parse_json(json_match.group(1))
 
         # Re-read project (may have changed)
         settings, projects, project = _get_project(tenant_id, project_id)
@@ -365,22 +403,58 @@ Create or update the screenplay based on this conversation. Return the complete 
         chat_history = project.get("chat_history", [])
 
         if parsed:
-            project["scenes"] = parsed.get("scenes", [])
-            project["characters"] = parsed.get("characters", [])
+            all_scenes = parsed.get("scenes", [])
+            all_characters = parsed.get("characters", [])
+            total_needed = parsed.get("total_scenes", len(all_scenes))
+
+            # Phase 2: If more scenes needed, generate continuation
+            if total_needed > len(all_scenes):
+                try:
+                    continuation_prompt = f"""Continue the screenplay from scene {len(all_scenes) + 1} to {total_needed}.
+
+Previous scenes already written:
+{', '.join(f'Scene {s.get("scene_number")}: {s.get("title")}' for s in all_scenes)}
+
+Characters: {', '.join(c.get('name','') for c in all_characters)}
+Story: {message}
+
+Return ONLY JSON with a "scenes" array containing the remaining scenes (same format)."""
+
+                    cont_result = _call_claude_sync(system, continuation_prompt, max_tokens=3000)
+                    cont_parsed = _parse_json(cont_result)
+                    if not cont_parsed:
+                        import re
+                        json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', cont_result)
+                        if json_match:
+                            cont_parsed = _parse_json(json_match.group(1))
+
+                    if cont_parsed and cont_parsed.get("scenes"):
+                        all_scenes.extend(cont_parsed["scenes"])
+                        if cont_parsed.get("characters"):
+                            existing_names = {c["name"] for c in all_characters}
+                            for c in cont_parsed["characters"]:
+                                if c.get("name") not in existing_names:
+                                    all_characters.append(c)
+                        logger.info(f"Studio [{project_id}]: Phase 2 added {len(cont_parsed['scenes'])} more scenes (total: {len(all_scenes)})")
+                except Exception as e2:
+                    logger.warning(f"Studio [{project_id}]: Phase 2 continuation failed: {e2}. Using {len(all_scenes)} scenes.")
+
+            project["scenes"] = all_scenes
+            project["characters"] = all_characters
             project["agents_output"] = project.get("agents_output", {})
             project["agents_output"]["screenwriter"] = {
                 "title": parsed.get("title", ""),
                 "research_notes": parsed.get("research_notes", ""),
                 "narration": parsed.get("narration", ""),
             }
-            assistant_text = f"**{parsed.get('title', 'Roteiro')}** — {parsed.get('total_scenes', len(parsed.get('scenes',[])))} cenas\n\n"
-            for s in parsed.get("scenes", []):
+            assistant_text = f"**{parsed.get('title', 'Roteiro')}** — {len(all_scenes)} cenas\n\n"
+            for s in all_scenes:
                 assistant_text += f"**CENA {s.get('scene_number','')}** ({s.get('time_start','')}-{s.get('time_end','')}) — {s.get('title','')}\n"
                 assistant_text += f"_{s.get('description','')}_\n"
                 if s.get('dialogue'):
                     assistant_text += f'"{s["dialogue"]}"\n'
                 assistant_text += f"Personagens: {', '.join(s.get('characters_in_scene',[]))}\n\n"
-            assistant_text += f"\n**Personagens identificados:** {', '.join(c.get('name','') for c in parsed.get('characters',[]))}"
+            assistant_text += f"\n**Personagens identificados:** {', '.join(c.get('name','') for c in all_characters)}"
             if parsed.get("research_notes"):
                 assistant_text += f"\n\n**Pesquisa:** {parsed['research_notes'][:300]}"
         else:
@@ -396,7 +470,7 @@ Create or update the screenplay based on this conversation. Return the complete 
         _add_milestone(project, "screenplay_created", f"Roteiro criado — {n_scenes} cenas, {n_chars} personagens")
         _save_project(tenant_id, settings, projects)
 
-        logger.info(f"Studio [{project_id}]: Screenwriter done — {len(project.get('scenes',[]))} scenes")
+        logger.info(f"Studio [{project_id}]: Screenwriter done — {n_scenes} scenes")
 
     except Exception as e:
         logger.error(f"Studio [{project_id}] screenwriter error: {e}")
@@ -463,6 +537,52 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
         "scenes": project.get("scenes", []),
         "characters": project.get("characters", []),
     }
+
+
+
+@router.post("/projects/{project_id}/reset-chat")
+async def reset_chat(project_id: str, tenant=Depends(get_current_tenant)):
+    """Reset a stuck chat_status back to 'idle' so user can retry."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project["chat_status"] = "idle"
+    project["error"] = None
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok", "chat_status": "idle"}
+
+
+@router.post("/projects/{project_id}/retry-chat")
+async def retry_chat(project_id: str, tenant=Depends(get_current_tenant)):
+    """Retry the last user message in the screenwriter chat."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    chat_history = project.get("chat_history", [])
+    last_user_msg = None
+    for m in reversed(chat_history):
+        if m["role"] == "user":
+            last_user_msg = m["text"]
+            break
+
+    if not last_user_msg:
+        raise HTTPException(status_code=400, detail="No user message to retry")
+
+    project["chat_status"] = "thinking"
+    project["error"] = None
+    _save_project(tenant["id"], settings, projects)
+
+    lang = project.get("language", "pt")
+    thread = threading.Thread(
+        target=_run_screenwriter_background,
+        args=(tenant["id"], project_id, last_user_msg, lang),
+        daemon=True,
+    )
+    thread.start()
+
+    return {"status": "thinking", "message": last_user_msg}
+
 
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 — Per-Scene Parallel Teams) ──
