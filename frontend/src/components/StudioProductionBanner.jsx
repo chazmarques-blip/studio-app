@@ -27,7 +27,9 @@ export function StudioProductionBanner() {
   if (isComplete) progress = 100;
   else if (phase === 'concatenating') progress = 95;
   else if (phase?.startsWith('generating_video')) progress = 50 + (videosDone / Math.max(totalScenes, 1)) * 45;
-  else if (phase) progress = Math.min(30, 5 + (agentStatus?.current_scene || 0) / Math.max(totalScenes, 1) * 25);
+  else if (phase === 'pre_production') progress = 5;
+  else if (phase === 'pre_production_done') progress = 15;
+  else if (phase) progress = Math.min(45, 15 + (agentStatus?.current_scene || 0) / Math.max(totalScenes, 1) * 30);
 
   const phaseLabel = isComplete ? 'Concluído!'
     : isError ? 'Erro na produção'
@@ -36,6 +38,8 @@ export function StudioProductionBanner() {
     : phase === 'directing' ? `Dirigindo cenas...`
     : phase === 'waiting_sora' ? 'Aguardando Sora 2...'
     : phase === 'starting_teams' ? 'Iniciando equipas...'
+    : phase === 'pre_production' ? 'Pré-produção inteligente...'
+    : phase === 'pre_production_done' ? 'Design de produção pronto!'
     : 'Produzindo...';
 
   if (minimized && isRunning) {

@@ -189,6 +189,163 @@ def _parse_json(text):
     return None
 
 
+# ── Pre-Production Intelligence ──
+
+def _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id):
+    """ONE Claude Vision call to analyze ALL character avatars and produce canonical descriptions.
+    Returns dict: {character_name: detailed_english_description}
+    """
+    if not char_avatars:
+        return {}
+
+    content_parts = [{"type": "text", "text": """Analyze each character avatar image below. For EACH character, describe their EXACT visual appearance in English.
+Focus on: species/type (if animal: which exact animal, fur/feather color and texture; if human: features), body shape, size relative to others, ALL colors and textures, clothing, accessories, unique distinguishing features.
+
+Return ONLY valid JSON: {"Character Name": "Precise 50-word visual description"}"""}]
+
+    names_with_images = []
+    for ch in characters:
+        name = ch.get("name", "")
+        url = char_avatars.get(name)
+        if not url:
+            continue
+        local_path = avatar_cache.get(url)
+        if not local_path or not os.path.exists(local_path):
+            continue
+        try:
+            with open(local_path, 'rb') as f:
+                img_b64 = base64.b64encode(f.read()).decode()
+            content_parts.append({"type": "text", "text": f"CHARACTER: {name}"})
+            content_parts.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}})
+            names_with_images.append(name)
+        except Exception as e:
+            logger.warning(f"Studio [{project_id}]: Avatar read error for {name}: {e}")
+
+    if not names_with_images:
+        return {}
+
+    try:
+        response = litellm.completion(
+            model="anthropic/claude-sonnet-4-5-20250929",
+            messages=[{"role": "user", "content": content_parts}],
+            max_tokens=2000, timeout=60, api_key=ANTHROPIC_API_KEY,
+        )
+        result = response.choices[0].message.content
+        parsed = _parse_json(result)
+        if parsed:
+            logger.info(f"Studio [{project_id}]: Avatar Vision analysis — {len(parsed)} characters: {list(parsed.keys())}")
+            return parsed
+    except Exception as e:
+        logger.warning(f"Studio [{project_id}]: Avatar Vision analysis failed: {e}")
+    return {}
+
+
+def _build_production_design(briefing, characters, scenes, avatar_descriptions, visual_style, lang, project_id):
+    """ONE Claude call to create the complete Production Design Document.
+    Replaces separate music, style, location, and continuity planning with a single efficient call.
+    Outputs: style_anchors, color_palette, character_bible, location_bible, scene_directions, music_plan, voice_plan.
+    """
+    STYLE_NAMES = {
+        "animation": "High-quality 3D Pixar/DreamWorks animation with warm lighting and expressive characters",
+        "cartoon": "Vibrant 2D cartoon with bold outlines and saturated colors",
+        "anime": "Japanese anime with detailed backgrounds and dramatic lighting",
+        "realistic": "Cinematic photorealistic live-action with natural lighting",
+        "watercolor": "Watercolor painting with soft edges and pastel tones",
+    }
+
+    char_info = "\n".join([
+        f"- {ch['name']}: {ch.get('description', '')} | Avatar visual: {avatar_descriptions.get(ch['name'], 'No avatar reference')}"
+        for ch in characters
+    ])
+
+    scene_list = "\n".join([
+        f"Scene {s.get('scene_number', i+1)}: {s.get('title', '')} — {s.get('description', '')[:120]} [{s.get('emotion', '')}] Chars: {', '.join(s.get('characters_in_scene', []))}"
+        for i, s in enumerate(scenes)
+    ])
+
+    system = """You are a PRODUCTION DESIGNER for animated films. Create ONE comprehensive document ensuring PERFECT visual and narrative continuity across independently-rendered scenes.
+
+Return ONLY valid JSON:
+{
+  "style_anchors": "EXACT 40-word visual style description to include VERBATIM in EVERY scene prompt. Specific: art technique, lighting quality, texture detail, camera quality, color temperature.",
+  "color_palette": {"global": "3-4 dominant color names", "morning": "morning light description", "afternoon": "afternoon light", "sunset": "sunset/evening light", "night": "night light"},
+  "character_bible": {"CharacterName": "CANONICAL 50-word English appearance. MUST match avatar analysis. Species, body type, exact colors, textures, clothing, unique marks. Used VERBATIM in every scene with this character."},
+  "location_bible": {"LocationKey": "40-word English description. Landscape, terrain, vegetation, architecture, sky, ambient details."},
+  "scene_directions": [{"scene": 1, "time_of_day": "morning|afternoon|sunset|night", "location_key": "from location_bible", "camera_flow": "camera movement description", "transition_note": "visual link to previous/next scene", "ambient": "environmental sounds"}],
+  "music_plan": [{"scenes": [1,2,3], "mood": "description", "category": "cinematic|epic|gentle|tense|triumphant", "intensity": "low|medium|high"}],
+  "voice_plan": [{"scene": 1, "tone": "warm|whisper|powerful|dramatic|sad", "pace": "slow|medium|fast"}]
+}
+
+CRITICAL RULES:
+- character_bible MUST derive from avatar visual analysis when available — avatar is TRUTH
+- If characters are animals, describe ONLY animal features (fur, feathers, hooves, snouts, tails) — NEVER human features
+- style_anchors must be specific enough to force Sora 2 into consistent output across all scenes
+- scene_directions transition_note creates visual flow between independently generated videos
+- All text in ENGLISH for Sora 2 compatibility"""
+
+    user_prompt = f"""Story: {briefing[:500]}
+Art style: {STYLE_NAMES.get(visual_style, visual_style)}
+Scenes: {len(scenes)} | Language: {lang}
+
+CHARACTERS WITH VISUAL REFERENCES:
+{char_info}
+
+SCENES:
+{scene_list}
+
+Create production design. VISUAL CONSISTENCY is the #1 priority."""
+
+    try:
+        result = _call_claude_sync(system, user_prompt, max_tokens=5000)
+        parsed = _parse_json(result)
+        if parsed:
+            logger.info(f"Studio [{project_id}]: Production Design — {len(parsed.get('character_bible', {}))} chars, {len(parsed.get('location_bible', {}))} locations")
+            return parsed
+    except Exception as e:
+        logger.warning(f"Studio [{project_id}]: Production Design failed: {e}")
+    return {}
+
+
+def _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache, size="1280x720"):
+    """Create a side-by-side collage of ALL character avatars in a scene for Sora 2 reference.
+    Single character → returns original path. Multiple → creates composite image.
+    """
+    from PIL import Image as _PILImage
+    import tempfile
+
+    w, h = [int(x) for x in size.split("x")]
+
+    avatar_paths = []
+    for ch_name in chars_in_scene:
+        url = char_avatars.get(ch_name)
+        if url and url in avatar_cache and avatar_cache[url]:
+            avatar_paths.append(avatar_cache[url])
+
+    if not avatar_paths:
+        return None
+    if len(avatar_paths) == 1:
+        return avatar_paths[0]
+
+    # Multiple avatars — create composite collage
+    canvas = _PILImage.new("RGB", (w, h), (0, 0, 0))
+    num = len(avatar_paths)
+    slot_w = w // num
+
+    for i, path in enumerate(avatar_paths):
+        try:
+            img = _PILImage.open(path).convert("RGB")
+            ratio = min(slot_w / img.width, h / img.height)
+            nw, nh = int(img.width * ratio), int(img.height * ratio)
+            resized = img.resize((nw, nh), _PILImage.LANCZOS)
+            canvas.paste(resized, (i * slot_w + (slot_w - nw) // 2, (h - nh) // 2))
+        except Exception:
+            pass
+
+    composite_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    canvas.save(composite_file.name, format="PNG")
+    return composite_file.name
+
+
 # ── Models ──
 
 class StudioProject(BaseModel):
@@ -344,7 +501,7 @@ TASK: Create a screenplay structure. Return ONLY valid JSON:
   "title": "Story Title",
   "total_scenes": N,
   "characters": [
-    {{"name": "Name", "description": "DETAILED physical: height, build, skin, hair, clothes", "age": "young/adult/old", "role": "protagonist/supporting"}}
+    {{"name": "Name", "description": "DETAILED physical: species/type, body shape, size, colors, textures (fur/skin/feathers), clothing/accessories, unique features", "age": "young/adult/old", "role": "protagonist/supporting"}}
   ],
   "scenes": [SCENES_HERE],
   "research_notes": "Sources used",
@@ -357,8 +514,10 @@ Each scene:
 RULES:
 - Each scene = EXACTLY 12 seconds
 - Max 8 scenes per response (if more needed, note it)
-- Describe characters PHYSICALLY in detail
-- Every scene description MUST include: location, time of day, atmosphere, background elements
+- Describe characters PHYSICALLY in detail with species-accurate features
+- CRITICAL: If the story uses animals as characters, ALL descriptions MUST use animal features (fur, feathers, hooves, tails, snouts, paws). NEVER describe animal characters with human features (hands, fingers, human skin)
+- Characters MUST maintain visually consistent appearance across ALL scenes — same colors, same clothing, same distinguishing marks
+- Every scene description MUST include: specific location, time of day, atmosphere, background elements
 - Be faithful to source material (bible, history, etc.)
 - Language: {lang}"""
 
@@ -684,18 +843,6 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         # ── Shared context ──
         briefing = project.get("briefing", "")
 
-        char_sheet = "\n".join([
-            f"- {ch['name']}: {ch.get('description','')} ({ch.get('age','')}, {ch.get('role','')})"
-            + (" [HAS REFERENCE AVATAR — MUST match this character's appearance EXACTLY]" if ch.get("name") in char_avatars else "")
-            for ch in characters
-        ])
-
-        # Full scene list for global context
-        all_scenes_summary = "\n".join([
-            f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} - {s.get('description','')}"
-            for i, s in enumerate(scenes)
-        ])
-
         # ── Pre-download avatars ONCE ──
         avatar_cache = {}
         for name, url in char_avatars.items():
@@ -721,6 +868,41 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         if completed_videos:
             logger.info(f"Studio [{project_id}]: Resuming — {len(completed_videos)} scenes already cached: {sorted(completed_videos.keys())}")
 
+        # ══ PRE-PRODUCTION: Avatar Analysis + Production Design Document ══
+        _update_project_field(tenant_id, project_id, {
+            "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production",
+                             "scene_status": {str(i+1): "queued" for i in range(total)}}
+        })
+        logger.info(f"Studio [{project_id}]: PRE-PRODUCTION — Analyzing avatars and building production design")
+
+        # Step 1: Analyze avatars with Claude Vision (ONE call for all avatars)
+        avatar_descriptions = _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
+
+        # Step 2: Build Production Design Document (ONE call — replaces music, style, location, continuity planning)
+        production_design = _build_production_design(
+            briefing, characters, scenes, avatar_descriptions, visual_style,
+            project.get("language", "pt"), project_id
+        )
+
+        # Extract production design elements for efficient access by directors
+        pd_style = production_design.get("style_anchors", style_hint)
+        pd_chars = production_design.get("character_bible", {})
+        pd_locations = production_design.get("location_bible", {})
+        pd_scene_dirs = {d.get("scene", 0): d for d in production_design.get("scene_directions", [])}
+        pd_color = production_design.get("color_palette", {})
+        pd_music = production_design.get("music_plan", [])
+
+        t_preproduction = _time.time() - t_start
+        logger.info(f"Studio [{project_id}]: PRE-PRODUCTION complete in {t_preproduction:.1f}s — {len(pd_chars)} characters, {len(pd_locations)} locations")
+
+        _update_project_field(tenant_id, project_id, {
+            "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production_done",
+                             "scene_status": {str(i+1): "queued" for i in range(total)}},
+            "agents_output": {**project.get("agents_output", {}),
+                              "production_design": production_design,
+                              "avatar_descriptions": avatar_descriptions},
+        })
+
         # ── Rate limiter for Sora 2 ──
         sora_semaphore = threading.Semaphore(5)
 
@@ -732,71 +914,71 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         budget_exhausted = threading.Event()
 
         def _scene_director(scene, scene_num):
-            """PHASE A — Scene Director only: generates the Sora prompt via Claude."""
+            """PHASE A — Scene Director: generates Sora prompt using Production Design Bible.
+            Uses pre-computed character_bible, location_bible, and style_anchors for consistency.
+            Token-efficient: creative decisions pre-made by Production Designer.
+            """
             if scene_num in completed_videos:
                 return {"scene_number": scene_num, "sora_prompt": None, "cached": True}
 
             chars_in_scene = scene.get("characters_in_scene", [])
-            scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
 
-            director_system = f"""You are a MASTER SCENE DIRECTOR and CINEMATOGRAPHER. You design COMPLETE, richly detailed visual scenes for Sora 2 AI video generation.
+            # Canonical character descriptions from Production Design Bible
+            char_descs = "\n".join([
+                f"- {name}: {pd_chars.get(name, next((ch.get('description','') for ch in characters if ch.get('name')==name), 'Unknown character'))}"
+                for name in chars_in_scene
+            ])
 
-{style_hint}
+            # Scene-specific direction from Production Design
+            scene_dir = pd_scene_dirs.get(scene_num, {})
+            loc_key = scene_dir.get("location_key", "")
+            loc_desc = pd_locations.get(loc_key, "")
+            time_day = scene_dir.get("time_of_day", "afternoon")
+            time_light = pd_color.get(time_day, pd_color.get("global", ""))
+            cam_flow = scene_dir.get("camera_flow", scene.get("camera", ""))
+            trans_note = scene_dir.get("transition_note", "")
 
-CHARACTERS IN THIS FILM:
-{char_sheet}
+            director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation. Convert scene descriptions into detailed visual prompts.
 
-FULL STORY CONTEXT:
-{all_scenes_summary[:1500]}
+MANDATORY STYLE (include VERBATIM at the start of your prompt): {pd_style}
 
-YOUR EXPERTISE:
-- You think like Hayao Miyazaki for animation: every frame is a painting with rich environments
-- You add environmental details that bring scenes to life: weather, time of day, natural elements (birds, wind, clouds, water reflections)
-- You describe background elements: distant mountains, rolling hills, ancient cities, starry skies, golden sunsets
-- You specify camera movements: slow dolly, tracking shot, crane shot, push-in
-- You describe lighting meticulously: golden hour glow, moonlit shadows, divine light rays through clouds
-- You add atmospheric details: dust particles in light, morning mist, evening fireflies
+Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
 
-CRITICAL RULES:
-- Return ONLY valid JSON
-- The sora_prompt MUST be in ENGLISH (Sora 2 works best in English)
-- Include RICH environmental/atmospheric details — this is what makes the video cinematic
-- Describe characters by their PHYSICAL APPEARANCE (from the character sheet), not by name
-- If a character has a REFERENCE AVATAR, describe their exact appearance from the avatar
-- Max 250 words for sora_prompt
-
-Return ONLY JSON:
-{{"sora_prompt": "ONE detailed English paragraph describing the complete visual scene for Sora 2..."}}"""
+RULES:
+- START with the style anchors text verbatim
+- Describe characters by EXACT PHYSICAL APPEARANCE from character descriptions below — NEVER use character names in the prompt
+- Include: environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
+- Maintain visual continuity with transition notes
+- The sora_prompt MUST be in ENGLISH"""
 
             director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
-Visual description: {scene.get('description','')}
-Dialogue/narration: {scene.get('dialogue','')}
-Emotion: {scene.get('emotion','')} | Camera: {scene.get('camera','')}
-Characters present: {scene_chars}
-Transition: {scene.get('transition', 'cut')}
-Story context: {briefing[:300]}
+Description: {scene.get('description','')}
+Dialogue: {scene.get('dialogue','')}
+Emotion: {scene.get('emotion','')}
 
-Create a RICHLY DETAILED visual prompt. Include:
-1. Environment: Where exactly does this scene take place? Describe the landscape, architecture, nature
-2. Atmosphere: Time of day, weather, lighting quality, mood
-3. Background details: What's happening in the background? (birds, clouds, distant elements)
-4. Character action: What are the characters doing physically? Their expressions, gestures
-5. Camera: Specific camera movement and framing
-6. Color palette: Dominant colors and mood"""
+CHARACTERS IN THIS SCENE (describe by appearance, NOT by name):
+{char_descs}
+
+LOCATION: {loc_desc}
+TIME OF DAY: {time_day} — Light/Colors: {time_light}
+CAMERA: {cam_flow}
+CONTINUITY: {trans_note}"""
 
             _update_scene_status(tenant_id, project_id, scene_num, "directing", total)
             try:
                 t_p = _time.time()
-                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1500)
+                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
                 data = _parse_json(result_text) or {}
                 sora_prompt = data.get("sora_prompt", scene.get("description", ""))
                 elapsed = _time.time() - t_p
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} directed in {elapsed:.1f}s — {sora_prompt[:80]}...")
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} directed in {elapsed:.1f}s")
                 return {"scene_number": scene_num, "sora_prompt": sora_prompt, "cached": False}
             except Exception as e:
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} director error: {e}")
-                fallback = f"{style_hint} {scene.get('description', '')}. Characters: {scene_chars}. {scene.get('emotion', '')} mood, {scene.get('camera', 'wide shot')}."
-                return {"scene_number": scene_num, "sora_prompt": fallback, "cached": False}
+                # Fallback: construct prompt directly from production design elements
+                char_desc_text = ". ".join([pd_chars.get(n, '') for n in chars_in_scene if pd_chars.get(n)])
+                fallback = f"{pd_style}. {loc_desc}. {time_day}, {time_light}. {char_desc_text}. {scene.get('description', '')}."
+                return {"scene_number": scene_num, "sora_prompt": fallback[:1000], "cached": False}
 
         def _sora_render(directed_scene, scene):
             """PHASE B — Sora 2 video render with retries and budget awareness."""
@@ -813,11 +995,7 @@ Create a RICHLY DETAILED visual prompt. Include:
             sora_prompt = directed_scene["sora_prompt"]
             chars_in_scene = scene.get("characters_in_scene", [])
 
-            ref_path = None
-            for ch_name in chars_in_scene:
-                if ch_name in char_avatars and char_avatars[ch_name] in avatar_cache:
-                    ref_path = avatar_cache[char_avatars[ch_name]]
-                    break
+            ref_path = _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache)
 
             _update_scene_status(tenant_id, project_id, scene_num, "waiting_sora", total)
 
@@ -883,24 +1061,13 @@ Create a RICHLY DETAILED visual prompt. Include:
                 _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                 return {"scene_number": scene_num, "url": None, "type": "video", "error": last_error or "unknown"}
 
-        def _music_team():
-            try:
-                avail = ", ".join(MUSIC_LIBRARY.keys())
-                r = _call_claude_sync(
-                    f'You are a MUSIC DIRECTOR. Output ONLY JSON: {{"mood":"...","selected_category":"one of: {avail}"}}',
-                    f"Story: {briefing[:300]}\nScenes: {total}")
-                return _parse_json(r) or {"mood": "cinematic"}
-            except Exception:
-                return {"mood": "cinematic"}
-
-        # ══ PHASE A: ALL DIRECTORS IN PARALLEL (fast — ~2s each) ══
+        # ══ PHASE A: ALL DIRECTORS IN PARALLEL (Production-Design-guided) ══
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        logger.info(f"Studio [{project_id}]: PHASE A — Launching {total} Scene Directors + Music (parallel)")
+        logger.info(f"Studio [{project_id}]: PHASE A — Launching {total} Scene Directors (parallel, PD-guided)")
 
         directed_scenes = []
-        with ThreadPoolExecutor(max_workers=total + 1) as executor:
-            music_future = executor.submit(_music_team)
+        with ThreadPoolExecutor(max_workers=total) as executor:
             director_futures = {
                 executor.submit(_scene_director, s, s.get("scene_number", i+1)): (i, s)
                 for i, s in enumerate(scenes)
@@ -912,7 +1079,7 @@ Create a RICHLY DETAILED visual prompt. Include:
                 cached = result.get("cached", False)
                 logger.info(f"Studio [{project_id}]: Director {result['scene_number']}/{total} done {'(CACHED)' if cached else ''}")
 
-            music_data = music_future.result()
+        music_data = {"plan": pd_music, "mood": "cinematic"}
 
         t_phase_a = _time.time() - t_start
         logger.info(f"Studio [{project_id}]: PHASE A complete in {t_phase_a:.1f}s — {len(directed_scenes)} prompts ready")
@@ -947,10 +1114,14 @@ Create a RICHLY DETAILED visual prompt. Include:
         budget_errors = len([v for v in scene_videos if "budget" in (v.get("error") or "")])
         logger.info(f"Studio [{project_id}]: ALL SCENES done in {t_prod:.0f}s ({t_prod/60:.1f}min) — {successful}/{total} OK, {budget_errors} budget errors")
 
-        # Save music
+        # Save production data
         settings, projects, project = _get_project(tenant_id, project_id)
         if project:
-            project["agents_output"] = {**project.get("agents_output", {}), "music_director": music_data}
+            project["agents_output"] = {**project.get("agents_output", {}),
+                                        "music_director": music_data,
+                                        "production_design": production_design,
+                                        "avatar_descriptions": avatar_descriptions}
+            _add_milestone(project, "preproduction_complete", f"Pré-produção inteligente — {t_preproduction:.0f}s")
             _add_milestone(project, "agents_complete", f"Produção paralela — {t_prod:.0f}s")
             _save_project(tenant_id, settings, projects)
 
@@ -1176,6 +1347,15 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
 
         _update_scene_status(tenant_id, project_id, scene_num, "directing", total)
 
+        # Load Production Design from project (if available from previous production)
+        agents_output = project.get("agents_output", {})
+        production_design = agents_output.get("production_design", {})
+        pd_chars = production_design.get("character_bible", {})
+        pd_locations = production_design.get("location_bible", {})
+        pd_style = production_design.get("style_anchors", "")
+        pd_color = production_design.get("color_palette", {})
+        pd_scene_dirs = {d.get("scene", 0): d for d in production_design.get("scene_directions", [])}
+
         STYLE_PROMPTS = {
             "animation": "ART STYLE: High-quality 3D animation like Pixar/DreamWorks. Colorful, warm, expressive characters with large eyes. Smooth cinematic camera movements. Rich detailed environments.",
             "cartoon": "ART STYLE: Vibrant 2D cartoon style. Bold outlines, saturated colors, exaggerated expressions.",
@@ -1183,32 +1363,47 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
             "realistic": "ART STYLE: Cinematic photorealistic live-action. Film grain, natural lighting.",
             "watercolor": "ART STYLE: Watercolor painting style. Soft edges, pastel tones, dreamy atmosphere.",
         }
-        style_hint = STYLE_PROMPTS.get(visual_style, STYLE_PROMPTS["animation"])
+        style_hint = pd_style or STYLE_PROMPTS.get(visual_style, STYLE_PROMPTS["animation"])
 
         briefing = project.get("briefing", "")
-        char_sheet = "\n".join([
-            f"- {ch['name']}: {ch.get('description','')} ({ch.get('age','')}, {ch.get('role','')})"
-            for ch in characters
-        ])
-        all_scenes_summary = "\n".join([
-            f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} - {s.get('description','')}"
-            for i, s in enumerate(scenes)
-        ])
 
-        # Use custom prompt or generate via Claude
+        # Use custom prompt or generate via Claude with Production Design
         if custom_prompt:
             sora_prompt = custom_prompt
         else:
             chars_in_scene = scene.get("characters_in_scene", [])
-            scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
 
-            director_system = f"""You are a MASTER SCENE DIRECTOR. Design a richly detailed visual scene for Sora 2.
-{style_hint}
-CHARACTERS: {char_sheet}
-STORY: {all_scenes_summary[:1000]}
+            # Use canonical descriptions from Production Design if available
+            if pd_chars:
+                char_descs = "\n".join([
+                    f"- {name}: {pd_chars.get(name, next((ch.get('description','') for ch in characters if ch.get('name')==name), ''))}"
+                    for name in chars_in_scene
+                ])
+                scene_dir = pd_scene_dirs.get(scene_num, {})
+                loc_key = scene_dir.get("location_key", "")
+                loc_desc = pd_locations.get(loc_key, "")
+                time_day = scene_dir.get("time_of_day", "afternoon")
+                time_light = pd_color.get(time_day, pd_color.get("global", ""))
+
+                director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation.
+MANDATORY STYLE (include VERBATIM): {style_hint}
+Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
+RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera."""
+
+                director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
+Description: {scene.get('description','')}
+Dialogue: {scene.get('dialogue','')}
+Emotion: {scene.get('emotion','')}
+CHARACTERS (by appearance): {char_descs}
+LOCATION: {loc_desc}
+TIME: {time_day} — {time_light}
+CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}"""
+            else:
+                # Fallback: no production design available
+                scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
+                director_system = f"""You are a SCENE DIRECTOR for Sora 2. {style_hint}
 Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words."}}"""
-
-            director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
+                director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')} | Camera: {scene.get('camera','')}
@@ -1216,27 +1411,28 @@ Characters: {scene_chars}
 Story: {briefing[:300]}"""
 
             try:
-                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1500)
+                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
                 data = _parse_json(result_text) or {}
                 sora_prompt = data.get("sora_prompt", scene.get("description", ""))
             except Exception as e:
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} regen director error: {e}")
                 sora_prompt = f"{style_hint} {scene.get('description', '')}"
 
-        # Download avatar if available
+        # Build composite avatar for all characters in scene
         chars_in_scene = scene.get("characters_in_scene", [])
-        ref_path = None
+        avatar_cache = {}
         for ch_name in chars_in_scene:
             url = char_avatars.get(ch_name)
-            if url:
+            if url and url not in avatar_cache:
                 try:
                     full_url = url if not url.startswith("/") else f"{os.environ.get('SUPABASE_URL','')}/storage/v1/object/public{url}"
                     ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
                     urllib.request.urlretrieve(full_url, ref_file.name)
-                    ref_path = ref_file.name
-                    break
+                    avatar_cache[url] = ref_file.name
                 except Exception:
-                    pass
+                    avatar_cache[url] = None
+
+        ref_path = _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache)
 
         # Generate video with Sora 2 (3 retries)
         _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
@@ -1275,7 +1471,12 @@ Story: {briefing[:300]}"""
                         _add_milestone(project, f"regen_scene_{scene_num}", f"Cena {scene_num} regenerada")
                         _save_project(tenant_id, settings, projects)
 
-                    if ref_path:
+                    # Cleanup temp files
+                    for p in avatar_cache.values():
+                        if p:
+                            try: os.unlink(p)
+                            except OSError: pass
+                    if ref_path and ref_path not in avatar_cache.values():
                         try: os.unlink(ref_path)
                         except OSError: pass
                     return
@@ -1298,7 +1499,11 @@ Story: {briefing[:300]}"""
 
         # All retries failed
         _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-        if ref_path:
+        for p in avatar_cache.values():
+            if p:
+                try: os.unlink(p)
+                except OSError: pass
+        if ref_path and ref_path not in avatar_cache.values():
             try: os.unlink(ref_path)
             except OSError: pass
 

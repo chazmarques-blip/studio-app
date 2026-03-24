@@ -1174,6 +1174,8 @@ export function DirectedStudio({
             <div>
               <div className="flex items-center justify-between text-[9px] mb-1.5">
                 <span className="text-[#999]">
+                  {agentStatus.phase === 'pre_production' && `Pré-produção inteligente — Analisando avatares e design...`}
+                  {agentStatus.phase === 'pre_production_done' && `Design de produção pronto — Iniciando direção...`}
                   {agentStatus.phase === 'photography' && `Dir. Fotografia — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
                   {agentStatus.phase === 'music' && `Dir. Musical`}
                   {agentStatus.phase === 'audio' && `Dir. Áudio — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
@@ -1181,6 +1183,7 @@ export function DirectedStudio({
                   {agentStatus.phase === 'concatenating' && `Concatenando filme final...`}
                   {agentStatus.phase === 'complete' && `Produção concluída!`}
                   {agentStatus.phase === 'starting' && `Iniciando produção...`}
+                  {agentStatus.phase === 'starting_teams' && `Iniciando equipas de direção...`}
                 </span>
                 <span className="text-[#C9A84C] font-semibold">
                   {agentStatus.videos_done !== undefined ? `${agentStatus.videos_done}/${agentStatus.total_scenes || scenes.length} vídeos` : ''}
