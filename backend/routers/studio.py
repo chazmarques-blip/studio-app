@@ -576,6 +576,9 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
         video_gen = OpenAIVideoGeneration(api_key=EMERGENT_LLM_KEY)
 
+        # Track budget state across threads
+        budget_exhausted = threading.Event()
+
         def _scene_team(scene, scene_num):
             """Full production for ONE scene: Director(Claude) → Sora 2."""
             t_scene = _time.time()
@@ -584,7 +587,13 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                 logger.info(f"Studio [{project_id}]: Scene {scene_num} CACHED")
                 return {"scene_number": scene_num, "url": completed_videos[scene_num], "type": "video", "duration": 12}
 
-            # A) Scene Director — ONE Claude call for visual + audio design
+            # Skip if budget already exhausted
+            if budget_exhausted.is_set():
+                logger.warning(f"Studio [{project_id}]: Scene {scene_num} SKIPPED — budget exhausted")
+                _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
+
+            # A) Scene Director — ONE Claude call
             chars_in_scene = scene.get("characters_in_scene", [])
             scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
 
@@ -613,16 +622,25 @@ Story: {briefing[:150]}"""
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} director error: {e}")
                 sora_prompt = scene.get("description", "")
 
-            # B) Sora 2 Video — rate-limited
+            # B) Sora 2 Video — rate-limited + budget-aware
             ref_path = None
             for ch_name in chars_in_scene:
                 if ch_name in char_avatars and char_avatars[ch_name] in avatar_cache:
                     ref_path = avatar_cache[char_avatars[ch_name]]
                     break
 
+            # Check budget again before waiting for semaphore
+            if budget_exhausted.is_set():
+                _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
+
             _update_scene_status(tenant_id, project_id, scene_num, "waiting_sora", total)
 
             with sora_semaphore:
+                if budget_exhausted.is_set():
+                    _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
+
                 _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
                 t_v = _time.time()
                 try:
@@ -632,19 +650,37 @@ Story: {briefing[:150]}"""
 
                     logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora 2 started (avatar={'Y' if ref_path else 'N'})")
                     video_bytes = video_gen.text_to_video(**gen_kwargs)
+                    elapsed = _time.time() - t_v
 
-                    if video_bytes:
+                    if video_bytes and len(video_bytes) > 1000:
                         filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                         video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
                         t_total_scene = _time.time() - t_scene
-                        logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {t_total_scene:.0f}s (sora: {_time.time()-t_v:.0f}s, {len(video_bytes)//1024}KB)")
+                        logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {t_total_scene:.0f}s (sora: {elapsed:.0f}s, {len(video_bytes)//1024}KB)")
                         _save_scene_video(tenant_id, project_id, scene_num, video_url, total)
                         return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 12}
                     else:
-                        _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                        return {"scene_number": scene_num, "url": None, "type": "video", "error": "empty"}
+                        # Empty/tiny response — likely budget exceeded
+                        sz = len(video_bytes) if video_bytes else 0
+                        if elapsed < 30:
+                            # Returned too fast = budget exceeded (real generation takes minutes)
+                            logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET EXHAUSTED (returned {sz}B in {elapsed:.0f}s)")
+                            budget_exhausted.set()
+                            _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                            return {"scene_number": scene_num, "url": None, "type": "video", "error": "budget_exhausted"}
+                        else:
+                            logger.warning(f"Studio [{project_id}]: Scene {scene_num} empty video ({sz}B in {elapsed:.0f}s)")
+                            _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                            return {"scene_number": scene_num, "url": None, "type": "video", "error": f"empty_video_{sz}B"}
+
                 except Exception as ve:
-                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} Sora FAIL {_time.time()-t_v:.0f}s: {ve}")
+                    err_str = str(ve).lower()
+                    elapsed = _time.time() - t_v
+                    if "budget" in err_str or "exceeded" in err_str or "insufficient" in err_str:
+                        logger.error(f"Studio [{project_id}]: Scene {scene_num} BUDGET ERROR: {ve}")
+                        budget_exhausted.set()
+                    else:
+                        logger.warning(f"Studio [{project_id}]: Scene {scene_num} Sora FAIL {elapsed:.0f}s: {ve}")
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                     return {"scene_number": scene_num, "url": None, "type": "video", "error": str(ve)[:200]}
 
@@ -679,7 +715,9 @@ Story: {briefing[:150]}"""
             music_data = music_future.result()
 
         t_prod = _time.time() - t_start
-        logger.info(f"Studio [{project_id}]: ALL SCENES done in {t_prod:.0f}s ({t_prod/60:.1f}min)")
+        successful = len([v for v in scene_videos if v.get("url")])
+        budget_errors = len([v for v in scene_videos if "budget" in (v.get("error") or "")])
+        logger.info(f"Studio [{project_id}]: ALL SCENES done in {t_prod:.0f}s ({t_prod/60:.1f}min) — {successful}/{total} OK, {budget_errors} budget errors")
 
         # Save music
         settings, projects, project = _get_project(tenant_id, project_id)

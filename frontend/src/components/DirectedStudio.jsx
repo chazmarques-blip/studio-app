@@ -1176,12 +1176,23 @@ export function DirectedStudio({
               <div className="flex-1">
                 <p className="text-[10px] font-semibold text-[#C9A84C]">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
                 <p className="text-[8px] text-[#666]">
-                  {lang === 'pt'
-                    ? `~${Math.ceil(scenes.length / 5) * 8 + 1} min estimados (${Math.ceil(scenes.length / 5)} lotes × 5 paralelos). Pode navegar — avisaremos quando terminar.`
-                    : `~${Math.ceil(scenes.length / 5) * 8 + 1} min estimated. You can navigate away — we'll notify you.`
-                  }
+                  {agentStatus.videos_done || 0}/{agentStatus.total_scenes || '?'} {lang === 'pt' ? 'prontos' : 'done'}.
+                  {' '}{lang === 'pt' ? 'Pode navegar — avisaremos quando terminar.' : 'You can navigate away.'}
                 </p>
               </div>
+            </div>
+          )}
+          {/* Budget exhausted warning */}
+          {generating && Object.values(agentStatus.scene_status || {}).some(s => s === 'error') &&
+           agentStatus.videos_done > 0 && agentStatus.videos_done < (agentStatus.total_scenes || 0) && (
+            <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-2 flex items-center gap-2">
+              <Clock size={12} className="text-orange-400" />
+              <p className="text-[8px] text-orange-300">
+                {lang === 'pt'
+                  ? `${agentStatus.videos_done} cenas geradas, restantes falharam. Possivelmente budget Sora 2 esgotado. Adicione saldo em Profile → Universal Key → Add Balance e retome a produção.`
+                  : `${agentStatus.videos_done} scenes generated, others failed. Likely Sora 2 budget exceeded. Top up balance and resume.`
+                }
+              </p>
             </div>
           )}
         </div>
