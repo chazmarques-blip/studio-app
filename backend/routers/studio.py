@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=False)
 
 # Set OpenAI client to NOT retry internally (we handle retries ourselves)
 os.environ["OPENAI_MAX_RETRIES"] = "0"

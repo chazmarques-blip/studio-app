@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api", tags=["leads"])
 @router.get("/leads")
 async def list_leads(stage: Optional[str] = None, user=Depends(get_current_user)):
     tenant = await get_tenant_helper(user)
-    query = supabase.table("leads").select("*").eq("tenant_id", tenant["id"]).order("updated_at", desc=True)
+    query = supabase.table("leads").select("*").eq("tenant_id", tenant["id"]).order("updated_at", desc=True).limit(200)
     if stage:
         query = query.eq("stage", stage)
     result = query.execute()
