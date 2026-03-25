@@ -19,20 +19,20 @@ A comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allow
 ### Architecture
 ```
 PREVIEW BOARD (user approval step):
-├─ POST /generate-preview → background task
-│  ├─ Avatar Analyzer (Claude Vision) — 1 call, ALL avatars
-│  └─ Production Designer (Claude) — 1 call → full design document
-└─ GET /preview → PreviewBoard component (visual review)
+|- POST /generate-preview -> background task
+|  |- Avatar Analyzer (Claude Vision) — 1 call, ALL avatars
+|  +- Production Designer (Claude) — 1 call -> full design document
++- GET /preview -> PreviewBoard component (visual review)
 
 PRODUCTION (after user approves):
-├─ Pipeline detects existing production_design → SKIPS pre-production
-├─ PHASE A: N Scene Directors (parallel, PD-guided, ~12s total)
-├─ PHASE B: Sora 2 queue (5 concurrent, composite avatars)
-└─ POST-PRODUCTION: FFmpeg concat + upload
+|- Pipeline detects existing production_design -> SKIPS pre-production
+|- PHASE A: N Scene Directors (parallel, PD-guided, ~12s total)
+|- PHASE B: Sora 2 queue (5 concurrent, composite avatars)
++- POST-PRODUCTION: FFmpeg concat + upload
 ```
 
 ### Production Run Results (2026-03-24)
-- **Project**: "Abraão e Isaac - Preview v5 Test" (3 scenes, camel characters)
+- **Project**: "Abraao e Isaac - Preview v5 Test" (3 scenes, camel characters)
 - **Preview**: Generated in 48s (Claude Vision + Production Design)
 - **Direction**: 3 scenes directed in 12.1s (parallel, PD-guided)
 - **Rendering**: 3 Sora 2 videos in 4.0min (all with composite avatars)
@@ -41,28 +41,35 @@ PRODUCTION (after user approves):
 
 ### Key Features
 - Preview Board: visual review of character bible, locations, style, music, scene flow
-- Claude Vision avatar analysis → canonical character descriptions
+- Claude Vision avatar analysis -> canonical character descriptions
 - Composite avatar images for multi-character scenes
 - Screenwriter enforces character type (animal/human)
 - Pipeline skips pre-production when preview already approved
 - PUT /character-avatars endpoint for avatar assignment
 
+## Completed (2026-03-25)
+- **P0 Fixed: Language Selector** — Inline language picker added to Settings page (6 languages: EN, PT, ES, FR, DE, IT). No longer redirects to Onboarding.
+- **P0 Fixed: Project List** — Search/filter added to DirectedStudio project list. Loading state indicator. Auto-resume made less aggressive (10min window, single-fire).
+- **P1 Fixed: FFmpeg Auto-Install** — Module-level `_ensure_ffmpeg()` function runs at startup. Robust retry with `apt-get update`.
+- **P1 Fixed: Supabase Upload** — `_upload_to_storage` now uses direct REST API with retry for files >45MB. `_concatenate_videos` uses adaptive CRF based on scene count and target bitrate encoding for large projects.
+
 ## Pending Issues
-- **P1**: FFmpeg disappears on container restarts
-- **P1**: Supabase 413 for very large videos (compression workaround active)
+- None critical
 
 ## Upcoming Tasks
 - **P0**: Run full 15-scene production with Pipeline v5
-- **P1**: Quality Supervisor agent (optional prompt review before Sora 2)
+- **P1**: Audio Engineer agent for seamless audio transitions
+- **P2**: Kling AI model integration as alternative to Sora 2
 - **P2**: Phase 8 Omnichannel Integrations
 - **P3**: Admin Dashboard & Stripe
-- **P4**: Refactor PipelineView.jsx
+- **P4**: Refactor DirectedStudio.jsx (very large component)
 
 ## Key Files
-- `/app/backend/routers/studio.py` — Pipeline v5, preview endpoints, scene direction
+- `/app/backend/routers/studio.py` — Pipeline v5, preview endpoints, scene direction, FFmpeg, upload
 - `/app/backend/core/llm.py` — AI clients (Claude, Sora 2, Gemini, TTS)
 - `/app/frontend/src/components/PreviewBoard.jsx` — Production Design visual review
-- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI + Preview integration
+- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI + Preview + search/filter
+- `/app/frontend/src/pages/Settings.jsx` — Inline language picker
 - `/app/frontend/src/components/StudioProductionBanner.jsx` — Progress banner
 
 ## Credentials
