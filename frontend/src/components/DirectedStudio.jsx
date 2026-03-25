@@ -531,6 +531,41 @@ export function DirectedStudio({
     }
   };
 
+  // Merge scenes from chat history (recover lost scenes)
+  const mergeChatScenes = async () => {
+    if (!projectId) return;
+    try {
+      const r = await axios.post(`${API}/studio/projects/${projectId}/merge-chat-scenes`);
+      if (r.data.recovered > 0) {
+        // Reload project to get merged scenes
+        const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
+        setScenes(status.data.scenes || []);
+        setCharacters(status.data.characters || []);
+        toast.success(lang === 'pt'
+          ? `${r.data.recovered} cenas recuperadas! Total: ${r.data.total_scenes} cenas`
+          : `${r.data.recovered} scenes recovered! Total: ${r.data.total_scenes} scenes`);
+      } else {
+        toast.info(lang === 'pt' ? 'Todas as cenas já estão no roteiro.' : 'All scenes already in screenplay.');
+      }
+    } catch (err) {
+      toast.error(lang === 'pt' ? 'Erro ao unificar cenas' : 'Error merging scenes');
+    }
+  };
+
+  // Detect if chat history mentions more scenes than currently in the editor
+  const chatMentionsMoreScenes = (() => {
+    if (!chatMessages.length || !scenes.length) return false;
+    const sceneNums = new Set(scenes.map(s => s.scene_number));
+    for (const m of chatMessages) {
+      if (m.role !== 'assistant') continue;
+      const matches = m.text.matchAll(/\*\*CENA\s+(\d+)\*\*/g);
+      for (const match of matches) {
+        if (!sceneNums.has(parseInt(match[1]))) return true;
+      }
+    }
+    return false;
+  })();
+
   // Generate production preview (pre-production only)
   const generatePreview = async () => {
     if (!projectId || scenes.length === 0) return;
@@ -1098,6 +1133,18 @@ export function DirectedStudio({
           {/* Scene Editor - Full editable list */}
           {scenes.length > 0 && (
             <div className="space-y-2 border-t border-[#222] pt-2">
+              {/* Merge alert banner */}
+              {chatMentionsMoreScenes && !screenplayApproved && (
+                <button onClick={mergeChatScenes} data-testid="merge-chat-scenes-btn"
+                  className="w-full rounded-lg py-2 px-3 text-[9px] font-medium transition-all
+                    bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20
+                    flex items-center justify-center gap-2">
+                  <RefreshCw size={12} />
+                  {lang === 'pt'
+                    ? 'Cenas faltando! Clique para unificar todas as cenas do roteiro'
+                    : 'Missing scenes! Click to merge all scenes from screenplay'}
+                </button>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold text-[#C9A84C]">{scenes.length} {lang === 'pt' ? 'cenas planejadas' : 'scenes planned'} ({scenes.length * 12}s)</span>
                 {screenplayApproved ? (

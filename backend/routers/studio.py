@@ -899,6 +899,69 @@ async def update_project_settings(project_id: str, payload: dict = Body(...), te
     return {"status": "ok"}
 
 
+@router.post("/projects/{project_id}/merge-chat-scenes")
+async def merge_chat_scenes(project_id: str, tenant=Depends(get_current_tenant)):
+    """Extract scenes from ALL chat history messages and merge into a unified scenes array.
+    Fixes projects where continuation scenes replaced earlier ones."""
+    import re
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    chat_history = project.get("chat_history", [])
+    current_scenes = project.get("scenes", [])
+    current_nums = {s.get("scene_number") for s in current_scenes}
+
+    # Parse scenes from assistant messages in chat history
+    scene_pattern = re.compile(
+        r'\*\*CENA\s+(\d+)\*\*\s*\(([^)]+)\)\s*[—-]\s*([^\n]+)\n'
+        r'_([^_]+)_\n'
+        r'(?:"([^"]*)"\n)?'
+        r'Personagens:\s*([^\n]+)',
+        re.MULTILINE
+    )
+
+    recovered = []
+    for msg in chat_history:
+        if msg.get("role") != "assistant":
+            continue
+        text = msg.get("text", "")
+        for m in scene_pattern.finditer(text):
+            scene_num = int(m.group(1))
+            if scene_num not in current_nums:
+                recovered.append({
+                    "scene_number": scene_num,
+                    "time_start": m.group(2).split("-")[0].strip(),
+                    "time_end": m.group(2).split("-")[1].strip() if "-" in m.group(2) else "",
+                    "title": m.group(3).strip(),
+                    "description": m.group(4).strip(),
+                    "dialogue": m.group(5).strip() if m.group(5) else "",
+                    "characters_in_scene": [c.strip() for c in m.group(6).split(",")],
+                    "emotion": "",
+                    "camera": "",
+                    "transition": "cut",
+                })
+                current_nums.add(scene_num)
+
+    if not recovered:
+        return {"status": "ok", "message": "No missing scenes found in chat history", "total_scenes": len(current_scenes)}
+
+    merged = current_scenes + recovered
+    merged.sort(key=lambda x: x.get("scene_number", 0))
+    project["scenes"] = merged
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _add_milestone(project, "scenes_merged", f"Cenas recuperadas do histórico — {len(recovered)} cenas adicionadas (total: {len(merged)})")
+    _save_project(tenant["id"], settings, projects)
+
+    logger.info(f"Studio [{project_id}]: Merged {len(recovered)} recovered scenes from chat history (total: {len(merged)})")
+    return {
+        "status": "ok",
+        "recovered": len(recovered),
+        "total_scenes": len(merged),
+        "recovered_scene_numbers": sorted([s["scene_number"] for s in recovered]),
+    }
+
+
 # ── STEP 1: Screenwriter Chat ──
 
 SCREENWRITER_SYSTEM_PHASE1 = """You are a MASTER SCREENWRITER and WORLD-BUILDER.
