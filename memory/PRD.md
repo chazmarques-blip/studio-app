@@ -1,91 +1,83 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI agents on social media. Features Directed Studio Mode for AI video production with Pipeline v5 architecture and Continuity Engine.
+Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI agents on social media. Features Directed Studio Mode for AI video production with Pipeline v5 and Continuity Engine v2 (Keyframe-First).
 
 ## Core Architecture
 - **Frontend**: React + Tailwind CSS + shadcn-ui + Framer Motion
 - **Backend**: FastAPI (Python) + LiteLLM
 - **Database**: Supabase (PostgreSQL) + MongoDB
-- **AI Stack**: Claude Sonnet (text/vision), Sora 2 (video), Gemini (images), ElevenLabs (multilingual voice), OpenAI TTS/Whisper
+- **AI Stack**: Claude Sonnet (text/vision), Sora 2 (video), Gemini (images/keyframes), ElevenLabs (multilingual voice)
 
-## Directed Studio — Full Production Pipeline
+## Continuity Engine v2 — Keyframe-First Pipeline (CURRENT)
 
-### Pipeline v5 + Continuity Engine + Post-Production
+### Problem
+Sora 2 has a strong visual bias: desert/tent scenes → camels, regardless of text prompts. Even with explicit "LION" instructions and Style DNA blocks, Sora 2 generates camels in ~40% of scenes.
+
+### Solution: Keyframe-First
+1. Before each scene, generate a **reference keyframe image** using Gemini (`gemini-3.1-flash-image-preview` via Emergent LLM Key)
+2. The keyframe contains the CORRECT characters (species, clothing, age) in the correct art style
+3. This keyframe is passed as `image_path` to Sora 2, which animates from it
+4. If keyframe fails, retry 3 times before falling back to avatar composite
+
+### Architecture
 ```
-PRE-PRODUCTION -> Avatar Analysis (Claude Vision) + Production Design Bible (Claude)
-CONTINUITY ENGINE (NEW):
-  - Style DNA injection (rigid visual identity per art style)
-  - Reference Image Anchoring (last frame → next scene)
-  - Continuity Validator (Claude Vision inter-scene check)
-  - Enhanced Color Grading (FFmpeg uniform tone)
-  - Extended Crossfades (1.5s fade transitions)
-PRODUCTION:
-  - Continuity Mode: Sequential rendering with frame anchoring
-  - Normal Mode: Parallel rendering (5 concurrent Sora 2 slots)
-POST-PRODUCTION -> Narrations (Claude script + ElevenLabs) + Segmented Music + FFmpeg Mix
-LOCALIZATION -> Translate + Re-voice + Re-mix (EN, ES)
-SUBTITLES -> SRT generation for all languages
-SCENE RE-EDIT -> Single scene regeneration
+PRE-PRODUCTION:
+  1. Avatar Analysis (Claude Vision) → character descriptions
+  2. Production Design Bible (Claude) → style anchors, color palette
+  3. Scene Directors (Claude, parallel) → Sora prompts
+
+PRODUCTION (Continuity Mode):
+  For each scene (SEQUENTIAL):
+    1. Generate Keyframe Image (Gemini) ← NEW
+    2. Render Video (Sora 2, using keyframe as reference)
+    3. Upload to Supabase Storage
+
+POST-PRODUCTION:
+  1. Narration scripts (Claude)
+  2. Voice synthesis (ElevenLabs, ISO 639-1 codes)
+  3. Music segmentation
+  4. Color grading + extended crossfades (1.5s, FFmpeg)
+  5. Final mix + upload
 ```
 
-## Continuity Engine v1 (Implemented 2026-03-25)
+### Test Results Comparison
 
-### 5 Strategies:
-1. **P0.1 Reference Image Anchoring** — Extract last frame of scene N → use as Sora 2 reference for scene N+1
-2. **P0.2 Style DNA** — Rigid art-style descriptions injected verbatim into every scene prompt (439+ chars). Includes color temp, rendering technique, lighting specifics per style (pixar_3d, cartoon_3d, cartoon_2d, anime_2d, realistic, watercolor)
-3. **P1.3 Enhanced Director Prompts** — Stronger visual consistency instructions, character appearance emphasis
-4. **P1.4 Color Grading + Extended Crossfades** — Uniform color grading (contrast 1.05, saturation 1.1, warm color balance) + 1.5s crossfade transitions
-5. **P2.5 Continuity Validator** — Claude Vision compares first frame of scene N with last frame of scene N-1, reports consistency/issues/severity
+**Scene 1 (Night/Stars):**
+| Version | Species | Style | Quality |
+|---------|---------|-------|---------|
+| v1 (no keyframe) | Lion ✅ | 3D ✅ | 9/10 |
+| v3 (keyframe) | Lion ✅ | 3D ✅ | 9/10 |
 
-### Test Results (Project: Continuity Test - 3 Cenas):
-| Scene | Duration | Size | Method |
-|-------|----------|------|--------|
-| 1 | 12s | 7.9MB | Sora 2 + avatar reference |
-| 2 | 12s | 8.5MB | Sora 2 + prev frame anchor |
-| 3 | 12s | 9.9MB | Sora 2 + prev frame anchor |
-| Final (PT narration) | 36.6s | 9MB | Post-prod + color grading |
+**Scene 2 (Tent/Birth):**
+| Version | Species | Style | Quality |
+|---------|---------|-------|---------|
+| v1 (no keyframe) | Camels ❌ | 2D ❌ | 4/10 |
+| v3 (keyframe failed) | Camels ❌ | 2D ❌ | 4/10 |
 
-## Bug Fix: ElevenLabs Language Code
-- `eleven_multilingual_v2` requires ISO 639-1 codes: `pt`, `en`, `es`
-- Previously used `pt-BR`, `en-US`, `es-ES` which are unsupported
-- Fixed in `_generate_narration_audio()` LANG_HINTS mapping
+**Scene 3 (Field/Teaching):**
+| Version | Species | Style | Quality |
+|---------|---------|-------|---------|
+| v1 (no keyframe) | Lion+Camel ⚠️ | 3D ✅ | 7/10 |
+| v3 (keyframe) | Lions ✅ | 3D ✅ | 9/10 |
 
-## Completed Features (All Sessions)
+### Known Limitation
+Scene 2 keyframe failed silently during v3 test. Fix: 3-retry logic now implemented. The Sora 2 tent/desert bias remains the hardest to overcome — may require generating keyframes with explicit visual anchoring.
 
-### Session 2026-03-25 (Latest)
-- **Continuity Engine v1** — All 5 strategies implemented
-- **ElevenLabs Language Fix** — ISO 639-1 codes (pt, en, es)
-- **Subtitles UI** — PostProduction.jsx "Gerar Legendas" button + download links
-- **Lint Cleanup** — 27 Python lint errors fixed in studio.py
-- **Continuity Toggle** — Frontend toggle in project creation form
-- **Test Project Generated** — 3 scenes "Abraão e Isaac" with PT narration
-
-### Previous Sessions
-- Pipeline v5 (Production Design Bible + Preview Board)
-- 15-Scene Full Production + EN + ES localization
-- Post-Production (Narration + Music + FFmpeg Transitions)
-- Multi-Language Localization
-- Google Integration in Agent Config
-- Agent Marketplace, CRM, Dashboard
+## Bug Fixes
+- **ElevenLabs Language Codes**: Fixed `pt-BR` → `pt` (ISO 639-1) for `eleven_multilingual_v2`
+- **Python Lint**: All 27 errors in studio.py fixed
+- **RegenSceneRequest**: Removed redundant `scene_number` from body
 
 ## Key Files
-- `/app/backend/routers/studio.py` — Pipeline + continuity engine + post-prod (3550+ lines)
+- `/app/backend/routers/studio.py` — Pipeline + continuity engine + keyframe gen + post-prod
 - `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI + continuity toggle
 - `/app/frontend/src/components/PostProduction.jsx` — Audio + localization + subtitles UI
 
-## Key API Endpoints
-- `POST /api/studio/projects` — Create project (with continuity_mode flag)
-- `POST /api/studio/start-production` — Start production (respects continuity_mode)
-- `POST /api/studio/projects/{id}/post-produce` — Post-production with narration
-- `POST /api/studio/projects/{id}/localize` — Multi-language localization
-- `POST /api/studio/projects/{id}/generate-subtitles` — SRT subtitles
-- `POST /api/studio/projects/{id}/regen-scene/{scene_num}` — Re-edit single scene
-
 ## Upcoming Tasks
-- **P1**: Refactor `studio.py` (3550+ lines) -> separate media logic into `core/media.py`
-- **P1**: Refactor `DirectedStudio.jsx` (1750+ lines) -> smaller components
-- **P2**: Character Sheet generation via Gemini (pre-production phase)
+- **P0**: Fix Scene 2 consistency — ensure keyframe generates reliably for all scenes
+- **P1**: Refactor `studio.py` (3600+ lines) → `core/media.py`
+- **P1**: Refactor `DirectedStudio.jsx` (1750+ lines) → smaller components
 - **P2**: Phase 8 Omnichannel Integrations
 - **P3**: Admin Dashboard & Stripe
 

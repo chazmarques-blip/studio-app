@@ -459,8 +459,17 @@ def _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache, size="1
 
 
 # ═══════════════════════════════════════════════════════════
-# ── CONTINUITY ENGINE v1 ──
+# ── CONTINUITY ENGINE v2 ──
 # ═══════════════════════════════════════════════════════════
+
+_ANTI_INSTRUCTIONS = """
+CRITICAL RULES (VIOLATION = SCENE REJECTED):
+- NEVER change the species of any character. If the character is described as a lion, it MUST be a lion in every single frame. NEVER render a lion as a camel, dog, bear, or any other animal.
+- NEVER change the art style mid-scene or between scenes. If the style is 3D CGI, EVERY frame must be 3D CGI. NEVER mix 2D and 3D.
+- NEVER change clothing colors. If a character wears a dark-red robe, it MUST be dark-red in every frame.
+- EVERY character must be recognizable from their description — same face shape, same body proportions, same fur color, same clothing.
+- Character age MUST match the scene context exactly (baby = tiny, crawling; child = small, playing; elder = tall, grey mane).
+"""
 
 def _extract_last_frame(video_path: str, output_path: str = None) -> str:
     """P0.1 — Extract the last frame from a video using FFmpeg for visual anchoring."""
@@ -490,12 +499,10 @@ def _extract_last_frame(video_path: str, output_path: str = None) -> str:
 
 def _generate_character_sheet(character_name: str, description: str, avatar_path: str,
                               style_hint: str, project_id: str) -> bytes:
-    """P0.2 — Generate a canonical 'character sheet' image via Gemini for consistent reference.
-    Creates a neutral-pose, well-lit reference image of the character.
-    """
+    """P0.2 — Generate a canonical 'character sheet' image via Gemini for consistent reference."""
     try:
-        from emergentintegrations.llm.gemini import GeminiImageGenerator
-        gen = GeminiImageGenerator(api_key=os.environ.get("EMERGENT_LLM_KEY", ""))
+        from emergentintegrations.llm.gemeni.image_generation import GeminiImageGeneration
+        gen = GeminiImageGeneration(api_key=os.environ.get("GEMINI_API_KEY", ""))
 
         sheet_prompt = f"""Create a CHARACTER REFERENCE SHEET for animation production.
 Character: {description}
@@ -505,19 +512,9 @@ Show the character in a NEUTRAL standing pose, front-facing, on a plain neutral 
 Full body visible, well-lit, sharp details. This is a production reference for visual consistency.
 The character must look EXACTLY as described — this image will be used to maintain consistency across multiple scenes."""
 
-        if avatar_path and os.path.exists(avatar_path):
-            result = gen.image_to_image(
-                prompt=sheet_prompt,
-                image_path=avatar_path,
-                model="imagen-3.0-generate-002"
-            )
-        else:
-            result = gen.text_to_image(
-                prompt=sheet_prompt,
-                model="imagen-3.0-generate-002"
-            )
-        if result:
-            return result
+        results = gen.generate_images(prompt=sheet_prompt, model="imagen-3.0-generate-002", number_of_images=1)
+        if results and results[0]:
+            return results[0]
     except Exception as e:
         logger.warning(f"Studio [{project_id}]: Character sheet gen failed for {character_name}: {e}")
     return None
@@ -526,21 +523,25 @@ The character must look EXACTLY as described — this image will be used to main
 def _build_style_dna(animation_sub: str, production_design: dict) -> str:
     """P1.3 — Build a rigid 'Style DNA' block that must appear verbatim in every scene prompt.
     Combines art style, color palette, rendering technique, and lighting direction.
+    V2: Much stricter enforcement of 3D rendering and character identity.
     """
     STYLE_DNA_MAP = {
-        "pixar_3d": "MANDATORY STYLE: Premium 3D CGI (Pixar/DreamWorks). Subsurface scattering on all skin/fur. Global illumination with warm color temperature (5500K). Cinematic depth of field f/2.8. Soft ambient occlusion shadows. Characters with large expressive eyes, smooth rounded features, slightly oversized heads. Consistent volumetric lighting across every shot.",
-        "cartoon_3d": "MANDATORY STYLE: Stylized 3D cartoon with cel-shading. Bright saturated primary colors. Flat directional lighting with minimal shadows. Thick dark outlines on 3D models. Simplified facial features, exaggerated proportions. Vibrant solid-color backgrounds.",
-        "cartoon_2d": "MANDATORY STYLE: Classic 2D hand-drawn (Disney/Ghibli). Clean ink outlines with watercolor fill. Painted multi-layered backgrounds. Fluid squash-and-stretch character animation. Soft diffused lighting. Warm earth-tone color palette.",
-        "anime_2d": "MANDATORY STYLE: Japanese anime (Makoto Shinkai). Hyper-detailed painted backgrounds. Dramatic rim lighting. Speed lines for motion. Large expressive eyes with highlights. Atmospheric perspective with visible light rays. Cool blue shadows, warm golden highlights.",
-        "realistic": "MANDATORY STYLE: Cinematic photorealism. 35mm anamorphic lens. Shallow DOF f/1.4. Natural film grain ISO 800. Three-point lighting. Professional color grading: slightly desaturated, lifted blacks, crushed highlights.",
-        "watercolor": "MANDATORY STYLE: Watercolor painting animation. Visible wet brush strokes. Paper texture overlay. Bleeding edges on colors. Soft pastel tones: cream, sage, dusty rose. Dreamy ethereal atmosphere with diffused light.",
+        "pixar_3d": "MANDATORY VISUAL STYLE — DO NOT DEVIATE: Premium 3D CGI animation (Pixar/DreamWorks quality). This MUST be fully 3D-rendered computer graphics with volumetric lighting, subsurface scattering on all skin and fur, global illumination with warm color temperature 5500K, cinematic depth of field f/2.8, soft ambient occlusion shadows. Characters MUST have 3D-modeled fur with visible individual strands catching light, large expressive eyes with specular reflections, smooth rounded features, slightly oversized heads. Textures MUST be high-resolution 3D materials — NOT flat 2D colors, NOT cell-shaded, NOT painted. This is NOT 2D animation. Every surface must show 3D depth, volume, and realistic material response to light.",
+        "cartoon_3d": "MANDATORY VISUAL STYLE — DO NOT DEVIATE: Stylized 3D CGI cartoon with subtle cel-shading overlay. Bright saturated primary colors. Flat directional lighting with minimal soft shadows. 3D-modeled characters with thick dark outlines rendered as post-processing effect. Simplified but VOLUMETRIC facial features, exaggerated proportions. Vibrant solid-color backgrounds with 3D depth. This is 3D-rendered, NOT hand-drawn 2D.",
+        "cartoon_2d": "MANDATORY VISUAL STYLE — DO NOT DEVIATE: Classic 2D hand-drawn animation (Disney/Ghibli quality). Clean ink outlines with watercolor-style fill. Painted multi-layered backgrounds with parallax depth. Fluid squash-and-stretch character animation principles. Soft diffused lighting. Warm earth-tone color palette with visible brush texture. EVERY frame must look hand-painted on paper.",
+        "anime_2d": "MANDATORY VISUAL STYLE — DO NOT DEVIATE: Japanese anime (Makoto Shinkai quality). Hyper-detailed painted backgrounds with photographic depth. Dramatic rim lighting with visible light rays. Speed lines for motion emphasis. Large expressive eyes with complex highlight patterns. Atmospheric perspective. Cool blue shadows, warm golden highlights. Consistent cel-shaded characters with clean outlines.",
+        "realistic": "MANDATORY VISUAL STYLE — DO NOT DEVIATE: Cinematic photorealism. 35mm anamorphic lens distortion. Ultra-shallow DOF f/1.4. Natural film grain ISO 800. Professional three-point lighting. Color grading: slightly desaturated, lifted blacks, compressed highlights. Raytraced reflections and refractions. Photoscanned textures.",
+        "watercolor": "MANDATORY VISUAL STYLE — DO NOT DEVIATE: Watercolor painting animation. Visible wet brush strokes with paper texture bleed-through. Bleeding edges where colors meet. Soft pastel tones: cream, sage, dusty rose, soft blue. Dreamy ethereal atmosphere with diffused backlight. Paper grain texture visible in every frame.",
     }
     base = STYLE_DNA_MAP.get(animation_sub, STYLE_DNA_MAP["pixar_3d"])
 
     # Enhance with Production Design color palette
     color = production_design.get("color_palette", {})
     if color.get("global"):
-        base += f" COLOR PALETTE: {color['global']}."
+        base += f" COLOR PALETTE LOCK: {color['global']}."
+
+    # Append anti-instructions
+    base += " " + _ANTI_INSTRUCTIONS.strip()
 
     return base
 
@@ -608,6 +609,88 @@ def _apply_color_grading(video_path: str, output_path: str, style: str = "warm_c
     except Exception as e:
         logger.warning(f"Color grading failed: {e}")
     return video_path
+
+
+
+def _generate_scene_keyframe(sora_prompt: str, char_avatars: dict, avatar_cache: dict,
+                              chars_in_scene: list, project_id: str, scene_num: int) -> str:
+    """KEYFRAME-FIRST PIPELINE: Generate a starting frame image via Gemini Nano Banana to force
+    correct character identity before Sora 2 animation.
+    Uses EMERGENT_LLM_KEY with gemini-3.1-flash-image-preview model.
+    """
+    import tempfile
+    import asyncio
+    try:
+        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
+        if not api_key:
+            logger.warning(f"Studio [{project_id}]: No EMERGENT_LLM_KEY — skipping keyframe")
+            return None
+
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+
+        async def _gen():
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"keyframe-{project_id}-{scene_num}",
+                system_message="You are a professional animation art director. Generate exactly one high-quality image."
+            )
+            chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+
+            prompt_text = f"""Generate a SINGLE FRAME for an animated film. This will be used as a starting keyframe for Sora 2 video generation.
+
+{sora_prompt}
+
+IMPORTANT:
+- Every character MUST match the species and appearance described exactly
+- Style MUST be 3D CGI Pixar quality with volumetric lighting
+- This is ONE static frame, not a sequence — capture the opening moment of this scene"""
+
+            # If we have a character avatar, use it as reference
+            ref_b64 = None
+            for char_name in chars_in_scene:
+                url = char_avatars.get(char_name)
+                cached_path = avatar_cache.get(url) if url else None
+                if cached_path and os.path.exists(cached_path):
+                    with open(cached_path, 'rb') as f:
+                        ref_b64 = base64.b64encode(f.read()).decode('utf-8')
+                    break
+
+            if ref_b64:
+                msg = UserMessage(
+                    text=f"{prompt_text}\n\nUse this character reference image to match the character's exact appearance:",
+                    file_contents=[ImageContent(ref_b64)]
+                )
+            else:
+                msg = UserMessage(text=prompt_text)
+
+            text, images = await chat.send_message_multimodal_response(msg)
+            if images and len(images) > 0:
+                img_bytes = base64.b64decode(images[0]['data'])
+                return img_bytes
+            return None
+
+        # Run async in sync context
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                result = pool.submit(lambda: asyncio.run(_gen())).result(timeout=60)
+        else:
+            result = asyncio.run(_gen())
+
+        if result:
+            keyframe_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
+            with open(keyframe_path, 'wb') as f:
+                f.write(result)
+            logger.info(f"Studio [{project_id}]: Keyframe generated for scene {scene_num} ({len(result)//1024}KB)")
+            return keyframe_path
+    except Exception as e:
+        logger.warning(f"Studio [{project_id}]: Keyframe gen failed for scene {scene_num}: {e}")
+    return None
 
 
 
@@ -1275,14 +1358,18 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
 
 MANDATORY STYLE (include VERBATIM at the start of your prompt): {pd_style}
 
-Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
+Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 300 words"}}
 
-RULES:
-- START with the exact style text above — this ensures visual consistency
-- Describe characters by EXACT PHYSICAL APPEARANCE from character descriptions below — NEVER use character names in the prompt
+CRITICAL RULES:
+- START your prompt with the exact mandatory style text above — copy it word for word
+- Describe EVERY character by their EXACT PHYSICAL APPEARANCE from the character descriptions below
+- For EACH character, you MUST include: exact SPECIES (e.g. "anthropomorphic lion"), exact FUR COLOR, exact CLOTHING with colors, exact BODY BUILD, exact AGE/LIFE STAGE as specified in the scene context
+- NEVER use character names in the prompt — only physical descriptions
+- If a scene describes a "birth" or "baby", the young character MUST be a tiny newborn infant of the SAME SPECIES as the parents — NOT a teenager or adult
+- If a scene says "child" or "young", the character must be visibly SMALL and childlike — NOT adult-sized
+- ALL characters in this production are the SAME SPECIES as defined in their descriptions. NEVER change a character's species between scenes.
 - Include: specific environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
-- Reference the EXACT same clothing, colors, fur/skin textures as described in character bible
-- Each scene must look like it belongs to the same film — same art technique, same color grading, same rendering quality
+- Each scene must look like it belongs to the SAME FILM — same art technique, same 3D rendering quality, same color grading
 - Maintain visual continuity with transition notes from previous scene
 - The sora_prompt MUST be in ENGLISH"""
 
@@ -1291,13 +1378,18 @@ Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')}
 
-CHARACTERS IN THIS SCENE (describe by appearance, NOT by name):
+CHARACTER IDENTITY SHEET — describe EACH character using ALL details below (SPECIES + APPEARANCE + CLOTHING):
 {char_descs}
+
+AGE/LIFE STAGE CONTEXT FOR THIS SCENE: Based on the scene description above, determine the correct age of each character.
+- If the scene describes a "birth" or "newborn", the baby character is a TINY INFANT — small enough to be held in arms, with oversized head, chubby cheeks, and soft features.
+- If the scene describes "growing up" or "childhood", the young character is a SMALL CHILD — about half the height of the adults.
+- If the scene describes "wisdom" or "teaching", the young character may be an older child or teenager — smaller than adults but not tiny.
 
 LOCATION: {loc_desc}
 TIME OF DAY: {time_day} — Light/Colors: {time_light}
 CAMERA: {cam_flow}
-CONTINUITY: {trans_note}"""
+CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
 
             _update_scene_status(tenant_id, project_id, scene_num, "directing", total)
             try:
@@ -1330,10 +1422,12 @@ CONTINUITY: {trans_note}"""
             sora_prompt = directed_scene["sora_prompt"]
             chars_in_scene = scene.get("characters_in_scene", [])
 
-            # Choose best reference: previous frame (continuity) > character composite (identity)
-            prev_frame = directed_scene.get("_prev_frame_path")
+            # KEYFRAME-FIRST: If continuity mode, generate a Gemini keyframe first
+            # This forces correct character identity that Sora 2 can't override
+            keyframe_path = directed_scene.get("_keyframe_path")
             char_ref = _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache)
-            ref_path = prev_frame if (prev_frame and os.path.exists(prev_frame)) else char_ref
+            # Prefer keyframe > avatar composite
+            ref_path = keyframe_path if (keyframe_path and os.path.exists(keyframe_path)) else char_ref
 
             _update_scene_status(tenant_id, project_id, scene_num, "waiting_sora", total)
 
@@ -1430,58 +1524,46 @@ CONTINUITY: {trans_note}"""
         # Normal mode: parallel with 5 concurrent slots
         scene_videos = []
         scene_map = {s.get("scene_number", i+1): s for i, s in enumerate(scenes)}
-        prev_frame_path = None  # For reference image anchoring
 
         if continuity_mode:
-            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY) — Sequential rendering with frame anchoring")
+            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY) — Keyframe-first + sequential rendering")
 
+            keyframe_paths = []  # Track for cleanup
             for ds in directed_scenes:
                 scene_num = ds["scene_number"]
                 scene_data = scene_map.get(scene_num, scenes[0])
 
-                # Inject previous scene's last frame as additional reference
-                if prev_frame_path and os.path.exists(prev_frame_path):
-                    ds["_prev_frame_path"] = prev_frame_path
-                    logger.info(f"Studio [{project_id}]: Scene {scene_num} — anchoring to previous frame")
+                # KEYFRAME-FIRST: Generate correct starting image via Gemini (MANDATORY, 3 retries)
+                if not ds.get("cached"):
+                    chars_in = scene_data.get("characters_in_scene", [])
+                    kf_path = None
+                    for kf_attempt in range(3):
+                        kf_path = _generate_scene_keyframe(
+                            ds["sora_prompt"], char_avatars, avatar_cache,
+                            chars_in, project_id, scene_num
+                        )
+                        if kf_path:
+                            break
+                        logger.warning(f"Studio [{project_id}]: Keyframe retry {kf_attempt+1}/3 for scene {scene_num}")
+                        _time.sleep(2)
+                    if kf_path:
+                        ds["_keyframe_path"] = kf_path
+                        keyframe_paths.append(kf_path)
+                    else:
+                        logger.warning(f"Studio [{project_id}]: Keyframe FAILED all retries for scene {scene_num} — using avatar fallback")
 
                 result = _sora_render(ds, scene_data)
                 scene_videos.append(result)
 
-                # Extract last frame for the next scene's anchor
-                if result.get("url") and not result.get("error"):
-                    import tempfile as _tmpf
-                    local_vid = _tmpf.NamedTemporaryFile(suffix=".mp4", delete=False).name
-                    try:
-                        urllib.request.urlretrieve(result["url"], local_vid)
-                        new_frame = _extract_last_frame(local_vid)
-                        if new_frame:
-                            # Validate continuity if we have previous frame
-                            if prev_frame_path:
-                                chars_in = scene_data.get("characters_in_scene", [])
-                                char_desc_str = ", ".join([f"{n}: {pd_chars.get(n,'')}" for n in chars_in])
-                                first_frame = _tmpf.NamedTemporaryFile(suffix=".png", delete=False).name
-                                subprocess.run(
-                                    ["ffmpeg", "-y", "-i", local_vid, "-vframes", "1", "-q:v", "2", first_frame],
-                                    capture_output=True, timeout=10
-                                )
-                                validation = _validate_scene_continuity(
-                                    first_frame, prev_frame_path, char_desc_str, project_id, scene_num
-                                )
-                                if not validation.get("consistent") and validation.get("severity") == "high":
-                                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} HIGH INCONSISTENCY — {validation.get('issues')}. Fix: {validation.get('fix_suggestion','')}")
-                                    # Store the validation result for the user
-                                    result["continuity_warning"] = validation
-                                try:
-                                    os.unlink(first_frame)
-                                except OSError:
-                                    pass
-                            prev_frame_path = new_frame
-                        os.unlink(local_vid)
-                    except Exception as e:
-                        logger.warning(f"Studio [{project_id}]: Frame extraction for scene {scene_num}: {e}")
-
                 done = len([v for v in scene_videos if v.get("url")])
                 logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {scene_num})")
+
+            # Cleanup keyframe files
+            for kf in keyframe_paths:
+                try:
+                    os.unlink(kf)
+                except OSError:
+                    pass
         else:
             logger.info(f"Studio [{project_id}]: PHASE B — Queueing {total} Sora 2 renders (5 slots, parallel)")
 
@@ -1500,13 +1582,6 @@ CONTINUITY: {trans_note}"""
                         logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {sn} OK)")
                     elif result.get("error"):
                         logger.warning(f"Studio [{project_id}]: Scene {sn} FAILED: {result.get('error','')}")
-
-        # Cleanup continuity frame
-        if prev_frame_path:
-            try:
-                os.unlink(prev_frame_path)
-            except OSError:
-                pass
 
         t_prod = _time.time() - t_start
         successful = len([v for v in scene_videos if v.get("url")])
