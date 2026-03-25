@@ -966,6 +966,54 @@ async def merge_chat_scenes(project_id: str, tenant=Depends(get_current_tenant))
     }
 
 
+@router.post("/projects/{project_id}/recover-videos")
+async def recover_videos(project_id: str, tenant=Depends(get_current_tenant)):
+    """Recover video URLs from Supabase Storage when outputs array was lost (race condition fix)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+    existing_outputs = {o.get("scene_number") for o in project.get("outputs", []) if o.get("url")}
+    recovered = []
+
+    for s in scenes:
+        sn = s.get("scene_number", 0)
+        if sn in existing_outputs:
+            continue
+        filename = f"studio/{project_id}_scene_{sn}.mp4"
+        try:
+            url = supabase.storage.from_(STORAGE_BUCKET).get_public_url(filename)
+            # Verify the file exists by checking the URL
+            import httpx
+            resp = httpx.head(url, timeout=5, follow_redirects=True)
+            if resp.status_code == 200:
+                recovered.append({
+                    "id": uuid.uuid4().hex[:8], "type": "video", "url": url,
+                    "scene_number": sn, "duration": 12,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
+        except Exception:
+            continue
+
+    if recovered:
+        outputs = project.get("outputs", [])
+        outputs.extend(recovered)
+        outputs.sort(key=lambda x: x.get("scene_number", 0))
+        project["outputs"] = outputs
+        project["status"] = "complete"
+        project["error"] = None
+        _add_milestone(project, "videos_recovered", f"{len(recovered)} vídeos recuperados do storage")
+        _save_project(tenant["id"], settings, projects)
+
+    return {
+        "status": "ok",
+        "recovered": len(recovered),
+        "total_outputs": len(project.get("outputs", [])),
+        "project_status": project.get("status"),
+    }
+
+
 # ── STEP 1: Screenwriter Chat ──
 
 SCREENWRITER_SYSTEM_PHASE1 = """You are a MASTER SCREENWRITER and WORLD-BUILDER.
@@ -1320,24 +1368,30 @@ def _update_scene_status(tenant_id: str, project_id: str, scene_num: int, status
         pass
 
 
+# Thread-safe lock for saving scene videos (prevents race conditions in parallel mode)
+_save_video_lock = threading.Lock()
+
+
 def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url: str, total: int):
-    """Save a completed scene video immediately for real-time preview."""
+    """Save a completed scene video immediately for real-time preview (thread-safe)."""
     try:
-        settings, projects, project = _get_project(tenant_id, project_id)
-        if not project:
-            return
-        outputs = project.get("outputs", [])
-        if not any(o.get("scene_number") == scene_num for o in outputs):
-            outputs.append({
-                "id": uuid.uuid4().hex[:8], "type": "video", "url": video_url,
-                "scene_number": scene_num, "duration": 12,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            })
-        project["outputs"] = outputs
-        _add_milestone(project, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
+        with _save_video_lock:
+            settings, projects, project = _get_project(tenant_id, project_id)
+            if not project:
+                return
+            outputs = project.get("outputs", [])
+            if not any(o.get("scene_number") == scene_num for o in outputs):
+                outputs.append({
+                    "id": uuid.uuid4().hex[:8], "type": "video", "url": video_url,
+                    "scene_number": scene_num, "duration": 12,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
+            project["outputs"] = outputs
+            _add_milestone(project, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
+            _save_project(tenant_id, settings, projects)
         _update_scene_status(tenant_id, project_id, scene_num, "done", total)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"_save_scene_video scene {scene_num}: {e}")
 
 
 def _run_multi_scene_production(tenant_id: str, project_id: str, character_avatars: dict = None):
