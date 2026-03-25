@@ -72,12 +72,30 @@ from core.llm import DirectSora2Client
 # ── Helpers ──
 
 def _get_settings(tenant_id: str) -> dict:
-    r = supabase.table("tenants").select("settings").eq("id", tenant_id).single().execute()
-    return r.data.get("settings", {}) if r.data else {}
+    for attempt in range(3):
+        try:
+            r = supabase.table("tenants").select("settings").eq("id", tenant_id).single().execute()
+            return r.data.get("settings", {}) if r.data else {}
+        except Exception as e:
+            if attempt < 2:
+                import time; time.sleep(1 * (attempt + 1))
+            else:
+                logger.error(f"_get_settings failed after 3 attempts: {e}")
+                raise
 
 def _save_settings(tenant_id: str, settings: dict):
     settings["updated_at"] = datetime.now(timezone.utc).isoformat()
-    supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
+    for attempt in range(3):
+        try:
+            supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
+            return
+        except Exception as e:
+            if attempt < 2:
+                import time; time.sleep(2 * (attempt + 1))
+                logger.warning(f"_save_settings retry {attempt+1}: {e}")
+            else:
+                logger.error(f"_save_settings failed after 3 attempts: {e}")
+                raise
 
 def _get_project(tenant_id: str, project_id: str):
     settings = _get_settings(tenant_id)
@@ -2713,9 +2731,10 @@ Rules:
         for i, t in enumerate(translated):
             sn = t.get("scene_number", i + 1)
             text = t.get("narration", "")
-            _update_project_field(tenant_id, project_id, {
-                f"localization_{target}": {"phase": "generating_audio", "done": i, "total": len(translated), "message": f"Áudio cena {sn}..."}
-            })
+            if i % 5 == 0:  # Update status every 5 scenes to reduce DB pressure
+                _update_project_field(tenant_id, project_id, {
+                    f"localization_{target}": {"phase": "generating_audio", "done": i, "total": len(translated), "message": f"Áudio cena {sn}..."}
+                })
             if not text.strip():
                 translated_narrations.append({"scene_number": sn, "narration": text, "audio_url": None})
                 continue

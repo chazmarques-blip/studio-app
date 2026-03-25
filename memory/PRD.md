@@ -1,76 +1,48 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-A comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows users to deploy and configure pre-built AI agents on social media channels. Features a Directed Studio Mode for AI video production with Pipeline v5 architecture.
+Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI agents on social media. Features Directed Studio Mode for AI video production with Pipeline v5 architecture.
 
 ## Core Architecture
-- **Frontend**: React + Tailwind CSS + shadcn-ui + Framer Motion + recharts
+- **Frontend**: React + Tailwind CSS + shadcn-ui + Framer Motion
 - **Backend**: FastAPI (Python) + LiteLLM
-- **Database**: Supabase (PostgreSQL) + MongoDB (flexible-schema features)
-- **AI Stack**: Direct API keys for ALL providers
-  - Claude Sonnet 4.5 (Anthropic) — text, vision
-  - OpenAI Sora 2 — video generation
-  - OpenAI TTS/Whisper — speech
-  - Google Gemini — image generation
-  - ElevenLabs — multilingual voice synthesis (eleven_multilingual_v2)
+- **Database**: Supabase (PostgreSQL) + MongoDB
+- **AI Stack**: Claude Sonnet (text/vision), Sora 2 (video), Gemini (images), ElevenLabs (multilingual voice), OpenAI TTS/Whisper
 
-## Directed Studio Mode — Pipeline v5 + Audio Engineer
+## Directed Studio — Full Production Pipeline
 
-### Video Production Pipeline
+### Pipeline v5 + Audio Engineer + Localization
 ```
-PREVIEW BOARD (approval step):
-|- POST /generate-preview → Avatar Analyzer + Production Designer
-+- GET /preview → PreviewBoard component
-
-PRODUCTION (after approval):
-|- N Scene Directors (parallel, PD-guided)
-|- Sora 2 queue (5 concurrent, composite avatars)
-+- FFmpeg concat
-
-POST-PRODUCTION (Phase A - NEW):
-|- POST /post-produce → Background task
-|  |- Generate narrations (Claude script + ElevenLabs audio)
-|  |- Download scene videos
-|  |- Apply fade transitions (FFmpeg)
-|  |- Select background music (auto from music_plan or manual)
-|  |- Mix: video + narration + music → final video
-+- Upload final video with full audio
-
-LOCALIZATION (Phase B - NEW):
-|- POST /localize → Background task
-|  |- Translate narration scripts (Claude)
-|  |- Generate audio in target language (ElevenLabs)
-|  |- Re-mix: same video + new narration + same music
-+- Upload localized video
+PREVIEW BOARD → Production Design Bible (Claude Vision + Production Designer)
+PRODUCTION → N Scene Directors (parallel) + Sora 2 (5 concurrent)
+POST-PRODUCTION → Narrations (Claude script + ElevenLabs) + Music (auto from music_plan) + Fade Transitions + FFmpeg Mix
+LOCALIZATION → Translate (Claude) + Re-voice (ElevenLabs multilingual) + Re-mix (same video)
 ```
 
-### Validated Production Results
-- **Post-Production (PT)**: 36.6s video with narration + emotional soundtrack ✅
-- **Localization (EN)**: Same video with English narration ✅
-- Both uploaded to Supabase Storage successfully
+### Production Run Results
+
+**15-Scene "Abraão e Isaac sobem ao monte" (2026-03-25):**
+| Language | Duration | Narration | Music | Size |
+|----------|----------|-----------|-------|------|
+| PT 🇧🇷 | 183s (3:03) | ✅ Bill | ✅ Cinematic (auto) | 41.4MB |
+| EN 🇺🇸 | 183s (3:03) | ✅ Roger | ✅ Cinematic | 42.9MB |
+| ES 🇪🇸 | 183s (3:03) | ✅ Lily | ✅ Cinematic | 42.8MB |
+
+**3-Scene Test Project (previously validated):**
+| PT | 36.6s | ✅ | ✅ Emotional | ~10MB |
+| EN | 36.6s | ✅ | ✅ Emotional | ~10MB |
 
 ## Completed Features
 
-### Session 2025-03-25
-- **Phase A: Post-Production (Audio Engineer)**
-  - Narration generation via Claude (script) + ElevenLabs (audio)
-  - Background music auto-selection from Production Design music_plan
-  - Fade transitions between scenes via FFmpeg
-  - Audio mixing: narration (full) + music (15% volume) with fade in/out
-  - Adaptive compression for large files (target bitrate encoding)
-  - New endpoints: POST /post-produce, GET /post-production-status
-
-- **Phase B: Multi-Language Localization**
-  - Translation via Claude (preserves dramatic tone, 25-word limit)
-  - Audio generation in target language via ElevenLabs multilingual v2
-  - Video re-mix with new narration + same background music
-  - Supports: EN, ES, FR, DE, IT (from PT original)
-  - New endpoints: POST /localize, GET /localizations
-
-- **P0: Language Selector** — Inline picker in Settings (6 languages)
-- **P0: Project List Bug** — Search/filter, loading state, less aggressive auto-resume
-- **P1: FFmpeg Auto-Install** — Module-level check at startup
-- **P1: Supabase Upload** — REST API with retry for files >45MB
+### Session 2026-03-25 (Current)
+- **P0: 15-Scene Full Production** — Post-production + EN + ES localization complete
+- **Phase A: Post-Production (Audio Engineer)** — Narration + music + fade transitions
+- **Phase B: Multi-Language Localization** — Translation + re-voice + re-mix
+- **P0: Language Selector** — Inline picker in Settings
+- **P0: Project List** — Search/filter + loading state
+- **P1: FFmpeg Auto-Install** — Module-level startup check
+- **P1: Supabase Upload** — REST API retry for large files
+- **Supabase Retry** — `_save_settings` and `_get_settings` with 3-attempt retry
 
 ### Previous Sessions
 - Pipeline v5 (Production Design Bible + Preview Board)
@@ -81,19 +53,22 @@ LOCALIZATION (Phase B - NEW):
 ## Key Files
 - `/app/backend/routers/studio.py` — Full pipeline + post-production + localization
 - `/app/frontend/src/components/PostProduction.jsx` — Audio + localization UI
-- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI
+- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI + search/filter
 - `/app/frontend/src/components/PreviewBoard.jsx` — Production Design review
 - `/app/frontend/src/pages/Settings.jsx` — Inline language picker
-- `/app/backend/core/llm.py` — AI clients
+
+## Key API Endpoints
+- `POST /api/studio/projects/{id}/post-produce` — Start post-production
+- `GET /api/studio/projects/{id}/post-production-status` — Progress polling
+- `POST /api/studio/projects/{id}/localize` — Start localization
+- `GET /api/studio/projects/{id}/localizations` — All localizations + statuses
 
 ## Upcoming Tasks
-- **P0**: Run full 15-scene "Abraão e Isaac" production with Pipeline v5
-- **P1**: Audio Engineer improvements (scene-specific music segments)
-- **P2**: Kling AI model integration
+- **P1**: Audio Engineer improvements (scene-specific music segments based on mood)
+- **P2**: Kling AI model integration as alternative to Sora 2
 - **P2**: Phase 8 Omnichannel Integrations
 - **P3**: Admin Dashboard & Stripe
 - **P4**: Refactor DirectedStudio.jsx
 
 ## Credentials
 - Test: test@agentflow.com / password123
-- API keys in /app/backend/.env
