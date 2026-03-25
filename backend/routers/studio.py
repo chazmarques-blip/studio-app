@@ -919,6 +919,23 @@ async def update_project_settings(project_id: str, payload: dict = Body(...), te
     return {"status": "ok"}
 
 
+@router.post("/projects/{project_id}/clear-outputs")
+async def clear_scene_outputs(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Remove outputs for specific scenes to force re-generation. keep_scenes: list of scene numbers to KEEP."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    keep = set(payload.get("keep_scenes", []))
+    outputs = project.get("outputs", [])
+    kept = [o for o in outputs if o.get("scene_number") in keep or o.get("type") == "final_video"]
+    removed = len(outputs) - len(kept)
+    project["outputs"] = kept
+    project["status"] = "complete"  # Keep complete so start-production works
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok", "removed": removed, "kept": len(kept)}
+
+
 @router.post("/projects/{project_id}/merge-chat-scenes")
 async def merge_chat_scenes(project_id: str, tenant=Depends(get_current_tenant)):
     """Extract scenes from ALL chat history messages and merge into a unified scenes array.
