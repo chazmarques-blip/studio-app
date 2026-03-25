@@ -45,7 +45,7 @@ export function DirectedStudio({
   const [regenScene, setRegenScene] = useState(null);
   const [editingScene, setEditingScene] = useState(null);
   const [editSceneForm, setEditSceneForm] = useState({});
-  const [voices, setVoices] = useState([]);
+  const [screenplayApproved, setScreenplayApproved] = useState(false);  const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState('21m00Tcm4TlvDq8ikWAM');
   const [narrations, setNarrations] = useState([]);
   const [narrationStatus, setNarrationStatus] = useState({});
@@ -169,6 +169,7 @@ export function DirectedStudio({
     setProjectLang(proj.language || 'pt');
     setNarrations(proj.narrations || []);
     setNarrationStatus(proj.narration_status || {});
+    setScreenplayApproved(proj.screenplay_approved || false);
     setViewingProject(null);
 
     if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
@@ -495,7 +496,6 @@ export function DirectedStudio({
         scene_number: sceneNum,
         ...editSceneForm,
       });
-      // Update local state
       setScenes(prev => prev.map(s =>
         s.scene_number === sceneNum ? { ...s, ...editSceneForm } : s
       ));
@@ -504,6 +504,30 @@ export function DirectedStudio({
       toast.success('Cena atualizada!');
     } catch (err) {
       toast.error('Erro ao salvar cena');
+    }
+  };
+
+  const approveScreenplay = async () => {
+    try {
+      await axios.patch(`${API}/studio/projects/${projectId}/settings`, {
+        screenplay_approved: true,
+      });
+      setScreenplayApproved(true);
+      toast.success(lang === 'pt' ? 'Roteiro aprovado! Avance para Personagens.' : 'Screenplay approved!');
+    } catch (err) {
+      toast.error('Erro ao aprovar roteiro');
+    }
+  };
+
+  const unapproveScreenplay = async () => {
+    try {
+      await axios.patch(`${API}/studio/projects/${projectId}/settings`, {
+        screenplay_approved: false,
+      });
+      setScreenplayApproved(false);
+      toast.success(lang === 'pt' ? 'Roteiro reaberto para edição.' : 'Screenplay reopened for editing.');
+    } catch (err) {
+      toast.error('Erro');
     }
   };
 
@@ -1076,10 +1100,19 @@ export function DirectedStudio({
             <div className="space-y-2 border-t border-[#222] pt-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold text-[#C9A84C]">{scenes.length} {lang === 'pt' ? 'cenas planejadas' : 'scenes planned'} ({scenes.length * 12}s)</span>
-                <button onClick={() => setStep(2)} data-testid="go-to-characters"
-                  className="btn-gold rounded-lg px-3 py-1.5 text-[10px] font-semibold flex items-center gap-1">
-                  {lang === 'pt' ? 'Personagens' : 'Characters'} →
-                </button>
+                {screenplayApproved ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] text-emerald-400 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                      {lang === 'pt' ? 'Aprovado' : 'Approved'}
+                    </span>
+                    <button onClick={unapproveScreenplay} className="text-[7px] text-[#555] hover:text-[#888] underline">
+                      {lang === 'pt' ? 'Reabrir' : 'Reopen'}
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-[8px] text-[#666]">{lang === 'pt' ? 'Revise e aprove para continuar' : 'Review and approve to continue'}</span>
+                )}
               </div>
               <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
                 {scenes.map((s) => {
@@ -1149,6 +1182,24 @@ export function DirectedStudio({
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Approve + Proceed buttons */}
+              <div className="flex gap-2 pt-1">
+                {!screenplayApproved ? (
+                  <button onClick={approveScreenplay} data-testid="approve-screenplay-btn"
+                    className="flex-1 rounded-lg py-2 text-[10px] font-bold transition-all
+                      bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20
+                      flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    {lang === 'pt' ? 'Aprovar Roteiro' : 'Approve Screenplay'}
+                  </button>
+                ) : (
+                  <button onClick={() => setStep(2)} data-testid="go-to-characters"
+                    className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-bold flex items-center justify-center gap-1.5">
+                    {lang === 'pt' ? 'Personagens' : 'Characters'} →
+                  </button>
+                )}
               </div>
             </div>
           )}
