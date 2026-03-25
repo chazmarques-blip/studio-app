@@ -51,12 +51,16 @@ export function StudioProductionProvider({ children }) {
             status: d.status,
             narrations: d.narrations || [],
           };
-          if (d.status === 'complete') {
-            toast.success('Produção concluída! Clique para ver o resultado.', { duration: 10000 });
-            try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqF').play(); } catch {}
-          }
-          if (d.status === 'error') {
-            toast.error(d.error || 'Erro na produção');
+          // Stop tracking if production is no longer active (was reset/fixed)
+          if (!['starting', 'running_agents', 'generating_video'].includes(d.status)) {
+            if (d.status === 'complete') {
+              toast.success('Produção concluída! Clique para ver o resultado.', { duration: 10000 });
+              try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqF').play(); } catch {}
+            } else if (d.status === 'error') {
+              toast.error(d.error || 'Erro na produção');
+            }
+            // Mark as complete/error so polling stops
+            updated.status = d.status === 'complete' ? 'complete' : 'error';
           }
           return updated;
         });

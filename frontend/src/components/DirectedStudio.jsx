@@ -176,19 +176,26 @@ export function DirectedStudio({
       setStep(3); setGenerating(true); startPolling(proj.id);
     } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
       setStep(4); setOutputs(proj.outputs);
-    } else if ((proj.scenes || []).length > 0) {
-      setStep(2);
-      // Load existing preview if available
-      const existingPD = proj.agents_output?.production_design;
-      if (existingPD && existingPD.character_bible) {
-        setPreviewData({
-          production_design: existingPD,
-          avatar_descriptions: proj.agents_output?.avatar_descriptions,
-          preview_time: proj.preview_time,
-        });
-      }
     } else {
-      setStep(1);
+      // Reset generating state in case it was stuck
+      setGenerating(false);
+      setAgentStatus({});
+      // Stop any stale production tracking
+      if (studioCtx?.stopTracking) studioCtx.stopTracking();
+      if ((proj.scenes || []).length > 0) {
+        setStep(2);
+        // Load existing preview if available
+        const existingPD = proj.agents_output?.production_design;
+        if (existingPD && existingPD.character_bible) {
+          setPreviewData({
+            production_design: existingPD,
+            avatar_descriptions: proj.agents_output?.avatar_descriptions,
+            preview_time: proj.preview_time,
+          });
+        }
+      } else {
+        setStep(1);
+      }
     }
   };
 
