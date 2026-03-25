@@ -933,14 +933,15 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
         if audio_mode == "dubbed":
             audio_instruction = """
 
-AUDIO MODE: DUBBED (character voices). The "dialogue" field MUST contain individual character dialogue lines, NOT narrator text.
+AUDIO MODE: DUBBED (character voices + occasional narrator). The "dialogue" field MUST contain character dialogue lines. A narrator may also appear when needed to bridge scenes, explain time passages, or add emotional context — but the MAJORITY of the text should be character dialogue.
 Format EXACTLY like this:
-"dialogue": "Abraão: 'Meu filho, vamos subir o monte juntos.' / Isaac: 'Sim, pai! Mas onde está o cordeiro?' / Abraão: 'Deus proverá, meu filho.'"
+"dialogue": "Narrador: 'Naquela noite, sob o manto de estrelas...' / Abraão: 'Meu filho, vamos subir o monte juntos.' / Isaac: 'Sim, pai! Mas onde está o cordeiro?' / Abraão: 'Deus proverá, meu filho.'"
 
 RULES for DUBBED mode:
-- Each character speaking must be prefixed with their name followed by colon
+- Each speaker must be prefixed with their name (or "Narrador") followed by colon
 - Separate different speakers with " / "
-- NEVER use "Narrador:" — all text must be character dialogue
+- Character dialogue should be the MAJORITY (70%+) of the text
+- Use "Narrador:" sparingly — only to introduce a scene, mark time passing, or add emotional weight
 - Every scene MUST have at least one character speaking
 - Keep dialogue natural, emotional, and age-appropriate for each character"""
         else:
