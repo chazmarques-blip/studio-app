@@ -1531,6 +1531,7 @@ export function DirectedStudio({
                   {agentStatus.phase === 'pre_production' && `Pré-produção inteligente — Analisando avatares e design...`}
                   {agentStatus.phase === 'pre_production_done' && `Design de produção pronto — Iniciando direção...`}
                   {agentStatus.phase === 'photography' && `Dir. Fotografia — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
+                  {agentStatus.phase === 'generating_keyframes' && `Gemini — Gerando keyframes de referência (${agentStatus.total_scenes || scenes.length} cenas)`}
                   {agentStatus.phase === 'music' && `Dir. Musical`}
                   {agentStatus.phase === 'audio' && `Dir. Áudio — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
                   {agentStatus.phase?.startsWith('generating_video') && `Sora 2 — Gerando vídeos`}
@@ -1916,6 +1917,6 @@ function _calcProgress(status) {
   }
   // Agent phases: photography, music, audio (50% of progress for agents)
   const sceneProgress = ((current_scene - 1) / total_scenes);
-  const phaseMultiplier = phase === 'photography' ? 0.3 : phase === 'music' ? 0.6 : phase === 'audio' ? 0.9 : 1;
+  const phaseMultiplier = phase === 'photography' ? 0.3 : phase === 'generating_keyframes' ? 0.5 : phase === 'music' ? 0.6 : phase === 'audio' ? 0.9 : 1;
   return Math.min(sceneProgress * 50 * phaseMultiplier + 5, 50);
 }

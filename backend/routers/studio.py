@@ -1683,43 +1683,77 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
         directed_scenes.sort(key=lambda x: x["scene_number"])
 
         # ══ PHASE B: SORA RENDERS ══
-        # Continuity mode: sequential with frame anchoring + validation
-        # Normal mode: parallel with 5 concurrent slots
+        # Both modes now use parallel rendering (semaphore controls Sora 2 concurrency)
+        # Continuity mode: generates keyframes first (parallel), then renders in parallel
+        # Normal mode: renders directly in parallel
         scene_videos = []
         scene_map = {s.get("scene_number", i+1): s for i, s in enumerate(scenes)}
 
         if continuity_mode:
-            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY) — Keyframe-first + sequential rendering")
+            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY PARALLEL) — Keyframe generation + parallel rendering")
 
-            keyframe_paths = []  # Track for cleanup
-            for ds in directed_scenes:
-                scene_num = ds["scene_number"]
-                scene_data = scene_map.get(scene_num, scenes[0])
+            # B1: Generate ALL keyframes in parallel (Gemini, 5 concurrent)
+            keyframe_paths = []
 
-                # KEYFRAME-FIRST: Generate correct starting image via Gemini (MANDATORY, 3 retries)
-                if not ds.get("cached"):
-                    chars_in = scene_data.get("characters_in_scene", [])
-                    kf_path = None
-                    for kf_attempt in range(3):
-                        kf_path = _generate_scene_keyframe(
-                            ds["sora_prompt"], char_avatars, avatar_cache,
-                            chars_in, project_id, scene_num
-                        )
-                        if kf_path:
-                            break
-                        logger.warning(f"Studio [{project_id}]: Keyframe retry {kf_attempt+1}/3 for scene {scene_num}")
-                        _time.sleep(2)
+            def _generate_keyframe_for_scene(ds):
+                """Generate keyframe for a single scene (thread-safe)."""
+                sn = ds["scene_number"]
+                if ds.get("cached"):
+                    return ds
+                sd = scene_map.get(sn, scenes[0])
+                chars_in = sd.get("characters_in_scene", [])
+                kf_path = None
+                for kf_attempt in range(3):
+                    kf_path = _generate_scene_keyframe(
+                        ds["sora_prompt"], char_avatars, avatar_cache,
+                        chars_in, project_id, sn
+                    )
                     if kf_path:
-                        ds["_keyframe_path"] = kf_path
-                        keyframe_paths.append(kf_path)
-                    else:
-                        logger.warning(f"Studio [{project_id}]: Keyframe FAILED all retries for scene {scene_num} — using avatar fallback")
+                        break
+                    logger.warning(f"Studio [{project_id}]: Keyframe retry {kf_attempt+1}/3 for scene {sn}")
+                    _time.sleep(2)
+                if kf_path:
+                    ds["_keyframe_path"] = kf_path
+                    keyframe_paths.append(kf_path)
+                else:
+                    logger.warning(f"Studio [{project_id}]: Keyframe FAILED all retries for scene {sn} — using avatar fallback")
+                return ds
 
-                result = _sora_render(ds, scene_data)
-                scene_videos.append(result)
+            _update_project_field(tenant_id, project_id, {
+                "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "generating_keyframes",
+                                 "videos_done": 0, "scene_status": {str(ds["scene_number"]): "queued" for ds in directed_scenes}}
+            })
 
-                done = len([v for v in scene_videos if v.get("url")])
-                logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {scene_num})")
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                kf_futures = {executor.submit(_generate_keyframe_for_scene, ds): ds["scene_number"] for ds in directed_scenes}
+                for future in as_completed(kf_futures):
+                    sn = kf_futures[future]
+                    future.result()  # ensures exceptions propagate
+                    logger.info(f"Studio [{project_id}]: Keyframe {sn}/{total} ready")
+
+            logger.info(f"Studio [{project_id}]: All {total} keyframes ready — launching parallel Sora 2 renders")
+
+            # B2: Render ALL videos in parallel (Sora 2, controlled by sora_semaphore=5)
+            _update_project_field(tenant_id, project_id, {
+                "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "generating_video",
+                                 "videos_done": 0, "scene_status": {str(ds["scene_number"]): "waiting_sora" for ds in directed_scenes}}
+            })
+
+            with ThreadPoolExecutor(max_workers=total) as executor:
+                sora_futures = {
+                    executor.submit(_sora_render, ds, scene_map.get(ds["scene_number"], scenes[0])): ds["scene_number"]
+                    for ds in directed_scenes
+                }
+                for future in as_completed(sora_futures):
+                    result = future.result()
+                    scene_videos.append(result)
+                    done = len([v for v in scene_videos if v.get("url")])
+                    _update_project_field(tenant_id, project_id, {
+                        "agent_status": {"current_scene": result["scene_number"], "total_scenes": total,
+                                         "phase": "generating_video", "videos_done": done,
+                                         "scene_status": {str(v["scene_number"]): ("done" if v.get("url") else "error") for v in scene_videos}}
+                    })
+                    logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {result['scene_number']})")
 
             # Cleanup keyframe files
             for kf in keyframe_paths:
