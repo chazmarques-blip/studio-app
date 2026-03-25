@@ -6,14 +6,14 @@ import { Volume2, Music, Globe, Play, Download, RefreshCw, CheckCircle, AlertTri
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const VOICES = [
-  { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", gender: "F", style: "Calm, warm" },
-  { id: "29vD33N1CtxCmqQRPOHJ", name: "Drew", gender: "M", style: "Soft, narrative" },
-  { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum", gender: "M", style: "Intense, dramatic" },
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah", gender: "F", style: "Soft, gentle" },
-  { id: "CwhRBWXzGAHq8TQ4Fs17", name: "Roger", gender: "M", style: "Confident, commanding" },
-  { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily", gender: "F", style: "Warm, elegant" },
-  { id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", gender: "M", style: "Authoritative, deep" },
-  { id: "pqHfZKP75CvOlQylNhV4", name: "Bill", gender: "M", style: "Trustworthy, wise" },
+  { id: "pqHfZKP75CvOlQylNhV4", name: "Bill", gender: "M", style: "Trustworthy, wise", langs: ["en", "pt", "es"] },
+  { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", gender: "F", style: "Calm, warm", langs: ["en", "pt", "es"] },
+  { id: "CwhRBWXzGAHq8TQ4Fs17", name: "Roger", gender: "M", style: "Confident, commanding", langs: ["en", "pt", "es"] },
+  { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah", gender: "F", style: "Soft, gentle", langs: ["en", "pt", "es"] },
+  { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily", gender: "F", style: "Warm, elegant", langs: ["en", "pt", "es"] },
+  { id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", gender: "M", style: "Authoritative, deep", langs: ["en", "pt", "es"] },
+  { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum", gender: "M", style: "Intense, dramatic", langs: ["en"] },
+  { id: "29vD33N1CtxCmqQRPOHJ", name: "Drew", gender: "M", style: "Soft, narrative", langs: ["en"] },
 ];
 
 const MUSIC_TRACKS = [

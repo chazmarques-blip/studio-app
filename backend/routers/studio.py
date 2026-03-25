@@ -467,6 +467,8 @@ class StudioProject(BaseModel):
     music_config: Optional[dict] = None
     language: str = "pt"
     visual_style: str = "animation"  # animation, realistic, anime, cartoon
+    audio_mode: str = "narrated"  # narrated (voice-over) or dubbed (per-character)
+    animation_sub: str = "pixar_3d"  # pixar_3d, cartoon_3d, cartoon_2d, anime_2d, realistic, watercolor
 
 class ChatMessage(BaseModel):
     project_id: Optional[str] = None
@@ -540,6 +542,8 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "error": None,
         "language": req.language,
         "visual_style": req.visual_style or "animation",
+        "audio_mode": req.audio_mode or "narrated",
+        "animation_sub": req.animation_sub or "pixar_3d",
         "created_at": now,
         "updated_at": now,
     }
@@ -977,7 +981,17 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             "realistic": "ART STYLE: Cinematic photorealistic live-action. Film grain, natural lighting, professional cinematography.",
             "watercolor": "ART STYLE: Watercolor painting style. Soft edges, pastel tones, dreamy ethereal atmosphere.",
         }
-        style_hint = STYLE_PROMPTS.get(visual_style, STYLE_PROMPTS["animation"])
+        # Use animation_sub for more specific style
+        animation_sub = project.get("animation_sub", "pixar_3d")
+        ANIMATION_SUB_PROMPTS = {
+            "pixar_3d": "ART STYLE: Premium 3D CGI animation identical to Pixar/DreamWorks (Toy Story, Shrek quality). Subsurface scattering on skin/fur, global illumination, cinematic depth of field, warm color grading. Characters with large expressive eyes, smooth rounded features. MUST maintain consistent 3D rendering across ALL scenes.",
+            "cartoon_3d": "ART STYLE: Stylized 3D cartoon animation (similar to Paw Patrol, Cocomelon). Bright saturated colors, simplified shapes, thick outlines on 3D models, flat shading with cel-shading effect. Playful and vibrant. MUST maintain consistent style across ALL scenes.",
+            "cartoon_2d": "ART STYLE: Classic 2D hand-drawn animation (Disney Renaissance, Studio Ghibli). Clean line art, watercolor-like coloring, fluid character animation, painted backgrounds. MUST maintain consistent 2D art style across ALL scenes.",
+            "anime_2d": "ART STYLE: Japanese anime (Studio Ghibli, Makoto Shinkai quality). Detailed backgrounds with atmospheric perspective, dramatic lighting, speed lines for action, large expressive eyes. MUST maintain consistent anime style across ALL scenes.",
+            "realistic": "ART STYLE: Cinematic photorealistic live-action. Shallow depth of field, film grain, natural lighting, 35mm anamorphic lens look. Professional cinematography with handheld camera feel. MUST maintain consistent photorealistic style.",
+            "watercolor": "ART STYLE: Watercolor painting animation. Visible brush strokes, bleeding edges, soft pastel tones, paper texture overlay. Dreamy ethereal atmosphere. MUST maintain consistent painted style across ALL scenes.",
+        }
+        style_hint = ANIMATION_SUB_PROMPTS.get(animation_sub, STYLE_PROMPTS.get(visual_style, STYLE_PROMPTS["animation"]))
 
         # ── Shared context ──
         briefing = project.get("briefing", "")
@@ -1955,7 +1969,7 @@ async def get_music_library(user=Depends(get_current_user)):
 
 # ── Narration Generation (ElevenLabs) ──
 
-def _generate_narration_audio(text: str, voice_id: str, stability: float, similarity: float, style_val: float) -> bytes:
+def _generate_narration_audio(text: str, voice_id: str, stability: float, similarity: float, style_val: float, language_code: str = "") -> bytes:
     """Generate narration audio using ElevenLabs TTS. Returns mp3 bytes."""
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
     if not elevenlabs_key:
@@ -1970,12 +1984,24 @@ def _generate_narration_audio(text: str, voice_id: str, stability: float, simila
         style=style_val,
         use_speaker_boost=True,
     )
-    audio_gen = client.text_to_speech.convert(
-        text=text,
-        voice_id=voice_id,
-        model_id="eleven_multilingual_v2",
-        voice_settings=voice_settings,
-    )
+
+    # Map language codes to ElevenLabs language hints
+    LANG_HINTS = {
+        "pt": "pt-BR", "en": "en-US", "es": "es-ES",
+        "fr": "fr-FR", "de": "de-DE", "it": "it-IT",
+    }
+    lang_hint = LANG_HINTS.get(language_code, "")
+
+    kwargs = {
+        "text": text,
+        "voice_id": voice_id,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": voice_settings,
+    }
+    if lang_hint:
+        kwargs["language_code"] = lang_hint
+
+    audio_gen = client.text_to_speech.convert(**kwargs)
     audio_bytes = b""
     for chunk in audio_gen:
         audio_bytes += chunk
@@ -2041,7 +2067,7 @@ Rules:
                 narration_outputs.append({"scene_number": scene_num, "text": "", "audio_url": None})
                 continue
             try:
-                audio_bytes = _generate_narration_audio(text, voice_id, stability, similarity, style_val)
+                audio_bytes = _generate_narration_audio(text, voice_id, stability, similarity, style_val, lang)
                 filename = f"studio/{project_id}_narration_{scene_num}.mp3"
                 audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
                 narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": audio_url})
@@ -2373,7 +2399,7 @@ Rules:
                     narr["audio_url"] = None
                     continue
                 try:
-                    audio_bytes = _generate_narration_audio(text, req.voice_id, req.stability, req.similarity, req.style_val)
+                    audio_bytes = _generate_narration_audio(text, req.voice_id, req.stability, req.similarity, req.style_val, lang)
                     filename = f"studio/{project_id}_narration_{scene_num}.mp3"
                     audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
                     narr["audio_url"] = audio_url
@@ -2503,28 +2529,91 @@ Rules:
                     logger.warning(f"Studio [{project_id}]: Narration mix failed: {result.stderr.decode()[:200]}")
                     narration_track = None
 
-        # ── Step 6: Prepare background music ──
+        # ── Step 6: Prepare background music (segmented by mood) ──
         _update_project_field(tenant_id, project_id, {
-            "post_production_status": {"phase": "mixing", "done": 2, "total": 4, "message": "Preparando trilha sonora..."}
+            "post_production_status": {"phase": "mixing", "done": 2, "total": 4, "message": "Criando trilha sonora segmentada..."}
         })
 
-        music_track = req.music_track
-        if not music_track:
-            music_plan = project.get("agents_output", {}).get("production_design", {}).get("music_plan", [])
-            music_track = _select_music_for_project(music_plan)
+        music_plan = project.get("agents_output", {}).get("production_design", {}).get("music_plan", [])
+        music_track = req.music_track  # user override
 
-        music_path = os.path.join(MUSIC_DIR, f"{music_track}.mp3")
-        if not os.path.exists(music_path):
-            music_path = os.path.join(MUSIC_DIR, "emotional.mp3")
+        # Build scene offsets and durations
+        scene_offsets = {}
+        scene_durations = {}
+        cumulative = 0.0
+        for i, vf in enumerate(video_files):
+            sn = vf["scene_number"]
+            dur = _get_video_duration(faded_files[i])
+            scene_offsets[sn] = cumulative
+            scene_durations[sn] = dur
+            cumulative += dur
 
+        # Build music segments based on music_plan
         music_prepared = f"{tmpdir}/music.mp3"
-        result = subprocess.run([
-            "ffmpeg", "-y", "-stream_loop", "-1", "-i", music_path,
-            "-t", f"{total_duration:.2f}",
-            "-af", f"afade=t=in:st=0:d=2,afade=t=out:st={max(0, total_duration-3):.2f}:d=3,volume={req.music_volume:.2f}",
-            "-c:a", "libmp3lame", "-b:a", "128k", music_prepared
-        ], capture_output=True, timeout=60)
-        has_music = result.returncode == 0
+        if music_plan and not music_track:
+            # Create segmented music: different tracks for different scene groups
+            segment_files = []
+            for seg_idx, entry in enumerate(music_plan):
+                seg_scenes = entry.get("scenes", [])
+                mood = entry.get("mood", "").lower()
+                category = entry.get("category", "").lower()
+
+                # Select track for this segment
+                seg_track = None
+                for key, tracks in MOOD_TO_TRACK.items():
+                    if key in mood or key in category:
+                        seg_track = tracks[0]
+                        break
+                if not seg_track:
+                    seg_track = "emotional"
+
+                seg_path = os.path.join(MUSIC_DIR, f"{seg_track}.mp3")
+                if not os.path.exists(seg_path):
+                    seg_path = os.path.join(MUSIC_DIR, "emotional.mp3")
+
+                # Calculate segment duration
+                seg_start = min(scene_offsets.get(s, 0) for s in seg_scenes) if seg_scenes else 0
+                seg_end = max(scene_offsets.get(s, 0) + scene_durations.get(s, 12) for s in seg_scenes) if seg_scenes else 12
+                seg_dur = seg_end - seg_start
+
+                seg_file = f"{tmpdir}/music_seg_{seg_idx}.mp3"
+                subprocess.run([
+                    "ffmpeg", "-y", "-stream_loop", "-1", "-i", seg_path,
+                    "-t", f"{seg_dur:.2f}",
+                    "-af", f"afade=t=in:st=0:d=1.5,afade=t=out:st={max(0, seg_dur-1.5):.2f}:d=1.5,volume={req.music_volume:.2f}",
+                    "-c:a", "libmp3lame", "-b:a", "128k", seg_file
+                ], capture_output=True, timeout=30)
+                segment_files.append(seg_file)
+                logger.info(f"Studio [{project_id}]: Music segment {seg_idx} ({seg_track}): {seg_dur:.1f}s for scenes {seg_scenes}")
+
+            # Concatenate segments
+            if segment_files:
+                seg_concat = f"{tmpdir}/seg_concat.txt"
+                with open(seg_concat, 'w') as f:
+                    for sf in segment_files:
+                        if os.path.exists(sf):
+                            f.write(f"file '{sf}'\n")
+                result = subprocess.run([
+                    "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", seg_concat,
+                    "-c:a", "libmp3lame", "-b:a", "128k", music_prepared
+                ], capture_output=True, timeout=30)
+                has_music = result.returncode == 0
+            else:
+                has_music = False
+        else:
+            # Single track (user override or no music plan)
+            if not music_track:
+                music_track = _select_music_for_project(music_plan)
+            music_path = os.path.join(MUSIC_DIR, f"{music_track}.mp3")
+            if not os.path.exists(music_path):
+                music_path = os.path.join(MUSIC_DIR, "emotional.mp3")
+            result = subprocess.run([
+                "ffmpeg", "-y", "-stream_loop", "-1", "-i", music_path,
+                "-t", f"{total_duration:.2f}",
+                "-af", f"afade=t=in:st=0:d=2,afade=t=out:st={max(0, total_duration-3):.2f}:d=3,volume={req.music_volume:.2f}",
+                "-c:a", "libmp3lame", "-b:a", "128k", music_prepared
+            ], capture_output=True, timeout=60)
+            has_music = result.returncode == 0
 
         # ── Step 7: Final mix ──
         _update_project_field(tenant_id, project_id, {
@@ -2739,7 +2828,7 @@ Rules:
                 translated_narrations.append({"scene_number": sn, "narration": text, "audio_url": None})
                 continue
             try:
-                audio_bytes = _generate_narration_audio(text, voice_id, req.stability, req.similarity, req.style_val)
+                audio_bytes = _generate_narration_audio(text, voice_id, req.stability, req.similarity, req.style_val, target)
                 filename = f"studio/{project_id}_narration_{sn}_{target}.mp3"
                 audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
                 translated_narrations.append({"scene_number": sn, "narration": text, "audio_url": audio_url})
@@ -2958,4 +3047,254 @@ async def get_localizations(project_id: str, tenant=Depends(get_current_tenant))
         "final_videos": final_videos,
         "original_language": project.get("language", "pt"),
         "post_production_status": project.get("post_production_status", {}),
+    }
+
+
+
+# ═══════════════════════════════════════════════════════════
+# ── PHASE 3: Scene Re-edit + Subtitles ──
+# ═══════════════════════════════════════════════════════════
+
+class RegenSceneRequest(BaseModel):
+    scene_number: int
+    new_prompt_hint: str = ""  # optional override for the scene prompt
+
+
+@router.post("/projects/{project_id}/regen-scene/{scene_number}")
+async def regen_scene(project_id: str, scene_number: int, req: RegenSceneRequest = None, tenant=Depends(get_current_tenant)):
+    """Re-generate a single scene video without re-producing the entire project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+    scene = next((s for s in scenes if s.get("scene_number") == scene_number), None)
+    if not scene:
+        raise HTTPException(status_code=404, detail=f"Cena {scene_number} não encontrada")
+
+    # Mark as regenerating
+    _update_project_field(tenant["id"], project_id, {
+        f"regen_scene_{scene_number}": {"phase": "starting", "message": f"Re-gerando cena {scene_number}..."}
+    })
+
+    def _regen_bg():
+        try:
+            _settings, _projects, _project = _get_project(tenant["id"], project_id)
+            if not _project:
+                return
+
+            visual_style = _project.get("visual_style", "animation")
+            animation_sub = _project.get("animation_sub", "pixar_3d")
+            characters = _project.get("characters", [])
+            character_avatars = _project.get("character_avatars", {})
+
+            # Build composite avatar for this scene
+            chars_in = scene.get("characters_in_scene", [])
+            composite_url = None
+            if len(chars_in) > 1:
+                urls = [character_avatars.get(c) for c in chars_in if character_avatars.get(c)]
+                if urls:
+                    composite_url = urls[0]  # Use first avatar as reference
+            elif len(chars_in) == 1:
+                composite_url = character_avatars.get(chars_in[0])
+
+            # Get production design for character descriptions
+            pd = _project.get("agents_output", {}).get("production_design", {})
+            char_bible = pd.get("character_bible", {})
+            char_descriptions = "\n".join([f"- {name}: {str(info)[:100]}" for name, info in char_bible.items()])
+
+            # Build Sora 2 prompt
+            ANIMATION_SUB_PROMPTS = {
+                "pixar_3d": "Premium 3D CGI animation (Pixar/DreamWorks quality). Subsurface scattering, global illumination, cinematic DoF.",
+                "cartoon_3d": "Stylized 3D cartoon (bright colors, simplified shapes, cel-shading).",
+                "cartoon_2d": "Classic 2D hand-drawn animation (Disney/Ghibli quality, painted backgrounds).",
+                "anime_2d": "Japanese anime style (detailed backgrounds, dramatic lighting, expressive eyes).",
+                "realistic": "Cinematic photorealistic. Shallow DoF, film grain, natural lighting.",
+                "watercolor": "Watercolor painting animation. Visible brush strokes, soft pastel tones.",
+            }
+            style_hint = ANIMATION_SUB_PROMPTS.get(animation_sub, ANIMATION_SUB_PROMPTS["pixar_3d"])
+
+            prompt_hint = ""
+            if req and req.new_prompt_hint:
+                prompt_hint = f"\nADDITIONAL DIRECTION: {req.new_prompt_hint}"
+
+            video_prompt = f"""{style_hint}
+SCENE: {scene.get('title', '')}. {scene.get('description', '')}
+CAMERA: {scene.get('camera', 'medium shot')}
+LIGHTING: {scene.get('lighting', 'warm natural')}
+CHARACTERS: {', '.join(chars_in)}
+{char_descriptions}
+MOOD: {scene.get('mood', '')}{prompt_hint}
+CRITICAL: Maintain EXACT same character designs throughout. CONSISTENT art style."""
+
+            if composite_url:
+                video_prompt = f"[Reference character image: {composite_url}]\n{video_prompt}"
+
+            logger.info(f"Studio [{project_id}]: Regenerating scene {scene_number}")
+
+            _update_project_field(tenant["id"], project_id, {
+                f"regen_scene_{scene_number}": {"phase": "generating", "message": "Gerando vídeo com Sora 2..."}
+            })
+
+            # Call Sora 2
+            from openai import OpenAI
+            openai_key = os.environ.get("OPENAI_API_KEY", "")
+            client = OpenAI(api_key=openai_key)
+
+            try:
+                response = client.responses.create(
+                    model="sora",
+                    input=video_prompt,
+                    tools=[{"type": "video_generation", "size": "1080x1920", "duration": 10, "n_variants": 1}],
+                )
+                # Poll for completion
+                import time as _time
+                for _ in range(120):
+                    response = client.responses.retrieve(response.id)
+                    if response.status == "completed":
+                        break
+                    _time.sleep(5)
+
+                if response.status == "completed":
+                    video_url = None
+                    for output in response.output:
+                        if hasattr(output, 'url'):
+                            video_url = output.url
+                            break
+
+                    if video_url:
+                        # Download and re-upload
+                        video_data = urllib.request.urlopen(video_url).read()
+                        filename = f"studio/{project_id}_scene_{scene_number}_v2.mp4"
+                        new_url = _upload_to_storage(video_data, filename, "video/mp4")
+
+                        # Update the output
+                        _settings, _projects, _project = _get_project(tenant["id"], project_id)
+                        if _project:
+                            for o in _project.get("outputs", []):
+                                if o.get("scene_number") == scene_number and o.get("type") == "video":
+                                    o["url"] = new_url
+                                    o["regenerated"] = True
+                                    o["regenerated_at"] = datetime.now(timezone.utc).isoformat()
+                                    break
+                            _project[f"regen_scene_{scene_number}"] = {"phase": "complete", "url": new_url}
+                            _add_milestone(_project, f"regen_scene_{scene_number}", f"Cena {scene_number} regenerada")
+                            _save_project(tenant["id"], _settings, _projects)
+                        logger.info(f"Studio [{project_id}]: Scene {scene_number} regenerated: {new_url}")
+                        return
+                    else:
+                        raise RuntimeError("No video URL in Sora response")
+                else:
+                    raise RuntimeError(f"Sora job status: {response.status}")
+
+            except Exception as e:
+                logger.error(f"Studio [{project_id}]: Scene regen failed: {e}")
+                _update_project_field(tenant["id"], project_id, {
+                    f"regen_scene_{scene_number}": {"phase": "error", "error": str(e)[:200]}
+                })
+
+        except Exception as e:
+            logger.error(f"Studio [{project_id}]: Scene regen error: {e}")
+            _update_project_field(tenant["id"], project_id, {
+                f"regen_scene_{scene_number}": {"phase": "error", "error": str(e)[:200]}
+            })
+
+    thread = threading.Thread(target=_regen_bg, daemon=True)
+    thread.start()
+    return {"status": "started", "scene_number": scene_number}
+
+
+@router.post("/projects/{project_id}/generate-subtitles")
+async def generate_subtitles(project_id: str, tenant=Depends(get_current_tenant)):
+    """Generate SRT subtitles from narrations and burn them into the final video."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    narrations = project.get("narrations", [])
+    if not narrations:
+        raise HTTPException(status_code=400, detail="Sem narrações. Rode a pós-produção primeiro.")
+
+    scenes = project.get("scenes", [])
+    outputs = project.get("outputs", [])
+
+    # Calculate scene offsets
+    scene_videos = sorted(
+        [o for o in outputs if o.get("type") == "video" and o.get("scene_number", 0) > 0 and o.get("url")],
+        key=lambda x: x.get("scene_number", 0)
+    )
+    scene_durations = {}
+    for sv in scene_videos:
+        scene_durations[sv.get("scene_number", 0)] = sv.get("duration", 12.0)
+
+    cumulative = 0.0
+    srt_entries = []
+    for i, narr in enumerate(narrations):
+        sn = narr.get("scene_number", i + 1)
+        text = narr.get("narration", narr.get("text", ""))
+        if not text.strip():
+            cumulative += scene_durations.get(sn, 12.0)
+            continue
+
+        start_time = cumulative + 0.5  # 0.5s delay for natural feel
+        dur = scene_durations.get(sn, 12.0)
+        end_time = cumulative + dur - 0.5
+
+        # Format SRT timestamps
+        def _fmt_srt(seconds):
+            h = int(seconds // 3600)
+            m = int((seconds % 3600) // 60)
+            s = int(seconds % 60)
+            ms = int((seconds % 1) * 1000)
+            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+        srt_entries.append(f"{i+1}\n{_fmt_srt(start_time)} --> {_fmt_srt(end_time)}\n{text}\n")
+        cumulative += dur
+
+    srt_content = "\n".join(srt_entries)
+
+    # Save SRT for all languages
+    lang = project.get("language", "pt")
+    all_srts = {lang: srt_content}
+
+    # Generate SRT for localized versions
+    localizations = project.get("localizations", {})
+    for loc_lang, loc_data in localizations.items():
+        loc_narrations = loc_data.get("narrations", [])
+        if loc_narrations:
+            cumulative = 0.0
+            loc_entries = []
+            for i, narr in enumerate(loc_narrations):
+                sn = narr.get("scene_number", i + 1)
+                text = narr.get("narration", "")
+                if not text.strip():
+                    cumulative += scene_durations.get(sn, 12.0)
+                    continue
+                start_time = cumulative + 0.5
+                dur = scene_durations.get(sn, 12.0)
+                end_time = cumulative + dur - 0.5
+                loc_entries.append(f"{i+1}\n{_fmt_srt(start_time)} --> {_fmt_srt(end_time)}\n{text}\n")
+                cumulative += dur
+            all_srts[loc_lang] = "\n".join(loc_entries)
+
+    # Save SRTs to storage
+    srt_urls = {}
+    for slang, srt_text in all_srts.items():
+        filename = f"studio/{project_id}_subtitles_{slang}.srt"
+        srt_bytes = srt_text.encode("utf-8")
+        try:
+            url = _upload_to_storage(srt_bytes, filename, "text/srt")
+            srt_urls[slang] = url
+        except Exception as e:
+            logger.warning(f"Studio [{project_id}]: SRT upload failed for {slang}: {e}")
+
+    # Save to project
+    _update_project_field(tenant["id"], project_id, {
+        "subtitles": srt_urls,
+    })
+
+    return {
+        "status": "complete",
+        "subtitles": srt_urls,
+        "languages": list(srt_urls.keys()),
     }

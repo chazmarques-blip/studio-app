@@ -39,6 +39,8 @@ export function DirectedStudio({
   const [showNewProject, setShowNewProject] = useState(false);
   const [visualStyle, setVisualStyle] = useState('animation');
   const [projectLang, setProjectLang] = useState('pt');
+  const [audioMode, setAudioMode] = useState('narrated');
+  const [animationSub, setAnimationSub] = useState('pixar_3d');
   const [regenScene, setRegenScene] = useState(null);
   const [editingScene, setEditingScene] = useState(null);
   const [editSceneForm, setEditSceneForm] = useState({});
@@ -200,6 +202,8 @@ export function DirectedStudio({
         briefing: projectDesc.trim(),
         language: projectLang,
         visual_style: visualStyle,
+        audio_mode: audioMode,
+        animation_sub: animationSub,
       });
       setProjectId(res.data.id);
       setStep(1); setChatMessages([]); setScenes([]); setCharacters([]); setOutputs([]);
@@ -740,7 +744,7 @@ export function DirectedStudio({
                 data-testid="new-project-desc"
                 rows={2}
                 className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-[10px] text-white outline-none focus:border-[#C9A84C]/50 placeholder-[#555] resize-none" />
-              {/* Language + Visual Style selectors */}
+              {/* Language + Audio Mode */}
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
@@ -756,17 +760,43 @@ export function DirectedStudio({
                 </div>
                 <div className="flex-1">
                   <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
-                    {lang === 'pt' ? 'Estilo Visual' : 'Visual Style'}
+                    {lang === 'pt' ? 'Tipo de Áudio' : 'Audio Type'}
                   </label>
-                  <select value={visualStyle} onChange={e => setVisualStyle(e.target.value)}
-                    data-testid="project-visual-style-select"
+                  <select value={audioMode} onChange={e => setAudioMode(e.target.value)}
+                    data-testid="project-audio-mode-select"
                     className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50">
-                    <option value="animation">Anima&ccedil;&atilde;o 3D (Pixar)</option>
-                    <option value="cartoon">Cartoon 2D</option>
-                    <option value="anime">Anime</option>
-                    <option value="realistic">Cinematogr&aacute;fico</option>
-                    <option value="watercolor">Aquarela</option>
+                    <option value="narrated">{lang === 'pt' ? 'Narrado (voz em off)' : 'Narrated (voice-over)'}</option>
+                    <option value="dubbed">{lang === 'pt' ? 'Dublado (vozes por personagem)' : 'Dubbed (per-character voices)'}</option>
                   </select>
+                </div>
+              </div>
+              {/* Animation Style */}
+              <div>
+                <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
+                  {lang === 'pt' ? 'Estilo de Animação' : 'Animation Style'}
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'pixar_3d', label: '3D Pixar', desc: 'DreamWorks / Pixar', icon: '🎬' },
+                    { id: 'cartoon_3d', label: '3D Cartoon', desc: 'Estilizado, cores vivas', icon: '🎨' },
+                    { id: 'cartoon_2d', label: '2D Clássico', desc: 'Disney / Cartoon', icon: '✏️' },
+                    { id: 'anime_2d', label: '2D Anime', desc: 'Estilo japonês', icon: '⛩️' },
+                    { id: 'realistic', label: 'Cinematográfico', desc: 'Live action realista', icon: '📽️' },
+                    { id: 'watercolor', label: 'Aquarela', desc: 'Pintura artística', icon: '🖌️' },
+                  ].map(s => (
+                    <button key={s.id} type="button"
+                      data-testid={`animation-style-${s.id}`}
+                      onClick={() => { setAnimationSub(s.id); setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); }}
+                      className={`p-2 rounded-lg border text-left text-[9px] transition-all ${
+                        animationSub === s.id
+                          ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10'
+                          : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+                      }`}>
+                      <span className="text-sm">{s.icon}</span>
+                      <div className={`font-medium mt-0.5 ${animationSub === s.id ? 'text-[#C9A84C]' : 'text-white'}`}>{s.label}</div>
+                      <div className="text-[8px] text-[#555]">{s.desc}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="flex gap-2">
