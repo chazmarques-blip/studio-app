@@ -52,6 +52,8 @@ export function DirectedStudio({
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [projectSearch, setProjectSearch] = useState('');
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -82,21 +84,25 @@ export function DirectedStudio({
   };
 
   // Load all projects
-  const loadProjects = () => {
-    axios.get(`${API}/studio/projects`).then(r => {
+  const loadProjects = async () => {
+    setProjectsLoading(true);
+    try {
+      const r = await axios.get(`${API}/studio/projects`);
       const projs = r.data.projects || [];
       console.log('[DirectedStudio] Loaded projects:', projs.length);
       setAllProjects(projs);
-    }).catch(err => {
+    } catch (err) {
       console.error('[DirectedStudio] Failed to load projects:', err?.response?.status, err?.message);
-      setTimeout(() => {
-        axios.get(`${API}/studio/projects`).then(r => {
-          const projs = r.data.projects || [];
-          console.log('[DirectedStudio] Retry loaded projects:', projs.length);
-          setAllProjects(projs);
-        }).catch(() => {});
-      }, 1500);
-    });
+      try {
+        await new Promise(res => setTimeout(res, 1500));
+        const r = await axios.get(`${API}/studio/projects`);
+        const projs = r.data.projects || [];
+        console.log('[DirectedStudio] Retry loaded projects:', projs.length);
+        setAllProjects(projs);
+      } catch { /* silent */ }
+    } finally {
+      setProjectsLoading(false);
+    }
   };
 
   useEffect(() => { loadProjects(); loadVoices(); }, []);
@@ -128,19 +134,22 @@ export function DirectedStudio({
     if (step === 0) loadProjects();
   }, [step]);
 
-  // Auto-resume in-progress project (only truly running, within last 30 min)
+  // Auto-resume in-progress project (only truly running, within last 10 min, and ONLY on first mount)
+  const hasAutoResumed = useRef(false);
   useEffect(() => {
-    if (skipAutoResume.current) return;
+    if (skipAutoResume.current || hasAutoResumed.current || projectsLoading) return;
+    if (allProjects.length === 0) return;
+    hasAutoResumed.current = true;
     const now = Date.now();
     const inProgress = allProjects.find(p => {
       if (!['starting', 'running_agents'].includes(p.status)) return false;
       const updated = new Date(p.updated_at).getTime();
-      return (now - updated) < 30 * 60 * 1000; // last 30 minutes
+      return (now - updated) < 10 * 60 * 1000; // last 10 minutes only
     });
     if (inProgress && !projectId) {
       resumeProject(inProgress);
     }
-  }, [allProjects]);
+  }, [allProjects, projectsLoading]);
 
   // Resume a project from its current step
   const resumeProject = (proj) => {
@@ -774,10 +783,36 @@ export function DirectedStudio({
 
           {allProjects.length > 0 && (
             <div className="space-y-1.5">
+              {/* Search bar */}
+              <div className="relative">
+                <input
+                  value={projectSearch}
+                  onChange={e => setProjectSearch(e.target.value)}
+                  placeholder={lang === 'pt' ? 'Buscar projecto...' : 'Search project...'}
+                  data-testid="project-search-input"
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg pl-3 pr-8 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50 placeholder-[#555]"
+                />
+                {projectSearch && (
+                  <button onClick={() => setProjectSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
               <p className="text-[9px] text-[#666] uppercase tracking-wider font-medium">
-                {allProjects.length} {lang === 'pt' ? 'projectos' : 'projects'}
+                {(() => {
+                  const filtered = allProjects.filter(p => {
+                    if (!projectSearch.trim()) return true;
+                    const q = projectSearch.toLowerCase();
+                    return (p.name || '').toLowerCase().includes(q) || (p.briefing || '').toLowerCase().includes(q);
+                  });
+                  return `${filtered.length} ${lang === 'pt' ? 'projectos' : 'projects'}${projectSearch ? ` (${allProjects.length} total)` : ''}`;
+                })()}
               </p>
-              {allProjects.map(proj => {
+              {allProjects.filter(p => {
+                if (!projectSearch.trim()) return true;
+                const q = projectSearch.toLowerCase();
+                return (p.name || '').toLowerCase().includes(q) || (p.briefing || '').toLowerCase().includes(q);
+              }).map(proj => {
                 const sl = STATUS_LABELS[proj.status] || STATUS_LABELS.draft;
                 const scenesCount = (proj.scenes || []).length;
                 const videosCount = (proj.outputs || []).filter(o => o.type === 'video').length;
@@ -848,6 +883,22 @@ export function DirectedStudio({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Loading state */}
+          {projectsLoading && allProjects.length === 0 && (
+            <div className="flex items-center justify-center gap-2 py-6">
+              <RefreshCw size={14} className="text-[#C9A84C] animate-spin" />
+              <span className="text-[10px] text-[#666]">{lang === 'pt' ? 'Carregando projectos...' : 'Loading projects...'}</span>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!projectsLoading && allProjects.length === 0 && (
+            <div className="text-center py-6">
+              <Film size={24} className="text-[#333] mx-auto mb-2" />
+              <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Nenhum projecto ainda. Crie o primeiro!' : 'No projects yet. Create your first!'}</p>
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import urllib.request
 import litellm
 import threading
 import subprocess
+import shutil
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
@@ -26,6 +27,41 @@ router = APIRouter(prefix="/api/studio", tags=["studio"])
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+
+# ── Ensure FFmpeg is available (runs once at module load) ──
+
+_ffmpeg_checked = False
+
+def _ensure_ffmpeg():
+    """Check if FFmpeg is installed, install it if missing. Idempotent."""
+    global _ffmpeg_checked
+    if _ffmpeg_checked:
+        return True
+    try:
+        result = subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
+        if result.returncode == 0:
+            _ffmpeg_checked = True
+            logger.info("Studio: FFmpeg is available")
+            return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    logger.warning("Studio: FFmpeg not found, attempting install...")
+    try:
+        subprocess.run(["apt-get", "update", "-qq"], capture_output=True, timeout=30)
+        result = subprocess.run(["apt-get", "install", "-y", "-qq", "ffmpeg"], capture_output=True, timeout=120)
+        if result.returncode == 0:
+            _ffmpeg_checked = True
+            logger.info("Studio: FFmpeg installed successfully")
+            return True
+        else:
+            logger.error(f"Studio: FFmpeg install failed: {result.stderr.decode()[:200]}")
+    except Exception as e:
+        logger.error(f"Studio: FFmpeg install error: {e}")
+    return False
+
+# Run check at import time
+_ensure_ffmpeg()
 
 
 # ── Direct Sora 2 Client (no proxy) ──
@@ -74,6 +110,50 @@ def _add_milestone(project: dict, key: str, label: str):
         project["milestones"] = milestones
 
 def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "image/png") -> str:
+    """Upload to Supabase Storage with retry and chunked fallback for large files."""
+    file_size_mb = len(file_bytes) / (1024 * 1024)
+
+    # For files under 45MB, use the standard client upload
+    if file_size_mb < 45:
+        supabase.storage.from_(STORAGE_BUCKET).upload(
+            filename, file_bytes,
+            file_options={"content-type": content_type, "upsert": "true"}
+        )
+        return supabase.storage.from_(STORAGE_BUCKET).get_public_url(filename)
+
+    # For larger files, use the REST API directly with proper headers
+    import httpx
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    service_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    if not supabase_url or not service_key:
+        # Fall back to standard upload
+        supabase.storage.from_(STORAGE_BUCKET).upload(
+            filename, file_bytes,
+            file_options={"content-type": content_type, "upsert": "true"}
+        )
+        return supabase.storage.from_(STORAGE_BUCKET).get_public_url(filename)
+
+    upload_url = f"{supabase_url}/storage/v1/object/{STORAGE_BUCKET}/{filename}"
+    headers = {
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": content_type,
+        "x-upsert": "true",
+    }
+
+    for attempt in range(3):
+        try:
+            with httpx.Client(timeout=300) as client:
+                resp = client.put(upload_url, content=file_bytes, headers=headers)
+                if resp.status_code in (200, 201):
+                    return supabase.storage.from_(STORAGE_BUCKET).get_public_url(filename)
+                logger.warning(f"Storage upload attempt {attempt+1} failed: {resp.status_code} {resp.text[:200]}")
+        except Exception as e:
+            logger.warning(f"Storage upload attempt {attempt+1} error: {e}")
+        if attempt < 2:
+            import time
+            time.sleep(2 * (attempt + 1))
+
+    # Final fallback: try standard client
     supabase.storage.from_(STORAGE_BUCKET).upload(
         filename, file_bytes,
         file_options={"content-type": content_type, "upsert": "true"}
@@ -1232,14 +1312,11 @@ CONTINUITY: {trans_note}"""
 def _concatenate_videos(scene_videos: list, project_id: str) -> str:
     """Download scene videos, concatenate with FFmpeg, compress for upload, upload result."""
     import tempfile
-    import shutil
 
     # Ensure FFmpeg is available
-    try:
-        subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
-    except FileNotFoundError:
-        logger.warning(f"Studio [{project_id}]: FFmpeg not found, attempting install...")
-        subprocess.run(["apt-get", "install", "-y", "-qq", "ffmpeg"], capture_output=True, timeout=60)
+    if not _ensure_ffmpeg():
+        logger.error(f"Studio [{project_id}]: FFmpeg unavailable, cannot concatenate")
+        return None
 
     tmpdir = tempfile.mkdtemp()
     files = []
@@ -1258,51 +1335,100 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
 
     output_path = f"{tmpdir}/final_{project_id}.mp4"
 
-    # First try stream copy (fastest, no quality loss)
-    cmd = [
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-        "-i", concat_file,
-        "-c", "copy",
-        "-movflags", "+faststart",
-        output_path
-    ]
-    result = subprocess.run(cmd, capture_output=True, timeout=120)
+    # Calculate total input size to decide compression strategy
+    total_input_size = sum(os.path.getsize(fp) for fp in files)
+    total_input_mb = total_input_size / (1024 * 1024)
+    num_scenes = len(files)
+    logger.info(f"Studio [{project_id}]: Concat {num_scenes} scenes, total input {total_input_mb:.1f}MB")
 
-    if result.returncode != 0:
-        # Try re-encoding if copy fails
-        cmd_reencode = [
+    # For small total inputs (<40MB), try stream copy first
+    if total_input_mb < 40:
+        cmd = [
             "ffmpeg", "-y", "-f", "concat", "-safe", "0",
             "-i", concat_file,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "28",
-            "-c:a", "aac", "-b:a", "128k",
+            "-c", "copy",
             "-movflags", "+faststart",
             output_path
         ]
-        subprocess.run(cmd_reencode, capture_output=True, timeout=300)
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
 
-    # Check file size — if > 45MB, re-encode with higher compression
+        if result.returncode != 0:
+            cmd_reencode = [
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", concat_file,
+                "-c:v", "libx264", "-preset", "fast", "-crf", "28",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
+                output_path
+            ]
+            subprocess.run(cmd_reencode, capture_output=True, timeout=300)
+    else:
+        # For large inputs, re-encode with adaptive CRF based on scene count
+        crf = min(35, 26 + num_scenes)  # More scenes = more compression
+        resolution = "1280:720" if num_scenes <= 10 else "960:540"
+        audio_bitrate = "128k" if num_scenes <= 10 else "96k"
+        cmd_reencode = [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+            "-i", concat_file,
+            "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
+            "-vf", f"scale={resolution}",
+            "-c:a", "aac", "-b:a", audio_bitrate,
+            "-movflags", "+faststart",
+            output_path
+        ]
+        subprocess.run(cmd_reencode, capture_output=True, timeout=600)
+
+    # Check file size — if > 45MB, apply aggressive compression
     file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
     logger.info(f"Studio [{project_id}]: Concatenated video size: {file_size//1024//1024}MB ({file_size//1024}KB)")
 
-    if file_size > 45 * 1024 * 1024:  # > 45MB
+    if file_size > 45 * 1024 * 1024:
         compressed_path = f"{tmpdir}/final_{project_id}_compressed.mp4"
-        cmd_compress = [
-            "ffmpeg", "-y", "-i", output_path,
-            "-c:v", "libx264", "-preset", "medium", "-crf", "32",
-            "-vf", "scale=1280:720",
-            "-c:a", "aac", "-b:a", "96k",
-            "-movflags", "+faststart",
-            compressed_path
-        ]
-        result = subprocess.run(cmd_compress, capture_output=True, timeout=300)
+        # Calculate target bitrate for ~40MB output
+        try:
+            probe = subprocess.run(
+                ["ffmpeg", "-i", output_path, "-f", "null", "-"],
+                capture_output=True, timeout=60
+            )
+            duration_match = None
+            for line in probe.stderr.decode().split('\n'):
+                if 'Duration:' in line:
+                    parts = line.split('Duration:')[1].split(',')[0].strip().split(':')
+                    duration_match = float(parts[0]) * 3600 + float(parts[1]) * 60 + float(parts[2])
+                    break
+        except Exception:
+            duration_match = num_scenes * 12  # estimate 12s per scene
+
+        if duration_match and duration_match > 0:
+            target_bitrate = int((40 * 8 * 1024) / duration_match)  # kbps for 40MB
+            cmd_compress = [
+                "ffmpeg", "-y", "-i", output_path,
+                "-c:v", "libx264", "-preset", "medium",
+                "-b:v", f"{target_bitrate}k", "-maxrate", f"{int(target_bitrate*1.5)}k",
+                "-bufsize", f"{target_bitrate*2}k",
+                "-vf", "scale=960:540",
+                "-c:a", "aac", "-b:a", "96k",
+                "-movflags", "+faststart",
+                compressed_path
+            ]
+        else:
+            cmd_compress = [
+                "ffmpeg", "-y", "-i", output_path,
+                "-c:v", "libx264", "-preset", "medium", "-crf", "35",
+                "-vf", "scale=960:540",
+                "-c:a", "aac", "-b:a", "96k",
+                "-movflags", "+faststart",
+                compressed_path
+            ]
+        result = subprocess.run(cmd_compress, capture_output=True, timeout=600)
         if result.returncode == 0 and os.path.exists(compressed_path):
             new_size = os.path.getsize(compressed_path)
-            logger.info(f"Studio [{project_id}]: Compressed {file_size//1024//1024}MB → {new_size//1024//1024}MB")
+            logger.info(f"Studio [{project_id}]: Compressed {file_size//1024//1024}MB -> {new_size//1024//1024}MB")
             output_path = compressed_path
             file_size = new_size
 
-    # If still too large (> 48MB), skip upload and return None
-    if file_size > 48 * 1024 * 1024:
+    # If still too large (> 90MB), skip upload and return None
+    if file_size > 90 * 1024 * 1024:
         logger.warning(f"Studio [{project_id}]: Final video still too large ({file_size//1024//1024}MB), skipping concat upload")
         shutil.rmtree(tmpdir, ignore_errors=True)
         return None
@@ -1311,7 +1437,12 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
         video_bytes = f.read()
 
     filename = f"studio/{project_id}_final.mp4"
-    url = _upload_to_storage(video_bytes, filename, "video/mp4")
+    try:
+        url = _upload_to_storage(video_bytes, filename, "video/mp4")
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: Upload failed: {e}")
+        shutil.rmtree(tmpdir, ignore_errors=True)
+        return None
 
     # Cleanup
     shutil.rmtree(tmpdir, ignore_errors=True)

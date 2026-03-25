@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Calendar, Camera, ChevronDown } from 'lucide-react';
+import { User, Globe, CreditCard, Link2, LogOut, ChevronRight, Wifi, X, Save, Calendar, Camera, ChevronDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { AvatarPicker } from '../components/AvatarPicker';
@@ -118,9 +118,27 @@ export default function SettingsPage() {
     finally { setSaving(false); }
   };
 
+  const [showLangPicker, setShowLangPicker] = useState(false);
+
+  const LANGUAGES = [
+    { code: 'en', name: 'English', flag: '\u{1F1FA}\u{1F1F8}' },
+    { code: 'pt', name: 'Portugu\u00eas', flag: '\u{1F1E7}\u{1F1F7}' },
+    { code: 'es', name: 'Espa\u00f1ol', flag: '\u{1F1EA}\u{1F1F8}' },
+    { code: 'fr', name: 'Fran\u00e7ais', flag: '\u{1F1EB}\u{1F1F7}' },
+    { code: 'de', name: 'Deutsch', flag: '\u{1F1E9}\u{1F1EA}' },
+    { code: 'it', name: 'Italiano', flag: '\u{1F1EE}\u{1F1F9}' },
+  ];
+
+  const handleChangeLang = (code) => {
+    i18n.changeLanguage(code);
+    localStorage.setItem('agentzz_lang', code);
+    setShowLangPicker(false);
+    toast.success(code === 'pt' ? 'Idioma alterado!' : code === 'es' ? 'Idioma cambiado!' : 'Language changed!');
+  };
+
   const menuItems = [
     { icon: User, label: t('settings.account'), desc: t('settings.account_desc'), action: () => setShowAccount(true) },
-    { icon: Globe, label: t('settings.language'), desc: t('settings.language_desc'), path: '/onboarding' },
+    { icon: Globe, label: t('settings.language'), desc: t('settings.language_desc'), action: () => setShowLangPicker(!showLangPicker) },
     { icon: CreditCard, label: t('settings.billing'), desc: t('settings.billing_desc'), path: '/pricing' },
     { icon: Calendar, label: 'Google', desc: 'Calendar, Sheets, Drive', path: '/settings/google' },
     { icon: Wifi, label: t('channels.title'), desc: t('settings.integrations_desc'), path: '/settings/channels' },
@@ -284,6 +302,32 @@ export default function SettingsPage() {
           </button>
         ))}
       </div>
+
+      {/* Inline Language Picker */}
+      {showLangPicker && (
+        <div data-testid="language-picker-panel" className="mb-4 rounded-xl border border-[#C9A84C]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Globe size={14} className="text-[#C9A84C]" />
+              {t('settings.language')}
+            </h2>
+            <button data-testid="lang-picker-close" onClick={() => setShowLangPicker(false)} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-white transition"><X size={16} /></button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {LANGUAGES.map(l => (
+              <button key={l.code} data-testid={`lang-option-${l.code}`}
+                onClick={() => handleChangeLang(l.code)}
+                className={`flex items-center gap-2.5 rounded-lg border p-3 transition-all ${
+                  lang === l.code ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#444]'
+                }`}>
+                <span className="text-lg">{l.flag}</span>
+                <span className={`text-xs font-medium ${lang === l.code ? 'text-[#C9A84C]' : 'text-white'}`}>{l.name}</span>
+                {lang === l.code && <Check size={12} className="text-[#C9A84C] ml-auto" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-4">
         <h2 className="mb-3 text-sm font-semibold text-[#A0A0A0]">{t('settings.channels')}</h2>

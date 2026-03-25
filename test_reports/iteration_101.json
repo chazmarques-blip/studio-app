@@ -1,0 +1,77 @@
+{
+  "summary": "Iteration 101: Testing Language Picker and DirectedStudio Project List. All 7 backend tests passed (100%). Frontend tests verified: P0.1 Language selector shows 6 languages (EN, PT, ES, FR, DE, IT) with current language highlighted; P0.2 DirectedStudio loads 45 projects correctly; P0.3 Project search filters correctly (search 'abraao' shows filtered results); P0.4 Loading state shows 'Carregando projectos...' spinner. Backend API GET /api/studio/projects returns projects with correct structure.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration101_studio.py",
+    "/app/test_reports/pytest/pytest_results_iteration101.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Settings.jsx: Language picker (lines 121-137) correctly implements LANGUAGES array with 6 options and handleChangeLang function",
+    "Settings.jsx: Language picker panel (lines 307-330) has proper data-testid attributes for all language options (lang-option-{code})",
+    "DirectedStudio.jsx: loadProjects async function (lines 87-106) correctly fetches projects from /api/studio/projects",
+    "DirectedStudio.jsx: projectSearch state (line 55) and projectsLoading state (line 56) properly implemented",
+    "DirectedStudio.jsx: Loading state (lines 890-895) shows 'Carregando projectos...' spinner when projectsLoading is true",
+    "DirectedStudio.jsx: Project search filter (lines 803-815) correctly filters by name and briefing",
+    "studio.py: _ensure_ffmpeg function (lines 36-61) properly checks and auto-installs FFmpeg",
+    "studio.py: _upload_to_storage (lines 112-161) has improved chunked fallback for large files with retry logic"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration101_studio.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "No new seed data created",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Language picker and DirectedStudio project list features verified. Key flows: (1) Settings page > click 'Idioma' > language picker panel opens with 6 languages, (2) Marketing Studio > click 'Estudio' > DirectedStudio loads with project list, (3) Search input filters projects by name/briefing. Navigation: Settings at /settings, Marketing Studio at /marketing/studio. DirectedStudio button has data-testid='campaign-type-directed_studio'. Project search has data-testid='project-search-input'. Language options have data-testid='lang-option-{code}'.",
+  "features_tested": {
+    "P0.1_language_selector": {
+      "status": "PASS",
+      "details": "Language picker in Settings page shows 6 languages (EN, PT, ES, FR, DE, IT). Current language (PT) is highlighted with checkmark. Clicking a language changes it and shows toast notification."
+    },
+    "P0.2_project_list": {
+      "status": "PASS",
+      "details": "DirectedStudio loads 45 projects correctly. Projects display with name, status, scene count, and video count."
+    },
+    "P0.3_project_search": {
+      "status": "PASS",
+      "details": "Search input filters projects by name and briefing. Search 'abraao' shows filtered results with count indicator showing 'X projectos (45 total)'."
+    },
+    "P0.4_loading_state": {
+      "status": "PASS",
+      "details": "Loading state shows 'Carregando projectos...' spinner with RefreshCw icon when projectsLoading is true."
+    },
+    "backend_api": {
+      "status": "PASS",
+      "details": "GET /api/studio/projects returns projects list with correct structure (id, name, status, scenes, characters, outputs)."
+    }
+  },
+  "backend_tests": {
+    "test_login_success": "PASS - Returns access_token",
+    "test_get_studio_projects": "PASS - Returns projects list",
+    "test_projects_count": "PASS - Returns expected project count",
+    "test_project_structure": "PASS - Projects have correct structure",
+    "test_search_projects_abraao": "PASS - Search filters correctly",
+    "test_15_scene_projects": "PASS - Can find 15-scene projects",
+    "test_get_voices": "PASS - Returns voices list"
+  },
+  "ffmpeg_and_supabase_verification": {
+    "ffmpeg_auto_install": "Code verified - _ensure_ffmpeg function checks for FFmpeg and auto-installs if missing",
+    "supabase_upload_robustness": "Code verified - _upload_to_storage has chunked fallback for files >45MB with 3 retry attempts"
+  }
+}
