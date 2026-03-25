@@ -41,9 +41,12 @@ def _get_base_url(request: Request) -> str:
 @router.get("/connect")
 async def google_connect(request: Request, user=Depends(get_current_user)):
     """Start Google OAuth flow - returns authorization URL"""
-    base_url = _get_base_url(request)
-    redirect_uri = f"{base_url}/api/google/callback"
-    state_data = json.dumps({"user_id": user["id"], "origin": base_url})
+    # Prefer origin from query param (sent by frontend's window.location.origin)
+    frontend_origin = request.query_params.get("origin", "")
+    if not frontend_origin:
+        frontend_origin = _get_base_url(request)
+    redirect_uri = f"{frontend_origin}/api/google/callback"
+    state_data = json.dumps({"user_id": user["id"], "origin": frontend_origin})
     params = {
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": redirect_uri,

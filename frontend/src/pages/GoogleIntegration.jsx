@@ -44,7 +44,7 @@ export default function GoogleIntegration() {
   const connect = async () => {
     setConnecting(true);
     try {
-      const { data } = await axios.get(`${API}/google/connect`);
+      const { data } = await axios.get(`${API}/google/connect?origin=${encodeURIComponent(window.location.origin)}`);
       window.location.href = data.authorization_url;
     } catch { toast.error('Error'); setConnecting(false); }
   };
