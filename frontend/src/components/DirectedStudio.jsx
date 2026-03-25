@@ -229,6 +229,26 @@ export function DirectedStudio({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Auto-recover: if stuck on step 3 with generating=false, check if outputs exist
+  useEffect(() => {
+    if (step === 3 && !generating && projectId) {
+      const check = setTimeout(() => {
+        axios.get(`${API}/studio/projects/${projectId}/status`).then(res => {
+          const d = res.data;
+          if (d.status === 'complete' && d.outputs?.length > 0) {
+            setOutputs(d.outputs);
+            setStep(4);
+            toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
+          } else if (d.outputs?.length > 0) {
+            setOutputs(d.outputs);
+            setStep(4);
+          }
+        }).catch(() => {});
+      }, 2000);
+      return () => clearTimeout(check);
+    }
+  }, [step, generating, projectId]);
+
   // Polling for production status
   const startPolling = (pid) => {
     // Register in global context so banner shows on other pages
@@ -257,7 +277,23 @@ export function DirectedStudio({
         }
         if (d.status === 'error') {
           setGenerating(false);
-          toast.error(d.error || 'Production error');
+          // If outputs exist despite error, go to results (partial/recovered success)
+          if (d.outputs?.length > 0) {
+            setOutputs(d.outputs);
+            setStep(4);
+            toast.success(lang === 'pt' ? `Produção finalizada — ${d.outputs.length} vídeos prontos` : `Production finished — ${d.outputs.length} videos ready`);
+          } else {
+            toast.error(d.error || 'Production error');
+          }
+          return;
+        }
+        // Also handle: status reverted to scripting/draft (fix-stuck was called)
+        if (!['starting', 'running_agents', 'generating_video'].includes(d.status)) {
+          setGenerating(false);
+          if (d.outputs?.length > 0) {
+            setOutputs(d.outputs);
+            setStep(4);
+          }
           return;
         }
         setTimeout(poll, 4000);
