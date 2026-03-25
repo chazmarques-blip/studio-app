@@ -78,7 +78,8 @@ def _get_settings(tenant_id: str) -> dict:
             return r.data.get("settings", {}) if r.data else {}
         except Exception as e:
             if attempt < 2:
-                import time; time.sleep(1 * (attempt + 1))
+                import time
+                time.sleep(1 * (attempt + 1))
             else:
                 logger.error(f"_get_settings failed after 3 attempts: {e}")
                 raise
@@ -91,7 +92,8 @@ def _save_settings(tenant_id: str, settings: dict):
             return
         except Exception as e:
             if attempt < 2:
-                import time; time.sleep(2 * (attempt + 1))
+                import time
+                time.sleep(2 * (attempt + 1))
                 logger.warning(f"_save_settings retry {attempt+1}: {e}")
             else:
                 logger.error(f"_save_settings failed after 3 attempts: {e}")
@@ -254,8 +256,10 @@ def _parse_json(text):
         start = text.index('{')
         depth = 0
         for i in range(start, len(text)):
-            if text[i] == '{': depth += 1
-            elif text[i] == '}': depth -= 1
+            if text[i] == '{':
+                depth += 1
+            elif text[i] == '}':
+                depth -= 1
             if depth == 0:
                 return json.loads(text[start:i+1])
 
@@ -578,6 +582,7 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "voice_config": project.get("voice_config", {}),
         "visual_style": project.get("visual_style", "animation"),
         "language": project.get("language", "pt"),
+        "subtitles": project.get("subtitles", {}),
         "error": project.get("error"),
     }
 
@@ -1294,8 +1299,10 @@ CONTINUITY: {trans_note}"""
         # Cleanup avatars
         for path in avatar_cache.values():
             if path:
-                try: os.unlink(path)
-                except OSError: pass
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
 
         # ── Concatenate Videos ──
         successful_videos = sorted(
@@ -1657,7 +1664,6 @@ Story: {briefing[:300]}"""
         video_gen = DirectSora2Client(api_key=OPENAI_API_KEY)
 
         for attempt in range(3):
-            t_v = _time.time()
             try:
                 gen_kwargs = {"prompt": sora_prompt[:1000], "model": "sora-2", "size": "1280x720", "duration": 12, "max_wait_time": 600}
                 if ref_path:
@@ -1665,8 +1671,6 @@ Story: {briefing[:300]}"""
 
                 logger.info(f"Studio [{project_id}]: Regen scene {scene_num} attempt {attempt+1}/3")
                 video_bytes = video_gen.text_to_video(**gen_kwargs)
-                elapsed = _time.time() - t_v
-
                 if video_bytes and len(video_bytes) > 1000:
                     filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
@@ -1691,11 +1695,15 @@ Story: {briefing[:300]}"""
                     # Cleanup temp files
                     for p in avatar_cache.values():
                         if p:
-                            try: os.unlink(p)
-                            except OSError: pass
+                            try:
+                                os.unlink(p)
+                            except OSError:
+                                pass
                     if ref_path and ref_path not in avatar_cache.values():
-                        try: os.unlink(ref_path)
-                        except OSError: pass
+                        try:
+                            os.unlink(ref_path)
+                        except OSError:
+                            pass
                     return
 
                 else:
@@ -1718,11 +1726,15 @@ Story: {briefing[:300]}"""
         _update_scene_status(tenant_id, project_id, scene_num, "error", total)
         for p in avatar_cache.values():
             if p:
-                try: os.unlink(p)
-                except OSError: pass
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
         if ref_path and ref_path not in avatar_cache.values():
-            try: os.unlink(ref_path)
-            except OSError: pass
+            try:
+                os.unlink(ref_path)
+            except OSError:
+                pass
 
     except Exception as e:
         logger.error(f"Studio [{project_id}]: Regen scene {scene_num} error: {e}")
@@ -1848,8 +1860,10 @@ def _generate_preview_task(tenant_id, project_id):
         # Cleanup
         for p in avatar_cache.values():
             if p:
-                try: os.unlink(p)
-                except OSError: pass
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
         # Save
         settings, projects, project = _get_project(tenant_id, project_id)
@@ -1929,7 +1943,7 @@ async def generate_directed_image(req: StartProductionRequest, tenant=Depends(ge
             img_data = urllib.request.urlopen(req_obj, timeout=15).read()
             b64 = base64.b64encode(img_data).decode()
             content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}})
-        except:
+        except Exception:
             pass
 
     response = litellm.completion(
@@ -2213,7 +2227,8 @@ async def get_performance_analytics(tenant=Depends(get_current_tenant)):
     total_times = [p["total_seconds"] for p in productions if p["total_seconds"]]
     all_scenes = [p["scenes"] for p in productions if p["scenes"] > 0]
 
-    avg = lambda lst: round(sum(lst) / len(lst)) if lst else 0
+    def avg(lst):
+        return round(sum(lst) / len(lst)) if lst else 0
 
     # Estimated Claude tokens used (rough: ~1500 tokens per scene director call)
     total_scenes_produced = sum(p["scenes"] for p in productions)
@@ -2260,6 +2275,10 @@ def _generate_recommendations(productions, completed, errored):
     recs = []
     if errored:
         error_rate = len(errored) / (len(completed) + len(errored)) * 100 if (len(completed) + len(errored)) > 0 else 0
+        recs.append(f"Taxa de erro: {error_rate:.0f}%. Considere usar Pipeline v5 para maior estabilidade.")
+    if len(completed) > 3:
+        recs.append("Bom volume de produções concluídas. Pipeline estável.")
+    return recs
 
 
 # ═══════════════════════════════════════════════════════════
@@ -2518,7 +2537,7 @@ Rules:
                 input_idx += 1
 
             if len(overlay_labels) > 1:
-                mix_inputs = "".join(f"[{l}]" for l in overlay_labels)
+                mix_inputs = "".join(f"[{lb}]" for lb in overlay_labels)
                 filter_parts.append(f"{mix_inputs}amix=inputs={len(overlay_labels)}:duration=longest:normalize=0[narr_out]")
                 narration_track = f"{tmpdir}/narration_track.mp3"
                 result = subprocess.run(
@@ -2746,6 +2765,7 @@ async def get_post_production_status(project_id: str, tenant=Depends(get_current
         "status": project.get("post_production_status", {}),
         "narrations": project.get("narrations", []),
         "voice_config": project.get("voice_config", {}),
+        "subtitles": project.get("subtitles", {}),
     }
 
 
@@ -2767,7 +2787,6 @@ def _run_localization(tenant_id: str, project_id: str, req: LocalizeRequest):
         if not project:
             return
 
-        scenes = project.get("scenes", [])
         original_lang = project.get("language", "pt")
         narrations = project.get("narrations", [])
 
@@ -2900,7 +2919,7 @@ Rules:
                 idx += 1
 
             if len(labels) > 1:
-                mix_in = "".join(f"[{l}]" for l in labels)
+                mix_in = "".join(f"[{lb}]" for lb in labels)
                 fp.append(f"{mix_in}amix=inputs={len(labels)}:duration=longest:normalize=0[out]")
                 narration_track = f"{tmpdir}/narr_{target}.mp3"
                 r = subprocess.run(
@@ -3056,12 +3075,11 @@ async def get_localizations(project_id: str, tenant=Depends(get_current_tenant))
 # ═══════════════════════════════════════════════════════════
 
 class RegenSceneRequest(BaseModel):
-    scene_number: int
-    new_prompt_hint: str = ""  # optional override for the scene prompt
+    new_prompt_hint: Optional[str] = ""  # optional override for the scene prompt
 
 
 @router.post("/projects/{project_id}/regen-scene/{scene_number}")
-async def regen_scene(project_id: str, scene_number: int, req: RegenSceneRequest = None, tenant=Depends(get_current_tenant)):
+async def regen_scene(project_id: str, scene_number: int, req: RegenSceneRequest = Body(default=None), tenant=Depends(get_current_tenant)):
     """Re-generate a single scene video without re-producing the entire project."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
@@ -3083,9 +3101,7 @@ async def regen_scene(project_id: str, scene_number: int, req: RegenSceneRequest
             if not _project:
                 return
 
-            visual_style = _project.get("visual_style", "animation")
             animation_sub = _project.get("animation_sub", "pixar_3d")
-            characters = _project.get("characters", [])
             character_avatars = _project.get("character_avatars", {})
 
             # Build composite avatar for this scene
@@ -3215,7 +3231,6 @@ async def generate_subtitles(project_id: str, tenant=Depends(get_current_tenant)
     if not narrations:
         raise HTTPException(status_code=400, detail="Sem narrações. Rode a pós-produção primeiro.")
 
-    scenes = project.get("scenes", [])
     outputs = project.get("outputs", [])
 
     # Calculate scene offsets

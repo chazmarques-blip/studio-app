@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Volume2, Music, Globe, Play, Download, RefreshCw, CheckCircle, AlertTriangle, Headphones, Languages } from 'lucide-react';
+import { Volume2, Music, Globe, Play, Download, RefreshCw, CheckCircle, AlertTriangle, Headphones, Languages, Subtitles, FileText } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -58,6 +58,8 @@ export function PostProduction({ project, onUpdate }) {
   const [locStatuses, setLocStatuses] = useState({});
   const [isProducing, setIsProducing] = useState(false);
   const [locTarget, setLocTarget] = useState("");
+  const [subtitles, setSubtitles] = useState({});
+  const [subtitlesLoading, setSubtitlesLoading] = useState(false);
   const pollRef = useRef(null);
 
   const projectId = project?.id;
@@ -82,6 +84,9 @@ export function PostProduction({ project, onUpdate }) {
       setLocalizations(locRes.data.localizations || {});
       setFinalVideos(locRes.data.final_videos || {});
       setLocStatuses(locRes.data.statuses || {});
+      if (ppRes.data.subtitles && Object.keys(ppRes.data.subtitles).length > 0) {
+        setSubtitles(ppRes.data.subtitles);
+      }
 
       const phase = ppRes.data.status?.phase;
       if (phase && !["complete", "error"].includes(phase)) {
@@ -159,6 +164,19 @@ export function PostProduction({ project, onUpdate }) {
     } catch (e) {
       toast.error(e.response?.data?.detail || "Erro");
       setLocTarget("");
+    }
+  };
+
+  const generateSubtitles = async () => {
+    try {
+      setSubtitlesLoading(true);
+      const res = await axios.post(`${API}/api/studio/projects/${projectId}/generate-subtitles`);
+      setSubtitles(res.data.subtitles || {});
+      toast.success(`Legendas geradas para ${(res.data.languages || []).join(', ').toUpperCase()}!`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Erro ao gerar legendas");
+    } finally {
+      setSubtitlesLoading(false);
     }
   };
 
@@ -327,6 +345,60 @@ export function PostProduction({ project, onUpdate }) {
           >
             <Download size={10} /> Baixar vídeo ({ppStatus.language?.toUpperCase()})
           </a>
+        </div>
+      )}
+
+      {/* ── Subtitles Section ── */}
+      {ppComplete && (
+        <div className="space-y-2 bg-[#0F0F0F] rounded-xl border border-[#1E1E1E] p-3" data-testid="subtitles-section">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Subtitles size={14} className="text-[#C9A84C]" />
+              <span className="text-xs font-medium text-white">Legendas (SRT)</span>
+            </div>
+            <button
+              data-testid="generate-subtitles-btn"
+              onClick={generateSubtitles}
+              disabled={subtitlesLoading}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-medium transition-all
+                bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 disabled:opacity-40"
+            >
+              {subtitlesLoading ? (
+                <><RefreshCw size={9} className="animate-spin" /> Gerando...</>
+              ) : (
+                <><FileText size={9} /> {Object.keys(subtitles).length > 0 ? 'Regenerar' : 'Gerar Legendas'}</>
+              )}
+            </button>
+          </div>
+
+          {Object.keys(subtitles).length > 0 ? (
+            <div className="grid grid-cols-2 gap-1.5">
+              {Object.entries(subtitles).map(([langCode, srtUrl]) => {
+                const langInfo = LANGUAGES.find(l => l.code === langCode);
+                return (
+                  <a
+                    key={langCode}
+                    href={srtUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid={`download-srt-${langCode}`}
+                    className="flex items-center gap-2 p-2 rounded-lg border border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/30 transition-all"
+                  >
+                    <span className="text-sm">{langInfo?.flag || langCode}</span>
+                    <div className="flex-1">
+                      <span className="text-[9px] text-white font-medium">{langInfo?.name || langCode.toUpperCase()}</span>
+                      <span className="text-[8px] text-[#666] ml-1">.srt</span>
+                    </div>
+                    <Download size={10} className="text-[#C9A84C]" />
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[9px] text-[#555]">
+              Gera arquivos SRT sincronizados com as narrações de cada idioma.
+            </p>
+          )}
         </div>
       )}
 

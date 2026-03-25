@@ -1,0 +1,94 @@
+{
+  "summary": "Iteration 103: Subtitles Generation and Scene Regeneration Testing. All 12 backend tests passed (100%). Fixed RegenSceneRequest model to make body optional (scene_number is in URL path). Backend endpoints verified: POST /api/studio/projects/{id}/generate-subtitles returns SRT URLs, POST /api/studio/projects/{id}/regen-scene/{scene_number} starts regeneration, GET /api/studio/projects/{id}/status and /post-production-status include 'subtitles' field. Frontend PostProduction.jsx has correct data-testid attributes for subtitles UI.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration103_subtitles_regen.py",
+    "/app/test_reports/pytest/pytest_results_iteration103.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "studio.py: Fixed RegenSceneRequest model - removed redundant scene_number field (already in URL path), made body optional with Body(default=None)",
+    "studio.py: generate-subtitles endpoint correctly generates SRT files for all languages (original + localizations)",
+    "studio.py: regen-scene endpoint correctly validates project and scene existence, returns 404 for invalid inputs",
+    "studio.py: Both /status and /post-production-status endpoints include 'subtitles' field in response",
+    "PostProduction.jsx: Has all required data-testid attributes: post-production-panel, subtitles-section, generate-subtitles-btn, download-srt-{lang}",
+    "PostProduction.jsx: Subtitles section only shows when ppComplete is true (post-production is complete)",
+    "PostProduction.jsx: Button text changes from 'Gerar Legendas' to 'Regenerar' when subtitles already exist",
+    "Python lint: 0 errors in studio.py",
+    "JavaScript lint: 0 errors in PostProduction.jsx"
+  ],
+  "updated_files": [
+    "/app/backend/routers/studio.py",
+    "/app/backend/tests/test_iteration103_subtitles_regen.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "Code review passed - data-testid attributes verified"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "No new seed data created - used existing test project 14e8e05fc2bd (Abraao e Izaac completo)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Subtitles generation and scene regeneration endpoints verified. Test project '14e8e05fc2bd' (Abraao e Izaac completo) has narrations and can be used for subtitles testing. PostProduction component is rendered inside DirectedStudio when a project with completed production is viewed. Navigation path: Marketing > click on campaign > click Studio campaign type > select project > Step 4 (Result) > scroll to PostProduction panel. The subtitles section only appears when post-production is complete (ppComplete=true). Key data-testid attributes: 'post-production-panel', 'subtitles-section', 'generate-subtitles-btn', 'download-srt-{lang}'.",
+  "features_tested": {
+    "backend_generate_subtitles": {
+      "status": "PASS",
+      "details": "POST /api/studio/projects/{id}/generate-subtitles returns status='complete', subtitles={lang: url}, languages=[list]"
+    },
+    "backend_regen_scene": {
+      "status": "PASS",
+      "details": "POST /api/studio/projects/{id}/regen-scene/{scene_number} returns status='started', scene_number. Returns 404 for invalid project/scene"
+    },
+    "backend_status_subtitles_field": {
+      "status": "PASS",
+      "details": "GET /api/studio/projects/{id}/status includes 'subtitles' field in response"
+    },
+    "backend_post_production_status_subtitles_field": {
+      "status": "PASS",
+      "details": "GET /api/studio/projects/{id}/post-production-status includes 'subtitles' field in response"
+    },
+    "frontend_subtitles_ui": {
+      "status": "PASS",
+      "details": "PostProduction.jsx has data-testid='subtitles-section' and data-testid='generate-subtitles-btn' with correct implementation"
+    },
+    "python_lint": {
+      "status": "PASS",
+      "details": "studio.py has 0 lint errors (ruff)"
+    },
+    "javascript_lint": {
+      "status": "PASS",
+      "details": "PostProduction.jsx has 0 lint errors (eslint)"
+    }
+  },
+  "backend_tests": {
+    "test_login_success": "PASS - Returns access_token",
+    "test_generate_subtitles_endpoint_exists": "PASS - Endpoint responds with 200/400/404",
+    "test_generate_subtitles_returns_srt_urls": "PASS - Returns valid SRT URLs for each language",
+    "test_generate_subtitles_no_narrations_returns_400": "PASS - Returns 400 for project without narrations",
+    "test_regen_scene_endpoint_exists": "PASS - Returns status='started' with scene_number",
+    "test_regen_scene_invalid_scene_returns_404": "PASS - Returns 404 for invalid scene number",
+    "test_regen_scene_invalid_project_returns_404": "PASS - Returns 404 for invalid project",
+    "test_project_status_includes_subtitles_field": "PASS - 'subtitles' field present in response",
+    "test_post_production_status_includes_subtitles_field": "PASS - 'subtitles' field present in response",
+    "test_post_production_status_structure": "PASS - Has status, narrations, voice_config, subtitles fields",
+    "test_project_exists_and_has_narrations": "PASS - Project 14e8e05fc2bd has narrations",
+    "test_full_subtitles_flow": "PASS - Complete flow: check status -> generate subtitles -> verify persistence"
+  },
+  "bug_fix_applied": {
+    "file": "/app/backend/routers/studio.py",
+    "issue": "RegenSceneRequest model required scene_number in body even though it's in URL path",
+    "fix": "Removed scene_number from RegenSceneRequest, made body optional with Body(default=None)",
+    "lines_changed": "3077-3083"
+  }
+}
