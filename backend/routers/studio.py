@@ -849,11 +849,15 @@ async def fix_stuck_project(project_id: str, tenant=Depends(get_current_tenant))
         project["status"] = "complete"
         _add_milestone(project, "fixed_stuck", "Projecto recuperado automaticamente")
     else:
-        project["status"] = "error"
-        project["error"] = "Produção interrompida"
+        project["status"] = "scripting"
+        project["error"] = None
+        # Reset agent status so UI shows ready to restart
+        total = len(project.get("scenes", []))
+        project["agent_status"] = {"current_scene": 0, "total_scenes": total, "phase": "idle", "videos_done": 0, "scene_status": {}}
+        _add_milestone(project, "fixed_stuck", "Produção interrompida — pronto para reiniciar")
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     _save_project(tenant["id"], settings, projects)
-    return {"status": project["status"]}
+    return {"status": project["status"], "scenes": len(project.get("scenes", []))}
 
 
 
