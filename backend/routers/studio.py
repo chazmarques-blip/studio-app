@@ -1041,7 +1041,9 @@ RULES:
 - Characters MUST maintain visually consistent appearance across ALL scenes — same colors, same clothing, same distinguishing marks
 - Every scene description MUST include: specific location, time of day, atmosphere, background elements
 - Be faithful to source material (bible, history, etc.)
-- Language: {lang}"""
+- **LANGUAGE RULE (MANDATORY)**: ALL text content — title, scene titles, descriptions, dialogue, narration, research_notes — MUST be written ENTIRELY in {lang_name} ({lang}). Do NOT write in English unless the language IS English. This is NON-NEGOTIABLE."""
+
+LANG_FULL_NAMES = {"pt": "Português (Brazilian Portuguese)", "en": "English", "es": "Español", "fr": "Français", "de": "Deutsch", "it": "Italiano"}
 
 
 def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, lang: str):
@@ -1060,14 +1062,15 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
 
         audio_mode = project.get("audio_mode", "narrated")
 
-        system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang)
+        system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang))
 
         # Inject audio mode context into prompt
         audio_instruction = ""
+        lang_name = LANG_FULL_NAMES.get(lang, lang)
         if audio_mode == "dubbed":
-            audio_instruction = """
+            audio_instruction = f"""
 
-AUDIO MODE: DUBBED (character voices + occasional narrator). The "dialogue" field MUST contain character dialogue lines. A narrator may also appear when needed to bridge scenes, explain time passages, or add emotional context — but the MAJORITY of the text should be character dialogue.
+AUDIO MODE: DUBBED (character voices + occasional narrator). The "dialogue" field MUST contain character dialogue lines IN {lang_name}. A narrator may also appear when needed to bridge scenes, explain time passages, or add emotional context — but the MAJORITY of the text should be character dialogue.
 Format EXACTLY like this:
 "dialogue": "Narrador: 'Naquela noite, sob o manto de estrelas...' / Abraão: 'Meu filho, vamos subir o monte juntos.' / Isaac: 'Sim, pai! Mas onde está o cordeiro?' / Abraão: 'Deus proverá, meu filho.'"
 
@@ -1077,14 +1080,16 @@ RULES for DUBBED mode:
 - Character dialogue should be the MAJORITY (70%+) of the text
 - Use "Narrador:" sparingly — only to introduce a scene, mark time passing, or add emotional weight
 - Every scene MUST have at least one character speaking
-- Keep dialogue natural, emotional, and age-appropriate for each character"""
+- Keep dialogue natural, emotional, and age-appropriate for each character
+- ALL dialogue and narration MUST be in {lang_name}"""
         else:
-            audio_instruction = """
+            audio_instruction = f"""
 
-AUDIO MODE: NARRATED (voice-over narrator). The "dialogue" field should contain narrator text.
-Format: "dialogue": "Narrador: 'Description of what happens in this scene...'"
+AUDIO MODE: NARRATED (voice-over narrator). The "dialogue" field should contain narrator text IN {lang_name}.
+Format: "dialogue": "Narrador: 'Descrição do que acontece nesta cena...'"
 - Use a storytelling narrator voice
-- Keep narration concise (2-3 sentences per scene)"""
+- Keep narration concise (2-3 sentences per scene)
+- ALL narration MUST be in {lang_name}"""
 
         # Detect if project already has scenes (continuation vs new screenplay)
         existing_scenes = project.get("scenes", [])
@@ -1112,7 +1117,8 @@ CONTINUATION RULES:
 - Keep the same characters, visual style, and narrative tone
 - Return ONLY JSON with "scenes" array containing the NEW scenes (continuation only)
 - Also return "characters" array with any NEW characters introduced (or empty array if none)
-- Return "total_scenes" as the total number of NEW scenes in this batch"""
+- Return "total_scenes" as the total number of NEW scenes in this batch
+- ALL text MUST be in {LANG_FULL_NAMES.get(lang, lang)}"""
         else:
             user_prompt = f"""Previous conversation:
 {history_text}
@@ -1155,6 +1161,7 @@ Previous scenes already written:
 Characters: {', '.join(c.get('name','') for c in all_characters)}
 Story: {message}
 
+ALL text (titles, descriptions, dialogue) MUST be in {LANG_FULL_NAMES.get(lang, lang)}.
 Return ONLY JSON with a "scenes" array containing the remaining scenes (same format)."""
 
                     cont_result = _call_claude_sync(system, continuation_prompt, max_tokens=3000)
@@ -2598,7 +2605,7 @@ Rules:
 - Each scene narration is MAX 25 words (fits 12 seconds)
 - Be dramatic, evocative, emotional
 - Use the scene dialogue and description as basis
-- Language: {lang}
+- **MANDATORY**: Write ALL narration text in {LANG_FULL_NAMES.get(lang, lang)}. NEVER write in English unless the language IS English.
 - Output ONLY valid JSON array: [{{"scene_number": 1, "narration": "text..."}}]"""
 
         scene_summaries = "\n".join([
@@ -2941,7 +2948,7 @@ def _run_post_production(tenant_id: str, project_id: str, req: PostProduceReques
 Rules:
 - Each narration MAX 25 words (12 seconds)
 - Dramatic, evocative, emotional
-- Language: {lang}
+- **MANDATORY**: Write ALL narration text in {LANG_FULL_NAMES.get(lang, lang)}. NEVER write in English unless the language IS English.
 - Output ONLY valid JSON array: [{{"scene_number": 1, "narration": "text..."}}]"""
 
             scene_summaries = "\n".join([
