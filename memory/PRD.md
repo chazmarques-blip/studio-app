@@ -46,7 +46,16 @@ POST-PRODUCTION:
 - Frontend "Aprovar Roteiro" button locks scene edits and unlocks "Personagens" step
 - Status endpoint returns screenplay_approved and audio_mode fields
 
-## Scene Merge on Continuation (COMPLETED - 2026-03-25)
+## Dubbed Mode (2026-03-25)
+- Character voice mapping: different ElevenLabs voices per character type (elder male, young male, female, child, angel)
+- Parses dialogue lines ("Narrador: '...' / Abraão: '...' / Isaac: '...'")
+- Generates separate audio clips per character, concatenates with 0.3s pauses
+- 6+ simultaneous voices in complex scenes
+
+## Scene Regeneration Workflow (2026-03-25)
+- `/api/studio/projects/{id}/clear-outputs` — remove specific scenes to force re-generation
+- `/api/studio/projects/{id}/recover-videos` — recover lost videos from Supabase Storage
+- Visual analysis of scene frames via FFmpeg frame extraction + Claude Vision comparison
 - When user sends continuation message, backend detects existing scenes
 - Prompt instructs Claude to start from last_scene_num + 1
 - Smart merge: non-overlapping scene numbers are appended (continuation), overlapping numbers replace (rewrite)

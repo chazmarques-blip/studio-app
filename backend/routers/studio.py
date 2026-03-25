@@ -2620,7 +2620,8 @@ def _generate_narration_audio(text: str, voice_id: str, stability: float, simila
 
 
 def _run_narration_background(tenant_id: str, project_id: str, voice_id: str, stability: float, similarity: float, style_val: float):
-    """Background: generate narration for each scene and save to project."""
+    """Background: generate narration for each scene and save to project.
+    In 'dubbed' mode: parses character lines, uses different voices per character, and concatenates."""
     import tempfile
 
     try:
@@ -2630,13 +2631,140 @@ def _run_narration_background(tenant_id: str, project_id: str, voice_id: str, st
 
         scenes = project.get("scenes", [])
         lang = project.get("language", "pt")
+        audio_mode = project.get("audio_mode", "narrated")
 
         _update_project_field(tenant_id, project_id, {
             "narration_status": {"phase": "generating_script", "done": 0, "total": len(scenes)},
         })
 
-        # Generate narration scripts via Claude
-        narration_system = f"""You are a NARRATOR for cinematic storytelling. Given scenes, write compelling narration text for EACH scene.
+        # ── DUBBED MODE: Use scene dialogues directly (already have character lines) ──
+        if audio_mode == "dubbed":
+            # ElevenLabs voice mapping for character types
+            DUBBED_VOICES = {
+                "narrator": voice_id,  # User-selected voice for narrator
+                "male_elder": "VR6AewLTigWG4xSOukaG",   # Arnold - deep male
+                "male_young": "pNInz6obpgDQGcFmaJgB",    # Adam - young male
+                "female_elder": "EXAVITQu4vr4xnSDxMaL",  # Bella - female
+                "female_young": "jBpfuIE2acCO8z3wKNLl",   # Gigi - young female
+                "child": "jsCqWAovK2LkecY7zXl4",          # Freya - light voice for kids
+                "angel": "onwK4e9ZLuTAKqWW03F9",          # Daniel - ethereal male
+            }
+
+            # Map character names to voice types
+            characters = project.get("characters", [])
+            char_voice_map = {}
+            for c in characters:
+                name = c.get("name", "").lower()
+                if "narrador" in name:
+                    char_voice_map[c["name"]] = DUBBED_VOICES["narrator"]
+                elif "anjo" in name or "angel" in name:
+                    char_voice_map[c["name"]] = DUBBED_VOICES["angel"]
+                elif "sara" in name or "rebeca" in name or "agar" in name:
+                    char_voice_map[c["name"]] = DUBBED_VOICES["female_elder"]
+                elif "isaque" in name or "isaac" in name:
+                    # Check if adolescent or child
+                    if "adolescente" in name or "jovem" in name:
+                        char_voice_map[c["name"]] = DUBBED_VOICES["male_young"]
+                    elif "bebê" in name or "bebe" in name or "criança" in name:
+                        char_voice_map[c["name"]] = DUBBED_VOICES["child"]
+                    else:
+                        char_voice_map[c["name"]] = DUBBED_VOICES["male_young"]
+                elif "abraão" in name or "abraao" in name or "abraham" in name:
+                    if "jovem" in name:
+                        char_voice_map[c["name"]] = DUBBED_VOICES["male_young"]
+                    else:
+                        char_voice_map[c["name"]] = DUBBED_VOICES["male_elder"]
+                elif "deus" in name or "god" in name:
+                    char_voice_map[c["name"]] = DUBBED_VOICES["angel"]
+                else:
+                    char_voice_map[c["name"]] = DUBBED_VOICES["male_elder"]
+
+            # Default mappings for common Portuguese names
+            char_voice_map["Narrador"] = DUBBED_VOICES["narrator"]
+            char_voice_map["Deus"] = DUBBED_VOICES["angel"]
+
+            logger.info(f"Studio [{project_id}]: DUBBED mode — {len(char_voice_map)} character voices mapped")
+
+            narration_outputs = []
+            for i, scene in enumerate(scenes):
+                scene_num = scene.get("scene_number", i + 1)
+                dialogue = scene.get("dialogue", "")
+                if not dialogue.strip():
+                    narration_outputs.append({"scene_number": scene_num, "narration": "", "audio_url": None})
+                    continue
+
+                try:
+                    # Parse character lines: "Narrador: '...' / Abraão: '...' / Isaac: '...'"
+                    parts = [p.strip() for p in dialogue.split(" / ")]
+                    audio_clips = []
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        for pi, part in enumerate(parts):
+                            # Extract character name and text
+                            if ":" in part:
+                                char_name_raw = part.split(":")[0].strip()
+                                text = ":".join(part.split(":")[1:]).strip().strip("'\"")
+                            else:
+                                char_name_raw = "Narrador"
+                                text = part.strip().strip("'\"")
+
+                            if not text:
+                                continue
+
+                            # Find matching voice
+                            matched_voice = DUBBED_VOICES["narrator"]
+                            for cname, vid in char_voice_map.items():
+                                if char_name_raw.lower() in cname.lower() or cname.lower() in char_name_raw.lower():
+                                    matched_voice = vid
+                                    break
+
+                            # Generate audio for this character line
+                            audio_bytes = _generate_narration_audio(text, matched_voice, stability, similarity, style_val, lang)
+                            clip_path = f"{tmpdir}/part_{pi:03d}.mp3"
+                            with open(clip_path, 'wb') as f:
+                                f.write(audio_bytes)
+                            audio_clips.append(clip_path)
+
+                        if len(audio_clips) == 1:
+                            with open(audio_clips[0], 'rb') as f:
+                                final_audio = f.read()
+                        elif len(audio_clips) > 1:
+                            # Concatenate all character audio clips with 0.3s pause
+                            list_file = f"{tmpdir}/concat_list.txt"
+                            silence_path = f"{tmpdir}/silence.mp3"
+                            # Generate 0.3s silence
+                            subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono", "-t", "0.3", silence_path],
+                                           capture_output=True, timeout=10)
+                            with open(list_file, 'w') as f:
+                                for ci, cp in enumerate(audio_clips):
+                                    f.write(f"file '{cp}'\n")
+                                    if ci < len(audio_clips) - 1 and os.path.exists(silence_path):
+                                        f.write(f"file '{silence_path}'\n")
+                            merged_path = f"{tmpdir}/merged.mp3"
+                            subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file, "-c:a", "libmp3lame", "-q:a", "4", merged_path],
+                                           capture_output=True, timeout=30)
+                            with open(merged_path, 'rb') as f:
+                                final_audio = f.read()
+                        else:
+                            narration_outputs.append({"scene_number": scene_num, "narration": dialogue, "audio_url": None})
+                            continue
+
+                    filename = f"studio/{project_id}_narration_{scene_num}.mp3"
+                    audio_url = _upload_to_storage(final_audio, filename, "audio/mpeg")
+                    narration_outputs.append({"scene_number": scene_num, "narration": dialogue, "audio_url": audio_url})
+                    logger.info(f"Studio [{project_id}]: Dubbed scene {scene_num} done ({len(final_audio)//1024}KB, {len(parts)} voices)")
+
+                except Exception as e:
+                    logger.warning(f"Studio [{project_id}]: Dubbed scene {scene_num} failed: {e}")
+                    narration_outputs.append({"scene_number": scene_num, "narration": dialogue, "audio_url": None, "error": str(e)[:100]})
+
+                _update_project_field(tenant_id, project_id, {
+                    "narration_status": {"phase": "generating_audio", "done": i + 1, "total": len(scenes)},
+                })
+
+        else:
+            # ── NARRATED MODE: Single narrator voice ──
+            narration_system = f"""You are a NARRATOR for cinematic storytelling. Given scenes, write compelling narration text for EACH scene.
 Rules:
 - Each scene narration is MAX 25 words (fits 12 seconds)
 - Be dramatic, evocative, emotional
@@ -2644,52 +2772,50 @@ Rules:
 - **MANDATORY**: Write ALL narration text in {LANG_FULL_NAMES.get(lang, lang)}. NEVER write in English unless the language IS English.
 - Output ONLY valid JSON array: [{{"scene_number": 1, "narration": "text..."}}]"""
 
-        scene_summaries = "\n".join([
-            f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} — {s.get('description','')} — Dialogue: {s.get('dialogue','')}"
-            for i, s in enumerate(scenes)
-        ])
+            scene_summaries = "\n".join([
+                f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} — {s.get('description','')} — Dialogue: {s.get('dialogue','')}"
+                for i, s in enumerate(scenes)
+            ])
 
-        script_result = _call_claude_sync(narration_system, f"Scenes:\n{scene_summaries}")
+            script_result = _call_claude_sync(narration_system, f"Scenes:\n{scene_summaries}")
 
-        # Parse narration scripts
-        import json as json_mod
-        narrations = []
-        if '[' in script_result:
-            try:
-                start = script_result.index('[')
-                end = script_result.rindex(']') + 1
-                narrations = json_mod.loads(script_result[start:end])
-            except Exception:
-                pass
+            import json as json_mod
+            narrations = []
+            if '[' in script_result:
+                try:
+                    start = script_result.index('[')
+                    end = script_result.rindex(']') + 1
+                    narrations = json_mod.loads(script_result[start:end])
+                except Exception:
+                    pass
 
-        if not narrations:
-            narrations = [{"scene_number": i+1, "narration": s.get("dialogue", s.get("description", ""))[:80]} for i, s in enumerate(scenes)]
-
-        _update_project_field(tenant_id, project_id, {
-            "narration_status": {"phase": "generating_audio", "done": 0, "total": len(narrations)},
-        })
-
-        # Generate audio for each scene
-        narration_outputs = []
-        for i, narr in enumerate(narrations):
-            scene_num = narr.get("scene_number", i + 1)
-            text = narr.get("narration", "")
-            if not text.strip():
-                narration_outputs.append({"scene_number": scene_num, "text": "", "audio_url": None})
-                continue
-            try:
-                audio_bytes = _generate_narration_audio(text, voice_id, stability, similarity, style_val, lang)
-                filename = f"studio/{project_id}_narration_{scene_num}.mp3"
-                audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
-                narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": audio_url})
-                logger.info(f"Studio [{project_id}]: Narration scene {scene_num} done ({len(audio_bytes)//1024}KB)")
-            except Exception as e:
-                logger.warning(f"Studio [{project_id}]: Narration scene {scene_num} failed: {e}")
-                narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": None, "error": str(e)[:100]})
+            if not narrations:
+                narrations = [{"scene_number": i+1, "narration": s.get("dialogue", s.get("description", ""))[:80]} for i, s in enumerate(scenes)]
 
             _update_project_field(tenant_id, project_id, {
-                "narration_status": {"phase": "generating_audio", "done": i + 1, "total": len(narrations)},
+                "narration_status": {"phase": "generating_audio", "done": 0, "total": len(narrations)},
             })
+
+            narration_outputs = []
+            for i, narr in enumerate(narrations):
+                scene_num = narr.get("scene_number", i + 1)
+                text = narr.get("narration", "")
+                if not text.strip():
+                    narration_outputs.append({"scene_number": scene_num, "text": "", "audio_url": None})
+                    continue
+                try:
+                    audio_bytes = _generate_narration_audio(text, voice_id, stability, similarity, style_val, lang)
+                    filename = f"studio/{project_id}_narration_{scene_num}.mp3"
+                    audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
+                    narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": audio_url})
+                    logger.info(f"Studio [{project_id}]: Narration scene {scene_num} done ({len(audio_bytes)//1024}KB)")
+                except Exception as e:
+                    logger.warning(f"Studio [{project_id}]: Narration scene {scene_num} failed: {e}")
+                    narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": None, "error": str(e)[:100]})
+
+                _update_project_field(tenant_id, project_id, {
+                    "narration_status": {"phase": "generating_audio", "done": i + 1, "total": len(narrations)},
+                })
 
         # Save all narrations to project
         settings, projects, project = _get_project(tenant_id, project_id)
