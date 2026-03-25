@@ -464,11 +464,11 @@ def _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache, size="1
 
 _ANTI_INSTRUCTIONS = """
 CRITICAL RULES (VIOLATION = SCENE REJECTED):
-- NEVER change the species of any character. If the character is described as a lion, it MUST be a lion in every single frame. NEVER render a lion as a camel, dog, bear, or any other animal.
+- EVERY character MUST match their reference avatar image EXACTLY — same species, same face shape, same body proportions, same fur/skin color, same clothing.
+- NEVER change the species of any character. If the avatar shows a camel, render a camel. If the avatar shows a lion, render a lion. NEVER substitute one animal for another.
 - NEVER change the art style mid-scene or between scenes. If the style is 3D CGI, EVERY frame must be 3D CGI. NEVER mix 2D and 3D.
-- NEVER change clothing colors. If a character wears a dark-red robe, it MUST be dark-red in every frame.
-- EVERY character must be recognizable from their description — same face shape, same body proportions, same fur color, same clothing.
-- Character age MUST match the scene context exactly (baby = tiny, crawling; child = small, playing; elder = tall, grey mane).
+- NEVER change clothing colors. Match the avatar reference exactly.
+- Character age MUST match the scene context exactly (baby = tiny, held in arms; child = small, half adult height; elder = tall, weathered features).
 """
 
 def _extract_last_frame(video_path: str, output_path: str = None) -> str:
@@ -641,9 +641,10 @@ def _generate_scene_keyframe(sora_prompt: str, char_avatars: dict, avatar_cache:
 {sora_prompt}
 
 IMPORTANT:
-- Every character MUST match the species and appearance described exactly
+- Every character MUST match the reference avatar image exactly — same species, same face, same clothing
 - Style MUST be 3D CGI Pixar quality with volumetric lighting
-- This is ONE static frame, not a sequence — capture the opening moment of this scene"""
+- This is ONE static frame — capture the opening moment of this scene
+- If a reference image is provided, use it as the EXACT template for character appearance"""
 
             # If we have a character avatar, use it as reference
             ref_b64 = None
@@ -1362,15 +1363,14 @@ Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, m
 
 CRITICAL RULES:
 - START your prompt with the exact mandatory style text above — copy it word for word
-- Describe EVERY character by their EXACT PHYSICAL APPEARANCE from the character descriptions below
-- For EACH character, you MUST include: exact SPECIES (e.g. "anthropomorphic lion"), exact FUR COLOR, exact CLOTHING with colors, exact BODY BUILD, exact AGE/LIFE STAGE as specified in the scene context
+- Describe EVERY character by their EXACT PHYSICAL APPEARANCE from the character descriptions below — these descriptions come from analyzing the actual avatar images, so they are the ABSOLUTE SOURCE OF TRUTH
+- For EACH character: include exact SPECIES as described, exact FUR/SKIN COLOR, exact CLOTHING with colors, exact BODY BUILD, exact AGE/LIFE STAGE as specified in the scene context
 - NEVER use character names in the prompt — only physical descriptions
+- NEVER change a character's species from what is described below — the descriptions match real avatar images that the user selected
 - If a scene describes a "birth" or "baby", the young character MUST be a tiny newborn infant of the SAME SPECIES as the parents — NOT a teenager or adult
 - If a scene says "child" or "young", the character must be visibly SMALL and childlike — NOT adult-sized
-- ALL characters in this production are the SAME SPECIES as defined in their descriptions. NEVER change a character's species between scenes.
 - Include: specific environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
 - Each scene must look like it belongs to the SAME FILM — same art technique, same 3D rendering quality, same color grading
-- Maintain visual continuity with transition notes from previous scene
 - The sora_prompt MUST be in ENGLISH"""
 
             director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
@@ -1378,13 +1378,12 @@ Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')}
 
-CHARACTER IDENTITY SHEET — describe EACH character using ALL details below (SPECIES + APPEARANCE + CLOTHING):
+CHARACTER IDENTITY SHEET (from avatar image analysis — ABSOLUTE SOURCE OF TRUTH, DO NOT DEVIATE):
 {char_descs}
 
 AGE/LIFE STAGE CONTEXT FOR THIS SCENE: Based on the scene description above, determine the correct age of each character.
-- If the scene describes a "birth" or "newborn", the baby character is a TINY INFANT — small enough to be held in arms, with oversized head, chubby cheeks, and soft features.
+- If the scene describes a "birth" or "newborn", the baby character is a TINY INFANT of the same species — small enough to be held in arms.
 - If the scene describes "growing up" or "childhood", the young character is a SMALL CHILD — about half the height of the adults.
-- If the scene describes "wisdom" or "teaching", the young character may be an older child or teenager — smaller than adults but not tiny.
 
 LOCATION: {loc_desc}
 TIME OF DAY: {time_day} — Light/Colors: {time_light}
