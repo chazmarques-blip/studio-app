@@ -2996,7 +2996,7 @@ Rules:
         else:
             logger.info(f"Studio [{project_id}]: Using existing narrations ({len(narrations_with_audio)})")
 
-        # ── Step 2: Download scene videos ──
+        # ── Step 2: Download scene videos (with retry) ──
         _update_project_field(tenant_id, project_id, {
             "post_production_status": {"phase": "downloading", "done": 0, "total": len(scene_videos), "message": "Baixando vídeos..."}
         })
@@ -3004,24 +3004,32 @@ Rules:
         video_files = []
         for i, sv in enumerate(scene_videos):
             local_path = f"{tmpdir}/scene_{i:03d}.mp4"
-            urllib.request.urlretrieve(sv["url"], local_path)
+            for dl_attempt in range(4):
+                try:
+                    urllib.request.urlretrieve(sv["url"], local_path)
+                    break
+                except Exception as dl_err:
+                    logger.warning(f"Studio [{project_id}]: Download retry {dl_attempt+1}/4 for scene {sv.get('scene_number', i+1)}: {dl_err}")
+                    _time.sleep(2 * (dl_attempt + 1))
             video_files.append({"path": local_path, "scene_number": sv.get("scene_number", i+1)})
             _update_project_field(tenant_id, project_id, {
                 "post_production_status": {"phase": "downloading", "done": i+1, "total": len(scene_videos), "message": f"Vídeo {i+1}/{len(scene_videos)}"}
             })
 
-        # ── Step 3: Download narration audio ──
+        # ── Step 3: Download narration audio (with retry) ──
         narration_files = {}
         for narr in narrations:
             sn = narr.get("scene_number", 0)
             url = narr.get("audio_url")
             if url and sn > 0:
                 local_path = f"{tmpdir}/narration_{sn:03d}.mp3"
-                try:
-                    urllib.request.urlretrieve(url, local_path)
-                    narration_files[sn] = local_path
-                except Exception:
-                    pass
+                for dl_attempt in range(3):
+                    try:
+                        urllib.request.urlretrieve(url, local_path)
+                        narration_files[sn] = local_path
+                        break
+                    except Exception:
+                        _time.sleep(1 * (dl_attempt + 1))
 
         # ── Step 4: Apply fade transitions + color grading + concat ──
         _update_project_field(tenant_id, project_id, {
