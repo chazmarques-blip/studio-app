@@ -924,11 +924,38 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
             for m in chat_history[-6:]
         ])
 
+        audio_mode = project.get("audio_mode", "narrated")
+
         system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang)
+
+        # Inject audio mode context into prompt
+        audio_instruction = ""
+        if audio_mode == "dubbed":
+            audio_instruction = """
+
+AUDIO MODE: DUBBED (character voices). The "dialogue" field MUST contain individual character dialogue lines, NOT narrator text.
+Format EXACTLY like this:
+"dialogue": "Abraão: 'Meu filho, vamos subir o monte juntos.' / Isaac: 'Sim, pai! Mas onde está o cordeiro?' / Abraão: 'Deus proverá, meu filho.'"
+
+RULES for DUBBED mode:
+- Each character speaking must be prefixed with their name followed by colon
+- Separate different speakers with " / "
+- NEVER use "Narrador:" — all text must be character dialogue
+- Every scene MUST have at least one character speaking
+- Keep dialogue natural, emotional, and age-appropriate for each character"""
+        else:
+            audio_instruction = """
+
+AUDIO MODE: NARRATED (voice-over narrator). The "dialogue" field should contain narrator text.
+Format: "dialogue": "Narrador: 'Description of what happens in this scene...'"
+- Use a storytelling narrator voice
+- Keep narration concise (2-3 sentences per scene)"""
+
         user_prompt = f"""Previous conversation:
 {history_text}
 
 Current request: {message}
+{audio_instruction}
 
 Create the screenplay. If the story needs more than 8 scenes, generate the first 8 now. Return ONLY valid JSON."""
 

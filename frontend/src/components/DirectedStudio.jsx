@@ -1071,9 +1071,9 @@ export function DirectedStudio({
             </button>
           </div>
 
-          {/* Scene summary */}
+          {/* Scene Editor - Full editable list */}
           {scenes.length > 0 && (
-            <div className="space-y-1.5 border-t border-[#222] pt-2">
+            <div className="space-y-2 border-t border-[#222] pt-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold text-[#C9A84C]">{scenes.length} {lang === 'pt' ? 'cenas planejadas' : 'scenes planned'} ({scenes.length * 12}s)</span>
                 <button onClick={() => setStep(2)} data-testid="go-to-characters"
@@ -1081,18 +1081,74 @@ export function DirectedStudio({
                   {lang === 'pt' ? 'Personagens' : 'Characters'} →
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-1">
-                {scenes.slice(0, 4).map((s, i) => (
-                  <div key={i} className="rounded-md border border-[#1A1A1A] bg-[#0A0A0A] p-1.5">
-                    <p className="text-[7px] font-bold text-[#C9A84C]">CENA {s.scene_number} ({s.time_start}-{s.time_end})</p>
-                    <p className="text-[7px] text-[#888] truncate">{s.title}</p>
-                  </div>
-                ))}
-                {scenes.length > 4 && (
-                  <div className="rounded-md border border-[#1A1A1A] bg-[#0A0A0A] p-1.5 flex items-center justify-center">
-                    <p className="text-[8px] text-[#555]">+{scenes.length - 4} {lang === 'pt' ? 'cenas' : 'scenes'}</p>
-                  </div>
-                )}
+              <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
+                {scenes.map((s) => {
+                  const isEditing = editingScene === s.scene_number;
+                  return (
+                    <div key={s.scene_number} className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2 space-y-1" data-testid={`scene-card-${s.scene_number}`}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[8px] font-bold text-[#C9A84C]">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
+                        <button
+                          data-testid={`edit-scene-${s.scene_number}`}
+                          onClick={() => {
+                            if (isEditing) { setEditingScene(null); setEditSceneForm({}); }
+                            else { setEditingScene(s.scene_number); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }
+                          }}
+                          className="text-[8px] text-[#C9A84C] hover:text-white transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C9A84C]/40"
+                        >
+                          {isEditing ? (lang === 'pt' ? 'Cancelar' : 'Cancel') : (lang === 'pt' ? 'Editar' : 'Edit')}
+                        </button>
+                      </div>
+
+                      {isEditing ? (
+                        <div className="space-y-1.5">
+                          <div>
+                            <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
+                            <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
+                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-title-${s.scene_number}`} />
+                          </div>
+                          <div>
+                            <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição da Cena' : 'Scene Description'}</label>
+                            <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
+                              rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none resize-none" data-testid={`edit-desc-${s.scene_number}`} />
+                          </div>
+                          <div>
+                            <label className="text-[7px] text-[#666] block mb-0.5">{audioMode === 'dubbed' ? (lang === 'pt' ? 'Diálogos dos Personagens' : 'Character Dialogues') : (lang === 'pt' ? 'Narração' : 'Narration')}</label>
+                            <textarea value={editSceneForm.dialogue || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, dialogue: e.target.value }))}
+                              rows={3} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none resize-none" data-testid={`edit-dialogue-${s.scene_number}`} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <div>
+                              <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
+                              <input value={editSceneForm.emotion || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, emotion: e.target.value }))}
+                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-emotion-${s.scene_number}`} />
+                            </div>
+                            <div>
+                              <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
+                              <input value={editSceneForm.camera || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, camera: e.target.value }))}
+                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-camera-${s.scene_number}`} />
+                            </div>
+                          </div>
+                          <button onClick={() => saveSceneEdit(s.scene_number)} data-testid={`save-scene-${s.scene_number}`}
+                            className="w-full btn-gold rounded-lg py-1 text-[9px] font-semibold">
+                            {lang === 'pt' ? 'Salvar Alterações' : 'Save Changes'}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] text-white font-medium">{s.title}</p>
+                          <p className="text-[8px] text-[#888]">{s.description}</p>
+                          <p className="text-[8px] text-[#AAA] italic mt-0.5">{s.dialogue}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {s.emotion && <span className="text-[7px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.emotion}</span>}
+                            {s.camera && <span className="text-[7px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.camera}</span>}
+                            {s.characters_in_scene && <span className="text-[7px] text-[#C9A84C]">{s.characters_in_scene.join(', ')}</span>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
