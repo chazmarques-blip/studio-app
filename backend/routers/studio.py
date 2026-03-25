@@ -381,7 +381,7 @@ Return ONLY valid JSON:
 {
   "style_anchors": "EXACT 40-word visual style description to include VERBATIM in EVERY scene prompt. Specific: art technique, lighting quality, texture detail, camera quality, color temperature.",
   "color_palette": {"global": "3-4 dominant color names", "morning": "morning light description", "afternoon": "afternoon light", "sunset": "sunset/evening light", "night": "night light"},
-  "character_bible": {"CharacterName": "CANONICAL 50-word English appearance. MUST match avatar analysis. Species, body type, exact colors, textures, clothing, unique marks. Used VERBATIM in every scene with this character."},
+  "character_bible": {"CharacterName": "CANONICAL 80-word English appearance. MUST match avatar analysis EXACTLY. Include: 1) SPECIES (e.g. 'anthropomorphic camel'), 2) BODY POSTURE (e.g. 'bipedal, standing upright on two legs like a human'), 3) EXACT fur/skin color and texture, 4) EXACT clothing with colors, 5) FACE details (eyes, snout/nose, expressions), 6) UNIQUE marks/accessories, 7) BODY BUILD (tall/short, thin/stocky). This description is used VERBATIM in every scene — consistency depends on it."},
   "location_bible": {"LocationKey": "40-word English description. Landscape, terrain, vegetation, architecture, sky, ambient details."},
   "scene_directions": [{"scene": 1, "time_of_day": "morning|afternoon|sunset|night", "location_key": "from location_bible", "camera_flow": "camera movement description", "transition_note": "visual link to previous/next scene", "ambient": "environmental sounds"}],
   "music_plan": [{"scenes": [1,2,3], "mood": "description", "category": "cinematic|epic|gentle|tense|triumphant", "intensity": "low|medium|high"}],
@@ -390,7 +390,9 @@ Return ONLY valid JSON:
 
 CRITICAL RULES:
 - character_bible MUST derive from avatar visual analysis when available — avatar is TRUTH
-- If characters are animals, describe ONLY animal features (fur, feathers, hooves, snouts, tails) — NEVER human features
+- If characters are animals or anthropomorphic, describe EXACT SPECIES from the avatar, EXACT BODY POSTURE (bipedal vs quadruped), and how they move. If avatar shows a bipedal anthropomorphic animal (standing on two legs), EVERY scene MUST show that character as BIPEDAL — NEVER as a quadruped
+- NEVER change a character's species across scenes — if the avatar is a camel, the character is ALWAYS a camel, NEVER a lion or other animal
+- If characters are animals, describe ONLY animal features (fur, feathers, hooves, snouts, tails) — NEVER human features (hands, fingers, human skin)
 - style_anchors must be specific enough to force Sora 2 into consistent output across all scenes
 - scene_directions transition_note creates visual flow between independently generated videos
 - All text in ENGLISH for Sora 2 compatibility"""
@@ -613,10 +615,12 @@ def _apply_color_grading(video_path: str, output_path: str, style: str = "warm_c
 
 
 def _generate_scene_keyframe(sora_prompt: str, char_avatars: dict, avatar_cache: dict,
-                              chars_in_scene: list, project_id: str, scene_num: int) -> str:
+                              chars_in_scene: list, project_id: str, scene_num: int,
+                              character_bible: dict = None) -> str:
     """KEYFRAME-FIRST PIPELINE: Generate a starting frame image via Gemini Nano Banana to force
     correct character identity before Sora 2 animation.
     Uses EMERGENT_LLM_KEY with gemini-3.1-flash-image-preview model.
+    Now passes ALL character avatars + character_bible for maximum consistency.
     """
     import tempfile
     import asyncio
@@ -636,30 +640,42 @@ def _generate_scene_keyframe(sora_prompt: str, char_avatars: dict, avatar_cache:
             )
             chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
 
+            # Build character descriptions from character_bible
+            char_desc_block = ""
+            if character_bible:
+                for cname in chars_in_scene:
+                    desc = character_bible.get(cname, "")
+                    if desc:
+                        char_desc_block += f"\n- {cname}: {desc}"
+
             prompt_text = f"""Generate a SINGLE FRAME for an animated film. This will be used as a starting keyframe for Sora 2 video generation.
 
 {sora_prompt}
 
-IMPORTANT:
-- Every character MUST match the reference avatar image exactly — same species, same face, same clothing
-- Style MUST be 3D CGI Pixar quality with volumetric lighting
-- This is ONE static frame — capture the opening moment of this scene
-- If a reference image is provided, use it as the EXACT template for character appearance"""
+CHARACTER IDENTITY (from avatar analysis — ABSOLUTE TRUTH, match EXACTLY):
+{char_desc_block if char_desc_block else 'See reference images below.'}
 
-            # If we have a character avatar, use it as reference
-            ref_b64 = None
+CRITICAL RULES:
+- Every character MUST match the reference avatar images EXACTLY — same species, same face shape, same fur color, same clothing
+- If a character is a BIPEDAL ANTHROPOMORPHIC ANIMAL in the reference, they MUST be shown STANDING UPRIGHT ON TWO LEGS — never as a quadruped
+- ONLY include the characters listed above — DO NOT add random extra animals or characters
+- Style MUST be 3D CGI Pixar quality with volumetric lighting
+- This is ONE static frame — capture the opening moment of this scene"""
+
+            # Collect ALL character avatar references for this scene
+            ref_images = []
             for char_name in chars_in_scene:
                 url = char_avatars.get(char_name)
                 cached_path = avatar_cache.get(url) if url else None
                 if cached_path and os.path.exists(cached_path):
                     with open(cached_path, 'rb') as f:
                         ref_b64 = base64.b64encode(f.read()).decode('utf-8')
-                    break
+                    ref_images.append(ImageContent(ref_b64))
 
-            if ref_b64:
+            if ref_images:
                 msg = UserMessage(
-                    text=f"{prompt_text}\n\nUse this character reference image to match the character's exact appearance:",
-                    file_contents=[ImageContent(ref_b64)]
+                    text=f"{prompt_text}\n\nReference avatar images for characters in this scene (match these EXACTLY):",
+                    file_contents=ref_images
                 )
             else:
                 msg = UserMessage(text=prompt_text)
@@ -1589,9 +1605,11 @@ Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, m
 CRITICAL RULES:
 - START your prompt with the exact mandatory style text above — copy it word for word
 - Describe EVERY character by their EXACT PHYSICAL APPEARANCE from the character descriptions below — these descriptions come from analyzing the actual avatar images, so they are the ABSOLUTE SOURCE OF TRUTH
-- For EACH character: include exact SPECIES as described, exact FUR/SKIN COLOR, exact CLOTHING with colors, exact BODY BUILD, exact AGE/LIFE STAGE as specified in the scene context
+- For EACH character appearing in the scene, copy their FULL character_bible description into the prompt — DO NOT summarize or abbreviate
+- SPECIES LOCK: If a character is described as an "anthropomorphic camel", they are ALWAYS a camel in EVERY scene — NEVER a lion, bear, or any other animal
+- POSTURE LOCK: If a character is described as "bipedal/standing upright", they MUST be shown standing on two legs — NEVER as a quadruped walking on four legs
+- NEVER add extra animals or characters that are NOT in the CHARACTER IDENTITY SHEET below — if only Abraão and Isaac are in the scene, ONLY those two characters appear
 - NEVER use character names in the prompt — only physical descriptions
-- NEVER change a character's species from what is described below — the descriptions match real avatar images that the user selected
 - If a scene describes a "birth" or "baby", the young character MUST be a tiny newborn infant of the SAME SPECIES as the parents — NOT a teenager or adult
 - If a scene says "child" or "young", the character must be visibly SMALL and childlike — NOT adult-sized
 - Include: specific environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
@@ -1767,7 +1785,8 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 for kf_attempt in range(3):
                     kf_path = _generate_scene_keyframe(
                         ds["sora_prompt"], char_avatars, avatar_cache,
-                        chars_in, project_id, sn
+                        chars_in, project_id, sn,
+                        character_bible=pd_chars
                     )
                     if kf_path:
                         break
@@ -2899,6 +2918,7 @@ def _get_video_duration(video_path: str) -> float:
 def _run_post_production(tenant_id: str, project_id: str, req: PostProduceRequest):
     """Background: Full post-production — narration + music + transitions → final video."""
     import tempfile
+    import time as _time
 
     try:
         settings, projects, project = _get_project(tenant_id, project_id)

@@ -9,7 +9,16 @@ Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI ag
 - **Database**: Supabase (PostgreSQL) + MongoDB
 - **AI Stack**: Claude Sonnet (text/vision), Sora 2 (video), Gemini (images/keyframes), ElevenLabs (multilingual voice)
 
-## Continuity Engine v3 — Keyframe-First Pipeline
+## Continuity Engine v3.1 — Enhanced Character Consistency (2026-03-25)
+
+### Improvements
+1. **Multi-Avatar Keyframes**: Gemini now receives ALL character avatars for a scene (not just the first one)
+2. **Character Bible in Keyframes**: character_bible descriptions are passed directly to Gemini for stronger identity anchoring
+3. **80-word Character Bible**: Expanded from 50 to 80 words with mandatory fields: SPECIES, BODY POSTURE (bipedal/quadruped), fur color, clothing, face, marks, build
+4. **Species Lock**: Scene Director prompt now explicitly forbids changing a character's species across scenes
+5. **Posture Lock**: If avatar is bipedal anthropomorphic, ALL scenes must show character standing upright
+6. **No Extra Characters**: Prompt explicitly forbids adding random animals/characters not in the scene
+7. **Language Enforcement**: ALL prompts (screenwriter, narration, dubbed, continuation) now have mandatory language rules with full language names
 
 ### Architecture
 ```
