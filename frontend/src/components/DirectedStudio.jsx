@@ -6,6 +6,7 @@ import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plu
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
+import { PostProduction } from './PostProduction';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1601,6 +1602,28 @@ export function DirectedStudio({
                 </div>
               ))}
             </div>
+          )}
+
+          {/* ── Post-Production: Audio + Localization ── */}
+          {outputs.length > 0 && (
+            <PostProduction
+              project={{
+                id: projectId,
+                language: projectLang || lang,
+                scenes,
+                outputs,
+                ...(() => {
+                  const proj = allProjects.find(p => p.id === projectId);
+                  return proj ? {
+                    agents_output: proj.agents_output,
+                    narrations: proj.narrations,
+                    voice_config: proj.voice_config,
+                    post_production_status: proj.post_production_status,
+                  } : {};
+                })(),
+              }}
+              onUpdate={loadProjects}
+            />
           )}
 
           <div className="flex gap-2">
