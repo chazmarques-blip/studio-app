@@ -823,6 +823,8 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "visual_style": project.get("visual_style", "animation"),
         "language": project.get("language", "pt"),
         "subtitles": project.get("subtitles", {}),
+        "screenplay_approved": project.get("screenplay_approved", False),
+        "audio_mode": project.get("audio_mode", "narrated"),
         "error": project.get("error"),
     }
 
@@ -878,6 +880,23 @@ async def update_character_avatars(project_id: str, payload: dict = Body(...), t
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     _save_project(tenant["id"], settings, projects)
     return {"status": "ok", "avatars": len(project["character_avatars"])}
+
+
+@router.patch("/projects/{project_id}/settings")
+async def update_project_settings(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update project-level settings (screenplay_approved, audio_mode, etc.)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    allowed_keys = {"screenplay_approved", "audio_mode", "visual_style", "animation_sub", "continuity_mode", "language"}
+    for k, v in payload.items():
+        if k in allowed_keys:
+            project[k] = v
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    if payload.get("screenplay_approved"):
+        _add_milestone(project, "screenplay_approved", "Roteiro aprovado pelo usuário")
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok"}
 
 
 # ── STEP 1: Screenwriter Chat ──
@@ -952,7 +971,35 @@ Format: "dialogue": "Narrador: 'Description of what happens in this scene...'"
 - Use a storytelling narrator voice
 - Keep narration concise (2-3 sentences per scene)"""
 
-        user_prompt = f"""Previous conversation:
+        # Detect if project already has scenes (continuation vs new screenplay)
+        existing_scenes = project.get("scenes", [])
+        is_continuation = len(existing_scenes) > 0
+
+        if is_continuation:
+            existing_summary = "\n".join([
+                f"Scene {s.get('scene_number')}: {s.get('title')} ({s.get('time_start')}-{s.get('time_end')})"
+                for s in existing_scenes
+            ])
+            last_scene_num = max(s.get("scene_number", 0) for s in existing_scenes)
+            last_time_end = existing_scenes[-1].get("time_end", "0:00") if existing_scenes else "0:00"
+            user_prompt = f"""Previous conversation:
+{history_text}
+
+EXISTING SCREENPLAY (already written — DO NOT rewrite these, only ADD new scenes):
+{existing_summary}
+
+The user now says: {message}
+{audio_instruction}
+
+CONTINUATION RULES:
+- Scene numbers MUST start from {last_scene_num + 1}
+- Time starts from {last_time_end} (each scene = 12 seconds)
+- Keep the same characters, visual style, and narrative tone
+- Return ONLY JSON with "scenes" array containing the NEW scenes (continuation only)
+- Also return "characters" array with any NEW characters introduced (or empty array if none)
+- Return "total_scenes" as the total number of NEW scenes in this batch"""
+        else:
+            user_prompt = f"""Previous conversation:
 {history_text}
 
 Current request: {message}
@@ -1014,22 +1061,44 @@ Return ONLY JSON with a "scenes" array containing the remaining scenes (same for
                 except Exception as e2:
                     logger.warning(f"Studio [{project_id}]: Phase 2 continuation failed: {e2}. Using {len(all_scenes)} scenes.")
 
-            project["scenes"] = all_scenes
-            project["characters"] = all_characters
+            # Re-read existing scenes (project may have been re-fetched)
+            prev_scenes = project.get("scenes", [])
+            prev_scene_nums = {s.get("scene_number") for s in prev_scenes}
+            new_scene_nums = {s.get("scene_number") for s in all_scenes}
+
+            # Smart merge: if new scenes don't overlap with existing, append (continuation)
+            if prev_scenes and new_scene_nums and not prev_scene_nums.intersection(new_scene_nums):
+                merged_scenes = prev_scenes + all_scenes
+                merged_scenes.sort(key=lambda x: x.get("scene_number", 0))
+                project["scenes"] = merged_scenes
+                # Merge characters (add new ones only)
+                existing_char_names = {c.get("name") for c in project.get("characters", [])}
+                for c in all_characters:
+                    if c.get("name") not in existing_char_names:
+                        project.get("characters", []).append(c)
+                logger.info(f"Studio [{project_id}]: Merged {len(all_scenes)} new scenes with {len(prev_scenes)} existing (total: {len(merged_scenes)})")
+            else:
+                # Fresh screenplay or overlap — replace
+                project["scenes"] = all_scenes
+                project["characters"] = all_characters
+
+            final_scenes = project["scenes"]
+            final_characters = project.get("characters", [])
+
             project["agents_output"] = project.get("agents_output", {})
             project["agents_output"]["screenwriter"] = {
                 "title": parsed.get("title", ""),
                 "research_notes": parsed.get("research_notes", ""),
                 "narration": parsed.get("narration", ""),
             }
-            assistant_text = f"**{parsed.get('title', 'Roteiro')}** — {len(all_scenes)} cenas\n\n"
+            assistant_text = f"**{parsed.get('title', 'Roteiro')}** — {len(all_scenes)} {'novas cenas' if prev_scenes and not prev_scene_nums.intersection(new_scene_nums) else 'cenas'} (total: {len(final_scenes)})\n\n"
             for s in all_scenes:
                 assistant_text += f"**CENA {s.get('scene_number','')}** ({s.get('time_start','')}-{s.get('time_end','')}) — {s.get('title','')}\n"
                 assistant_text += f"_{s.get('description','')}_\n"
                 if s.get('dialogue'):
                     assistant_text += f'"{s["dialogue"]}"\n'
                 assistant_text += f"Personagens: {', '.join(s.get('characters_in_scene',[]))}\n\n"
-            assistant_text += f"\n**Personagens identificados:** {', '.join(c.get('name','') for c in all_characters)}"
+            assistant_text += f"\n**Personagens identificados:** {', '.join(c.get('name','') for c in final_characters)}"
             if parsed.get("research_notes"):
                 assistant_text += f"\n\n**Pesquisa:** {parsed['research_notes'][:300]}"
         else:
