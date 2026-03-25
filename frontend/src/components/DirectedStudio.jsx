@@ -1530,7 +1530,57 @@ export function DirectedStudio({
             </div>
           )}
 
-          {outputs.map((out, i) => {
+          {/* ── FILME COMPLETO (concat video) ── */}
+          {outputs.filter(o => o.label === 'complete').map((out, i) => (
+            <div key={`complete-${i}`} className="rounded-lg overflow-hidden border border-white/5">
+              {out.type === 'video' && out.url && (
+                <div className="relative bg-black">
+                  <video controls autoPlay className="w-full rounded-lg" data-testid="result-video-complete" src={out.url} />
+                  <span className="absolute top-1.5 left-1.5 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                    FILME COMPLETO ({out.duration}s)
+                  </span>
+                </div>
+              )}
+              <div className="p-1.5 flex items-center justify-between">
+                <span className="text-[8px] text-[#666]">Todas as cenas</span>
+                <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[8px] font-semibold flex items-center gap-1">
+                  <Download size={10} /> Download
+                </a>
+              </div>
+            </div>
+          ))}
+
+          {/* ── PÓS-PRODUÇÃO + LOCALIZAÇÃO (logo após o filme) ── */}
+          {outputs.length > 0 && (
+            <PostProduction
+              project={{
+                id: projectId,
+                language: projectLang || lang,
+                scenes,
+                outputs,
+                ...(() => {
+                  const proj = allProjects.find(p => p.id === projectId);
+                  return proj ? {
+                    agents_output: proj.agents_output,
+                    narrations: proj.narrations,
+                    voice_config: proj.voice_config,
+                    post_production_status: proj.post_production_status,
+                  } : {};
+                })(),
+              }}
+              onUpdate={loadProjects}
+            />
+          )}
+
+          {/* ── CENAS INDIVIDUAIS ── */}
+          {outputs.filter(o => o.label !== 'complete').length > 0 && (
+            <details className="group">
+              <summary className="text-[10px] text-[#888] cursor-pointer hover:text-white transition py-1 flex items-center gap-1">
+                <ChevronDown size={10} className="group-open:rotate-180 transition-transform" />
+                {lang === 'pt' ? `Ver ${outputs.filter(o => o.label !== 'complete').length} cenas individuais` : `View ${outputs.filter(o => o.label !== 'complete').length} individual scenes`}
+              </summary>
+              <div className="space-y-2 mt-2">
+          {outputs.filter(o => o.label !== 'complete').map((out, i) => {
             const sceneState = (agentStatus.scene_status || {})[String(out.scene_number)] || '';
             const isRegenerating = regenScene === out.scene_number;
             return (
@@ -1603,27 +1653,8 @@ export function DirectedStudio({
               ))}
             </div>
           )}
-
-          {/* ── Post-Production: Audio + Localization ── */}
-          {outputs.length > 0 && (
-            <PostProduction
-              project={{
-                id: projectId,
-                language: projectLang || lang,
-                scenes,
-                outputs,
-                ...(() => {
-                  const proj = allProjects.find(p => p.id === projectId);
-                  return proj ? {
-                    agents_output: proj.agents_output,
-                    narrations: proj.narrations,
-                    voice_config: proj.voice_config,
-                    post_production_status: proj.post_production_status,
-                  } : {};
-                })(),
-              }}
-              onUpdate={loadProjects}
-            />
+              </div>
+            </details>
           )}
 
           <div className="flex gap-2">
