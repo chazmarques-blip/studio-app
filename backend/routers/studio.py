@@ -458,6 +458,160 @@ def _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache, size="1
     return composite_file.name
 
 
+# ═══════════════════════════════════════════════════════════
+# ── CONTINUITY ENGINE v1 ──
+# ═══════════════════════════════════════════════════════════
+
+def _extract_last_frame(video_path: str, output_path: str = None) -> str:
+    """P0.1 — Extract the last frame from a video using FFmpeg for visual anchoring."""
+    import tempfile
+    if not output_path:
+        output_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
+    try:
+        # Get duration first
+        probe = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", video_path],
+            capture_output=True, timeout=10
+        )
+        duration = float(probe.stdout.decode().strip() or "10") - 0.1
+        # Extract last frame
+        subprocess.run(
+            ["ffmpeg", "-y", "-ss", f"{max(0, duration):.2f}", "-i", video_path,
+             "-vframes", "1", "-q:v", "2", output_path],
+            capture_output=True, timeout=15
+        )
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+            return output_path
+    except Exception as e:
+        logger.warning(f"Frame extraction failed: {e}")
+    return None
+
+
+def _generate_character_sheet(character_name: str, description: str, avatar_path: str,
+                              style_hint: str, project_id: str) -> bytes:
+    """P0.2 — Generate a canonical 'character sheet' image via Gemini for consistent reference.
+    Creates a neutral-pose, well-lit reference image of the character.
+    """
+    try:
+        from emergentintegrations.llm.gemini import GeminiImageGenerator
+        gen = GeminiImageGenerator(api_key=os.environ.get("EMERGENT_LLM_KEY", ""))
+
+        sheet_prompt = f"""Create a CHARACTER REFERENCE SHEET for animation production.
+Character: {description}
+Art style: {style_hint}
+
+Show the character in a NEUTRAL standing pose, front-facing, on a plain neutral background.
+Full body visible, well-lit, sharp details. This is a production reference for visual consistency.
+The character must look EXACTLY as described — this image will be used to maintain consistency across multiple scenes."""
+
+        if avatar_path and os.path.exists(avatar_path):
+            result = gen.image_to_image(
+                prompt=sheet_prompt,
+                image_path=avatar_path,
+                model="imagen-3.0-generate-002"
+            )
+        else:
+            result = gen.text_to_image(
+                prompt=sheet_prompt,
+                model="imagen-3.0-generate-002"
+            )
+        if result:
+            return result
+    except Exception as e:
+        logger.warning(f"Studio [{project_id}]: Character sheet gen failed for {character_name}: {e}")
+    return None
+
+
+def _build_style_dna(animation_sub: str, production_design: dict) -> str:
+    """P1.3 — Build a rigid 'Style DNA' block that must appear verbatim in every scene prompt.
+    Combines art style, color palette, rendering technique, and lighting direction.
+    """
+    STYLE_DNA_MAP = {
+        "pixar_3d": "MANDATORY STYLE: Premium 3D CGI (Pixar/DreamWorks). Subsurface scattering on all skin/fur. Global illumination with warm color temperature (5500K). Cinematic depth of field f/2.8. Soft ambient occlusion shadows. Characters with large expressive eyes, smooth rounded features, slightly oversized heads. Consistent volumetric lighting across every shot.",
+        "cartoon_3d": "MANDATORY STYLE: Stylized 3D cartoon with cel-shading. Bright saturated primary colors. Flat directional lighting with minimal shadows. Thick dark outlines on 3D models. Simplified facial features, exaggerated proportions. Vibrant solid-color backgrounds.",
+        "cartoon_2d": "MANDATORY STYLE: Classic 2D hand-drawn (Disney/Ghibli). Clean ink outlines with watercolor fill. Painted multi-layered backgrounds. Fluid squash-and-stretch character animation. Soft diffused lighting. Warm earth-tone color palette.",
+        "anime_2d": "MANDATORY STYLE: Japanese anime (Makoto Shinkai). Hyper-detailed painted backgrounds. Dramatic rim lighting. Speed lines for motion. Large expressive eyes with highlights. Atmospheric perspective with visible light rays. Cool blue shadows, warm golden highlights.",
+        "realistic": "MANDATORY STYLE: Cinematic photorealism. 35mm anamorphic lens. Shallow DOF f/1.4. Natural film grain ISO 800. Three-point lighting. Professional color grading: slightly desaturated, lifted blacks, crushed highlights.",
+        "watercolor": "MANDATORY STYLE: Watercolor painting animation. Visible wet brush strokes. Paper texture overlay. Bleeding edges on colors. Soft pastel tones: cream, sage, dusty rose. Dreamy ethereal atmosphere with diffused light.",
+    }
+    base = STYLE_DNA_MAP.get(animation_sub, STYLE_DNA_MAP["pixar_3d"])
+
+    # Enhance with Production Design color palette
+    color = production_design.get("color_palette", {})
+    if color.get("global"):
+        base += f" COLOR PALETTE: {color['global']}."
+
+    return base
+
+
+def _validate_scene_continuity(current_frame_path: str, prev_frame_path: str,
+                                character_descriptions: str, project_id: str, scene_num: int) -> dict:
+    """P2.5 — Use Claude Vision to validate visual continuity between consecutive scenes.
+    Returns: {'consistent': bool, 'issues': [...], 'severity': 'low'|'medium'|'high'}
+    """
+    try:
+        content = [
+            {"type": "text", "text": f"""Compare these two consecutive video frames from an animated production.
+Frame 1 = END of scene {scene_num - 1}. Frame 2 = START of scene {scene_num}.
+
+EXPECTED characters in these scenes: {character_descriptions}
+
+Check for VISUAL CONTINUITY:
+1. Character appearance consistency (same colors, proportions, features)
+2. Art style consistency (same rendering technique)
+3. Lighting consistency (similar temperature and direction)
+4. Color palette consistency
+
+Return ONLY JSON: {{"consistent": true/false, "issues": ["issue1", "issue2"], "severity": "low|medium|high", "fix_suggestion": "prompt adjustment to fix"}}"""}
+        ]
+
+        for frame_path in [prev_frame_path, current_frame_path]:
+            if frame_path and os.path.exists(frame_path):
+                with open(frame_path, 'rb') as f:
+                    img_b64 = base64.b64encode(f.read()).decode()
+                content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}})
+
+        if len(content) < 3:
+            return {"consistent": True, "issues": [], "severity": "low"}
+
+        response = litellm.completion(
+            model="anthropic/claude-sonnet-4-5-20250929",
+            messages=[{"role": "user", "content": content}],
+            max_tokens=500, timeout=30, api_key=ANTHROPIC_API_KEY,
+        )
+        result = _parse_json(response.choices[0].message.content)
+        if result:
+            logger.info(f"Studio [{project_id}]: Continuity check scene {scene_num}: consistent={result.get('consistent')} severity={result.get('severity')}")
+            return result
+    except Exception as e:
+        logger.warning(f"Studio [{project_id}]: Continuity validation error scene {scene_num}: {e}")
+    return {"consistent": True, "issues": [], "severity": "low"}
+
+
+def _apply_color_grading(video_path: str, output_path: str, style: str = "warm_cinematic") -> str:
+    """P1.4 — Apply uniform color grading via FFmpeg for visual consistency across scenes."""
+    GRADING_FILTERS = {
+        "warm_cinematic": "eq=contrast=1.05:brightness=0.02:saturation=1.1,colorbalance=rs=0.03:gs=0.01:bs=-0.02:rm=0.02:gm=0.01:bm=-0.01",
+        "cool_dramatic": "eq=contrast=1.08:brightness=-0.01:saturation=0.95,colorbalance=rs=-0.02:gs=0:bs=0.03",
+        "neutral_clean": "eq=contrast=1.03:brightness=0.01:saturation=1.05",
+    }
+    vf = GRADING_FILTERS.get(style, GRADING_FILTERS["warm_cinematic"])
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", video_path, "-vf", vf,
+             "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-an", output_path],
+            capture_output=True, timeout=60
+        )
+        if result.returncode == 0 and os.path.exists(output_path):
+            return output_path
+    except Exception as e:
+        logger.warning(f"Color grading failed: {e}")
+    return video_path
+
+
+
+
 # ── Models ──
 
 class StudioProject(BaseModel):
@@ -473,6 +627,7 @@ class StudioProject(BaseModel):
     visual_style: str = "animation"  # animation, realistic, anime, cartoon
     audio_mode: str = "narrated"  # narrated (voice-over) or dubbed (per-character)
     animation_sub: str = "pixar_3d"  # pixar_3d, cartoon_3d, cartoon_2d, anime_2d, realistic, watercolor
+    continuity_mode: bool = True  # enable enhanced continuity engine
 
 class ChatMessage(BaseModel):
     project_id: Optional[str] = None
@@ -548,6 +703,7 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "visual_style": req.visual_style or "animation",
         "audio_mode": req.audio_mode or "narrated",
         "animation_sub": req.animation_sub or "pixar_3d",
+        "continuity_mode": req.continuity_mode,
         "created_at": now,
         "updated_at": now,
     }
@@ -1059,6 +1215,12 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
 
         # Extract production design elements for efficient access by directors
         pd_style = production_design.get("style_anchors", style_hint)
+        # ── CONTINUITY ENGINE: Build rigid Style DNA ──
+        continuity_mode = project.get("continuity_mode", True)
+        if continuity_mode:
+            style_dna = _build_style_dna(animation_sub, production_design)
+            pd_style = f"{style_dna} {pd_style}"
+            logger.info(f"Studio [{project_id}]: CONTINUITY ENGINE ON — Style DNA injected ({len(style_dna)} chars)")
         pd_chars = production_design.get("character_bible", {})
         pd_locations = production_design.get("location_bible", {})
         pd_scene_dirs = {d.get("scene", 0): d for d in production_design.get("scene_directions", [])}
@@ -1116,10 +1278,12 @@ MANDATORY STYLE (include VERBATIM at the start of your prompt): {pd_style}
 Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
 
 RULES:
-- START with the style anchors text verbatim
+- START with the exact style text above — this ensures visual consistency
 - Describe characters by EXACT PHYSICAL APPEARANCE from character descriptions below — NEVER use character names in the prompt
-- Include: environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
-- Maintain visual continuity with transition notes
+- Include: specific environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
+- Reference the EXACT same clothing, colors, fur/skin textures as described in character bible
+- Each scene must look like it belongs to the same film — same art technique, same color grading, same rendering quality
+- Maintain visual continuity with transition notes from previous scene
 - The sora_prompt MUST be in ENGLISH"""
 
             director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
@@ -1152,7 +1316,7 @@ CONTINUITY: {trans_note}"""
                 return {"scene_number": scene_num, "sora_prompt": fallback[:1000], "cached": False}
 
         def _sora_render(directed_scene, scene):
-            """PHASE B — Sora 2 video render with retries and budget awareness."""
+            """PHASE B — Sora 2 video render with retries, budget awareness, and continuity anchoring."""
             scene_num = directed_scene["scene_number"]
 
             if directed_scene.get("cached"):
@@ -1166,7 +1330,10 @@ CONTINUITY: {trans_note}"""
             sora_prompt = directed_scene["sora_prompt"]
             chars_in_scene = scene.get("characters_in_scene", [])
 
-            ref_path = _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache)
+            # Choose best reference: previous frame (continuity) > character composite (identity)
+            prev_frame = directed_scene.get("_prev_frame_path")
+            char_ref = _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache)
+            ref_path = prev_frame if (prev_frame and os.path.exists(prev_frame)) else char_ref
 
             _update_scene_status(tenant_id, project_id, scene_num, "waiting_sora", total)
 
@@ -1258,27 +1425,88 @@ CONTINUITY: {trans_note}"""
         # Sort by scene number for ordered Sora queue
         directed_scenes.sort(key=lambda x: x["scene_number"])
 
-        # ══ PHASE B: ALL SORA RENDERS (queued — 5 concurrent slots) ══
-        logger.info(f"Studio [{project_id}]: PHASE B — Queueing {total} Sora 2 renders (5 slots)")
-
+        # ══ PHASE B: SORA RENDERS ══
+        # Continuity mode: sequential with frame anchoring + validation
+        # Normal mode: parallel with 5 concurrent slots
         scene_videos = []
         scene_map = {s.get("scene_number", i+1): s for i, s in enumerate(scenes)}
+        prev_frame_path = None  # For reference image anchoring
 
-        with ThreadPoolExecutor(max_workers=total) as executor:
-            sora_futures = {
-                executor.submit(_sora_render, ds, scene_map.get(ds["scene_number"], scenes[0])): ds["scene_number"]
-                for ds in directed_scenes
-            }
+        if continuity_mode:
+            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY) — Sequential rendering with frame anchoring")
 
-            for future in as_completed(sora_futures):
-                result = future.result()
+            for ds in directed_scenes:
+                scene_num = ds["scene_number"]
+                scene_data = scene_map.get(scene_num, scenes[0])
+
+                # Inject previous scene's last frame as additional reference
+                if prev_frame_path and os.path.exists(prev_frame_path):
+                    ds["_prev_frame_path"] = prev_frame_path
+                    logger.info(f"Studio [{project_id}]: Scene {scene_num} — anchoring to previous frame")
+
+                result = _sora_render(ds, scene_data)
                 scene_videos.append(result)
+
+                # Extract last frame for the next scene's anchor
+                if result.get("url") and not result.get("error"):
+                    import tempfile as _tmpf
+                    local_vid = _tmpf.NamedTemporaryFile(suffix=".mp4", delete=False).name
+                    try:
+                        urllib.request.urlretrieve(result["url"], local_vid)
+                        new_frame = _extract_last_frame(local_vid)
+                        if new_frame:
+                            # Validate continuity if we have previous frame
+                            if prev_frame_path:
+                                chars_in = scene_data.get("characters_in_scene", [])
+                                char_desc_str = ", ".join([f"{n}: {pd_chars.get(n,'')}" for n in chars_in])
+                                first_frame = _tmpf.NamedTemporaryFile(suffix=".png", delete=False).name
+                                subprocess.run(
+                                    ["ffmpeg", "-y", "-i", local_vid, "-vframes", "1", "-q:v", "2", first_frame],
+                                    capture_output=True, timeout=10
+                                )
+                                validation = _validate_scene_continuity(
+                                    first_frame, prev_frame_path, char_desc_str, project_id, scene_num
+                                )
+                                if not validation.get("consistent") and validation.get("severity") == "high":
+                                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} HIGH INCONSISTENCY — {validation.get('issues')}. Fix: {validation.get('fix_suggestion','')}")
+                                    # Store the validation result for the user
+                                    result["continuity_warning"] = validation
+                                try:
+                                    os.unlink(first_frame)
+                                except OSError:
+                                    pass
+                            prev_frame_path = new_frame
+                        os.unlink(local_vid)
+                    except Exception as e:
+                        logger.warning(f"Studio [{project_id}]: Frame extraction for scene {scene_num}: {e}")
+
                 done = len([v for v in scene_videos if v.get("url")])
-                sn = result.get("scene_number", "?")
-                if result.get("url"):
-                    logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {sn} OK)")
-                elif result.get("error"):
-                    logger.warning(f"Studio [{project_id}]: Scene {sn} FAILED: {result.get('error','')}")
+                logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {scene_num})")
+        else:
+            logger.info(f"Studio [{project_id}]: PHASE B — Queueing {total} Sora 2 renders (5 slots, parallel)")
+
+            with ThreadPoolExecutor(max_workers=total) as executor:
+                sora_futures = {
+                    executor.submit(_sora_render, ds, scene_map.get(ds["scene_number"], scenes[0])): ds["scene_number"]
+                    for ds in directed_scenes
+                }
+
+                for future in as_completed(sora_futures):
+                    result = future.result()
+                    scene_videos.append(result)
+                    done = len([v for v in scene_videos if v.get("url")])
+                    sn = result.get("scene_number", "?")
+                    if result.get("url"):
+                        logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {sn} OK)")
+                    elif result.get("error"):
+                        logger.warning(f"Studio [{project_id}]: Scene {sn} FAILED: {result.get('error','')}")
+
+        # Cleanup continuity frame
+        if prev_frame_path:
+            try:
+                os.unlink(prev_frame_path)
+            except OSError:
+                pass
 
         t_prod = _time.time() - t_start
         successful = len([v for v in scene_videos if v.get("url")])
@@ -1999,10 +2227,10 @@ def _generate_narration_audio(text: str, voice_id: str, stability: float, simila
         use_speaker_boost=True,
     )
 
-    # Map language codes to ElevenLabs language hints
+    # Map language codes to ElevenLabs language hints (ISO 639-1 for multilingual_v2)
     LANG_HINTS = {
-        "pt": "pt-BR", "en": "en-US", "es": "es-ES",
-        "fr": "fr-FR", "de": "de-DE", "it": "it-IT",
+        "pt": "pt", "en": "en", "es": "es",
+        "fr": "fr", "de": "de", "it": "it",
     }
     lang_hint = LANG_HINTS.get(language_code, "")
 
@@ -2462,10 +2690,12 @@ Rules:
                 except Exception:
                     pass
 
-        # ── Step 4: Apply fade transitions + concat ──
+        # ── Step 4: Apply fade transitions + color grading + concat ──
         _update_project_field(tenant_id, project_id, {
-            "post_production_status": {"phase": "mixing", "done": 0, "total": 4, "message": "Aplicando transições..."}
+            "post_production_status": {"phase": "mixing", "done": 0, "total": 4, "message": "Aplicando transições e color grading..."}
         })
+
+        is_continuity = project.get("continuity_mode", True)
 
         faded_files = []
         for i, vf in enumerate(video_files):
@@ -2473,18 +2703,31 @@ Rules:
             sn = vf["scene_number"]
             scene_data = next((s for s in scenes if s.get("scene_number") == sn), {})
             trans = scene_data.get("transition", req.transition_type)
-            td = req.transition_duration
+            # Enhanced transition: 1.5s for continuity mode, original for normal
+            td = 1.5 if is_continuity else req.transition_duration
             faded_path = f"{tmpdir}/faded_{i:03d}.mp4"
 
             if trans == "fade" and duration > td * 2:
                 fade_out_start = max(0, duration - td)
+                # Apply color grading in continuity mode for visual consistency
+                vf_filter = f"fade=t=in:st=0:d={td},fade=t=out:st={fade_out_start:.2f}:d={td}"
+                if is_continuity:
+                    vf_filter += ",eq=contrast=1.05:brightness=0.02:saturation=1.1,colorbalance=rs=0.03:gs=0.01:bs=-0.02"
                 cmd = [
                     "ffmpeg", "-y", "-i", vf["path"],
-                    "-vf", f"fade=t=in:st=0:d={td},fade=t=out:st={fade_out_start:.2f}:d={td}",
-                    "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-an", faded_path
+                    "-vf", vf_filter,
+                    "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-an", faded_path
                 ]
             else:
-                cmd = ["ffmpeg", "-y", "-i", vf["path"], "-c:v", "copy", "-an", faded_path]
+                if is_continuity:
+                    # Even without fades, apply color grading for consistency
+                    cmd = [
+                        "ffmpeg", "-y", "-i", vf["path"],
+                        "-vf", "eq=contrast=1.05:brightness=0.02:saturation=1.1,colorbalance=rs=0.03:gs=0.01:bs=-0.02",
+                        "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-an", faded_path
+                    ]
+                else:
+                    cmd = ["ffmpeg", "-y", "-i", vf["path"], "-c:v", "copy", "-an", faded_path]
 
             result = subprocess.run(cmd, capture_output=True, timeout=60)
             if result.returncode != 0:

@@ -41,6 +41,7 @@ export function DirectedStudio({
   const [projectLang, setProjectLang] = useState('pt');
   const [audioMode, setAudioMode] = useState('narrated');
   const [animationSub, setAnimationSub] = useState('pixar_3d');
+  const [continuityMode, setContinuityMode] = useState(true);
   const [regenScene, setRegenScene] = useState(null);
   const [editingScene, setEditingScene] = useState(null);
   const [editSceneForm, setEditSceneForm] = useState({});
@@ -204,6 +205,7 @@ export function DirectedStudio({
         visual_style: visualStyle,
         audio_mode: audioMode,
         animation_sub: animationSub,
+        continuity_mode: continuityMode,
       });
       setProjectId(res.data.id);
       setStep(1); setChatMessages([]); setScenes([]); setCharacters([]); setOutputs([]);
@@ -798,6 +800,32 @@ export function DirectedStudio({
                     </button>
                   ))}
                 </div>
+              </div>
+              {/* Continuity Engine Toggle */}
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#222] bg-[#0A0A0A]">
+                <div>
+                  <div className="text-[10px] font-medium text-white flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#C9A84C]"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    {lang === 'pt' ? 'Motor de Continuidade' : 'Continuity Engine'}
+                  </div>
+                  <div className="text-[8px] text-[#666] mt-0.5">
+                    {lang === 'pt'
+                      ? 'Renderização sequencial com âncora visual, DNA de estilo, validação IA e color grading'
+                      : 'Sequential rendering with visual anchoring, style DNA, AI validation & color grading'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  data-testid="continuity-mode-toggle"
+                  onClick={() => setContinuityMode(!continuityMode)}
+                  className={`w-10 h-5 rounded-full transition-all relative ${
+                    continuityMode ? 'bg-[#C9A84C]' : 'bg-[#333]'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${
+                    continuityMode ? 'right-0.5' : 'left-0.5'
+                  }`} />
+                </button>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => { setShowNewProject(false); setProjectName(''); setProjectDesc(''); }}
