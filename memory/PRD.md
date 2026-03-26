@@ -1,83 +1,95 @@
-# AgentZZ - Product Requirements Document
+# AgentZZ — Product Requirements Document
 
 ## Original Problem Statement
-Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI agents on social media. Features Directed Studio Mode for AI video production with Pipeline v5 and Continuity Engine v3 (Keyframe-First).
+Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows users to deploy AI agents on social media channels, AND a "Directed Studio Mode" for generating AI-powered animated films with visual/narrative consistency.
 
 ## Core Architecture
-- **Frontend**: React + Tailwind CSS + shadcn-ui + Framer Motion
-- **Backend**: FastAPI (Python) + LiteLLM
-- **Database**: Supabase (PostgreSQL) + MongoDB
-- **AI Stack**: Claude Sonnet (text/vision), Sora 2 (video), Gemini (images/keyframes), ElevenLabs (multilingual voice)
+- **Frontend:** React + Tailwind CSS + shadcn-ui + Lucide Icons + Framer Motion + recharts
+- **Backend:** FastAPI (Python)
+- **Database:** Supabase (PostgreSQL) for core data
+- **3rd Party:** Anthropic Claude (Emergent LLM Key), OpenAI Sora 2, Gemini Nano Banana (Emergent LLM Key), ElevenLabs TTS, Google APIs
 
-## Continuity Engine v3.1 — Enhanced Character Consistency (2026-03-25)
-
-### Improvements
-1. **Multi-Avatar Keyframes**: Gemini now receives ALL character avatars for a scene (not just the first one)
-2. **Character Bible in Keyframes**: character_bible descriptions are passed directly to Gemini for stronger identity anchoring
-3. **80-word Character Bible**: Expanded from 50 to 80 words with mandatory fields: SPECIES, BODY POSTURE (bipedal/quadruped), fur color, clothing, face, marks, build
-4. **Species Lock**: Scene Director prompt now explicitly forbids changing a character's species across scenes
-5. **Posture Lock**: If avatar is bipedal anthropomorphic, ALL scenes must show character standing upright
-6. **No Extra Characters**: Prompt explicitly forbids adding random animals/characters not in the scene
-7. **Language Enforcement**: ALL prompts (screenwriter, narration, dubbed, continuation) now have mandatory language rules with full language names
-
-### Architecture
-```
-PRE-PRODUCTION:
-  1. Avatar Analysis (Claude Vision) -> character descriptions
-  2. Production Design Bible (Claude) -> style anchors, color palette
-  3. Scene Directors (Claude, parallel) -> Sora prompts
-
-PRODUCTION (Continuity Mode):
-  For each scene (SEQUENTIAL):
-    1. Generate Keyframe Image (Gemini)
-    2. Render Video (Sora 2, using keyframe as reference)
-    3. Upload to Supabase Storage
-
-POST-PRODUCTION:
-  1. Narration scripts (Claude)
-  2. Voice synthesis (ElevenLabs, ISO 639-1 codes)
-  3. Music segmentation
-  4. Color grading + extended crossfades (1.5s, FFmpeg)
-  5. Final mix + upload
-```
-
-## Screenplay Approval Flow (COMPLETED - 2026-03-25)
-- PATCH `/api/studio/projects/{id}/settings` endpoint - saves screenplay_approved, audio_mode, visual_style, etc.
-- Frontend "Aprovar Roteiro" button locks scene edits and unlocks "Personagens" step
-- Status endpoint returns screenplay_approved and audio_mode fields
-
-## Dubbed Mode (2026-03-25)
-- Character voice mapping: different ElevenLabs voices per character type (elder male, young male, female, child, angel)
-- Parses dialogue lines ("Narrador: '...' / Abraão: '...' / Isaac: '...'")
-- Generates separate audio clips per character, concatenates with 0.3s pauses
-- 6+ simultaneous voices in complex scenes
-
-## Scene Regeneration Workflow (2026-03-25)
-- `/api/studio/projects/{id}/clear-outputs` — remove specific scenes to force re-generation
-- `/api/studio/projects/{id}/recover-videos` — recover lost videos from Supabase Storage
-- Visual analysis of scene frames via FFmpeg frame extraction + Claude Vision comparison
-- When user sends continuation message, backend detects existing scenes
-- Prompt instructs Claude to start from last_scene_num + 1
-- Smart merge: non-overlapping scene numbers are appended (continuation), overlapping numbers replace (rewrite)
-- Characters are also merged (new characters added, duplicates skipped)
-
-## Bug Fixes
-- **Scene merge**: Fixed scenes being replaced instead of merged on continuation messages
-- **Screenplay approval**: Added PATCH /settings endpoint for persisting screenplay_approved state
-- **Status endpoint**: Added screenplay_approved and audio_mode to GET /status response
-- **ElevenLabs Language Codes**: Fixed `pt-BR` -> `pt` (ISO 639-1) for `eleven_multilingual_v2`
-- **Python Lint**: All errors in studio.py fixed
-
-## Key Files
-- `/app/backend/routers/studio.py` — Pipeline + continuity engine + keyframe gen + post-prod + settings
-- `/app/frontend/src/components/DirectedStudio.jsx` — Studio UI + scene editor + approval flow
-- `/app/frontend/src/components/PostProduction.jsx` — Audio + localization + subtitles UI
-
-## Upcoming Tasks
-- **P1**: Refactor `studio.py` (3700+ lines) -> `core/media.py`, `core/generators.py`
-- **P1**: Refactor `DirectedStudio.jsx` (1800+ lines) -> smaller components
-- **P2**: Phase 8 Omnichannel Integrations
-- **P3**: Admin Dashboard & Stripe
+## Key Routes
+- `/marketing/studio` — Marketing AI Studio (includes Directed Studio Mode)
+- `/dashboard` — Main dashboard
+- `/agents` — Agent management
 
 ## Credentials
 - Test: test@agentflow.com / password123
+
+---
+
+## Implemented Features
+
+### Phase 1-5: Core Platform (Complete)
+- User auth, agent marketplace, dashboard, CRM, omnichannel UI
+- Agent configuration with knowledge base, personality, integrations
+- Google Calendar/Sheets integration in agent config
+
+### Phase 6: Google Integration (Complete)
+- Backend endpoints for Google Calendar/Sheets listing
+- Dynamic connection status in AgentConfig
+- Agent integrations_config persistence
+
+### Directed Studio Mode (Core Pipeline - Complete)
+- 5-step pipeline: Roteiro → Personagens → **Storyboard** → Produção → Resultado
+- Claude-powered screenwriter chat
+- Character avatar system with AI generation
+- Production design (character bible, style DNA)
+- Parallel generation pipeline (ThreadPool + Semaphores for Sora 2 + Gemini)
+- Multi-voice dubbed mode (ElevenLabs voices per character)
+- Post-production audio mixing
+- Scene recovery ("Unificar Roteiro")
+
+### Phase 7: Editable Storyboard Pipeline (Complete - 2026-03-26)
+- **New Step 3 — Storyboard** inserted between Characters and Production
+- `StoryboardEditor.jsx` component with:
+  - Generate all panels button (Gemini Nano Banana images)
+  - 2-column panel grid with image + dialogue + character tags
+  - Inline panel editing (title, description, dialogue)
+  - "Save & Regenerate" per-panel
+  - Expand panel for detailed view
+- **AI Facilitator Chat** — sidebar chat powered by Claude that interprets natural language commands to edit panels
+- **Approve Storyboard** flow — must approve before proceeding to video production
+- Backend module: `/app/backend/core/storyboard.py` (generate_all_panels, facilitator_chat)
+- 6 new endpoints in `/app/backend/routers/studio.py`:
+  - POST /generate-storyboard
+  - GET /storyboard
+  - POST /storyboard/regenerate-panel
+  - PATCH /storyboard/edit-panel
+  - PATCH /storyboard/approve
+  - POST /storyboard/chat
+
+---
+
+## Prioritized Backlog
+
+### P0 (Next)
+- None currently
+
+### P1
+- Storybook Export (export storyboard as static PDF/image book)
+- Storyboard-to-Video integration (feed approved panels to Sora 2)
+- Refactor `studio.py` (~4000 lines) into modular services
+- Fix hot-reload killing background tasks
+
+### P2
+- Phase 8: Omnichannel live integrations (WhatsApp Evolution API, Twilio SMS, Instagram, Facebook, Telegram)
+- Admin Management System
+- Stripe payment integration
+
+### P3
+- Legal & publication (Terms, Privacy Policy)
+- Scalability hardening
+- App store submission
+
+---
+
+## Known Issues
+- Hot-reload kills background production threads (P1)
+- `studio.py` is ~4300 lines and needs refactoring (P1)
+- Supabase intermittent connection issues (mitigated with retry logic)
+
+## Project Health
+- **Running:** Core platform, Directed Studio, Storyboard pipeline, parallel generation, dubbed mode
+- **Mocked:** External channel integrations (WhatsApp, Telegram, etc.)
