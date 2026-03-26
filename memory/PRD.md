@@ -13,72 +13,54 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 ### Directed Studio Mode — 5-Step Pipeline
 `Roteiro -> Personagens -> Storyboard -> Producao -> Resultado`
 
+### UX Redesign (2026-03-26)
+- **Pipeline Navigation**: Minimal timeline with gold active node, white done nodes, dark gray future nodes, connecting track
+- **Step 5 — Deliverables Showcase**:
+  - Hero Card: "O Filme Completo" (full video with download)
+  - Bento Grid: 4 product cards (Livro Animado, Storyboard PDF, Pós-Produção, Analytics)
+  - Horizontal Scroll: Individual scene videos with hover-to-play
+  - PostProduction moved to drawer/modal for cleaner layout
+- **Typography**: Cormorant Garamond (serif headings), Manrope (sans body), JetBrains Mono (labels/badges)
+- **Design System**: Enhanced with serif hierarchy, tracking-wide labels, inset glow hover effects
+
 ### Storyboard Editavel
 - 6 individual frames per scene (Storybook Pages)
 - Gallery/Filmstrip layout with page numbers
-- Visible toolbar (inpaint + regen) — no overlay
 
 ### Smart Image Editor
-- Scene Analysis: Gemini Vision scans image → structured map
-- Clickable Scene Map: Elements listed in UI
-- Smart Edit: 2-step pipeline — analyze then edit
-- Toggle: Smart mode vs basic inpaint
+- Scene Analysis + Clickable Scene Map + Smart Edit
 
 ### Language Agent
-- Convert: Translate to 10 languages
-- Review: AI quality review + text improvement
-- Batched processing (5 scenes per call)
+- Convert (10 languages) + Review (AI quality)
 
 ### Continuity Director Agent
-- Holistic Analysis: ALL 6 FRAMES of each scene analyzed
-- Uses AVATAR IMAGES as primary visual reference (not text descriptions)
-- Character Consistency Check: species, clothing, colors, proportions
-- Age Accuracy, Irrelevant Element Detection, Visual Quality Check
-- Auto-Correction: fixes high/medium issues using inpainting
-- Batched: 1 scene per LLM call (11 avatars + 6 frames)
-- Endpoints: POST /continuity/analyze, GET /continuity/status, POST /continuity/auto-correct
+- ALL 6 FRAMES per scene analyzed against avatar images
+- Auto-Correction of high/medium issues
 
-### 4-Layer Cache System (NEW — 2026-03-26)
-- **Layer 1 — ImageCache**: Disk-persistent (SHA256), in-memory hot layer (50 items), pre-warming, deduplication
-- **Layer 2 — ProjectCache**: Read-through (5min TTL), write-behind batching (3s flush interval), dirty tracking, per-tenant locks
-- **Layer 3 — LLMCache**: Content-addressable (prompt + image hashes), 1hr TTL, auto-invalidation
-- **Layer 4 — Frontend SWR**: Stale-while-revalidate (30s stale, 5min max), image preloading, optimistic updates
-- Endpoints: GET /cache/stats, POST /cache/flush
-- Shutdown hook: auto-flushes dirty data to DB
-- Integrated in: continuity_director, smart_editor, storyboard_inpaint, studio router
+### 4-Layer Cache System
+- ImageCache (disk + memory), ProjectCache (read-through + write-behind), LLMCache (content-addressable), Frontend SWR
 
 ### Exports
-- PDF Storybook: Cover + all illustrated pages
-- Interactive Animated Book: `/book/:projectId`
-- Cover Generation: Gemini + Claude creative title
-
-### Preview Animado + MP4 Export
-- Browser slideshow + ElevenLabs TTS + FFmpeg
+- PDF Storybook, Interactive Animated Book, MP4 Preview
 
 ### Voice Commands (Whisper STT)
-- Via emergentintegrations
 
 ---
 
 ## Code Architecture
 ```
 /app/backend/core/
-  cache.py                # 4-layer cache system (ImageCache, ProjectCache, LLMCache)
-  continuity_director.py  # Continuity analysis + auto-correction (cached)
-  smart_editor.py         # Scene analysis + editing (cached)
-  storyboard_inpaint.py   # Image editing (cached)
-  storyboard.py           # Frame generation
-  language_agent.py       # Translation + review
-  book_generator.py       # PDF + cover + interactive
-  preview_generator.py    # MP4
-  llm.py                  # Whisper STT
-/app/backend/routers/
-  studio.py               # All endpoints (~5200 lines)
+  cache.py, continuity_director.py, smart_editor.py,
+  storyboard_inpaint.py, storyboard.py, language_agent.py,
+  book_generator.py, preview_generator.py, llm.py
+/app/backend/routers/studio.py (~5200 lines)
 /app/frontend/src/
-  hooks/useProjectCache.js # Frontend SWR cache + image preloader
-  pages/InteractiveBook.jsx
+  hooks/useProjectCache.js
+  components/DirectedStudio.jsx (Redesigned Step 5 + Navigation)
   components/StoryboardEditor.jsx
-  components/VoiceInput.jsx
+  components/PostProduction.jsx
+  components/FinalPreview.jsx
+  pages/InteractiveBook.jsx
 ```
 
 ## Backlog
@@ -87,6 +69,7 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - P3: Omnichannel, Admin + Stripe
 
 ## Test Reports
-- 110-113: All features (100%)
-- 114: Continuity Director Agent (100%) — 29/29
-- 115: 4-Layer Cache System (100%) — 32/32
+- 110-113: Core features (100%)
+- 114: Continuity Director (100%)
+- 115: Cache System (100%)
+- 116: UX Redesign Step 5 + Navigation (100%)

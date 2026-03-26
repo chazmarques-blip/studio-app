@@ -245,7 +245,7 @@ export function PostProduction({ project, onUpdate }) {
             >
               <option value="">Auto (baseado no Production Design)</option>
               {MUSIC_TRACKS.map(m => (
-                <option key={m.id} value={m.id}>{m.name} — {m.cat}</option>
+                <option key={m.id} value={m.id}>{m.name} - {m.cat}</option>
               ))}
             </select>
           </div>
