@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Volume2, Music, Globe, Play, Download, RefreshCw, CheckCircle, AlertTriangle, Headphones, Languages, Subtitles, FileText } from 'lucide-react';
+import { Volume2, Music, Globe, Play, Download, RefreshCw, CheckCircle, AlertTriangle, Headphones, Languages, Subtitles, FileText, Upload, Trash2, Mic } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -60,7 +60,11 @@ export function PostProduction({ project, onUpdate }) {
   const [locTarget, setLocTarget] = useState("");
   const [subtitles, setSubtitles] = useState({});
   const [subtitlesLoading, setSubtitlesLoading] = useState(false);
+  const [narrationMode, setNarrationMode] = useState("ai"); // "ai" | "upload" | "mixed"
+  const [narrations, setNarrations] = useState([]); // [{scene_number, audio_url, source}]
+  const [uploadingScene, setUploadingScene] = useState(null);
   const pollRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const projectId = project?.id;
   const originalLang = project?.language || "pt";
@@ -81,6 +85,7 @@ export function PostProduction({ project, onUpdate }) {
         axios.get(`${API}/api/studio/projects/${projectId}/localizations`),
       ]);
       setPpStatus(ppRes.data.status || {});
+      setNarrations(ppRes.data.narrations || []);
       setLocalizations(locRes.data.localizations || {});
       setFinalVideos(locRes.data.final_videos || {});
       setLocStatuses(locRes.data.statuses || {});
@@ -167,6 +172,37 @@ export function PostProduction({ project, onUpdate }) {
     }
   };
 
+  const uploadAudioForScene = async (sceneNumber, file) => {
+    try {
+      setUploadingScene(sceneNumber);
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await axios.post(
+        `${API}/api/studio/projects/${projectId}/upload-narration/${sceneNumber}`,
+        formData, { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      setNarrations(prev => {
+        const filtered = prev.filter(n => n.scene_number !== sceneNumber);
+        return [...filtered, { scene_number: sceneNumber, audio_url: res.data.audio_url, source: 'upload' }];
+      });
+      toast.success(`Cena ${sceneNumber}: áudio enviado!`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao enviar áudio');
+    } finally {
+      setUploadingScene(null);
+    }
+  };
+
+  const deleteNarration = async (sceneNumber) => {
+    try {
+      await axios.delete(`${API}/api/studio/projects/${projectId}/narration/${sceneNumber}`);
+      setNarrations(prev => prev.filter(n => n.scene_number !== sceneNumber));
+      toast.success(`Narração da cena ${sceneNumber} removida`);
+    } catch {
+      toast.error('Erro ao remover narração');
+    }
+  };
+
   const generateSubtitles = async () => {
     try {
       setSubtitlesLoading(true);
@@ -205,7 +241,34 @@ export function PostProduction({ project, onUpdate }) {
       {/* ── Configuration (only show if not complete) ── */}
       {!ppComplete && (
         <div className="space-y-3 bg-[#0F0F0F] rounded-xl border border-[#1E1E1E] p-3">
-          {/* Voice Selection */}
+
+          {/* Narration Mode Selector */}
+          <div>
+            <label className="text-[10px] text-[#888] uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <Mic size={10} /> Modo de Narração
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { id: 'ai', label: 'IA (ElevenLabs)', desc: 'Voz gerada por IA' },
+                { id: 'upload', label: 'Áudio Manual', desc: 'Upload por cena' },
+                { id: 'mixed', label: 'Misto', desc: 'IA + uploads' },
+              ].map(m => (
+                <button key={m.id} onClick={() => setNarrationMode(m.id)}
+                  data-testid={`narration-mode-${m.id}`}
+                  className={`p-2 rounded-lg border text-center transition-all ${
+                    narrationMode === m.id
+                      ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10'
+                      : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+                  }`}>
+                  <div className={`text-[9px] font-medium ${narrationMode === m.id ? 'text-[#C9A84C]' : 'text-white'}`}>{m.label}</div>
+                  <div className="text-[7px] text-[#555] mt-0.5">{m.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Voice Selection (only for AI or mixed mode) */}
+          {(narrationMode === 'ai' || narrationMode === 'mixed') && (
           <div>
             <label className="text-[10px] text-[#888] uppercase tracking-wider mb-1 flex items-center gap-1">
               <Volume2 size={10} /> Narrador
@@ -231,6 +294,58 @@ export function PostProduction({ project, onUpdate }) {
               ))}
             </div>
           </div>
+          )}
+
+          {/* Upload Audio Per Scene (only for upload or mixed mode) */}
+          {(narrationMode === 'upload' || narrationMode === 'mixed') && (
+          <div>
+            <label className="text-[10px] text-[#888] uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <Upload size={10} /> Upload de Áudio por Cena
+            </label>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
+              {Array.from({ length: sceneVideoCount }, (_, i) => i + 1).map(sn => {
+                const existing = narrations.find(n => n.scene_number === sn);
+                const isUploading = uploadingScene === sn;
+                return (
+                  <div key={sn} className="flex items-center gap-2 p-1.5 rounded-lg border border-[#222] bg-[#0A0A0A]"
+                    data-testid={`scene-audio-${sn}`}>
+                    <span className="text-[8px] font-mono text-[#666] w-12 shrink-0">CENA {sn}</span>
+                    {existing?.audio_url ? (
+                      <>
+                        <audio src={existing.audio_url} controls className="h-6 flex-1" style={{ maxWidth: '160px' }} />
+                        <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                          {existing.source === 'upload' ? 'Manual' : 'IA'}
+                        </span>
+                        <button onClick={() => deleteNarration(sn)}
+                          className="text-red-400/60 hover:text-red-400 transition p-0.5"
+                          data-testid={`delete-audio-${sn}`}>
+                          <Trash2 size={10} />
+                        </button>
+                      </>
+                    ) : (
+                      <label className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed cursor-pointer transition ${
+                        isUploading ? 'border-[#C9A84C]/50 bg-[#C9A84C]/5' : 'border-[#333] hover:border-[#C9A84C]/30'
+                      }`}>
+                        <input type="file" accept="audio/*" className="hidden"
+                          onChange={e => { if (e.target.files[0]) uploadAudioForScene(sn, e.target.files[0]); }}
+                          disabled={isUploading} />
+                        {isUploading ? (
+                          <RefreshCw size={9} className="animate-spin text-[#C9A84C]" />
+                        ) : (
+                          <Upload size={9} className="text-[#666]" />
+                        )}
+                        <span className="text-[8px] text-[#555]">{isUploading ? 'Enviando...' : 'Enviar áudio'}</span>
+                      </label>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {narrationMode === 'mixed' && (
+              <p className="text-[7px] text-[#555] mt-1">Cenas sem upload terão narração gerada por IA.</p>
+            )}
+          </div>
+          )}
 
           {/* Music Selection */}
           <div>

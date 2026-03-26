@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
@@ -2108,30 +2108,58 @@ export function DirectedStudio({
             return null;
           })()}
 
-          {/* ── HERO: O Filme Completo ── */}
-          {outputs.filter(o => o.label === 'complete').map((out, i) => (
-            <div key={`hero-${i}`} className="relative rounded-xl overflow-hidden border border-[#C9A84C]/20 group" data-testid="deliverable-filme-completo">
-              <div className="relative bg-black aspect-video">
-                <video controls className="w-full h-full object-contain" data-testid="result-video-complete" src={out.url} poster="" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute top-3 left-3">
-                  <span className="text-[8px] font-mono tracking-[0.2em] uppercase bg-[#C9A84C] text-black px-2 py-0.5 rounded-sm font-semibold">
-                    {lang === 'pt' ? 'Filme Completo' : 'Full Film'}
-                  </span>
+          {/* ── HERO: Vídeo Final Pós-Produzido ── */}
+          {(() => {
+            const finalVideo = outputs.find(o => o.type === 'final_video' && o.url);
+            const heroVideo = outputs.find(o => o.label === 'complete' && o.url);
+            const heroOut = finalVideo || heroVideo;
+            if (!heroOut) return null;
+            return (
+              <div className="relative rounded-xl overflow-hidden border border-[#C9A84C]/20 group" data-testid="deliverable-filme-completo">
+                <div className="relative bg-black aspect-video cursor-pointer"
+                  onClick={() => setPreviewModal({ type: 'video', data: { url: heroOut.url, scene_number: 0, allVideos: [] } })}>
+                  <video className="w-full h-full object-contain" data-testid="result-video-complete" src={heroOut.url} poster="" preload="metadata" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute top-3 left-3 flex items-center gap-2">
+                    <span className="text-[8px] font-mono tracking-[0.2em] uppercase bg-[#C9A84C] text-black px-2 py-0.5 rounded-sm font-semibold">
+                      {lang === 'pt' ? 'Filme Final' : 'Final Film'}
+                    </span>
+                    {heroOut.has_narration && (
+                      <span className="text-[7px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
+                        {lang === 'pt' ? 'Dublado' : 'Dubbed'}
+                      </span>
+                    )}
+                    {heroOut.has_music && (
+                      <span className="text-[7px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
+                        {lang === 'pt' ? 'Trilha Sonora' : 'Soundtrack'}
+                      </span>
+                    )}
+                  </div>
+                  {/* Play overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-sm border border-[#C9A84C]/40 flex items-center justify-center">
+                      <Play size={24} className="text-[#C9A84C] ml-1" fill="#C9A84C" />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3 flex items-center justify-between bg-[#0A0A0A]">
+                  <div>
+                    <p className="text-xs font-serif text-white">{projectName}</p>
+                    <p className="text-[9px] font-mono text-[#555]">
+                      {scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'}
+                      {heroOut.duration ? ` \u2022 ${Math.round(heroOut.duration)}s` : ''}
+                      {heroOut.file_size_mb ? ` \u2022 ${heroOut.file_size_mb}MB` : ''}
+                      {heroOut.language ? ` \u2022 ${heroOut.language.toUpperCase()}` : ''}
+                    </p>
+                  </div>
+                  <a href={heroOut.url} download data-testid="download-filme-completo"
+                    className="bg-[#C9A84C] text-black font-semibold text-[10px] tracking-wide uppercase px-4 py-2 rounded-sm hover:bg-white transition-colors duration-300 flex items-center gap-1.5">
+                    <Download size={12} strokeWidth={1.5} /> Download
+                  </a>
                 </div>
               </div>
-              <div className="p-3 flex items-center justify-between bg-[#0A0A0A]">
-                <div>
-                  <p className="text-xs font-serif text-white">{projectName}</p>
-                  <p className="text-[9px] font-mono text-[#555]">{scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'} {out.duration ? `• ${out.duration}s` : ''}</p>
-                </div>
-                <a href={out.url} download data-testid="download-filme-completo"
-                  className="bg-[#C9A84C] text-black font-semibold text-[10px] tracking-wide uppercase px-4 py-2 rounded-sm hover:bg-white transition-colors duration-300 flex items-center gap-1.5">
-                  <Download size={12} strokeWidth={1.5} /> Download
-                </a>
-              </div>
-            </div>
-          ))}
+            );
+          })()}
 
           {/* ── BENTO GRID: Produtos Secundários ── */}
           {(() => {
@@ -2280,41 +2308,58 @@ export function DirectedStudio({
               )}
 
               {/* Card: Pós-Produção */}
+              {(() => {
+                const hasFinal = outputs.some(o => o.type === 'final_video' && o.url);
+                return (
               <button
                 onClick={() => setShowPostProd(true)}
                 data-testid="deliverable-pos-producao"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
+                className={`relative bg-[#0A0A0A] border rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 transition-all duration-500 ${
+                  hasFinal ? 'border-green-500/20 hover:border-green-500/40' : 'border-white/5 hover:border-[#C9A84C]/20'
+                }`}
               >
                 <div className="relative h-24 overflow-hidden bg-gradient-to-br from-blue-900/20 to-[#0A0A0A]">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex gap-3">
                       <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <Volume2 size={12} className="text-blue-400" />
+                        <Mic size={12} className="text-blue-400" />
                       </div>
                       <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <MessageSquare size={12} className="text-blue-400" />
+                        <Music size={12} className="text-blue-400" />
                       </div>
                       <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                         <Globe size={12} className="text-blue-400" />
                       </div>
                     </div>
                   </div>
+                  {hasFinal && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <Check size={10} className="text-green-400" />
+                    </div>
+                  )}
                   <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                     <Clapperboard size={14} className="text-blue-400" strokeWidth={1.5} />
                     <span className="text-[9px] font-serif text-white drop-shadow-lg">
-                      {lang === 'pt' ? 'Pos-Producao' : 'Post-Production'}
+                      {lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}
                     </span>
                   </div>
                 </div>
                 <div className="p-2.5">
                   <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
-                    {lang === 'pt' ? 'Narracao, Dublagem, Legendas' : 'Narration, Dubbing, Subtitles'}
+                    {hasFinal
+                      ? (lang === 'pt' ? 'Narração + Trilha Sonora + Transições' : 'Narration + Soundtrack + Transitions')
+                      : (lang === 'pt' ? 'Narração IA ou Manual, Trilha, Legendas' : 'AI or Manual Narration, Music, Subtitles')
+                    }
                   </p>
-                  <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-blue-400 group-hover:underline">
-                    {lang === 'pt' ? 'Configurar >' : 'Configure >'}
+                  <span className={`inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase group-hover:underline ${hasFinal ? 'text-green-400' : 'text-blue-400'}`}>
+                    {hasFinal
+                      ? (lang === 'pt' ? 'Concluído — Reconfigurar' : 'Complete — Reconfigure')
+                      : (lang === 'pt' ? 'Configurar >' : 'Configure >')}
                   </span>
                 </div>
               </button>
+                );
+              })()}
 
               {/* Card: Analytics */}
               <button

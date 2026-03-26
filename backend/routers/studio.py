@@ -9,7 +9,7 @@ import threading
 import subprocess
 import shutil
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
 from dotenv import load_dotenv
@@ -4668,6 +4668,54 @@ async def get_post_production_status(project_id: str, tenant=Depends(get_current
         "voice_config": project.get("voice_config", {}),
         "subtitles": project.get("subtitles", {}),
     }
+
+
+@router.post("/projects/{project_id}/upload-narration/{scene_number}")
+async def upload_narration_audio(project_id: str, scene_number: int, file: UploadFile = File(...), tenant=Depends(get_current_tenant)):
+    """Upload custom narration/dubbing audio for a specific scene."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not file.content_type or not file.content_type.startswith("audio/"):
+        raise HTTPException(status_code=400, detail="Arquivo deve ser áudio (mp3, wav, m4a)")
+
+    audio_bytes = await file.read()
+    if len(audio_bytes) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Arquivo muito grande (max 20MB)")
+
+    filename = f"studio/{project_id}_custom_narration_{scene_number}.mp3"
+    audio_url = _upload_to_storage(audio_bytes, filename, file.content_type)
+
+    narrations = project.get("narrations", [])
+    found = False
+    for n in narrations:
+        if n.get("scene_number") == scene_number:
+            n["audio_url"] = audio_url
+            n["source"] = "upload"
+            found = True
+            break
+    if not found:
+        narrations.append({"scene_number": scene_number, "narration": f"Custom audio scene {scene_number}", "audio_url": audio_url, "source": "upload"})
+
+    project["narrations"] = narrations
+    _save_project(tenant["id"], settings, projects)
+
+    return {"audio_url": audio_url, "scene_number": scene_number, "source": "upload"}
+
+
+@router.delete("/projects/{project_id}/narration/{scene_number}")
+async def delete_narration(project_id: str, scene_number: int, tenant=Depends(get_current_tenant)):
+    """Remove narration for a specific scene."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    narrations = project.get("narrations", [])
+    project["narrations"] = [n for n in narrations if n.get("scene_number") != scene_number]
+    _save_project(tenant["id"], settings, projects)
+
+    return {"deleted": True, "scene_number": scene_number}
 
 
 # ═══════════════════════════════════════════════════════════
