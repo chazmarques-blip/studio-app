@@ -45,6 +45,16 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [inpaintPrompt, setInpaintPrompt] = useState('');
   const [inpaintLoading, setInpaintLoading] = useState(false);
 
+  // Selected frame per panel (for gallery view)
+  const [selectedFrames, setSelectedFrames] = useState({});
+  const getSelectedFrame = (panelNum, frames) => {
+    const idx = selectedFrames[panelNum] || 0;
+    return frames?.[idx] || null;
+  };
+  const selectFrame = (panelNum, frameIdx) => {
+    setSelectedFrames(prev => ({ ...prev, [panelNum]: frameIdx }));
+  };
+
   // Load existing storyboard on mount
   useEffect(() => {
     if (projectId) loadStoryboard();
@@ -401,22 +411,57 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         ? 'border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/30'
                         : 'border-[#1A1A1A] bg-[#0A0A0A]'
                   }`}>
-                  {/* Image area — 6 frames grid or single image */}
-                  <div className="relative bg-[#111] overflow-hidden group">
-                    {panel.frames?.length > 1 && !isGenerating ? (
-                      /* 6-frame grid (3 cols x 2 rows) */
-                      <div className="grid grid-cols-3 gap-[1px] bg-[#1A1A1A]" data-testid={`panel-frames-grid-${panel.scene_number}`}>
-                        {panel.frames.map((frame) => (
-                          <div key={frame.frame_number} className="relative aspect-video overflow-hidden bg-[#0A0A0A]">
-                            <img src={resolveImageUrl(frame.image_url)} alt={frame.label}
-                              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer" />
-                            <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent text-[5px] text-[#AAA] text-center py-0.5 px-1 opacity-0 group-hover:opacity-100 transition">
-                              {frame.label}
-                            </span>
+                  {/* Image area — Gallery view with filmstrip */}
+                  <div className="relative bg-[#0A0A0A] overflow-hidden group">
+                    {/* Main display image */}
+                    {panel.frames?.length > 1 && !isGenerating ? (() => {
+                      const activeFrame = getSelectedFrame(panel.scene_number, panel.frames);
+                      const activeIdx = selectedFrames[panel.scene_number] || 0;
+                      return (
+                        <div>
+                          {/* Large main frame */}
+                          <div className="relative aspect-video overflow-hidden bg-black">
+                            <img
+                              src={resolveImageUrl(activeFrame?.image_url || panel.image_url)}
+                              alt={activeFrame?.label || panel.title}
+                              className="w-full h-full object-cover"
+                              data-testid={`panel-main-frame-${panel.scene_number}`}
+                            />
+                            {/* Frame label badge */}
+                            {activeFrame?.label && (
+                              <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-[7px] text-[#C9A84C] font-medium px-2 py-0.5 rounded-full">
+                                {activeFrame.label}
+                              </span>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    ) : panel.image_url && !isGenerating ? (
+
+                          {/* Filmstrip — horizontal thumbnails */}
+                          <div className="flex gap-[2px] bg-[#111] p-[2px]" data-testid={`panel-filmstrip-${panel.scene_number}`}>
+                            {panel.frames.map((frame, fi) => (
+                              <button
+                                key={frame.frame_number}
+                                onClick={() => selectFrame(panel.scene_number, fi)}
+                                data-testid={`frame-thumb-${panel.scene_number}-${fi}`}
+                                className={`relative flex-1 aspect-[16/10] overflow-hidden rounded-sm transition-all ${
+                                  fi === activeIdx
+                                    ? 'ring-1 ring-[#C9A84C] brightness-100'
+                                    : 'brightness-50 hover:brightness-75'
+                                }`}
+                              >
+                                <img
+                                  src={resolveImageUrl(frame.image_url)}
+                                  alt={frame.label}
+                                  className="w-full h-full object-cover"
+                                />
+                                {fi === activeIdx && (
+                                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#C9A84C]" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })() : panel.image_url && !isGenerating ? (
                       /* Single image fallback */
                       <div className="aspect-video">
                         <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
