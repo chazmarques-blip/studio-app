@@ -20,64 +20,51 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 `Roteiro → Personagens → Storyboard → Produção → Resultado`
 
 ### Storyboard Editável (Phase 7) ✅
-- Generate all panels via Gemini Nano Banana (1 image per scene)
-- 2-column grid with images + dialogue + character tags
-- Inline editing (title, description, dialogue)
+- Generate all panels via Gemini Nano Banana
+- **6-frame grid per scene** (1 Gemini call → 2x3 grid → Pillow split into 6 frames)
+- Frame types: Plano Geral, Close-up, Ação, Reação, Ângulo Dramático, Transição
+- Frontend: 3-column grid within each panel card, fallback to single image for legacy panels
 - AI Facilitator Chat (Claude) for natural language panel editing
 - Approve Storyboard → unlock video production
 
 ### Preview Animado (Phase 7.5) ✅
-- **Interactive Browser Slideshow** with Ken Burns CSS animations, fade transitions, synchronized subtitles, play/pause/skip, fullscreen, keyboard shortcuts
-- **MP4 Export** with ElevenLabs narration + cinematic background music via FFmpeg
-- Rendered via React createPortal for z-index isolation
+- Interactive Browser Slideshow with Ken Burns CSS, fade transitions, subtitles, controls
+- MP4 Export with ElevenLabs narration + cinematic music via FFmpeg
+- Rendered via React createPortal
 
-### Edição de Elemento (Inpainting IA) ✅ — 2026-03-26
-- Click paintbrush icon on panel → "Editar Elemento" input appears
-- Describe what to change: "Remover a corcova do Isaque"
-- Gemini edits ONLY that element, preserving everything else
-- Backend: `POST /api/studio/projects/{id}/storyboard/edit-element`
+### Edição de Elemento (Inpainting IA) ✅
+- Paintbrush icon on panel hover → "Editar Elemento" input
+- Gemini edits only the specified element, preserving everything else
 - Module: `/app/backend/core/storyboard_inpaint.py`
 
-### Comando de Voz (Whisper STT) ✅ — 2026-03-26
-- `VoiceInput.jsx` — universal microphone component
-- Integrated in: Facilitator IA chat, Inpainting edit input
-- Uses existing `/api/ai/transcribe` endpoint with auth
-- Records via MediaRecorder API, transcribes via Whisper
+### Comando de Voz (Whisper STT) ✅
+- `VoiceInput.jsx` — universal mic component
+- Integrated in: Facilitator IA chat, Inpainting input
+- Uses `/api/ai/transcribe` with auth
 
-### UI Fixes ✅ — 2026-03-26
-- **Film reel icon** (Film from lucide) replaces RefreshCw for all film-related loading
-- **FilmSpinner** component with 1.5s animation for generation states
-- **Fixed double spinner** — regenerating panels show single centered FilmSpinner only
-- Panel hover overlay: 3 icons (expand, paintbrush/inpaint, film reel/regenerate)
+### UI Improvements ✅
+- FilmSpinner component (Film icon, 1.5s animation)
+- Fixed double spinner bug
+- Panel hover: 3 icons (expand, paintbrush, film reel)
 
 ### Earlier Features (Complete)
-- Claude-powered screenwriter chat
-- Character avatar system
-- Parallel generation pipeline (Sora 2 + Gemini)
-- Multi-voice dubbed mode (ElevenLabs)
-- Post-production audio mixing
-- Google Calendar/Sheets integration
-- Agent marketplace, CRM, omnichannel UI
+- Claude screenwriter, character avatars, parallel Sora 2 + Gemini generation
+- Multi-voice dubbed mode (ElevenLabs), post-production audio mixing
+- Google Calendar/Sheets integration, Agent marketplace, CRM
 
 ---
 
 ## Code Architecture
 ```
-/app/backend/
-├── core/
-│   ├── storyboard.py          # Panel generation + AI Facilitator
-│   ├── storyboard_inpaint.py  # Element-specific image editing (Gemini)
-│   ├── preview_generator.py   # MP4 preview (FFmpeg + ElevenLabs)
-│   ├── llm.py
-├── routers/
-│   ├── studio.py              # ~4500 lines - main studio logic
-│   ├── ai.py                  # Whisper transcription endpoint
-/app/frontend/src/
-├── components/
-│   ├── DirectedStudio.jsx     # 5-step pipeline UI
-│   ├── StoryboardEditor.jsx   # Panel editing + AI Facilitator + Inpainting
-│   ├── StoryboardPreview.jsx  # Animated slideshow player
-│   ├── VoiceInput.jsx         # Universal voice command button
+/app/backend/core/
+├── storyboard.py           # Panel gen + 6-frame split + AI Facilitator
+├── storyboard_inpaint.py   # Element-specific image editing (Gemini)
+├── preview_generator.py    # MP4 preview (FFmpeg + ElevenLabs)
+/app/frontend/src/components/
+├── DirectedStudio.jsx      # 5-step pipeline UI
+├── StoryboardEditor.jsx    # Panel editing + 6-frame grid + Inpainting + Voice
+├── StoryboardPreview.jsx   # Animated slideshow player
+├── VoiceInput.jsx          # Universal voice command button
 ```
 
 ---
@@ -85,26 +72,22 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 ## Prioritized Backlog
 
 ### P1
-- Grid 6 frames per scene (generate single 2x3 image, split into 6 frames)
-- Storybook Export (static PDF/image book)
-- Storyboard→Video (feed approved panels to Sora 2)
-- Refactor `studio.py` into modular services
+- Storybook Export (PDF/image book from approved storyboard)
+- Storyboard→Video (feed approved frames to Sora 2)
+- Refactor studio.py (~4500 lines)
 - Fix hot-reload killing background tasks
 
 ### P2
-- Omnichannel live integrations (WhatsApp, SMS, Instagram, Telegram)
-- Admin Management System + Stripe
+- Omnichannel (WhatsApp, SMS, Instagram, Telegram)
+- Admin Dashboard + Stripe
 
 ### P3
-- Legal & publication, Scalability hardening
+- Legal, Scalability, App store
 
 ---
 
 ## Test Reports
-- iteration_105.json — Storyboard endpoints (92%)
-- iteration_106.json — Preview Animado + MP4 (92%)
-- iteration_107.json — Inpainting + VoiceInput + FilmSpinner (100%)
-
-## Known Issues
-- Hot-reload kills background production threads (P1)
-- `studio.py` ~4500 lines needs refactoring (P1)
+- iteration_105: Storyboard endpoints (92%)
+- iteration_106: Preview + MP4 (92%)
+- iteration_107: Inpainting + Voice + FilmSpinner (100%)
+- iteration_108: 6-frame grid (100%, 13/13 backend + code review)
