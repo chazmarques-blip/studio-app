@@ -26,6 +26,7 @@ import Pricing from './pages/Pricing';
 import GoogleIntegration from './pages/GoogleIntegration';
 import Marketing from './pages/Marketing';
 import MarketingStudio from './pages/MarketingStudio';
+import InteractiveBook from './pages/InteractiveBook';
 import TrafficHub from './pages/TrafficHub';
 
 import { useEffect } from 'react';
@@ -103,6 +104,7 @@ function App() {
           <Route path="/settings/channels" element={<ProtectedRoute><ChannelConnection /></ProtectedRoute>} />
           <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
           <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
+          <Route path="/book/:projectId" element={<InteractiveBook />} />
           <Route path="/traffic-hub" element={<ProtectedRoute><TrafficHub /></ProtectedRoute>} />
           <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />
           {/* Catch all */}

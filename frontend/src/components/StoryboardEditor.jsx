@@ -46,6 +46,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   // Selected frame per panel (for gallery view)
   const [selectedFrames, setSelectedFrames] = useState({});
+  // Book export states
+  const [generatingCover, setGeneratingCover] = useState(false);
+  const [bookCover, setBookCover] = useState(null);
+  const [bookTitle, setBookTitle] = useState('');
+  const [exportingPdf, setExportingPdf] = useState(false);
   const getSelectedFrame = (panelNum, frames) => {
     const idx = selectedFrames[panelNum] || 0;
     return frames?.[idx] || null;
@@ -264,6 +269,49 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       });
     };
     setTimeout(poll, 3000);
+  };
+
+  // Book Export — generate cover
+  const generateBookCover = async () => {
+    setGeneratingCover(true);
+    try {
+      const r = await axios.post(`${API}/studio/projects/${projectId}/book/generate-cover`);
+      setBookCover(r.data.cover_url);
+      setBookTitle(r.data.creative_title);
+      toast.success(lang === 'pt' ? `Capa criada: "${r.data.creative_title}"` : `Cover created: "${r.data.creative_title}"`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao gerar capa');
+    } finally {
+      setGeneratingCover(false);
+    }
+  };
+
+  // Book Export — download PDF
+  const downloadPdf = async () => {
+    setExportingPdf(true);
+    try {
+      const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${bookTitle || 'storybook'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(lang === 'pt' ? 'PDF baixado!' : 'PDF downloaded!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao exportar PDF');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  // Book Export — open interactive book
+  const openInteractiveBook = () => {
+    const token = localStorage.getItem('agentzz_token');
+    const url = `/book/${projectId}?token=${encodeURIComponent(token)}`;
+    window.open(url, '_blank');
   };
 
   // Inpainting — edit specific element in panel
@@ -530,29 +578,29 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           {lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}
                         </span>
                       </div>
-                      <div className="flex gap-1 items-center">
+                      <div className="flex gap-1.5 items-center">
                         <input
                           value={inpaintPrompt}
                           onChange={e => setInpaintPrompt(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && editElement(panel.scene_number)}
                           placeholder={lang === 'pt' ? 'Ex: Remover a corcova do Isaque' : 'Ex: Remove the hump from Isaac'}
                           data-testid={`inpaint-input-${panel.scene_number}`}
-                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2 py-1.5 text-[8px] text-white placeholder-[#555] outline-none focus:border-orange-500/50"
+                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2 py-1.5 text-[9px] text-white placeholder-[#555] outline-none focus:border-orange-500/50"
                           disabled={inpaintLoading}
                         />
                         <VoiceInput
                           onResult={text => setInpaintPrompt(prev => prev ? `${prev} ${text}` : text)}
                           lang={lang}
-                          size={14}
-                          className="h-7 w-7 rounded bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 hover:bg-orange-500/20 transition flex-shrink-0"
+                          size={12}
+                          className="h-8 w-8 rounded-md bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 hover:bg-orange-500/20 transition flex-shrink-0"
                         />
                         <button
                           onClick={() => editElement(panel.scene_number)}
                           disabled={inpaintLoading || !inpaintPrompt.trim()}
                           data-testid={`inpaint-submit-${panel.scene_number}`}
-                          className="rounded px-2.5 py-1.5 text-[8px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1 flex-shrink-0"
+                          className="h-8 rounded-md px-3 py-1.5 text-[9px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1.5 flex-shrink-0"
                         >
-                          {inpaintLoading ? <FilmSpinner size={8} className="text-orange-400" /> : <Paintbrush size={8} />}
+                          {inpaintLoading ? <FilmSpinner size={10} className="text-orange-400" /> : <Paintbrush size={10} />}
                           {lang === 'pt' ? 'Editar' : 'Edit'}
                         </button>
                       </div>
@@ -735,6 +783,73 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               <Download size={12} />
               MP4
             </a>
+          )}
+        </div>
+      )}
+
+      {/* Book Export buttons */}
+      {panels.length > 0 && doneCount > 0 && !loading && (
+        <div className="rounded-xl border border-[#1A1A1A] bg-[#0A0A0A] p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <BookOpen size={14} className="text-[#C9A84C]" />
+            <span className="text-[10px] font-semibold text-[#C9A84C]">
+              {lang === 'pt' ? 'Exportar Livro' : 'Export Book'}
+            </span>
+            {bookTitle && (
+              <span className="text-[8px] text-[#666] italic ml-auto truncate max-w-[40%]">
+                {bookTitle}
+              </span>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            {/* Generate Cover */}
+            <button onClick={generateBookCover} disabled={generatingCover}
+              data-testid="generate-cover-btn"
+              className="flex-1 rounded-lg py-2 text-[10px] font-semibold transition-all
+                bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20
+                flex items-center justify-center gap-1.5 disabled:opacity-40">
+              {generatingCover ? (
+                <><FilmSpinner size={10} className="text-[#C9A84C]" /> {lang === 'pt' ? 'Criando Capa...' : 'Creating Cover...'}</>
+              ) : (
+                <><Sparkles size={12} /> {lang === 'pt' ? 'Gerar Capa + Titulo' : 'Generate Cover + Title'}</>
+              )}
+            </button>
+
+            {/* PDF Download */}
+            <button onClick={downloadPdf} disabled={exportingPdf}
+              data-testid="export-pdf-btn"
+              className="flex-1 rounded-lg py-2 text-[10px] font-semibold transition-all
+                bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20
+                flex items-center justify-center gap-1.5 disabled:opacity-40">
+              {exportingPdf ? (
+                <><FilmSpinner size={10} className="text-rose-400" /> {lang === 'pt' ? 'Gerando PDF...' : 'Generating PDF...'}</>
+              ) : (
+                <><Download size={12} /> PDF</>
+              )}
+            </button>
+
+            {/* Interactive Book */}
+            <button onClick={openInteractiveBook}
+              data-testid="open-interactive-book-btn"
+              className="flex-1 rounded-lg py-2 text-[10px] font-semibold transition-all
+                bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20
+                flex items-center justify-center gap-1.5">
+              <BookOpen size={12} />
+              {lang === 'pt' ? 'Livro Animado' : 'Interactive Book'}
+            </button>
+          </div>
+
+          {/* Cover preview */}
+          {bookCover && (
+            <div className="flex items-center gap-2 mt-1">
+              <img src={resolveImageUrl(bookCover)} alt="Cover"
+                className="h-12 w-16 rounded object-cover border border-[#222]" />
+              <div>
+                <p className="text-[9px] text-white font-medium">{bookTitle}</p>
+                <p className="text-[7px] text-[#555]">{lang === 'pt' ? 'Capa gerada' : 'Cover generated'}</p>
+              </div>
+            </div>
           )}
         </div>
       )}

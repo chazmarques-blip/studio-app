@@ -1391,6 +1391,141 @@ async def get_preview_status(project_id: str, tenant=Depends(get_current_tenant)
     }
 
 
+
+# ══ BOOK EXPORT ENDPOINTS ══
+
+@router.post("/projects/{project_id}/book/generate-cover")
+async def generate_book_cover(project_id: str, tenant=Depends(get_current_tenant)):
+    """Generate a book cover image with all characters and creative title."""
+    from core.book_generator import generate_cover_image, generate_creative_title
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    characters = project.get("characters", [])
+    char_avatars = project.get("character_avatars", {})
+    production_design = project.get("agents_output", {}).get("production_design", {})
+    scenes = project.get("scenes", [])
+    lang = project.get("language", "pt")
+    name = project.get("name", "Meu Livro")
+
+    # Generate creative title
+    creative_title = generate_creative_title(name, scenes, lang)
+    logger.info(f"Book [{project_id}]: Creative title: {creative_title}")
+
+    # Generate cover image
+    cover_bytes = generate_cover_image(name, characters, char_avatars, production_design, lang)
+    cover_url = None
+    if cover_bytes:
+        fname = f"books/{project_id}/cover.png"
+        cover_url = _upload_to_storage(cover_bytes, fname, "image/png")
+
+    # Save to project
+    project["book_cover_url"] = cover_url
+    project["book_title"] = creative_title
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+
+    return {
+        "cover_url": cover_url,
+        "creative_title": creative_title,
+    }
+
+
+@router.get("/projects/{project_id}/book/pdf")
+async def export_pdf_storybook(project_id: str, tenant=Depends(get_current_tenant)):
+    """Generate and return a PDF storybook."""
+    from core.book_generator import generate_pdf_storybook
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    panels = project.get("storyboard_panels", [])
+    if not panels:
+        raise HTTPException(status_code=400, detail="No storyboard panels")
+
+    creative_title = project.get("book_title", project.get("name", "Meu Livro"))
+    cover_url = project.get("book_cover_url")
+    lang = project.get("language", "pt")
+
+    pdf_bytes = generate_pdf_storybook(
+        project_name=project.get("name", ""),
+        creative_title=creative_title,
+        panels=panels,
+        cover_url=cover_url,
+        lang=lang,
+    )
+
+    from fastapi.responses import Response
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{creative_title.replace(" ", "_")}.pdf"',
+        },
+    )
+
+
+@router.get("/projects/{project_id}/book/interactive-data")
+async def get_interactive_book_data(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get structured JSON data for the Interactive Book reader."""
+    from core.book_generator import build_interactive_book_data
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    panels = project.get("storyboard_panels", [])
+    if not panels:
+        raise HTTPException(status_code=400, detail="No storyboard panels")
+
+    creative_title = project.get("book_title", project.get("name", "Meu Livro"))
+    cover_url = project.get("book_cover_url")
+    lang = project.get("language", "pt")
+
+    book_data = build_interactive_book_data(
+        project_id=project_id,
+        project_name=project.get("name", ""),
+        creative_title=creative_title,
+        panels=panels,
+        cover_url=cover_url,
+        lang=lang,
+    )
+    return book_data
+
+
+@router.post("/projects/{project_id}/book/tts-page")
+async def generate_page_tts(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Generate TTS audio for a specific book page."""
+    text = payload.get("text", "")
+    voice_id = payload.get("voice_id", "onwK4e9ZLuTAKqWW03F9")
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not elevenlabs_key:
+        raise HTTPException(status_code=500, detail="ElevenLabs key not configured")
+
+    import httpx
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+            headers={"xi-api-key": elevenlabs_key, "Content-Type": "application/json"},
+            json={
+                "text": text[:500],
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {"stability": 0.6, "similarity_boost": 0.8},
+            },
+        )
+        if r.status_code != 200:
+            raise HTTPException(status_code=500, detail=f"TTS failed: {r.status_code}")
+
+        audio_bytes = r.content
+        fname = f"books/{project_id}/tts_{hash(text) % 100000}.mp3"
+        audio_url = _upload_to_storage(audio_bytes, fname, "audio/mpeg")
+        return {"audio_url": audio_url}
+
+
+
 @router.post("/projects/{project_id}/clear-outputs")
 async def clear_scene_outputs(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
     """Remove outputs for specific scenes to force re-generation. keep_scenes: list of scene numbers to KEEP."""
