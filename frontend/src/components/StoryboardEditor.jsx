@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
   Sparkles, ChevronRight, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
-  Languages, ScanSearch, Zap, Globe
+  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { StoryboardPreview } from './StoryboardPreview';
@@ -61,6 +61,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [smartMode, setSmartMode] = useState(true);
   const [analyzing, setAnalyzing] = useState(null);
   const [sceneAnalysis, setSceneAnalysis] = useState({});
+  // Continuity Director states
+  const [continuityRunning, setContinuityRunning] = useState(false);
+  const [continuityStatus, setContinuityStatus] = useState({});
+  const [continuityReport, setContinuityReport] = useState(null);
+  const [correcting, setCorrecting] = useState(false);
   const getSelectedFrame = (panelNum, frames) => {
     const idx = selectedFrames[panelNum] || 0;
     return frames?.[idx] || null;
@@ -442,6 +447,66 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Erro na revisao');
       setReviewing(false);
+    }
+  };
+
+  // Continuity Director — analyze
+  const startContinuityAnalysis = async () => {
+    setContinuityRunning(true);
+    setContinuityReport(null);
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/continuity/analyze`);
+      toast.success(lang === 'pt' ? 'Analisando continuidade do storyboard...' : 'Analyzing storyboard continuity...');
+      pollContinuityStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro');
+      setContinuityRunning(false);
+    }
+  };
+
+  const pollContinuityStatus = () => {
+    const poll = () => {
+      axios.get(`${API}/studio/projects/${projectId}/continuity/status`).then(r => {
+        const st = r.data.continuity_status || {};
+        setContinuityStatus(st);
+        if (st.phase === 'done') {
+          setContinuityRunning(false);
+          setContinuityReport(r.data.continuity_report || {});
+          const ic = r.data.continuity_report?.total_issues || 0;
+          toast.success(lang === 'pt' ? `Analise completa! ${ic} problemas encontrados.` : `Analysis complete! ${ic} issues found.`);
+        } else if (st.phase === 'corrected') {
+          setCorrecting(false);
+          setContinuityRunning(false);
+          setContinuityReport(r.data.continuity_report || {});
+          toast.success(lang === 'pt' ? `Correcoes aplicadas: ${st.corrected} OK, ${st.failed} falhas` : `Corrections applied: ${st.corrected} OK, ${st.failed} failed`);
+          loadStoryboard();
+        } else if (st.phase === 'error') {
+          setContinuityRunning(false);
+          setCorrecting(false);
+          toast.error(st.detail || 'Erro na analise');
+        } else {
+          setTimeout(poll, 4000);
+        }
+      }).catch(() => setTimeout(poll, 5000));
+    };
+    setTimeout(poll, 3000);
+  };
+
+  // Continuity Director — auto-correct
+  const startAutoCorrect = async () => {
+    setCorrecting(true);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/continuity/auto-correct`);
+      if (res.data.status === 'no_corrections_needed') {
+        toast.info(lang === 'pt' ? 'Nenhuma correcao necessaria!' : 'No corrections needed!');
+        setCorrecting(false);
+        return;
+      }
+      toast.success(lang === 'pt' ? `Corrigindo ${res.data.total_corrections} problemas...` : `Correcting ${res.data.total_corrections} issues...`);
+      pollContinuityStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro');
+      setCorrecting(false);
     }
   };
 
@@ -1071,6 +1136,134 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   <span className="text-emerald-400">Cena {note.scene_number}:</span> {note.changes}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Continuity Director */}
+      {panels.length > 0 && doneCount > 0 && !loading && (
+        <div className="rounded-xl border border-[#1A1A1A] bg-[#0A0A0A] p-3 space-y-2" data-testid="continuity-director-panel">
+          <div className="flex items-center gap-2">
+            <Shield size={14} className="text-amber-400" />
+            <span className="text-[10px] font-semibold text-amber-400">
+              {lang === 'pt' ? 'Diretor de Continuidade' : 'Continuity Director'}
+            </span>
+            {continuityReport && (
+              <span className={`text-[8px] ml-auto font-medium ${
+                continuityReport.total_issues === 0 ? 'text-emerald-400' : 'text-amber-400'
+              }`}>
+                {continuityReport.total_issues === 0
+                  ? (lang === 'pt' ? 'Tudo OK' : 'All OK')
+                  : `${continuityReport.total_issues} ${lang === 'pt' ? 'problemas' : 'issues'}`}
+              </span>
+            )}
+          </div>
+
+          <p className="text-[8px] text-[#555]">
+            {lang === 'pt'
+              ? 'Analisa todas as cenas e verifica consistencia de personagens, idade, elementos irrelevantes e coerencia cronologica.'
+              : 'Analyzes all scenes for character consistency, age accuracy, irrelevant elements and chronological coherence.'}
+          </p>
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={startContinuityAnalysis}
+              disabled={continuityRunning || correcting}
+              data-testid="continuity-analyze-btn"
+              className="flex-1 h-8 rounded-lg text-[9px] font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
+            >
+              {continuityRunning && !correcting ? (
+                <><FilmSpinner size={10} className="text-amber-400" /> {lang === 'pt' ? `Analisando ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...` : `Analyzing ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...`}</>
+              ) : (
+                <><ScanSearch size={12} /> {lang === 'pt' ? 'Analisar Continuidade' : 'Analyze Continuity'}</>
+              )}
+            </button>
+
+            {continuityReport && continuityReport.total_issues > 0 && (
+              <button
+                onClick={startAutoCorrect}
+                disabled={correcting || continuityRunning}
+                data-testid="continuity-correct-btn"
+                className="flex-1 h-8 rounded-lg text-[9px] font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
+              >
+                {correcting ? (
+                  <><FilmSpinner size={10} className="text-emerald-400" /> {lang === 'pt' ? `Corrigindo ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...` : `Correcting ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...`}</>
+                ) : (
+                  <><Wand2 size={12} /> {lang === 'pt' ? 'Auto-Corrigir' : 'Auto-Correct'}</>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Progress bar */}
+          {(continuityRunning || correcting) && (
+            <div className="space-y-1">
+              <div className="w-full bg-[#111] rounded-full h-1.5">
+                <div
+                  className={`h-1.5 rounded-full transition-all duration-500 ${correcting ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                  style={{ width: `${continuityStatus.total ? (continuityStatus.current / continuityStatus.total) * 100 : 0}%` }}
+                />
+              </div>
+              {continuityRunning && !correcting && continuityStatus.issues_found > 0 && (
+                <p className="text-[7px] text-amber-400/60">
+                  {continuityStatus.issues_found} {lang === 'pt' ? 'problemas encontrados ate agora' : 'issues found so far'}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Results */}
+          {continuityReport && continuityReport.issues && continuityReport.issues.length > 0 && (
+            <div className="bg-[#0D0D0D] rounded border border-amber-500/10 p-1.5 max-h-40 overflow-y-auto space-y-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[7px] text-red-400 font-medium">{continuityReport.high_count || 0}H</span>
+                <span className="text-[7px] text-amber-400 font-medium">{continuityReport.medium_count || 0}M</span>
+                <span className="text-[7px] text-[#555] font-medium">{continuityReport.low_count || 0}L</span>
+              </div>
+              {continuityReport.issues.map((issue, i) => (
+                <div key={i} className={`text-[7px] px-1.5 py-1 rounded border-l-2 ${
+                  issue.severity === 'high' ? 'border-l-red-500 bg-red-500/5' :
+                  issue.severity === 'medium' ? 'border-l-amber-500 bg-amber-500/5' :
+                  'border-l-[#333] bg-[#111]'
+                }`}>
+                  <div className="flex items-center gap-1">
+                    {issue.severity === 'high' ? <AlertTriangle size={8} className="text-red-400 flex-shrink-0" /> :
+                     issue.severity === 'medium' ? <AlertTriangle size={8} className="text-amber-400 flex-shrink-0" /> :
+                     <CheckCircle size={8} className="text-[#555] flex-shrink-0" />}
+                    <span className="text-white font-medium">Cena {issue.scene_number}</span>
+                    <span className="text-[6px] text-[#555] px-1 py-0.5 rounded bg-[#1A1A1A]">{issue.category?.replace(/_/g, ' ')}</span>
+                  </div>
+                  <p className="text-[#888] mt-0.5">{issue.description}</p>
+                  {issue.correction && (
+                    <p className="text-emerald-400/70 mt-0.5 italic">{issue.correction}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* All OK message */}
+          {continuityReport && continuityReport.total_issues === 0 && (
+            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2 flex items-center gap-2">
+              <CheckCircle size={14} className="text-emerald-400" />
+              <span className="text-[9px] text-emerald-400 font-medium">
+                {lang === 'pt' ? 'Storyboard consistente! Nenhum problema encontrado.' : 'Storyboard is consistent! No issues found.'}
+              </span>
+            </div>
+          )}
+
+          {/* Correction complete */}
+          {continuityStatus.phase === 'corrected' && (
+            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2 flex items-center gap-2">
+              <CheckCircle size={14} className="text-emerald-400" />
+              <span className="text-[9px] text-emerald-400">
+                {lang === 'pt' ? `${continuityStatus.corrected} correcoes aplicadas` : `${continuityStatus.corrected} corrections applied`}
+                {continuityStatus.failed > 0 && (
+                  <span className="text-red-400 ml-1">({continuityStatus.failed} {lang === 'pt' ? 'falhas' : 'failed'})</span>
+                )}
+              </span>
             </div>
           )}
         </div>
