@@ -1,0 +1,105 @@
+{
+  "summary": "Iteration 111: Validated Whisper STT migration to emergentintegrations and FRAME_TYPES redesign as storybook pages. Backend: 20/20 tests passed (100%). All code structure verifications passed. Whisper now uses emergentintegrations.llm.openai.OpenAISpeechToText with EMERGENT_LLM_KEY. FRAME_TYPES has 6 entries (Pagina 1-6) with narrative action prompts (OPENING MOMENT, RISING ACTION, KEY ACTION, REACTION, CONSEQUENCE, CLOSING MOMENT). Frontend has NO Maximize2 import, NO expandedPanel state, NO isExpanded variable. Toolbar shows 'Pag X/Y' format and filmstrip shows page numbers.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration111_whisper_storybook.py",
+    "/app/test_reports/pytest/pytest_results_iteration111.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "storyboard.py line 20-51: FRAME_TYPES has 6 entries with labels 'Pagina 1' through 'Pagina 6' and 'order' field 1-6",
+    "storyboard.py FRAME_TYPES prompts contain narrative/storybook language: OPENING MOMENT, RISING ACTION, KEY ACTION, REACTION, CONSEQUENCE, CLOSING MOMENT",
+    "storyboard.py FRAME_TYPES does NOT contain camera angle terminology (Plano Geral, Close-up, etc. removed)",
+    "storyboard.py line 89: _generate_single_frame prompt says 'storybook illustration'",
+    "storyboard.py line 113: _generate_single_frame prompt says 'standalone page in a children's storybook'",
+    "llm.py line 109: speech_to_text imports OpenAISpeechToText from emergentintegrations.llm.openai",
+    "llm.py line 111: speech_to_text uses EMERGENT_LLM_KEY (not OPENAI_API_KEY)",
+    "ai.py line 10: imports speech_to_text as stt_direct from core.llm",
+    "StoryboardEditor.jsx: NO Maximize2 import from lucide-react",
+    "StoryboardEditor.jsx: NO expandedPanel state variable",
+    "StoryboardEditor.jsx: NO isExpanded variable",
+    "StoryboardEditor.jsx line 485: Toolbar shows 'Pag ${activeIdx + 1}/${panel.frames.length}' format",
+    "StoryboardEditor.jsx line 456-457: Filmstrip thumbnails show page numbers {fi + 1} in bottom-right corner"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration111_whisper_storybook.py"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "100% (code structure verified)"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "None - used existing test data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 111 verified: 1) Whisper STT migrated to emergentintegrations (uses OpenAISpeechToText with EMERGENT_LLM_KEY), 2) FRAME_TYPES redesigned as storybook pages (Pagina 1-6 with narrative action prompts), 3) Zoom/expand button removed from UI (no Maximize2, expandedPanel, isExpanded), 4) Toolbar shows 'Pag X/Y' format, 5) Filmstrip shows page numbers. The /api/ai/transcribe endpoint works with emergentintegrations. Studio is accessed via Marketing > AI Studio > Estudio option.",
+  "features_tested": {
+    "frame_types_structure": {
+      "has_6_entries": "PASS - Pagina 1 through Pagina 6",
+      "has_order_field": "PASS - order 1-6",
+      "has_narrative_prompts": "PASS - OPENING MOMENT, RISING ACTION, KEY ACTION, REACTION, CONSEQUENCE, CLOSING MOMENT",
+      "no_camera_angles": "PASS - Plano Geral, Close-up, etc. removed"
+    },
+    "generate_single_frame_prompt": {
+      "says_storybook_illustration": "PASS",
+      "says_standalone_page": "PASS"
+    },
+    "whisper_emergent_integration": {
+      "imports_emergentintegrations": "PASS - from emergentintegrations.llm.openai import OpenAISpeechToText",
+      "uses_emergent_llm_key": "PASS - EMERGENT_LLM_KEY",
+      "not_direct_openai": "PASS"
+    },
+    "frontend_no_expand_button": {
+      "no_maximize2_import": "PASS",
+      "no_expanded_panel_state": "PASS",
+      "no_is_expanded_variable": "PASS"
+    },
+    "frontend_toolbar_filmstrip": {
+      "toolbar_has_inpaint_button": "PASS",
+      "toolbar_has_regen_button": "PASS",
+      "toolbar_shows_pag_format": "PASS - Pag X/Y",
+      "filmstrip_shows_page_numbers": "PASS - {fi + 1} in bottom-right"
+    },
+    "transcribe_api": {
+      "endpoint_exists": "PASS - POST /api/ai/transcribe",
+      "uses_emergent_integration": "PASS"
+    },
+    "basic_api": {
+      "health_endpoint": "PASS",
+      "login_works": "PASS"
+    }
+  },
+  "backend_tests": {
+    "test_frame_types_has_6_entries": "PASS",
+    "test_frame_types_has_order_field": "PASS",
+    "test_frame_types_has_narrative_prompts": "PASS",
+    "test_frame_types_no_camera_angles": "PASS",
+    "test_prompt_says_storybook_illustration": "PASS",
+    "test_prompt_says_standalone_page": "PASS",
+    "test_llm_py_imports_emergentintegrations": "PASS",
+    "test_speech_to_text_uses_emergent_llm_key": "PASS",
+    "test_speech_to_text_not_direct_openai": "PASS",
+    "test_no_maximize2_import": "PASS",
+    "test_no_expanded_panel_state": "PASS",
+    "test_no_is_expanded_variable": "PASS",
+    "test_toolbar_has_inpaint_button": "PASS",
+    "test_toolbar_has_regen_button": "PASS",
+    "test_toolbar_shows_pag_format": "PASS",
+    "test_filmstrip_shows_page_numbers": "PASS",
+    "test_transcribe_endpoint_exists": "PASS",
+    "test_transcribe_uses_emergent_integration": "PASS",
+    "test_health_endpoint": "PASS",
+    "test_login_works": "PASS"
+  }
+}

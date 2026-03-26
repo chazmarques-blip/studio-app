@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
-  Sparkles, ChevronRight, Maximize2, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush
+  Sparkles, ChevronRight, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { StoryboardPreview } from './StoryboardPreview';
@@ -25,7 +25,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [editingPanel, setEditingPanel] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [approved, setApproved] = useState(false);
-  const [expandedPanel, setExpandedPanel] = useState(null);
 
   // AI Facilitator
   const [chatOpen, setChatOpen] = useState(false);
@@ -397,14 +396,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             {panels.map((panel) => {
               const isEditing = editingPanel === panel.scene_number;
               const isGenerating = generatingPanel === panel.scene_number;
-              const isExpanded = expandedPanel === panel.scene_number;
 
               return (
                 <div key={panel.scene_number}
                   data-testid={`storyboard-panel-${panel.scene_number}`}
                   className={`rounded-xl border overflow-hidden transition-all ${
-                    isExpanded ? 'col-span-2' : ''
-                  } ${
                     panel.status === 'error'
                       ? 'border-red-500/30 bg-red-500/5'
                       : panel.image_url
@@ -457,6 +453,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                                   alt={frame.label}
                                   className="w-full h-full object-cover"
                                 />
+                                <span className="absolute bottom-0.5 right-0.5 text-[5px] text-white/70 bg-black/60 px-0.5 rounded">
+                                  {fi + 1}
+                                </span>
                                 {fi === activeIdx && (
                                   <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#C9A84C]" />
                                 )}
@@ -467,11 +466,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           {/* Action toolbar — below filmstrip, always visible */}
                           <div className="flex items-center justify-between px-2 py-1 bg-[#0D0D0D] border-t border-[#1A1A1A]">
                             <div className="flex items-center gap-1">
-                              <button onClick={() => setExpandedPanel(isExpanded ? null : panel.scene_number)}
-                                data-testid={`expand-panel-${panel.scene_number}`}
-                                className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#888] hover:text-white hover:bg-[#222] transition" title={lang === 'pt' ? 'Expandir' : 'Expand'}>
-                                <Maximize2 size={10} />
-                              </button>
                               <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
                                 data-testid={`inpaint-panel-${panel.scene_number}`}
                                 className={`h-6 w-6 rounded flex items-center justify-center transition ${
@@ -488,7 +482,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                               </button>
                             </div>
                             <span className="text-[7px] text-[#555]">
-                              {panel.frames.length} frames
+                              {lang === 'pt' ? `Pag ${activeIdx + 1}/${panel.frames.length}` : `Page ${activeIdx + 1}/${panel.frames.length}`}
                             </span>
                           </div>
                         </div>
@@ -504,10 +498,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         </div>
                         {/* Action toolbar for single image */}
                         <div className="flex items-center gap-1 px-2 py-1 bg-[#0D0D0D] border-t border-[#1A1A1A]">
-                          <button onClick={() => setExpandedPanel(isExpanded ? null : panel.scene_number)}
-                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#888] hover:text-white hover:bg-[#222] transition">
-                            <Maximize2 size={10} />
-                          </button>
                           <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
                             data-testid={`inpaint-panel-single-${panel.scene_number}`}
                             className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-orange-400/60 hover:text-orange-400 hover:bg-[#222] transition">
@@ -522,7 +512,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     ) : isGenerating ? (
                       <div className="aspect-video flex flex-col items-center justify-center gap-2">
                         <FilmSpinner size={20} className="text-[#C9A84C]" />
-                        <span className="text-[7px] text-[#666]">{lang === 'pt' ? 'Gerando 6 frames...' : 'Generating 6 frames...'}</span>
+                        <span className="text-[7px] text-[#666]">{lang === 'pt' ? 'Gerando 6 paginas...' : 'Generating 6 pages...'}</span>
                       </div>
                     ) : (
                       <div className="aspect-video flex items-center justify-center">

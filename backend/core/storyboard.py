@@ -18,12 +18,36 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 FRAME_TYPES = [
-    {"label": "Plano Geral", "prompt": "ESTABLISHING SHOT — wide angle showing the full environment and all character positions from a distance"},
-    {"label": "Close-up", "prompt": "CHARACTER CLOSE-UP — tightly framed on the main character's face, capturing their emotion and expression in detail"},
-    {"label": "Acao", "prompt": "ACTION MOMENT — the key action, gesture, or movement happening in this scene, dynamic composition"},
-    {"label": "Reacao", "prompt": "REACTION SHOT — other characters reacting to the main action, showing their emotions and body language"},
-    {"label": "Angulo Dramatico", "prompt": "DRAMATIC ANGLE — low-angle or high-angle shot creating dramatic tension and visual impact"},
-    {"label": "Transicao", "prompt": "TRANSITION SHOT — a moment that visually bridges to the next scene, with movement or atmospheric shift"},
+    {
+        "label": "Pagina 1",
+        "order": 1,
+        "prompt": "OPENING MOMENT — The very beginning of this scene. Show the setting, the atmosphere, and the characters arriving or positioned at the start. This is the first page of the storybook for this scene.",
+    },
+    {
+        "label": "Pagina 2",
+        "order": 2,
+        "prompt": "RISING ACTION — The tension or interest builds. Show what triggers the main event: a gesture, a look, a discovery, or dialogue that changes the mood. Second page of the storybook.",
+    },
+    {
+        "label": "Pagina 3",
+        "order": 3,
+        "prompt": "KEY ACTION — The central dramatic moment of this scene. The most important action, decision, or turning point. This is the climax page of the storybook.",
+    },
+    {
+        "label": "Pagina 4",
+        "order": 4,
+        "prompt": "REACTION — Characters react to what just happened. Show the emotional impact: surprise, joy, fear, sadness, or determination on their faces and body language. Fourth page of the storybook.",
+    },
+    {
+        "label": "Pagina 5",
+        "order": 5,
+        "prompt": "CONSEQUENCE — Show the immediate aftermath or result of the main action. What changed? How does the environment or the characters look now? Fifth page of the storybook.",
+    },
+    {
+        "label": "Pagina 6",
+        "order": 6,
+        "prompt": "CLOSING MOMENT — The scene winds down or transitions. Show characters moving on, a final emotional beat, or a visual that bridges to what comes next. Last page of the storybook for this scene.",
+    },
 ]
 
 
@@ -62,14 +86,14 @@ def _generate_single_frame(
     emotion = scene.get("emotion", "")
     lang_name = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, "Portuguese")
 
-    prompt_text = f"""Generate ONE high-quality storyboard illustration for this animated film scene.
+    prompt_text = f"""Generate ONE high-quality storybook illustration for this animated film scene.
 
 SCENE {scene_num}: {title}
 DESCRIPTION: {description}
 EMOTION: {emotion}
 DIALOGUE: {dialogue}
 
-CAMERA/FRAMING: {frame_type['prompt']}
+NARRATIVE MOMENT: {frame_type['prompt']}
 
 {style_dna}
 
@@ -78,12 +102,15 @@ CHARACTER IDENTITY (match reference images EXACTLY):
 
 RULES:
 - Generate exactly ONE single illustration (NOT a grid, NOT multiple panels)
-- This is a {frame_type['label']} shot — frame the composition accordingly
+- This is {frame_type['label']} of a storybook — show the NARRATIVE ACTION described above
+- Show the characters DOING something meaningful within the story context
+- Frame the entire scene so characters and environment are clearly visible (medium to wide framing, no extreme close-ups)
 - Characters MUST match reference images EXACTLY (species, face, fur color, clothing, posture)
 - If a character is BIPEDAL ANTHROPOMORPHIC in the reference, show them STANDING UPRIGHT
 - Style: 3D CGI Pixar quality with volumetric lighting, soft shadows, cinematic composition
 - DO NOT include any text, numbers, labels, or speech bubbles
 - Fill the entire image with the illustration — no borders, no margins
+- This image should work as a standalone page in a children's storybook
 - Language context: {lang_name}"""
 
     ref_images = []

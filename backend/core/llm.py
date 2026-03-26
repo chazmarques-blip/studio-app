@@ -105,16 +105,17 @@ async def multi_turn_completion(
 
 
 async def speech_to_text(file_path: str, language: str = None, response_format: str = "json"):
-    """Transcribe audio using OpenAI Whisper directly."""
-    from openai import OpenAI
+    """Transcribe audio using OpenAI Whisper via emergentintegrations."""
+    from emergentintegrations.llm.openai import OpenAISpeechToText
 
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    api_key = os.environ.get("EMERGENT_LLM_KEY", "")
+    stt = OpenAISpeechToText(api_key=api_key)
 
     with open(file_path, "rb") as f:
-        kwargs = {"model": "whisper-1", "file": f, "response_format": response_format}
+        kwargs = {"file": f, "model": "whisper-1", "response_format": response_format}
         if language:
             kwargs["language"] = language
-        result = client.audio.transcriptions.create(**kwargs)
+        result = await stt.transcribe(**kwargs)
     return result
 
 
@@ -279,7 +280,7 @@ class DirectSora2Client:
                         logger.warning(f"Sora 2 [{video_id[:20]}]: Download attempt {dl_try+1}/3 failed: {dl_err}")
                         if dl_try < 2:
                             _time.sleep(5)
-                raise Exception(f"Sora 2 download failed after 3 attempts")
+                raise Exception("Sora 2 download failed after 3 attempts")
 
             elif status == "failed":
                 error = pdata.get("error", {})
