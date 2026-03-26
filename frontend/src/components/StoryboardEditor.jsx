@@ -401,18 +401,34 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         ? 'border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/30'
                         : 'border-[#1A1A1A] bg-[#0A0A0A]'
                   }`}>
-                  {/* Image area */}
-                  <div className="relative aspect-video bg-[#111] overflow-hidden group">
-                    {panel.image_url && !isGenerating ? (
-                      <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
-                        className="w-full h-full object-cover" />
+                  {/* Image area — 6 frames grid or single image */}
+                  <div className="relative bg-[#111] overflow-hidden group">
+                    {panel.frames?.length > 1 && !isGenerating ? (
+                      /* 6-frame grid (3 cols x 2 rows) */
+                      <div className="grid grid-cols-3 gap-[1px] bg-[#1A1A1A]" data-testid={`panel-frames-grid-${panel.scene_number}`}>
+                        {panel.frames.map((frame) => (
+                          <div key={frame.frame_number} className="relative aspect-video overflow-hidden bg-[#0A0A0A]">
+                            <img src={resolveImageUrl(frame.image_url)} alt={frame.label}
+                              className="w-full h-full object-cover hover:scale-110 transition-transform duration-300 cursor-pointer" />
+                            <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent text-[5px] text-[#AAA] text-center py-0.5 px-1 opacity-0 group-hover:opacity-100 transition">
+                              {frame.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : panel.image_url && !isGenerating ? (
+                      /* Single image fallback */
+                      <div className="aspect-video">
+                        <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
+                          className="w-full h-full object-cover" />
+                      </div>
                     ) : isGenerating ? (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                      <div className="aspect-video flex flex-col items-center justify-center gap-2">
                         <FilmSpinner size={20} className="text-[#C9A84C]" />
-                        <span className="text-[7px] text-[#666]">{lang === 'pt' ? 'Gerando...' : 'Generating...'}</span>
+                        <span className="text-[7px] text-[#666]">{lang === 'pt' ? 'Gerando 6 frames...' : 'Generating 6 frames...'}</span>
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
+                      <div className="aspect-video flex items-center justify-center">
                         <Image size={20} className="text-[#333]" />
                       </div>
                     )}

@@ -1072,13 +1072,32 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
                 lang=project.get("language", "pt"),
             )
             if img_bytes:
-                fname = f"storyboard/{project_id}/panel_{req.panel_number}.png"
+                from core.storyboard import _split_grid_into_frames
+                fname = f"storyboard/{project_id}/panel_{req.panel_number}_grid.png"
                 image_url = _upload_to_storage(img_bytes, fname, "image/png")
+
+                # Split into 6 frames
+                frame_bytes_list = _split_grid_into_frames(img_bytes)
+                frame_labels = [
+                    "Plano Geral", "Close-up", "Ação",
+                    "Reação", "Ângulo Dramático", "Transição"
+                ]
+                frames = []
+                for fi, fb in enumerate(frame_bytes_list):
+                    frame_fname = f"storyboard/{project_id}/panel_{req.panel_number}_frame_{fi+1}.png"
+                    frame_url = _upload_to_storage(fb, frame_fname, "image/png")
+                    frames.append({
+                        "frame_number": fi + 1,
+                        "image_url": frame_url,
+                        "label": frame_labels[fi] if fi < len(frame_labels) else f"Frame {fi+1}",
+                    })
+
                 _s, _p, _proj = _get_project(tenant["id"], project_id)
                 if _proj:
                     for p in _proj.get("storyboard_panels", []):
                         if p.get("scene_number") == req.panel_number:
                             p["image_url"] = image_url
+                            p["frames"] = frames
                             p["status"] = "done"
                             p["generated_at"] = datetime.now(timezone.utc).isoformat()
                     _save_project(tenant["id"], _s, _p)

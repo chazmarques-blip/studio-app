@@ -53,7 +53,7 @@ def _generate_panel_image(
 
     lang_name = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, "Portuguese")
 
-    prompt_text = f"""Generate a SINGLE high-quality storyboard illustration panel for an animated film.
+    prompt_text = f"""Generate a STORYBOARD SHEET with 6 panels arranged in a 2x3 grid (2 columns, 3 rows) for this animated film scene.
 
 SCENE {scene_num}: {title}
 DESCRIPTION: {description}
@@ -65,14 +65,23 @@ DIALOGUE: {dialogue}
 CHARACTER IDENTITY (ABSOLUTE TRUTH — match reference images EXACTLY):
 {char_desc_block if char_desc_block else 'Use scene description for character appearance.'}
 
+THE 6 PANELS MUST SHOW DIFFERENT KEY MOMENTS OF THIS SAME SCENE:
+- Panel 1 (top-left): ESTABLISHING SHOT — wide angle showing the environment and character positions
+- Panel 2 (top-right): CHARACTER CLOSE-UP — focused on the main character's face/expression
+- Panel 3 (middle-left): ACTION MOMENT — the key action or gesture in the scene
+- Panel 4 (middle-right): REACTION SHOT — other characters reacting to the action
+- Panel 5 (bottom-left): DRAMATIC ANGLE — low or high angle for dramatic emphasis
+- Panel 6 (bottom-right): TRANSITION — a moment that bridges to the next scene
+
 CRITICAL RULES:
-- This is a STORYBOARD PANEL — a single static illustration capturing the key moment of this scene
-- Every character MUST match the reference avatar images EXACTLY (species, face, fur color, clothing, posture)
+- Generate EXACTLY ONE IMAGE containing a 2x3 GRID of 6 illustration panels
+- Each panel must be the SAME SIZE and clearly separated by thin black borders
+- ALL 6 panels must show the SAME characters from the SAME scene but from DIFFERENT angles/moments
+- Characters MUST match reference images EXACTLY (species, face, fur color, clothing, posture)
 - If a character is BIPEDAL ANTHROPOMORPHIC in the reference, show them STANDING UPRIGHT — never as quadruped
-- ONLY include characters listed above — DO NOT add random extra animals or characters
 - Style: 3D CGI Pixar quality with volumetric lighting, soft shadows, cinematic composition
-- Composition should be like a film storyboard frame — clear focal point, dramatic angle
-- DO NOT include any text, speech bubbles, or captions in the image
+- DO NOT include any text, numbers, labels, or speech bubbles in the image
+- The grid layout must be clean and uniform — all 6 panels equal size
 - Language context: {lang_name}"""
 
     ref_images = []
@@ -118,6 +127,42 @@ CRITICAL RULES:
         result = asyncio.run(_gen())
 
     return result
+
+
+def _split_grid_into_frames(grid_bytes: bytes) -> list:
+    """Split a 2x3 grid image into 6 individual frames.
+
+    Returns list of 6 image bytes (PNG). If split fails, returns [grid_bytes] as fallback.
+    """
+    from PIL import Image as PILImage
+    import io
+
+    try:
+        img = PILImage.open(io.BytesIO(grid_bytes))
+        w, h = img.size
+
+        # 2 columns, 3 rows
+        cols, rows = 2, 3
+        fw = w // cols
+        fh = h // rows
+
+        frames = []
+        for row in range(rows):
+            for col in range(cols):
+                left = col * fw
+                top = row * fh
+                right = left + fw
+                bottom = top + fh
+                frame = img.crop((left, top, right, bottom))
+                buf = io.BytesIO()
+                frame.save(buf, format='PNG')
+                frames.append(buf.getvalue())
+
+        logger.info(f"Split grid {w}x{h} into {len(frames)} frames ({fw}x{fh} each)")
+        return frames
+    except Exception as e:
+        logger.warning(f"Grid split failed: {e}, returning full image as single frame")
+        return [grid_bytes]
 
 
 def generate_all_panels(
@@ -190,10 +235,27 @@ def generate_all_panels(
                 )
 
                 image_url = None
+                frames = []
                 if img_bytes and upload_fn:
-                    fname = f"storyboard/{project_id}/panel_{scene_num}.png"
+                    # Upload the full grid image
+                    fname = f"storyboard/{project_id}/panel_{scene_num}_grid.png"
                     image_url = upload_fn(img_bytes, fname, "image/png")
-                    logger.info(f"Storyboard [{project_id}]: Panel {scene_num} uploaded ({len(img_bytes)//1024}KB)")
+
+                    # Split into 6 frames
+                    frame_bytes_list = _split_grid_into_frames(img_bytes)
+                    frame_labels = [
+                        "Plano Geral", "Close-up", "Ação",
+                        "Reação", "Ângulo Dramático", "Transição"
+                    ]
+                    for fi, fb in enumerate(frame_bytes_list):
+                        frame_fname = f"storyboard/{project_id}/panel_{scene_num}_frame_{fi+1}.png"
+                        frame_url = upload_fn(fb, frame_fname, "image/png")
+                        frames.append({
+                            "frame_number": fi + 1,
+                            "image_url": frame_url,
+                            "label": frame_labels[fi] if fi < len(frame_labels) else f"Frame {fi+1}",
+                        })
+                    logger.info(f"Storyboard [{project_id}]: Panel {scene_num} — {len(frames)} frames uploaded")
 
                 return {
                     "scene_number": scene_num,
@@ -204,6 +266,7 @@ def generate_all_panels(
                     "camera": scene.get("camera", ""),
                     "characters_in_scene": scene.get("characters_in_scene", []),
                     "image_url": image_url,
+                    "frames": frames,
                     "status": "done" if image_url else "error",
                     "generated_at": datetime.now(timezone.utc).isoformat(),
                 }
