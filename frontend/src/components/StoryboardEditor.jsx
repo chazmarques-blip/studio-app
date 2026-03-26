@@ -4,7 +4,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
-  Sparkles, ChevronRight, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush
+  Sparkles, ChevronRight, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
+  Languages, ScanSearch, Zap, Globe
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { StoryboardPreview } from './StoryboardPreview';
@@ -51,6 +52,15 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [bookCover, setBookCover] = useState(null);
   const [bookTitle, setBookTitle] = useState('');
   const [exportingPdf, setExportingPdf] = useState(false);
+  // Language Agent states
+  const [targetLang, setTargetLang] = useState('en');
+  const [converting, setConverting] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewResult, setReviewResult] = useState(null);
+  // Smart Editor states
+  const [smartMode, setSmartMode] = useState(true);
+  const [analyzing, setAnalyzing] = useState(null);
+  const [sceneAnalysis, setSceneAnalysis] = useState({});
   const getSelectedFrame = (panelNum, frames) => {
     const idx = selectedFrames[panelNum] || 0;
     return frames?.[idx] || null;
@@ -321,14 +331,20 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     const frameIdx = selectedFrames[panelNum] || 0;
     const currentPanel = panels.find(p => p.scene_number === panelNum);
     const currentFrameUrl = currentPanel?.frames?.[frameIdx]?.image_url || currentPanel?.image_url;
+
+    const endpoint = smartMode ? 'smart-edit' : 'edit-element';
+    const payload = {
+      panel_number: panelNum,
+      edit_instruction: inpaintPrompt.trim(),
+      frame_index: frameIdx,
+    };
+
     try {
-      const res = await axios.post(`${API}/studio/projects/${projectId}/storyboard/edit-element`, {
-        panel_number: panelNum,
-        edit_instruction: inpaintPrompt.trim(),
-        frame_index: frameIdx,
-      });
+      const res = await axios.post(`${API}/studio/projects/${projectId}/storyboard/${endpoint}`, payload);
       if (res.data.status === 'editing') {
-        toast.success(lang === 'pt' ? 'Editando elemento...' : 'Editing element...');
+        toast.success(smartMode
+          ? (lang === 'pt' ? 'Analisando cena e editando...' : 'Analyzing scene and editing...')
+          : (lang === 'pt' ? 'Editando elemento...' : 'Editing element...'));
         const pollInpaint = () => {
           axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r => {
             const updatedPanel = (r.data.panels || []).find(p => p.scene_number === panelNum);
@@ -353,6 +369,79 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Erro');
       setInpaintLoading(false);
+    }
+  };
+
+  // Smart Editor — analyze scene
+  const analyzeScene = async (panelNum) => {
+    const frameIdx = selectedFrames[panelNum] || 0;
+    setAnalyzing(panelNum);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/storyboard/analyze-scene`, {
+        panel_number: panelNum,
+        frame_index: frameIdx,
+      });
+      setSceneAnalysis(prev => ({ ...prev, [`${panelNum}-${frameIdx}`]: res.data }));
+      toast.success(lang === 'pt'
+        ? `${(res.data.characters || []).length} personagens, ${(res.data.objects || []).length} objetos detectados`
+        : `${(res.data.characters || []).length} characters, ${(res.data.objects || []).length} objects detected`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro na analise');
+    } finally {
+      setAnalyzing(null);
+    }
+  };
+
+  // Language Agent — convert
+  const convertLanguage = async () => {
+    setConverting(true);
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/language/convert`, { target_lang: targetLang });
+      toast.success(lang === 'pt' ? 'Convertendo idioma...' : 'Converting language...');
+      const pollLang = () => {
+        axios.get(`${API}/studio/projects/${projectId}/language/status`).then(r => {
+          const st = r.data.language_status;
+          if (st?.phase === 'done') {
+            setConverting(false);
+            toast.success(lang === 'pt' ? `${st.count} cenas convertidas!` : `${st.count} scenes converted!`);
+            axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r2 => setPanels(r2.data.panels || []));
+          } else if (st?.phase === 'error') {
+            setConverting(false);
+            toast.error(st.detail || 'Erro');
+          } else { setTimeout(pollLang, 4000); }
+        }).catch(() => setTimeout(pollLang, 5000));
+      };
+      setTimeout(pollLang, 5000);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro na conversao');
+      setConverting(false);
+    }
+  };
+
+  // Language Agent — review
+  const reviewText = async () => {
+    setReviewing(true);
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/language/review`);
+      toast.success(lang === 'pt' ? 'Revisando texto...' : 'Reviewing text...');
+      const pollReview = () => {
+        axios.get(`${API}/studio/projects/${projectId}/language/status`).then(r => {
+          const st = r.data.review_status;
+          if (st?.phase === 'done') {
+            setReviewing(false);
+            setReviewResult({ overall_quality: st.quality, revision_notes: st.notes });
+            toast.success(lang === 'pt' ? `Revisao: ${st.quality}` : `Review: ${st.quality}`);
+            axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r2 => setPanels(r2.data.panels || []));
+          } else if (st?.phase === 'error') {
+            setReviewing(false);
+            toast.error(st.detail || 'Erro');
+          } else { setTimeout(pollReview, 4000); }
+        }).catch(() => setTimeout(pollReview, 5000));
+      };
+      setTimeout(pollReview, 5000);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro na revisao');
+      setReviewing(false);
     }
   };
 
@@ -573,15 +662,78 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     )}
                   </div>
 
-                  {/* Inpainting — Element edit UI */}
-                  {inpaintingPanel === panel.scene_number && (
+                  {/* Inpainting — Element edit UI with Smart Editor */}
+                  {inpaintingPanel === panel.scene_number && (() => {
+                    const frameIdx = selectedFrames[panel.scene_number] || 0;
+                    const analysisKey = `${panel.scene_number}-${frameIdx}`;
+                    const analysis = sceneAnalysis[analysisKey];
+                    return (
                     <div className="px-2 py-1.5 bg-orange-500/5 border-t border-orange-500/20 space-y-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Paintbrush size={10} className="text-orange-400 flex-shrink-0" />
-                        <span className="text-[8px] text-orange-300 font-medium">
-                          {lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}
-                        </span>
+                      {/* Header with Smart mode toggle */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Paintbrush size={10} className="text-orange-400 flex-shrink-0" />
+                          <span className="text-[8px] text-orange-300 font-medium">
+                            {lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {/* Analyze button */}
+                          <button
+                            onClick={() => analyzeScene(panel.scene_number)}
+                            disabled={analyzing === panel.scene_number}
+                            data-testid={`analyze-scene-${panel.scene_number}`}
+                            className="h-5 rounded px-1.5 text-[7px] font-medium bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition disabled:opacity-40 flex items-center gap-1"
+                          >
+                            {analyzing === panel.scene_number ? <FilmSpinner size={8} className="text-cyan-400" /> : <ScanSearch size={8} />}
+                            {lang === 'pt' ? 'Analisar' : 'Analyze'}
+                          </button>
+                          {/* Smart mode toggle */}
+                          <button
+                            onClick={() => setSmartMode(!smartMode)}
+                            data-testid="smart-mode-toggle"
+                            className={`h-5 rounded px-1.5 text-[7px] font-medium flex items-center gap-1 transition ${
+                              smartMode
+                                ? 'bg-purple-500/20 border border-purple-500/40 text-purple-400'
+                                : 'bg-[#1A1A1A] border border-[#333] text-[#555]'
+                            }`}
+                          >
+                            <Zap size={8} />
+                            Smart
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Scene analysis display */}
+                      {analysis && !analysis.error && (
+                        <div className="bg-[#0D0D0D] rounded border border-cyan-500/10 p-1.5 space-y-1 max-h-24 overflow-y-auto">
+                          <div className="text-[7px] text-cyan-400 font-medium flex items-center gap-1">
+                            <ScanSearch size={8} /> {lang === 'pt' ? 'Mapa da Cena' : 'Scene Map'}
+                          </div>
+                          {(analysis.characters || []).map((c, ci) => (
+                            <button key={ci} onClick={() => setInpaintPrompt(c.name)}
+                              className="block w-full text-left text-[7px] px-1 py-0.5 rounded hover:bg-cyan-500/10 transition">
+                              <span className="text-cyan-300">{c.name}</span>
+                              <span className="text-[#555]"> ({c.position}) — {c.expression}, {c.posture}</span>
+                              {c.issues && <span className="text-red-400 text-[6px] block">{c.issues}</span>}
+                            </button>
+                          ))}
+                          {(analysis.objects || []).map((o, oi) => (
+                            <button key={oi} onClick={() => setInpaintPrompt(o.name)}
+                              className="block w-full text-left text-[7px] px-1 py-0.5 rounded hover:bg-cyan-500/10 transition">
+                              <span className="text-yellow-300">{o.name}</span>
+                              <span className="text-[#555]"> ({o.position})</span>
+                            </button>
+                          ))}
+                          {(analysis.quality_issues || []).length > 0 && (
+                            <div className="text-[6px] text-red-400 mt-0.5">
+                              {analysis.quality_issues.map((q, qi) => <div key={qi}>• {q}</div>)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Input row */}
                       <div className="flex gap-1.5 items-center">
                         <input
                           value={inpaintPrompt}
@@ -604,12 +756,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           data-testid={`inpaint-submit-${panel.scene_number}`}
                           className="h-8 rounded-md px-3 py-1.5 text-[9px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1.5 flex-shrink-0"
                         >
-                          {inpaintLoading ? <FilmSpinner size={10} className="text-orange-400" /> : <Paintbrush size={10} />}
-                          {lang === 'pt' ? 'Editar' : 'Edit'}
+                          {inpaintLoading ? <FilmSpinner size={10} className="text-orange-400" /> : (smartMode ? <Zap size={10} /> : <Paintbrush size={10} />)}
+                          {smartMode ? 'Smart Edit' : (lang === 'pt' ? 'Editar' : 'Edit')}
                         </button>
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Text area */}
                   <div className="p-2 space-y-1">
@@ -853,6 +1006,71 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 <p className="text-[9px] text-white font-medium">{bookTitle}</p>
                 <p className="text-[7px] text-[#555]">{lang === 'pt' ? 'Capa gerada' : 'Cover generated'}</p>
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Language Agent */}
+      {panels.length > 0 && doneCount > 0 && !loading && (
+        <div className="rounded-xl border border-[#1A1A1A] bg-[#0A0A0A] p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Globe size={14} className="text-blue-400" />
+            <span className="text-[10px] font-semibold text-blue-400">
+              {lang === 'pt' ? 'Agente de Idioma' : 'Language Agent'}
+            </span>
+            {reviewResult && (
+              <span className="text-[8px] text-emerald-400 ml-auto">
+                {reviewResult.overall_quality}
+              </span>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            {/* Language conversion */}
+            <div className="flex-1 flex gap-1.5 items-center">
+              <select
+                value={targetLang}
+                onChange={e => setTargetLang(e.target.value)}
+                data-testid="target-lang-select"
+                className="h-8 bg-[#111] border border-blue-500/30 rounded-lg px-2 text-[9px] text-white outline-none flex-1"
+              >
+                <option value="en">English</option>
+                <option value="pt">Portugues</option>
+                <option value="es">Espanol</option>
+                <option value="fr">Francais</option>
+                <option value="it">Italiano</option>
+                <option value="de">Deutsch</option>
+                <option value="ja">Japones</option>
+                <option value="ko">Coreano</option>
+                <option value="zh">Chines</option>
+                <option value="ar">Arabe</option>
+              </select>
+              <button onClick={convertLanguage} disabled={converting}
+                data-testid="convert-lang-btn"
+                className="h-8 rounded-lg px-3 text-[9px] font-semibold bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0">
+                {converting ? <FilmSpinner size={10} className="text-blue-400" /> : <Languages size={12} />}
+                {lang === 'pt' ? 'Converter' : 'Convert'}
+              </button>
+            </div>
+
+            {/* Text review */}
+            <button onClick={reviewText} disabled={reviewing}
+              data-testid="review-text-btn"
+              className="h-8 rounded-lg px-3 text-[9px] font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0">
+              {reviewing ? <FilmSpinner size={10} className="text-emerald-400" /> : <Sparkles size={12} />}
+              {lang === 'pt' ? 'Revisar Texto' : 'Review Text'}
+            </button>
+          </div>
+
+          {/* Review results */}
+          {reviewResult && reviewResult.revision_notes?.length > 0 && (
+            <div className="bg-[#0D0D0D] rounded border border-emerald-500/10 p-1.5 max-h-20 overflow-y-auto">
+              {reviewResult.revision_notes.map((note, ni) => (
+                <div key={ni} className="text-[7px] text-[#888] py-0.5">
+                  <span className="text-emerald-400">Cena {note.scene_number}:</span> {note.changes}
+                </div>
+              ))}
             </div>
           )}
         </div>

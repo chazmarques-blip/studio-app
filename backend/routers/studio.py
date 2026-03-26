@@ -1406,6 +1406,303 @@ async def get_preview_status(project_id: str, tenant=Depends(get_current_tenant)
 
 
 
+
+# ══ LANGUAGE AGENT ENDPOINTS ══
+
+@router.post("/projects/{project_id}/language/convert")
+async def convert_project_language(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Convert all project text to target language (background task)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    target_lang = payload.get("target_lang", "en")
+    scenes = project.get("scenes", [])
+    if not scenes:
+        raise HTTPException(status_code=400, detail="No scenes to translate")
+
+    source_lang = project.get("language", "pt")
+
+    # Mark as converting
+    project["language_status"] = {"phase": "converting", "target": target_lang}
+    _save_project(tenant["id"], settings, projects)
+
+    def _bg_convert():
+        try:
+            from core.language_agent import convert_language
+            result = convert_language(
+                scenes=scenes, project_name=project.get("name", ""),
+                source_lang=source_lang, target_lang=target_lang, project_id=project_id,
+            )
+            _s, _p, _proj = _get_project(tenant["id"], project_id)
+            if _proj and "translated_scenes" in result:
+                translated = result["translated_scenes"]
+                for ts in translated:
+                    sn = ts.get("scene_number")
+                    for panel in _proj.get("storyboard_panels", []):
+                        if panel.get("scene_number") == sn:
+                            panel["title"] = ts.get("title", panel.get("title", ""))
+                            panel["description"] = ts.get("description", panel.get("description", ""))
+                            panel["dialogue"] = ts.get("dialogue", panel.get("dialogue", ""))
+                    for scene in _proj.get("scenes", []):
+                        if scene.get("scene_number") == sn:
+                            scene["title"] = ts.get("title", scene.get("title", ""))
+                            scene["description"] = ts.get("description", scene.get("description", ""))
+                            scene["dialogue"] = ts.get("dialogue", scene.get("dialogue", ""))
+                _proj["language"] = target_lang
+                _proj["language_status"] = {"phase": "done", "target": target_lang, "count": len(translated)}
+                _save_project(tenant["id"], _s, _p)
+            else:
+                _s, _p, _proj = _get_project(tenant["id"], project_id)
+                if _proj:
+                    _proj["language_status"] = {"phase": "error", "detail": result.get("error", "Unknown")}
+                    _save_project(tenant["id"], _s, _p)
+        except Exception as e:
+            logger.error(f"Language convert [{project_id}]: {e}")
+
+    thread = threading.Thread(target=_bg_convert, daemon=True)
+    thread.start()
+    return {"status": "converting", "target_lang": target_lang}
+
+
+@router.post("/projects/{project_id}/language/review")
+async def review_project_text(project_id: str, tenant=Depends(get_current_tenant)):
+    """Review and improve text quality (background task)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+    if not scenes:
+        raise HTTPException(status_code=400, detail="No scenes to review")
+
+    lang = project.get("language", "pt")
+
+    project["review_status"] = {"phase": "reviewing"}
+    _save_project(tenant["id"], settings, projects)
+
+    def _bg_review():
+        try:
+            from core.language_agent import review_text_quality
+            result = review_text_quality(
+                scenes=scenes, project_name=project.get("name", ""),
+                lang=lang, project_id=project_id,
+            )
+            _s, _p, _proj = _get_project(tenant["id"], project_id)
+            if _proj and "revised_scenes" in result:
+                revised = result["revised_scenes"]
+                for rs in revised:
+                    sn = rs.get("scene_number")
+                    for panel in _proj.get("storyboard_panels", []):
+                        if panel.get("scene_number") == sn:
+                            if rs.get("title"): panel["title"] = rs["title"]
+                            if rs.get("description"): panel["description"] = rs["description"]
+                            if rs.get("dialogue"): panel["dialogue"] = rs["dialogue"]
+                    for scene in _proj.get("scenes", []):
+                        if scene.get("scene_number") == sn:
+                            if rs.get("title"): scene["title"] = rs["title"]
+                            if rs.get("description"): scene["description"] = rs["description"]
+                            if rs.get("dialogue"): scene["dialogue"] = rs["dialogue"]
+                _proj["review_status"] = {
+                    "phase": "done",
+                    "quality": result.get("overall_quality", ""),
+                    "notes": result.get("revision_notes", []),
+                    "count": len(revised),
+                }
+                try:
+                    _save_project(tenant["id"], _s, _p)
+                    logger.info(f"Language review [{project_id}]: Saved {len(revised)} revisions")
+                except Exception as se:
+                    logger.error(f"Language review [{project_id}]: Save failed: {se}, retrying...")
+                    import time
+                    time.sleep(2)
+                    _s2, _p2, _proj2 = _get_project(tenant["id"], project_id)
+                    if _proj2:
+                        _proj2["review_status"] = _proj["review_status"]
+                        _save_project(tenant["id"], _s2, _p2)
+            else:
+                _s, _p, _proj = _get_project(tenant["id"], project_id)
+                if _proj:
+                    _proj["review_status"] = {"phase": "error", "detail": result.get("error", "Unknown")}
+                    _save_project(tenant["id"], _s, _p)
+        except Exception as e:
+            logger.error(f"Language review [{project_id}]: {e}")
+            try:
+                _s, _p, _proj = _get_project(tenant["id"], project_id)
+                if _proj:
+                    _proj["review_status"] = {"phase": "error", "detail": str(e)[:200]}
+                    _save_project(tenant["id"], _s, _p)
+            except Exception:
+                pass
+
+    thread = threading.Thread(target=_bg_review, daemon=True)
+    thread.start()
+    return {"status": "reviewing"}
+
+
+@router.get("/projects/{project_id}/language/status")
+async def get_language_status(project_id: str, tenant=Depends(get_current_tenant)):
+    """Poll language operation status."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {
+        "language_status": project.get("language_status", {}),
+        "review_status": project.get("review_status", {}),
+    }
+
+
+# ══ SMART IMAGE EDITOR ENDPOINTS ══
+
+@router.post("/projects/{project_id}/storyboard/analyze-scene")
+async def analyze_storyboard_scene(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Analyze a storyboard panel image and return structured scene map."""
+    from core.smart_editor import analyze_scene
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    panel_number = payload.get("panel_number", 1)
+    frame_index = payload.get("frame_index", 0)
+
+    panels = project.get("storyboard_panels", [])
+    panel = next((p for p in panels if p.get("scene_number") == panel_number), None)
+    if not panel:
+        raise HTTPException(status_code=404, detail="Panel not found")
+
+    # Get the image to analyze
+    frames = panel.get("frames", [])
+    if frames and 0 <= frame_index < len(frames):
+        image_url = frames[frame_index].get("image_url", panel.get("image_url"))
+    else:
+        image_url = panel.get("image_url")
+
+    if not image_url:
+        raise HTTPException(status_code=400, detail="No image to analyze")
+
+    scene_context = {
+        "title": panel.get("title", ""),
+        "description": panel.get("description", ""),
+        "characters_in_scene": panel.get("characters_in_scene", []),
+        "emotion": panel.get("emotion", ""),
+    }
+
+    analysis = analyze_scene(
+        image_url=image_url,
+        project_id=project_id,
+        panel_number=panel_number,
+        scene_context=scene_context,
+    )
+
+    # Cache analysis in panel
+    for p in panels:
+        if p.get("scene_number") == panel_number:
+            p_frames = p.get("frames", [])
+            if p_frames and 0 <= frame_index < len(p_frames):
+                p_frames[frame_index]["scene_analysis"] = analysis
+            else:
+                p["scene_analysis"] = analysis
+    _save_project(tenant["id"], settings, projects)
+
+    return analysis
+
+
+@router.post("/projects/{project_id}/storyboard/smart-edit")
+async def smart_edit_panel(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Edit a panel using scene-aware intelligence."""
+    from core.smart_editor import analyze_scene, smart_edit
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    panel_number = payload.get("panel_number", 1)
+    frame_index = payload.get("frame_index", 0)
+    edit_instruction = payload.get("edit_instruction", "")
+    if not edit_instruction:
+        raise HTTPException(status_code=400, detail="No edit instruction")
+
+    panels = project.get("storyboard_panels", [])
+    panel = next((p for p in panels if p.get("scene_number") == panel_number), None)
+    if not panel:
+        raise HTTPException(status_code=404, detail="Panel not found")
+
+    frames = panel.get("frames", [])
+    if frames and 0 <= frame_index < len(frames):
+        image_url = frames[frame_index].get("image_url", panel.get("image_url"))
+        cached_analysis = frames[frame_index].get("scene_analysis")
+    else:
+        image_url = panel.get("image_url")
+        cached_analysis = panel.get("scene_analysis")
+
+    if not image_url:
+        raise HTTPException(status_code=400, detail="No image to edit")
+
+    # Mark as editing
+    for p in panels:
+        if p.get("scene_number") == panel_number:
+            p["status"] = "generating"
+    _save_project(tenant["id"], settings, projects)
+
+    def _bg_smart_edit():
+        try:
+            # Step 1: Get or create scene analysis
+            analysis = cached_analysis
+            if not analysis or "error" in analysis:
+                analysis = analyze_scene(
+                    image_url=image_url,
+                    project_id=project_id,
+                    panel_number=panel_number,
+                    scene_context={
+                        "title": panel.get("title", ""),
+                        "description": panel.get("description", ""),
+                        "characters_in_scene": panel.get("characters_in_scene", []),
+                        "emotion": panel.get("emotion", ""),
+                    },
+                )
+
+            # Step 2: Smart edit with analysis context
+            result_bytes = smart_edit(
+                image_url=image_url,
+                edit_instruction=edit_instruction,
+                scene_analysis=analysis,
+                project_id=project_id,
+                panel_number=panel_number,
+                lang=project.get("language", "pt"),
+            )
+
+            if result_bytes:
+                fname = f"storyboard/{project_id}/panel_{panel_number}_frame_{frame_index + 1}_smart.png"
+                new_url = _upload_to_storage(result_bytes, fname, "image/png")
+                _s, _p, _proj = _get_project(tenant["id"], project_id)
+                if _proj:
+                    for p in _proj.get("storyboard_panels", []):
+                        if p.get("scene_number") == panel_number:
+                            p_frames = p.get("frames", [])
+                            if p_frames and 0 <= frame_index < len(p_frames):
+                                p_frames[frame_index]["image_url"] = new_url
+                                p_frames[frame_index]["scene_analysis"] = analysis
+                            if frame_index == 0 or not p_frames:
+                                p["image_url"] = new_url
+                            p["status"] = "done"
+                            p["last_edit"] = f"[Smart] {edit_instruction}"
+                            p["generated_at"] = datetime.now(timezone.utc).isoformat()
+                    _save_project(tenant["id"], _s, _p)
+            else:
+                _s, _p, _proj = _get_project(tenant["id"], project_id)
+                if _proj:
+                    for p in _proj.get("storyboard_panels", []):
+                        if p.get("scene_number") == panel_number:
+                            p["status"] = "error"
+                    _save_project(tenant["id"], _s, _p)
+        except Exception as e:
+            logger.error(f"SmartEdit [{project_id}]: Panel {panel_number} failed: {e}")
+
+    thread = threading.Thread(target=_bg_smart_edit, daemon=True)
+    thread.start()
+
+    return {"status": "editing", "panel_number": panel_number, "mode": "smart"}
+
+
 # ══ BOOK EXPORT ENDPOINTS ══
 
 @router.post("/projects/{project_id}/book/generate-cover")
