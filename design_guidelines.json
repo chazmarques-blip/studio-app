@@ -1,151 +1,111 @@
 {
-  "design_strategy": {
-    "theme": "Dark Luxury Tech",
-    "core_colors": {
-      "background": "#070707",
-      "surface": "#0C0C0C",
-      "surface_highlight": "#141414",
-      "border": "#1E1E1E",
-      "primary": "#C9A84C",
-      "primary_glow": "rgba(201, 168, 76, 0.15)",
-      "text_primary": "#FFFFFF",
-      "text_secondary": "#888888",
-      "text_muted": "#555555"
+  "project_name": "AgentZZ Directed Studio Mode - Step 5 Redesign",
+  "theme": "dark",
+  "archetype": "5 (Jewel & Luxury)",
+  "design_philosophy": "Cinematic Director's Cut. Organize the chaos of production into an elegant, prioritized showcase. Deep blacks, sharp 1px borders, high contrast. Tension between classic cinema (Serif) and digital utility (Mono/Sans).",
+  "color_palette": {
+    "background": {
+      "primary": "#000000",
+      "secondary": "#0A0A0A",
+      "surface": "rgba(10, 10, 10, 0.7)"
     },
-    "typography": {
-      "headings": {
-        "font": "Inter, sans-serif",
-        "weight": "700",
-        "tracking": "-0.02em",
-        "style": "Modern, tight, authoritative"
-      },
-      "body": {
-        "font": "Inter, sans-serif",
-        "weight": "400",
-        "tracking": "normal",
-        "style": "Clean, legible"
-      },
-      "mono": {
-        "font": "JetBrains Mono, monospace",
-        "usage": "Badges, Overlines, Code snippets, Numbers"
-      }
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "muted": "#52525B"
     },
-    "visual_effects": {
-      "glassmorphism": "backdrop-blur-xl bg-white/5 border border-white/10",
-      "tracing_beam": "Animated gradient border using Framer Motion",
-      "glow": "Box-shadow with primary color (gold) at 15% opacity",
-      "grid_background": "SVG grid pattern with 4% opacity",
-      "noise": "Subtle grain overlay for texture"
+    "accent": {
+      "gold": "#C9A84C",
+      "gold_muted": "rgba(201, 168, 76, 0.2)",
+      "emerald": "#10B981",
+      "amber": "#F59E0B",
+      "red": "#EF4444",
+      "blue": "#3B82F6",
+      "purple": "#8B5CF6"
     }
   },
-  "layout_structure": {
-    "type": "Vertical Sections",
-    "spacing": "Generous (py-24, gap-12)",
-    "container": "max-w-7xl mx-auto px-6",
-    "responsive": "Mobile-first, stack on mobile, grid on desktop"
+  "typography": {
+    "heading_font": "Cormorant Garamond, serif",
+    "body_font": "Manrope, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "scale": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl tracking-tighter font-serif leading-none",
+      "h2": "text-xl sm:text-2xl lg:text-3xl tracking-tight font-serif",
+      "h3": "text-lg font-serif",
+      "body": "text-sm sm:text-base font-sans leading-relaxed text-zinc-300",
+      "label": "text-[10px] sm:text-xs font-mono tracking-widest uppercase text-zinc-500",
+      "status": "text-[10px] sm:text-xs font-mono tracking-wider"
+    }
+  },
+  "layout_strategy": {
+    "global": "Mobile-first stacked grid. Deep generous padding (`p-6` to `p-8`) inside containers to let content breathe. Avoid generic Bootstrap-style equal columns.",
+    "pipeline_navigation": "A minimalist 'timeline' track. Active step glows gold, completed steps are stark white, future steps are deep gray. Hide text labels on mobile, showing only current step. Avoid bulky pills.",
+    "step_4_production": "Sterile 'Control Room' grid tracking rendering progress per scene. Focus on data density, monospace time estimates, and clear status badges.",
+    "step_5_result": "A 'Deliverables Showcase' bento layout. 1. The Hero Card (O Filme Completo) takes full width at the top. 2. A dense grid for secondary products (Dublado, Narrado, Livros). 3. A horizontal cinematic scroll for individual scenes."
   },
   "components": {
-    "Hero": {
-      "structure": "Split Screen (Text Left, Visual Right)",
-      "visuals": {
-        "badge": "Pill shape, glass background, gold border, mono font",
-        "title": "Large (text-5xl md:text-7xl), tight tracking, gold gradient on key phrase",
-        "cta_group": "Row of buttons: Solid Gold (Primary) + Outline/Glass (Secondary)",
-        "stats": "Horizontal flex, minimal separators, mono numbers"
-      },
-      "interactive_element": {
-        "type": "LiveChatDemo",
-        "style": "Floating glass container with 'Tracing Beam' border effect",
-        "animation": "Float animation (y-axis sine wave)"
-      }
+    "cards": {
+      "base": "relative backdrop-blur-2xl bg-black/60 border border-white/5 rounded-none sm:rounded-xl overflow-hidden group",
+      "hero": "border-gold/30 hover:border-gold/60 transition-colors duration-500. Large 16:9 media area with a dark gradient overlay (`bg-gradient-to-t from-black/80 via-black/20 to-transparent`).",
+      "interactive": "Hover state: subtle lift (`-translate-y-1`), inner border glow (`shadow-[inset_0_0_20px_rgba(201,168,76,0.05)]`)."
     },
-    "Channels": {
-      "structure": "Marquee or Dense Grid",
-      "style": "Tech Grid - 1px dark borders, glowing intersections on hover",
-      "card_style": "Minimal, icon centered, mono label"
+    "buttons": {
+      "primary_gold": "bg-[#C9A84C] text-black font-semibold hover:bg-white transition-colors duration-300 rounded-sm px-6 py-2.5 text-sm uppercase tracking-wide",
+      "secondary": "bg-transparent border border-white/10 text-white hover:bg-white/5 transition-colors duration-300 rounded-sm px-4 py-2.5 text-sm font-sans",
+      "icon_floating": "absolute bottom-4 right-4 h-10 w-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white hover:border-gold hover:text-gold flex items-center justify-center transition-all z-10"
     },
-    "Agents_Marketplace": {
-      "structure": "Interactive Showcase",
-      "layout": "Left: List of Agents (Vertical Tabs) | Right: Agent Preview Card (3D/Tilt effect)",
-      "interaction": "Hovering/Clicking a name updates the preview card instantly"
-    },
-    "Features": {
-      "structure": "Bento Grid",
-      "grid_config": "grid-cols-1 md:grid-cols-3 auto-rows-min",
-      "cards": [
-        { "span": "col-span-1 md:col-span-2", "content": "Omnichannel" },
-        { "span": "col-span-1", "content": "Analytics" },
-        { "span": "col-span-1", "content": "Multi-language" },
-        { "span": "col-span-1 md:col-span-2", "content": "CRM Integration" }
-      ]
-    },
-    "Pricing": {
-      "structure": "4-Column Grid",
-      "highlight": "Pro Plan (3rd item)",
-      "card_style": "Glass panels. Pro plan has a permanent gold glow and a 'Best Value' floating badge.",
-      "toggle": "Pill shape toggle for Monthly/Annual"
-    },
-    "Footer": {
-      "structure": "Minimal, single row flex",
-      "elements": "Logo, Social Icons (Monochrome), Copyright"
+    "status_indicators": {
+      "done": "flex items-center gap-2 text-emerald-400 before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-emerald-400 before:shadow-[0_0_8px_rgba(16,185,129,0.5)]",
+      "processing": "flex items-center gap-2 text-amber-400 animate-pulse before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-amber-400 before:shadow-[0_0_8px_rgba(245,158,11,0.5)]",
+      "error": "flex items-center gap-2 text-red-400 before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-red-400 before:shadow-[0_0_8px_rgba(239,68,68,0.5)]"
     }
   },
-  "data_mapping": {
-    "translations": {
-      "hero_title_1": "landing.hero_title_1",
-      "hero_title_2": "landing.hero_title_2",
-      "hero_subtitle": "landing.hero_subtitle",
-      "hero_cta": "landing.hero_cta",
-      "badge": "landing.badge",
-      "watch_demo": "landing.watch_demo"
+  "view_architecture": [
+    {
+      "name": "PipelineNavigation",
+      "purpose": "Track progress across the 5 steps: Roteiro, Personagens, Storyboard, Produção, Resultado.",
+      "implementation": "Render as a thin horizontal progress line (1px) connecting small nodes. Active node is gold, others white/gray. Below the active node, display the step name in `font-serif`."
     },
-    "stats": [
-      { "value": "22+", "label_key": "Agentes IA / AI Agents" },
-      { "value": "5", "label_key": "Canais / Channels" },
-      { "value": "3", "label_key": "Idiomas / Languages" },
-      { "value": "24/7", "label_key": "Disponivel / Available" }
-    ],
-    "channels": [
-      "WhatsApp", "Instagram", "Messenger", "Telegram", "SMS"
-    ],
-    "agents": [
-      { "name": "Sofia", "role": "Sales" },
-      { "name": "Roberto", "role": "Support" },
-      { "name": "Ana", "role": "Scheduling" },
-      { "name": "Marina", "role": "Onboarding" }
-    ],
-    "features": [
-      "landing.feat_agents", "landing.feat_omni", "landing.feat_multi", "landing.feat_lang", "landing.feat_crm", "landing.feat_analytics"
-    ],
-    "pricing_tiers": [
-      "landing.plan_free", "landing.plan_starter", "landing.plan_pro", "landing.plan_enterprise"
-    ]
+    {
+      "name": "ResultadoShowcase",
+      "purpose": "The main Step 5 view. Transforms the flat list into a professional product handoff.",
+      "implementation": "1. Hero Section: 'O Filme Completo' - A 16:9 cinematic card with primary play/download actions. 2. Bento Grid: 2-column layout (on sm+) for 'Vídeo Narrado', 'Vídeo Dublado', 'Livro Animado', 'Storyboard PDF'. 3. Horizontal Scroll: 'Cenas Individuais' thumbnails mapped dynamically from the outputs array."
+    },
+    {
+      "name": "PostProductionDrawer",
+      "purpose": "Panel for voice selection, music, localization, subtitles.",
+      "implementation": "Use a Shadcn Sheet (bottom drawer on mobile, right side on desktop) or a minimal Accordion to hide these technical tweaks. Do not clutter the main deliverable showcase. Use a button like 'Ajustes de Pós-Produção' to trigger it."
+    }
+  ],
+  "micro_interactions": {
+    "hover_image": "Thumbnail images inside cards should scale up slightly (`scale-105`) with a smooth 500ms duration on parent group hover.",
+    "loading_state": "Replace standard spinners with a cinematic 'tracing line' (an animated 1px border) or a minimal data-loading text ticker (`[RENDERIZANDO...]`)."
   },
-  "asset_urls": {
-    "logo": "/logo-agentzz.png",
-    "hero_image": "/hero-person-robot.png"
+  "media": {
+    "images": [
+      {
+        "category": "hero_placeholder",
+        "url": "https://images.pexels.com/photos/3379943/pexels-photo-3379943.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Cinematic dark studio photo. Use as a fallback poster for 'O Filme Completo' if no video thumbnail is available."
+      },
+      {
+        "category": "scene_placeholder",
+        "url": "https://images.unsplash.com/photo-1698533188477-5fd401563eaa?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwxfHxkYXJrJTIwY2luZW1hdGljJTIwZmlsbSUyMHN0dWRpb3xlbnwwfHx8fDE3NzQ1NjEwNTN8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Moody, dark placeholder for individual scene video cards."
+      }
+    ],
+    "icons": "Use lucide-react. Force thin strokes (`strokeWidth={1.2}`) for a sharper, high-end feel."
+  },
+  "accessibility": {
+    "contrast": "Ensure pure white text has sufficient contrast against `#0A0A0A`. Hero thumbnails MUST have a bottom gradient overlay (`bg-gradient-to-t from-black/80 to-transparent`) so overlaid titles are readable.",
+    "testing": "All interactive elements MUST include `data-testid` attributes (e.g., `data-testid=\"download-filme-completo\"`, `data-testid=\"open-post-production-drawer\"`)."
   },
   "instructions_to_main_agent": [
-    "Create a new file `/app/frontend/src/pages/LandingV2.jsx`.",
-    "Copy ALL imports and the `LiveChatDemo` component from `Landing.jsx` exactly as is (functionality must be identical).",
-    "Implement the new design using the `Dark Luxury Tech` theme.",
-    "Use `framer-motion` for entrance animations (fade-in-up) and hover effects (scale, glow).",
-    "Use `lucide-react` icons as provided in the original file.",
-    "Maintain all `data-testid` attributes for testing.",
-    "Ensure `useTranslation` hooks are used exactly as in the original file.",
-    "Do not use gradients for backgrounds (except subtle glowing orbs). Use solid dark colors with high-contrast borders.",
-    "For the 'Tech Grid' background, create a simple SVG pattern component.",
-    "Ensure the 'LiveChatDemo' is wrapped in a glass container with a gold border glow.",
-    "Replace the standard `img` tags with optimized styling (rounded-xl, border-gold/20).",
-    "Make sure the page is fully responsive (stacking order on mobile)."
-  ],
-  "universal_guidelines": [
-    "Do not make generic centered layouts.",
-    "Create depth through layered design elements (z-index).",
-    "Use glass-morphism effects with backdrop filters.",
-    "Every interaction needs micro-animations.",
-    "Use 2-3x more spacing than feels comfortable.",
-    "CRITICAL: NO EMOJIS in the UI (use Lucide icons instead).",
-    "Follow existing shadcn/ui patterns for components."
+    "1. Inject Google Fonts into the CSS file: `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=JetBrains+Mono:wght@400&family=Manrope:wght@300;400;500;600&display=swap');`",
+    "2. Update `tailwind.config.js` to map these fonts: `serif` -> Cormorant Garamond, `sans` -> Manrope, `mono` -> JetBrains Mono. Ensure gold accent `#C9A84C` is configured.",
+    "3. Restructure the `Resultado` (Step 5) component. Filter the `outputs` array. The item with `label === 'complete'` becomes the Hero Card. The remaining items become the 'Cenas Individuais' carousel.",
+    "4. Build the secondary products grid (Storyboard PDF, Livro Animado, Narrado, Dublado). Wire these to their respective routes (`/api/studio/projects/{id}/book/pdf`, `/book/{projectId}`).",
+    "5. Encapsulate the `PostProduction` component inside a Shadcn Sheet or Accordion to clean up the UI hierarchy.",
+    "6. Redesign the 5-step navigation bar at the top to look like a minimal timeline, replacing large pills with subtle nodes and a 1px connecting track."
   ]
 }
