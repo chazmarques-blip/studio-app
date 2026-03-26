@@ -51,14 +51,28 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
   - Expand panel for detailed view
 - **AI Facilitator Chat** — sidebar chat powered by Claude that interprets natural language commands to edit panels
 - **Approve Storyboard** flow — must approve before proceeding to video production
-- Backend module: `/app/backend/core/storyboard.py` (generate_all_panels, facilitator_chat)
-- 6 new endpoints in `/app/backend/routers/studio.py`:
-  - POST /generate-storyboard
-  - GET /storyboard
-  - POST /storyboard/regenerate-panel
-  - PATCH /storyboard/edit-panel
-  - PATCH /storyboard/approve
-  - POST /storyboard/chat
+- Backend module: `/app/backend/core/storyboard.py`
+- 6 new endpoints in `/app/backend/routers/studio.py`
+
+### Phase 7.5: Animated Preview (Complete - 2026-03-26)
+- **Interactive Browser Slideshow** (`StoryboardPreview.jsx`):
+  - Ken Burns CSS animations (zoom-in, pan, zoom-out) alternating per panel
+  - Fade transitions between panels (800ms)
+  - Synchronized dialogue subtitles with character names
+  - Play/Pause/Skip Back/Skip Forward controls
+  - Segmented progress bar with panel dots
+  - Toggle subtitles on/off ("Legendas")
+  - Fullscreen mode
+  - Keyboard shortcuts (Space, Arrow keys, F, Escape)
+  - Rendered via React createPortal for z-index isolation
+- **MP4 Export with Narration** (`preview_generator.py`):
+  - ElevenLabs multilingual narration per panel (Daniel voice, Portuguese)
+  - FFmpeg Ken Burns video effect per panel (1920x1080, 30fps)
+  - Cinematic background music mixing (0.15 volume)
+  - Parallel panel rendering
+  - Upload to Supabase Storage
+  - 2 new endpoints: generate-preview + preview-status
+  - **Tested:** 17.7MB MP4 generated successfully
 
 ---
 
@@ -70,7 +84,7 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 ### P1
 - Storybook Export (export storyboard as static PDF/image book)
 - Storyboard-to-Video integration (feed approved panels to Sora 2)
-- Refactor `studio.py` (~4000 lines) into modular services
+- Refactor `studio.py` (~4400 lines) into modular services
 - Fix hot-reload killing background tasks
 
 ### P2
@@ -85,11 +99,37 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 
 ---
 
+## Code Architecture
+```
+/app/backend/
+├── core/
+│   ├── storyboard.py         # Storyboard generation + AI Facilitator
+│   ├── preview_generator.py  # MP4 preview with FFmpeg + ElevenLabs
+│   ├── llm.py               # LLM integrations
+│   └── models.py
+├── routers/
+│   └── studio.py            # ~4400 lines - main studio logic
+├── pipeline/
+│   └── config.py            # Voices, music library, etc.
+/app/frontend/src/
+├── components/
+│   ├── DirectedStudio.jsx    # Main 5-step studio UI
+│   ├── StoryboardEditor.jsx  # Storyboard panel editing + AI Facilitator
+│   ├── StoryboardPreview.jsx # Animated slideshow player
+│   ├── PostProduction.jsx    # Video results + subtitles
+│   └── PreviewBoard.jsx      # Production design preview
+```
+
 ## Known Issues
 - Hot-reload kills background production threads (P1)
-- `studio.py` is ~4300 lines and needs refactoring (P1)
+- `studio.py` is ~4400 lines and needs refactoring (P1)
 - Supabase intermittent connection issues (mitigated with retry logic)
 
 ## Project Health
-- **Running:** Core platform, Directed Studio, Storyboard pipeline, parallel generation, dubbed mode
+- **Running:** Core platform, Directed Studio, Storyboard pipeline, Animated Preview, parallel generation, dubbed mode
 - **Mocked:** External channel integrations (WhatsApp, Telegram, etc.)
+
+## Test Reports
+- `/app/test_reports/iteration_104.json` — Pipeline merging/settings
+- `/app/test_reports/iteration_105.json` — Storyboard endpoints (92% pass)
+- `/app/test_reports/iteration_106.json` — Animated Preview (92% pass, MP4 17.7MB generated)
