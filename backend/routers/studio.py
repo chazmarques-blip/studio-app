@@ -1134,6 +1134,77 @@ async def edit_storyboard_panel(project_id: str, req: StoryboardEditPanelRequest
     return {"status": "ok"}
 
 
+class InpaintElementRequest(BaseModel):
+    panel_number: int
+    edit_instruction: str
+
+
+@router.post("/projects/{project_id}/storyboard/edit-element")
+async def edit_element_inpaint(project_id: str, req: InpaintElementRequest, tenant=Depends(get_current_tenant)):
+    """Edit a specific element in a storyboard panel using AI image editing (Gemini).
+
+    The AI receives the original image + text instruction and generates an edited version
+    that preserves everything except the requested change.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    panels = project.get("storyboard_panels", [])
+    panel = next((p for p in panels if p.get("scene_number") == req.panel_number), None)
+    if not panel or not panel.get("image_url"):
+        raise HTTPException(status_code=400, detail="Panel not found or has no image")
+
+    # Mark as editing
+    for p in panels:
+        if p.get("scene_number") == req.panel_number:
+            p["status"] = "generating"
+    _save_project(tenant["id"], settings, projects)
+
+    def _bg_inpaint():
+        try:
+            from core.storyboard_inpaint import inpaint_element
+            result_bytes = inpaint_element(
+                image_url=panel["image_url"],
+                edit_instruction=req.edit_instruction,
+                project_id=project_id,
+                panel_number=req.panel_number,
+                lang=project.get("language", "pt"),
+            )
+            if result_bytes:
+                fname = f"storyboard/{project_id}/panel_{req.panel_number}_edited.png"
+                image_url = _upload_to_storage(result_bytes, fname, "image/png")
+                _s, _p, _proj = _get_project(tenant["id"], project_id)
+                if _proj:
+                    for p in _proj.get("storyboard_panels", []):
+                        if p.get("scene_number") == req.panel_number:
+                            p["image_url"] = image_url
+                            p["status"] = "done"
+                            p["last_edit"] = req.edit_instruction
+                            p["generated_at"] = datetime.now(timezone.utc).isoformat()
+                    _save_project(tenant["id"], _s, _p)
+                logger.info(f"Inpaint [{project_id}]: Panel {req.panel_number} edited — {req.edit_instruction[:50]}")
+            else:
+                _s, _p, _proj = _get_project(tenant["id"], project_id)
+                if _proj:
+                    for p in _proj.get("storyboard_panels", []):
+                        if p.get("scene_number") == req.panel_number:
+                            p["status"] = "error"
+                    _save_project(tenant["id"], _s, _p)
+        except Exception as e:
+            logger.error(f"Inpaint [{project_id}]: Panel {req.panel_number} failed: {e}")
+            _s, _p, _proj = _get_project(tenant["id"], project_id)
+            if _proj:
+                for p in _proj.get("storyboard_panels", []):
+                    if p.get("scene_number") == req.panel_number:
+                        p["status"] = "error"
+                _save_project(tenant["id"], _s, _p)
+
+    thread = threading.Thread(target=_bg_inpaint, daemon=True)
+    thread.start()
+    return {"status": "editing", "panel_number": req.panel_number}
+
+
 @router.patch("/projects/{project_id}/storyboard/approve")
 async def approve_storyboard(project_id: str, req: StoryboardApproveRequest, tenant=Depends(get_current_tenant)):
     """Approve or unapprove the storyboard."""

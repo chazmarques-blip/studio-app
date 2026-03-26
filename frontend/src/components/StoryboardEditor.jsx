@@ -4,12 +4,18 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
-  Sparkles, ChevronRight, Maximize2, BookOpen, Wand2, Play, Download, Film
+  Sparkles, ChevronRight, Maximize2, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { StoryboardPreview } from './StoryboardPreview';
+import { VoiceInput } from './VoiceInput';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+/* Film reel spinning animation component */
+const FilmSpinner = ({ size = 10, className = '' }) => (
+  <Film size={size} className={`animate-spin ${className}`} style={{ animationDuration: '1.5s' }} />
+);
 
 export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack }) {
   const [panels, setPanels] = useState([]);
@@ -33,6 +39,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [exportingMp4, setExportingMp4] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewStatus, setPreviewStatus] = useState({});
+
+  // Inpainting (Element Edit) states
+  const [inpaintingPanel, setInpaintingPanel] = useState(null);
+  const [inpaintPrompt, setInpaintPrompt] = useState('');
+  const [inpaintLoading, setInpaintLoading] = useState(false);
 
   // Load existing storyboard on mount
   useEffect(() => {
@@ -246,6 +257,44 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     setTimeout(poll, 3000);
   };
 
+  // Inpainting — edit specific element in panel
+  const editElement = async (panelNum) => {
+    if (!inpaintPrompt.trim() || inpaintLoading) return;
+    setInpaintLoading(true);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/storyboard/edit-element`, {
+        panel_number: panelNum,
+        edit_instruction: inpaintPrompt.trim(),
+      });
+      if (res.data.status === 'editing') {
+        toast.success(lang === 'pt' ? 'Editando elemento...' : 'Editing element...');
+        // Poll for the updated panel
+        const pollInpaint = () => {
+          axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r => {
+            const updatedPanel = (r.data.panels || []).find(p => p.scene_number === panelNum);
+            if (updatedPanel?.status === 'done' && updatedPanel?.image_url !== panels.find(p => p.scene_number === panelNum)?.image_url) {
+              setPanels(r.data.panels);
+              setInpaintLoading(false);
+              setInpaintingPanel(null);
+              setInpaintPrompt('');
+              toast.success(lang === 'pt' ? 'Elemento editado!' : 'Element edited!');
+            } else if (updatedPanel?.status === 'error') {
+              setPanels(r.data.panels);
+              setInpaintLoading(false);
+              toast.error(lang === 'pt' ? 'Erro ao editar' : 'Edit failed');
+            } else {
+              setTimeout(pollInpaint, 3000);
+            }
+          }).catch(() => setTimeout(pollInpaint, 4000));
+        };
+        setTimeout(pollInpaint, 3000);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro');
+      setInpaintLoading(false);
+    }
+  };
+
   const doneCount = panels.filter(p => p.image_url).length;
   const totalPanels = panels.length || scenes.length;
 
@@ -305,7 +354,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         <div className="space-y-2">
           <div className="flex items-center justify-between text-[9px]">
             <span className="text-[#999] flex items-center gap-1.5">
-              <RefreshCw size={10} className="animate-spin text-[#C9A84C]" />
+              <FilmSpinner size={10} className="text-[#C9A84C]" />
               {lang === 'pt'
                 ? `Gerando painel ${storyboardStatus.current || '...'}/${storyboardStatus.total || totalPanels}`
                 : `Generating panel ${storyboardStatus.current || '...'}/${storyboardStatus.total || totalPanels}`}
@@ -354,36 +403,85 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   }`}>
                   {/* Image area */}
                   <div className="relative aspect-video bg-[#111] overflow-hidden group">
-                    {panel.image_url ? (
+                    {panel.image_url && !isGenerating ? (
                       <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
                         className="w-full h-full object-cover" />
                     ) : isGenerating ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <RefreshCw size={16} className="text-[#C9A84C] animate-spin" />
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                        <FilmSpinner size={20} className="text-[#C9A84C]" />
+                        <span className="text-[7px] text-[#666]">{lang === 'pt' ? 'Gerando...' : 'Generating...'}</span>
                       </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Image size={20} className="text-[#333]" />
                       </div>
                     )}
-                    {/* Overlay controls */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                      <button onClick={() => setExpandedPanel(isExpanded ? null : panel.scene_number)}
-                        className="h-7 w-7 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-black/90 transition">
-                        <Maximize2 size={10} />
-                      </button>
-                      <button onClick={() => regeneratePanel(panel.scene_number)}
-                        disabled={isGenerating}
-                        data-testid={`regen-panel-${panel.scene_number}`}
-                        className="h-7 w-7 rounded-full bg-black/70 flex items-center justify-center text-[#C9A84C] hover:bg-black/90 transition disabled:opacity-50">
-                        <RefreshCw size={10} className={isGenerating ? 'animate-spin' : ''} />
-                      </button>
-                    </div>
+                    {/* Overlay controls — hide when generating */}
+                    {!isGenerating && panel.image_url && (
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                        <button onClick={() => setExpandedPanel(isExpanded ? null : panel.scene_number)}
+                          className="h-7 w-7 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-black/90 transition">
+                          <Maximize2 size={10} />
+                        </button>
+                        <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
+                          data-testid={`inpaint-panel-${panel.scene_number}`}
+                          className={`h-7 w-7 rounded-full flex items-center justify-center transition ${
+                            inpaintingPanel === panel.scene_number
+                              ? 'bg-orange-500/30 text-orange-400'
+                              : 'bg-black/70 text-orange-400 hover:bg-black/90'
+                          }`}>
+                          <Paintbrush size={10} />
+                        </button>
+                        <button onClick={() => regeneratePanel(panel.scene_number)}
+                          data-testid={`regen-panel-${panel.scene_number}`}
+                          className="h-7 w-7 rounded-full bg-black/70 flex items-center justify-center text-[#C9A84C] hover:bg-black/90 transition">
+                          <Film size={10} />
+                        </button>
+                      </div>
+                    )}
                     {/* Scene number badge */}
                     <span className="absolute top-1 left-1 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
                       {panel.scene_number}
                     </span>
                   </div>
+
+                  {/* Inpainting — Element edit UI */}
+                  {inpaintingPanel === panel.scene_number && (
+                    <div className="px-2 py-1.5 bg-orange-500/5 border-t border-orange-500/20 space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Paintbrush size={10} className="text-orange-400 flex-shrink-0" />
+                        <span className="text-[8px] text-orange-300 font-medium">
+                          {lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <input
+                          value={inpaintPrompt}
+                          onChange={e => setInpaintPrompt(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && editElement(panel.scene_number)}
+                          placeholder={lang === 'pt' ? 'Ex: Remover a corcova do Isaque' : 'Ex: Remove the hump from Isaac'}
+                          data-testid={`inpaint-input-${panel.scene_number}`}
+                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2 py-1 text-[8px] text-white placeholder-[#555] outline-none focus:border-orange-500/50"
+                          disabled={inpaintLoading}
+                        />
+                        <VoiceInput
+                          onResult={text => setInpaintPrompt(prev => prev ? `${prev} ${text}` : text)}
+                          lang={lang}
+                          size={10}
+                          className="h-6 w-6"
+                        />
+                        <button
+                          onClick={() => editElement(panel.scene_number)}
+                          disabled={inpaintLoading || !inpaintPrompt.trim()}
+                          data-testid={`inpaint-submit-${panel.scene_number}`}
+                          className="rounded px-2 py-1 text-[8px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1"
+                        >
+                          {inpaintLoading ? <FilmSpinner size={8} className="text-orange-400" /> : <Paintbrush size={8} />}
+                          {lang === 'pt' ? 'Editar' : 'Edit'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Text area */}
                   <div className="p-2 space-y-1">
@@ -488,7 +586,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             {chatLoading && (
               <div className="flex justify-start">
                 <div className="bg-[#111] border border-[#222] rounded-lg px-3 py-2 flex items-center gap-2">
-                  <RefreshCw size={10} className="animate-spin text-purple-400" />
+                  <FilmSpinner size={10} className="text-purple-400" />
                   <span className="text-[8px] text-[#666]">{lang === 'pt' ? 'Analisando...' : 'Analyzing...'}</span>
                 </div>
               </div>
@@ -504,6 +602,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               data-testid="facilitator-chat-input"
               className="flex-1 bg-[#111] border border-[#333] rounded-lg px-3 py-1.5 text-[10px] text-white placeholder-[#555] outline-none focus:border-purple-500/40"
               disabled={chatLoading} />
+            <VoiceInput
+              onResult={text => setChatInput(prev => prev ? `${prev} ${text}` : text)}
+              lang={lang}
+              size={12}
+              className="h-8 w-8"
+            />
             <button onClick={sendFacilitatorMessage} disabled={chatLoading || !chatInput.trim()}
               data-testid="facilitator-send-btn"
               className="rounded-lg px-3 py-1.5 bg-purple-500/20 border border-purple-500/40 text-purple-300 hover:bg-purple-500/30 transition disabled:opacity-30">
@@ -529,7 +633,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               flex items-center justify-center gap-1.5 disabled:opacity-40">
             {exportingMp4 ? (
               <>
-                <RefreshCw size={10} className="animate-spin" />
+                <FilmSpinner size={10} className="text-purple-400" />
                 {previewStatus.phase === 'narrating'
                   ? `${lang === 'pt' ? 'Narrando' : 'Narrating'} ${previewStatus.current || ''}/${previewStatus.total || ''}`
                   : previewStatus.phase === 'rendering'
