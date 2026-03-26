@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
@@ -60,6 +60,7 @@ export function DirectedStudio({
   const [projectSearch, setProjectSearch] = useState('');
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [showPostProd, setShowPostProd] = useState(false);
+  const [storyboardThumbs, setStoryboardThumbs] = useState([]);
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -141,6 +142,27 @@ export function DirectedStudio({
     if (step === 0) loadProjects();
   }, [step]);
 
+  // Load storyboard thumbnails and project data when entering Step 5
+  useEffect(() => {
+    if (step === 5 && projectId) {
+      // Always fetch full status for Step 5 to ensure we have all data
+      axios.get(`${API}/studio/projects/${projectId}/status`).then(r => {
+        const full = r.data;
+        if (full.scenes?.length > 0 && scenes.length === 0) setScenes(full.scenes);
+        if (full.outputs?.length > 0 && outputs.length === 0) setOutputs(full.outputs);
+        const panels = full.storyboard_panels || [];
+        if (panels.length > 0) {
+          const thumbs = panels.slice(0, 6).map(p => {
+            const f = (p.frames || [])[0];
+            return f?.image_url || p?.image_url || '';
+          }).filter(Boolean);
+          setStoryboardThumbs(thumbs);
+        }
+      }).catch(() => {});
+    }
+  }, [step, projectId]);
+
+
   // Auto-resume in-progress project (only truly running, within last 10 min, and ONLY on first mount)
   const hasAutoResumed = useRef(false);
   useEffect(() => {
@@ -159,48 +181,79 @@ export function DirectedStudio({
   }, [allProjects, projectsLoading]);
 
   // Resume a project from its current step
-  const resumeProject = (proj) => {
+  const resumeProject = async (proj) => {
     setProjectId(proj.id);
     setProjectName(proj.name || '');
     setProjectDesc(proj.briefing || '');
-    setScenes(proj.scenes || []);
-    setCharacters(proj.characters || []);
-    setChatMessages(proj.chat_history || []);
-    setOutputs(proj.outputs || []);
     setCharacterAvatars(proj.character_avatars || {});
     setVisualStyle(proj.visual_style || 'animation');
     setProjectLang(proj.language || 'pt');
-    setNarrations(proj.narrations || []);
-    setNarrationStatus(proj.narration_status || {});
-    setScreenplayApproved(proj.screenplay_approved || false);
     setViewingProject(null);
 
-    if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
-      setStep(4); setGenerating(true); startPolling(proj.id);
-    } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
-      setStep(5); setOutputs(proj.outputs);
-    } else {
-      // Reset generating state in case it was stuck
-      setGenerating(false);
-      setAgentStatus({});
-      // Stop any stale production tracking
-      if (studioCtx?.stopTracking) studioCtx.stopTracking();
-      if ((proj.scenes || []).length > 0) {
-        // If storyboard exists, go to storyboard step
-        if ((proj.storyboard_panels || []).length > 0) {
-          setStep(3);
+    // Load full project data from /status for complete info
+    try {
+      const r = await axios.get(`${API}/studio/projects/${proj.id}/status`);
+      const full = r.data;
+      setScenes(full.scenes || []);
+      setCharacters(full.characters || []);
+      setChatMessages(full.storyboard_chat_history || []);
+      setOutputs(full.outputs || []);
+      setNarrations(full.narrations || []);
+      setNarrationStatus(full.narration_status || {});
+      setScreenplayApproved(full.screenplay_approved || false);
+
+      // Load storyboard thumbnails
+      const panels = full.storyboard_panels || [];
+      if (panels.length > 0) {
+        const thumbs = panels.slice(0, 6).map(p => {
+          const f = (p.frames || [])[0];
+          return f?.image_url || p?.image_url || '';
+        }).filter(Boolean);
+        setStoryboardThumbs(thumbs);
+      }
+
+      const status = full.status || proj.status;
+      const outs = full.outputs || [];
+      if (['starting', 'running_agents', 'generating_video'].includes(status)) {
+        setStep(4); setGenerating(true); startPolling(proj.id);
+      } else if (status === 'complete' && outs.length > 0) {
+        setStep(5); setOutputs(outs);
+      } else {
+        setGenerating(false);
+        setAgentStatus({});
+        if (studioCtx?.stopTracking) studioCtx.stopTracking();
+        const sc = full.scenes || [];
+        if (sc.length > 0) {
+          if (panels.length > 0) {
+            setStep(3);
+          } else {
+            setStep(2);
+          }
+          const existingPD = (full.agents_output || proj.agents_output)?.production_design;
+          if (existingPD && existingPD.character_bible) {
+            setPreviewData({
+              production_design: existingPD,
+              avatar_descriptions: (full.agents_output || proj.agents_output)?.avatar_descriptions,
+              preview_time: full.preview_time || proj.preview_time,
+            });
+          }
         } else {
-          setStep(2);
+          setStep(1);
         }
-        // Load existing preview if available
-        const existingPD = proj.agents_output?.production_design;
-        if (existingPD && existingPD.character_bible) {
-          setPreviewData({
-            production_design: existingPD,
-            avatar_descriptions: proj.agents_output?.avatar_descriptions,
-            preview_time: proj.preview_time,
-          });
-        }
+      }
+    } catch {
+      // Fallback to lightweight proj data
+      setScenes(proj.scenes || []);
+      setCharacters(proj.characters || []);
+      setChatMessages(proj.chat_history || []);
+      setOutputs(proj.outputs || []);
+      setNarrations(proj.narrations || []);
+      setNarrationStatus(proj.narration_status || {});
+      setScreenplayApproved(proj.screenplay_approved || false);
+      if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
+        setStep(4); setGenerating(true); startPolling(proj.id);
+      } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
+        setStep(5);
       } else {
         setStep(1);
       }
@@ -1822,15 +1875,20 @@ export function DirectedStudio({
             </h2>
           </div>
 
-          {outputs.length === 0 && !generating && (
-            <div className="text-center py-10 border border-[#111] rounded-xl">
-              <Film size={28} className="mx-auto text-[#222] mb-3" strokeWidth={1} />
-              <p className="text-sm text-[#444] font-sans">{lang === 'pt' ? 'Aguardando produção...' : 'Waiting for production...'}</p>
-              <button onClick={() => setStep(4)} className="mt-3 text-[10px] font-mono tracking-wider uppercase text-[#C9A84C] hover:underline">
-                {lang === 'pt' ? 'Ir para Produção' : 'Go to Production'}
-              </button>
-            </div>
-          )}
+          {outputs.length === 0 && !generating && scenes.length === 0 && storyboardThumbs.length === 0 && (() => {
+            const proj = allProjects.find(p => p.id === projectId);
+            const hasPanels = (proj?.storyboard_panels || []).length > 0;
+            if (!hasPanels) return (
+              <div className="text-center py-10 border border-[#111] rounded-xl">
+                <Film size={28} className="mx-auto text-[#222] mb-3" strokeWidth={1} />
+                <p className="text-sm text-[#444] font-sans">{lang === 'pt' ? 'Comece criando o roteiro e storyboard' : 'Start by creating the script and storyboard'}</p>
+                <button onClick={() => setStep(1)} className="mt-3 text-[10px] font-mono tracking-wider uppercase text-[#C9A84C] hover:underline">
+                  {lang === 'pt' ? 'Criar Roteiro' : 'Create Script'}
+                </button>
+              </div>
+            );
+            return null;
+          })()}
 
           {/* ── HERO: O Filme Completo ── */}
           {outputs.filter(o => o.label === 'complete').map((out, i) => (
@@ -1858,25 +1916,53 @@ export function DirectedStudio({
           ))}
 
           {/* ── BENTO GRID: Produtos Secundários ── */}
-          {outputs.length > 0 && (
+          {(() => {
+            const thumbs = storyboardThumbs;
+            const sceneCount = scenes.length;
+            const frameCount = sceneCount * 6;
+            const sceneVideos = outputs.filter(o => o.label !== 'complete' && o.url);
+
+            return (
             <div className="grid grid-cols-2 gap-2" data-testid="deliverables-grid">
-              {/* Card: Livro Interativo */}
+              {/* Card: Livro Interativo — with cover thumbnail */}
               <button
                 onClick={() => window.open(`/book/${projectId}`, '_blank')}
                 data-testid="deliverable-livro-interativo"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
               >
-                <div className="w-9 h-9 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center mb-3">
-                  <BookOpen size={18} className="text-[#C9A84C]" strokeWidth={1.2} />
-                </div>
-                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
-                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Interativo' : 'Interactive'}</p>
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <Check size={10} className="text-emerald-400" />
+                {/* Thumbnail background */}
+                {thumbs[0] && (
+                  <div className="relative h-24 overflow-hidden">
+                    <img src={thumbs[0]} alt="" className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <Check size={10} className="text-emerald-400" />
+                    </div>
+                    <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
+                      <BookOpen size={14} className="text-[#C9A84C]" strokeWidth={1.5} />
+                      <span className="text-[9px] font-serif text-white drop-shadow-lg">
+                        {lang === 'pt' ? 'Livro Animado' : 'Animated Book'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div className="p-2.5">
+                  {!thumbs[0] && (
+                    <>
+                      <BookOpen size={18} className="text-[#C9A84C] mb-1.5" strokeWidth={1.2} />
+                      <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
+                    </>
+                  )}
+                  <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                    {sceneCount} {lang === 'pt' ? 'paginas' : 'pages'} • {lang === 'pt' ? 'interativo' : 'interactive'}
+                  </p>
+                  <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-[#C9A84C] group-hover:underline">
+                    {lang === 'pt' ? 'Abrir >' : 'Open >'}
+                  </span>
                 </div>
               </button>
 
-              {/* Card: Storyboard PDF */}
+              {/* Card: Storyboard PDF — with collage */}
               <button
                 onClick={async () => {
                   try {
@@ -1887,29 +1973,118 @@ export function DirectedStudio({
                   } catch { toast.error('Erro ao baixar PDF'); }
                 }}
                 data-testid="deliverable-storyboard-pdf"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
               >
-                <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3">
-                  <Download size={18} className="text-purple-400" strokeWidth={1.2} />
-                </div>
-                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Storyboard PDF' : 'Storyboard PDF'}</p>
-                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Livro Ilustrado' : 'Illustrated Book'}</p>
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <Check size={10} className="text-emerald-400" />
+                {/* Collage of 4 thumbnails */}
+                {thumbs.length >= 2 && (
+                  <div className="relative h-24 overflow-hidden">
+                    <div className="grid grid-cols-2 gap-px h-full">
+                      {thumbs.slice(0, 4).map((t, ti) => (
+                        <img key={ti} src={t} alt="" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+                      ))}
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <Check size={10} className="text-emerald-400" />
+                    </div>
+                    <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
+                      <Download size={14} className="text-purple-400" strokeWidth={1.5} />
+                      <span className="text-[9px] font-serif text-white drop-shadow-lg">Storyboard PDF</span>
+                    </div>
+                  </div>
+                )}
+                <div className="p-2.5">
+                  {thumbs.length < 2 && (
+                    <>
+                      <Download size={18} className="text-purple-400 mb-1.5" strokeWidth={1.2} />
+                      <p className="text-xs font-serif text-white mb-0.5">Storyboard PDF</p>
+                    </>
+                  )}
+                  <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                    {frameCount} {lang === 'pt' ? 'ilustracoes' : 'illustrations'} • PDF
+                  </p>
+                  <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-purple-400 group-hover:underline">
+                    <Download size={8} className="inline mr-1" />Download
+                  </span>
                 </div>
               </button>
+
+              {/* Card: Vídeos por Cena — with scene count and mini thumbnails */}
+              {sceneVideos.length > 0 && (
+                <button
+                  onClick={() => {
+                    const el = document.querySelector('[data-testid="deliverables-cenas"]');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  data-testid="deliverable-cenas-card"
+                  className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
+                >
+                  {/* Film strip preview */}
+                  <div className="relative h-24 overflow-hidden">
+                    <div className="flex h-full">
+                      {thumbs.slice(0, 3).map((t, ti) => (
+                        <div key={ti} className="flex-1 relative">
+                          <img src={t} alt="" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
+                    <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
+                      <Film size={14} className="text-emerald-400" strokeWidth={1.5} />
+                      <span className="text-[9px] font-serif text-white drop-shadow-lg">
+                        {lang === 'pt' ? 'Videos por Cena' : 'Scene Videos'}
+                      </span>
+                    </div>
+                    <div className="absolute top-2 right-2 bg-black/60 rounded-sm px-1.5 py-0.5">
+                      <span className="text-[8px] font-mono text-emerald-400">{sceneVideos.length}</span>
+                    </div>
+                  </div>
+                  <div className="p-2.5">
+                    <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                      {sceneVideos.length} {lang === 'pt' ? 'videos individuais' : 'individual videos'}
+                    </p>
+                    <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-emerald-400 group-hover:underline">
+                      {lang === 'pt' ? 'Ver todos >' : 'View all >'}
+                    </span>
+                  </div>
+                </button>
+              )}
 
               {/* Card: Pós-Produção */}
               <button
                 onClick={() => setShowPostProd(true)}
                 data-testid="deliverable-pos-producao"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500 col-span-2 sm:col-span-1"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
               >
-                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3">
-                  <Clapperboard size={18} className="text-blue-400" strokeWidth={1.2} />
+                <div className="relative h-24 overflow-hidden bg-gradient-to-br from-blue-900/20 to-[#0A0A0A]">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex gap-3">
+                      <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <Volume2 size={12} className="text-blue-400" />
+                      </div>
+                      <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <MessageSquare size={12} className="text-blue-400" />
+                      </div>
+                      <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <Globe size={12} className="text-blue-400" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
+                    <Clapperboard size={14} className="text-blue-400" strokeWidth={1.5} />
+                    <span className="text-[9px] font-serif text-white drop-shadow-lg">
+                      {lang === 'pt' ? 'Pos-Producao' : 'Post-Production'}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</p>
-                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Narração, Dublagem, Legendas' : 'Narration, Dubbing, Subtitles'}</p>
+                <div className="p-2.5">
+                  <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                    {lang === 'pt' ? 'Narracao, Dublagem, Legendas' : 'Narration, Dubbing, Subtitles'}
+                  </p>
+                  <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-blue-400 group-hover:underline">
+                    {lang === 'pt' ? 'Configurar >' : 'Configure >'}
+                  </span>
+                </div>
               </button>
 
               {/* Card: Analytics */}
@@ -1917,16 +2092,26 @@ export function DirectedStudio({
                 onClick={loadAnalytics}
                 disabled={analyticsLoading}
                 data-testid="deliverable-analytics"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500 col-span-2 sm:col-span-1"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500 col-span-2"
               >
-                <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
-                  <BarChart3 size={18} className="text-amber-400" strokeWidth={1.2} />
+                <div className="p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                    <BarChart3 size={20} className="text-amber-400" strokeWidth={1.2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-serif text-white">{lang === 'pt' ? 'Analytics do Projeto' : 'Project Analytics'}</p>
+                    <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                      {sceneCount} {lang === 'pt' ? 'cenas' : 'scenes'} • {frameCount} frames • {sceneVideos.length} {lang === 'pt' ? 'videos' : 'videos'}
+                    </p>
+                  </div>
+                  <span className="text-[8px] font-mono tracking-wider uppercase text-amber-400 flex-shrink-0 group-hover:underline">
+                    {lang === 'pt' ? 'Ver >' : 'View >'}
+                  </span>
                 </div>
-                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Analytics' : 'Analytics'}</p>
-                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Performance do Projeto' : 'Project Performance'}</p>
               </button>
             </div>
-          )}
+            );
+          })()}
 
           {/* ── HORIZONTAL SCROLL: Cenas Individuais ── */}
           {outputs.filter(o => o.label !== 'complete' && o.url).length > 0 && (
