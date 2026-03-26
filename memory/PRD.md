@@ -14,78 +14,72 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 `Roteiro -> Personagens -> Storyboard -> Producao -> Resultado`
 
 ### Storyboard Editavel
-- 6 individual frames per scene (Storybook Pages: Abertura, Tensao, Acao, Reacao, Consequencia, Encerramento)
+- 6 individual frames per scene (Storybook Pages)
 - Gallery/Filmstrip layout with page numbers
 - Visible toolbar (inpaint + regen) — no overlay
 
 ### Smart Image Editor
-- **Scene Analysis**: Gemini Vision scans image → structured map of characters, objects, background, quality issues
-- **Clickable Scene Map**: Elements listed in UI, click to select for editing
-- **Smart Edit**: 2-step pipeline — analyze scene first, then edit with full context → preserves unrelated elements
-- **Toggle**: Smart mode (Zap icon) vs basic inpaint
+- Scene Analysis: Gemini Vision scans image → structured map
+- Clickable Scene Map: Elements listed in UI
+- Smart Edit: 2-step pipeline — analyze then edit
+- Toggle: Smart mode vs basic inpaint
 
 ### Language Agent
-- **Convert**: Translate all scenes to 10 languages (pt, en, es, fr, it, de, ja, ko, zh, ar)
-- **Review**: AI quality review + text improvement (8/10 for test project)
-- Batched processing (5 scenes per Claude call to avoid timeouts)
-- Background tasks with polling status
+- Convert: Translate to 10 languages
+- Review: AI quality review + text improvement
+- Batched processing (5 scenes per call)
 
-### Continuity Director Agent (NEW — 2026-03-26)
-- **Holistic Analysis**: Analyzes ALL frames across the entire storyboard for visual consistency
-- **Character Consistency Check**: Verifies each character matches their reference description (clothing, hair, skin, proportions, age)
-- **Age Accuracy**: Validates characters shown at correct age for each scene
-- **Irrelevant Element Detection**: Finds objects/characters that don't belong in the scene
-- **Visual Quality Check**: Detects deformations, extra limbs, AI artifacts
-- **Auto-Correction**: Automatically fixes high/medium severity issues using existing inpainting pipeline
-- **Batched Processing**: Analyzes scenes in batches of 3 to avoid API timeouts
-- **Background Tasks**: Both analysis and correction run as background threads with polling
+### Continuity Director Agent
+- Holistic Analysis: ALL 6 FRAMES of each scene analyzed
+- Uses AVATAR IMAGES as primary visual reference (not text descriptions)
+- Character Consistency Check: species, clothing, colors, proportions
+- Age Accuracy, Irrelevant Element Detection, Visual Quality Check
+- Auto-Correction: fixes high/medium issues using inpainting
+- Batched: 1 scene per LLM call (11 avatars + 6 frames)
 - Endpoints: POST /continuity/analyze, GET /continuity/status, POST /continuity/auto-correct
 
+### 4-Layer Cache System (NEW — 2026-03-26)
+- **Layer 1 — ImageCache**: Disk-persistent (SHA256), in-memory hot layer (50 items), pre-warming, deduplication
+- **Layer 2 — ProjectCache**: Read-through (5min TTL), write-behind batching (3s flush interval), dirty tracking, per-tenant locks
+- **Layer 3 — LLMCache**: Content-addressable (prompt + image hashes), 1hr TTL, auto-invalidation
+- **Layer 4 — Frontend SWR**: Stale-while-revalidate (30s stale, 5min max), image preloading, optimistic updates
+- Endpoints: GET /cache/stats, POST /cache/flush
+- Shutdown hook: auto-flushes dirty data to DB
+- Integrated in: continuity_director, smart_editor, storyboard_inpaint, studio router
+
 ### Exports
-- **PDF Storybook**: Cover + all illustrated pages
-- **Interactive Animated Book**: `/book/:projectId` with page-turn animation, TTS narration, swipe/keyboard nav
-- **Cover Generation**: Gemini creates cover with all characters + Claude generates creative title
+- PDF Storybook: Cover + all illustrated pages
+- Interactive Animated Book: `/book/:projectId`
+- Cover Generation: Gemini + Claude creative title
 
 ### Preview Animado + MP4 Export
 - Browser slideshow + ElevenLabs TTS + FFmpeg
 
 ### Voice Commands (Whisper STT)
-- Via emergentintegrations (fixed quota issue)
+- Via emergentintegrations
 
 ---
 
 ## Code Architecture
 ```
 /app/backend/core/
-  storyboard.py           # 6 storybook pages per scene
-  storyboard_inpaint.py   # Basic element editing
-  smart_editor.py         # Scene analysis + targeted editing
-  language_agent.py       # Translation + review (batched)
-  continuity_director.py  # NEW: Holistic consistency analysis + auto-correction
-  book_generator.py       # PDF + cover + interactive book data
-  preview_generator.py    # MP4 (FFmpeg + ElevenLabs)
+  cache.py                # 4-layer cache system (ImageCache, ProjectCache, LLMCache)
+  continuity_director.py  # Continuity analysis + auto-correction (cached)
+  smart_editor.py         # Scene analysis + editing (cached)
+  storyboard_inpaint.py   # Image editing (cached)
+  storyboard.py           # Frame generation
+  language_agent.py       # Translation + review
+  book_generator.py       # PDF + cover + interactive
+  preview_generator.py    # MP4
   llm.py                  # Whisper STT
 /app/backend/routers/
-  studio.py               # All endpoints (5200+ lines)
+  studio.py               # All endpoints (~5200 lines)
 /app/frontend/src/
-  pages/InteractiveBook.jsx  # Animated book reader
-  components/StoryboardEditor.jsx  # Full editor UI with all agents
-  components/VoiceInput.jsx  # Universal mic button
+  hooks/useProjectCache.js # Frontend SWR cache + image preloader
+  pages/InteractiveBook.jsx
+  components/StoryboardEditor.jsx
+  components/VoiceInput.jsx
 ```
-
-## Key API Endpoints
-- `POST /api/studio/projects/{id}/storyboard/analyze-scene` — Gemini Vision scene map
-- `POST /api/studio/projects/{id}/storyboard/smart-edit` — AI-aware editing
-- `POST /api/studio/projects/{id}/language/convert` — Translate to target lang
-- `POST /api/studio/projects/{id}/language/review` — Quality review
-- `GET /api/studio/projects/{id}/language/status` — Poll language status
-- `POST /api/studio/projects/{id}/continuity/analyze` — Start continuity analysis (NEW)
-- `GET /api/studio/projects/{id}/continuity/status` — Poll continuity status (NEW)
-- `POST /api/studio/projects/{id}/continuity/auto-correct` — Auto-correct issues (NEW)
-- `POST /api/studio/projects/{id}/book/generate-cover` — Cover + title
-- `GET /api/studio/projects/{id}/book/pdf` — Download PDF
-- `GET /api/studio/projects/{id}/book/interactive-data` — Book JSON
-- `POST /api/studio/projects/{id}/book/tts-page` — TTS per page
 
 ## Backlog
 - P1: Refactor studio.py (5200+ lines)
@@ -93,6 +87,6 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - P3: Omnichannel, Admin + Stripe
 
 ## Test Reports
-- 110: Individual frames + toolbar (100%) | 111: Whisper + storybook pages (100%)
-- 112: Book export + Interactive book (100%) | 113: Language Agent + Smart Editor (100%)
-- 114: Continuity Director Agent (100%) — 29/29 tests passed
+- 110-113: All features (100%)
+- 114: Continuity Director Agent (100%) — 29/29
+- 115: 4-Layer Cache System (100%) — 32/32
