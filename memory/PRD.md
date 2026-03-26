@@ -15,10 +15,16 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 
 ### Storyboard Editavel
 - **6 individual frames per scene** (6 separate Gemini calls — NO grid slicing)
-- Frame types: Plano Geral, Close-up, Acao, Reacao, Angulo Dramatico, Transicao
-- **Gallery/Filmstrip layout**: Large main display + horizontal thumbnails strip
-- Click thumbnail -> becomes main display; edits apply to selected frame
-- **Visible toolbar** below filmstrip (expand, inpaint, regen) — NOT overlay on image
+- Frame types: **Storybook Pages** in chronological order:
+  - Pagina 1: Opening Moment (inicio da cena)
+  - Pagina 2: Rising Action (tensao/interesse cresce)
+  - Pagina 3: Key Action (momento central dramatico)
+  - Pagina 4: Reaction (reacao dos personagens)
+  - Pagina 5: Consequence (consequencia da acao)
+  - Pagina 6: Closing Moment (encerramento/transicao)
+- Each frame = full storybook page with narrative action (no zoom/close-ups)
+- **Gallery/Filmstrip layout**: Large main display + horizontal thumbnails with page numbers
+- **Visible toolbar** below filmstrip (inpaint + regen only, no expand/zoom)
 - AI Facilitator Chat (Claude) for natural language editing
 - Approve Storyboard -> unlock video production
 
@@ -32,26 +38,28 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 
 ### Comando de Voz (Whisper STT)
 - VoiceInput.jsx mic button in Facilitator chat + Inpainting input
+- **Uses emergentintegrations.llm.openai.OpenAISpeechToText** (not direct OpenAI SDK)
 
-### Hot-Reload Recovery (P1)
-- Startup cleanup: `_cleanup_stale_storyboards()` resets orphaned "starting"/"generating" statuses
-- Prevents UI from getting stuck when background threads die during hot-reload
+### Hot-Reload Recovery
+- Startup cleanup: `_cleanup_stale_storyboards()` resets orphaned statuses
 
 ### UI
-- FilmSpinner (Film icon, 1.5s), fixed double spinner, panel hover 3 icons
-- Editing toolbar always visible below image (not overlay)
 - Dark luxury theme (black/gold/white)
+- FilmSpinner, page numbers on filmstrip thumbnails
+- Toolbar shows "Pag X/Y" format
 
 ---
 
 ## Code Architecture
 ```
 /app/backend/core/
-  storyboard.py           # Individual frame generation (6 per scene) + AI Facilitator
+  storyboard.py           # Individual frame generation (6 storybook pages per scene)
   storyboard_inpaint.py   # Element editing (Gemini)
   preview_generator.py    # MP4 (FFmpeg + ElevenLabs)
+  llm.py                  # Whisper STT via emergentintegrations
 /app/backend/routers/
   studio.py               # Main router (4500+ lines)
+  ai.py                   # Transcription endpoint
 /app/backend/server.py    # FastAPI app + startup cleanup
 /app/frontend/src/components/
   DirectedStudio.jsx      # 5-step pipeline
@@ -66,4 +74,6 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - P3: Legal, Scalability
 
 ## Test Reports
-- 105: Storyboard endpoints (92%) | 106: Preview+MP4 (92%) | 107: Inpaint+Voice (100%) | 108: 6-frame (100%) | 109: Gallery/filmstrip (100%) | 110: Individual frame gen + UI toolbar fix (100%)
+- 105-109: Previous iterations
+- 110: Individual frame gen + toolbar fix (100%)
+- 111: Whisper fix + storybook pages + zoom removal (100%)
