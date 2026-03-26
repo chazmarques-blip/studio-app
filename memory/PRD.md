@@ -30,6 +30,13 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - **PDF Preview Modal**: Grid view of all storyboard illustrations (84 frames), click-to-expand, "Baixar PDF Completo" button
 - **Keyboard Support**: Escape closes, Arrow keys navigate gallery
 
+### Final Video Hero Card & Post-Production Improvements (2026-03-26)
+- **Hero Card "Filme Final"**: Displays post-produced video at top of Step 5 with FILME FINAL, DUBLADO, TRILHA SONORA badges, metadata (duration, file size, language), click-to-preview, download button
+- **Narration Mode Selector**: 3 modes — IA (ElevenLabs), Áudio Manual (upload), Misto (IA + uploads)
+- **Per-Scene Audio Upload**: Upload custom narration/dubbing per scene with audio player, delete, and status indicators (Manual/IA)
+- **Backend**: POST /api/studio/projects/{id}/upload-narration/{scene_number}, DELETE /api/studio/projects/{id}/narration/{scene_number}
+- **Pós-Produção Card**: Shows completion status with green checkmark and "CONCLUÍDO — RECONFIGURAR" text
+
 ### Storyboard Editavel
 - 6 individual frames per scene (Storybook Pages)
 - Gallery/Filmstrip layout with page numbers
@@ -81,3 +88,4 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - 115: Cache System (100%)
 - 116: UX Redesign Step 5 + Navigation (100%)
 - 117: Media Preview Modal System (100%) — Book, PDF, Video, Gallery all tested
+- 118: Hero Card Filme Final + Post-Production Upload (Backend 100%, Frontend 95%)
