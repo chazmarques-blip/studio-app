@@ -1180,6 +1180,7 @@ async def edit_storyboard_panel(project_id: str, req: StoryboardEditPanelRequest
 class InpaintElementRequest(BaseModel):
     panel_number: int
     edit_instruction: str
+    frame_index: int = 0  # Which frame to edit (0-based)
 
 
 @router.post("/projects/{project_id}/storyboard/edit-element")
@@ -1198,6 +1199,13 @@ async def edit_element_inpaint(project_id: str, req: InpaintElementRequest, tena
     if not panel or not panel.get("image_url"):
         raise HTTPException(status_code=400, detail="Panel not found or has no image")
 
+    # Determine which image to edit (selected frame or main image)
+    frames = panel.get("frames", [])
+    if frames and 0 <= req.frame_index < len(frames):
+        source_image_url = frames[req.frame_index].get("image_url", panel["image_url"])
+    else:
+        source_image_url = panel["image_url"]
+
     # Mark as editing
     for p in panels:
         if p.get("scene_number") == req.panel_number:
@@ -1208,25 +1216,31 @@ async def edit_element_inpaint(project_id: str, req: InpaintElementRequest, tena
         try:
             from core.storyboard_inpaint import inpaint_element
             result_bytes = inpaint_element(
-                image_url=panel["image_url"],
+                image_url=source_image_url,
                 edit_instruction=req.edit_instruction,
                 project_id=project_id,
                 panel_number=req.panel_number,
                 lang=project.get("language", "pt"),
             )
             if result_bytes:
-                fname = f"storyboard/{project_id}/panel_{req.panel_number}_edited.png"
-                image_url = _upload_to_storage(result_bytes, fname, "image/png")
+                fname = f"storyboard/{project_id}/panel_{req.panel_number}_frame_{req.frame_index + 1}_edited.png"
+                new_url = _upload_to_storage(result_bytes, fname, "image/png")
                 _s, _p, _proj = _get_project(tenant["id"], project_id)
                 if _proj:
                     for p in _proj.get("storyboard_panels", []):
                         if p.get("scene_number") == req.panel_number:
-                            p["image_url"] = image_url
+                            # Update the correct frame
+                            p_frames = p.get("frames", [])
+                            if p_frames and 0 <= req.frame_index < len(p_frames):
+                                p_frames[req.frame_index]["image_url"] = new_url
+                            # Also update main image_url if editing frame 0 or no frames
+                            if req.frame_index == 0 or not p_frames:
+                                p["image_url"] = new_url
                             p["status"] = "done"
                             p["last_edit"] = req.edit_instruction
                             p["generated_at"] = datetime.now(timezone.utc).isoformat()
                     _save_project(tenant["id"], _s, _p)
-                logger.info(f"Inpaint [{project_id}]: Panel {req.panel_number} edited — {req.edit_instruction[:50]}")
+                logger.info(f"Inpaint [{project_id}]: Panel {req.panel_number} frame {req.frame_index} edited — {req.edit_instruction[:50]}")
             else:
                 _s, _p, _proj = _get_project(tenant["id"], project_id)
                 if _proj:

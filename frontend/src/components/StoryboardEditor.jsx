@@ -318,18 +318,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const editElement = async (panelNum) => {
     if (!inpaintPrompt.trim() || inpaintLoading) return;
     setInpaintLoading(true);
+    const frameIdx = selectedFrames[panelNum] || 0;
+    const currentPanel = panels.find(p => p.scene_number === panelNum);
+    const currentFrameUrl = currentPanel?.frames?.[frameIdx]?.image_url || currentPanel?.image_url;
     try {
       const res = await axios.post(`${API}/studio/projects/${projectId}/storyboard/edit-element`, {
         panel_number: panelNum,
         edit_instruction: inpaintPrompt.trim(),
+        frame_index: frameIdx,
       });
       if (res.data.status === 'editing') {
         toast.success(lang === 'pt' ? 'Editando elemento...' : 'Editing element...');
-        // Poll for the updated panel
         const pollInpaint = () => {
           axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r => {
             const updatedPanel = (r.data.panels || []).find(p => p.scene_number === panelNum);
-            if (updatedPanel?.status === 'done' && updatedPanel?.image_url !== panels.find(p => p.scene_number === panelNum)?.image_url) {
+            const updatedFrameUrl = updatedPanel?.frames?.[frameIdx]?.image_url || updatedPanel?.image_url;
+            if (updatedPanel?.status === 'done' && updatedFrameUrl !== currentFrameUrl) {
               setPanels(r.data.panels);
               setInpaintLoading(false);
               setInpaintingPanel(null);
