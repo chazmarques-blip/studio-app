@@ -1,10 +1,10 @@
 """Continuity Director Agent — Holistic storyboard consistency analysis and auto-correction.
 
 Uses CHARACTER AVATAR IMAGES as the primary visual reference (not text descriptions).
-Analyzes all frames across a storyboard project to ensure:
+Analyzes ALL 6 FRAMES of each scene to ensure:
 1. Characters match their avatar reference images (species, appearance, style)
 2. Removal of irrelevant/out-of-context elements
-3. Chronological coherence between scenes
+3. Visual quality across all frames
 4. Auto-correction via the existing inpainting pipeline
 """
 import os
@@ -49,7 +49,7 @@ def _run_vision_analysis(images_b64: list, prompt: str, session_id: str) -> str:
         chat = LlmChat(
             api_key=api_key,
             session_id=session_id,
-            system_message="You are an expert continuity director for animated productions. You ensure characters match their AVATAR REFERENCE IMAGES exactly. The avatars define the canonical look — species, style, colors, proportions."
+            system_message="You are an expert continuity director for animated productions. You ensure characters match their AVATAR REFERENCE IMAGES exactly across ALL frames. The avatars define the canonical look — species, style, colors, proportions."
         )
         chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["text"])
         msg = UserMessage(
@@ -103,9 +103,9 @@ def _load_avatar_images(character_avatars: dict) -> dict:
             img_bytes = _download_image(url)
             if img_bytes:
                 avatars_b64[name] = base64.b64encode(img_bytes).decode("utf-8")
-                logger.info(f"Continuity: Loaded avatar for '{name}' ({len(img_bytes)//1024}KB)")
         except Exception as e:
             logger.warning(f"Continuity: Failed to load avatar for '{name}': {e}")
+    logger.info(f"Continuity: Loaded {len(avatars_b64)} avatar references")
     return avatars_b64
 
 
@@ -117,118 +117,110 @@ def analyze_continuity(
     character_avatars: dict,
     progress_callback=None,
 ) -> dict:
-    """Analyze the entire storyboard for continuity issues.
+    """Analyze ALL frames of every scene for continuity issues.
 
-    CRITICAL: Uses avatar IMAGES as the primary visual reference.
-    The avatars define the canonical look of each character (species, style, etc).
-    Text descriptions are secondary context only.
-
-    Processes scenes in batches of 2 (with avatars, payloads are larger).
+    Processes ONE scene at a time (11 avatars + 6 frames = 17 images per call).
+    Each frame is individually evaluated against the avatar references.
     """
-    # Step 1: Load all avatar images as base64
-    logger.info(f"Continuity [{project_id}]: Loading {len(character_avatars)} avatar reference images...")
+    # Step 1: Load all avatar images
     avatars_b64 = _load_avatar_images(character_avatars)
 
-    if not avatars_b64:
-        logger.warning(f"Continuity [{project_id}]: No avatars loaded, analysis may be less accurate")
-
-    # Build avatar image list and mapping for the prompt
+    # Build avatar image list and prompt mapping
     avatar_images = []
-    avatar_prompt_block = "AVATAR REFERENCE IMAGES (these define the CANONICAL look of each character):\n"
+    avatar_prompt_block = "AVATAR REFERENCE IMAGES (the CANONICAL look of each character):\n"
     for name, b64 in avatars_b64.items():
         avatar_images.append(b64)
-        idx = len(avatar_images)
-        avatar_prompt_block += f"  AVATAR IMAGE {idx} = \"{name}\"\n"
+        avatar_prompt_block += f"  AVATAR IMAGE {len(avatar_images)} = \"{name}\"\n"
 
-    # Build text reference as secondary info
-    char_text_block = "\nCHARACTER TEXT CONTEXT (secondary — avatars above are the visual truth):\n"
+    # Secondary text context
+    char_text_block = "\nCHARACTER NAMES & AGES (secondary context only — avatars are the visual truth):\n"
     for ch in characters:
-        name = ch.get("name", "Unknown")
-        age = ch.get("age", "")
-        char_text_block += f"  - {name} (age: {age})\n"
+        char_text_block += f"  - {ch.get('name', '?')} (age: {ch.get('age', '?')})\n"
 
     all_issues = []
     total_panels = len(panels)
-    # Smaller batches because we also send avatar images
-    batch_size = 2
+    total_frames_analyzed = 0
 
-    for batch_start in range(0, total_panels, batch_size):
-        batch = panels[batch_start:batch_start + batch_size]
-        scene_images = []
-        batch_context = ""
+    # Process ONE scene at a time (6 frames + avatars)
+    for panel_idx, panel in enumerate(panels):
+        sn = panel.get("scene_number", 0)
+        frames = panel.get("frames", [])
+        expected_chars = panel.get("characters_in_scene", [])
 
-        for panel in batch:
-            sn = panel.get("scene_number", 0)
-            frames = panel.get("frames", [])
-            image_url = None
-            if frames:
-                image_url = frames[0].get("image_url")
-            if not image_url:
-                image_url = panel.get("image_url")
-            if not image_url:
-                continue
-
-            try:
-                img_bytes = _download_image(image_url)
-                if img_bytes:
-                    scene_images.append(base64.b64encode(img_bytes).decode("utf-8"))
-                    expected_chars = panel.get("characters_in_scene", [])
-                    scene_img_idx = len(avatar_images) + len(scene_images)
-                    batch_context += f"\n\nSCENE IMAGE {scene_img_idx} = Scene {sn}: \"{panel.get('title', '')}\"\n"
-                    batch_context += f"  Expected characters: {', '.join(expected_chars)}\n"
-                    batch_context += f"  Description: {panel.get('description', '')[:200]}\n"
-                    batch_context += f"  Emotion: {panel.get('emotion', '')}\n"
-            except Exception as e:
-                logger.warning(f"Continuity [{project_id}]: Failed to download scene {sn}: {e}")
-
-        if not scene_images:
+        if not frames:
             if progress_callback:
-                progress_callback(min(batch_start + batch_size, total_panels), total_panels, 0)
+                progress_callback(panel_idx + 1, total_panels, 0)
             continue
 
-        # Combine: avatars first, then scene images
-        all_images = avatar_images + scene_images
+        # Download all 6 frames of this scene
+        frame_images = []
+        frame_labels = []
+        for fi, frame in enumerate(frames):
+            url = frame.get("image_url")
+            if not url:
+                continue
+            try:
+                img_bytes = _download_image(url)
+                if img_bytes:
+                    frame_images.append(base64.b64encode(img_bytes).decode("utf-8"))
+                    label = frame.get("label", f"Frame {fi+1}")
+                    frame_labels.append((fi, label))
+            except Exception as e:
+                logger.warning(f"Continuity [{project_id}]: Scene {sn} frame {fi} download failed: {e}")
 
-        prompt = f"""CONTINUITY ANALYSIS — You are reviewing storyboard frames against CHARACTER AVATAR REFERENCES.
+        if not frame_images:
+            if progress_callback:
+                progress_callback(panel_idx + 1, total_panels, 0)
+            continue
+
+        # Build frame listing for prompt
+        frames_block = f"\nSCENE {sn} FRAMES TO ANALYZE: \"{panel.get('title', '')}\"\n"
+        frames_block += f"  Expected characters: {', '.join(expected_chars)}\n"
+        frames_block += f"  Description: {panel.get('description', '')[:200]}\n"
+        frames_block += f"  Emotion: {panel.get('emotion', '')}\n"
+        for i, (fi, label) in enumerate(frame_labels):
+            img_num = len(avatar_images) + i + 1
+            frames_block += f"  FRAME IMAGE {img_num} = Frame {fi} \"{label}\"\n"
+
+        # Combine: avatars first, then all 6 frames
+        all_images = avatar_images + frame_images
+
+        prompt = f"""CONTINUITY ANALYSIS — Review ALL {len(frame_images)} frames of Scene {sn} against the avatar references.
 
 {avatar_prompt_block}
 {char_text_block}
-
-SCENE FRAMES TO ANALYZE:
-{batch_context}
+{frames_block}
 
 CRITICAL RULES:
-- The AVATAR IMAGES above are the DEFINITIVE visual reference for each character
-- Characters may be animals, anthropomorphic creatures, fantasy beings — whatever their avatar shows IS their correct appearance
-- Do NOT flag characters as "wrong" because they look like animals/creatures — if the avatar shows an animal, the character IS that animal
-- DO NOT suggest changing a character's species, body type, or visual style — the avatar IS the truth
-- Focus ONLY on: consistency WITH the avatar (colors, proportions, clothing style), irrelevant objects, quality defects, and scene coherence
+- The AVATAR IMAGES are the DEFINITIVE visual reference for each character
+- Characters may be animals, anthropomorphic creatures, fantasy beings — the avatar IS their correct appearance
+- Do NOT flag characters as wrong for being animals/creatures if their avatar shows that
+- Do NOT suggest changing a character's species or visual style
+- Check EVERY FRAME individually — each may have different issues
 
-For EACH scene image, check:
-1. **Avatar Match**: Does each character visually match their avatar reference image? (same species, same style, same color palette, same clothing style)
-2. **Irrelevant Elements**: Objects, characters, or elements that DON'T belong in this scene
-3. **Visual Quality**: Deformations, extra limbs, merged characters, AI artifacts
-4. **Scene Coherence**: Does the setting match the scene description?
-
-DO NOT report issues about:
-- Characters being animals/creatures (that's their design if the avatar shows it)
-- Characters not looking "human enough" (follow the avatar)
-- Age descriptions that contradict the visual style (avatar is truth)
+For EACH of the {len(frame_images)} frames, check:
+1. **Avatar Match**: Does each character visually match their avatar? (species, style, colors, clothing)
+2. **Cross-Frame Consistency**: Are characters consistent across all 6 frames of this scene?
+3. **Irrelevant Elements**: Objects or characters that don't belong
+4. **Visual Quality**: Deformations, extra limbs, merged characters, AI artifacts
+5. **Scene Coherence**: Does the setting match the description?
 
 Return JSON:
 {{
   "issues": [
     {{
-      "scene_number": N,
+      "scene_number": {sn},
+      "frame_index": 0-5,
+      "frame_label": "frame label",
       "severity": "high|medium|low",
-      "category": "avatar_mismatch|irrelevant_element|quality_defect|scene_coherence",
+      "category": "avatar_mismatch|cross_frame_inconsistency|irrelevant_element|quality_defect|scene_coherence",
       "element": "what is wrong",
       "description": "detailed description — reference which avatar it should match",
-      "correction": "specific instruction to fix (must preserve the character's species/style from avatar)"
+      "correction": "specific fix instruction (must preserve character species/style from avatar)"
     }}
   ],
-  "scenes_ok": [list of scene numbers with no issues],
-  "summary": "brief overall assessment"
+  "frames_ok": [list of frame indices with no issues],
+  "summary": "brief assessment of this scene"
 }}
 
 Return ONLY valid JSON."""
@@ -236,38 +228,32 @@ Return ONLY valid JSON."""
         try:
             result_text = _run_vision_analysis(
                 all_images, prompt,
-                f"continuity-v2-{project_id}-b{batch_start}"
+                f"continuity-v3-{project_id}-s{sn}"
             )
             parsed = _parse_json(result_text)
-            batch_issues = parsed.get("issues", [])
-            all_issues.extend(batch_issues)
+            scene_issues = parsed.get("issues", [])
+            all_issues.extend(scene_issues)
+            total_frames_analyzed += len(frame_images)
 
             if progress_callback:
-                progress_callback(
-                    min(batch_start + batch_size, total_panels),
-                    total_panels,
-                    len(batch_issues),
-                )
+                progress_callback(panel_idx + 1, total_panels, len(scene_issues))
 
             logger.info(
-                f"Continuity [{project_id}]: Batch {batch_start}-{batch_start+len(batch)}: "
-                f"{len(batch_issues)} issues found"
+                f"Continuity [{project_id}]: Scene {sn} ({len(frame_images)} frames): "
+                f"{len(scene_issues)} issues"
             )
         except Exception as e:
-            logger.error(f"Continuity [{project_id}]: Batch {batch_start} analysis failed: {e}")
+            logger.error(f"Continuity [{project_id}]: Scene {sn} analysis failed: {e}")
             if progress_callback:
-                progress_callback(
-                    min(batch_start + batch_size, total_panels),
-                    total_panels,
-                    0,
-                )
+                progress_callback(panel_idx + 1, total_panels, 0)
 
-    # Sort issues by severity
+    # Sort by severity
     severity_order = {"high": 0, "medium": 1, "low": 2}
-    all_issues.sort(key=lambda x: severity_order.get(x.get("severity", "low"), 2))
+    all_issues.sort(key=lambda x: (x.get("scene_number", 0), severity_order.get(x.get("severity", "low"), 2)))
 
     report = {
         "total_scenes_analyzed": total_panels,
+        "total_frames_analyzed": total_frames_analyzed,
         "total_issues": len(all_issues),
         "issues": all_issues,
         "high_count": sum(1 for i in all_issues if i.get("severity") == "high"),
@@ -278,9 +264,8 @@ Return ONLY valid JSON."""
     }
 
     logger.info(
-        f"Continuity [{project_id}]: Analysis complete — "
-        f"{report['total_issues']} issues ({report['high_count']}H, {report['medium_count']}M, {report['low_count']}L) "
-        f"using {len(avatars_b64)} avatar references"
+        f"Continuity [{project_id}]: Complete — {total_frames_analyzed} frames, "
+        f"{report['total_issues']} issues ({report['high_count']}H, {report['medium_count']}M, {report['low_count']}L)"
     )
     return report
 

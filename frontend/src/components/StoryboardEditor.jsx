@@ -1155,7 +1155,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               }`}>
                 {continuityReport.total_issues === 0
                   ? (lang === 'pt' ? 'Tudo OK' : 'All OK')
-                  : `${continuityReport.total_issues} ${lang === 'pt' ? 'problemas' : 'issues'}`}
+                  : `${continuityReport.total_issues} ${lang === 'pt' ? 'problemas' : 'issues'} (${continuityReport.total_frames_analyzed || '?'} frames)`}
               </span>
             )}
           </div>
@@ -1228,11 +1228,14 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   issue.severity === 'medium' ? 'border-l-amber-500 bg-amber-500/5' :
                   'border-l-[#333] bg-[#111]'
                 }`}>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap">
                     {issue.severity === 'high' ? <AlertTriangle size={8} className="text-red-400 flex-shrink-0" /> :
                      issue.severity === 'medium' ? <AlertTriangle size={8} className="text-amber-400 flex-shrink-0" /> :
                      <CheckCircle size={8} className="text-[#555] flex-shrink-0" />}
                     <span className="text-white font-medium">Cena {issue.scene_number}</span>
+                    {issue.frame_index !== undefined && (
+                      <span className="text-[6px] text-cyan-400 px-1 py-0.5 rounded bg-cyan-500/10">F{issue.frame_index + 1}</span>
+                    )}
                     <span className="text-[6px] text-[#555] px-1 py-0.5 rounded bg-[#1A1A1A]">{issue.category?.replace(/_/g, ' ')}</span>
                   </div>
                   <p className="text-[#888] mt-0.5">{issue.description}</p>

@@ -1844,6 +1844,7 @@ async def auto_correct_continuity(project_id: str, tenant=Depends(get_current_te
             for idx, issue in enumerate(correctable):
                 scene_num = issue.get("scene_number")
                 correction = issue.get("correction", "")
+                frame_index = issue.get("frame_index", 0)
                 if not scene_num or not correction:
                     failed_count += 1
                     continue
@@ -1859,10 +1860,9 @@ async def auto_correct_continuity(project_id: str, tenant=Depends(get_current_te
                     failed_count += 1
                     continue
 
-                # Use frame 0 as the target for correction
+                # Use the specific frame_index from the issue
                 frames = panel.get("frames", [])
-                frame_index = 0
-                if frames:
+                if frames and frame_index < len(frames):
                     source_url = frames[frame_index].get("image_url", panel.get("image_url"))
                 else:
                     source_url = panel.get("image_url")
@@ -1881,10 +1881,10 @@ async def auto_correct_continuity(project_id: str, tenant=Depends(get_current_te
                     )
 
                     if result_bytes:
-                        fname = f"storyboard/{project_id}/panel_{scene_num}_frame_1_corrected.png"
+                        fname = f"storyboard/{project_id}/panel_{scene_num}_frame_{frame_index+1}_corrected.png"
                         new_url = _upload_to_storage(result_bytes, fname, "image/png")
 
-                        # Update the panel
+                        # Update the specific frame
                         _s2, _p2, _proj2 = _get_project(tenant["id"], project_id)
                         if _proj2:
                             for p in _proj2.get("storyboard_panels", []):
@@ -1895,7 +1895,7 @@ async def auto_correct_continuity(project_id: str, tenant=Depends(get_current_te
                                     if frame_index == 0 or not p_frames:
                                         p["image_url"] = new_url
                                     p["status"] = "done"
-                                    p["last_edit"] = f"[Continuity Director] {correction[:100]}"
+                                    p["last_edit"] = f"[Continuity Director] F{frame_index+1}: {correction[:80]}"
                                     p["generated_at"] = datetime.now(timezone.utc).isoformat()
                             _proj2["continuity_status"] = {
                                 "phase": "correcting",
@@ -1906,7 +1906,7 @@ async def auto_correct_continuity(project_id: str, tenant=Depends(get_current_te
                             }
                             _save_project(tenant["id"], _s2, _p2)
                         corrected_count += 1
-                        logger.info(f"Continuity [{project_id}]: Corrected scene {scene_num} — {correction[:60]}")
+                        logger.info(f"Continuity [{project_id}]: Corrected scene {scene_num} frame {frame_index} — {correction[:60]}")
                     else:
                         failed_count += 1
                 except Exception as e:
