@@ -1,7 +1,7 @@
 # AgentZZ — Product Requirements Document
 
 ## Original Problem Statement
-Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for animated film production. Pivoting to **Storyboard-First** workflow to fix video generation inconsistencies.
+Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for animated film production. Storyboard-First workflow with editable panels, exports (PDF + Interactive Animated Book).
 
 ## Credentials
 - Test: test@agentflow.com / password123
@@ -14,66 +14,63 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 `Roteiro -> Personagens -> Storyboard -> Producao -> Resultado`
 
 ### Storyboard Editavel
-- **6 individual frames per scene** (6 separate Gemini calls — NO grid slicing)
-- Frame types: **Storybook Pages** in chronological order:
-  - Pagina 1: Opening Moment (inicio da cena)
-  - Pagina 2: Rising Action (tensao/interesse cresce)
-  - Pagina 3: Key Action (momento central dramatico)
-  - Pagina 4: Reaction (reacao dos personagens)
-  - Pagina 5: Consequence (consequencia da acao)
-  - Pagina 6: Closing Moment (encerramento/transicao)
-- Each frame = full storybook page with narrative action (no zoom/close-ups)
-- **Gallery/Filmstrip layout**: Large main display + horizontal thumbnails with page numbers
-- **Visible toolbar** below filmstrip (inpaint + regen only, no expand/zoom)
-- AI Facilitator Chat (Claude) for natural language editing
-- Approve Storyboard -> unlock video production
+- 6 individual frames per scene (Storybook Pages: Abertura, Tensao, Acao, Reacao, Consequencia, Encerramento)
+- Gallery/Filmstrip layout with page numbers
+- Visible toolbar (inpaint + regen) — no overlay on images
+- AI Facilitator Chat (Claude)
 
-### Preview Animado
-- Interactive browser slideshow with Ken Burns, subtitles, controls
-- MP4 Export with ElevenLabs narration + FFmpeg
+### Preview Animado + MP4 Export
+- Browser slideshow + ElevenLabs TTS + FFmpeg MP4
 
-### Edicao de Elemento (Inpainting IA)
-- Paintbrush icon -> describe change -> Gemini edits only that element
-- **Visible microphone button** (VoiceInput h-7 w-7) in inpainting input
+### Edicao de Elemento (Inpainting)
+- Consistent h-8 sizing for mic button + edit button
+- VoiceInput with Whisper STT (via emergentintegrations)
 
-### Comando de Voz (Whisper STT)
-- VoiceInput.jsx mic button in Facilitator chat + Inpainting input
-- **Uses emergentintegrations.llm.openai.OpenAISpeechToText** (not direct OpenAI SDK)
+### Exportar Livro (NEW - Phase complete)
+- **Gerar Capa + Titulo**: Gemini generates cover image with all characters + Claude generates creative title
+- **PDF Storybook Export**: Full PDF with cover + all illustrated pages (sorted chronologically)
+- **Livro Animado Interativo**: Standalone page at `/book/:projectId`
+  - Page-turn animations (CSS flip)
+  - Auto-narration TTS (ElevenLabs) on page turn
+  - Toggle "Leia para mim" vs silent reading
+  - Keyboard nav (arrows), touch/swipe for mobile
+  - Progress bar, page counter
+  - Cover page, story pages, "Fim" end page
 
 ### Hot-Reload Recovery
-- Startup cleanup: `_cleanup_stale_storyboards()` resets orphaned statuses
-
-### UI
-- Dark luxury theme (black/gold/white)
-- FilmSpinner, page numbers on filmstrip thumbnails
-- Toolbar shows "Pag X/Y" format
+- Startup cleanup resets orphaned generating statuses
 
 ---
 
 ## Code Architecture
 ```
 /app/backend/core/
-  storyboard.py           # Individual frame generation (6 storybook pages per scene)
+  storyboard.py           # 6 storybook pages per scene
   storyboard_inpaint.py   # Element editing (Gemini)
   preview_generator.py    # MP4 (FFmpeg + ElevenLabs)
+  book_generator.py       # NEW: PDF + cover + interactive book data
   llm.py                  # Whisper STT via emergentintegrations
 /app/backend/routers/
-  studio.py               # Main router (4500+ lines)
-  ai.py                   # Transcription endpoint
-/app/backend/server.py    # FastAPI app + startup cleanup
-/app/frontend/src/components/
-  DirectedStudio.jsx      # 5-step pipeline
-  StoryboardEditor.jsx    # Gallery/filmstrip + editing + voice + visible toolbar
-  StoryboardPreview.jsx   # Animated slideshow
-  VoiceInput.jsx          # Universal mic button
+  studio.py               # All endpoints including book export
+/app/frontend/src/
+  pages/InteractiveBook.jsx  # NEW: Standalone animated book reader
+  components/StoryboardEditor.jsx  # Book export UI section
 ```
 
+## Key API Endpoints (Book)
+- `POST /api/studio/projects/{id}/book/generate-cover` — Gemini cover + Claude title
+- `GET /api/studio/projects/{id}/book/pdf` — Download PDF storybook
+- `GET /api/studio/projects/{id}/book/interactive-data` — JSON for animated reader
+- `POST /api/studio/projects/{id}/book/tts-page` — ElevenLabs TTS per page
+
 ## Backlog
-- P1: Refactor studio.py (4500+ lines), Storybook Export, Storyboard->Video (Sora 2)
-- P2: Omnichannel, Admin + Stripe
-- P3: Legal, Scalability
+- P0: Agente de conversao e revisao de idioma (user requested post-first-edition)
+- P1: Agente Editor Inteligente de Imagens (scene analysis + targeted editing)
+- P1: Refactor studio.py (4500+ lines)
+- P2: Storyboard -> Video (Sora 2)
+- P3: Omnichannel, Admin + Stripe
 
 ## Test Reports
-- 105-109: Previous iterations
-- 110: Individual frame gen + toolbar fix (100%)
-- 111: Whisper fix + storybook pages + zoom removal (100%)
+- 110: Individual frames + toolbar (100%)
+- 111: Whisper fix + storybook pages (100%)
+- 112: Book export + Interactive book (100%)
