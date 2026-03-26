@@ -7,6 +7,7 @@ import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
 import { PostProduction } from './PostProduction';
+import { StoryboardEditor } from './StoryboardEditor';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -74,8 +75,9 @@ export function DirectedStudio({
   const STEPS = [
     { n: 1, icon: MessageSquare, label: lang === 'pt' ? 'Roteiro' : 'Script' },
     { n: 2, icon: Users, label: lang === 'pt' ? 'Personagens' : 'Characters' },
-    { n: 3, icon: Clapperboard, label: lang === 'pt' ? 'Produção' : 'Production' },
-    { n: 4, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
+    { n: 3, icon: Camera, label: 'Storyboard' },
+    { n: 4, icon: Clapperboard, label: lang === 'pt' ? 'Produção' : 'Production' },
+    { n: 5, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
   ];
 
   const STATUS_LABELS = {
@@ -122,9 +124,9 @@ export function DirectedStudio({
       setAgentStatus(ap.agentStatus || {});
       setNarrations(ap.narrations || []);
       if (ap.status === 'complete') {
-        setStep(4); setGenerating(false);
+        setStep(5); setGenerating(false);
       } else if (['running_agents', 'starting'].includes(ap.status)) {
-        setStep(3); setGenerating(true); startPolling(ap.projectId);
+        setStep(4); setGenerating(true); startPolling(ap.projectId);
       }
     }
   }, []);
@@ -173,9 +175,9 @@ export function DirectedStudio({
     setViewingProject(null);
 
     if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
-      setStep(3); setGenerating(true); startPolling(proj.id);
+      setStep(4); setGenerating(true); startPolling(proj.id);
     } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
-      setStep(4); setOutputs(proj.outputs);
+      setStep(5); setOutputs(proj.outputs);
     } else {
       // Reset generating state in case it was stuck
       setGenerating(false);
@@ -183,7 +185,12 @@ export function DirectedStudio({
       // Stop any stale production tracking
       if (studioCtx?.stopTracking) studioCtx.stopTracking();
       if ((proj.scenes || []).length > 0) {
-        setStep(2);
+        // If storyboard exists, go to storyboard step
+        if ((proj.storyboard_panels || []).length > 0) {
+          setStep(3);
+        } else {
+          setStep(2);
+        }
         // Load existing preview if available
         const existingPD = proj.agents_output?.production_design;
         if (existingPD && existingPD.character_bible) {
@@ -231,17 +238,17 @@ export function DirectedStudio({
 
   // Auto-recover: if stuck on step 3 with generating=false, check if outputs exist
   useEffect(() => {
-    if (step === 3 && !generating && projectId) {
+    if (step === 4 && !generating && projectId) {
       const check = setTimeout(() => {
         axios.get(`${API}/studio/projects/${projectId}/status`).then(res => {
           const d = res.data;
           if (d.status === 'complete' && d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(4);
+            setStep(5);
             toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
           } else if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(4);
+            setStep(5);
           }
         }).catch(() => {});
       }, 2000);
@@ -270,7 +277,7 @@ export function DirectedStudio({
         if (d.status === 'complete') {
           setOutputs(d.outputs || []);
           setGenerating(false);
-          setStep(4);
+          setStep(5);
           toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
           loadProjects();
           return;
@@ -280,7 +287,7 @@ export function DirectedStudio({
           // If outputs exist despite error, go to results (partial/recovered success)
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(4);
+            setStep(5);
             toast.success(lang === 'pt' ? `Produção finalizada — ${d.outputs.length} vídeos prontos` : `Production finished — ${d.outputs.length} videos ready`);
           } else {
             toast.error(d.error || 'Production error');
@@ -292,7 +299,7 @@ export function DirectedStudio({
           setGenerating(false);
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(4);
+            setStep(5);
           }
           return;
         }
@@ -445,7 +452,7 @@ export function DirectedStudio({
     setOutputs(proj.outputs || []);
     setCharacterAvatars(proj.character_avatars || {});
     setGenerating(true);
-    setStep(3);
+    setStep(4);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: proj.id,
@@ -653,7 +660,7 @@ export function DirectedStudio({
   const startProduction = async () => {
     if (!projectId || scenes.length === 0) return;
     setGenerating(true);
-    setStep(3);
+    setStep(4);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
@@ -1541,18 +1548,37 @@ export function DirectedStudio({
                   : (lang === 'pt' ? 'Preview Design' : 'Preview Design')
                 }
               </button>
-              <button onClick={startProduction} disabled={generating || scenes.length === 0}
-                data-testid="start-production-btn"
+              <button onClick={() => setStep(3)} disabled={scenes.length === 0}
+                data-testid="go-to-storyboard-btn"
                 className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
-                <Clapperboard size={12} /> {lang === 'pt' ? `Produzir` : `Produce`}
+                <Camera size={12} /> Storyboard →
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* ═══ STEP 3: Production Progress ═══ */}
+      {/* ═══ STEP 3: Storyboard ═══ */}
       {step === 3 && !viewingProject && (
+        <div className="glass-card p-3" data-testid="studio-step-storyboard">
+          <StoryboardEditor
+            projectId={projectId}
+            scenes={scenes}
+            characters={characters}
+            characterAvatars={characterAvatars}
+            lang={lang}
+            onApprove={() => {
+              // After approving storyboard, proceed to production
+              startProduction();
+            }}
+            onBack={() => setStep(2)}
+          />
+        </div>
+      )}
+
+
+      {/* ═══ STEP 4: Production Progress ═══ */}
+      {step === 4 && !viewingProject && (
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-production">
           <h3 className="text-xs font-semibold text-white flex items-center gap-2">
             <Clapperboard size={12} className="text-[#C9A84C]" />
@@ -1771,8 +1797,8 @@ export function DirectedStudio({
         </div>
       )}
 
-      {/* ═══ STEP 4: Results ═══ */}
-      {step === 4 && !viewingProject && (
+      {/* ═══ STEP 5: Results ═══ */}
+      {step === 5 && !viewingProject && (
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-results">
           <h3 className="text-xs font-semibold text-white flex items-center gap-2">
             <Eye size={12} className="text-[#C9A84C]" />
