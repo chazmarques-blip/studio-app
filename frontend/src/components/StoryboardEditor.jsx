@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
-  Sparkles, ChevronRight, Maximize2, BookOpen, Wand2
+  Sparkles, ChevronRight, Maximize2, BookOpen, Wand2, Play, Download, Film
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
+import { StoryboardPreview } from './StoryboardPreview';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -26,6 +27,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatEndRef = useRef(null);
+
+  // Preview states
+  const [showPreview, setShowPreview] = useState(false);
+  const [exportingMp4, setExportingMp4] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewStatus, setPreviewStatus] = useState({});
 
   // Load existing storyboard on mount
   useEffect(() => {
@@ -194,6 +201,49 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       }]);
     }
     setChatLoading(false);
+  };
+
+  // Export MP4 with narration
+  const exportMp4 = async () => {
+    setExportingMp4(true);
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/storyboard/generate-preview`, {
+        voice_id: 'onwK4e9ZLuTAKqWW03F9', // Daniel
+        music_track: 'cinematic',
+      });
+      toast.success(lang === 'pt' ? 'Gerando preview MP4 com narração...' : 'Generating MP4 preview with narration...');
+      pollPreviewStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao exportar');
+      setExportingMp4(false);
+    }
+  };
+
+  const pollPreviewStatus = () => {
+    let attempts = 0;
+    const poll = () => {
+      attempts++;
+      axios.get(`${API}/studio/projects/${projectId}/storyboard/preview-status`).then(r => {
+        const st = r.data.preview_status || {};
+        setPreviewStatus(st);
+        if (st.phase === 'complete' && r.data.preview_url) {
+          setPreviewUrl(r.data.preview_url);
+          setExportingMp4(false);
+          toast.success(lang === 'pt' ? 'Preview MP4 pronto!' : 'MP4 Preview ready!');
+          return;
+        }
+        if (st.phase === 'error' || attempts > 120) {
+          setExportingMp4(false);
+          toast.error(lang === 'pt' ? 'Erro ao gerar preview' : 'Preview generation failed');
+          return;
+        }
+        setTimeout(poll, 4000);
+      }).catch(() => {
+        if (attempts > 10) { setExportingMp4(false); return; }
+        setTimeout(poll, 5000);
+      });
+    };
+    setTimeout(poll, 3000);
   };
 
   const doneCount = panels.filter(p => p.image_url).length;
@@ -463,6 +513,52 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         </div>
       )}
 
+      {/* Preview & Export buttons */}
+      {panels.length > 0 && doneCount > 0 && !loading && (
+        <div className="flex gap-2">
+          <button onClick={() => setShowPreview(true)} data-testid="open-preview-btn"
+            className="flex-1 rounded-lg py-2 text-[10px] font-semibold transition-all
+              bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20
+              flex items-center justify-center gap-1.5">
+            <Play size={12} />
+            {lang === 'pt' ? 'Preview Animado' : 'Animated Preview'}
+          </button>
+          <button onClick={exportMp4} disabled={exportingMp4} data-testid="export-mp4-btn"
+            className="flex-1 rounded-lg py-2 text-[10px] font-semibold transition-all
+              bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20
+              flex items-center justify-center gap-1.5 disabled:opacity-40">
+            {exportingMp4 ? (
+              <>
+                <RefreshCw size={10} className="animate-spin" />
+                {previewStatus.phase === 'narrating'
+                  ? `${lang === 'pt' ? 'Narrando' : 'Narrating'} ${previewStatus.current || ''}/${previewStatus.total || ''}`
+                  : previewStatus.phase === 'rendering'
+                    ? `${lang === 'pt' ? 'Renderizando' : 'Rendering'} ${previewStatus.current || ''}/${previewStatus.total || ''}`
+                    : previewStatus.phase === 'concatenating' || previewStatus.phase === 'mixing_music'
+                      ? (lang === 'pt' ? 'Mixando...' : 'Mixing...')
+                      : (lang === 'pt' ? 'Exportando...' : 'Exporting...')
+                }
+              </>
+            ) : (
+              <>
+                <Film size={12} />
+                {lang === 'pt' ? 'Exportar MP4 + Narração' : 'Export MP4 + Narration'}
+              </>
+            )}
+          </button>
+          {previewUrl && !exportingMp4 && (
+            <a href={resolveImageUrl(previewUrl)} target="_blank" rel="noopener noreferrer"
+              data-testid="download-preview-btn"
+              className="rounded-lg py-2 px-3 text-[10px] font-semibold transition-all
+                bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20
+                flex items-center justify-center gap-1.5">
+              <Download size={12} />
+              MP4
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Action buttons */}
       <div className="flex gap-2">
         <button onClick={onBack}
@@ -494,6 +590,20 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           </>
         )}
       </div>
+
+      {/* Fullscreen Preview Overlay — Portal to body */}
+      {showPreview && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-4" data-testid="preview-overlay">
+          <div className="w-full max-w-4xl">
+            <StoryboardPreview
+              panels={panels}
+              lang={lang}
+              onClose={() => setShowPreview(false)}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

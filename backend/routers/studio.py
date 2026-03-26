@@ -1195,6 +1195,88 @@ async def storyboard_facilitator_chat(project_id: str, req: StoryboardChatReques
     }
 
 
+# ══ STORYBOARD PREVIEW ENDPOINTS ══
+
+class PreviewGenerateRequest(BaseModel):
+    voice_id: str = "onwK4e9ZLuTAKqWW03F9"  # Daniel (British, authoritative)
+    music_track: str = ""
+
+
+@router.post("/projects/{project_id}/storyboard/generate-preview")
+async def generate_storyboard_preview(project_id: str, req: PreviewGenerateRequest, tenant=Depends(get_current_tenant)):
+    """Generate an animated MP4 preview from storyboard panels with ElevenLabs narration."""
+    from core.preview_generator import generate_preview_video
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    panels = project.get("storyboard_panels", [])
+    valid_panels = [p for p in panels if p.get("image_url")]
+    if not valid_panels:
+        raise HTTPException(status_code=400, detail="No storyboard panels with images")
+
+    lang = project.get("language", "pt")
+
+    # Find music file path if specified
+    music_path = None
+    if req.music_track:
+        from pipeline.config import MUSIC_LIBRARY
+        track_info = MUSIC_LIBRARY.get(req.music_track)
+        if track_info:
+            music_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline", "music")
+            candidate = os.path.join(music_dir, track_info["file"])
+            if os.path.exists(candidate):
+                music_path = candidate
+
+    # Mark as generating
+    project["preview_status"] = {"phase": "starting", "current": 0, "total": len(valid_panels)}
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+
+    def _bg_preview():
+        try:
+            url = generate_preview_video(
+                project_id=project_id,
+                panels=valid_panels,
+                voice_id=req.voice_id,
+                lang=lang,
+                music_path=music_path,
+                upload_fn=_upload_to_storage,
+                update_fn=_update_project_field,
+                tenant_id=tenant["id"],
+            )
+            _update_project_field(tenant["id"], project_id, {
+                "preview_status": {"phase": "complete", "url": url},
+                "preview_url": url,
+            })
+            _s, _p, _proj = _get_project(tenant["id"], project_id)
+            if _proj:
+                _add_milestone(_proj, "preview_generated", "Preview animado gerado")
+                _save_project(tenant["id"], _s, _p)
+            logger.info(f"Preview [{project_id}]: Complete — {url}")
+        except Exception as e:
+            logger.error(f"Preview [{project_id}]: Failed: {e}")
+            _update_project_field(tenant["id"], project_id, {
+                "preview_status": {"phase": "error", "error": str(e)[:200]},
+            })
+
+    thread = threading.Thread(target=_bg_preview, daemon=True)
+    thread.start()
+    return {"status": "generating", "total_panels": len(valid_panels)}
+
+
+@router.get("/projects/{project_id}/storyboard/preview-status")
+async def get_preview_status(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get preview generation status and URL."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {
+        "preview_status": project.get("preview_status", {}),
+        "preview_url": project.get("preview_url"),
+    }
+
+
 @router.post("/projects/{project_id}/clear-outputs")
 async def clear_scene_outputs(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
     """Remove outputs for specific scenes to force re-generation. keep_scenes: list of scene numbers to KEEP."""
