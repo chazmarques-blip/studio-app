@@ -23,6 +23,13 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - **Typography**: Cormorant Garamond (serif headings), Manrope (sans body), JetBrains Mono (labels/badges)
 - **Design System**: Enhanced with serif hierarchy, tracking-wide labels, inset glow hover effects
 
+### Media Preview System (2026-03-26)
+- **Video Player Modal**: Full-screen video player with native controls, scene navigation buttons, download
+- **Image Gallery Modal**: Lightbox with left/right navigation, thumbnail strip, keyboard arrows support
+- **Book Preview Modal**: Embedded iframe of Interactive Book with "Tela cheia" link
+- **PDF Preview Modal**: Grid view of all storyboard illustrations (84 frames), click-to-expand, "Baixar PDF Completo" button
+- **Keyboard Support**: Escape closes, Arrow keys navigate gallery
+
 ### Storyboard Editavel
 - 6 individual frames per scene (Storybook Pages)
 - Gallery/Filmstrip layout with page numbers
@@ -73,3 +80,4 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - 114: Continuity Director (100%)
 - 115: Cache System (100%)
 - 116: UX Redesign Step 5 + Navigation (100%)
+- 117: Media Preview Modal System (100%) — Book, PDF, Video, Gallery all tested
