@@ -412,7 +412,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         : 'border-[#1A1A1A] bg-[#0A0A0A]'
                   }`}>
                   {/* Image area — Gallery view with filmstrip */}
-                  <div className="relative bg-[#0A0A0A] overflow-hidden group">
+                  <div className="relative bg-[#0A0A0A] overflow-hidden">
                     {/* Main display image */}
                     {panel.frames?.length > 1 && !isGenerating ? (() => {
                       const activeFrame = getSelectedFrame(panel.scene_number, panel.frames);
@@ -427,6 +427,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                               className="w-full h-full object-cover"
                               data-testid={`panel-main-frame-${panel.scene_number}`}
                             />
+                            {/* Scene number badge */}
+                            <span className="absolute top-1 left-1 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                              {panel.scene_number}
+                            </span>
                             {/* Frame label badge */}
                             {activeFrame?.label && (
                               <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-[7px] text-[#C9A84C] font-medium px-2 py-0.5 rounded-full">
@@ -459,13 +463,61 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                               </button>
                             ))}
                           </div>
+
+                          {/* Action toolbar — below filmstrip, always visible */}
+                          <div className="flex items-center justify-between px-2 py-1 bg-[#0D0D0D] border-t border-[#1A1A1A]">
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => setExpandedPanel(isExpanded ? null : panel.scene_number)}
+                                data-testid={`expand-panel-${panel.scene_number}`}
+                                className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#888] hover:text-white hover:bg-[#222] transition" title={lang === 'pt' ? 'Expandir' : 'Expand'}>
+                                <Maximize2 size={10} />
+                              </button>
+                              <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
+                                data-testid={`inpaint-panel-${panel.scene_number}`}
+                                className={`h-6 w-6 rounded flex items-center justify-center transition ${
+                                  inpaintingPanel === panel.scene_number
+                                    ? 'bg-orange-500/20 text-orange-400'
+                                    : 'bg-[#1A1A1A] text-orange-400/60 hover:text-orange-400 hover:bg-[#222]'
+                                }`} title={lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}>
+                                <Paintbrush size={10} />
+                              </button>
+                              <button onClick={() => regeneratePanel(panel.scene_number)}
+                                data-testid={`regen-panel-${panel.scene_number}`}
+                                className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#C9A84C]/60 hover:text-[#C9A84C] hover:bg-[#222] transition" title={lang === 'pt' ? 'Regenerar' : 'Regenerate'}>
+                                <Film size={10} />
+                              </button>
+                            </div>
+                            <span className="text-[7px] text-[#555]">
+                              {panel.frames.length} frames
+                            </span>
+                          </div>
                         </div>
                       );
                     })() : panel.image_url && !isGenerating ? (
-                      /* Single image fallback */
-                      <div className="aspect-video">
-                        <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
-                          className="w-full h-full object-cover" />
+                      <div>
+                        <div className="relative aspect-video">
+                          <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
+                            className="w-full h-full object-cover" />
+                          <span className="absolute top-1 left-1 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                            {panel.scene_number}
+                          </span>
+                        </div>
+                        {/* Action toolbar for single image */}
+                        <div className="flex items-center gap-1 px-2 py-1 bg-[#0D0D0D] border-t border-[#1A1A1A]">
+                          <button onClick={() => setExpandedPanel(isExpanded ? null : panel.scene_number)}
+                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#888] hover:text-white hover:bg-[#222] transition">
+                            <Maximize2 size={10} />
+                          </button>
+                          <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
+                            data-testid={`inpaint-panel-single-${panel.scene_number}`}
+                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-orange-400/60 hover:text-orange-400 hover:bg-[#222] transition">
+                            <Paintbrush size={10} />
+                          </button>
+                          <button onClick={() => regeneratePanel(panel.scene_number)}
+                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#C9A84C]/60 hover:text-[#C9A84C] hover:bg-[#222] transition">
+                            <Film size={10} />
+                          </button>
+                        </div>
                       </div>
                     ) : isGenerating ? (
                       <div className="aspect-video flex flex-col items-center justify-center gap-2">
@@ -477,33 +529,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         <Image size={20} className="text-[#333]" />
                       </div>
                     )}
-                    {/* Overlay controls — hide when generating */}
-                    {!isGenerating && panel.image_url && (
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                        <button onClick={() => setExpandedPanel(isExpanded ? null : panel.scene_number)}
-                          className="h-7 w-7 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-black/90 transition">
-                          <Maximize2 size={10} />
-                        </button>
-                        <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
-                          data-testid={`inpaint-panel-${panel.scene_number}`}
-                          className={`h-7 w-7 rounded-full flex items-center justify-center transition ${
-                            inpaintingPanel === panel.scene_number
-                              ? 'bg-orange-500/30 text-orange-400'
-                              : 'bg-black/70 text-orange-400 hover:bg-black/90'
-                          }`}>
-                          <Paintbrush size={10} />
-                        </button>
-                        <button onClick={() => regeneratePanel(panel.scene_number)}
-                          data-testid={`regen-panel-${panel.scene_number}`}
-                          className="h-7 w-7 rounded-full bg-black/70 flex items-center justify-center text-[#C9A84C] hover:bg-black/90 transition">
-                          <Film size={10} />
-                        </button>
-                      </div>
-                    )}
-                    {/* Scene number badge */}
-                    <span className="absolute top-1 left-1 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
-                      {panel.scene_number}
-                    </span>
                   </div>
 
                   {/* Inpainting — Element edit UI */}
@@ -515,27 +540,27 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           {lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}
                         </span>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 items-center">
                         <input
                           value={inpaintPrompt}
                           onChange={e => setInpaintPrompt(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && editElement(panel.scene_number)}
                           placeholder={lang === 'pt' ? 'Ex: Remover a corcova do Isaque' : 'Ex: Remove the hump from Isaac'}
                           data-testid={`inpaint-input-${panel.scene_number}`}
-                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2 py-1 text-[8px] text-white placeholder-[#555] outline-none focus:border-orange-500/50"
+                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2 py-1.5 text-[8px] text-white placeholder-[#555] outline-none focus:border-orange-500/50"
                           disabled={inpaintLoading}
                         />
                         <VoiceInput
                           onResult={text => setInpaintPrompt(prev => prev ? `${prev} ${text}` : text)}
                           lang={lang}
-                          size={10}
-                          className="h-6 w-6"
+                          size={14}
+                          className="h-7 w-7 rounded bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 hover:bg-orange-500/20 transition flex-shrink-0"
                         />
                         <button
                           onClick={() => editElement(panel.scene_number)}
                           disabled={inpaintLoading || !inpaintPrompt.trim()}
                           data-testid={`inpaint-submit-${panel.scene_number}`}
-                          className="rounded px-2 py-1 text-[8px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1"
+                          className="rounded px-2.5 py-1.5 text-[8px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1 flex-shrink-0"
                         >
                           {inpaintLoading ? <FilmSpinner size={8} className="text-orange-400" /> : <Paintbrush size={8} />}
                           {lang === 'pt' ? 'Editar' : 'Edit'}

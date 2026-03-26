@@ -129,6 +129,37 @@ def _add_milestone(project: dict, key: str, label: str):
         milestones.append({"key": key, "label": label, "done": True, "at": datetime.now(timezone.utc).isoformat()})
         project["milestones"] = milestones
 
+
+def _cleanup_stale_storyboards():
+    """Reset stale storyboard statuses that were orphaned by hot-reloads."""
+    try:
+        tenants = supabase.table("tenants").select("id, settings").execute().data or []
+        cleaned = 0
+        stale_phases = {"starting", "generating"}
+        for t in tenants:
+            settings = t.get("settings") or {}
+            projects = settings.get("studio_projects", [])
+            dirty = False
+            for proj in projects:
+                sb_status = proj.get("storyboard_status", {})
+                if sb_status.get("phase") in stale_phases:
+                    panels = proj.get("storyboard_panels", [])
+                    done = sum(1 for p in panels if p.get("image_url"))
+                    proj["storyboard_status"] = {
+                        "phase": "complete" if done > 0 else "error",
+                        "current": len(panels), "total": len(panels),
+                        "recovered": True,
+                    }
+                    dirty = True
+                    cleaned += 1
+            if dirty:
+                _save_settings(t["id"], settings)
+        if cleaned:
+            logger.info(f"Studio startup: Recovered {cleaned} stale storyboard tasks")
+    except Exception as e:
+        logger.warning(f"Studio stale cleanup failed: {e}")
+
+
 def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "image/png") -> str:
     """Upload to Supabase Storage with retry and chunked fallback for large files."""
     file_size_mb = len(file_bytes) / (1024 * 1024)
@@ -1015,8 +1046,7 @@ async def get_storyboard(project_id: str, tenant=Depends(get_current_tenant)):
 
 @router.post("/projects/{project_id}/storyboard/regenerate-panel")
 async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegeneratePanelRequest, tenant=Depends(get_current_tenant)):
-    """Regenerate a single storyboard panel."""
-    from core.storyboard import _generate_panel_image
+    """Regenerate a single storyboard panel with 6 individual frames."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -1041,11 +1071,11 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
     def _bg_regen():
         try:
             import tempfile
+            from core.storyboard import _generate_all_frames_for_scene, FRAME_TYPES
             char_avatars = project.get("character_avatars", {})
             production_design = project.get("agents_output", {}).get("production_design", {})
             character_bible = production_design.get("character_bible", {})
 
-            # Download avatars
             avatar_cache = {}
             chars_in_scene = scene.get("characters_in_scene", [])
             for cname in chars_in_scene:
@@ -1065,33 +1095,28 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
             if style_anchors:
                 style_dna = f"{style_dna} {style_anchors}"
 
-            img_bytes = _generate_panel_image(
+            frame_results = _generate_all_frames_for_scene(
                 scene=scene, scene_num=req.panel_number, project_id=project_id,
                 char_avatars=char_avatars, avatar_cache=avatar_cache,
                 character_bible=character_bible, style_dna=style_dna,
                 lang=project.get("language", "pt"),
             )
-            if img_bytes:
-                from core.storyboard import _split_grid_into_frames
-                fname = f"storyboard/{project_id}/panel_{req.panel_number}_grid.png"
-                image_url = _upload_to_storage(img_bytes, fname, "image/png")
 
-                # Split into 6 frames
-                frame_bytes_list = _split_grid_into_frames(img_bytes)
-                frame_labels = [
-                    "Plano Geral", "Close-up", "Ação",
-                    "Reação", "Ângulo Dramático", "Transição"
-                ]
-                frames = []
-                for fi, fb in enumerate(frame_bytes_list):
+            image_url = None
+            frames = []
+            for fi, (ft, img_bytes) in enumerate(frame_results):
+                if img_bytes:
                     frame_fname = f"storyboard/{project_id}/panel_{req.panel_number}_frame_{fi+1}.png"
-                    frame_url = _upload_to_storage(fb, frame_fname, "image/png")
+                    frame_url = _upload_to_storage(img_bytes, frame_fname, "image/png")
                     frames.append({
                         "frame_number": fi + 1,
                         "image_url": frame_url,
-                        "label": frame_labels[fi] if fi < len(frame_labels) else f"Frame {fi+1}",
+                        "label": ft["label"],
                     })
+                    if image_url is None:
+                        image_url = frame_url
 
+            if image_url:
                 _s, _p, _proj = _get_project(tenant["id"], project_id)
                 if _proj:
                     for p in _proj.get("storyboard_panels", []):
@@ -1109,7 +1134,6 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
                             p["status"] = "error"
                     _save_project(tenant["id"], _s, _p)
 
-            # Cleanup
             for path in avatar_cache.values():
                 if path and os.path.exists(path):
                     try:

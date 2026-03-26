@@ -28,6 +28,16 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
+@app.on_event("startup")
+async def cleanup_stale_tasks():
+    """Clean up stale generating/starting statuses that were orphaned by hot-reloads."""
+    try:
+        from routers.studio import _cleanup_stale_storyboards
+        _cleanup_stale_storyboards()
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Stale task cleanup skipped: {e}")
+
+
 @api_router.get("/health")
 async def health():
     return {"status": "ok", "service": "agentzz-api", "version": "0.4.0", "database": "supabase"}

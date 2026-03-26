@@ -17,10 +17,20 @@ logger = logging.getLogger(__name__)
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
+FRAME_TYPES = [
+    {"label": "Plano Geral", "prompt": "ESTABLISHING SHOT — wide angle showing the full environment and all character positions from a distance"},
+    {"label": "Close-up", "prompt": "CHARACTER CLOSE-UP — tightly framed on the main character's face, capturing their emotion and expression in detail"},
+    {"label": "Acao", "prompt": "ACTION MOMENT — the key action, gesture, or movement happening in this scene, dynamic composition"},
+    {"label": "Reacao", "prompt": "REACTION SHOT — other characters reacting to the main action, showing their emotions and body language"},
+    {"label": "Angulo Dramatico", "prompt": "DRAMATIC ANGLE — low-angle or high-angle shot creating dramatic tension and visual impact"},
+    {"label": "Transicao", "prompt": "TRANSITION SHOT — a moment that visually bridges to the next scene, with movement or atmospheric shift"},
+]
 
-def _generate_panel_image(
+
+def _generate_single_frame(
     scene: dict,
     scene_num: int,
+    frame_type: dict,
     project_id: str,
     char_avatars: dict,
     avatar_cache: dict,
@@ -28,7 +38,7 @@ def _generate_panel_image(
     style_dna: str,
     lang: str = "pt",
 ) -> bytes:
-    """Generate a single storyboard panel illustration via Gemini Nano Banana.
+    """Generate a single storyboard frame illustration via Gemini Nano Banana.
     Returns image bytes or None on failure.
     """
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
@@ -50,38 +60,30 @@ def _generate_panel_image(
     description = scene.get("description", "")
     title = scene.get("title", "")
     emotion = scene.get("emotion", "")
-
     lang_name = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, "Portuguese")
 
-    prompt_text = f"""Generate a STORYBOARD SHEET with 6 panels arranged in a 2x3 grid (2 columns, 3 rows) for this animated film scene.
+    prompt_text = f"""Generate ONE high-quality storyboard illustration for this animated film scene.
 
 SCENE {scene_num}: {title}
 DESCRIPTION: {description}
 EMOTION: {emotion}
 DIALOGUE: {dialogue}
 
+CAMERA/FRAMING: {frame_type['prompt']}
+
 {style_dna}
 
-CHARACTER IDENTITY (ABSOLUTE TRUTH — match reference images EXACTLY):
+CHARACTER IDENTITY (match reference images EXACTLY):
 {char_desc_block if char_desc_block else 'Use scene description for character appearance.'}
 
-THE 6 PANELS MUST SHOW DIFFERENT KEY MOMENTS OF THIS SAME SCENE:
-- Panel 1 (top-left): ESTABLISHING SHOT — wide angle showing the environment and character positions
-- Panel 2 (top-right): CHARACTER CLOSE-UP — focused on the main character's face/expression
-- Panel 3 (middle-left): ACTION MOMENT — the key action or gesture in the scene
-- Panel 4 (middle-right): REACTION SHOT — other characters reacting to the action
-- Panel 5 (bottom-left): DRAMATIC ANGLE — low or high angle for dramatic emphasis
-- Panel 6 (bottom-right): TRANSITION — a moment that bridges to the next scene
-
-CRITICAL RULES:
-- Generate EXACTLY ONE IMAGE containing a 2x3 GRID of 6 illustration panels
-- Each panel must be the SAME SIZE and clearly separated by thin black borders
-- ALL 6 panels must show the SAME characters from the SAME scene but from DIFFERENT angles/moments
+RULES:
+- Generate exactly ONE single illustration (NOT a grid, NOT multiple panels)
+- This is a {frame_type['label']} shot — frame the composition accordingly
 - Characters MUST match reference images EXACTLY (species, face, fur color, clothing, posture)
-- If a character is BIPEDAL ANTHROPOMORPHIC in the reference, show them STANDING UPRIGHT — never as quadruped
+- If a character is BIPEDAL ANTHROPOMORPHIC in the reference, show them STANDING UPRIGHT
 - Style: 3D CGI Pixar quality with volumetric lighting, soft shadows, cinematic composition
-- DO NOT include any text, numbers, labels, or speech bubbles in the image
-- The grid layout must be clean and uniform — all 6 panels equal size
+- DO NOT include any text, numbers, labels, or speech bubbles
+- Fill the entire image with the illustration — no borders, no margins
 - Language context: {lang_name}"""
 
     ref_images = []
@@ -96,8 +98,8 @@ CRITICAL RULES:
     async def _gen():
         chat = LlmChat(
             api_key=api_key,
-            session_id=f"storyboard-{project_id}-{scene_num}",
-            system_message="You are a professional storyboard artist for animated films. Generate exactly one high-quality illustration panel."
+            session_id=f"sb-{project_id}-{scene_num}-{frame_type['label'][:4]}",
+            system_message="You are a professional storyboard artist for animated films. Generate exactly one high-quality illustration."
         )
         chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
 
@@ -129,40 +131,66 @@ CRITICAL RULES:
     return result
 
 
-def _split_grid_into_frames(grid_bytes: bytes) -> list:
-    """Split a 2x3 grid image into 6 individual frames.
+def _generate_panel_image(
+    scene: dict,
+    scene_num: int,
+    project_id: str,
+    char_avatars: dict,
+    avatar_cache: dict,
+    character_bible: dict,
+    style_dna: str,
+    lang: str = "pt",
+) -> bytes:
+    """Legacy wrapper — generates the first frame (Plano Geral) as the main panel image."""
+    return _generate_single_frame(
+        scene=scene, scene_num=scene_num,
+        frame_type=FRAME_TYPES[0],
+        project_id=project_id,
+        char_avatars=char_avatars, avatar_cache=avatar_cache,
+        character_bible=character_bible, style_dna=style_dna, lang=lang,
+    )
 
-    Returns list of 6 image bytes (PNG). If split fails, returns [grid_bytes] as fallback.
+
+def _generate_all_frames_for_scene(
+    scene: dict,
+    scene_num: int,
+    project_id: str,
+    char_avatars: dict,
+    avatar_cache: dict,
+    character_bible: dict,
+    style_dna: str,
+    lang: str = "pt",
+) -> list:
+    """Generate 6 individual frames for a scene in parallel (3 at a time).
+    Returns list of (frame_type, image_bytes) tuples.
     """
-    from PIL import Image as PILImage
-    import io
+    frame_sem = threading.Semaphore(3)
+    results = [None] * len(FRAME_TYPES)
 
-    try:
-        img = PILImage.open(io.BytesIO(grid_bytes))
-        w, h = img.size
+    def _gen_one(idx, ft):
+        with frame_sem:
+            try:
+                img = _generate_single_frame(
+                    scene=scene, scene_num=scene_num,
+                    frame_type=ft, project_id=project_id,
+                    char_avatars=char_avatars, avatar_cache=avatar_cache,
+                    character_bible=character_bible, style_dna=style_dna, lang=lang,
+                )
+                results[idx] = (ft, img)
+            except Exception as e:
+                logger.error(f"Storyboard [{project_id}]: Frame {ft['label']} scene {scene_num} failed: {e}")
+                results[idx] = (ft, None)
 
-        # 2 columns, 3 rows
-        cols, rows = 2, 3
-        fw = w // cols
-        fh = h // rows
+    threads = []
+    for i, ft in enumerate(FRAME_TYPES):
+        t = threading.Thread(target=_gen_one, args=(i, ft))
+        threads.append(t)
+        t.start()
 
-        frames = []
-        for row in range(rows):
-            for col in range(cols):
-                left = col * fw
-                top = row * fh
-                right = left + fw
-                bottom = top + fh
-                frame = img.crop((left, top, right, bottom))
-                buf = io.BytesIO()
-                frame.save(buf, format='PNG')
-                frames.append(buf.getvalue())
+    for t in threads:
+        t.join(timeout=120)
 
-        logger.info(f"Split grid {w}x{h} into {len(frames)} frames ({fw}x{fh} each)")
-        return frames
-    except Exception as e:
-        logger.warning(f"Grid split failed: {e}, returning full image as single frame")
-        return [grid_bytes]
+    return [r for r in results if r is not None]
 
 
 def generate_all_panels(
@@ -187,13 +215,11 @@ def generate_all_panels(
     total = len(scenes)
     character_bible = production_design.get("character_bible", {}) if production_design else {}
 
-    # Build style DNA
     style_dna = "ART STYLE: Premium 3D CGI animation (Pixar/DreamWorks quality). Volumetric lighting, warm color grading, cinematic composition."
     style_anchors = production_design.get("style_anchors", "") if production_design else ""
     if style_anchors:
         style_dna = f"{style_dna} {style_anchors}"
 
-    # Pre-download avatars
     avatar_cache = {}
     for name, url in char_avatars.items():
         if url and url not in avatar_cache:
@@ -207,11 +233,10 @@ def generate_all_panels(
                 logger.warning(f"Storyboard [{project_id}]: Avatar download failed for {name}: {e}")
                 avatar_cache[url] = None
 
-    panels = []
-    semaphore = threading.Semaphore(3)
+    scene_semaphore = threading.Semaphore(2)
 
     def _gen_panel(scene, scene_num):
-        with semaphore:
+        with scene_semaphore:
             try:
                 if update_fn:
                     update_fn(tenant_id, project_id, {
@@ -219,43 +244,31 @@ def generate_all_panels(
                             "phase": "generating",
                             "current": scene_num,
                             "total": total,
-                            "panels_done": len([p for p in panels if p.get("image_url")]),
                         }
                     })
 
-                img_bytes = _generate_panel_image(
-                    scene=scene,
-                    scene_num=scene_num,
+                frame_results = _generate_all_frames_for_scene(
+                    scene=scene, scene_num=scene_num,
                     project_id=project_id,
-                    char_avatars=char_avatars,
-                    avatar_cache=avatar_cache,
-                    character_bible=character_bible,
-                    style_dna=style_dna,
-                    lang=lang,
+                    char_avatars=char_avatars, avatar_cache=avatar_cache,
+                    character_bible=character_bible, style_dna=style_dna, lang=lang,
                 )
 
                 image_url = None
                 frames = []
-                if img_bytes and upload_fn:
-                    # Upload the full grid image
-                    fname = f"storyboard/{project_id}/panel_{scene_num}_grid.png"
-                    image_url = upload_fn(img_bytes, fname, "image/png")
-
-                    # Split into 6 frames
-                    frame_bytes_list = _split_grid_into_frames(img_bytes)
-                    frame_labels = [
-                        "Plano Geral", "Close-up", "Ação",
-                        "Reação", "Ângulo Dramático", "Transição"
-                    ]
-                    for fi, fb in enumerate(frame_bytes_list):
-                        frame_fname = f"storyboard/{project_id}/panel_{scene_num}_frame_{fi+1}.png"
-                        frame_url = upload_fn(fb, frame_fname, "image/png")
+                for fi, (ft, img_bytes) in enumerate(frame_results):
+                    if img_bytes and upload_fn:
+                        fname = f"storyboard/{project_id}/panel_{scene_num}_frame_{fi+1}.png"
+                        frame_url = upload_fn(img_bytes, fname, "image/png")
                         frames.append({
                             "frame_number": fi + 1,
                             "image_url": frame_url,
-                            "label": frame_labels[fi] if fi < len(frame_labels) else f"Frame {fi+1}",
+                            "label": ft["label"],
                         })
-                    logger.info(f"Storyboard [{project_id}]: Panel {scene_num} — {len(frames)} frames uploaded")
+                        if image_url is None:
+                            image_url = frame_url
+
+                logger.info(f"Storyboard [{project_id}]: Panel {scene_num} — {len(frames)} frames uploaded")
 
                 return {
                     "scene_number": scene_num,
@@ -297,12 +310,11 @@ def generate_all_panels(
         t.start()
 
     for t in threads:
-        t.join(timeout=120)
+        t.join(timeout=300)
 
     panels = [r for r in results if r is not None]
     panels.sort(key=lambda p: p["scene_number"])
 
-    # Cleanup avatar cache
     for path in avatar_cache.values():
         if path and os.path.exists(path):
             try:
