@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3 } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
@@ -59,6 +59,7 @@ export function DirectedStudio({
   const [showPreview, setShowPreview] = useState(false);
   const [projectSearch, setProjectSearch] = useState('');
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [showPostProd, setShowPostProd] = useState(false);
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -688,20 +689,31 @@ export function DirectedStudio({
         </div>
       )}
       {step >= 1 && (
-        <div className="flex items-center justify-center gap-1 my-1">
-          {STEPS.map((s, i) => (
-            <div key={s.n} className="flex items-center">
-              <button onClick={() => { if (!generating) { setViewingProject(null); setStep(s.n); }}}
-                data-testid={`studio-step-${s.n}`}
-                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-medium transition ${
-                  step === s.n && !viewingProject ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#555] hover:text-[#888]'
+        <div className="flex items-center justify-center gap-0 my-2 relative">
+          {/* Timeline track */}
+          <div className="absolute top-1/2 left-8 right-8 h-px bg-[#1A1A1A] -translate-y-1/2 z-0" />
+          {STEPS.map((s, i) => {
+            const isActive = step === s.n && !viewingProject;
+            const isDone = step > s.n;
+            return (
+              <div key={s.n} className="flex-1 flex flex-col items-center relative z-10">
+                <button onClick={() => { if (!generating) { setViewingProject(null); setStep(s.n); }}}
+                  data-testid={`studio-step-${s.n}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isActive ? 'bg-[#C9A84C] text-black shadow-[0_0_16px_rgba(201,168,76,0.3)]' :
+                    isDone ? 'bg-white text-black' :
+                    'bg-[#111] text-[#555] border border-[#222] hover:border-[#444]'
+                  }`}>
+                  {isDone ? <Check size={12} strokeWidth={2.5} /> : <s.icon size={12} strokeWidth={1.5} />}
+                </button>
+                <span className={`mt-1 text-[8px] font-mono tracking-wider uppercase transition-colors ${
+                  isActive ? 'text-[#C9A84C]' : isDone ? 'text-white/60' : 'text-[#333]'
                 }`}>
-                <s.icon size={11} />
-                <span className="hidden sm:inline">{s.label}</span>
-              </button>
-              {i < STEPS.length - 1 && <div className="w-3 h-px bg-[#333] mx-0.5" />}
-            </div>
-          ))}
+                  {isActive ? s.label : <span className="hidden sm:inline">{s.label}</span>}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1797,167 +1809,242 @@ export function DirectedStudio({
         </div>
       )}
 
-      {/* ═══ STEP 5: Results ═══ */}
+      {/* ═══ STEP 5: Resultado — Deliverables Showcase ═══ */}
       {step === 5 && !viewingProject && (
-        <div className="glass-card p-3 space-y-3" data-testid="studio-step-results">
-          <h3 className="text-xs font-semibold text-white flex items-center gap-2">
-            <Eye size={12} className="text-[#C9A84C]" />
-            {lang === 'pt' ? 'Resultado Final' : 'Final Result'}
-          </h3>
+        <div className="space-y-4" data-testid="studio-step-results">
+          {/* Section Header */}
+          <div className="text-center py-2">
+            <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-[#C9A84C]/60 mb-1">
+              {lang === 'pt' ? 'Entrega Final' : 'Final Delivery'}
+            </p>
+            <h2 className="text-xl sm:text-2xl font-serif text-white tracking-tight">
+              {lang === 'pt' ? 'Seus Produtos' : 'Your Products'}
+            </h2>
+          </div>
 
           {outputs.length === 0 && !generating && (
-            <div className="text-center py-6">
-              <Sparkles size={20} className="mx-auto text-[#333] mb-2" />
-              <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Aguardando produção...' : 'Waiting for production...'}</p>
+            <div className="text-center py-10 border border-[#111] rounded-xl">
+              <Film size={28} className="mx-auto text-[#222] mb-3" strokeWidth={1} />
+              <p className="text-sm text-[#444] font-sans">{lang === 'pt' ? 'Aguardando produção...' : 'Waiting for production...'}</p>
+              <button onClick={() => setStep(4)} className="mt-3 text-[10px] font-mono tracking-wider uppercase text-[#C9A84C] hover:underline">
+                {lang === 'pt' ? 'Ir para Produção' : 'Go to Production'}
+              </button>
             </div>
           )}
 
-          {/* ── FILME COMPLETO (concat video) ── */}
+          {/* ── HERO: O Filme Completo ── */}
           {outputs.filter(o => o.label === 'complete').map((out, i) => (
-            <div key={`complete-${i}`} className="rounded-lg overflow-hidden border border-white/5">
-              {out.type === 'video' && out.url && (
-                <div className="relative bg-black">
-                  <video controls autoPlay className="w-full rounded-lg" data-testid="result-video-complete" src={out.url} />
-                  <span className="absolute top-1.5 left-1.5 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
-                    FILME COMPLETO ({out.duration}s)
+            <div key={`hero-${i}`} className="relative rounded-xl overflow-hidden border border-[#C9A84C]/20 group" data-testid="deliverable-filme-completo">
+              <div className="relative bg-black aspect-video">
+                <video controls className="w-full h-full object-contain" data-testid="result-video-complete" src={out.url} poster="" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute top-3 left-3">
+                  <span className="text-[8px] font-mono tracking-[0.2em] uppercase bg-[#C9A84C] text-black px-2 py-0.5 rounded-sm font-semibold">
+                    {lang === 'pt' ? 'Filme Completo' : 'Full Film'}
                   </span>
                 </div>
-              )}
-              <div className="p-1.5 flex items-center justify-between">
-                <span className="text-[8px] text-[#666]">Todas as cenas</span>
-                <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[8px] font-semibold flex items-center gap-1">
-                  <Download size={10} /> Download
+              </div>
+              <div className="p-3 flex items-center justify-between bg-[#0A0A0A]">
+                <div>
+                  <p className="text-xs font-serif text-white">{projectName}</p>
+                  <p className="text-[9px] font-mono text-[#555]">{scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'} {out.duration ? `• ${out.duration}s` : ''}</p>
+                </div>
+                <a href={out.url} download data-testid="download-filme-completo"
+                  className="bg-[#C9A84C] text-black font-semibold text-[10px] tracking-wide uppercase px-4 py-2 rounded-sm hover:bg-white transition-colors duration-300 flex items-center gap-1.5">
+                  <Download size={12} strokeWidth={1.5} /> Download
                 </a>
               </div>
             </div>
           ))}
 
-          {/* ── PÓS-PRODUÇÃO + LOCALIZAÇÃO (logo após o filme) ── */}
+          {/* ── BENTO GRID: Produtos Secundários ── */}
           {outputs.length > 0 && (
-            <PostProduction
-              project={{
-                id: projectId,
-                language: projectLang || lang,
-                scenes,
-                outputs,
-                ...(() => {
-                  const proj = allProjects.find(p => p.id === projectId);
-                  return proj ? {
-                    agents_output: proj.agents_output,
-                    narrations: proj.narrations,
-                    voice_config: proj.voice_config,
-                    post_production_status: proj.post_production_status,
-                  } : {};
-                })(),
-              }}
-              onUpdate={loadProjects}
-            />
+            <div className="grid grid-cols-2 gap-2" data-testid="deliverables-grid">
+              {/* Card: Livro Interativo */}
+              <button
+                onClick={() => window.open(`/book/${projectId}`, '_blank')}
+                data-testid="deliverable-livro-interativo"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500"
+              >
+                <div className="w-9 h-9 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center mb-3">
+                  <BookOpen size={18} className="text-[#C9A84C]" strokeWidth={1.2} />
+                </div>
+                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
+                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Interativo' : 'Interactive'}</p>
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <Check size={10} className="text-emerald-400" />
+                </div>
+              </button>
+
+              {/* Card: Storyboard PDF */}
+              <button
+                onClick={async () => {
+                  try {
+                    const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' });
+                    const url = URL.createObjectURL(r.data);
+                    const a = document.createElement('a'); a.href = url; a.download = `${projectName || 'storyboard'}.pdf`; a.click();
+                    toast.success('PDF baixado!');
+                  } catch { toast.error('Erro ao baixar PDF'); }
+                }}
+                data-testid="deliverable-storyboard-pdf"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500"
+              >
+                <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3">
+                  <Download size={18} className="text-purple-400" strokeWidth={1.2} />
+                </div>
+                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Storyboard PDF' : 'Storyboard PDF'}</p>
+                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Livro Ilustrado' : 'Illustrated Book'}</p>
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <Check size={10} className="text-emerald-400" />
+                </div>
+              </button>
+
+              {/* Card: Pós-Produção */}
+              <button
+                onClick={() => setShowPostProd(true)}
+                data-testid="deliverable-pos-producao"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500 col-span-2 sm:col-span-1"
+              >
+                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3">
+                  <Clapperboard size={18} className="text-blue-400" strokeWidth={1.2} />
+                </div>
+                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</p>
+                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Narração, Dublagem, Legendas' : 'Narration, Dubbing, Subtitles'}</p>
+              </button>
+
+              {/* Card: Analytics */}
+              <button
+                onClick={loadAnalytics}
+                disabled={analyticsLoading}
+                data-testid="deliverable-analytics"
+                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl p-4 text-left group hover:-translate-y-0.5 hover:shadow-[inset_0_0_20px_rgba(201,168,76,0.05)] hover:border-[#C9A84C]/20 transition-all duration-500 col-span-2 sm:col-span-1"
+              >
+                <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
+                  <BarChart3 size={18} className="text-amber-400" strokeWidth={1.2} />
+                </div>
+                <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Analytics' : 'Analytics'}</p>
+                <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">{lang === 'pt' ? 'Performance do Projeto' : 'Project Performance'}</p>
+              </button>
+            </div>
           )}
 
-          {/* ── CENAS INDIVIDUAIS ── */}
-          {outputs.filter(o => o.label !== 'complete').length > 0 && (
-            <details className="group">
-              <summary className="text-[10px] text-[#888] cursor-pointer hover:text-white transition py-1 flex items-center gap-1">
-                <ChevronDown size={10} className="group-open:rotate-180 transition-transform" />
-                {lang === 'pt' ? `Ver ${outputs.filter(o => o.label !== 'complete').length} cenas individuais` : `View ${outputs.filter(o => o.label !== 'complete').length} individual scenes`}
-              </summary>
-              <div className="space-y-2 mt-2">
-          {outputs.filter(o => o.label !== 'complete').map((out, i) => {
-            const sceneState = (agentStatus.scene_status || {})[String(out.scene_number)] || '';
-            const isRegenerating = regenScene === out.scene_number;
-            return (
-            <div key={out.id || i} className="rounded-lg overflow-hidden border border-white/5">
-              {out.type === 'video' && out.url && (
-                <div className="relative bg-black">
-                  <video controls autoPlay={i === 0} className="w-full rounded-lg" data-testid={`result-video-${i}`} src={out.url} />
-                  <span className="absolute top-1.5 left-1.5 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
-                    {out.label === 'complete' ? `FILME COMPLETO (${out.duration}s)` : `CENA ${out.scene_number}`}
-                  </span>
-                </div>
-              )}
-              <div className="p-1.5 flex items-center justify-between">
-                <span className="text-[8px] text-[#666]">{out.label === 'complete' ? 'Todas as cenas' : `Cena ${out.scene_number} • 12s`}</span>
-                <div className="flex gap-1 items-center">
-                  {out.scene_number && out.label !== 'complete' && (
-                    <>
-                      <button onClick={() => { setEditingScene(out.scene_number); const sc = scenes.find(s => s.scene_number === out.scene_number); setEditSceneForm({ title: sc?.title, description: sc?.description, dialogue: sc?.dialogue, emotion: sc?.emotion, camera: sc?.camera }); }}
-                        data-testid={`result-edit-${out.scene_number}`}
-                        className="rounded px-2 py-1 text-[8px] bg-[#111] border border-[#333] text-[#888] hover:text-white transition flex items-center gap-0.5">
-                        <Edit3 size={8} /> {lang === 'pt' ? 'Editar' : 'Edit'}
-                      </button>
-                      <button onClick={() => regenerateScene(out.scene_number)} disabled={isRegenerating}
-                        data-testid={`result-regen-${out.scene_number}`}
-                        className="rounded px-2 py-1 text-[8px] bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 transition flex items-center gap-0.5 disabled:opacity-50">
-                        <RefreshCw size={8} className={isRegenerating ? 'animate-spin' : ''} /> {lang === 'pt' ? 'Refazer' : 'Redo'}
-                      </button>
-                    </>
-                  )}
-                  <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[8px] font-semibold flex items-center gap-1">
-                    <Download size={10} /> Download
-                  </a>
-                </div>
+          {/* ── HORIZONTAL SCROLL: Cenas Individuais ── */}
+          {outputs.filter(o => o.label !== 'complete' && o.url).length > 0 && (
+            <div data-testid="deliverables-cenas">
+              <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#555] mb-2">
+                {lang === 'pt' ? 'Cenas Individuais' : 'Individual Scenes'} ({outputs.filter(o => o.label !== 'complete').length})
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                {outputs.filter(o => o.label !== 'complete').map((out, i) => {
+                  const sceneState = (agentStatus.scene_status || {})[String(out.scene_number)] || '';
+                  const isRegenerating = regenScene === out.scene_number;
+                  return (
+                    <div key={out.id || i} className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden border border-white/5 bg-[#0A0A0A] group hover:border-[#C9A84C]/20 transition-all duration-300"
+                      data-testid={`deliverable-cena-${out.scene_number}`}>
+                      <div className="relative aspect-video bg-black">
+                        <video src={out.url} preload="metadata" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          data-testid={`result-video-${i}`}
+                          onMouseEnter={e => e.target.play()} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+                        <span className="absolute bottom-1.5 left-1.5 text-[8px] font-mono text-white/80 tracking-wider">
+                          {lang === 'pt' ? 'CENA' : 'SCENE'} {out.scene_number}
+                        </span>
+                        {/* Play overlay */}
+                        <button onClick={() => { const v = document.querySelector(`[data-testid="result-video-${i}"]`); if (v) { v.controls = true; v.play(); }}}
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                            <Play size={12} className="text-white ml-0.5" fill="white" />
+                          </div>
+                        </button>
+                      </div>
+                      <div className="p-2 flex items-center gap-1.5">
+                        <a href={out.url} download className="flex-1 text-center text-[8px] font-mono tracking-wider uppercase text-[#888] hover:text-[#C9A84C] transition py-1">
+                          <Download size={10} className="inline mr-1" />Download
+                        </a>
+                        <button onClick={() => regenerateScene(out.scene_number)} disabled={isRegenerating}
+                          data-testid={`result-regen-${out.scene_number}`}
+                          className="text-[8px] text-[#555] hover:text-[#C9A84C] transition p-1 disabled:opacity-40">
+                          <RefreshCw size={10} className={isRegenerating ? 'animate-spin' : ''} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              {/* Inline edit for this scene in results */}
-              {editingScene === out.scene_number && (
-                <div className="p-2 space-y-1.5 bg-[#0A0A0A] border-t border-[#C9A84C]/20">
-                  <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Título" className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
-                  <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Descrição visual" rows={2} className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none resize-none" />
-                  <div className="flex gap-1">
-                    <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[8px] text-[#999]">{lang === 'pt' ? 'Cancelar' : 'Cancel'}</button>
-                    <button onClick={() => saveSceneEdit(out.scene_number)} className="flex-1 btn-gold rounded py-1 text-[8px] font-semibold">{lang === 'pt' ? 'Salvar' : 'Save'}</button>
-                    <button onClick={() => { saveSceneEdit(out.scene_number); setTimeout(() => regenerateScene(out.scene_number), 500); }}
-                      className="flex-1 rounded py-1 text-[8px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C]">{lang === 'pt' ? 'Salvar & Refazer' : 'Save & Redo'}</button>
-                  </div>
-                </div>
-              )}
             </div>
-            );
-          })}
+          )}
 
-          {/* Show failed scenes summary */}
+          {/* Failed scenes */}
           {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).length > 0 && (
-            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 space-y-2">
-              <p className="text-[9px] font-semibold text-red-400">
-                {lang === 'pt' ? 'Cenas que falharam:' : 'Failed scenes:'}
+            <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-3 space-y-2">
+              <p className="text-[10px] font-mono tracking-wider uppercase text-red-400">
+                {lang === 'pt' ? 'Cenas Pendentes' : 'Pending Scenes'}
               </p>
               {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).map(s => (
                 <div key={s.scene_number} className="flex items-center gap-2">
-                  <span className="text-[8px] text-red-300 flex-1">Cena {s.scene_number}: {s.title}</span>
+                  <span className="text-[9px] text-red-300/70 flex-1 font-sans">Cena {s.scene_number}: {s.title}</span>
                   <button onClick={() => regenerateScene(s.scene_number)} disabled={regenScene === s.scene_number}
                     data-testid={`failed-regen-${s.scene_number}`}
-                    className="rounded px-2 py-0.5 text-[7px] bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50">
-                    <RefreshCw size={7} className={regenScene === s.scene_number ? 'animate-spin' : ''} />
-                    {lang === 'pt' ? 'Regenerar' : 'Retry'}
+                    className="rounded-sm px-2.5 py-1 text-[8px] font-mono tracking-wider uppercase bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50 transition">
+                    <RefreshCw size={8} className={regenScene === s.scene_number ? 'animate-spin' : ''} />
+                    Retry
                   </button>
                 </div>
               ))}
             </div>
           )}
+
+          {/* Post-Production Sheet (Drawer) */}
+          {showPostProd && outputs.length > 0 && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setShowPostProd(false)}>
+              <div className="w-full sm:max-w-lg max-h-[85vh] bg-[#0A0A0A] border border-white/5 rounded-t-2xl sm:rounded-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-[#0A0A0A] border-b border-white/5 p-3 flex items-center justify-between z-10">
+                  <h3 className="text-sm font-serif text-white">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</h3>
+                  <button onClick={() => setShowPostProd(false)} data-testid="close-post-production" className="text-[#555] hover:text-white transition">
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="p-3">
+                  <PostProduction
+                    project={{
+                      id: projectId,
+                      language: projectLang || lang,
+                      scenes,
+                      outputs,
+                      ...(() => {
+                        const proj = allProjects.find(p => p.id === projectId);
+                        return proj ? {
+                          agents_output: proj.agents_output,
+                          narrations: proj.narrations,
+                          voice_config: proj.voice_config,
+                          post_production_status: proj.post_production_status,
+                        } : {};
+                      })(),
+                    }}
+                    onUpdate={loadProjects}
+                  />
+                </div>
               </div>
-            </details>
+            </div>
           )}
 
-          <div className="flex gap-2">
+          {/* Bottom navigation */}
+          <div className="flex gap-2 pt-2">
             <button onClick={() => {
               skipAutoResume.current = true;
               setStep(0); setProjectId(null); setChatMessages([]); setScenes([]);
               setCharacters([]); setOutputs([]); setAgentStatus({});
               loadProjects();
-            }} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
-              ← {lang === 'pt' ? 'Projectos' : 'Projects'}
+            }} data-testid="back-to-projects"
+              className="flex-1 rounded-sm border border-[#222] py-2.5 text-[10px] font-mono tracking-wider uppercase text-[#666] hover:text-white hover:border-[#444] transition">
+              {lang === 'pt' ? 'Projectos' : 'Projects'}
             </button>
-            {previewData?.production_design && (
-              <button onClick={() => { setStep(2); setShowPreview(true); }}
-                data-testid="view-design-btn"
-                className="flex-1 rounded-lg border border-[#C9A84C]/30 bg-[#C9A84C]/5 py-2 text-[10px] text-[#C9A84C] hover:bg-[#C9A84C]/10 transition flex items-center justify-center gap-1">
-                <Eye size={10} /> {lang === 'pt' ? 'Ver Design' : 'View Design'}
-              </button>
-            )}
-            <button onClick={() => setStep(2)}
-              data-testid="go-to-config-btn"
-              className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold flex items-center justify-center gap-1">
+            <button onClick={() => setStep(3)} data-testid="go-to-storyboard"
+              className="flex-1 rounded-sm border border-[#C9A84C]/20 bg-[#C9A84C]/5 py-2.5 text-[10px] font-mono tracking-wider uppercase text-[#C9A84C] hover:bg-[#C9A84C]/10 transition flex items-center justify-center gap-1.5">
+              <Camera size={10} /> Storyboard
+            </button>
+            <button onClick={() => setStep(4)} data-testid="go-to-config-btn"
+              className="flex-1 bg-[#C9A84C] text-black rounded-sm py-2.5 text-[10px] font-mono tracking-wider uppercase font-semibold hover:bg-white transition-colors duration-300 flex items-center justify-center gap-1.5">
               <RefreshCw size={10} /> {lang === 'pt' ? 'Re-produzir' : 'Re-produce'}
             </button>
           </div>
