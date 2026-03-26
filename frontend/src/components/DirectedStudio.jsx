@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
@@ -61,8 +61,28 @@ export function DirectedStudio({
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [showPostProd, setShowPostProd] = useState(false);
   const [storyboardThumbs, setStoryboardThumbs] = useState([]);
+  const [previewModal, setPreviewModal] = useState(null); // { type: 'video'|'gallery'|'book'|'pdf', data: any }
+  const [allPanelFrames, setAllPanelFrames] = useState([]); // All storyboard frames for gallery
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
+
+  // Keyboard handler for preview modal
+  useEffect(() => {
+    if (!previewModal) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') setPreviewModal(null);
+      if (previewModal.type === 'gallery' && e.key === 'ArrowRight') {
+        setPreviewModal(prev => prev?.data?.currentIndex < prev?.data?.images?.length - 1
+          ? { ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex + 1 } } : prev);
+      }
+      if (previewModal.type === 'gallery' && e.key === 'ArrowLeft') {
+        setPreviewModal(prev => prev?.data?.currentIndex > 0
+          ? { ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex - 1 } } : prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [previewModal]);
 
   const loadAnalytics = async () => {
     setAnalyticsLoading(true);
@@ -157,6 +177,16 @@ export function DirectedStudio({
             return f?.image_url || p?.image_url || '';
           }).filter(Boolean);
           setStoryboardThumbs(thumbs);
+          // Collect ALL frames for gallery view
+          const allFrames = [];
+          panels.forEach((p, pi) => {
+            (p.frames || []).forEach((f, fi) => {
+              if (f?.image_url) {
+                allFrames.push({ url: f.image_url, scene: pi + 1, frame: fi + 1, description: p.description || p.narration || '' });
+              }
+            });
+          });
+          setAllPanelFrames(allFrames);
         }
       }).catch(() => {});
     }
@@ -210,6 +240,16 @@ export function DirectedStudio({
           return f?.image_url || p?.image_url || '';
         }).filter(Boolean);
         setStoryboardThumbs(thumbs);
+        // Collect ALL frames for gallery view
+        const allFrames = [];
+        panels.forEach((p, pi) => {
+          (p.frames || []).forEach((f, fi) => {
+            if (f?.image_url) {
+              allFrames.push({ url: f.image_url, scene: pi + 1, frame: fi + 1, description: p.description || p.narration || '' });
+            }
+          });
+        });
+        setAllPanelFrames(allFrames);
       }
 
       const status = full.status || proj.status;
@@ -1862,6 +1902,184 @@ export function DirectedStudio({
         </div>
       )}
 
+      {/* ═══ MEDIA PREVIEW MODAL ═══ */}
+      {previewModal && (
+        <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-sm flex items-center justify-center" data-testid="media-preview-modal"
+          onClick={() => setPreviewModal(null)}>
+          <div className="relative w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Close button */}
+            <button onClick={() => setPreviewModal(null)} data-testid="close-preview-modal"
+              className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+              <X size={18} className="text-white" />
+            </button>
+
+            {/* === VIDEO PREVIEW === */}
+            {previewModal.type === 'video' && (
+              <div className="flex-1 flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-3xl">
+                  <video src={previewModal.data.url} controls autoPlay className="w-full rounded-xl shadow-2xl" data-testid="preview-video-player" />
+                  <div className="flex items-center justify-between mt-3 px-1">
+                    <p className="text-sm font-serif text-white">
+                      {lang === 'pt' ? 'Cena' : 'Scene'} {previewModal.data.scene_number}
+                    </p>
+                    <a href={previewModal.data.url} download data-testid="preview-video-download"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#C9A84C] text-black text-xs font-semibold hover:bg-white transition">
+                      <Download size={14} /> Download
+                    </a>
+                  </div>
+                </div>
+                {/* Navigation between scene videos */}
+                {previewModal.data.allVideos && previewModal.data.allVideos.length > 1 && (
+                  <div className="flex gap-2 mt-4 overflow-x-auto pb-2 max-w-3xl">
+                    {previewModal.data.allVideos.map((v, i) => (
+                      <button key={i} onClick={() => setPreviewModal({
+                        type: 'video',
+                        data: { ...v, allVideos: previewModal.data.allVideos }
+                      })}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider transition ${
+                          v.scene_number === previewModal.data.scene_number
+                            ? 'bg-[#C9A84C] text-black font-bold'
+                            : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        }`}>
+                        {lang === 'pt' ? 'Cena' : 'Scene'} {v.scene_number}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* === IMAGE GALLERY === */}
+            {previewModal.type === 'gallery' && (
+              <div className="flex-1 flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-4xl">
+                  {/* Main image */}
+                  <div className="relative">
+                    <img
+                      src={previewModal.data.images[previewModal.data.currentIndex]?.url || previewModal.data.images[previewModal.data.currentIndex]}
+                      alt=""
+                      className="w-full max-h-[65vh] object-contain rounded-xl shadow-2xl"
+                      data-testid="preview-gallery-image"
+                    />
+                    {/* Left/Right arrows */}
+                    {previewModal.data.currentIndex > 0 && (
+                      <button onClick={() => setPreviewModal(prev => ({
+                        ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex - 1 }
+                      }))}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center transition">
+                        <ChevronLeft size={20} className="text-white" />
+                      </button>
+                    )}
+                    {previewModal.data.currentIndex < previewModal.data.images.length - 1 && (
+                      <button onClick={() => setPreviewModal(prev => ({
+                        ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex + 1 }
+                      }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center transition">
+                        <ChevronRight size={20} className="text-white" />
+                      </button>
+                    )}
+                  </div>
+                  {/* Info bar */}
+                  <div className="flex items-center justify-between mt-3 px-1">
+                    <div>
+                      <p className="text-sm font-serif text-white">{previewModal.data.title || 'Storyboard'}</p>
+                      <p className="text-[10px] font-mono text-[#555]">
+                        {previewModal.data.currentIndex + 1} / {previewModal.data.images.length}
+                        {previewModal.data.images[previewModal.data.currentIndex]?.scene && (
+                          <> &bull; {lang === 'pt' ? 'Cena' : 'Scene'} {previewModal.data.images[previewModal.data.currentIndex].scene}</>
+                        )}
+                      </p>
+                    </div>
+                    <a href={previewModal.data.images[previewModal.data.currentIndex]?.url || previewModal.data.images[previewModal.data.currentIndex]}
+                      download data-testid="preview-gallery-download"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#C9A84C] text-black text-xs font-semibold hover:bg-white transition">
+                      <Download size={14} /> Download
+                    </a>
+                  </div>
+                  {/* Thumbnail strip */}
+                  <div className="flex gap-1.5 mt-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {previewModal.data.images.map((img, i) => (
+                      <button key={i} onClick={() => setPreviewModal(prev => ({
+                        ...prev, data: { ...prev.data, currentIndex: i }
+                      }))}
+                        className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition ${
+                          i === previewModal.data.currentIndex ? 'border-[#C9A84C] opacity-100' : 'border-transparent opacity-40 hover:opacity-70'
+                        }`}>
+                        <img src={img?.url || img} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* === BOOK PREVIEW (embedded) === */}
+            {previewModal.type === 'book' && (
+              <div className="flex-1 flex flex-col">
+                <div className="flex items-center justify-between px-4 py-2 bg-[#0A0A0A] border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={16} className="text-[#C9A84C]" />
+                    <span className="text-sm font-serif text-white">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</span>
+                  </div>
+                  <a href={`/book/${projectId}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] font-mono text-[#C9A84C] hover:underline">
+                    <Maximize2 size={10} /> {lang === 'pt' ? 'Tela cheia' : 'Full screen'}
+                  </a>
+                </div>
+                <div className="flex-1">
+                  <iframe src={`/book/${projectId}`} className="w-full h-full border-0" title="Interactive Book" data-testid="preview-book-iframe" />
+                </div>
+              </div>
+            )}
+
+            {/* === PDF PREVIEW (image gallery from storyboard frames) === */}
+            {previewModal.type === 'pdf' && (
+              <div className="flex-1 flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-4xl">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText size={18} className="text-purple-400" />
+                    <h3 className="text-sm font-serif text-white">Storyboard PDF</h3>
+                    <span className="text-[10px] font-mono text-[#555]">{allPanelFrames.length} {lang === 'pt' ? 'ilustrações' : 'illustrations'}</span>
+                  </div>
+                  {/* Grid preview of all frames */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-[60vh] overflow-y-auto pr-1 scrollbar-hide">
+                    {allPanelFrames.map((frame, i) => (
+                      <button key={i} onClick={() => setPreviewModal({
+                        type: 'gallery',
+                        data: { images: allPanelFrames, currentIndex: i, title: `Storyboard — ${lang === 'pt' ? 'Cena' : 'Scene'} ${frame.scene}` }
+                      })}
+                        className="relative rounded-lg overflow-hidden border border-white/5 hover:border-[#C9A84C]/30 transition group aspect-[4/3]"
+                        data-testid={`pdf-preview-frame-${i}`}>
+                        <img src={frame.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition" />
+                        <span className="absolute bottom-1 left-1.5 text-[7px] font-mono text-white/80 opacity-0 group-hover:opacity-100 transition">
+                          C{frame.scene} F{frame.frame}
+                        </span>
+                        <Maximize2 size={10} className="absolute top-1 right-1 text-white/60 opacity-0 group-hover:opacity-100 transition" />
+                      </button>
+                    ))}
+                  </div>
+                  {/* Download PDF button */}
+                  <div className="flex justify-center mt-4">
+                    <button onClick={async () => {
+                      try {
+                        const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' });
+                        const url = URL.createObjectURL(r.data);
+                        const a = document.createElement('a'); a.href = url; a.download = `${projectName || 'storyboard'}.pdf`; a.click();
+                        toast.success('PDF baixado!');
+                      } catch { toast.error('Erro ao baixar PDF'); }
+                    }} data-testid="preview-pdf-download"
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold hover:bg-purple-500/30 transition">
+                      <Download size={14} /> {lang === 'pt' ? 'Baixar PDF Completo' : 'Download Full PDF'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ═══ STEP 5: Resultado — Deliverables Showcase ═══ */}
       {step === 5 && !viewingProject && (
         <div className="space-y-4" data-testid="studio-step-results">
@@ -1926,7 +2144,7 @@ export function DirectedStudio({
             <div className="grid grid-cols-2 gap-2" data-testid="deliverables-grid">
               {/* Card: Livro Interativo — with cover thumbnail */}
               <button
-                onClick={() => window.open(`/book/${projectId}`, '_blank')}
+                onClick={() => setPreviewModal({ type: 'book' })}
                 data-testid="deliverable-livro-interativo"
                 className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
               >
@@ -1957,20 +2175,27 @@ export function DirectedStudio({
                     {sceneCount} {lang === 'pt' ? 'paginas' : 'pages'} • {lang === 'pt' ? 'interativo' : 'interactive'}
                   </p>
                   <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-[#C9A84C] group-hover:underline">
-                    {lang === 'pt' ? 'Abrir >' : 'Open >'}
+                    <Eye size={8} className="inline mr-1" />{lang === 'pt' ? 'Visualizar' : 'Preview'}
                   </span>
                 </div>
               </button>
 
               {/* Card: Storyboard PDF — with collage */}
               <button
-                onClick={async () => {
-                  try {
-                    const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' });
-                    const url = URL.createObjectURL(r.data);
-                    const a = document.createElement('a'); a.href = url; a.download = `${projectName || 'storyboard'}.pdf`; a.click();
-                    toast.success('PDF baixado!');
-                  } catch { toast.error('Erro ao baixar PDF'); }
+                onClick={() => {
+                  if (allPanelFrames.length > 0) {
+                    setPreviewModal({ type: 'pdf' });
+                  } else {
+                    // Fallback: direct download if no frames available
+                    (async () => {
+                      try {
+                        const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' });
+                        const url = URL.createObjectURL(r.data);
+                        const a = document.createElement('a'); a.href = url; a.download = `${projectName || 'storyboard'}.pdf`; a.click();
+                        toast.success('PDF baixado!');
+                      } catch { toast.error('Erro ao baixar PDF'); }
+                    })();
+                  }
                 }}
                 data-testid="deliverable-storyboard-pdf"
                 className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
@@ -2004,7 +2229,7 @@ export function DirectedStudio({
                     {frameCount} {lang === 'pt' ? 'ilustracoes' : 'illustrations'} • PDF
                   </p>
                   <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-purple-400 group-hover:underline">
-                    <Download size={8} className="inline mr-1" />Download
+                    <Eye size={8} className="inline mr-1" />{lang === 'pt' ? 'Visualizar' : 'Preview'}
                   </span>
                 </div>
               </button>
@@ -2013,8 +2238,12 @@ export function DirectedStudio({
               {sceneVideos.length > 0 && (
                 <button
                   onClick={() => {
-                    const el = document.querySelector('[data-testid="deliverables-cenas"]');
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (sceneVideos.length > 0) {
+                      setPreviewModal({
+                        type: 'video',
+                        data: { ...sceneVideos[0], allVideos: sceneVideos }
+                      });
+                    }
                   }}
                   data-testid="deliverable-cenas-card"
                   className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#C9A84C]/20 transition-all duration-500"
@@ -2044,7 +2273,7 @@ export function DirectedStudio({
                       {sceneVideos.length} {lang === 'pt' ? 'videos individuais' : 'individual videos'}
                     </p>
                     <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-emerald-400 group-hover:underline">
-                      {lang === 'pt' ? 'Ver todos >' : 'View all >'}
+                      <Play size={8} className="inline mr-1" />{lang === 'pt' ? 'Assistir' : 'Watch'}
                     </span>
                   </div>
                 </button>
@@ -2123,30 +2352,31 @@ export function DirectedStudio({
                 {outputs.filter(o => o.label !== 'complete').map((out, i) => {
                   const sceneState = (agentStatus.scene_status || {})[String(out.scene_number)] || '';
                   const isRegenerating = regenScene === out.scene_number;
+                  const allSceneVids = outputs.filter(o => o.label !== 'complete' && o.url);
                   return (
-                    <div key={out.id || i} className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden border border-white/5 bg-[#0A0A0A] group hover:border-[#C9A84C]/20 transition-all duration-300"
-                      data-testid={`deliverable-cena-${out.scene_number}`}>
+                    <div key={out.id || i} className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden border border-white/5 bg-[#0A0A0A] group hover:border-[#C9A84C]/20 transition-all duration-300 cursor-pointer"
+                      data-testid={`deliverable-cena-${out.scene_number}`}
+                      onClick={() => setPreviewModal({ type: 'video', data: { ...out, allVideos: allSceneVids } })}>
                       <div className="relative aspect-video bg-black">
                         <video src={out.url} preload="metadata" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           data-testid={`result-video-${i}`}
-                          onMouseEnter={e => e.target.play()} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
+                          onMouseEnter={e => { e.target.play().catch(() => {}); }} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
                         <span className="absolute bottom-1.5 left-1.5 text-[8px] font-mono text-white/80 tracking-wider">
                           {lang === 'pt' ? 'CENA' : 'SCENE'} {out.scene_number}
                         </span>
                         {/* Play overlay */}
-                        <button onClick={() => { const v = document.querySelector(`[data-testid="result-video-${i}"]`); if (v) { v.controls = true; v.play(); }}}
-                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                           <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                             <Play size={12} className="text-white ml-0.5" fill="white" />
                           </div>
-                        </button>
+                        </div>
                       </div>
                       <div className="p-2 flex items-center gap-1.5">
-                        <a href={out.url} download className="flex-1 text-center text-[8px] font-mono tracking-wider uppercase text-[#888] hover:text-[#C9A84C] transition py-1">
+                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[8px] font-mono tracking-wider uppercase text-[#888] hover:text-[#C9A84C] transition py-1">
                           <Download size={10} className="inline mr-1" />Download
                         </a>
-                        <button onClick={() => regenerateScene(out.scene_number)} disabled={isRegenerating}
+                        <button onClick={e => { e.stopPropagation(); regenerateScene(out.scene_number); }} disabled={isRegenerating}
                           data-testid={`result-regen-${out.scene_number}`}
                           className="text-[8px] text-[#555] hover:text-[#C9A84C] transition p-1 disabled:opacity-40">
                           <RefreshCw size={10} className={isRegenerating ? 'animate-spin' : ''} />
