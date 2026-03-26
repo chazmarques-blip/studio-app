@@ -17,19 +17,9 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 
 
 def _download_image(url: str) -> bytes:
-    """Download image from URL or Supabase path."""
-    supabase_url = os.environ.get('SUPABASE_URL', '')
-    full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
-    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-    try:
-        urllib.request.urlretrieve(full_url, tmp.name)
-        with open(tmp.name, "rb") as f:
-            return f.read()
-    finally:
-        try:
-            os.unlink(tmp.name)
-        except Exception:
-            pass
+    """Download image with cache."""
+    from core.cache import image_cache
+    return image_cache.download(url)
 
 
 def inpaint_element(

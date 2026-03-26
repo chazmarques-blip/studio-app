@@ -71,33 +71,31 @@ from core.llm import DirectSora2Client
 
 # ── Helpers ──
 
-def _get_settings(tenant_id: str) -> dict:
-    for attempt in range(3):
-        try:
-            r = supabase.table("tenants").select("settings").eq("id", tenant_id).single().execute()
-            return r.data.get("settings", {}) if r.data else {}
-        except Exception as e:
-            if attempt < 2:
-                import time
-                time.sleep(1 * (attempt + 1))
-            else:
-                logger.error(f"_get_settings failed after 3 attempts: {e}")
-                raise
 
-def _save_settings(tenant_id: str, settings: dict):
-    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
-    for attempt in range(3):
-        try:
-            supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
-            return
-        except Exception as e:
-            if attempt < 2:
-                import time
-                time.sleep(2 * (attempt + 1))
-                logger.warning(f"_save_settings retry {attempt+1}: {e}")
-            else:
-                logger.error(f"_save_settings failed after 3 attempts: {e}")
-                raise
+# Cache stats endpoint
+@router.get("/cache/stats")
+async def get_cache_stats():
+    """Get statistics from all cache layers."""
+    from core.cache import get_cache_stats
+    return get_cache_stats()
+
+@router.post("/cache/flush")
+async def flush_cache():
+    """Force flush all dirty project data to DB."""
+    from core.cache import project_cache, image_cache, llm_cache
+    project_cache.force_flush()
+    image_cache.cleanup()
+    llm_cache.cleanup()
+    return {"status": "flushed"}
+
+
+def _get_settings(tenant_id: str) -> dict:
+    from core.cache import project_cache
+    return project_cache.get_settings(tenant_id)
+
+def _save_settings(tenant_id: str, settings: dict, flush_now: bool = False):
+    from core.cache import project_cache
+    project_cache.save_settings(tenant_id, settings, flush_now=flush_now)
 
 def _get_project(tenant_id: str, project_id: str):
     settings = _get_settings(tenant_id)
@@ -105,9 +103,9 @@ def _get_project(tenant_id: str, project_id: str):
     project = next((p for p in projects if p.get("id") == project_id), None)
     return settings, projects, project
 
-def _save_project(tenant_id: str, settings: dict, projects: list):
+def _save_project(tenant_id: str, settings: dict, projects: list, flush_now: bool = False):
     settings["studio_projects"] = projects
-    _save_settings(tenant_id, settings)
+    _save_settings(tenant_id, settings, flush_now=flush_now)
 
 def _update_project_field(tenant_id: str, project_id: str, updates: dict):
     settings, projects, project = _get_project(tenant_id, project_id)
@@ -1776,7 +1774,7 @@ async def analyze_continuity_start(project_id: str, tenant=Depends(get_current_t
                     "medium": report.get("medium_count", 0),
                     "low": report.get("low_count", 0),
                 }
-                _save_project(tenant["id"], _s, _p)
+                _save_project(tenant["id"], _s, _p, flush_now=True)
                 logger.info(f"Continuity [{project_id}]: Analysis complete — {report.get('total_issues', 0)} issues")
         except Exception as e:
             logger.error(f"Continuity [{project_id}]: Analysis failed: {e}")
@@ -1784,7 +1782,7 @@ async def analyze_continuity_start(project_id: str, tenant=Depends(get_current_t
                 _s, _p, _proj = _get_project(tenant["id"], project_id)
                 if _proj:
                     _proj["continuity_status"] = {"phase": "error", "detail": str(e)[:200]}
-                    _save_project(tenant["id"], _s, _p)
+                    _save_project(tenant["id"], _s, _p, flush_now=True)
             except Exception:
                 pass
 
@@ -1923,7 +1921,7 @@ async def auto_correct_continuity(project_id: str, tenant=Depends(get_current_te
                     "corrected": corrected_count,
                     "failed": failed_count,
                 }
-                _save_project(tenant["id"], _s, _p)
+                _save_project(tenant["id"], _s, _p, flush_now=True)
                 logger.info(f"Continuity [{project_id}]: Auto-correct complete — {corrected_count} corrected, {failed_count} failed")
         except Exception as e:
             logger.error(f"Continuity [{project_id}]: Auto-correct failed: {e}")
@@ -1931,7 +1929,7 @@ async def auto_correct_continuity(project_id: str, tenant=Depends(get_current_te
                 _s, _p, _proj = _get_project(tenant["id"], project_id)
                 if _proj:
                     _proj["continuity_status"] = {"phase": "error", "detail": str(e)[:200]}
-                    _save_project(tenant["id"], _s, _p)
+                    _save_project(tenant["id"], _s, _p, flush_now=True)
             except Exception:
                 pass
 

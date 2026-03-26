@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import {
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { StoryboardPreview } from './StoryboardPreview';
 import { VoiceInput } from './VoiceInput';
+import { preloadImages, useImagePreloader } from '../hooks/useProjectCache';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -86,10 +87,16 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const loadStoryboard = async () => {
     try {
       const r = await axios.get(`${API}/studio/projects/${projectId}/storyboard`);
-      setPanels(r.data.panels || []);
+      const loadedPanels = r.data.panels || [];
+      setPanels(loadedPanels);
       setApproved(r.data.storyboard_approved || false);
       setChatMessages(r.data.storyboard_chat_history || []);
       setStoryboardStatus(r.data.storyboard_status || {});
+      // Pre-load all frame images for instant display
+      const allUrls = loadedPanels.flatMap(p =>
+        (p.frames || []).map(f => f.image_url).filter(Boolean).map(resolveImageUrl)
+      );
+      preloadImages(allUrls);
     } catch {
       // No storyboard yet
     }

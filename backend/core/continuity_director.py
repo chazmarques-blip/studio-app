@@ -12,8 +12,6 @@ import base64
 import asyncio
 import json
 import logging
-import tempfile
-import urllib.request
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -22,28 +20,27 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 
 
 def _download_image(url: str) -> bytes:
-    """Download image from URL or Supabase path."""
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
-    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-    try:
-        urllib.request.urlretrieve(full_url, tmp.name)
-        with open(tmp.name, "rb") as f:
-            return f.read()
-    finally:
-        try:
-            os.unlink(tmp.name)
-        except Exception:
-            pass
+    """Download image with cache."""
+    from core.cache import image_cache
+    return image_cache.download(url)
 
 
 def _run_vision_analysis(images_b64: list, prompt: str, session_id: str) -> str:
-    """Run Gemini Vision analysis with multiple images."""
+    """Run Gemini Vision analysis with LLM cache."""
+    from core.cache import llm_cache
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 
     api_key = EMERGENT_LLM_KEY
     if not api_key:
         raise ValueError("No EMERGENT_LLM_KEY")
+
+    # Check LLM cache
+    img_hashes = [llm_cache.hash_image(base64.b64decode(b)) for b in images_b64[:3]]
+    prompt_hash = [prompt[:200]]
+    cached = llm_cache.get(prompt[:500], img_hashes + prompt_hash)
+    if cached:
+        logger.info(f"LLM cache HIT for session {session_id}")
+        return cached
 
     async def _gen():
         chat = LlmChat(
@@ -67,9 +64,13 @@ def _run_vision_analysis(images_b64: list, prompt: str, session_id: str) -> str:
     if loop and loop.is_running():
         import concurrent.futures
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            return pool.submit(lambda: asyncio.run(_gen())).result(timeout=120)
+            result = pool.submit(lambda: asyncio.run(_gen())).result(timeout=120)
     else:
-        return asyncio.run(_gen())
+        result = asyncio.run(_gen())
+
+    # Store in LLM cache
+    llm_cache.put(prompt[:500], img_hashes + prompt_hash, result)
+    return result
 
 
 def _parse_json(text: str) -> dict:
@@ -94,18 +95,22 @@ def _parse_json(text: str) -> dict:
 
 
 def _load_avatar_images(character_avatars: dict) -> dict:
-    """Download all avatar images and return as {name: base64_string}."""
+    """Download all avatar images using cache with pre-warming."""
+    from core.cache import image_cache
+    urls = [url for url in character_avatars.values() if url]
+    image_cache.prewarm(urls)
+
     avatars_b64 = {}
     for name, url in character_avatars.items():
         if not url:
             continue
         try:
-            img_bytes = _download_image(url)
+            img_bytes = image_cache.download(url)
             if img_bytes:
                 avatars_b64[name] = base64.b64encode(img_bytes).decode("utf-8")
         except Exception as e:
             logger.warning(f"Continuity: Failed to load avatar for '{name}': {e}")
-    logger.info(f"Continuity: Loaded {len(avatars_b64)} avatar references")
+    logger.info(f"Continuity: Loaded {len(avatars_b64)} avatar references (cached)")
     return avatars_b64
 
 
@@ -122,8 +127,19 @@ def analyze_continuity(
     Processes ONE scene at a time (11 avatars + 6 frames = 17 images per call).
     Each frame is individually evaluated against the avatar references.
     """
-    # Step 1: Load all avatar images
+    # Step 1: Load all avatar images (pre-warmed from cache)
     avatars_b64 = _load_avatar_images(character_avatars)
+
+    # Pre-warm ALL frame images for all panels
+    from core.cache import image_cache
+    all_frame_urls = []
+    for panel in panels:
+        for frame in panel.get("frames", []):
+            url = frame.get("image_url")
+            if url:
+                all_frame_urls.append(url)
+    if all_frame_urls:
+        image_cache.prewarm(all_frame_urls)
 
     # Build avatar image list and prompt mapping
     avatar_images = []
@@ -152,7 +168,7 @@ def analyze_continuity(
                 progress_callback(panel_idx + 1, total_panels, 0)
             continue
 
-        # Download all 6 frames of this scene
+        # Download all 6 frames of this scene (from cache)
         frame_images = []
         frame_labels = []
         for fi, frame in enumerate(frames):
@@ -279,11 +295,18 @@ def auto_correct_issue(
 ) -> bytes:
     """Apply a single auto-correction to a frame using the existing inpainting pipeline."""
     from core.storyboard_inpaint import inpaint_element
+    from core.cache import image_cache
 
-    return inpaint_element(
+    result = inpaint_element(
         image_url=image_url,
         edit_instruction=correction_instruction,
         project_id=project_id,
         panel_number=panel_number,
         lang="pt",
     )
+
+    # Invalidate the old image from cache since it was replaced
+    if result:
+        image_cache.invalidate(image_url)
+
+    return result

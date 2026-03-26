@@ -37,6 +37,17 @@ async def cleanup_stale_tasks():
     except Exception as e:
         logging.getLogger(__name__).warning(f"Stale task cleanup skipped: {e}")
 
+@app.on_event("shutdown")
+async def flush_caches():
+    """Flush project cache to DB on shutdown."""
+    try:
+        from core.cache import project_cache
+        project_cache.force_flush()
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Cache flush on shutdown failed: {e}")
+
+
+
 
 @api_router.get("/health")
 async def health():
