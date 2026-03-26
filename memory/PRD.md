@@ -1,18 +1,13 @@
 # AgentZZ — Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that allows users to deploy AI agents on social media channels, AND a "Directed Studio Mode" for generating AI-powered animated films with visual/narrative consistency.
+Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for animated film production. Pivoting to **Storyboard-First** workflow to fix video generation inconsistencies.
 
 ## Core Architecture
-- **Frontend:** React + Tailwind CSS + shadcn-ui + Lucide Icons + Framer Motion + recharts
+- **Frontend:** React + Tailwind CSS + shadcn-ui + Lucide Icons + Framer Motion
 - **Backend:** FastAPI (Python)
-- **Database:** Supabase (PostgreSQL) for core data
-- **3rd Party:** Anthropic Claude (Emergent LLM Key), OpenAI Sora 2, Gemini Nano Banana (Emergent LLM Key), ElevenLabs TTS, Google APIs
-
-## Key Routes
-- `/marketing/studio` — Marketing AI Studio (includes Directed Studio Mode)
-- `/dashboard` — Main dashboard
-- `/agents` — Agent management
+- **Database:** Supabase (PostgreSQL)
+- **3rd Party:** Claude (Emergent LLM Key), Sora 2, Gemini Nano Banana (Emergent LLM Key), ElevenLabs TTS, OpenAI Whisper
 
 ## Credentials
 - Test: test@agentflow.com / password123
@@ -21,81 +16,48 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 
 ## Implemented Features
 
-### Phase 1-5: Core Platform (Complete)
-- User auth, agent marketplace, dashboard, CRM, omnichannel UI
-- Agent configuration with knowledge base, personality, integrations
-- Google Calendar/Sheets integration in agent config
+### Directed Studio Mode — 5-Step Pipeline
+`Roteiro → Personagens → Storyboard → Produção → Resultado`
 
-### Phase 6: Google Integration (Complete)
-- Backend endpoints for Google Calendar/Sheets listing
-- Dynamic connection status in AgentConfig
-- Agent integrations_config persistence
+### Storyboard Editável (Phase 7) ✅
+- Generate all panels via Gemini Nano Banana (1 image per scene)
+- 2-column grid with images + dialogue + character tags
+- Inline editing (title, description, dialogue)
+- AI Facilitator Chat (Claude) for natural language panel editing
+- Approve Storyboard → unlock video production
 
-### Directed Studio Mode (Core Pipeline - Complete)
-- 5-step pipeline: Roteiro → Personagens → **Storyboard** → Produção → Resultado
+### Preview Animado (Phase 7.5) ✅
+- **Interactive Browser Slideshow** with Ken Burns CSS animations, fade transitions, synchronized subtitles, play/pause/skip, fullscreen, keyboard shortcuts
+- **MP4 Export** with ElevenLabs narration + cinematic background music via FFmpeg
+- Rendered via React createPortal for z-index isolation
+
+### Edição de Elemento (Inpainting IA) ✅ — 2026-03-26
+- Click paintbrush icon on panel → "Editar Elemento" input appears
+- Describe what to change: "Remover a corcova do Isaque"
+- Gemini edits ONLY that element, preserving everything else
+- Backend: `POST /api/studio/projects/{id}/storyboard/edit-element`
+- Module: `/app/backend/core/storyboard_inpaint.py`
+
+### Comando de Voz (Whisper STT) ✅ — 2026-03-26
+- `VoiceInput.jsx` — universal microphone component
+- Integrated in: Facilitator IA chat, Inpainting edit input
+- Uses existing `/api/ai/transcribe` endpoint with auth
+- Records via MediaRecorder API, transcribes via Whisper
+
+### UI Fixes ✅ — 2026-03-26
+- **Film reel icon** (Film from lucide) replaces RefreshCw for all film-related loading
+- **FilmSpinner** component with 1.5s animation for generation states
+- **Fixed double spinner** — regenerating panels show single centered FilmSpinner only
+- Panel hover overlay: 3 icons (expand, paintbrush/inpaint, film reel/regenerate)
+
+### Earlier Features (Complete)
 - Claude-powered screenwriter chat
-- Character avatar system with AI generation
-- Production design (character bible, style DNA)
-- Parallel generation pipeline (ThreadPool + Semaphores for Sora 2 + Gemini)
-- Multi-voice dubbed mode (ElevenLabs voices per character)
+- Character avatar system
+- Parallel generation pipeline (Sora 2 + Gemini)
+- Multi-voice dubbed mode (ElevenLabs)
 - Post-production audio mixing
-- Scene recovery ("Unificar Roteiro")
-
-### Phase 7: Editable Storyboard Pipeline (Complete - 2026-03-26)
-- **New Step 3 — Storyboard** inserted between Characters and Production
-- `StoryboardEditor.jsx` component with:
-  - Generate all panels button (Gemini Nano Banana images)
-  - 2-column panel grid with image + dialogue + character tags
-  - Inline panel editing (title, description, dialogue)
-  - "Save & Regenerate" per-panel
-  - Expand panel for detailed view
-- **AI Facilitator Chat** — sidebar chat powered by Claude that interprets natural language commands to edit panels
-- **Approve Storyboard** flow — must approve before proceeding to video production
-- Backend module: `/app/backend/core/storyboard.py`
-- 6 new endpoints in `/app/backend/routers/studio.py`
-
-### Phase 7.5: Animated Preview (Complete - 2026-03-26)
-- **Interactive Browser Slideshow** (`StoryboardPreview.jsx`):
-  - Ken Burns CSS animations (zoom-in, pan, zoom-out) alternating per panel
-  - Fade transitions between panels (800ms)
-  - Synchronized dialogue subtitles with character names
-  - Play/Pause/Skip Back/Skip Forward controls
-  - Segmented progress bar with panel dots
-  - Toggle subtitles on/off ("Legendas")
-  - Fullscreen mode
-  - Keyboard shortcuts (Space, Arrow keys, F, Escape)
-  - Rendered via React createPortal for z-index isolation
-- **MP4 Export with Narration** (`preview_generator.py`):
-  - ElevenLabs multilingual narration per panel (Daniel voice, Portuguese)
-  - FFmpeg Ken Burns video effect per panel (1920x1080, 30fps)
-  - Cinematic background music mixing (0.15 volume)
-  - Parallel panel rendering
-  - Upload to Supabase Storage
-  - 2 new endpoints: generate-preview + preview-status
-  - **Tested:** 17.7MB MP4 generated successfully
-
----
-
-## Prioritized Backlog
-
-### P0 (Next)
-- None currently
-
-### P1
-- Storybook Export (export storyboard as static PDF/image book)
-- Storyboard-to-Video integration (feed approved panels to Sora 2)
-- Refactor `studio.py` (~4400 lines) into modular services
-- Fix hot-reload killing background tasks
-
-### P2
-- Phase 8: Omnichannel live integrations (WhatsApp Evolution API, Twilio SMS, Instagram, Facebook, Telegram)
-- Admin Management System
-- Stripe payment integration
-
-### P3
-- Legal & publication (Terms, Privacy Policy)
-- Scalability hardening
-- App store submission
+- Google Calendar/Sheets integration
+- Agent marketplace, CRM, omnichannel UI
 
 ---
 
@@ -103,33 +65,46 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" that
 ```
 /app/backend/
 ├── core/
-│   ├── storyboard.py         # Storyboard generation + AI Facilitator
-│   ├── preview_generator.py  # MP4 preview with FFmpeg + ElevenLabs
-│   ├── llm.py               # LLM integrations
-│   └── models.py
+│   ├── storyboard.py          # Panel generation + AI Facilitator
+│   ├── storyboard_inpaint.py  # Element-specific image editing (Gemini)
+│   ├── preview_generator.py   # MP4 preview (FFmpeg + ElevenLabs)
+│   ├── llm.py
 ├── routers/
-│   └── studio.py            # ~4400 lines - main studio logic
-├── pipeline/
-│   └── config.py            # Voices, music library, etc.
+│   ├── studio.py              # ~4500 lines - main studio logic
+│   ├── ai.py                  # Whisper transcription endpoint
 /app/frontend/src/
 ├── components/
-│   ├── DirectedStudio.jsx    # Main 5-step studio UI
-│   ├── StoryboardEditor.jsx  # Storyboard panel editing + AI Facilitator
-│   ├── StoryboardPreview.jsx # Animated slideshow player
-│   ├── PostProduction.jsx    # Video results + subtitles
-│   └── PreviewBoard.jsx      # Production design preview
+│   ├── DirectedStudio.jsx     # 5-step pipeline UI
+│   ├── StoryboardEditor.jsx   # Panel editing + AI Facilitator + Inpainting
+│   ├── StoryboardPreview.jsx  # Animated slideshow player
+│   ├── VoiceInput.jsx         # Universal voice command button
 ```
+
+---
+
+## Prioritized Backlog
+
+### P1
+- Grid 6 frames per scene (generate single 2x3 image, split into 6 frames)
+- Storybook Export (static PDF/image book)
+- Storyboard→Video (feed approved panels to Sora 2)
+- Refactor `studio.py` into modular services
+- Fix hot-reload killing background tasks
+
+### P2
+- Omnichannel live integrations (WhatsApp, SMS, Instagram, Telegram)
+- Admin Management System + Stripe
+
+### P3
+- Legal & publication, Scalability hardening
+
+---
+
+## Test Reports
+- iteration_105.json — Storyboard endpoints (92%)
+- iteration_106.json — Preview Animado + MP4 (92%)
+- iteration_107.json — Inpainting + VoiceInput + FilmSpinner (100%)
 
 ## Known Issues
 - Hot-reload kills background production threads (P1)
-- `studio.py` is ~4400 lines and needs refactoring (P1)
-- Supabase intermittent connection issues (mitigated with retry logic)
-
-## Project Health
-- **Running:** Core platform, Directed Studio, Storyboard pipeline, Animated Preview, parallel generation, dubbed mode
-- **Mocked:** External channel integrations (WhatsApp, Telegram, etc.)
-
-## Test Reports
-- `/app/test_reports/iteration_104.json` — Pipeline merging/settings
-- `/app/test_reports/iteration_105.json` — Storyboard endpoints (92% pass)
-- `/app/test_reports/iteration_106.json` — Animated Preview (92% pass, MP4 17.7MB generated)
+- `studio.py` ~4500 lines needs refactoring (P1)
