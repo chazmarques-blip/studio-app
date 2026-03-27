@@ -1713,7 +1713,7 @@ async def smart_edit_panel(project_id: str, payload: dict = Body(...), tenant=De
 # ══ CONTINUITY DIRECTOR ENDPOINTS ══
 
 @router.post("/projects/{project_id}/continuity/analyze")
-async def analyze_continuity_start(project_id: str, tenant=Depends(get_current_tenant)):
+async def analyze_continuity_start(project_id: str, body: dict = Body(default={}), tenant=Depends(get_current_tenant)):
     """Start a background continuity analysis of the entire storyboard."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
@@ -1728,7 +1728,10 @@ async def analyze_continuity_start(project_id: str, tenant=Depends(get_current_t
     if cs.get("phase") == "analyzing":
         return {"status": "already_running"}
 
+    user_notes = body.get("user_notes", "")
     project["continuity_status"] = {"phase": "analyzing", "current": 0, "total": len(panels), "issues_found": 0}
+    if user_notes:
+        project["continuity_user_notes"] = user_notes
     _save_project(tenant["id"], settings, projects)
 
     def _bg_continuity_analyze():
@@ -1759,6 +1762,7 @@ async def analyze_continuity_start(project_id: str, tenant=Depends(get_current_t
                 scenes=_proj.get("scenes", []),
                 characters=_proj.get("characters", []),
                 character_avatars=_proj.get("character_avatars", {}),
+                user_notes=_proj.get("continuity_user_notes", ""),
                 progress_callback=progress_cb,
             )
 

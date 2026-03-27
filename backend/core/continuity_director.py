@@ -120,6 +120,7 @@ def analyze_continuity(
     scenes: list,
     characters: list,
     character_avatars: dict,
+    user_notes: str = "",
     progress_callback=None,
 ) -> dict:
     """Analyze ALL frames of every scene for continuity issues.
@@ -213,7 +214,10 @@ CRITICAL RULES:
 - Do NOT flag characters as wrong for being animals/creatures if their avatar shows that
 - Do NOT suggest changing a character's species or visual style
 - Check EVERY FRAME individually — each may have different issues
-
+{f'''
+USER NOTES (PRIORITY — the director specifically asked to check these):
+{user_notes}
+''' if user_notes.strip() else ''}
 For EACH of the {len(frame_images)} frames, check:
 1. **Avatar Match**: Does each character visually match their avatar? (species, style, colors, clothing)
 2. **Cross-Frame Consistency**: Are characters consistent across all 6 frames of this scene?

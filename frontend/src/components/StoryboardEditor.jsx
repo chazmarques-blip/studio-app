@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
   Sparkles, ChevronRight, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
-  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle
+  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { StoryboardPreview } from './StoryboardPreview';
@@ -67,6 +67,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [continuityStatus, setContinuityStatus] = useState({});
   const [continuityReport, setContinuityReport] = useState(null);
   const [correcting, setCorrecting] = useState(false);
+  const [continuityNotes, setContinuityNotes] = useState('');
   const getSelectedFrame = (panelNum, frames) => {
     const idx = selectedFrames[panelNum] || 0;
     return frames?.[idx] || null;
@@ -462,7 +463,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     setContinuityRunning(true);
     setContinuityReport(null);
     try {
-      await axios.post(`${API}/studio/projects/${projectId}/continuity/analyze`);
+      await axios.post(`${API}/studio/projects/${projectId}/continuity/analyze`, {
+        user_notes: continuityNotes.trim()
+      });
       toast.success(lang === 'pt' ? 'Analisando continuidade do storyboard...' : 'Analyzing storyboard continuity...');
       pollContinuityStatus();
     } catch (err) {
@@ -1172,6 +1175,25 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               ? 'Analisa todas as cenas e verifica consistencia de personagens, idade, elementos irrelevantes e coerencia cronologica.'
               : 'Analyzes all scenes for character consistency, age accuracy, irrelevant elements and chronological coherence.'}
           </p>
+
+          {/* User notes for the continuity director */}
+          <div className="space-y-1">
+            <label className="text-[10px] text-[#666] font-medium flex items-center gap-1">
+              <PenTool size={10} />
+              {lang === 'pt' ? 'Observações adicionais (opcional)' : 'Additional notes (optional)'}
+            </label>
+            <textarea
+              value={continuityNotes}
+              onChange={e => setContinuityNotes(e.target.value)}
+              placeholder={lang === 'pt'
+                ? 'Ex: Verificar se Abraão tem barba branca em todas as cenas. O camelo deve ter corcova dupla. Sara não deve aparecer na cena 15...'
+                : 'Ex: Check if Abraham has white beard in all scenes. The camel should have double hump. Sarah should not appear in scene 15...'}
+              rows={3}
+              data-testid="continuity-user-notes"
+              className="w-full bg-[#111] border border-amber-500/20 rounded-lg px-3 py-2 text-[11px] text-white placeholder-[#444] outline-none focus:border-amber-500/40 resize-none leading-relaxed"
+              disabled={continuityRunning}
+            />
+          </div>
 
           {/* Action buttons */}
           <div className="flex gap-2">
