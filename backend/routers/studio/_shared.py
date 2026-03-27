@@ -340,16 +340,51 @@ def _parse_json(text):
 # ── Pre-Production Intelligence ──
 
 def _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id):
-    """ONE Claude Vision call to analyze ALL character avatars and produce canonical descriptions.
-    Returns dict: {character_name: detailed_english_description}
+    """Claude Vision analyzes ALL character avatars and produces structured Identity Cards.
+    Returns dict: {character_name: {identity_card}} with immutable traits and prohibitions.
+    Also returns legacy format for backward compatibility.
     """
     if not char_avatars:
         return {}
 
-    content_parts = [{"type": "text", "text": """Analyze each character avatar image below. For EACH character, describe their EXACT visual appearance in English.
-Focus on: species/type (if animal: which exact animal, fur/feather color and texture; if human: features), body shape, size relative to others, ALL colors and textures, clothing, accessories, unique distinguishing features.
+    content_parts = [{"type": "text", "text": """Analyze each character avatar image below with EXTREME PRECISION. For EACH character, produce a structured CHARACTER IDENTITY CARD.
 
-Return ONLY valid JSON: {"Character Name": "Precise 50-word visual description"}"""}]
+You MUST examine the image carefully and determine:
+1. Is the character BIPEDAL (standing on two legs like a human) or QUADRUPED (on four legs)?
+2. What EXACT species is it? (e.g., dromedary camel, golden retriever, tabby cat, human)
+3. What is the EXACT body anatomy visible in the image?
+
+Return ONLY valid JSON with this EXACT structure:
+{
+  "CharacterName": {
+    "description": "Full 80-word English visual description of exactly what you see in the avatar image",
+    "species": "exact species name",
+    "body_type": "BIPEDAL_ANTHROPOMORPHIC or QUADRUPED_ANIMAL or HUMAN",
+    "locomotion": "How this character moves based on what you see (e.g., 'walks upright on two legs' or 'walks on four legs')",
+    "anatomy": {
+      "head": "exact head description from avatar",
+      "body": "exact torso/body description",
+      "arms_or_front_legs": "what you see — arms with hands/hooves, or front legs",
+      "legs_or_hind_legs": "what you see — two legs standing upright, or four legs",
+      "tail": "tail description if visible, or 'none'"
+    },
+    "default_clothing": "exact clothing visible in avatar, or 'none'",
+    "fur_skin_color": "exact primary color and texture",
+    "eye_details": "exact eye color, shape, notable features",
+    "immutable_traits": [
+      "list of 4-6 visual traits that MUST appear in EVERY frame — derived directly from the avatar image"
+    ],
+    "prohibitions": [
+      "list of 4-6 things that must NEVER happen to this character — opposite of what you see"
+    ]
+  }
+}
+
+CRITICAL: Your analysis must be based SOLELY on what you SEE in the avatar image. The avatar image is the ABSOLUTE VISUAL TRUTH.
+- If the character is standing on two legs in the avatar → body_type = BIPEDAL_ANTHROPOMORPHIC, prohibition = "NEVER on four legs"
+- If the character is an animal on four legs → body_type = QUADRUPED_ANIMAL, prohibition = "NEVER standing bipedally"
+- Immutable traits = what you see that must NEVER change across scenes
+- Prohibitions = the OPPOSITE of what you see (to prevent the AI from changing it)"""}]
 
     names_with_images = []
     for ch in characters:
@@ -364,7 +399,6 @@ Return ONLY valid JSON: {"Character Name": "Precise 50-word visual description"}
             with open(local_path, 'rb') as f:
                 img_bytes = f.read()
                 img_b64 = base64.b64encode(img_bytes).decode()
-            # Detect MIME type from file content
             if img_bytes[:3] == b'\xff\xd8\xff':
                 mime = "image/jpeg"
             elif img_bytes[:8] == b'\x89PNG\r\n\x1a\n':
@@ -372,7 +406,7 @@ Return ONLY valid JSON: {"Character Name": "Precise 50-word visual description"}
             elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
                 mime = "image/webp"
             else:
-                mime = "image/jpeg"  # default fallback
+                mime = "image/jpeg"
             content_parts.append({"type": "text", "text": f"CHARACTER: {name}"})
             content_parts.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}})
             names_with_images.append(name)
@@ -386,15 +420,32 @@ Return ONLY valid JSON: {"Character Name": "Precise 50-word visual description"}
         response = litellm.completion(
             model="anthropic/claude-sonnet-4-5-20250929",
             messages=[{"role": "user", "content": content_parts}],
-            max_tokens=2000, timeout=60, api_key=ANTHROPIC_API_KEY,
+            max_tokens=4000, timeout=90, api_key=ANTHROPIC_API_KEY,
         )
         result = response.choices[0].message.content
         parsed = _parse_json(result)
         if parsed:
-            logger.info(f"Studio [{project_id}]: Avatar Vision analysis — {len(parsed)} characters: {list(parsed.keys())}")
+            logger.info(f"Studio [{project_id}]: Avatar Identity Cards — {len(parsed)} characters: {list(parsed.keys())}")
+            # Store both the identity cards and legacy descriptions for backward compat
+            for name, card in parsed.items():
+                if isinstance(card, dict):
+                    # Ensure legacy description field exists
+                    if "description" not in card:
+                        card["description"] = f"{card.get('species', 'character')} — {card.get('body_type', 'unknown')}"
+                else:
+                    # Legacy format — convert to minimal identity card
+                    parsed[name] = {
+                        "description": card,
+                        "species": "unknown",
+                        "body_type": "UNKNOWN",
+                        "locomotion": "unknown",
+                        "anatomy": {},
+                        "immutable_traits": [],
+                        "prohibitions": [],
+                    }
             return parsed
     except Exception as e:
-        logger.warning(f"Studio [{project_id}]: Avatar Vision analysis failed: {e}")
+        logger.warning(f"Studio [{project_id}]: Avatar Identity Cards failed: {e}")
     return {}
 
 
@@ -411,10 +462,29 @@ def _build_production_design(briefing, characters, scenes, avatar_descriptions, 
         "watercolor": "Watercolor painting with soft edges and pastel tones",
     }
 
-    char_info = "\n".join([
-        f"- {ch['name']}: {ch.get('description', '')} | Avatar visual: {avatar_descriptions.get(ch['name'], 'No avatar reference')}"
-        for ch in characters
-    ])
+    # Build character info with Identity Cards when available
+    char_info_lines = []
+    for ch in characters:
+        name = ch['name']
+        avatar_data = avatar_descriptions.get(name, {})
+        if isinstance(avatar_data, dict) and avatar_data.get("body_type"):
+            # Identity Card format
+            card = avatar_data
+            char_info_lines.append(
+                f"- {name}: {ch.get('description', '')} | "
+                f"AVATAR IDENTITY: species={card.get('species','?')}, "
+                f"body_type={card.get('body_type','?')}, "
+                f"locomotion={card.get('locomotion','?')}, "
+                f"fur/skin={card.get('fur_skin_color','?')}, "
+                f"clothing={card.get('default_clothing','?')}. "
+                f"IMMUTABLE: {'; '.join(card.get('immutable_traits', [])[:4])}. "
+                f"PROHIBITIONS: {'; '.join(card.get('prohibitions', [])[:4])}"
+            )
+        else:
+            # Legacy string format
+            desc = avatar_data if isinstance(avatar_data, str) else avatar_data.get("description", "No avatar reference")
+            char_info_lines.append(f"- {name}: {ch.get('description', '')} | Avatar visual: {desc}")
+    char_info = "\n".join(char_info_lines)
 
     scene_list = "\n".join([
         f"Scene {s.get('scene_number', i+1)}: {s.get('title', '')} — {s.get('description', '')[:120]} [{s.get('emotion', '')}] Chars: {', '.join(s.get('characters_in_scene', []))}"

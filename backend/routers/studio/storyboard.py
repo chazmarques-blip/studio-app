@@ -46,13 +46,58 @@ async def generate_storyboard(project_id: str, tenant=Depends(get_current_tenant
             _settings, _projects, _project = _get_project(tenant["id"], project_id)
             if not _project:
                 return
+
+            # Extract identity cards from production_design (stored by _analyze_avatars_with_vision)
+            pd = _project.get("agents_output", {}).get("production_design", {})
+            identity_cards = pd.get("identity_cards", {})
+
+            # If no identity cards yet, try to generate them from avatar analysis
+            if not identity_cards:
+                char_avatars_dict = _project.get("character_avatars", {})
+                characters_list = _project.get("characters", [])
+                if char_avatars_dict and characters_list:
+                    # Download avatars temporarily to analyze
+                    import tempfile, urllib.request
+                    temp_cache = {}
+                    supabase_url = os.environ.get('SUPABASE_URL', '')
+                    for name, url in char_avatars_dict.items():
+                        if url:
+                            try:
+                                full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
+                                ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                                urllib.request.urlretrieve(full_url, ref_file.name)
+                                temp_cache[url] = ref_file.name
+                            except Exception:
+                                temp_cache[url] = None
+
+                    identity_cards = _analyze_avatars_with_vision(
+                        characters_list, char_avatars_dict, temp_cache, project_id
+                    )
+
+                    # Clean up temp files
+                    for path in temp_cache.values():
+                        if path and os.path.exists(path):
+                            try: os.unlink(path)
+                            except Exception: pass
+
+                    # Store identity cards in the project for reuse
+                    if identity_cards:
+                        agents_output = _project.get("agents_output", {})
+                        if "production_design" not in agents_output:
+                            agents_output["production_design"] = {}
+                        agents_output["production_design"]["identity_cards"] = identity_cards
+                        _project["agents_output"] = agents_output
+                        _save_project(tenant["id"], _settings, _projects)
+                        logger.info(f"Storyboard [{project_id}]: Identity Cards generated and stored for {len(identity_cards)} characters")
+
             panels = generate_all_panels(
                 tenant_id=tenant["id"],
                 project_id=project_id,
                 scenes=_project.get("scenes", []),
                 characters=_project.get("characters", []),
                 char_avatars=_project.get("character_avatars", {}),
-                production_design=_project.get("agents_output", {}).get("production_design", {}),
+                production_design=pd,
+                identity_cards=identity_cards,
                 lang=_project.get("language", "pt"),
                 upload_fn=_upload_to_storage,
                 update_fn=_update_project_field,
@@ -118,10 +163,11 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
     def _bg_regen():
         try:
             import tempfile
-            from core.storyboard import _generate_all_frames_for_scene, FRAME_TYPES
+            from core.storyboard import _generate_all_frames_for_scene, _generate_shot_briefs, FRAME_TYPES
             char_avatars = project.get("character_avatars", {})
             production_design = project.get("agents_output", {}).get("production_design", {})
             character_bible = production_design.get("character_bible", {})
+            identity_cards = production_design.get("identity_cards", {})
 
             avatar_cache = {}
             chars_in_scene = scene.get("characters_in_scene", [])
@@ -142,10 +188,26 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
             if style_anchors:
                 style_dna = f"{style_dna} {style_anchors}"
 
+            # Generate shot briefs for this single scene with continuity
+            scenes_list = project.get("scenes", [])
+            scene_idx = next((i for i, s in enumerate(scenes_list) if s.get("scene_number") == req.panel_number), 0)
+            prev_scene = scenes_list[scene_idx - 1] if scene_idx > 0 else None
+            next_scene = scenes_list[scene_idx + 1] if scene_idx < len(scenes_list) - 1 else None
+
+            shot_briefs = None
+            if identity_cards:
+                shot_briefs = _generate_shot_briefs(
+                    scene=scene, scene_num=req.panel_number,
+                    identity_cards=identity_cards, style_dna=style_dna,
+                    prev_scene=prev_scene, next_scene=next_scene,
+                    lang=project.get("language", "pt"), project_id=project_id,
+                )
+
             frame_results = _generate_all_frames_for_scene(
                 scene=scene, scene_num=req.panel_number, project_id=project_id,
                 char_avatars=char_avatars, avatar_cache=avatar_cache,
-                character_bible=character_bible, style_dna=style_dna,
+                character_bible=character_bible, identity_cards=identity_cards,
+                style_dna=style_dna, shot_briefs=shot_briefs,
                 lang=project.get("language", "pt"),
             )
 

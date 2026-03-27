@@ -51,18 +51,253 @@ FRAME_TYPES = [
 ]
 
 
+# ── Shot Briefs Generator (Claude as Shot Director) ──────────────────────
+
+def _generate_shot_briefs(
+    scene: dict,
+    scene_num: int,
+    identity_cards: dict,
+    style_dna: str,
+    prev_scene: dict = None,
+    next_scene: dict = None,
+    lang: str = "pt",
+    project_id: str = "",
+) -> list:
+    """Use Claude to pre-plan 6 detailed shot briefs for a scene with continuity.
+    Each brief includes per-character positioning, actions, and prohibitions.
+    Returns list of 6 dicts or falls back to FRAME_TYPES if Claude fails.
+    """
+    import litellm as _litellm
+
+    # Build character identity block for the prompt
+    chars_in_scene = scene.get("characters_in_scene", [])
+    identity_block = ""
+    for cname in chars_in_scene:
+        card = identity_cards.get(cname, {})
+        if isinstance(card, dict) and card.get("body_type"):
+            identity_block += f"\n\n═══ CHARACTER: {cname} ═══\n"
+            identity_block += f"Species: {card.get('species', '?')}\n"
+            identity_block += f"Body Type: {card.get('body_type', '?')}\n"
+            identity_block += f"Locomotion: {card.get('locomotion', '?')}\n"
+            identity_block += f"Default Clothing: {card.get('default_clothing', '?')}\n"
+            immutable = card.get("immutable_traits", [])
+            if immutable:
+                identity_block += f"IMMUTABLE TRAITS: {'; '.join(immutable)}\n"
+            prohib = card.get("prohibitions", [])
+            if prohib:
+                identity_block += f"PROHIBITIONS: {'; '.join(prohib)}\n"
+        else:
+            desc = card if isinstance(card, str) else card.get("description", "")
+            identity_block += f"\n- {cname}: {desc}\n"
+
+    # Context from adjacent scenes for continuity
+    prev_ctx = ""
+    if prev_scene:
+        prev_ctx = f"\nPREVIOUS SCENE (for continuity): Scene {prev_scene.get('scene_number', '?')}: {prev_scene.get('title', '')} — {prev_scene.get('description', '')[:150]}"
+    next_ctx = ""
+    if next_scene:
+        next_ctx = f"\nNEXT SCENE (for bridging): Scene {next_scene.get('scene_number', '?')}: {next_scene.get('title', '')} — {next_scene.get('description', '')[:150]}"
+
+    system = """You are a SHOT DIRECTOR for an animated storybook. You plan the exact visual composition of each page/frame.
+
+You receive a scene description, character identity cards, and adjacent scene context.
+Your job is to produce 6 DETAILED SHOT BRIEFS — one for each page of the storybook scene (each page covers ~2 seconds of screen time in a 12-second scene).
+
+CRITICAL RULES:
+- Each character's visual identity is IMMUTABLE — you can change their EXPRESSION, CLOTHING for the scene, and ACTION, but NEVER their species, body type, or locomotion mode
+- If a character is BIPEDAL_ANTHROPOMORPHIC, they MUST be standing/walking on TWO LEGS in EVERY frame — never on four legs
+- If a character is QUADRUPED_ANIMAL, they MUST be on FOUR LEGS in every frame — never bipedal
+- Characters' positions must flow logically: if a character is on the LEFT in Frame 1, they can't teleport to the RIGHT in Frame 2 without movement
+- Frame 6 must visually bridge to the NEXT scene
+
+Return ONLY valid JSON — a list of 6 objects:
+[
+  {
+    "frame": 1,
+    "time_range": "0-2s",
+    "camera": "Wide shot / Medium shot / Close-up / Over-the-shoulder / etc.",
+    "scene_action": "What is happening in this exact 2-second moment",
+    "characters": {
+      "CharacterName": {
+        "position": "left third / center / right third / background",
+        "pose": "standing upright on two legs / sitting / walking right / etc.",
+        "action": "specific action: holding staff, pointing, looking at X",
+        "expression": "specific expression: wide eyes, smiling, frowning",
+        "clothing_note": "same as default / changed to X for this scene"
+      }
+    },
+    "environment": "specific background and lighting details for this moment",
+    "continuity_from_prev": "how this connects to the previous frame or previous scene",
+    "prohibitions": ["NEVER show X on four legs in this frame", "NEVER change species"]
+  }
+]"""
+
+    user = f"""SCENE {scene_num}: {scene.get('title', '')}
+DESCRIPTION: {scene.get('description', '')}
+EMOTION: {scene.get('emotion', '')}
+DIALOGUE: {scene.get('dialogue', '')}
+{prev_ctx}
+{next_ctx}
+
+CHARACTER IDENTITY CARDS (IMMUTABLE — these are the VISUAL TRUTH):
+{identity_block}
+
+Generate 6 shot briefs. Remember: each character's body type is FIXED. If bipedal in the identity card, ALWAYS bipedal. Plan smooth spatial continuity between frames."""
+
+    try:
+        api_key = ANTHROPIC_API_KEY
+        response = _litellm.completion(
+            model="anthropic/claude-sonnet-4-5-20250929",
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            max_tokens=3000, timeout=60, api_key=api_key,
+        )
+        result = response.choices[0].message.content
+        # Parse JSON from response
+        import json
+        # Try direct parse first
+        try:
+            briefs = json.loads(result)
+        except json.JSONDecodeError:
+            # Try extracting JSON array from markdown
+            import re
+            match = re.search(r'\[[\s\S]*\]', result)
+            if match:
+                briefs = json.loads(match.group())
+            else:
+                raise ValueError("No JSON array found in response")
+
+        if isinstance(briefs, list) and len(briefs) >= 6:
+            logger.info(f"Storyboard [{project_id}]: Shot briefs generated for scene {scene_num} — {len(briefs)} frames")
+            return briefs[:6]
+    except Exception as e:
+        logger.warning(f"Storyboard [{project_id}]: Shot brief generation failed for scene {scene_num}: {e}")
+
+    # Fallback: return None to indicate we should use FRAME_TYPES defaults
+    return None
+
+
+# ── Build Identity-Anchored Prompt ───────────────────────────────────────
+
+def _build_identity_prompt(
+    scene: dict,
+    scene_num: int,
+    frame_type: dict,
+    frame_index: int,
+    identity_cards: dict,
+    character_bible: dict,
+    style_dna: str,
+    shot_brief: dict = None,
+    lang: str = "pt",
+) -> str:
+    """Build an identity-first prompt for Gemini. Avatar identity comes FIRST (highest weight),
+    scene instruction comes SECOND. Per-character prohibitions are inline.
+    """
+    chars_in_scene = scene.get("characters_in_scene", [])
+    lang_name = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, "Portuguese")
+
+    # ── BLOCK 1: CHARACTER IDENTITY (IMMUTABLE — highest priority) ──
+    identity_block = "═══ CHARACTER IDENTITY — ABSOLUTE VISUAL CONTRACT ═══\n"
+    identity_block += "The reference images below are the ONLY TRUTH for each character's appearance.\n\n"
+
+    for cname in chars_in_scene:
+        card = identity_cards.get(cname, {})
+        bible_desc = character_bible.get(cname, "")
+        # Extract description from card if it's a dict
+        if isinstance(bible_desc, dict):
+            bible_desc = bible_desc.get("description", "")
+
+        if isinstance(card, dict) and card.get("body_type"):
+            identity_block += f"▸ {cname.upper()}\n"
+            identity_block += f"  Species: {card.get('species', '?')}\n"
+            identity_block += f"  Body: {card.get('body_type', '?')} — {card.get('locomotion', '?')}\n"
+            if bible_desc:
+                identity_block += f"  Visual: {bible_desc}\n"
+            immutable = card.get("immutable_traits", [])
+            for trait in immutable:
+                identity_block += f"  ✓ ALWAYS: {trait}\n"
+            prohib = card.get("prohibitions", [])
+            for p in prohib:
+                identity_block += f"  ✗ NEVER: {p}\n"
+            identity_block += "\n"
+        elif bible_desc:
+            identity_block += f"▸ {cname}: {bible_desc}\n\n"
+
+    # ── BLOCK 2: SCENE INSTRUCTION (can vary per frame) ──
+    if shot_brief:
+        # Use the detailed shot brief from Claude
+        scene_block = f"═══ FRAME INSTRUCTION (Scene {scene_num}, {frame_type['label']}, {shot_brief.get('time_range', '')}) ═══\n"
+        scene_block += f"Camera: {shot_brief.get('camera', 'Medium shot')}\n"
+        scene_block += f"Action: {shot_brief.get('scene_action', scene.get('description', ''))}\n"
+        scene_block += f"Environment: {shot_brief.get('environment', '')}\n"
+        scene_block += f"Continuity: {shot_brief.get('continuity_from_prev', '')}\n\n"
+
+        # Per-character positioning from shot brief
+        brief_chars = shot_brief.get("characters", {})
+        if brief_chars:
+            scene_block += "CHARACTER POSITIONING:\n"
+            for cname, cdata in brief_chars.items():
+                if isinstance(cdata, dict):
+                    scene_block += f"  {cname}: position={cdata.get('position', '?')}, "
+                    scene_block += f"pose={cdata.get('pose', '?')}, "
+                    scene_block += f"action={cdata.get('action', '?')}, "
+                    scene_block += f"expression={cdata.get('expression', '?')}\n"
+            scene_block += "\n"
+
+        # Shot-specific prohibitions
+        brief_prohib = shot_brief.get("prohibitions", [])
+        if brief_prohib:
+            scene_block += "FRAME PROHIBITIONS:\n"
+            for p in brief_prohib:
+                scene_block += f"  ⛔ {p}\n"
+            scene_block += "\n"
+    else:
+        # Fallback to generic frame type prompt
+        scene_block = f"═══ FRAME INSTRUCTION (Scene {scene_num}, {frame_type['label']}) ═══\n"
+        scene_block += f"SCENE: {scene.get('title', '')}\n"
+        scene_block += f"DESCRIPTION: {scene.get('description', '')}\n"
+        scene_block += f"EMOTION: {scene.get('emotion', '')}\n"
+        scene_block += f"DIALOGUE: {scene.get('dialogue', '')}\n"
+        scene_block += f"NARRATIVE MOMENT: {frame_type['prompt']}\n\n"
+
+    # ── BLOCK 3: STYLE + RULES ──
+    rules_block = f"""═══ STYLE & RULES ═══
+{style_dna}
+
+MANDATORY RULES:
+- Generate exactly ONE single illustration (NOT a grid, NOT multiple panels)
+- This is {frame_type['label']} of a storybook
+- Characters MUST match their REFERENCE IMAGES and IDENTITY CARDS above — this is NON-NEGOTIABLE
+- If a character's Identity Card says BIPEDAL, that character MUST be on TWO LEGS — NEVER four legs
+- If a character's Identity Card says QUADRUPED, that character MUST be on FOUR LEGS — NEVER standing bipedally
+- Frame the scene so characters and environment are clearly visible
+- DO NOT include any text, numbers, labels, or speech bubbles
+- Fill the entire image with the illustration — no borders, no margins
+- Language context: {lang_name}
+
+The REFERENCE IMAGES below are the ABSOLUTE VISUAL TRUTH for each character. Match them EXACTLY."""
+
+    return f"{identity_block}\n{scene_block}\n{rules_block}"
+
+
 def _generate_single_frame(
     scene: dict,
     scene_num: int,
     frame_type: dict,
+    frame_index: int,
     project_id: str,
     char_avatars: dict,
     avatar_cache: dict,
     character_bible: dict,
+    identity_cards: dict,
     style_dna: str,
+    shot_brief: dict = None,
     lang: str = "pt",
 ) -> bytes:
     """Generate a single storyboard frame illustration via Gemini Nano Banana.
+    Uses identity-anchored prompts with per-character prohibitions.
     Returns image bytes or None on failure.
     """
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
@@ -72,47 +307,16 @@ def _generate_single_frame(
         logger.warning(f"Storyboard [{project_id}]: No EMERGENT_LLM_KEY")
         return None
 
+    # Build the identity-first prompt
+    prompt_text = _build_identity_prompt(
+        scene=scene, scene_num=scene_num,
+        frame_type=frame_type, frame_index=frame_index,
+        identity_cards=identity_cards, character_bible=character_bible,
+        style_dna=style_dna, shot_brief=shot_brief, lang=lang,
+    )
+
+    # Load avatar reference images
     chars_in_scene = scene.get("characters_in_scene", [])
-    char_desc_block = ""
-    if character_bible:
-        for cname in chars_in_scene:
-            desc = character_bible.get(cname, "")
-            if desc:
-                char_desc_block += f"\n- {cname}: {desc}"
-
-    dialogue = scene.get("dialogue", "")
-    description = scene.get("description", "")
-    title = scene.get("title", "")
-    emotion = scene.get("emotion", "")
-    lang_name = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, "Portuguese")
-
-    prompt_text = f"""Generate ONE high-quality storybook illustration for this animated film scene.
-
-SCENE {scene_num}: {title}
-DESCRIPTION: {description}
-EMOTION: {emotion}
-DIALOGUE: {dialogue}
-
-NARRATIVE MOMENT: {frame_type['prompt']}
-
-{style_dna}
-
-CHARACTER IDENTITY (match reference images EXACTLY):
-{char_desc_block if char_desc_block else 'Use scene description for character appearance.'}
-
-RULES:
-- Generate exactly ONE single illustration (NOT a grid, NOT multiple panels)
-- This is {frame_type['label']} of a storybook — show the NARRATIVE ACTION described above
-- Show the characters DOING something meaningful within the story context
-- Frame the entire scene so characters and environment are clearly visible (medium to wide framing, no extreme close-ups)
-- Characters MUST match reference images EXACTLY (species, face, fur color, clothing, posture)
-- If a character is BIPEDAL ANTHROPOMORPHIC in the reference, show them STANDING UPRIGHT
-- Style: 3D CGI Pixar quality with volumetric lighting, soft shadows, cinematic composition
-- DO NOT include any text, numbers, labels, or speech bubbles
-- Fill the entire image with the illustration — no borders, no margins
-- This image should work as a standalone page in a children's storybook
-- Language context: {lang_name}"""
-
     ref_images = []
     for char_name in chars_in_scene:
         url = char_avatars.get(char_name)
@@ -126,13 +330,13 @@ RULES:
         chat = LlmChat(
             api_key=api_key,
             session_id=f"sb-{project_id}-{scene_num}-{frame_type['label'][:4]}",
-            system_message="You are a professional storyboard artist for animated films. Generate exactly one high-quality illustration."
+            system_message="You are a professional storyboard artist for animated films. Generate exactly one high-quality illustration. The CHARACTER REFERENCE IMAGES provided are the ABSOLUTE VISUAL TRUTH — match them EXACTLY in every detail: species, body posture (bipedal/quadruped), fur/skin color, clothing."
         )
         chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
 
         if ref_images:
             msg = UserMessage(
-                text=f"{prompt_text}\n\nReference avatar images (match EXACTLY):",
+                text=f"{prompt_text}\n\n═══ CHARACTER REFERENCE IMAGES (MATCH EXACTLY — these are the VISUAL TRUTH) ═══",
                 file_contents=ref_images
             )
         else:
@@ -165,16 +369,19 @@ def _generate_panel_image(
     char_avatars: dict,
     avatar_cache: dict,
     character_bible: dict,
+    identity_cards: dict,
     style_dna: str,
+    shot_brief: dict = None,
     lang: str = "pt",
 ) -> bytes:
     """Legacy wrapper — generates the first frame (Plano Geral) as the main panel image."""
     return _generate_single_frame(
         scene=scene, scene_num=scene_num,
-        frame_type=FRAME_TYPES[0],
+        frame_type=FRAME_TYPES[0], frame_index=0,
         project_id=project_id,
         char_avatars=char_avatars, avatar_cache=avatar_cache,
-        character_bible=character_bible, style_dna=style_dna, lang=lang,
+        character_bible=character_bible, identity_cards=identity_cards,
+        style_dna=style_dna, shot_brief=shot_brief, lang=lang,
     )
 
 
@@ -185,23 +392,28 @@ def _generate_all_frames_for_scene(
     char_avatars: dict,
     avatar_cache: dict,
     character_bible: dict,
+    identity_cards: dict,
     style_dna: str,
+    shot_briefs: list = None,
     lang: str = "pt",
 ) -> list:
-    """Generate 6 individual frames for a scene in parallel (3 at a time).
+    """Generate 6 individual frames for a scene in parallel (6 at a time).
+    Uses shot briefs for detailed per-frame instructions when available.
     Returns list of (frame_type, image_bytes) tuples.
     """
-    frame_sem = threading.Semaphore(3)
+    frame_sem = threading.Semaphore(6)  # All 6 frames in parallel
     results = [None] * len(FRAME_TYPES)
 
     def _gen_one(idx, ft):
         with frame_sem:
             try:
+                brief = shot_briefs[idx] if shot_briefs and idx < len(shot_briefs) else None
                 img = _generate_single_frame(
                     scene=scene, scene_num=scene_num,
-                    frame_type=ft, project_id=project_id,
+                    frame_type=ft, frame_index=idx, project_id=project_id,
                     char_avatars=char_avatars, avatar_cache=avatar_cache,
-                    character_bible=character_bible, style_dna=style_dna, lang=lang,
+                    character_bible=character_bible, identity_cards=identity_cards,
+                    style_dna=style_dna, shot_brief=brief, lang=lang,
                 )
                 results[idx] = (ft, img)
             except Exception as e:
@@ -227,13 +439,20 @@ def generate_all_panels(
     characters: list,
     char_avatars: dict,
     production_design: dict,
+    identity_cards: dict = None,
     lang: str = "pt",
     upload_fn=None,
     update_fn=None,
 ) -> list:
-    """Generate storyboard panels for all scenes. Runs in background thread.
+    """Generate storyboard panels for all scenes using the Continuity Director pipeline.
+
+    Pipeline:
+    1. Load avatar references + Identity Cards
+    2. Generate Shot Briefs (Claude, parallel per scene) for continuity
+    3. Generate frames (Gemini, parallel) using identity-anchored prompts
 
     Args:
+        identity_cards: Dict of character identity cards from _analyze_avatars_with_vision()
         upload_fn: callable(bytes, filename, content_type) -> url
         update_fn: callable(tenant_id, project_id, updates_dict)
 
@@ -241,12 +460,15 @@ def generate_all_panels(
     """
     total = len(scenes)
     character_bible = production_design.get("character_bible", {}) if production_design else {}
+    if not identity_cards:
+        identity_cards = {}
 
     style_dna = "ART STYLE: Premium 3D CGI animation (Pixar/DreamWorks quality). Volumetric lighting, warm color grading, cinematic composition."
     style_anchors = production_design.get("style_anchors", "") if production_design else ""
     if style_anchors:
         style_dna = f"{style_dna} {style_anchors}"
 
+    # ── Phase 0: Download and cache all avatar images ──
     avatar_cache = {}
     for name, url in char_avatars.items():
         if url and url not in avatar_cache:
@@ -260,9 +482,50 @@ def generate_all_panels(
                 logger.warning(f"Storyboard [{project_id}]: Avatar download failed for {name}: {e}")
                 avatar_cache[url] = None
 
-    scene_semaphore = threading.Semaphore(2)
+    # ── Phase 1: Generate Shot Briefs (Claude, parallel) ──
+    logger.info(f"Storyboard [{project_id}]: Phase 1 — Generating shot briefs for {total} scenes")
+    if update_fn:
+        update_fn(tenant_id, project_id, {
+            "storyboard_status": {"phase": "planning", "current": 0, "total": total, "detail": "Shot Director planning frames..."}
+        })
 
-    def _gen_panel(scene, scene_num):
+    brief_semaphore = threading.Semaphore(8)  # Up to 8 Claude calls in parallel
+    all_shot_briefs = [None] * total
+
+    def _gen_brief(idx, scene, scene_num):
+        with brief_semaphore:
+            try:
+                prev_scene = scenes[idx - 1] if idx > 0 else None
+                next_scene = scenes[idx + 1] if idx < total - 1 else None
+                briefs = _generate_shot_briefs(
+                    scene=scene, scene_num=scene_num,
+                    identity_cards=identity_cards, style_dna=style_dna,
+                    prev_scene=prev_scene, next_scene=next_scene,
+                    lang=lang, project_id=project_id,
+                )
+                all_shot_briefs[idx] = briefs
+            except Exception as e:
+                logger.warning(f"Storyboard [{project_id}]: Shot brief failed for scene {scene_num}: {e}")
+                all_shot_briefs[idx] = None
+
+    brief_threads = []
+    for i, scene in enumerate(scenes):
+        sn = scene.get("scene_number", i + 1)
+        t = threading.Thread(target=_gen_brief, args=(i, scene, sn))
+        brief_threads.append(t)
+        t.start()
+
+    for t in brief_threads:
+        t.join(timeout=90)
+
+    briefs_ok = sum(1 for b in all_shot_briefs if b is not None)
+    logger.info(f"Storyboard [{project_id}]: Phase 1 complete — {briefs_ok}/{total} shot briefs generated")
+
+    # ── Phase 2: Generate frames (Gemini, parallel scenes) ──
+    logger.info(f"Storyboard [{project_id}]: Phase 2 — Generating {total * 6} frames across {total} scenes")
+    scene_semaphore = threading.Semaphore(4)  # 4 scenes in parallel (was 2)
+
+    def _gen_panel(scene, scene_num, scene_idx):
         with scene_semaphore:
             try:
                 if update_fn:
@@ -274,11 +537,14 @@ def generate_all_panels(
                         }
                     })
 
+                scene_briefs = all_shot_briefs[scene_idx]
+
                 frame_results = _generate_all_frames_for_scene(
                     scene=scene, scene_num=scene_num,
                     project_id=project_id,
                     char_avatars=char_avatars, avatar_cache=avatar_cache,
-                    character_bible=character_bible, style_dna=style_dna, lang=lang,
+                    character_bible=character_bible, identity_cards=identity_cards,
+                    style_dna=style_dna, shot_briefs=scene_briefs, lang=lang,
                 )
 
                 image_url = None
@@ -330,7 +596,7 @@ def generate_all_panels(
         sn = scene.get("scene_number", i + 1)
 
         def worker(s=scene, num=sn, idx=i):
-            results[idx] = _gen_panel(s, num)
+            results[idx] = _gen_panel(s, num, idx)
 
         t = threading.Thread(target=worker)
         threads.append(t)
