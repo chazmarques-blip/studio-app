@@ -775,10 +775,10 @@ export function DirectedStudio({
       {step >= 1 && (
         <div className="flex items-center justify-between mb-1">
           <button onClick={() => { skipAutoResume.current = true; setStep(0); setProjectId(null); setViewingProject(null); loadProjects(); }}
-            className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
+            className="text-xs text-[#C9A84C] hover:underline flex items-center gap-1">
             ← {lang === 'pt' ? 'Projectos' : 'Projects'}
           </button>
-          <p className="text-[9px] text-[#666] truncate max-w-[200px]">{projectName}</p>
+          <p className="text-xs text-[#666] truncate max-w-[200px]">{projectName}</p>
         </div>
       )}
       {step >= 1 && (
@@ -799,7 +799,7 @@ export function DirectedStudio({
                   }`}>
                   {isDone ? <Check size={12} strokeWidth={2.5} /> : <s.icon size={12} strokeWidth={1.5} />}
                 </button>
-                <span className={`mt-1 text-[8px] font-mono tracking-wider uppercase transition-colors ${
+                <span className={`mt-1 text-[11px] font-mono tracking-wider uppercase transition-colors ${
                   isActive ? 'text-[#C9A84C]' : isDone ? 'text-white/60' : 'text-[#333]'
                 }`}>
                   {isActive ? s.label : <span className="hidden sm:inline">{s.label}</span>}
@@ -837,14 +837,14 @@ export function DirectedStudio({
                 ].map((s, i) => (
                   <div key={i} className="rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-2 text-center">
                     <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
-                    <p className="text-[7px] text-[#666]">{s.label}</p>
+                    <p className="text-[10px] text-[#666]">{s.label}</p>
                   </div>
                 ))}
               </div>
 
               {/* Timing */}
               <div className="rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-2 space-y-1.5">
-                <p className="text-[8px] font-semibold text-[#999]">{lang === 'pt' ? 'TEMPOS MÉDIOS' : 'AVG TIMING'}</p>
+                <p className="text-[11px] font-semibold text-[#999]">{lang === 'pt' ? 'TEMPOS MÉDIOS' : 'AVG TIMING'}</p>
                 {[
                   { label: 'Agentes (Claude)', value: analyticsData.timing?.avg_agent_seconds, color: 'bg-purple-500' },
                   { label: 'Vídeos (Sora 2)', value: analyticsData.timing?.avg_video_seconds, color: 'bg-[#C9A84C]' },
@@ -852,12 +852,12 @@ export function DirectedStudio({
                 ].map((t, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className={`h-1.5 w-1.5 rounded-full ${t.color}`} />
-                    <span className="text-[8px] text-[#999] w-24">{t.label}</span>
+                    <span className="text-[11px] text-[#999] w-24">{t.label}</span>
                     <div className="flex-1 bg-[#111] rounded-full h-1.5">
                       <div className={`h-1.5 rounded-full ${t.color} transition-all`}
                         style={{ width: `${Math.min((t.value || 0) / Math.max(analyticsData.timing?.avg_total_seconds || 1, 1) * 100, 100)}%` }} />
                     </div>
-                    <span className="text-[8px] font-mono text-white w-12 text-right">
+                    <span className="text-[11px] font-mono text-white w-12 text-right">
                       {t.value ? (t.value > 60 ? `${(t.value/60).toFixed(1)}m` : `${t.value}s`) : '—'}
                     </span>
                   </div>
@@ -873,7 +873,7 @@ export function DirectedStudio({
                 ].map((v, i) => (
                   <div key={i} className={`flex-1 rounded-lg border bg-[#0A0A0A] p-1.5 text-center ${v.color}`}>
                     <p className="text-xs font-bold">{v.count}</p>
-                    <p className="text-[7px]">{v.label}</p>
+                    <p className="text-[10px]">{v.label}</p>
                   </div>
                 ))}
               </div>
@@ -881,17 +881,17 @@ export function DirectedStudio({
               {/* Cost savings */}
               {analyticsData.cost_estimate && (
                 <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-2">
-                  <p className="text-[8px] font-semibold text-emerald-400">{lang === 'pt' ? 'ECONOMIA' : 'SAVINGS'}</p>
-                  <p className="text-[7px] text-[#999] mt-0.5">{analyticsData.cost_estimate.optimization_note}</p>
+                  <p className="text-[11px] font-semibold text-emerald-400">{lang === 'pt' ? 'ECONOMIA' : 'SAVINGS'}</p>
+                  <p className="text-[10px] text-[#999] mt-0.5">{analyticsData.cost_estimate.optimization_note}</p>
                 </div>
               )}
 
               {/* Recommendations */}
               {analyticsData.recommendations?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-[8px] font-semibold text-[#999]">{lang === 'pt' ? 'RECOMENDAÇÕES' : 'RECOMMENDATIONS'}</p>
+                  <p className="text-[11px] font-semibold text-[#999]">{lang === 'pt' ? 'RECOMENDAÇÕES' : 'RECOMMENDATIONS'}</p>
                   {analyticsData.recommendations.map((r, i) => (
-                    <div key={i} className={`rounded-md px-2 py-1.5 text-[8px] border ${
+                    <div key={i} className={`rounded-md px-2 py-1.5 text-[11px] border ${
                       r.type === 'critical' ? 'border-red-500/30 bg-red-500/5 text-red-300' :
                       r.type === 'warning' ? 'border-orange-500/30 bg-orange-500/5 text-orange-300' :
                       r.type === 'success' ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300' :
@@ -904,18 +904,18 @@ export function DirectedStudio({
               {/* Per-production breakdown */}
               {analyticsData.productions?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-[8px] font-semibold text-[#999]">{lang === 'pt' ? 'PRODUÇÕES (por velocidade)' : 'PRODUCTIONS (by speed)'}</p>
+                  <p className="text-[11px] font-semibold text-[#999]">{lang === 'pt' ? 'PRODUÇÕES (por velocidade)' : 'PRODUCTIONS (by speed)'}</p>
                   <div className="max-h-[120px] overflow-y-auto hide-scrollbar space-y-0.5">
                     {analyticsData.productions.map((p, i) => (
                       <div key={i} className="flex items-center gap-2 rounded-md bg-[#0A0A0A] px-2 py-1 border border-[#1A1A1A]">
-                        <span className={`text-[7px] font-mono px-1 rounded ${
+                        <span className={`text-[10px] font-mono px-1 rounded ${
                           p.pipeline_version === 'v3' ? 'bg-emerald-500/20 text-emerald-400' :
                           p.pipeline_version === 'v2' ? 'bg-orange-500/20 text-orange-400' :
                           'bg-red-500/20 text-red-400'
                         }`}>{p.pipeline_version}</span>
-                        <span className="text-[8px] text-white flex-1 truncate">{p.name}</span>
-                        <span className="text-[7px] text-[#666]">{p.scenes}c</span>
-                        <span className="text-[8px] font-mono text-[#C9A84C]">
+                        <span className="text-[11px] text-white flex-1 truncate">{p.name}</span>
+                        <span className="text-[10px] text-[#666]">{p.scenes}c</span>
+                        <span className="text-[11px] font-mono text-[#C9A84C]">
                           {p.total_seconds ? (p.total_seconds > 60 ? `${(p.total_seconds/60).toFixed(1)}m` : `${p.total_seconds}s`) : '—'}
                         </span>
                       </div>
@@ -936,13 +936,13 @@ export function DirectedStudio({
                 </div>
                 <div className="text-left">
                   <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Novo Projecto' : 'New Project'}</p>
-                  <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Crie uma nova produção com IA' : 'Create a new AI production'}</p>
+                  <p className="text-[11px] text-[#666]">{lang === 'pt' ? 'Crie uma nova produção com IA' : 'Create a new AI production'}</p>
                 </div>
               </button>
               <button onClick={loadAnalytics} disabled={analyticsLoading} data-testid="analytics-btn"
                 className="glass-card p-3 flex flex-col items-center justify-center gap-1 hover:border-[#C9A84C]/30 transition border border-[#333] w-16">
                 {analyticsLoading ? <RefreshCw size={14} className="text-[#C9A84C] animate-spin" /> : <BarChart3 size={14} className="text-[#C9A84C]" />}
-                <span className="text-[7px] text-[#666]">Analytics</span>
+                <span className="text-[10px] text-[#666]">Analytics</span>
               </button>
             </div>
           ) : (
@@ -963,7 +963,7 @@ export function DirectedStudio({
               {/* Language + Audio Mode */}
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
+                  <label className="text-[11px] text-[#666] uppercase tracking-wider mb-1 block">
                     {lang === 'pt' ? 'Idioma' : 'Language'}
                   </label>
                   <select value={projectLang} onChange={e => setProjectLang(e.target.value)}
@@ -975,7 +975,7 @@ export function DirectedStudio({
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
+                  <label className="text-[11px] text-[#666] uppercase tracking-wider mb-1 block">
                     {lang === 'pt' ? 'Tipo de Áudio' : 'Audio Type'}
                   </label>
                   <select value={audioMode} onChange={e => setAudioMode(e.target.value)}
@@ -988,7 +988,7 @@ export function DirectedStudio({
               </div>
               {/* Animation Style */}
               <div>
-                <label className="text-[8px] text-[#666] uppercase tracking-wider mb-1 block">
+                <label className="text-[11px] text-[#666] uppercase tracking-wider mb-1 block">
                   {lang === 'pt' ? 'Estilo de Animação' : 'Animation Style'}
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -1003,14 +1003,14 @@ export function DirectedStudio({
                     <button key={s.id} type="button"
                       data-testid={`animation-style-${s.id}`}
                       onClick={() => { setAnimationSub(s.id); setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); }}
-                      className={`p-2 rounded-lg border text-left text-[9px] transition-all ${
+                      className={`p-2 rounded-lg border text-left text-xs transition-all ${
                         animationSub === s.id
                           ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10'
                           : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
                       }`}>
                       <span className="text-sm">{s.icon}</span>
                       <div className={`font-medium mt-0.5 ${animationSub === s.id ? 'text-[#C9A84C]' : 'text-white'}`}>{s.label}</div>
-                      <div className="text-[8px] text-[#555]">{s.desc}</div>
+                      <div className="text-[11px] text-[#555]">{s.desc}</div>
                     </button>
                   ))}
                 </div>
@@ -1022,7 +1022,7 @@ export function DirectedStudio({
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#C9A84C]"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
                     {lang === 'pt' ? 'Motor de Continuidade' : 'Continuity Engine'}
                   </div>
-                  <div className="text-[8px] text-[#666] mt-0.5">
+                  <div className="text-[11px] text-[#666] mt-0.5">
                     {lang === 'pt'
                       ? 'Renderização sequencial com âncora visual, DNA de estilo, validação IA e color grading'
                       : 'Sequential rendering with visual anchoring, style DNA, AI validation & color grading'}
@@ -1071,7 +1071,7 @@ export function DirectedStudio({
                   </button>
                 )}
               </div>
-              <p className="text-[9px] text-[#666] uppercase tracking-wider font-medium">
+              <p className="text-xs text-[#666] uppercase tracking-wider font-medium">
                 {(() => {
                   const filtered = allProjects.filter(p => {
                     if (!projectSearch.trim()) return true;
@@ -1114,9 +1114,9 @@ export function DirectedStudio({
                           {proj.name || proj.briefing?.slice(0, 40) || 'Sem nome'}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`text-[7px] font-medium ${sl.color}`}>{sl[lang] || sl.en}</span>
-                          {scenesCount > 0 && <span className="text-[7px] text-[#555]">{scenesCount} {lang === 'pt' ? 'cenas' : 'scenes'}</span>}
-                          {videosCount > 0 && <span className="text-[7px] text-emerald-500">{videosCount} {lang === 'pt' ? 'vídeos' : 'videos'}</span>}
+                          <span className={`text-[10px] font-medium ${sl.color}`}>{sl[lang] || sl.en}</span>
+                          {scenesCount > 0 && <span className="text-[10px] text-[#555]">{scenesCount} {lang === 'pt' ? 'cenas' : 'scenes'}</span>}
+                          {videosCount > 0 && <span className="text-[10px] text-emerald-500">{videosCount} {lang === 'pt' ? 'vídeos' : 'videos'}</span>}
                         </div>
                       </div>
                       <div className="flex flex-col items-center gap-1 flex-shrink-0">
@@ -1146,7 +1146,7 @@ export function DirectedStudio({
                     {milestones.length > 0 && (
                       <div className="mt-1.5 pt-1.5 border-t border-[#1A1A1A] flex flex-wrap gap-x-3 gap-y-0.5">
                         {milestones.map((ms, mi) => (
-                          <span key={mi} className="flex items-center gap-1 text-[7px] text-[#666]">
+                          <span key={mi} className="flex items-center gap-1 text-[10px] text-[#666]">
                             <Check size={7} className="text-emerald-500 flex-shrink-0" />
                             {ms.label?.split('—')[0]?.trim()}
                           </span>
@@ -1192,14 +1192,14 @@ export function DirectedStudio({
               {out.type === 'video' && (
                 <div className="relative bg-black">
                   <video controls autoPlay={i === 0} className="w-full rounded-lg" src={out.url} />
-                  <span className="absolute top-1 left-1 bg-black/70 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                  <span className="absolute top-1 left-1 bg-black/70 text-[10px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
                     {out.label === 'complete' ? 'FILME COMPLETO' : `CENA ${out.scene_number}`}
                   </span>
                 </div>
               )}
               <div className="p-1.5 flex items-center justify-between">
-                <span className="text-[8px] text-[#666]">{out.label === 'complete' ? `${out.duration}s total` : `Cena ${out.scene_number} • 12s`}</span>
-                <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[8px] font-semibold flex items-center gap-1">
+                <span className="text-[11px] text-[#666]">{out.label === 'complete' ? `${out.duration}s total` : `Cena ${out.scene_number} • 12s`}</span>
+                <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[11px] font-semibold flex items-center gap-1">
                   <Download size={10} /> Download
                 </a>
               </div>
@@ -1220,7 +1220,7 @@ export function DirectedStudio({
             </div>
             <div>
               <h3 className="text-xs font-semibold text-white">{lang === 'pt' ? 'Redator & Pesquisador' : 'Screenwriter'}</h3>
-              <p className="text-[8px] text-[#666]">{lang === 'pt' ? 'Descreva a história que quer criar' : 'Describe the story you want to create'}</p>
+              <p className="text-[11px] text-[#666]">{lang === 'pt' ? 'Descreva a história que quer criar' : 'Describe the story you want to create'}</p>
             </div>
           </div>
 
@@ -1250,7 +1250,7 @@ export function DirectedStudio({
               <div className="flex justify-start">
                 <div className="bg-[#111] border border-[#222] rounded-lg px-3 py-2 flex items-center gap-2">
                   <RefreshCw size={10} className="animate-spin text-[#C9A84C]" />
-                  <span className="text-[9px] text-[#666]">{lang === 'pt' ? 'Pesquisando e escrevendo...' : 'Researching and writing...'}</span>
+                  <span className="text-xs text-[#666]">{lang === 'pt' ? 'Pesquisando e escrevendo...' : 'Researching and writing...'}</span>
                 </div>
               </div>
             )}
@@ -1291,7 +1291,7 @@ export function DirectedStudio({
               {/* Merge alert banner */}
               {chatMentionsMoreScenes && !screenplayApproved && (
                 <button onClick={mergeChatScenes} data-testid="merge-chat-scenes-btn"
-                  className="w-full rounded-lg py-2 px-3 text-[9px] font-medium transition-all
+                  className="w-full rounded-lg py-2 px-3 text-xs font-medium transition-all
                     bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20
                     flex items-center justify-center gap-2">
                   <RefreshCw size={12} />
@@ -1304,16 +1304,16 @@ export function DirectedStudio({
                 <span className="text-[10px] font-semibold text-[#C9A84C]">{scenes.length} {lang === 'pt' ? 'cenas planejadas' : 'scenes planned'} ({scenes.length * 12}s)</span>
                 {screenplayApproved ? (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[8px] text-emerald-400 flex items-center gap-1">
+                    <span className="text-[11px] text-emerald-400 flex items-center gap-1">
                       <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
                       {lang === 'pt' ? 'Aprovado' : 'Approved'}
                     </span>
-                    <button onClick={unapproveScreenplay} className="text-[7px] text-[#555] hover:text-[#888] underline">
+                    <button onClick={unapproveScreenplay} className="text-[10px] text-[#555] hover:text-[#888] underline">
                       {lang === 'pt' ? 'Reabrir' : 'Reopen'}
                     </button>
                   </div>
                 ) : (
-                  <span className="text-[8px] text-[#666]">{lang === 'pt' ? 'Revise e aprove para continuar' : 'Review and approve to continue'}</span>
+                  <span className="text-[11px] text-[#666]">{lang === 'pt' ? 'Revise e aprove para continuar' : 'Review and approve to continue'}</span>
                 )}
               </div>
               <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
@@ -1322,14 +1322,14 @@ export function DirectedStudio({
                   return (
                     <div key={s.scene_number} className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2 space-y-1" data-testid={`scene-card-${s.scene_number}`}>
                       <div className="flex items-center justify-between">
-                        <p className="text-[8px] font-bold text-[#C9A84C]">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
+                        <p className="text-[11px] font-bold text-[#C9A84C]">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
                         <button
                           data-testid={`edit-scene-${s.scene_number}`}
                           onClick={() => {
                             if (isEditing) { setEditingScene(null); setEditSceneForm({}); }
                             else { setEditingScene(s.scene_number); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }
                           }}
-                          className="text-[8px] text-[#C9A84C] hover:text-white transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C9A84C]/40"
+                          className="text-[11px] text-[#C9A84C] hover:text-white transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C9A84C]/40"
                         >
                           {isEditing ? (lang === 'pt' ? 'Cancelar' : 'Cancel') : (lang === 'pt' ? 'Editar' : 'Edit')}
                         </button>
@@ -1338,46 +1338,46 @@ export function DirectedStudio({
                       {isEditing ? (
                         <div className="space-y-1.5">
                           <div>
-                            <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
+                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
                             <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
-                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-title-${s.scene_number}`} />
+                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-title-${s.scene_number}`} />
                           </div>
                           <div>
-                            <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição da Cena' : 'Scene Description'}</label>
+                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição da Cena' : 'Scene Description'}</label>
                             <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
-                              rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none resize-none" data-testid={`edit-desc-${s.scene_number}`} />
+                              rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" data-testid={`edit-desc-${s.scene_number}`} />
                           </div>
                           <div>
-                            <label className="text-[7px] text-[#666] block mb-0.5">{audioMode === 'dubbed' ? (lang === 'pt' ? 'Diálogos dos Personagens' : 'Character Dialogues') : (lang === 'pt' ? 'Narração' : 'Narration')}</label>
+                            <label className="text-[10px] text-[#666] block mb-0.5">{audioMode === 'dubbed' ? (lang === 'pt' ? 'Diálogos dos Personagens' : 'Character Dialogues') : (lang === 'pt' ? 'Narração' : 'Narration')}</label>
                             <textarea value={editSceneForm.dialogue || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, dialogue: e.target.value }))}
-                              rows={3} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none resize-none" data-testid={`edit-dialogue-${s.scene_number}`} />
+                              rows={3} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" data-testid={`edit-dialogue-${s.scene_number}`} />
                           </div>
                           <div className="grid grid-cols-2 gap-1.5">
                             <div>
-                              <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
+                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
                               <input value={editSceneForm.emotion || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, emotion: e.target.value }))}
-                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-emotion-${s.scene_number}`} />
+                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-emotion-${s.scene_number}`} />
                             </div>
                             <div>
-                              <label className="text-[7px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
+                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
                               <input value={editSceneForm.camera || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, camera: e.target.value }))}
-                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-camera-${s.scene_number}`} />
+                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-camera-${s.scene_number}`} />
                             </div>
                           </div>
                           <button onClick={() => saveSceneEdit(s.scene_number)} data-testid={`save-scene-${s.scene_number}`}
-                            className="w-full btn-gold rounded-lg py-1 text-[9px] font-semibold">
+                            className="w-full btn-gold rounded-lg py-1 text-xs font-semibold">
                             {lang === 'pt' ? 'Salvar Alterações' : 'Save Changes'}
                           </button>
                         </div>
                       ) : (
                         <div className="space-y-0.5">
-                          <p className="text-[9px] text-white font-medium">{s.title}</p>
-                          <p className="text-[8px] text-[#888]">{s.description}</p>
-                          <p className="text-[8px] text-[#AAA] italic mt-0.5">{s.dialogue}</p>
+                          <p className="text-xs text-white font-medium">{s.title}</p>
+                          <p className="text-[11px] text-[#888]">{s.description}</p>
+                          <p className="text-[11px] text-[#AAA] italic mt-0.5">{s.dialogue}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {s.emotion && <span className="text-[7px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.emotion}</span>}
-                            {s.camera && <span className="text-[7px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.camera}</span>}
-                            {s.characters_in_scene && <span className="text-[7px] text-[#C9A84C]">{s.characters_in_scene.join(', ')}</span>}
+                            {s.emotion && <span className="text-[10px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.emotion}</span>}
+                            {s.camera && <span className="text-[10px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.camera}</span>}
+                            {s.characters_in_scene && <span className="text-[10px] text-[#C9A84C]">{s.characters_in_scene.join(', ')}</span>}
                           </div>
                         </div>
                       )}
@@ -1415,7 +1415,7 @@ export function DirectedStudio({
             <Users size={12} className="text-[#C9A84C]" />
             {lang === 'pt' ? 'Personagens & Avatares' : 'Characters & Avatars'}
           </h3>
-          <p className="text-[9px] text-[#666]">
+          <p className="text-xs text-[#666]">
             {lang === 'pt' ? 'Edite, vincule avatares ou copie o prompt de cada personagem' : 'Edit, link avatars or copy each character prompt'}
           </p>
 
@@ -1442,14 +1442,14 @@ export function DirectedStudio({
                       placeholder={lang === 'pt' ? 'Descrição visual do personagem...' : 'Visual description...'}
                       data-testid={`edit-char-desc-${ci}`}
                       rows={2}
-                      className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-[9px] text-white outline-none focus:border-[#C9A84C]/50 resize-none" />
+                      className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-xs text-white outline-none focus:border-[#C9A84C]/50 resize-none" />
                     <div className="flex gap-1.5">
                       <button onClick={saveEditChar} data-testid={`save-char-${ci}`}
-                        className="flex items-center gap-1 bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-[#C9A84C] rounded px-2 py-1 text-[8px] font-medium hover:bg-[#C9A84C]/25 transition">
+                        className="flex items-center gap-1 bg-[#C9A84C]/15 border border-[#C9A84C]/30 text-[#C9A84C] rounded px-2 py-1 text-[11px] font-medium hover:bg-[#C9A84C]/25 transition">
                         <Save size={9} /> {lang === 'pt' ? 'Salvar' : 'Save'}
                       </button>
                       <button onClick={() => setEditingChar(null)}
-                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-2 py-1 text-[8px] hover:text-white transition">
+                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-2 py-1 text-[11px] hover:text-white transition">
                         <X size={9} /> {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                       </button>
                     </div>
@@ -1468,24 +1468,24 @@ export function DirectedStudio({
                       <div className="flex items-center gap-1.5">
                         <p className="text-[11px] font-bold text-white">{char.name}</p>
                         {!characterAvatars[char.name] && (
-                          <span className="text-[6px] bg-red-500/10 text-red-400 border border-red-500/20 rounded px-1 py-0.5">
+                          <span className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded px-1 py-0.5">
                             {lang === 'pt' ? 'Sem avatar' : 'No avatar'}
                           </span>
                         )}
                       </div>
-                      <p className="text-[8px] text-[#888] leading-relaxed mt-0.5">{char.description}</p>
-                      <p className="text-[7px] text-[#555] mt-0.5">{char.age} • {char.role}</p>
+                      <p className="text-[11px] text-[#888] leading-relaxed mt-0.5">{char.description}</p>
+                      <p className="text-[10px] text-[#555] mt-0.5">{char.age} • {char.role}</p>
                     </div>
                     {/* Action buttons */}
                     <div className="flex flex-col gap-1 flex-shrink-0">
                       <button onClick={() => copyPrompt(char)} data-testid={`copy-prompt-${ci}`}
                         title={lang === 'pt' ? 'Copiar prompt' : 'Copy prompt'}
-                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[7px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
                         <Copy size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Copiar' : 'Copy'}</span>
                       </button>
                       <button onClick={() => startEditChar(ci)} data-testid={`edit-char-${ci}`}
                         title={lang === 'pt' ? 'Editar personagem' : 'Edit character'}
-                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[7px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
                         <Edit3 size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Editar' : 'Edit'}</span>
                       </button>
                     </div>
@@ -1532,15 +1532,15 @@ export function DirectedStudio({
                             <Sparkles size={10} className="text-purple-400 mb-0.5" />
                             <textarea value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
                               placeholder={lang === 'pt' ? 'Ex: mudar roupa...' : 'Ex: change outfit...'}
-                              className="w-full text-[7px] bg-[#1A1A1A] border border-[#333] rounded p-1 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
+                              className="w-full text-[10px] bg-[#1A1A1A] border border-[#333] rounded p-1 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
                               rows={2} />
                             <div className="flex gap-0.5 mt-0.5 w-full">
                               <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                                className="flex-1 text-[6px] py-0.5 rounded border border-[#333] text-[#888] hover:text-white transition">
+                                className="flex-1 text-xs py-0.5 rounded border border-[#333] text-[#888] hover:text-white transition">
                                 {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                               </button>
                               <button onClick={() => onAiEditAvatar(av.id)} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                className="flex-1 text-[6px] py-0.5 rounded bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-0.5">
+                                className="flex-1 text-xs py-0.5 rounded bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-0.5">
                                 {aiEditLoading ? <RefreshCw size={7} className="animate-spin" /> : <Sparkles size={7} />}
                                 {aiEditLoading ? '' : (lang === 'pt' ? 'Criar' : 'Create')}
                               </button>
@@ -1556,13 +1556,13 @@ export function DirectedStudio({
                     className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#C9A84C]/50 hover:bg-[#C9A84C]/5 transition group"
                     style={{ width: 52, height: 68 }}>
                     <Plus size={12} className="text-[#555] group-hover:text-[#C9A84C]" />
-                    <span className="text-[6px] text-[#555] group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Novo' : 'New'}</span>
+                    <span className="text-xs text-[#555] group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Novo' : 'New'}</span>
                   </button>
                 </div>
 
                 {/* Selected avatar AI edit hint (when avatar is linked but overlay not open) */}
                 {characterAvatars[char.name] && !avatars.find(a => a.url === characterAvatars[char.name] && aiEditAvatarId === a.id) && (
-                  <p className="text-[7px] text-[#555] mt-1.5 italic">
+                  <p className="text-[10px] text-[#555] mt-1.5 italic">
                     {lang === 'pt' ? 'Passe o mouse sobre o avatar para ver, editar ou criar nova versão com IA' : 'Hover over avatar to preview, edit or create new AI version'}
                   </p>
                 )}
@@ -1575,13 +1575,13 @@ export function DirectedStudio({
             <h4 className="text-[10px] font-semibold text-white flex items-center gap-1.5">
               <Volume2 size={11} className="text-[#C9A84C]" />
               {lang === 'pt' ? 'Narração por Voz' : 'Voice Narration'}
-              <span className="text-[7px] text-[#555] font-normal ml-1">ElevenLabs</span>
+              <span className="text-[10px] text-[#555] font-normal ml-1">ElevenLabs</span>
             </h4>
 
             {/* Voice selector */}
             <div className="flex gap-2 items-end">
               <div className="flex-1">
-                <label className="text-[8px] text-[#666] mb-0.5 block">{lang === 'pt' ? 'Voz' : 'Voice'}</label>
+                <label className="text-[11px] text-[#666] mb-0.5 block">{lang === 'pt' ? 'Voz' : 'Voice'}</label>
                 <select value={selectedVoice} onChange={e => setSelectedVoice(e.target.value)}
                   data-testid="voice-selector"
                   className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50">
@@ -1592,7 +1592,7 @@ export function DirectedStudio({
               </div>
               <button onClick={generateNarration} disabled={narrationGenerating || scenes.length === 0}
                 data-testid="generate-narration-btn"
-                className="btn-gold rounded-lg px-3 py-1.5 text-[9px] font-semibold disabled:opacity-30 flex items-center gap-1 whitespace-nowrap">
+                className="btn-gold rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-30 flex items-center gap-1 whitespace-nowrap">
                 {narrationGenerating ? <RefreshCw size={10} className="animate-spin" /> : <Volume2 size={10} />}
                 {narrationGenerating
                   ? `${narrationStatus.done || 0}/${narrationStatus.total || '?'}`
@@ -1608,12 +1608,12 @@ export function DirectedStudio({
                   <div key={i} className={`rounded-md border px-2 py-1.5 flex items-center gap-2 ${
                     n.audio_url ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[#222] bg-[#0A0A0A]'
                   }`}>
-                    <span className="text-[8px] font-bold text-[#C9A84C] shrink-0">C{n.scene_number}</span>
-                    <p className="text-[8px] text-[#999] flex-1 truncate">{n.text || '—'}</p>
+                    <span className="text-[11px] font-bold text-[#C9A84C] shrink-0">C{n.scene_number}</span>
+                    <p className="text-[11px] text-[#999] flex-1 truncate">{n.text || '—'}</p>
                     {n.audio_url && (
                       <audio src={n.audio_url} controls className="h-6 w-24 shrink-0" style={{maxHeight: '24px'}} />
                     )}
-                    {n.error && <span className="text-[7px] text-red-400 shrink-0">Erro</span>}
+                    {n.error && <span className="text-[10px] text-red-400 shrink-0">Erro</span>}
                   </div>
                 ))}
               </div>
@@ -1693,7 +1693,7 @@ export function DirectedStudio({
           {/* Segmented progress bar */}
           {scenes.length > 0 && (
             <div>
-              <div className="flex items-center justify-between text-[9px] mb-1.5">
+              <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-[#999]">
                   {agentStatus.phase === 'pre_production' && `Pré-produção inteligente — Analisando avatares e design...`}
                   {agentStatus.phase === 'pre_production_done' && `Design de produção pronto — Iniciando direção...`}
@@ -1732,17 +1732,17 @@ export function DirectedStudio({
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`Cena ${sn}: ${s.title || ''}`}>
                       <div className={`w-full h-2 rounded-sm transition-all duration-500 ${segColor}`} />
-                      <span className="text-[6px] text-[#555]">{sn}</span>
+                      <span className="text-xs text-[#555]">{sn}</span>
                     </div>
                   );
                 })}
               </div>
               {/* Legend */}
               <div className="flex items-center gap-3 mt-1.5">
-                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" /> {lang === 'pt' ? 'Vídeo pronto' : 'Video done'}</span>
-                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-blue-500" /> {lang === 'pt' ? 'Agentes prontos' : 'Agents done'}</span>
-                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-[#C9A84C]" /> {lang === 'pt' ? 'Processando' : 'Processing'}</span>
-                <span className="flex items-center gap-1 text-[6px] text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-red-500" /> {lang === 'pt' ? 'Erro' : 'Error'}</span>
+                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" /> {lang === 'pt' ? 'Vídeo pronto' : 'Video done'}</span>
+                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-blue-500" /> {lang === 'pt' ? 'Agentes prontos' : 'Agents done'}</span>
+                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-[#C9A84C]" /> {lang === 'pt' ? 'Processando' : 'Processing'}</span>
+                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-red-500" /> {lang === 'pt' ? 'Erro' : 'Error'}</span>
               </div>
             </div>
           )}
@@ -1777,7 +1777,7 @@ export function DirectedStudio({
                   'border-[#1A1A1A] bg-[#0A0A0A]'
                 }`}>
                   <div className="flex items-center gap-2">
-                    <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[8px] font-bold ${
+                    <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
                       videoDone ? 'bg-emerald-500 text-black' :
                       videoError ? 'bg-red-500 text-white' :
                       isVideoGen ? 'bg-[#C9A84C] text-black' :
@@ -1788,10 +1788,10 @@ export function DirectedStudio({
                       {videoDone ? <Check size={8} /> : videoError ? <X size={8} /> : isActive ? <RefreshCw size={8} className="animate-spin" /> : sceneNum}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[8px] font-semibold text-white truncate">{s.title || `Cena ${sceneNum}`}</p>
-                      <p className="text-[7px] text-[#666] truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
+                      <p className="text-[11px] font-semibold text-white truncate">{s.title || `Cena ${sceneNum}`}</p>
+                      <p className="text-[10px] text-[#666] truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
                     </div>
-                    <div className="text-[7px] shrink-0">
+                    <div className="text-[10px] shrink-0">
                       {videoDone && <span className="text-emerald-400 font-medium">{lang === 'pt' ? 'Pronto' : 'Done'}</span>}
                       {videoError && <span className="text-red-400">Erro</span>}
                       {isVideoGen && <span className="text-[#C9A84C]">Sora 2...</span>}
@@ -1819,7 +1819,7 @@ export function DirectedStudio({
                         onClick={() => regenerateScene(sceneNum)}
                         disabled={regenScene === sceneNum}
                         data-testid={`regen-scene-${sceneNum}`}
-                        className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[8px] font-medium transition ${
+                        className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition ${
                           videoError
                             ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
                             : 'bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#C9A84C]/30'
@@ -1830,7 +1830,7 @@ export function DirectedStudio({
                       <button
                         onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }}
                         data-testid={`edit-scene-${sceneNum}`}
-                        className="flex items-center gap-1 rounded-md py-1 px-2 text-[8px] bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
+                        className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#C9A84C]/30 transition">
                         <Edit3 size={8} />
                         {lang === 'pt' ? 'Editar' : 'Edit'}
                       </button>
@@ -1840,29 +1840,29 @@ export function DirectedStudio({
                   {editingScene === sceneNum && (
                     <div className="mt-2 space-y-1.5 p-2 rounded-lg bg-[#0A0A0A] border border-[#C9A84C]/20">
                       <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
-                        placeholder="Título da cena" className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
+                        placeholder="Título da cena" className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none" />
                       <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
                         placeholder="Descrição visual da cena" rows={2}
-                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none resize-none" />
+                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none resize-none" />
                       <textarea value={editSceneForm.dialogue || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, dialogue: e.target.value }))}
                         placeholder="Diálogo/Narração" rows={2}
-                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none resize-none" />
+                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none resize-none" />
                       <div className="flex gap-1">
                         <input value={editSceneForm.emotion || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, emotion: e.target.value }))}
-                          placeholder="Emoção" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
+                          placeholder="Emoção" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none" />
                         <input value={editSceneForm.camera || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, camera: e.target.value }))}
-                          placeholder="Câmera" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-[9px] text-white outline-none" />
+                          placeholder="Câmera" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none" />
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[8px] text-[#999] hover:text-white">
+                        <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[11px] text-[#999] hover:text-white">
                           {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                         </button>
                         <button onClick={() => saveSceneEdit(sceneNum)}
-                          className="flex-1 btn-gold rounded py-1 text-[8px] font-semibold">
+                          className="flex-1 btn-gold rounded py-1 text-[11px] font-semibold">
                           {lang === 'pt' ? 'Salvar' : 'Save'}
                         </button>
                         <button onClick={() => { saveSceneEdit(sceneNum); setTimeout(() => regenerateScene(sceneNum), 500); }}
-                          className="flex-1 rounded py-1 text-[8px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/30">
+                          className="flex-1 rounded py-1 text-[11px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/30">
                           {lang === 'pt' ? 'Salvar & Regenerar' : 'Save & Regen'}
                         </button>
                       </div>
@@ -1879,7 +1879,7 @@ export function DirectedStudio({
               <Film size={14} className="text-[#C9A84C] animate-pulse" />
               <div className="flex-1">
                 <p className="text-[10px] font-semibold text-[#C9A84C]">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
-                <p className="text-[8px] text-[#666]">
+                <p className="text-[11px] text-[#666]">
                   {agentStatus.videos_done || 0}/{agentStatus.total_scenes || '?'} {lang === 'pt' ? 'prontos' : 'done'}.
                   {' '}{lang === 'pt' ? 'Pode navegar — avisaremos quando terminar.' : 'You can navigate away.'}
                 </p>
@@ -1891,7 +1891,7 @@ export function DirectedStudio({
            agentStatus.videos_done > 0 && agentStatus.videos_done < (agentStatus.total_scenes || 0) && (
             <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-2 flex items-center gap-2">
               <Clock size={12} className="text-orange-400" />
-              <p className="text-[8px] text-orange-300">
+              <p className="text-[11px] text-orange-300">
                 {lang === 'pt'
                   ? `${agentStatus.videos_done} cenas geradas, restantes falharam. Possivelmente budget Sora 2 esgotado. Adicione saldo em Profile → Universal Key → Add Balance e retome a produção.`
                   : `${agentStatus.videos_done} scenes generated, others failed. Likely Sora 2 budget exceeded. Top up balance and resume.`
@@ -1919,7 +1919,7 @@ export function DirectedStudio({
                 <div className="w-full max-w-3xl">
                   <video src={previewModal.data.url} controls autoPlay className="w-full rounded-xl shadow-2xl" data-testid="preview-video-player" />
                   <div className="flex items-center justify-between mt-3 px-1">
-                    <p className="text-sm font-serif text-white">
+                    <p className="text-sm font-medium text-white">
                       {lang === 'pt' ? 'Cena' : 'Scene'} {previewModal.data.scene_number}
                     </p>
                     <a href={previewModal.data.url} download data-testid="preview-video-download"
@@ -1982,7 +1982,7 @@ export function DirectedStudio({
                   {/* Info bar */}
                   <div className="flex items-center justify-between mt-3 px-1">
                     <div>
-                      <p className="text-sm font-serif text-white">{previewModal.data.title || 'Storyboard'}</p>
+                      <p className="text-sm font-medium text-white">{previewModal.data.title || 'Storyboard'}</p>
                       <p className="text-[10px] font-mono text-[#555]">
                         {previewModal.data.currentIndex + 1} / {previewModal.data.images.length}
                         {previewModal.data.images[previewModal.data.currentIndex]?.scene && (
@@ -2019,7 +2019,7 @@ export function DirectedStudio({
                 <div className="flex items-center justify-between px-4 py-2 bg-[#0A0A0A] border-b border-white/5">
                   <div className="flex items-center gap-2">
                     <BookOpen size={16} className="text-[#C9A84C]" />
-                    <span className="text-sm font-serif text-white">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</span>
+                    <span className="text-sm font-medium text-white">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</span>
                   </div>
                   <a href={`/book/${projectId}`} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1 text-[10px] font-mono text-[#C9A84C] hover:underline">
@@ -2038,7 +2038,7 @@ export function DirectedStudio({
                 <div className="w-full max-w-4xl">
                   <div className="flex items-center gap-2 mb-4">
                     <FileText size={18} className="text-purple-400" />
-                    <h3 className="text-sm font-serif text-white">Storyboard PDF</h3>
+                    <h3 className="text-sm font-medium text-white">Storyboard PDF</h3>
                     <span className="text-[10px] font-mono text-[#555]">{allPanelFrames.length} {lang === 'pt' ? 'ilustrações' : 'illustrations'}</span>
                   </div>
                   {/* Grid preview of all frames */}
@@ -2052,7 +2052,7 @@ export function DirectedStudio({
                         data-testid={`pdf-preview-frame-${i}`}>
                         <img src={frame.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition" />
-                        <span className="absolute bottom-1 left-1.5 text-[7px] font-mono text-white/80 opacity-0 group-hover:opacity-100 transition">
+                        <span className="absolute bottom-1 left-1.5 text-[10px] font-mono text-white/80 opacity-0 group-hover:opacity-100 transition">
                           C{frame.scene} F{frame.frame}
                         </span>
                         <Maximize2 size={10} className="absolute top-1 right-1 text-white/60 opacity-0 group-hover:opacity-100 transition" />
@@ -2088,7 +2088,7 @@ export function DirectedStudio({
             <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-[#C9A84C]/60 mb-1">
               {lang === 'pt' ? 'Entrega Final' : 'Final Delivery'}
             </p>
-            <h2 className="text-xl sm:text-2xl font-serif text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-medium text-white tracking-tight">
               {lang === 'pt' ? 'Seus Produtos' : 'Your Products'}
             </h2>
           </div>
@@ -2121,16 +2121,16 @@ export function DirectedStudio({
                   <video className="w-full h-full object-contain" data-testid="result-video-complete" src={heroOut.url} poster="" preload="metadata" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                   <div className="absolute top-3 left-3 flex items-center gap-2">
-                    <span className="text-[8px] font-mono tracking-[0.2em] uppercase bg-[#C9A84C] text-black px-2 py-0.5 rounded-sm font-semibold">
+                    <span className="text-[11px] font-mono tracking-[0.2em] uppercase bg-[#C9A84C] text-black px-2 py-0.5 rounded-sm font-semibold">
                       {lang === 'pt' ? 'Filme Final' : 'Final Film'}
                     </span>
                     {heroOut.has_narration && (
-                      <span className="text-[7px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
+                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
                         {lang === 'pt' ? 'Dublado' : 'Dubbed'}
                       </span>
                     )}
                     {heroOut.has_music && (
-                      <span className="text-[7px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
+                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
                         {lang === 'pt' ? 'Trilha Sonora' : 'Soundtrack'}
                       </span>
                     )}
@@ -2144,8 +2144,8 @@ export function DirectedStudio({
                 </div>
                 <div className="p-3 flex items-center justify-between bg-[#0A0A0A]">
                   <div>
-                    <p className="text-xs font-serif text-white">{projectName}</p>
-                    <p className="text-[9px] font-mono text-[#555]">
+                    <p className="text-xs font-medium text-white">{projectName}</p>
+                    <p className="text-xs font-mono text-[#555]">
                       {scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'}
                       {heroOut.duration ? ` \u2022 ${Math.round(heroOut.duration)}s` : ''}
                       {heroOut.file_size_mb ? ` \u2022 ${heroOut.file_size_mb}MB` : ''}
@@ -2186,7 +2186,7 @@ export function DirectedStudio({
                     </div>
                     <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                       <BookOpen size={14} className="text-[#C9A84C]" strokeWidth={1.5} />
-                      <span className="text-[9px] font-serif text-white drop-shadow-lg">
+                      <span className="text-xs font-medium text-white drop-shadow-lg">
                         {lang === 'pt' ? 'Livro Animado' : 'Animated Book'}
                       </span>
                     </div>
@@ -2196,13 +2196,13 @@ export function DirectedStudio({
                   {!thumbs[0] && (
                     <>
                       <BookOpen size={18} className="text-[#C9A84C] mb-1.5" strokeWidth={1.2} />
-                      <p className="text-xs font-serif text-white mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
+                      <p className="text-xs font-medium text-white mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
                     </>
                   )}
-                  <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                  <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
                     {sceneCount} {lang === 'pt' ? 'paginas' : 'pages'} • {lang === 'pt' ? 'interativo' : 'interactive'}
                   </p>
-                  <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-[#C9A84C] group-hover:underline">
+                  <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-[#C9A84C] group-hover:underline">
                     <Eye size={8} className="inline mr-1" />{lang === 'pt' ? 'Visualizar' : 'Preview'}
                   </span>
                 </div>
@@ -2242,7 +2242,7 @@ export function DirectedStudio({
                     </div>
                     <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                       <Download size={14} className="text-purple-400" strokeWidth={1.5} />
-                      <span className="text-[9px] font-serif text-white drop-shadow-lg">Storyboard PDF</span>
+                      <span className="text-xs font-medium text-white drop-shadow-lg">Storyboard PDF</span>
                     </div>
                   </div>
                 )}
@@ -2250,13 +2250,13 @@ export function DirectedStudio({
                   {thumbs.length < 2 && (
                     <>
                       <Download size={18} className="text-purple-400 mb-1.5" strokeWidth={1.2} />
-                      <p className="text-xs font-serif text-white mb-0.5">Storyboard PDF</p>
+                      <p className="text-xs font-medium text-white mb-0.5">Storyboard PDF</p>
                     </>
                   )}
-                  <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                  <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
                     {frameCount} {lang === 'pt' ? 'ilustracoes' : 'illustrations'} • PDF
                   </p>
-                  <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-purple-400 group-hover:underline">
+                  <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-purple-400 group-hover:underline">
                     <Eye size={8} className="inline mr-1" />{lang === 'pt' ? 'Visualizar' : 'Preview'}
                   </span>
                 </div>
@@ -2288,19 +2288,19 @@ export function DirectedStudio({
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
                     <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                       <Film size={14} className="text-emerald-400" strokeWidth={1.5} />
-                      <span className="text-[9px] font-serif text-white drop-shadow-lg">
+                      <span className="text-xs font-medium text-white drop-shadow-lg">
                         {lang === 'pt' ? 'Videos por Cena' : 'Scene Videos'}
                       </span>
                     </div>
                     <div className="absolute top-2 right-2 bg-black/60 rounded-sm px-1.5 py-0.5">
-                      <span className="text-[8px] font-mono text-emerald-400">{sceneVideos.length}</span>
+                      <span className="text-[11px] font-mono text-emerald-400">{sceneVideos.length}</span>
                     </div>
                   </div>
                   <div className="p-2.5">
-                    <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                    <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
                       {sceneVideos.length} {lang === 'pt' ? 'videos individuais' : 'individual videos'}
                     </p>
-                    <span className="inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase text-emerald-400 group-hover:underline">
+                    <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-emerald-400 group-hover:underline">
                       <Play size={8} className="inline mr-1" />{lang === 'pt' ? 'Assistir' : 'Watch'}
                     </span>
                   </div>
@@ -2339,19 +2339,19 @@ export function DirectedStudio({
                   )}
                   <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                     <Clapperboard size={14} className="text-blue-400" strokeWidth={1.5} />
-                    <span className="text-[9px] font-serif text-white drop-shadow-lg">
+                    <span className="text-xs font-medium text-white drop-shadow-lg">
                       {lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}
                     </span>
                   </div>
                 </div>
                 <div className="p-2.5">
-                  <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                  <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
                     {hasFinal
                       ? (lang === 'pt' ? 'Narração + Trilha Sonora + Transições' : 'Narration + Soundtrack + Transitions')
                       : (lang === 'pt' ? 'Narração IA ou Manual, Trilha, Legendas' : 'AI or Manual Narration, Music, Subtitles')
                     }
                   </p>
-                  <span className={`inline-block mt-1.5 text-[8px] font-mono tracking-wider uppercase group-hover:underline ${hasFinal ? 'text-green-400' : 'text-blue-400'}`}>
+                  <span className={`inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase group-hover:underline ${hasFinal ? 'text-green-400' : 'text-blue-400'}`}>
                     {hasFinal
                       ? (lang === 'pt' ? 'Concluído — Reconfigurar' : 'Complete — Reconfigure')
                       : (lang === 'pt' ? 'Configurar >' : 'Configure >')}
@@ -2373,12 +2373,12 @@ export function DirectedStudio({
                     <BarChart3 size={20} className="text-amber-400" strokeWidth={1.2} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-serif text-white">{lang === 'pt' ? 'Analytics do Projeto' : 'Project Analytics'}</p>
-                    <p className="text-[8px] font-mono text-[#555] tracking-wider uppercase">
+                    <p className="text-xs font-medium text-white">{lang === 'pt' ? 'Analytics do Projeto' : 'Project Analytics'}</p>
+                    <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
                       {sceneCount} {lang === 'pt' ? 'cenas' : 'scenes'} • {frameCount} frames • {sceneVideos.length} {lang === 'pt' ? 'videos' : 'videos'}
                     </p>
                   </div>
-                  <span className="text-[8px] font-mono tracking-wider uppercase text-amber-400 flex-shrink-0 group-hover:underline">
+                  <span className="text-[11px] font-mono tracking-wider uppercase text-amber-400 flex-shrink-0 group-hover:underline">
                     {lang === 'pt' ? 'Ver >' : 'View >'}
                   </span>
                 </div>
@@ -2407,7 +2407,7 @@ export function DirectedStudio({
                           data-testid={`result-video-${i}`}
                           onMouseEnter={e => { e.target.play().catch(() => {}); }} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                        <span className="absolute bottom-1.5 left-1.5 text-[8px] font-mono text-white/80 tracking-wider">
+                        <span className="absolute bottom-1.5 left-1.5 text-[11px] font-mono text-white/80 tracking-wider">
                           {lang === 'pt' ? 'CENA' : 'SCENE'} {out.scene_number}
                         </span>
                         {/* Play overlay */}
@@ -2418,12 +2418,12 @@ export function DirectedStudio({
                         </div>
                       </div>
                       <div className="p-2 flex items-center gap-1.5">
-                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[8px] font-mono tracking-wider uppercase text-[#888] hover:text-[#C9A84C] transition py-1">
+                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[11px] font-mono tracking-wider uppercase text-[#888] hover:text-[#C9A84C] transition py-1">
                           <Download size={10} className="inline mr-1" />Download
                         </a>
                         <button onClick={e => { e.stopPropagation(); regenerateScene(out.scene_number); }} disabled={isRegenerating}
                           data-testid={`result-regen-${out.scene_number}`}
-                          className="text-[8px] text-[#555] hover:text-[#C9A84C] transition p-1 disabled:opacity-40">
+                          className="text-[11px] text-[#555] hover:text-[#C9A84C] transition p-1 disabled:opacity-40">
                           <RefreshCw size={10} className={isRegenerating ? 'animate-spin' : ''} />
                         </button>
                       </div>
@@ -2442,10 +2442,10 @@ export function DirectedStudio({
               </p>
               {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).map(s => (
                 <div key={s.scene_number} className="flex items-center gap-2">
-                  <span className="text-[9px] text-red-300/70 flex-1 font-sans">Cena {s.scene_number}: {s.title}</span>
+                  <span className="text-xs text-red-300/70 flex-1 font-sans">Cena {s.scene_number}: {s.title}</span>
                   <button onClick={() => regenerateScene(s.scene_number)} disabled={regenScene === s.scene_number}
                     data-testid={`failed-regen-${s.scene_number}`}
-                    className="rounded-sm px-2.5 py-1 text-[8px] font-mono tracking-wider uppercase bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50 transition">
+                    className="rounded-sm px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50 transition">
                     <RefreshCw size={8} className={regenScene === s.scene_number ? 'animate-spin' : ''} />
                     Retry
                   </button>
@@ -2459,7 +2459,7 @@ export function DirectedStudio({
             <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setShowPostProd(false)}>
               <div className="w-full sm:max-w-lg max-h-[85vh] bg-[#0A0A0A] border border-white/5 rounded-t-2xl sm:rounded-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="sticky top-0 bg-[#0A0A0A] border-b border-white/5 p-3 flex items-center justify-between z-10">
-                  <h3 className="text-sm font-serif text-white">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</h3>
+                  <h3 className="text-sm font-medium text-white">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</h3>
                   <button onClick={() => setShowPostProd(false)} data-testid="close-post-production" className="text-[#555] hover:text-white transition">
                     <X size={16} />
                   </button>

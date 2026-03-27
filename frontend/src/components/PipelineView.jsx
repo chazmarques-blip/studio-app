@@ -1088,7 +1088,7 @@ export default function PipelineView({ context }) {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <p className="text-xs font-semibold text-white">{activePipeline.result?.campaign_name || 'Pipeline'}</p>
-              <span className={`inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full ${sc.color}`}
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sc.color}`}
                 style={{ backgroundColor: `${sc.bg.replace('bg-', '')}10` }}>
                 {['running', 'pending'].includes(activePipeline.status) && <span className={`w-1.5 h-1.5 rounded-full ${sc.bg} animate-pulse`} />}
                 {sc.label}
@@ -1096,13 +1096,13 @@ export default function PipelineView({ context }) {
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               {(activePipeline.platforms || []).map(p => (
-                <span key={p} className="text-[8px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded capitalize">{p}</span>
+                <span key={p} className="text-[11px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded capitalize">{p}</span>
               ))}
             </div>
           </div>
           <div className="text-right">
             <span className="text-[10px] font-bold text-white">{progressPct}%</span>
-            <span className="text-[8px] text-[#999] ml-1">completo</span>
+            <span className="text-[11px] text-[#999] ml-1">completo</span>
           </div>
           <button onClick={() => archivePipeline(activePipeline.id)} className="text-[#888] hover:text-red-400 p-1.5 rounded-lg hover:bg-[#111] transition" title={t('studio.archive') || 'Archive and create new'}>
             <X size={14} />
@@ -1111,19 +1111,19 @@ export default function PipelineView({ context }) {
 
         {/* Briefing */}
         <div className="px-3 py-2 bg-[#080808] border-b border-[#111]">
-          <p className="text-[8px] text-[#999] uppercase tracking-wider mb-0.5">Briefing</p>
+          <p className="text-[11px] text-[#999] uppercase tracking-wider mb-0.5">Briefing</p>
           <p className="text-[10px] text-[#999] line-clamp-2">{activePipeline.briefing}</p>
           {/* Show uploaded assets info if present */}
           {activePipeline.result?.uploaded_assets?.length > 0 && (
             <div className="flex items-center gap-1.5 mt-1">
               <Image size={9} className="text-[#888]" />
-              <span className="text-[8px] text-[#888]">{activePipeline.result.uploaded_assets.length} arquivo(s) anexado(s)</span>
+              <span className="text-[11px] text-[#888]">{activePipeline.result.uploaded_assets.length} arquivo(s) anexado(s)</span>
             </div>
           )}
           {activePipeline.result?.contact_info && Object.values(activePipeline.result.contact_info).some(v => v) && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <Phone size={9} className="text-[#888]" />
-              <span className="text-[8px] text-[#888]">{t('studio.contact_included') || 'Contact data included'}</span>
+              <span className="text-[11px] text-[#888]">{t('studio.contact_included') || 'Contact data included'}</span>
             </div>
           )}
         </div>
@@ -1200,7 +1200,7 @@ export default function PipelineView({ context }) {
               <Crown size={18} className="text-[#C9A84C]" />
               <div className="flex-1">
                 <p className="text-xs font-bold text-[#C9A84C]">Upgrade to Enterprise</p>
-                <p className="text-[9px] text-[#888]">Your campaign is ready! Upgrade to publish.</p>
+                <p className="text-xs text-[#888]">Your campaign is ready! Upgrade to publish.</p>
               </div>
               <button onClick={() => navigate('/upgrade')}
                 className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(201,168,76,0.2)]">
@@ -1231,17 +1231,17 @@ export default function PipelineView({ context }) {
               );
             })}
           </div>
-          <p className="text-[9px] text-[#999] mt-1.5">{STEP_ORDER.map(s => STEP_META[s].agent).join(' \u2192 ')}</p>
+          <p className="text-xs text-[#999] mt-1.5">{STEP_ORDER.map(s => STEP_META[s].agent).join(' \u2192 ')}</p>
         </div>
 
         {/* Company / Advertiser — selectable list with "+" in header */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1">
+            <label className="text-xs text-[#999] uppercase tracking-wider flex items-center gap-1">
               <Building2 size={10} /> {t('studio.advertiser_company')}
             </label>
             <button data-testid="add-company-btn" onClick={() => { setEditingCompanyId(null); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' }); setShowCompanyModal(true); }}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#999] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-xs text-[#999] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
               <Plus size={10} />
             </button>
           </div>
@@ -1262,11 +1262,11 @@ export default function PipelineView({ context }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] font-semibold text-white truncate">{co.name}</span>
-                        {co.is_primary && <span className="text-[7px] text-[#C9A84C] bg-[#C9A84C]/10 px-1 py-0.5 rounded-full font-bold shrink-0">{t('studio.primary_label')}</span>}
+                        {co.is_primary && <span className="text-[10px] text-[#C9A84C] bg-[#C9A84C]/10 px-1 py-0.5 rounded-full font-bold shrink-0">{t('studio.primary_label')}</span>}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        {co.phone && <span className="text-[8px] text-[#999] flex items-center gap-0.5"><Phone size={7} />{co.phone}{co.is_whatsapp && <span className="text-[#25D366]">WA</span>}</span>}
-                        {co.website_url && <span className="text-[8px] text-[#999] flex items-center gap-0.5 truncate max-w-[140px]"><Globe size={7} />{co.website_url.replace(/^https?:\/\//, '')}</span>}
+                        {co.phone && <span className="text-[11px] text-[#999] flex items-center gap-0.5"><Phone size={7} />{co.phone}{co.is_whatsapp && <span className="text-[#25D366]">WA</span>}</span>}
+                        {co.website_url && <span className="text-[11px] text-[#999] flex items-center gap-0.5 truncate max-w-[140px]"><Globe size={7} />{co.website_url.replace(/^https?:\/\//, '')}</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
@@ -1287,13 +1287,13 @@ export default function PipelineView({ context }) {
               ))}
             </div>
           ) : (
-            <p className="text-[9px] text-[#888] text-center py-2">{t('studio.register_company')}</p>
+            <p className="text-xs text-[#888] text-center py-2">{t('studio.register_company')}</p>
           )}
         </div>
 
         {/* Campaign Type Selector */}
         <div data-testid="campaign-type-selector">
-          <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-2">
+          <label className="text-xs text-[#999] uppercase tracking-wider flex items-center gap-1 mb-2">
             <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.campaign_type') || 'Campaign Type'}
           </label>
           <div className="flex items-start gap-3 sm:gap-5">
@@ -1315,7 +1315,7 @@ export default function PipelineView({ context }) {
                   }`}>
                     <img src={type.icon} alt={type.label} className="h-full w-full object-cover" />
                   </div>
-                  <span className={`text-[7px] font-semibold text-center leading-tight w-full ${
+                  <span className={`text-[10px] font-semibold text-center leading-tight w-full ${
                     active ? 'text-[#C9A84C]' : 'text-[#999]'
                   }`}>{type.label}</span>
                 </button>
@@ -1337,7 +1337,7 @@ export default function PipelineView({ context }) {
                   }`}>
                     <img src="/icons/campaign-types/directed-video.png" alt="Directed Studio" className="h-full w-full object-cover" />
                   </div>
-                  <span className={`text-[7px] font-semibold text-center leading-tight w-full ${
+                  <span className={`text-[10px] font-semibold text-center leading-tight w-full ${
                     active ? 'text-[#C9A84C]' : 'text-[#999]'
                   }`}>{t('studio.type_directed_studio') || 'Studio'}</span>
                 </button>
@@ -1346,7 +1346,7 @@ export default function PipelineView({ context }) {
           </div>
           {/* Mode indicator */}
           <div className="mt-2">
-            <span className={`text-[7px] font-mono uppercase tracking-wider px-2 py-0.5 rounded ${
+            <span className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded ${
               isDirectedMode
                 ? 'text-[#C9A84C] bg-[#C9A84C]/[0.06]'
                 : 'text-[#888] bg-white/[0.02]'
@@ -1378,18 +1378,18 @@ export default function PipelineView({ context }) {
         {/* Presenter Avatar — selectable gallery with "+" in header */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1">
+            <label className="text-xs text-[#999] uppercase tracking-wider flex items-center gap-1">
               <Sparkles size={10} className="text-[#C9A84C]" /> {t('studio.presenter_avatar')}
             </label>
             <div className="flex items-center gap-1">
               {avatars.length > 0 && (
                 <button data-testid="clear-all-avatars-btn" onClick={async () => { saveAvatars([]); setSelectedAvatarId(null); try { await axios.delete(`${API}/data/avatars`); } catch {} toast.success(t('studio.avatars_cleared') || 'Avatars cleared'); }}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition" title="Clear all">
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition" title="Clear all">
                   <Trash2 size={9} />
                 </button>
               )}
               <button data-testid="add-avatar-btn" onClick={() => { resetAvatarModal(); setShowAvatarModal(true); }}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-[9px] text-[#999] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-[#2A2A2A] text-xs text-[#999] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
                 <Plus size={10} />
               </button>
             </div>
@@ -1430,7 +1430,7 @@ export default function PipelineView({ context }) {
                   </div>
                   {av.creation_mode && av.creation_mode !== 'photo' && (
                     <div className="absolute top-0.5 left-0.5 rounded-md bg-black/70 px-1 py-0.5">
-                      <span className="text-[6px] text-[#C9A84C] font-bold uppercase">{av.creation_mode === '3d' ? '3D' : 'AI'}</span>
+                      <span className="text-xs text-[#C9A84C] font-bold uppercase">{av.creation_mode === '3d' ? '3D' : 'AI'}</span>
                     </div>
                   )}
                   {/* AI Edit popover */}
@@ -1440,15 +1440,15 @@ export default function PipelineView({ context }) {
                       <textarea data-testid={`ai-edit-input-${av.id}`}
                         value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
                         placeholder="Ex: mudar roupa para terno azul, adicionar oculos..."
-                        className="w-full text-[8px] bg-[#1A1A1A] border border-[#333] rounded-lg p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
+                        className="w-full text-[11px] bg-[#1A1A1A] border border-[#333] rounded-lg p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
                         rows={2} />
                       <div className="flex gap-1 mt-1 w-full">
                         <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                          className="flex-1 text-[7px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                          className="flex-1 text-[10px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
                           {t('studio.cancel') || 'Cancelar'}
                         </button>
                         <button data-testid={`ai-edit-confirm-${av.id}`} onClick={() => aiEditAvatar(av.id)} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                          className="flex-1 text-[7px] py-1 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
+                          className="flex-1 text-[10px] py-1 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
                           {aiEditLoading ? <RefreshCw size={8} className="animate-spin" /> : <Sparkles size={8} />}
                           {aiEditLoading ? '' : 'Editar'}
                         </button>
@@ -1459,13 +1459,13 @@ export default function PipelineView({ context }) {
               ))}
             </div>
           ) : (
-            <p className="text-[9px] text-[#888] text-center py-2">{t('studio.no_avatar_yet')}</p>
+            <p className="text-xs text-[#888] text-center py-2">{t('studio.no_avatar_yet')}</p>
           )}
         </div>
 
         {/* Campaign Name */}
         <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_name')}</label>
+          <label className="text-xs text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_name')}</label>
           <input data-testid="pipeline-campaign-name" value={campaignName} onChange={e => setCampaignName(e.target.value)}
             placeholder={t('studio.campaign_name_placeholder')}
             className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
@@ -1473,7 +1473,7 @@ export default function PipelineView({ context }) {
 
         {/* Briefing */}
         <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-2">{t('studio.briefing_label')}</label>
+          <label className="text-xs text-[#999] uppercase tracking-wider block mb-2">{t('studio.briefing_label')}</label>
           <div className="flex gap-1 mb-3 p-0.5 bg-[#0A0A0A] rounded-lg border border-[#1A1A1A] w-fit">
             <button data-testid="briefing-mode-free" onClick={() => setBriefingMode('free')}
               className={`px-3 py-1.5 rounded-md text-[10px] font-medium transition ${briefingMode === 'free' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#999] hover:text-white'}`}>
@@ -1492,7 +1492,7 @@ export default function PipelineView({ context }) {
                 className="w-full rounded-xl border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C]/30 transition" />
               {savedBriefings.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5">{t('studio.previous_briefings') || 'Previous Briefings'}</p>
+                  <p className="text-[11px] text-[#999] uppercase tracking-wider mb-1.5">{t('studio.previous_briefings') || 'Previous Briefings'}</p>
                   <div className="space-y-1.5 max-h-36 overflow-y-auto">
                     {savedBriefings.map((sb, i) => (
                       <button key={i} onClick={() => {
@@ -1505,10 +1505,10 @@ export default function PipelineView({ context }) {
                         className="w-full text-left rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 hover:border-[#C9A84C]/30 transition group">
                         <div className="flex items-center gap-2 mb-0.5">
                           {sb.campaign_name && <span className="text-[10px] font-semibold text-white">{sb.campaign_name}</span>}
-                          {sb.campaign_language && <span className="text-[8px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
-                          <span className="text-[7px] text-[#777] ml-auto group-hover:text-[#C9A84C]">{t('studio.use') || 'Use'}</span>
+                          {sb.campaign_language && <span className="text-[11px] text-[#C9A84C] uppercase">{sb.campaign_language}</span>}
+                          <span className="text-[10px] text-[#777] ml-auto group-hover:text-[#C9A84C]">{t('studio.use') || 'Use'}</span>
                         </div>
-                        <p className="text-[9px] text-[#999] line-clamp-2">{sb.briefing}</p>
+                        <p className="text-xs text-[#999] line-clamp-2">{sb.briefing}</p>
                       </button>
                     ))}
                   </div>
@@ -1517,17 +1517,17 @@ export default function PipelineView({ context }) {
             </div>
           ) : (
             <div className="space-y-3 bg-[#0A0A0A] rounded-xl border border-[#1A1A1A] p-3">
-              <p className="text-[9px] text-[#C9A84C] font-medium mb-1">{t('studio.guided_intro')}</p>
+              <p className="text-xs text-[#C9A84C] font-medium mb-1">{t('studio.guided_intro')}</p>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">1. {t('studio.q_product')}</label>
+                <label className="text-xs text-[#999] block mb-1">1. {t('studio.q_product')}</label>
                 <input data-testid="q-product" value={questionnaire.product} onChange={e => setQuestionnaire(p => ({...p, product: e.target.value}))}
                   placeholder={t('studio.q_product_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">2. {t('studio.q_goal')}</label>
+                <label className="text-xs text-[#999] block mb-1">2. {t('studio.q_goal')}</label>
                 <div className="flex flex-wrap gap-1.5 mb-1.5">
                   {[{k:'goal_leads'},{k:'goal_sales'},{k:'goal_awareness'},{k:'goal_engagement'},{k:'goal_launch'},{k:'goal_promo'}].map(({k}) => (
                     <button key={k} onClick={() => setQuestionnaire(p => ({...p, goal: p.goal === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
@@ -1542,33 +1542,33 @@ export default function PipelineView({ context }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">3. {t('studio.q_audience')}</label>
+                <label className="text-xs text-[#999] block mb-1">3. {t('studio.q_audience')}</label>
 
                 {/* Gender */}
-                <p className="text-[8px] text-[#999] mb-1 mt-1">{t('studio.q_gender') || 'Gender'}</p>
+                <p className="text-[11px] text-[#999] mb-1 mt-1">{t('studio.q_gender') || 'Gender'}</p>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {['All', 'Male', 'Female', 'LGBTQ+', 'Non-binary'].map(g => (
                     <button key={g} onClick={() => setQuestionnaire(p => ({...p, gender: p.gender === g ? '' : g}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.gender === g ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      className={`rounded-md px-2 py-0.5 text-xs border transition ${questionnaire.gender === g ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
                       {g}
                     </button>
                   ))}
                 </div>
 
                 {/* Age Range */}
-                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_age_range') || 'Age range'}</p>
+                <p className="text-[11px] text-[#999] mb-1">{t('studio.q_age_range') || 'Age range'}</p>
                 <div className="flex items-center gap-1.5 mb-2">
                   <input data-testid="q-age-min" value={questionnaire.ageMin} onChange={e => setQuestionnaire(p => ({...p, ageMin: e.target.value}))}
                     placeholder="18" type="number" min="13" max="99"
                     className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
-                  <span className="text-[9px] text-[#888]">—</span>
+                  <span className="text-xs text-[#888]">—</span>
                   <input data-testid="q-age-max" value={questionnaire.ageMax} onChange={e => setQuestionnaire(p => ({...p, ageMax: e.target.value}))}
                     placeholder="65+" type="text"
                     className="w-16 rounded-md border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white text-center placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
                   <div className="flex gap-1 ml-2">
                     {['13-17', '18-24', '25-34', '35-44', '45-54', '55+'].map(r => (
                       <button key={r} onClick={() => { const [min, max] = r.split('-'); setQuestionnaire(p => ({...p, ageMin: min, ageMax: max || '65+'})); }}
-                        className={`rounded-md px-1.5 py-0.5 text-[8px] border transition ${questionnaire.ageMin === r.split('-')[0] ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                        className={`rounded-md px-1.5 py-0.5 text-[11px] border transition ${questionnaire.ageMin === r.split('-')[0] ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
                         {r}
                       </button>
                     ))}
@@ -1576,22 +1576,22 @@ export default function PipelineView({ context }) {
                 </div>
 
                 {/* Social Class */}
-                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_social_class') || 'Social class'}</p>
+                <p className="text-[11px] text-[#999] mb-1">{t('studio.q_social_class') || 'Social class'}</p>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {['A (Luxury)', 'B (Upper-middle)', 'C (Middle)', 'D (Lower-middle)', 'E (Low income)', 'All classes'].map(c => (
                     <button key={c} onClick={() => setQuestionnaire(p => ({...p, socialClass: p.socialClass === c ? '' : c}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.socialClass === c ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      className={`rounded-md px-2 py-0.5 text-xs border transition ${questionnaire.socialClass === c ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
                       {c}
                     </button>
                   ))}
                 </div>
 
                 {/* Lifestyle / Interests */}
-                <p className="text-[8px] text-[#999] mb-1">{t('studio.q_lifestyle') || 'Lifestyle & Interests'}</p>
+                <p className="text-[11px] text-[#999] mb-1">{t('studio.q_lifestyle') || 'Lifestyle & Interests'}</p>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {['Fitness', 'Tech', 'Fashion', 'Gaming', 'Travel', 'Food', 'Music', 'Sports', 'Business', 'Eco-friendly', 'Luxury', 'Family'].map(l => (
                     <button key={l} onClick={() => setQuestionnaire(p => ({...p, lifestyle: p.lifestyle?.includes(l) ? p.lifestyle.replace(l, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '') : (p.lifestyle ? `${p.lifestyle}, ${l}` : l)}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.lifestyle?.includes(l) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      className={`rounded-md px-2 py-0.5 text-xs border transition ${questionnaire.lifestyle?.includes(l) ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
                       {l}
                     </button>
                   ))}
@@ -1604,7 +1604,7 @@ export default function PipelineView({ context }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">4. {t('studio.q_tone')}</label>
+                <label className="text-xs text-[#999] block mb-1">4. {t('studio.q_tone')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {[{k:'tone_professional'},{k:'tone_casual'},{k:'tone_urgent'},{k:'tone_inspiring'},{k:'tone_fun'},{k:'tone_sophisticated'}].map(({k}) => (
                     <button key={k} onClick={() => setQuestionnaire(p => ({...p, tone: p.tone === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
@@ -1616,32 +1616,32 @@ export default function PipelineView({ context }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">5. {t('studio.q_offer')}</label>
+                <label className="text-xs text-[#999] block mb-1">5. {t('studio.q_offer')}</label>
                 <input data-testid="q-offer" value={questionnaire.offer} onChange={e => setQuestionnaire(p => ({...p, offer: e.target.value}))}
                   placeholder={t('studio.q_offer_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">6. {t('studio.q_differentials')}</label>
+                <label className="text-xs text-[#999] block mb-1">6. {t('studio.q_differentials')}</label>
                 <input data-testid="q-differentials" value={questionnaire.differentials} onChange={e => setQuestionnaire(p => ({...p, differentials: e.target.value}))}
                   placeholder={t('studio.q_differentials_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">7. {t('studio.q_pain_points') || 'What problems does your audience face?'}</label>
+                <label className="text-xs text-[#999] block mb-1">7. {t('studio.q_pain_points') || 'What problems does your audience face?'}</label>
                 <input data-testid="q-pain-points" value={questionnaire.painPoints} onChange={e => setQuestionnaire(p => ({...p, painPoints: e.target.value}))}
                   placeholder={t('studio.q_pain_points_placeholder') || 'E.g.: High costs, lack of time, complexity...'}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">8. {t('studio.q_visual_style') || 'Visual style preference'}</label>
+                <label className="text-xs text-[#999] block mb-1">8. {t('studio.q_visual_style') || 'Visual style preference'}</label>
                 <div className="flex flex-wrap gap-1">
                   {['Minimalist', 'Bold & Vibrant', 'Luxury & Elegant', 'Natural & Organic', 'Tech & Modern', 'Retro & Vintage', 'Dark & Moody', 'Playful & Colorful'].map(s => (
                     <button key={s} onClick={() => setQuestionnaire(p => ({...p, visualStyle: p.visualStyle === s ? '' : s}))}
-                      className={`rounded-md px-2 py-0.5 text-[9px] border transition ${questionnaire.visualStyle === s ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                      className={`rounded-md px-2 py-0.5 text-xs border transition ${questionnaire.visualStyle === s ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white'}`}>
                       {s}
                     </button>
                   ))}
@@ -1649,7 +1649,7 @@ export default function PipelineView({ context }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">9. {t('studio.q_cta')}</label>
+                <label className="text-xs text-[#999] block mb-1">9. {t('studio.q_cta')}</label>
                 <div className="flex flex-wrap gap-1.5">
                   {[{k:'cta_signup'},{k:'cta_demo'},{k:'cta_buy'},{k:'cta_learn'},{k:'cta_download'},{k:'cta_whatsapp'}].map(({k}) => (
                     <button key={k} onClick={() => setQuestionnaire(p => ({...p, cta: p.cta === t(`studio.${k}`) ? '' : t(`studio.${k}`)}))}
@@ -1661,7 +1661,7 @@ export default function PipelineView({ context }) {
               </div>
 
               <div>
-                <label className="text-[9px] text-[#999] block mb-1">10. {t('studio.q_urgency')}</label>
+                <label className="text-xs text-[#999] block mb-1">10. {t('studio.q_urgency')}</label>
                 <input data-testid="q-urgency" value={questionnaire.urgency} onChange={e => setQuestionnaire(p => ({...p, urgency: e.target.value}))}
                   placeholder={t('studio.q_urgency_placeholder')}
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 transition" />
@@ -1669,7 +1669,7 @@ export default function PipelineView({ context }) {
 
               {compileBriefing().trim() && (
                 <div className="mt-2 p-2.5 rounded-lg bg-[#111] border border-[#1A1A1A]">
-                  <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1">{t('studio.briefing_preview')}</p>
+                  <p className="text-[11px] text-[#999] uppercase tracking-wider mb-1">{t('studio.briefing_preview')}</p>
                   <pre className="text-[10px] text-[#999] whitespace-pre-wrap font-sans leading-relaxed">{compileBriefing()}</pre>
                 </div>
               )}
@@ -1679,8 +1679,8 @@ export default function PipelineView({ context }) {
 
         {/* Campaign Language */}
         <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_language')}</label>
-          <p className="text-[8px] text-[#888] mb-1.5">{t('studio.campaign_language_desc')}</p>
+          <label className="text-xs text-[#999] uppercase tracking-wider block mb-1">{t('studio.campaign_language')}</label>
+          <p className="text-[11px] text-[#888] mb-1.5">{t('studio.campaign_language_desc')}</p>
           <div className="flex flex-wrap gap-1.5">
             {[
               { code: '', label: 'Auto', flag: '🌐' },
@@ -1721,15 +1721,15 @@ export default function PipelineView({ context }) {
                 </div>
               )}
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-[9px] text-white font-medium truncate">{activeCompany.name}</p>
-                <p className="text-[7px] text-[#999] truncate">
+                <p className="text-xs text-white font-medium truncate">{activeCompany.name}</p>
+                <p className="text-[10px] text-[#999] truncate">
                   {[activeCompany.phone, activeCompany.website_url].filter(Boolean).join(' · ') || t('studio.brand_no_extra_info')}
                 </p>
               </div>
-              <span className="text-[8px] text-[#999] uppercase tracking-wider shrink-0">{t('studio.apply_brand')}</span>
+              <span className="text-[11px] text-[#999] uppercase tracking-wider shrink-0">{t('studio.apply_brand')}</span>
             </button>
             {applyBrandData && (
-              <p className="text-[7px] text-[#C9A84C]/50 mt-1 px-1">{t('studio.brand_applied_hint')}</p>
+              <p className="text-[10px] text-[#C9A84C]/50 mt-1 px-1">{t('studio.brand_applied_hint')}</p>
             )}
           </div>
         )}
@@ -1740,12 +1740,12 @@ export default function PipelineView({ context }) {
         {/* Music Library - Compact with Genre Tabs */}
         {musicLibrary.length > 0 && (
           <div>
-            <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.music_library') || 'Background Music (Video)'}</label>
+            <label className="text-xs text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.music_library') || 'Background Music (Video)'}</label>
             {/* Genre Tabs */}
             <div className="flex gap-1 flex-wrap mb-1.5">
               {['All', ...new Set(musicLibrary.map(t => t.category || 'General'))].map(cat => (
                 <button key={cat} onClick={() => setMusicGenre(cat)}
-                  className={`rounded-md px-2 py-0.5 text-[8px] border transition ${musicGenre === cat ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C] font-semibold' : 'border-[#1A1A1A] text-[#999] hover:text-white'}`}>
+                  className={`rounded-md px-2 py-0.5 text-[11px] border transition ${musicGenre === cat ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C] font-semibold' : 'border-[#1A1A1A] text-[#999] hover:text-white'}`}>
                   {cat}
                 </button>
               ))}
@@ -1761,19 +1761,19 @@ export default function PipelineView({ context }) {
                     className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition ${playingTrack === track.id ? 'bg-[#C9A84C] text-black' : 'bg-[#1A1A1A] text-[#888] hover:text-white'}`}>
                     {playingTrack === track.id ? <span className="text-[5px] font-bold">||</span> : <Play size={7} />}
                   </button>
-                  <span className="text-[8px] font-medium text-white truncate flex-1">{track.name}</span>
-                  <span className="text-[7px] text-[#888] truncate max-w-[100px] hidden sm:block">{track.description}</span>
+                  <span className="text-[11px] font-medium text-white truncate flex-1">{track.name}</span>
+                  <span className="text-[10px] text-[#888] truncate max-w-[100px] hidden sm:block">{track.description}</span>
                   {selectedMusic === track.id && <Check size={9} className="text-[#C9A84C] shrink-0" />}
                 </div>
               ))}
             </div>
             {selectedMusic && (
-              <p className="text-[8px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
+              <p className="text-[11px] text-[#C9A84C] flex items-center gap-1 mt-0.5">
                 <Check size={8} /> {t('studio.music_selected') || 'Music selected for video'}
               </p>
             )}
             {!selectedMusic && (
-              <p className="text-[8px] text-[#888] mt-0.5">{t('studio.music_auto') || 'No selection = AI picks automatically based on campaign mood'}</p>
+              <p className="text-[11px] text-[#888] mt-0.5">{t('studio.music_auto') || 'No selection = AI picks automatically based on campaign mood'}</p>
             )}
           </div>
         )}
@@ -1782,7 +1782,7 @@ export default function PipelineView({ context }) {
 
         {/* Platforms */}
         <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.platforms')}</label>
+          <label className="text-xs text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.platforms')}</label>
           <div className="flex flex-wrap gap-1.5">
             {PLATFORMS.filter(p => !p.parent).map(p => (
               <button key={p.id} data-testid={`platform-${p.id}`} onClick={() => togglePlatform(p.id)}
@@ -1795,31 +1795,31 @@ export default function PipelineView({ context }) {
 
         {/* Video Mode */}
         <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider flex items-center gap-1 mb-1.5">
+          <label className="text-xs text-[#999] uppercase tracking-wider flex items-center gap-1 mb-1.5">
             <Film size={10} /> {t('studio.video_mode')}
           </label>
           <div className="grid grid-cols-3 gap-1.5">
             <button data-testid="video-mode-none" onClick={() => { setSkipVideo(true); setVideoMode('none'); }}
               className={`rounded-xl border p-2 text-center transition ${skipVideo ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <X size={14} className={`mx-auto mb-1 ${skipVideo ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
-              <p className="text-[9px] font-semibold text-white">{t('studio.no_video')}</p>
-              <p className="text-[7px] text-[#999]">{t('studio.faster')}</p>
+              <p className="text-xs font-semibold text-white">{t('studio.no_video')}</p>
+              <p className="text-[10px] text-[#999]">{t('studio.faster')}</p>
             </button>
             <button data-testid="video-mode-narration" onClick={() => { setSkipVideo(false); setVideoMode('narration'); }}
               className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'narration' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <MessageSquare size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'narration' ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
-              <p className="text-[9px] font-semibold text-white">{t('studio.narration')}</p>
-              <p className="text-[7px] text-[#999]">{t('studio.voice_scenes')}</p>
+              <p className="text-xs font-semibold text-white">{t('studio.narration')}</p>
+              <p className="text-[10px] text-[#999]">{t('studio.voice_scenes')}</p>
             </button>
             <button data-testid="video-mode-presenter" onClick={() => { setSkipVideo(false); setVideoMode('presenter'); }}
               className={`rounded-xl border p-2 text-center transition ${!skipVideo && videoMode === 'presenter' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <Eye size={14} className={`mx-auto mb-1 ${!skipVideo && videoMode === 'presenter' ? 'text-[#C9A84C]' : 'text-[#999]'}`} />
-              <p className="text-[9px] font-semibold text-white">{t('studio.presenter')}</p>
-              <p className="text-[7px] text-[#999]">{t('studio.talking_avatar')}</p>
+              <p className="text-xs font-semibold text-white">{t('studio.presenter')}</p>
+              <p className="text-[10px] text-[#999]">{t('studio.talking_avatar')}</p>
             </button>
           </div>
           {!skipVideo && videoMode === 'presenter' && !selectedAvatar && (
-            <p className="text-[8px] text-amber-400/80 mt-1.5 flex items-center gap-1">
+            <p className="text-[11px] text-amber-400/80 mt-1.5 flex items-center gap-1">
               <AlertTriangle size={9} /> {t('studio.presenter_warning')}
             </p>
           )}
@@ -1827,17 +1827,17 @@ export default function PipelineView({ context }) {
 
         {/* Mode */}
         <div>
-          <label className="text-[9px] text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.execution_mode')}</label>
+          <label className="text-xs text-[#999] uppercase tracking-wider block mb-1.5">{t('studio.execution_mode')}</label>
           <div className="grid grid-cols-2 gap-2">
             <button data-testid="mode-semi-auto" onClick={() => setMode('semi_auto')}
               className={`rounded-xl border p-3 text-left transition ${mode === 'semi_auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_semi')}</p>
-              <p className="text-[9px] text-[#999]">{t('studio.mode_semi_desc')}</p>
+              <p className="text-xs text-[#999]">{t('studio.mode_semi_desc')}</p>
             </button>
             <button data-testid="mode-auto" onClick={() => setMode('auto')}
               className={`rounded-xl border p-3 text-left transition ${mode === 'auto' ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
               <p className="text-xs font-semibold text-white mb-0.5">{t('studio.mode_auto')}</p>
-              <p className="text-[9px] text-[#999]">{t('studio.mode_auto_desc')}</p>
+              <p className="text-xs text-[#999]">{t('studio.mode_auto_desc')}</p>
             </button>
           </div>
         </div>
@@ -1846,7 +1846,7 @@ export default function PipelineView({ context }) {
         {pipelines.length > 0 && (
           <div>
             <button onClick={() => setShowHistory(!showHistory)} data-testid="toggle-history"
-              className="text-[9px] text-[#C9A84C] hover:underline flex items-center gap-1">
+              className="text-xs text-[#C9A84C] hover:underline flex items-center gap-1">
               {showHistory ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
               {pipelines.length} {t('studio.previous_pipelines')}
             </button>
@@ -1952,21 +1952,21 @@ export default function PipelineView({ context }) {
                 </button>
                 <div className="flex-1">
                   <p className="text-[10px] text-white font-medium">{newCompany.profile_type === 'personal' ? 'Foto' : newCompany.profile_type === 'professional' ? 'Foto / Logo' : 'Logo'}</p>
-                  <p className="text-[8px] text-[#999]">{newCompany.logo_url ? t('studio.click_to_change') || 'Click to change' : t('studio.upload_logo')}</p>
+                  <p className="text-[11px] text-[#999]">{newCompany.logo_url ? t('studio.click_to_change') || 'Click to change' : t('studio.upload_logo')}</p>
                   {newCompany.logo_url && (
-                    <button onClick={() => setNewCompany(p => ({ ...p, logo_url: '' }))} className="text-[8px] text-red-400 hover:text-red-300 mt-0.5">{t('studio.remove')}</button>
+                    <button onClick={() => setNewCompany(p => ({ ...p, logo_url: '' }))} className="text-[11px] text-red-400 hover:text-red-300 mt-0.5">{t('studio.remove')}</button>
                   )}
                 </div>
               </div>
               <div>
-                <label className="text-[9px] text-[#999] uppercase mb-1 block">{newCompany.profile_type === 'personal' ? 'Nome' : newCompany.profile_type === 'professional' ? 'Nome Profissional' : t('studio.company_name_label')} *</label>
+                <label className="text-xs text-[#999] uppercase mb-1 block">{newCompany.profile_type === 'personal' ? 'Nome' : newCompany.profile_type === 'professional' ? 'Nome Profissional' : t('studio.company_name_label')} *</label>
                 <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
                   placeholder="E.g.: AgentZZ, My Company..."
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
               </div>
               <div className="grid grid-cols-[1fr_auto] gap-3">
                 <div>
-                  <label className="text-[9px] text-[#999] uppercase mb-1 block">{t('studio.company_phone')}</label>
+                  <label className="text-xs text-[#999] uppercase mb-1 block">{t('studio.company_phone')}</label>
                   <input data-testid="new-company-phone" value={newCompany.phone} onChange={e => setNewCompany(p => ({ ...p, phone: e.target.value }))}
                     placeholder="+1 555 123-4567"
                     className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
@@ -1979,7 +1979,7 @@ export default function PipelineView({ context }) {
                 </div>
               </div>
               <div>
-                <label className="text-[9px] text-[#999] uppercase mb-1 flex items-center gap-1">
+                <label className="text-xs text-[#999] uppercase mb-1 flex items-center gap-1">
                   <Globe size={9} /> {t('studio.company_website')}
                 </label>
                 <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
@@ -1987,7 +1987,7 @@ export default function PipelineView({ context }) {
                   className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
               </div>
               <div>
-                <label className="text-[9px] text-[#999] uppercase mb-1 block">{t('studio.product_service') || 'Produto / Servico'}</label>
+                <label className="text-xs text-[#999] uppercase mb-1 block">{t('studio.product_service') || 'Produto / Servico'}</label>
                 <textarea data-testid="new-company-product" value={newCompany.product_description} onChange={e => setNewCompany(p => ({ ...p, product_description: e.target.value }))}
                   placeholder="Ex: Plataforma de agentes IA para atendimento ao cliente, Loja de roupas femininas..."
                   rows={2}
@@ -1996,19 +1996,19 @@ export default function PipelineView({ context }) {
               {/* Social Links */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[8px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#1877F2'}}>f</span> Facebook</label>
+                  <label className="text-[11px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#1877F2'}}>f</span> Facebook</label>
                   <input data-testid="new-company-facebook" value={newCompany.facebook_url || ''} onChange={e => setNewCompany(p => ({ ...p, facebook_url: e.target.value }))}
                     placeholder="facebook.com/..."
                     className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#1877F2]/30" />
                 </div>
                 <div>
-                  <label className="text-[8px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#E4405F'}}>@</span> Instagram</label>
+                  <label className="text-[11px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#E4405F'}}>@</span> Instagram</label>
                   <input data-testid="new-company-instagram" value={newCompany.instagram_url || ''} onChange={e => setNewCompany(p => ({ ...p, instagram_url: e.target.value }))}
                     placeholder="instagram.com/..."
                     className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#E4405F]/30" />
                 </div>
                 <div>
-                  <label className="text-[8px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#fff'}}>T</span> TikTok</label>
+                  <label className="text-[11px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#fff'}}>T</span> TikTok</label>
                   <input data-testid="new-company-tiktok" value={newCompany.tiktok_url || ''} onChange={e => setNewCompany(p => ({ ...p, tiktok_url: e.target.value }))}
                     placeholder="tiktok.com/@..."
                     className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#fff]/20" />
@@ -2051,7 +2051,7 @@ export default function PipelineView({ context }) {
                         { id: '3d', label: '3D Animated', icon: Sparkles },
                       ].map(tab => (
                         <button key={tab.id} data-testid={`avatar-mode-${tab.id}`} onClick={() => setAvatarCreationMode(tab.id)}
-                          className={`flex-1 rounded-lg py-2 text-[9px] font-semibold transition flex items-center justify-center gap-1.5 ${
+                          className={`flex-1 rounded-lg py-2 text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
                             avatarCreationMode === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999] hover:text-white'}`}>
                           <tab.icon size={11} /> {tab.label}
                         </button>
@@ -2073,8 +2073,8 @@ export default function PipelineView({ context }) {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Camera size={12} className="text-[#C9A84C]" />
-                        <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
-                        {!avatarSourcePhoto && <span className="text-[7px] text-red-400/70 uppercase">*{t('studio.required') || 'Required'}</span>}
+                        <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
+                        {!avatarSourcePhoto && <span className="text-[10px] text-red-400/70 uppercase">*{t('studio.required') || 'Required'}</span>}
                       </div>
                       {avatarSourcePhoto ? (
                         <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
@@ -2088,8 +2088,8 @@ export default function PipelineView({ context }) {
                             </button>
                           </div>
                           <div>
-                            <p className="text-[9px] text-[#888]">{t('studio.photo_uploaded') || 'Photo uploaded'}</p>
-                            <p className="text-[7px] text-[#888]">{t('studio.photo_desc_detail') || 'High-resolution facial reference'}</p>
+                            <p className="text-xs text-[#888]">{t('studio.photo_uploaded') || 'Photo uploaded'}</p>
+                            <p className="text-[10px] text-[#888]">{t('studio.photo_desc_detail') || 'High-resolution facial reference'}</p>
                           </div>
                           <Check size={14} className="text-green-400 ml-auto" />
                         </div>
@@ -2098,11 +2098,11 @@ export default function PipelineView({ context }) {
                           disabled={avatarPhotoUploading}
                           className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
                           {avatarPhotoUploading ? (
-                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-[9px] text-[#999]">{t('studio.uploading')}</span></div>
+                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-xs text-[#999]">{t('studio.uploading')}</span></div>
                           ) : (
                             <div className="flex items-center justify-center gap-2">
                               <Upload size={14} className="text-[#888] group-hover:text-[#C9A84C] transition" />
-                              <span className="text-[9px] text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.select_photo') || 'Select photo'}</span>
+                              <span className="text-xs text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.select_photo') || 'Select photo'}</span>
                             </div>
                           )}
                         </button>
@@ -2113,8 +2113,8 @@ export default function PipelineView({ context }) {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Film size={12} className="text-[#C9A84C]" />
-                        <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.video_reference') || 'Video Reference'}</span>
-                        <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-[6px] text-[#C9A84C] font-bold uppercase">{t('studio.recommended') || 'Recommended'}</span>
+                        <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.video_reference') || 'Video Reference'}</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-xs text-[#C9A84C] font-bold uppercase">{t('studio.recommended') || 'Recommended'}</span>
                       </div>
                       {avatarExtractedAudio || avatarVideoFrames.length > 0 ? (
                         <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
@@ -2127,13 +2127,13 @@ export default function PipelineView({ context }) {
                             </div>
                           )}
                           <div className="flex-1 space-y-0.5">
-                            <p className="text-[9px] text-[#888]">{t('studio.video_processed') || 'Video processed'}</p>
+                            <p className="text-xs text-[#888]">{t('studio.video_processed') || 'Video processed'}</p>
                             <div className="flex items-center gap-2">
                               {avatarVideoFrames.length > 0 && (
-                                <span className="text-[7px] text-[#999]">{avatarVideoFrames.length} {t('studio.extra_frames') || 'frames'}</span>
+                                <span className="text-[10px] text-[#999]">{avatarVideoFrames.length} {t('studio.extra_frames') || 'frames'}</span>
                               )}
                               {avatarExtractedAudio && (
-                                <span className="flex items-center gap-1 text-[7px] text-[#10B981]"><Volume2 size={8} /> {t('studio.voice_extracted')}</span>
+                                <span className="flex items-center gap-1 text-[10px] text-[#10B981]"><Volume2 size={8} /> {t('studio.voice_extracted')}</span>
                               )}
                             </div>
                           </div>
@@ -2145,14 +2145,14 @@ export default function PipelineView({ context }) {
                           disabled={avatarVideoUploading}
                           className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
                           {avatarVideoUploading ? (
-                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-[9px] text-[#999]">{t('studio.extracting_video')}</span></div>
+                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-xs text-[#999]">{t('studio.extracting_video')}</span></div>
                           ) : (
                             <div className="space-y-1">
                               <div className="flex items-center justify-center gap-2">
                                 <Upload size={14} className="text-[#888] group-hover:text-[#C9A84C] transition" />
-                                <span className="text-[9px] text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.select_video') || 'Select video'}</span>
+                                <span className="text-xs text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.select_video') || 'Select video'}</span>
                               </div>
-                              <p className="text-[7px] text-[#777]">{t('studio.video_adds_accuracy') || 'Adds body, voice & expression data for higher accuracy'}</p>
+                              <p className="text-[10px] text-[#777]">{t('studio.video_adds_accuracy') || 'Adds body, voice & expression data for higher accuracy'}</p>
                             </div>
                           )}
                         </button>
@@ -2165,7 +2165,7 @@ export default function PipelineView({ context }) {
                         {avatarVideoFrames.length > 0 && (
                           <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-green-500/5 border border-green-500/15">
                             <ShieldCheck size={10} className="text-green-400" />
-                            <span className="text-[7px] text-green-400">{t('studio.enhanced_accuracy') || 'Enhanced accuracy: photo + video references active'}</span>
+                            <span className="text-[10px] text-green-400">{t('studio.enhanced_accuracy') || 'Enhanced accuracy: photo + video references active'}</span>
                           </div>
                         )}
                         <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
@@ -2201,7 +2201,7 @@ export default function PipelineView({ context }) {
                                         isDone ? 'bg-green-500/10 border border-green-500/20' :
                                         'bg-[#111] border border-[#1A1A1A]'}`}>
                                         <agent.icon size={10} className={isActive ? 'text-[#C9A84C] animate-pulse' : isDone ? 'text-green-400' : 'text-[#888]'} />
-                                        <span className={`text-[7px] font-bold uppercase tracking-wider ${
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${
                                           isActive ? 'text-[#C9A84C]' : isDone ? 'text-green-400' : 'text-[#888]'}`}>
                                           {agent.name}
                                         </span>
@@ -2215,7 +2215,7 @@ export default function PipelineView({ context }) {
                             {/* Progress info */}
                             <div className="flex items-center gap-2">
                               <Loader2 size={12} className="animate-spin text-[#C9A84C] shrink-0" />
-                              <p className="text-[9px] text-[#888]">
+                              <p className="text-xs text-[#888]">
                                 {accuracyProgress?.progress || t('studio.avatar_gen_time')}
                               </p>
                             </div>
@@ -2227,25 +2227,25 @@ export default function PipelineView({ context }) {
                                   <div className="h-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-700 rounded-full"
                                     style={{width: `${(accuracyProgress.iteration / 3) * 100}%`}} />
                                 </div>
-                                <span className="text-[8px] text-[#999] font-mono">{accuracyProgress.iteration}/3</span>
+                                <span className="text-[11px] text-[#999] font-mono">{accuracyProgress.iteration}/3</span>
                               </div>
                             )}
 
                             {/* Evolution thumbnails with scores */}
                             {accuracyProgress?.iterations?.length > 0 && (
                               <div className="space-y-1.5 pt-1 border-t border-[#1A1A1A]">
-                                <p className="text-[7px] text-[#999] uppercase tracking-wider">{t('studio.accuracy_evolution') || 'Evolution'}</p>
+                                <p className="text-[10px] text-[#999] uppercase tracking-wider">{t('studio.accuracy_evolution') || 'Evolution'}</p>
                                 <div className="flex gap-2">
                                   {accuracyProgress.iterations.map((it, idx) => (
                                     it.url && <div key={idx} className="relative group/evo">
                                       <img src={resolveImageUrl(it.url)} alt={`v${idx+1}`}
                                         className={`h-20 w-14 rounded-xl object-cover border-2 transition ${
                                           it.passed ? 'border-green-500/40' : 'border-red-500/30'}`} />
-                                      <div className={`absolute -top-1.5 -right-1.5 h-5 min-w-5 px-0.5 rounded-full text-[8px] font-bold flex items-center justify-center shadow-lg ${
+                                      <div className={`absolute -top-1.5 -right-1.5 h-5 min-w-5 px-0.5 rounded-full text-[11px] font-bold flex items-center justify-center shadow-lg ${
                                         it.passed ? 'bg-green-500 text-white' : 'bg-red-500/80 text-white'}`}>
                                         {it.score}
                                       </div>
-                                      <div className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[6px] font-bold ${
+                                      <div className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-xs font-bold ${
                                         it.passed ? 'bg-green-500/90 text-white' : 'bg-red-500/70 text-white'}`}>
                                         {it.passed ? 'OK' : 'REDO'}
                                       </div>
@@ -2267,7 +2267,7 @@ export default function PipelineView({ context }) {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <PenTool size={12} className="text-[#C9A84C]" />
-                            <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.describe_avatar') || 'Describe your avatar'}</span>
+                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.describe_avatar') || 'Describe your avatar'}</span>
                           </div>
                           <textarea data-testid="avatar-prompt-input" value={avatarPromptText}
                             onChange={e => setAvatarPromptText(e.target.value)}
@@ -2276,11 +2276,11 @@ export default function PipelineView({ context }) {
                         </div>
                         <div className="flex gap-2">
                           <div className="flex-1 space-y-1">
-                            <span className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
+                            <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
                             <div className="flex gap-1">
                               {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
                                 <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
-                                  className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                   {g.label}
                                 </button>
                               ))}
@@ -2289,12 +2289,12 @@ export default function PipelineView({ context }) {
                         </div>
                         {/* Style selector - also for prompt mode */}
                         <div className="space-y-1">
-                          <span className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
+                          <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
                           <div className="flex gap-1">
                             {[{id:'custom', label:'Custom'}, {id:'realistic', label:'Realistic'}, {id:'3d_cartoon', label:'3D Cartoon'}, {id:'3d_pixar', label:'3D Pixar'}].map(s => (
                               <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
                                 data-testid={`prompt-style-${s.id}`}
-                                className={`flex-1 rounded-lg py-1.5 text-[8px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                className={`flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                 {s.label}
                               </button>
                             ))}
@@ -2324,8 +2324,8 @@ export default function PipelineView({ context }) {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Camera size={12} className="text-[#C9A84C]" />
-                            <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
-                            <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/10 text-[6px] text-[#C9A84C]/70 font-bold uppercase">{t('studio.optional') || 'Optional'}</span>
+                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
+                            <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/10 text-xs text-[#C9A84C]/70 font-bold uppercase">{t('studio.optional') || 'Optional'}</span>
                           </div>
                           {avatarSourcePhoto ? (
                             <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
@@ -2339,8 +2339,8 @@ export default function PipelineView({ context }) {
                                 </button>
                               </div>
                               <div>
-                                <p className="text-[9px] text-[#888]">{t('studio.photo_uploaded') || 'Photo uploaded'}</p>
-                                <p className="text-[7px] text-[#888]">{t('studio.photo_3d_ref_desc') || '3D avatar will match this face'}</p>
+                                <p className="text-xs text-[#888]">{t('studio.photo_uploaded') || 'Photo uploaded'}</p>
+                                <p className="text-[10px] text-[#888]">{t('studio.photo_3d_ref_desc') || '3D avatar will match this face'}</p>
                               </div>
                               <Check size={14} className="text-green-400 ml-auto" />
                             </div>
@@ -2349,14 +2349,14 @@ export default function PipelineView({ context }) {
                               disabled={avatarPhotoUploading}
                               className="w-full p-2.5 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
                               {avatarPhotoUploading ? (
-                                <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-[9px] text-[#999]">{t('studio.uploading')}</span></div>
+                                <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-xs text-[#999]">{t('studio.uploading')}</span></div>
                               ) : (
                                 <div className="space-y-0.5">
                                   <div className="flex items-center justify-center gap-2">
                                     <Upload size={12} className="text-[#888] group-hover:text-[#C9A84C] transition" />
-                                    <span className="text-[9px] text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.upload_ref_photo') || 'Upload reference photo'}</span>
+                                    <span className="text-xs text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.upload_ref_photo') || 'Upload reference photo'}</span>
                                   </div>
-                                  <p className="text-[7px] text-[#777]">{t('studio.photo_3d_hint') || 'Upload a face photo to guide the 3D style'}</p>
+                                  <p className="text-[10px] text-[#777]">{t('studio.photo_3d_hint') || 'Upload a face photo to guide the 3D style'}</p>
                                 </div>
                               )}
                             </button>
@@ -2366,7 +2366,7 @@ export default function PipelineView({ context }) {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Sparkles size={12} className="text-[#C9A84C]" />
-                            <span className="text-[9px] text-[#C9A84C] font-bold uppercase tracking-wider">3D Avatar Description</span>
+                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">3D Avatar Description</span>
                           </div>
                           <textarea data-testid="avatar-3d-prompt-input" value={avatarPromptText}
                             onChange={e => setAvatarPromptText(e.target.value)}
@@ -2375,22 +2375,22 @@ export default function PipelineView({ context }) {
                         </div>
                         <div className="flex gap-2">
                           <div className="flex-1 space-y-1">
-                            <span className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
+                            <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
                             <div className="flex gap-1">
                               {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
                                 <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
-                                  className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                   {g.label}
                                 </button>
                               ))}
                             </div>
                           </div>
                           <div className="flex-1 space-y-1">
-                            <span className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
+                            <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
                             <div className="flex gap-1">
                               {[{id:'3d_cartoon', label:'Cartoon'}, {id:'3d_pixar', label:'Pixar'}].map(s => (
                                 <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
-                                  className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                   {s.label}
                                 </button>
                               ))}
@@ -2430,12 +2430,12 @@ export default function PipelineView({ context }) {
                       {(previewVideoUrl || generatingPreviewVideo) && (
                         <div className="flex rounded-md border border-[#1E1E1E] overflow-hidden">
                           <button data-testid="media-tab-photo" onClick={() => setAvatarMediaTab('photo')}
-                            className={`px-4 py-1 text-[9px] font-semibold flex items-center gap-1 transition ${
+                            className={`px-4 py-1 text-xs font-semibold flex items-center gap-1 transition ${
                               avatarMediaTab === 'photo' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#999] hover:text-[#888]'}`}>
                             <Camera size={10} /> {t('studio.photo_tab') || 'Photo'}
                           </button>
                           <button data-testid="media-tab-video" onClick={() => setAvatarMediaTab('video')}
-                            className={`px-4 py-1 text-[9px] font-semibold flex items-center gap-1 transition ${
+                            className={`px-4 py-1 text-xs font-semibold flex items-center gap-1 transition ${
                               avatarMediaTab === 'video' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#999] hover:text-[#888]'}`}>
                             <Film size={10} /> {t('studio.video_tab') || 'Video'}
                           </button>
@@ -2449,7 +2449,7 @@ export default function PipelineView({ context }) {
                         <div className="w-32 shrink-0 flex flex-col gap-1.5" data-testid="avatar-edit-history">
                           <div className="flex items-center gap-1">
                             <History size={10} className="text-[#999]" />
-                            <span className="text-[8px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Historico'}</span>
+                            <span className="text-[11px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Historico'}</span>
                           </div>
                           <div className="flex flex-col gap-2 overflow-y-auto pr-1 scroll-smooth" style={{maxHeight: '356px'}}
                             ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
@@ -2465,11 +2465,11 @@ export default function PipelineView({ context }) {
                                     className="w-full aspect-[3/4] object-cover" />
                                   {entry.isBase && (
                                     <div className="absolute top-1 left-1 bg-[#C9A84C] rounded px-1.5 py-0.5">
-                                      <span className="text-[6px] text-black font-bold uppercase">BASE</span>
+                                      <span className="text-xs text-black font-bold uppercase">BASE</span>
                                     </div>
                                   )}
                                   <div className="absolute top-1 right-1 bg-black/70 rounded px-1.5 py-0.5">
-                                    <span className="text-[7px] text-white font-bold">v{idx + 1}</span>
+                                    <span className="text-[10px] text-white font-bold">v{idx + 1}</span>
                                   </div>
                                   {isCurrent && (
                                     <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
@@ -2566,14 +2566,14 @@ export default function PipelineView({ context }) {
                         {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
                           <div className="absolute inset-0 rounded-2xl bg-black/80 border-2 border-[#C9A84C]/30 flex flex-col items-center justify-center gap-2">
                             <Loader2 size={20} className="animate-spin text-[#C9A84C]" />
-                            <p className="text-[8px] text-[#C9A84C]">{t('studio.generating_preview')}</p>
+                            <p className="text-[11px] text-[#C9A84C]">{t('studio.generating_preview')}</p>
                           </div>
                         )}
                       </div>
                       {/* AI Edit button below avatar */}
                       {avatarMediaTab !== 'video' && (
                         <button data-testid="ai-edit-avatar-modal-btn" onClick={() => setAiEditAvatarId(aiEditAvatarId === 'temp' ? null : 'temp')}
-                          className={`mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] transition ${aiEditAvatarId === 'temp' ? 'border-purple-500/50 bg-purple-500/10 text-purple-300' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'}`}>
+                          className={`mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-xs transition ${aiEditAvatarId === 'temp' ? 'border-purple-500/50 bg-purple-500/10 text-purple-300' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'}`}>
                           <Sparkles size={10} /> {t('studio.ai_edit') || 'Editar com IA'}
                         </button>
                       )}
@@ -2583,16 +2583,16 @@ export default function PipelineView({ context }) {
                         <div className="flex-1 min-w-[140px] bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-1.5">
                             <Sparkles size={12} className="text-purple-400" />
-                            <span className="text-[9px] text-purple-300 font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
+                            <span className="text-xs text-purple-300 font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
                           </div>
                           <textarea data-testid="ai-edit-modal-input"
                             value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
                             placeholder="Ex: mudar roupa para tunica bege, adicionar oculos, mudar fundo para praia..."
-                            className="w-full text-[9px] bg-[#0A0A0A] border border-[#222] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
+                            className="w-full text-xs bg-[#0A0A0A] border border-[#222] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
                             rows={4} />
                           <div className="flex gap-1.5">
                             <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                              className="flex-1 text-[8px] py-1.5 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                              className="flex-1 text-[11px] py-1.5 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
                               {t('studio.cancel') || 'Cancelar'}
                             </button>
                             <button data-testid="ai-edit-modal-confirm" onClick={async () => {
@@ -2633,7 +2633,7 @@ export default function PipelineView({ context }) {
                                 setAiEditInstruction('');
                               }
                             }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                              className="flex-1 text-[8px] py-1.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
+                              className="flex-1 text-[11px] py-1.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
                               {aiEditLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
                               {aiEditLoading ? (t('studio.editing') || 'Editando...') : (t('studio.apply') || 'Aplicar')}
                             </button>
@@ -2676,7 +2676,7 @@ export default function PipelineView({ context }) {
                         {/* Clothing gallery of generated variants */}
                         {Object.keys(clothingVariants).length > 1 && (
                           <div>
-                            <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5">{t('studio.my_avatars')}</p>
+                            <p className="text-[11px] text-[#999] uppercase tracking-wider mb-1.5">{t('studio.my_avatars')}</p>
                             <div className="flex gap-2 flex-wrap">
                               {Object.entries(clothingVariants).map(([style, url]) => (
                                 <button key={style} onClick={() => setTempAvatar(p => ({ ...p, url, clothing: style }))}
@@ -2715,7 +2715,7 @@ export default function PipelineView({ context }) {
                                 <div>
                                   <p className="text-[10px] text-white font-medium">{style.label}</p>
                                   {clothingVariants[style.id] && (
-                                    <p className="text-[7px] text-green-400">{t('studio.avatar_ready')}</p>
+                                    <p className="text-[10px] text-green-400">{t('studio.avatar_ready')}</p>
                                   )}
                                 </div>
                               </div>
@@ -2724,7 +2724,7 @@ export default function PipelineView({ context }) {
                         </div>
                         {applyingClothing && (
                           <div className="text-center py-2">
-                            <p className="text-[9px] text-[#C9A84C] flex items-center justify-center gap-1.5">
+                            <p className="text-xs text-[#C9A84C] flex items-center justify-center gap-1.5">
                               <Loader2 size={10} className="animate-spin" /> {t('studio.applying_style')}
                             </p>
                           </div>
@@ -2736,7 +2736,7 @@ export default function PipelineView({ context }) {
                     {customizeTab === 'view360' && (
                       <div className="space-y-2">
                         {auto360Progress && (
-                          <div className="flex items-center gap-2 text-[9px] text-[#C9A84C] bg-[#C9A84C]/10 rounded-lg px-3 py-1.5">
+                          <div className="flex items-center gap-2 text-xs text-[#C9A84C] bg-[#C9A84C]/10 rounded-lg px-3 py-1.5">
                             <Loader2 size={10} className="animate-spin" />
                             <span>{t('studio.auto_generating_360') || 'Generating 360°...'} {auto360Progress.completed}/4</span>
                             <div className="flex-1 h-1 bg-[#1E1E1E] rounded-full overflow-hidden">
@@ -2778,7 +2778,7 @@ export default function PipelineView({ context }) {
                                 <RefreshCw size={9} className="text-[#C9A84C]" />
                               </button>
                             )}
-                            <p className="text-[8px] text-[#888] text-center py-1">{angle.label}</p>
+                            <p className="text-[11px] text-[#888] text-center py-1">{angle.label}</p>
                           </div>
                         ))}
                       </div>
@@ -2791,7 +2791,7 @@ export default function PipelineView({ context }) {
                             setAngleImages({ front: tempAvatar.url });
                             startAuto360(sourceUrl, tempAvatar?.clothing || 'company_uniform', tempAvatar?.avatar_style || 'realistic');
                           }}
-                          className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5">
+                          className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-xs text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5">
                           <RefreshCw size={10} /> {t('studio.regenerate_all_360') || 'Regenerate All 360°'}
                         </button>
                       )}
@@ -2804,15 +2804,15 @@ export default function PipelineView({ context }) {
                         {/* Voice sub-tabs */}
                         <div className="flex gap-1">
                           <button onClick={() => setVoiceTab('bank')}
-                            className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${voiceTab === 'bank' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${voiceTab === 'bank' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                             {t('studio.voice_bank')}
                           </button>
                           <button onClick={() => setVoiceTab('premium')}
-                            className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition flex items-center justify-center gap-1 ${voiceTab === 'premium' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition flex items-center justify-center gap-1 ${voiceTab === 'premium' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                             <Crown size={9} /> {t('studio.premium_voices')}
                           </button>
                           <button onClick={() => setVoiceTab('record')}
-                            className={`flex-1 rounded-lg py-1.5 text-[9px] font-semibold transition ${voiceTab === 'record' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${voiceTab === 'record' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                             {t('studio.custom_recording')}
                           </button>
                         </div>
@@ -2834,7 +2834,7 @@ export default function PipelineView({ context }) {
                                 onClick={() => setTempAvatar(p => ({ ...p, voice: { type: 'openai', voice_id: v.id } }))}>
                                 <div className="flex-1">
                                   <p className="text-[10px] text-white font-medium capitalize">{v.id}</p>
-                                  <p className="text-[8px] text-[#999]">{t(`studio.${v.key}`)}</p>
+                                  <p className="text-[11px] text-[#999]">{t(`studio.${v.key}`)}</p>
                                 </div>
                                 <button onClick={e => { e.stopPropagation(); previewVoice(v.id, 'openai'); }}
                                   disabled={loadingVoicePreview === v.id}
@@ -2858,13 +2858,13 @@ export default function PipelineView({ context }) {
                             {!elevenLabsAvailable && (
                               <div className="text-center py-3 border border-dashed border-[#2A2A2A] rounded-lg">
                                 <Lock size={14} className="mx-auto text-[#999] mb-1" />
-                                <p className="text-[9px] text-[#999]">ElevenLabs not configured</p>
+                                <p className="text-xs text-[#999]">ElevenLabs not configured</p>
                               </div>
                             )}
                             {elevenLabsAvailable && elevenLabsVoices.length === 0 && (
                               <div className="text-center py-3">
                                 <Loader2 size={14} className="mx-auto text-[#C9A84C] animate-spin mb-1" />
-                                <p className="text-[9px] text-[#999]">{t('studio.loading_voices')}</p>
+                                <p className="text-xs text-[#999]">{t('studio.loading_voices')}</p>
                               </div>
                             )}
                             {elevenLabsVoices.map(v => (
@@ -2878,7 +2878,7 @@ export default function PipelineView({ context }) {
                                     <p className="text-[10px] text-white font-medium">{v.name}</p>
                                     <Crown size={8} className="text-[#C9A84C] shrink-0" />
                                   </div>
-                                  <p className="text-[8px] text-[#999] truncate">{v.style} · {v.accent} · {v.gender === 'female' ? '♀' : '♂'}</p>
+                                  <p className="text-[11px] text-[#999] truncate">{v.style} · {v.accent} · {v.gender === 'female' ? '♀' : '♂'}</p>
                                 </div>
                                 <button onClick={e => { e.stopPropagation(); previewVoice(v.id, 'elevenlabs'); }}
                                   disabled={loadingVoicePreview === v.id}
@@ -2912,13 +2912,13 @@ export default function PipelineView({ context }) {
                                 </button>
                               )}
                             </div>
-                            <p className="text-[9px] text-center text-[#999]">
+                            <p className="text-xs text-center text-[#999]">
                               {isRecording ? t('studio.recording_in_progress') : recordedAudioUrl ? t('studio.play_preview') : t('studio.record')}
                             </p>
                             {recordedAudioUrl && (
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-[8px] text-[#C9A84C] font-medium uppercase tracking-wider">
+                                  <span className="text-[11px] text-[#C9A84C] font-medium uppercase tracking-wider">
                                     {avatarExtractedAudio ? t('studio.original_voice') : t('studio.recorded_voice')}
                                   </span>
                                 </div>
@@ -2951,7 +2951,7 @@ export default function PipelineView({ context }) {
                                     setMasteringVoice(false);
                                   }}
                                     disabled={masteringVoice || tempAvatar?.voice?.mastered}
-                                    className={`flex-1 rounded-lg border py-2 text-[9px] font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-40 ${
+                                    className={`flex-1 rounded-lg border py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-40 ${
                                       tempAvatar?.voice?.mastered ? 'border-[#10B981]/30 text-[#10B981] bg-[#10B981]/5' : 'border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/5'}`}>
                                     {masteringVoice ? <><Loader2 size={10} className="animate-spin" /> {t('studio.mastering')}</> :
                                      tempAvatar?.voice?.mastered ? <><Check size={10} /> {t('studio.mastered')}</> :
@@ -2959,7 +2959,7 @@ export default function PipelineView({ context }) {
                                   </button>
                                   <button data-testid="save-recording-btn" onClick={saveRecordingAsVoice}
                                     disabled={uploadingRecording}
-                                    className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-[9px] font-bold text-black flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                    className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-xs font-bold text-black flex items-center justify-center gap-1.5 disabled:opacity-50">
                                     {uploadingRecording ? (
                                       <><Loader2 size={10} className="animate-spin" /> {t('studio.uploading_recording')}</>
                                     ) : (
@@ -2970,7 +2970,7 @@ export default function PipelineView({ context }) {
                               </div>
                             )}
                             {tempAvatar?.voice?.type === 'custom' && (
-                              <div className="flex items-center gap-1.5 text-[9px] text-green-400">
+                              <div className="flex items-center gap-1.5 text-xs text-green-400">
                                 <Check size={10} /> {t('studio.recording_saved')}
                               </div>
                             )}
@@ -2978,7 +2978,7 @@ export default function PipelineView({ context }) {
                         )}
                         {/* No voice option */}
                         <button onClick={() => setTempAvatar(p => ({ ...p, voice: null }))}
-                          className={`w-full rounded-lg border px-3 py-2 text-[9px] text-center transition ${
+                          className={`w-full rounded-lg border px-3 py-2 text-xs text-center transition ${
                             !tempAvatar?.voice ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:border-[#2A2A2A]'}`}>
                           {t('studio.no_voice')}
                         </button>
@@ -2993,11 +2993,11 @@ export default function PipelineView({ context }) {
                 <div className="px-5 py-2 border-t border-[#151515]/50 shrink-0 space-y-2">
                   {/* Language Selector + Generate/Regenerate */}
                   <div className="flex items-center gap-2">
-                    <span className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.test_language') || 'Language'}:</span>
+                    <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.test_language') || 'Language'}:</span>
                     <div className="flex gap-1">
                       {[{id:'pt',label:'PT'},{id:'en',label:'EN'},{id:'es',label:'ES'}].map(lang => (
                         <button key={lang.id} onClick={() => setPreviewLanguage(lang.id)}
-                          className={`px-2 py-0.5 rounded text-[8px] font-bold transition ${
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
                             previewLanguage === lang.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#999] border border-[#1E1E1E] hover:border-[#333]'}`}>
                           {lang.label}
                         </button>
@@ -3005,7 +3005,7 @@ export default function PipelineView({ context }) {
                     </div>
                     {previewVideoUrl && (
                       <button onClick={() => { setPreviewVideoUrl(null); setAvatarMediaTab('photo'); }}
-                        className="ml-auto text-[8px] text-[#C9A84C] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
+                        className="ml-auto text-[11px] text-[#C9A84C] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
                     )}
                   </div>
                   <button data-testid="generate-preview-video-btn"
@@ -3046,7 +3046,7 @@ export default function PipelineView({ context }) {
                       }
                     }}
                     disabled={generatingPreviewVideo}
-                    className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-[9px] text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
+                    className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-xs text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
                     {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
                      previewVideoUrl ? <><Play size={10} /> {t('studio.regenerate_preview') || 'Regenerate Preview'}</> :
                      <><Play size={10} /> {t('studio.generate_video_preview')}</>}

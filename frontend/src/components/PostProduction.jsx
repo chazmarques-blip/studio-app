@@ -260,8 +260,8 @@ export function PostProduction({ project, onUpdate }) {
                       ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10'
                       : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
                   }`}>
-                  <div className={`text-[9px] font-medium ${narrationMode === m.id ? 'text-[#C9A84C]' : 'text-white'}`}>{m.label}</div>
-                  <div className="text-[7px] text-[#555] mt-0.5">{m.desc}</div>
+                  <div className={`text-xs font-medium ${narrationMode === m.id ? 'text-[#C9A84C]' : 'text-white'}`}>{m.label}</div>
+                  <div className="text-[10px] text-[#555] mt-0.5">{m.desc}</div>
                 </button>
               ))}
             </div>
@@ -279,7 +279,7 @@ export function PostProduction({ project, onUpdate }) {
                   key={v.id}
                   data-testid={`voice-${v.id}`}
                   onClick={() => setVoiceId(v.id)}
-                  className={`text-left p-2 rounded-lg border text-[9px] transition-all ${
+                  className={`text-left p-2 rounded-lg border text-xs transition-all ${
                     voiceId === v.id
                       ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10'
                       : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
@@ -309,11 +309,11 @@ export function PostProduction({ project, onUpdate }) {
                 return (
                   <div key={sn} className="flex items-center gap-2 p-1.5 rounded-lg border border-[#222] bg-[#0A0A0A]"
                     data-testid={`scene-audio-${sn}`}>
-                    <span className="text-[8px] font-mono text-[#666] w-12 shrink-0">CENA {sn}</span>
+                    <span className="text-[11px] font-mono text-[#666] w-12 shrink-0">CENA {sn}</span>
                     {existing?.audio_url ? (
                       <>
                         <audio src={existing.audio_url} controls className="h-6 flex-1" style={{ maxWidth: '160px' }} />
-                        <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
                           {existing.source === 'upload' ? 'Manual' : 'IA'}
                         </span>
                         <button onClick={() => deleteNarration(sn)}
@@ -334,7 +334,7 @@ export function PostProduction({ project, onUpdate }) {
                         ) : (
                           <Upload size={9} className="text-[#666]" />
                         )}
-                        <span className="text-[8px] text-[#555]">{isUploading ? 'Enviando...' : 'Enviar áudio'}</span>
+                        <span className="text-[11px] text-[#555]">{isUploading ? 'Enviando...' : 'Enviar áudio'}</span>
                       </label>
                     )}
                   </div>
@@ -342,7 +342,7 @@ export function PostProduction({ project, onUpdate }) {
               })}
             </div>
             {narrationMode === 'mixed' && (
-              <p className="text-[7px] text-[#555] mt-1">Cenas sem upload terão narração gerada por IA.</p>
+              <p className="text-[10px] text-[#555] mt-1">Cenas sem upload terão narração gerada por IA.</p>
             )}
           </div>
           )}
@@ -402,7 +402,7 @@ export function PostProduction({ project, onUpdate }) {
           </button>
 
           {ppStatus.message && ppRunning && (
-            <div className="text-[9px] text-[#888] text-center animate-pulse">{ppStatus.message}</div>
+            <div className="text-xs text-[#888] text-center animate-pulse">{ppStatus.message}</div>
           )}
         </div>
       )}
@@ -423,10 +423,10 @@ export function PostProduction({ project, onUpdate }) {
           <AlertTriangle size={14} className="text-red-400 mt-0.5 shrink-0" />
           <div>
             <p className="text-[10px] text-red-400 font-medium">Erro na pós-produção</p>
-            <p className="text-[9px] text-red-300/70 mt-0.5">{ppStatus.error}</p>
+            <p className="text-xs text-red-300/70 mt-0.5">{ppStatus.error}</p>
             <button
               onClick={startPostProduction}
-              className="text-[9px] text-[#C9A84C] mt-1 hover:underline"
+              className="text-xs text-[#C9A84C] mt-1 hover:underline"
             >
               Tentar novamente
             </button>
@@ -455,7 +455,7 @@ export function PostProduction({ project, onUpdate }) {
             href={ppStatus.final_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1 text-[9px] text-[#C9A84C] hover:underline"
+            className="flex items-center justify-center gap-1 text-xs text-[#C9A84C] hover:underline"
             data-testid="download-final-video"
           >
             <Download size={10} /> Baixar vídeo ({ppStatus.language?.toUpperCase()})
@@ -475,7 +475,7 @@ export function PostProduction({ project, onUpdate }) {
               data-testid="generate-subtitles-btn"
               onClick={generateSubtitles}
               disabled={subtitlesLoading}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-medium transition-all
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all
                 bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 disabled:opacity-40"
             >
               {subtitlesLoading ? (
@@ -501,8 +501,8 @@ export function PostProduction({ project, onUpdate }) {
                   >
                     <span className="text-sm">{langInfo?.flag || langCode}</span>
                     <div className="flex-1">
-                      <span className="text-[9px] text-white font-medium">{langInfo?.name || langCode.toUpperCase()}</span>
-                      <span className="text-[8px] text-[#666] ml-1">.srt</span>
+                      <span className="text-xs text-white font-medium">{langInfo?.name || langCode.toUpperCase()}</span>
+                      <span className="text-[11px] text-[#666] ml-1">.srt</span>
                     </div>
                     <Download size={10} className="text-[#C9A84C]" />
                   </a>
@@ -510,7 +510,7 @@ export function PostProduction({ project, onUpdate }) {
               })}
             </div>
           ) : (
-            <p className="text-[9px] text-[#555]">
+            <p className="text-xs text-[#555]">
               Gera arquivos SRT sincronizados com as narrações de cada idioma.
             </p>
           )}
@@ -524,7 +524,7 @@ export function PostProduction({ project, onUpdate }) {
             <Languages size={14} className="text-[#C9A84C]" />
             <span className="text-xs font-medium text-white">Localização Multi-Idioma</span>
           </div>
-          <p className="text-[9px] text-[#666] mb-2">
+          <p className="text-xs text-[#666] mb-2">
             Mesmo vídeo, nova narração. A IA traduz e gera áudio no idioma selecionado.
           </p>
 
@@ -541,7 +541,7 @@ export function PostProduction({ project, onUpdate }) {
                     data-testid={`localize-${lang.code}-btn`}
                     onClick={() => !isRunning && startLocalization(lang.code)}
                     disabled={isRunning}
-                    className={`w-full p-2 rounded-lg border text-[9px] transition-all ${
+                    className={`w-full p-2 rounded-lg border text-xs transition-all ${
                       isDone
                         ? 'border-green-500/30 bg-green-500/5'
                         : isRunning
@@ -557,7 +557,7 @@ export function PostProduction({ project, onUpdate }) {
                       {isRunning && (
                         <div className="flex items-center justify-center gap-1 mt-0.5">
                           <RefreshCw size={8} className="animate-spin text-[#C9A84C]" />
-                          <span className="text-[8px] text-[#C9A84C]">{phaseLabels[locStatus.phase] || locStatus.phase}</span>
+                          <span className="text-[11px] text-[#C9A84C]">{phaseLabels[locStatus.phase] || locStatus.phase}</span>
                         </div>
                       )}
                       {isDone && <CheckCircle size={10} className="text-green-500 mx-auto mt-0.5" />}
@@ -575,13 +575,13 @@ export function PostProduction({ project, onUpdate }) {
                 <span className="text-[10px] text-white font-medium">
                   {LANGUAGES.find(l => l.code === lc)?.flag} {LANGUAGES.find(l => l.code === lc)?.name}
                 </span>
-                <span className="text-[8px] text-[#666]">
+                <span className="text-[11px] text-[#666]">
                   {fv.duration ? `${Math.round(fv.duration)}s` : ""} • {fv.file_size_mb}MB
                 </span>
               </div>
               <video src={fv.url} controls className="w-full rounded-lg border border-[#222] max-h-36" />
               <a href={fv.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 mt-1 text-[9px] text-[#C9A84C] hover:underline"
+                className="flex items-center justify-center gap-1 mt-1 text-xs text-[#C9A84C] hover:underline"
                 data-testid={`download-${lc}-video`}
               >
                 <Download size={10} /> Baixar ({lc.toUpperCase()})

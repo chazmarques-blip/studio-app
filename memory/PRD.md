@@ -37,6 +37,14 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - **Backend**: POST /api/studio/projects/{id}/upload-narration/{scene_number}, DELETE /api/studio/projects/{id}/narration/{scene_number}
 - **Pós-Produção Card**: Shows completion status with green checkmark and "CONCLUÍDO — RECONFIGURAR" text
 
+### Typography Overhaul (2026-03-27)
+- **All 4 components** (StoryboardEditor, DirectedStudio, PostProduction, PipelineView) updated
+- **Minimum text sizes**: 6-7px → 9-10px, 8px → 11px, 9px → 12px (text-xs)
+- **`font-serif` removed** from DirectedStudio (14 instances → `font-medium`)
+- **Removed italic** from body/dialogue text
+- **Improved contrast**: `text-[#555]` → `text-[#888]`, `text-[#AAA]` → `text-[#BBB]`
+- **Professional icons**: Emoji clothing buttons replaced with Lucide icons (Shirt, Briefcase, Sun, Layers, Palette)
+
 ### Avatar Frame Fix (2026-03-27)
 - **Avatar edit modal**: Frame changed from square-ish to tall portrait rectangle (160x320px, 1:2 ratio)
 - **object-contain**: Shows full character body without cropping (was `object-cover`)

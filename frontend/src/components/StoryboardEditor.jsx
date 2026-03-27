@@ -532,7 +532,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             <h3 className="text-xs font-semibold text-white">
               {lang === 'pt' ? 'Storyboard Editável' : 'Editable Storyboard'}
             </h3>
-            <p className="text-[8px] text-[#666]">
+            <p className="text-[11px] text-[#666]">
               {lang === 'pt'
                 ? 'Revise e edite cada painel antes de produzir os vídeos'
                 : 'Review and edit each panel before producing videos'}
@@ -541,7 +541,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         </div>
         {panels.length > 0 && (
           <button onClick={() => setChatOpen(!chatOpen)} data-testid="toggle-facilitator-chat"
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-medium transition ${
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
               chatOpen
                 ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
                 : 'bg-[#111] border border-[#333] text-[#888] hover:text-purple-300 hover:border-purple-500/30'
@@ -574,7 +574,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       {/* Loading state */}
       {loading && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-[9px]">
+          <div className="flex items-center justify-between text-xs">
             <span className="text-[#999] flex items-center gap-1.5">
               <FilmSpinner size={10} className="text-[#C9A84C]" />
               {lang === 'pt'
@@ -595,11 +595,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         <div className="space-y-2">
           {/* Summary bar */}
           <div className="flex items-center justify-between">
-            <span className="text-[9px] text-[#666]">
+            <span className="text-xs text-[#666]">
               {doneCount}/{panels.length} {lang === 'pt' ? 'painéis prontos' : 'panels ready'}
             </span>
             {approved && (
-              <span className="text-[8px] text-emerald-400 flex items-center gap-1">
+              <span className="text-[11px] text-emerald-400 flex items-center gap-1">
                 <Check size={10} /> {lang === 'pt' ? 'Aprovado' : 'Approved'}
               </span>
             )}
@@ -637,12 +637,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                               data-testid={`panel-main-frame-${panel.scene_number}`}
                             />
                             {/* Scene number badge */}
-                            <span className="absolute top-1 left-1 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                            <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
                               {panel.scene_number}
                             </span>
                             {/* Frame label badge */}
                             {activeFrame?.label && (
-                              <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-[7px] text-[#C9A84C] font-medium px-2 py-0.5 rounded-full">
+                              <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-[10px] text-[#C9A84C] font-medium px-2 py-0.5 rounded-full">
                                 {activeFrame.label}
                               </span>
                             )}
@@ -694,7 +694,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                                 <Film size={10} />
                               </button>
                             </div>
-                            <span className="text-[7px] text-[#555]">
+                            <span className="text-[10px] text-[#555]">
                               {lang === 'pt' ? `Pag ${activeIdx + 1}/${panel.frames.length}` : `Page ${activeIdx + 1}/${panel.frames.length}`}
                             </span>
                           </div>
@@ -705,7 +705,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         <div className="relative aspect-video">
                           <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
                             className="w-full h-full object-cover" />
-                          <span className="absolute top-1 left-1 bg-black/80 text-[7px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                          <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
                             {panel.scene_number}
                           </span>
                         </div>
@@ -725,7 +725,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     ) : isGenerating ? (
                       <div className="aspect-video flex flex-col items-center justify-center gap-2">
                         <FilmSpinner size={20} className="text-[#C9A84C]" />
-                        <span className="text-[7px] text-[#666]">{lang === 'pt' ? 'Gerando 6 paginas...' : 'Generating 6 pages...'}</span>
+                        <span className="text-[10px] text-[#666]">{lang === 'pt' ? 'Gerando 6 paginas...' : 'Generating 6 pages...'}</span>
                       </div>
                     ) : (
                       <div className="aspect-video flex items-center justify-center">
@@ -744,8 +744,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       {/* Header with Smart mode toggle */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Paintbrush size={10} className="text-orange-400 flex-shrink-0" />
-                          <span className="text-[8px] text-orange-300 font-medium">
+                          <Paintbrush size={12} className="text-orange-400 flex-shrink-0" />
+                          <span className="text-[11px] text-orange-300 font-medium">
                             {lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}
                           </span>
                         </div>
@@ -755,22 +755,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             onClick={() => analyzeScene(panel.scene_number)}
                             disabled={analyzing === panel.scene_number}
                             data-testid={`analyze-scene-${panel.scene_number}`}
-                            className="h-5 rounded px-1.5 text-[7px] font-medium bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition disabled:opacity-40 flex items-center gap-1"
+                            className="h-6 rounded px-2 text-[10px] font-medium bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition disabled:opacity-40 flex items-center gap-1"
                           >
-                            {analyzing === panel.scene_number ? <FilmSpinner size={8} className="text-cyan-400" /> : <ScanSearch size={8} />}
+                            {analyzing === panel.scene_number ? <FilmSpinner size={10} className="text-cyan-400" /> : <ScanSearch size={10} />}
                             {lang === 'pt' ? 'Analisar' : 'Analyze'}
                           </button>
                           {/* Smart mode toggle */}
                           <button
                             onClick={() => setSmartMode(!smartMode)}
                             data-testid="smart-mode-toggle"
-                            className={`h-5 rounded px-1.5 text-[7px] font-medium flex items-center gap-1 transition ${
+                            className={`h-6 rounded px-2 text-[10px] font-medium flex items-center gap-1 transition ${
                               smartMode
-                                ? 'bg-purple-500/20 border border-purple-500/40 text-purple-400'
-                                : 'bg-[#1A1A1A] border border-[#333] text-[#555]'
+                                ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
+                                : 'bg-[#1A1A1A] border border-[#333] text-[#666]'
                             }`}
                           >
-                            <Zap size={8} />
+                            <Zap size={10} />
                             Smart
                           </button>
                         </div>
@@ -778,27 +778,27 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
                       {/* Scene analysis display */}
                       {analysis && !analysis.error && (
-                        <div className="bg-[#0D0D0D] rounded border border-cyan-500/10 p-1.5 space-y-1 max-h-24 overflow-y-auto">
-                          <div className="text-[7px] text-cyan-400 font-medium flex items-center gap-1">
-                            <ScanSearch size={8} /> {lang === 'pt' ? 'Mapa da Cena' : 'Scene Map'}
+                        <div className="bg-[#0D0D0D] rounded border border-cyan-500/10 p-2 space-y-1 max-h-32 overflow-y-auto">
+                          <div className="text-[10px] text-cyan-300 font-semibold flex items-center gap-1">
+                            <ScanSearch size={10} /> {lang === 'pt' ? 'Mapa da Cena' : 'Scene Map'}
                           </div>
                           {(analysis.characters || []).map((c, ci) => (
                             <button key={ci} onClick={() => setInpaintPrompt(c.name)}
-                              className="block w-full text-left text-[7px] px-1 py-0.5 rounded hover:bg-cyan-500/10 transition">
-                              <span className="text-cyan-300">{c.name}</span>
-                              <span className="text-[#555]"> ({c.position}) — {c.expression}, {c.posture}</span>
-                              {c.issues && <span className="text-red-400 text-[6px] block">{c.issues}</span>}
+                              className="block w-full text-left text-[10px] px-1.5 py-1 rounded hover:bg-cyan-500/10 transition leading-relaxed">
+                              <span className="text-cyan-200 font-medium">{c.name}</span>
+                              <span className="text-[#888]"> ({c.position}) — {c.expression}, {c.posture}</span>
+                              {c.issues && <span className="text-red-300 text-xs block mt-0.5">{c.issues}</span>}
                             </button>
                           ))}
                           {(analysis.objects || []).map((o, oi) => (
                             <button key={oi} onClick={() => setInpaintPrompt(o.name)}
-                              className="block w-full text-left text-[7px] px-1 py-0.5 rounded hover:bg-cyan-500/10 transition">
-                              <span className="text-yellow-300">{o.name}</span>
-                              <span className="text-[#555]"> ({o.position})</span>
+                              className="block w-full text-left text-[10px] px-1.5 py-1 rounded hover:bg-cyan-500/10 transition">
+                              <span className="text-yellow-200 font-medium">{o.name}</span>
+                              <span className="text-[#888]"> ({o.position})</span>
                             </button>
                           ))}
                           {(analysis.quality_issues || []).length > 0 && (
-                            <div className="text-[6px] text-red-400 mt-0.5">
+                            <div className="text-xs text-red-300 mt-0.5">
                               {analysis.quality_issues.map((q, qi) => <div key={qi}>• {q}</div>)}
                             </div>
                           )}
@@ -813,22 +813,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           onKeyDown={e => e.key === 'Enter' && editElement(panel.scene_number)}
                           placeholder={lang === 'pt' ? 'Ex: Remover a corcova do Isaque' : 'Ex: Remove the hump from Isaac'}
                           data-testid={`inpaint-input-${panel.scene_number}`}
-                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2 py-1.5 text-[9px] text-white placeholder-[#555] outline-none focus:border-orange-500/50"
+                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2.5 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-orange-500/50"
                           disabled={inpaintLoading}
                         />
                         <VoiceInput
                           onResult={text => setInpaintPrompt(prev => prev ? `${prev} ${text}` : text)}
                           lang={lang}
-                          size={12}
+                          size={14}
                           className="h-8 w-8 rounded-md bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 hover:bg-orange-500/20 transition flex-shrink-0"
                         />
                         <button
                           onClick={() => editElement(panel.scene_number)}
                           disabled={inpaintLoading || !inpaintPrompt.trim()}
                           data-testid={`inpaint-submit-${panel.scene_number}`}
-                          className="h-8 rounded-md px-3 py-1.5 text-[9px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1.5 flex-shrink-0"
+                          className="h-8 rounded-md px-3 py-1.5 text-[11px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-300 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1.5 flex-shrink-0"
                         >
-                          {inpaintLoading ? <FilmSpinner size={10} className="text-orange-400" /> : (smartMode ? <Zap size={10} /> : <Paintbrush size={10} />)}
+                          {inpaintLoading ? <FilmSpinner size={12} className="text-orange-400" /> : (smartMode ? <Zap size={12} /> : <Paintbrush size={12} />)}
                           {smartMode ? 'Smart Edit' : (lang === 'pt' ? 'Editar' : 'Edit')}
                         </button>
                       </div>
@@ -837,29 +837,29 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   })()}
 
                   {/* Text area */}
-                  <div className="p-2 space-y-1">
+                  <div className="p-2.5 space-y-1.5">
                     {isEditing ? (
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <input value={editForm.title || ''} onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))}
                           placeholder={lang === 'pt' ? 'Título' : 'Title'}
-                          className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[9px] text-white outline-none focus:border-[#C9A84C]" />
+                          className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#C9A84C]" />
                         <textarea value={editForm.description || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
                           placeholder={lang === 'pt' ? 'Descrição visual' : 'Visual description'}
-                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[8px] text-white outline-none focus:border-[#C9A84C] resize-none" />
+                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#C9A84C] resize-none" />
                         <textarea value={editForm.dialogue || ''} onChange={e => setEditForm(p => ({ ...p, dialogue: e.target.value }))}
                           placeholder={lang === 'pt' ? 'Diálogo/Narração' : 'Dialogue/Narration'}
-                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[8px] text-white outline-none focus:border-[#C9A84C] resize-none" />
-                        <div className="flex gap-1">
+                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#C9A84C] resize-none" />
+                        <div className="flex gap-1.5">
                           <button onClick={() => { setEditingPanel(null); setEditForm({}); }}
-                            className="flex-1 rounded border border-[#333] py-1 text-[8px] text-[#999] hover:text-white transition">
+                            className="flex-1 rounded border border-[#333] py-1.5 text-[11px] text-[#999] hover:text-white transition">
                             {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                           </button>
                           <button onClick={() => saveEditPanel(panel.scene_number)}
-                            className="flex-1 btn-gold rounded py-1 text-[8px] font-semibold">
+                            className="flex-1 btn-gold rounded py-1.5 text-[11px] font-semibold">
                             {lang === 'pt' ? 'Salvar' : 'Save'}
                           </button>
                           <button onClick={() => { saveEditPanel(panel.scene_number); setTimeout(() => regeneratePanel(panel.scene_number), 500); }}
-                            className="flex-1 rounded py-1 text-[8px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C]">
+                            className="flex-1 rounded py-1.5 text-[11px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C]">
                             {lang === 'pt' ? 'Salvar & Reger.' : 'Save & Regen'}
                           </button>
                         </div>
@@ -867,7 +867,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     ) : (
                       <>
                         <div className="flex items-center justify-between">
-                          <p className="text-[9px] font-semibold text-white truncate flex-1">{panel.title}</p>
+                          <p className="text-[12px] font-semibold text-white truncate flex-1">{panel.title}</p>
                           <button onClick={() => {
                             setEditingPanel(panel.scene_number);
                             setEditForm({ title: panel.title, description: panel.description, dialogue: panel.dialogue });
@@ -878,14 +878,14 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           </button>
                         </div>
                         {panel.dialogue && (
-                          <p className="text-[8px] text-[#AAA] italic leading-relaxed line-clamp-3">
+                          <p className="text-[11px] text-[#BBB] leading-relaxed line-clamp-3">
                             {panel.dialogue}
                           </p>
                         )}
                         {panel.characters_in_scene?.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-0.5">
+                          <div className="flex flex-wrap gap-1 mt-1">
                             {panel.characters_in_scene.map((c, ci) => (
-                              <span key={ci} className="text-[6px] bg-[#C9A84C]/10 text-[#C9A84C] rounded px-1 py-0.5">{c}</span>
+                              <span key={ci} className="text-xs bg-[#C9A84C]/10 text-[#C9A84C] rounded px-1.5 py-0.5">{c}</span>
                             ))}
                           </div>
                         )}
@@ -918,7 +918,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           <div className="max-h-[200px] overflow-y-auto p-3 space-y-2 hide-scrollbar">
             {chatMessages.length === 0 && (
               <div className="text-center py-4">
-                <p className="text-[9px] text-[#555]">
+                <p className="text-xs text-[#555]">
                   {lang === 'pt'
                     ? 'Diga o que quer mudar. Ex: "Mude o diálogo do painel 3" ou "Regenere a imagem da cena 5 com mais iluminação"'
                     : 'Tell me what to change. Ex: "Change panel 3 dialogue" or "Regenerate scene 5 image with more lighting"'}
@@ -927,7 +927,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             )}
             {chatMessages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-[9px] leading-relaxed ${
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
                   m.role === 'user'
                     ? 'bg-purple-500/15 text-purple-200 border border-purple-500/20'
                     : 'bg-[#111] text-[#ccc] border border-[#222]'
@@ -940,7 +940,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               <div className="flex justify-start">
                 <div className="bg-[#111] border border-[#222] rounded-lg px-3 py-2 flex items-center gap-2">
                   <FilmSpinner size={10} className="text-purple-400" />
-                  <span className="text-[8px] text-[#666]">{lang === 'pt' ? 'Analisando...' : 'Analyzing...'}</span>
+                  <span className="text-[11px] text-[#666]">{lang === 'pt' ? 'Analisando...' : 'Analyzing...'}</span>
                 </div>
               </div>
             )}
@@ -1025,7 +1025,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               {lang === 'pt' ? 'Exportar Livro' : 'Export Book'}
             </span>
             {bookTitle && (
-              <span className="text-[8px] text-[#666] italic ml-auto truncate max-w-[40%]">
+              <span className="text-[11px] text-[#666] italic ml-auto truncate max-w-[40%]">
                 {bookTitle}
               </span>
             )}
@@ -1075,8 +1075,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               <img src={resolveImageUrl(bookCover)} alt="Cover"
                 className="h-12 w-16 rounded object-cover border border-[#222]" />
               <div>
-                <p className="text-[9px] text-white font-medium">{bookTitle}</p>
-                <p className="text-[7px] text-[#555]">{lang === 'pt' ? 'Capa gerada' : 'Cover generated'}</p>
+                <p className="text-xs text-white font-medium">{bookTitle}</p>
+                <p className="text-[10px] text-[#555]">{lang === 'pt' ? 'Capa gerada' : 'Cover generated'}</p>
               </div>
             </div>
           )}
@@ -1092,7 +1092,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               {lang === 'pt' ? 'Agente de Idioma' : 'Language Agent'}
             </span>
             {reviewResult && (
-              <span className="text-[8px] text-emerald-400 ml-auto">
+              <span className="text-[11px] text-emerald-400 ml-auto">
                 {reviewResult.overall_quality}
               </span>
             )}
@@ -1105,7 +1105,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 value={targetLang}
                 onChange={e => setTargetLang(e.target.value)}
                 data-testid="target-lang-select"
-                className="h-8 bg-[#111] border border-blue-500/30 rounded-lg px-2 text-[9px] text-white outline-none flex-1"
+                className="h-8 bg-[#111] border border-blue-500/30 rounded-lg px-2 text-xs text-white outline-none flex-1"
               >
                 <option value="en">English</option>
                 <option value="pt">Portugues</option>
@@ -1120,7 +1120,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               </select>
               <button onClick={convertLanguage} disabled={converting}
                 data-testid="convert-lang-btn"
-                className="h-8 rounded-lg px-3 text-[9px] font-semibold bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0">
+                className="h-8 rounded-lg px-3 text-xs font-semibold bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0">
                 {converting ? <FilmSpinner size={10} className="text-blue-400" /> : <Languages size={12} />}
                 {lang === 'pt' ? 'Converter' : 'Convert'}
               </button>
@@ -1129,7 +1129,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             {/* Text review */}
             <button onClick={reviewText} disabled={reviewing}
               data-testid="review-text-btn"
-              className="h-8 rounded-lg px-3 text-[9px] font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0">
+              className="h-8 rounded-lg px-3 text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0">
               {reviewing ? <FilmSpinner size={10} className="text-emerald-400" /> : <Sparkles size={12} />}
               {lang === 'pt' ? 'Revisar Texto' : 'Review Text'}
             </button>
@@ -1139,7 +1139,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           {reviewResult && reviewResult.revision_notes?.length > 0 && (
             <div className="bg-[#0D0D0D] rounded border border-emerald-500/10 p-1.5 max-h-20 overflow-y-auto">
               {reviewResult.revision_notes.map((note, ni) => (
-                <div key={ni} className="text-[7px] text-[#888] py-0.5">
+                <div key={ni} className="text-[10px] text-[#888] py-0.5">
                   <span className="text-emerald-400">Cena {note.scene_number}:</span> {note.changes}
                 </div>
               ))}
@@ -1157,7 +1157,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               {lang === 'pt' ? 'Diretor de Continuidade' : 'Continuity Director'}
             </span>
             {continuityReport && (
-              <span className={`text-[8px] ml-auto font-medium ${
+              <span className={`text-[11px] ml-auto font-medium ${
                 continuityReport.total_issues === 0 ? 'text-emerald-400' : 'text-amber-400'
               }`}>
                 {continuityReport.total_issues === 0
@@ -1167,7 +1167,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             )}
           </div>
 
-          <p className="text-[8px] text-[#555]">
+          <p className="text-[11px] text-[#555]">
             {lang === 'pt'
               ? 'Analisa todas as cenas e verifica consistencia de personagens, idade, elementos irrelevantes e coerencia cronologica.'
               : 'Analyzes all scenes for character consistency, age accuracy, irrelevant elements and chronological coherence.'}
@@ -1179,7 +1179,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               onClick={startContinuityAnalysis}
               disabled={continuityRunning || correcting}
               data-testid="continuity-analyze-btn"
-              className="flex-1 h-8 rounded-lg text-[9px] font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
+              className="flex-1 h-8 rounded-lg text-xs font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
             >
               {continuityRunning && !correcting ? (
                 <><FilmSpinner size={10} className="text-amber-400" /> {lang === 'pt' ? `Analisando ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...` : `Analyzing ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...`}</>
@@ -1193,7 +1193,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 onClick={startAutoCorrect}
                 disabled={correcting || continuityRunning}
                 data-testid="continuity-correct-btn"
-                className="flex-1 h-8 rounded-lg text-[9px] font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
+                className="flex-1 h-8 rounded-lg text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40 flex items-center justify-center gap-1.5"
               >
                 {correcting ? (
                   <><FilmSpinner size={10} className="text-emerald-400" /> {lang === 'pt' ? `Corrigindo ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...` : `Correcting ${continuityStatus.current || 0}/${continuityStatus.total || '?'}...`}</>
@@ -1214,7 +1214,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 />
               </div>
               {continuityRunning && !correcting && continuityStatus.issues_found > 0 && (
-                <p className="text-[7px] text-amber-400/60">
+                <p className="text-[10px] text-amber-400/60">
                   {continuityStatus.issues_found} {lang === 'pt' ? 'problemas encontrados ate agora' : 'issues found so far'}
                 </p>
               )}
@@ -1225,12 +1225,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           {continuityReport && continuityReport.issues && continuityReport.issues.length > 0 && (
             <div className="bg-[#0D0D0D] rounded border border-amber-500/10 p-1.5 max-h-40 overflow-y-auto space-y-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[7px] text-red-400 font-medium">{continuityReport.high_count || 0}H</span>
-                <span className="text-[7px] text-amber-400 font-medium">{continuityReport.medium_count || 0}M</span>
-                <span className="text-[7px] text-[#555] font-medium">{continuityReport.low_count || 0}L</span>
+                <span className="text-[10px] text-red-400 font-medium">{continuityReport.high_count || 0}H</span>
+                <span className="text-[10px] text-amber-400 font-medium">{continuityReport.medium_count || 0}M</span>
+                <span className="text-[10px] text-[#555] font-medium">{continuityReport.low_count || 0}L</span>
               </div>
               {continuityReport.issues.map((issue, i) => (
-                <div key={i} className={`text-[7px] px-1.5 py-1 rounded border-l-2 ${
+                <div key={i} className={`text-[10px] px-1.5 py-1 rounded border-l-2 ${
                   issue.severity === 'high' ? 'border-l-red-500 bg-red-500/5' :
                   issue.severity === 'medium' ? 'border-l-amber-500 bg-amber-500/5' :
                   'border-l-[#333] bg-[#111]'
@@ -1241,9 +1241,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                      <CheckCircle size={8} className="text-[#555] flex-shrink-0" />}
                     <span className="text-white font-medium">Cena {issue.scene_number}</span>
                     {issue.frame_index !== undefined && (
-                      <span className="text-[6px] text-cyan-400 px-1 py-0.5 rounded bg-cyan-500/10">F{issue.frame_index + 1}</span>
+                      <span className="text-xs text-cyan-400 px-1 py-0.5 rounded bg-cyan-500/10">F{issue.frame_index + 1}</span>
                     )}
-                    <span className="text-[6px] text-[#555] px-1 py-0.5 rounded bg-[#1A1A1A]">{issue.category?.replace(/_/g, ' ')}</span>
+                    <span className="text-xs text-[#555] px-1 py-0.5 rounded bg-[#1A1A1A]">{issue.category?.replace(/_/g, ' ')}</span>
                   </div>
                   <p className="text-[#888] mt-0.5">{issue.description}</p>
                   {issue.correction && (
@@ -1258,7 +1258,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           {continuityReport && continuityReport.total_issues === 0 && (
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2 flex items-center gap-2">
               <CheckCircle size={14} className="text-emerald-400" />
-              <span className="text-[9px] text-emerald-400 font-medium">
+              <span className="text-xs text-emerald-400 font-medium">
                 {lang === 'pt' ? 'Storyboard consistente! Nenhum problema encontrado.' : 'Storyboard is consistent! No issues found.'}
               </span>
             </div>
@@ -1268,7 +1268,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           {continuityStatus.phase === 'corrected' && (
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2 flex items-center gap-2">
               <CheckCircle size={14} className="text-emerald-400" />
-              <span className="text-[9px] text-emerald-400">
+              <span className="text-xs text-emerald-400">
                 {lang === 'pt' ? `${continuityStatus.corrected} correcoes aplicadas` : `${continuityStatus.corrected} corrections applied`}
                 {continuityStatus.failed > 0 && (
                   <span className="text-red-400 ml-1">({continuityStatus.failed} {lang === 'pt' ? 'falhas' : 'failed'})</span>
