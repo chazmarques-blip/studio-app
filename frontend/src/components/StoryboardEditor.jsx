@@ -1407,7 +1407,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             ) : (
               <button onClick={onApprove} data-testid="proceed-to-production-btn"
                 className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-bold flex items-center justify-center gap-1.5">
-                {lang === 'pt' ? 'Produzir Vídeos' : 'Produce Videos'} <ChevronRight size={12} />
+                {lang === 'pt' ? 'Ir para Diálogos' : 'Go to Dialogues'} <ChevronRight size={12} />
               </button>
             )}
           </>

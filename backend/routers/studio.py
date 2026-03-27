@@ -1413,6 +1413,204 @@ async def get_preview_status(project_id: str, tenant=Depends(get_current_tenant)
 
 
 
+# ══ DIALOGUE / SCRIPT POLISH ENDPOINTS ══
+
+class DialogueGenerateRequest(BaseModel):
+    mode: str = "dubbed"  # dubbed, narrated, book
+    scene_numbers: list = []  # empty = all scenes
+    user_instructions: str = ""
+
+class DialogueSaveRequest(BaseModel):
+    scenes_dialogue: list = []  # [{scene_number, dubbed_text, narrated_text, book_text}]
+    character_voices: dict = {}  # {character_name: voice_id}
+    narrator_voice: str = ""
+
+@router.post("/projects/{project_id}/dialogues/generate")
+async def generate_dialogues(project_id: str, req: DialogueGenerateRequest, tenant=Depends(get_current_tenant)):
+    """Generate dialogue/narration/book text for scenes using AI."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+    if not scenes:
+        raise HTTPException(status_code=400, detail="No scenes")
+
+    characters = project.get("characters", [])
+    char_names = [c.get("name", "") for c in characters]
+    target_scenes = [s for s in scenes if not req.scene_numbers or s.get("scene_number") in req.scene_numbers]
+    lang = project.get("language", "pt")
+    project_name = project.get("name", "")
+
+    results = []
+
+    for scene in target_scenes:
+        sn = scene.get("scene_number", 0)
+        title = scene.get("title", "")
+        desc = scene.get("description", "")
+        existing_dialogue = scene.get("dialogue", "")
+        existing_narration = scene.get("narration", "")
+        chars_in = scene.get("characters_in_scene", [])
+
+        if req.mode == "dubbed":
+            system = f"""You are a professional screenwriter creating CHARACTER DIALOGUES for dubbing.
+Project: {project_name}. Language: {lang}.
+Characters available: {', '.join(char_names)}.
+Characters in this scene: {', '.join(chars_in)}.
+{f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
+
+Rules:
+- Write ONLY character dialogue lines, formatted as: CharacterName: "dialogue text"
+- Each character MUST speak at least once
+- Make dialogue natural, emotional, and expressive
+- Include stage directions in parentheses: CharacterName (whispering): "..."
+- Dialogue should match the scene action and tone
+- Write in {lang} language
+- Minimum 3 lines of dialogue per scene"""
+
+            user_msg = f"""Scene {sn}: {title}
+Description: {desc}
+Existing text: {existing_dialogue or existing_narration}
+
+Generate natural character dialogues for dubbing."""
+
+        elif req.mode == "narrated":
+            system = f"""You are a professional narrator/voice-over writer.
+Project: {project_name}. Language: {lang}.
+{f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
+
+Rules:
+- Write NARRATOR text (third person)
+- Format: Narrador: "text..."
+- Be descriptive, cinematic, emotionally engaging
+- Write 2-4 sentences per scene
+- Write in {lang} language"""
+
+            user_msg = f"""Scene {sn}: {title}
+Description: {desc}
+Characters present: {', '.join(chars_in)}
+
+Generate narrator voice-over text."""
+
+        else:  # book
+            system = f"""You are a children's book author writing literary text.
+Project: {project_name}. Language: {lang}.
+{f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
+
+Rules:
+- Write in a warm, engaging, literary style suitable for children/young adults
+- Include both narrative prose AND character dialogue
+- Dialogue in quotes with character attribution
+- Be descriptive about the setting and emotions
+- Write 3-6 sentences per scene
+- Write in {lang} language"""
+
+            user_msg = f"""Scene {sn}: {title}
+Description: {desc}
+Characters: {', '.join(chars_in)}
+Existing text: {existing_narration or existing_dialogue}
+
+Write literary text for a storybook page."""
+
+        try:
+            import litellm
+            api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
+            response = litellm.completion(
+                model="anthropic/claude-sonnet-4-5-20250929",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
+                api_key=api_key, max_tokens=1500, timeout=60,
+            )
+            generated = response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"Dialogue generation failed for scene {sn}: {e}")
+            generated = existing_dialogue or existing_narration or ""
+
+        results.append({
+            "scene_number": sn,
+            "title": title,
+            "generated_text": generated,
+            "mode": req.mode,
+        })
+
+    return {"status": "ok", "results": results, "mode": req.mode}
+
+
+@router.patch("/projects/{project_id}/dialogues/save")
+async def save_dialogues(project_id: str, req: DialogueSaveRequest, tenant=Depends(get_current_tenant)):
+    """Save edited dialogues, narration, book text, and voice assignments."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+
+    for update in req.scenes_dialogue:
+        sn = update.get("scene_number")
+        scene = next((s for s in scenes if s.get("scene_number") == sn), None)
+        if not scene:
+            continue
+        if "dubbed_text" in update and update["dubbed_text"]:
+            scene["dubbed_text"] = update["dubbed_text"]
+        if "narrated_text" in update and update["narrated_text"]:
+            scene["narrated_text"] = update["narrated_text"]
+        if "book_text" in update and update["book_text"]:
+            scene["book_text"] = update["book_text"]
+        if "dialogue" in update:
+            scene["dialogue"] = update["dialogue"]
+        if "narration" in update:
+            scene["narration"] = update["narration"]
+
+    # Save voice assignments
+    if req.character_voices:
+        project["character_voices"] = req.character_voices
+    if req.narrator_voice:
+        project["narrator_voice"] = req.narrator_voice
+
+    project["dialogues_step_completed"] = True
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+
+    return {"status": "ok", "message": "Dialogues saved"}
+
+
+@router.get("/projects/{project_id}/dialogues")
+async def get_dialogues(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get all dialogue/narration/book text for all scenes."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+    characters = project.get("characters", [])
+    panels = project.get("storyboard_panels", [])
+
+    scene_data = []
+    for s in scenes:
+        sn = s.get("scene_number", 0)
+        panel = next((p for p in panels if p.get("scene_number") == sn), None)
+        scene_data.append({
+            "scene_number": sn,
+            "title": s.get("title", ""),
+            "description": s.get("description", ""),
+            "characters_in_scene": s.get("characters_in_scene", []),
+            "dialogue": s.get("dialogue", ""),
+            "narration": s.get("narration", ""),
+            "dubbed_text": s.get("dubbed_text", ""),
+            "narrated_text": s.get("narrated_text", ""),
+            "book_text": s.get("book_text", ""),
+            "thumbnail": panel.get("image_url", "") if panel else "",
+        })
+
+    return {
+        "scenes": scene_data,
+        "characters": [{"name": c.get("name", ""), "description": c.get("description", "")} for c in characters],
+        "character_voices": project.get("character_voices", {}),
+        "narrator_voice": project.get("narrator_voice", ""),
+        "dialogues_completed": project.get("dialogues_step_completed", False),
+    }
+
+
+
 # ══ LANGUAGE AGENT ENDPOINTS ══
 
 @router.post("/projects/{project_id}/language/convert")

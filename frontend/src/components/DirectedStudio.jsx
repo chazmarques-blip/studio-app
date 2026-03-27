@@ -8,6 +8,7 @@ import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
 import { PostProduction } from './PostProduction';
 import { StoryboardEditor } from './StoryboardEditor';
+import { DialogueEditor } from './DialogueEditor';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -98,8 +99,9 @@ export function DirectedStudio({
     { n: 1, icon: MessageSquare, label: lang === 'pt' ? 'Roteiro' : 'Script' },
     { n: 2, icon: Users, label: lang === 'pt' ? 'Personagens' : 'Characters' },
     { n: 3, icon: Camera, label: 'Storyboard' },
-    { n: 4, icon: Clapperboard, label: lang === 'pt' ? 'Produção' : 'Production' },
-    { n: 5, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
+    { n: 4, icon: Mic, label: lang === 'pt' ? 'Diálogos' : 'Dialogues' },
+    { n: 5, icon: Clapperboard, label: lang === 'pt' ? 'Produção' : 'Production' },
+    { n: 6, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
   ];
 
   const STATUS_LABELS = {
@@ -146,9 +148,9 @@ export function DirectedStudio({
       setAgentStatus(ap.agentStatus || {});
       setNarrations(ap.narrations || []);
       if (ap.status === 'complete') {
-        setStep(5); setGenerating(false);
+        setStep(6); setGenerating(false);
       } else if (['running_agents', 'starting'].includes(ap.status)) {
-        setStep(4); setGenerating(true); startPolling(ap.projectId);
+        setStep(5); setGenerating(true); startPolling(ap.projectId);
       }
     }
   }, []);
@@ -164,7 +166,7 @@ export function DirectedStudio({
 
   // Load storyboard thumbnails and project data when entering Step 5
   useEffect(() => {
-    if (step === 5 && projectId) {
+    if (step === 6 && projectId) {
       // Always fetch full status for Step 5 to ensure we have all data
       axios.get(`${API}/studio/projects/${projectId}/status`).then(r => {
         const full = r.data;
@@ -255,9 +257,9 @@ export function DirectedStudio({
       const status = full.status || proj.status;
       const outs = full.outputs || [];
       if (['starting', 'running_agents', 'generating_video'].includes(status)) {
-        setStep(4); setGenerating(true); startPolling(proj.id);
+        setStep(5); setGenerating(true); startPolling(proj.id);
       } else if (status === 'complete' && outs.length > 0) {
-        setStep(5); setOutputs(outs);
+        setStep(6); setOutputs(outs);
       } else {
         setGenerating(false);
         setAgentStatus({});
@@ -291,9 +293,9 @@ export function DirectedStudio({
       setNarrationStatus(proj.narration_status || {});
       setScreenplayApproved(proj.screenplay_approved || false);
       if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
-        setStep(4); setGenerating(true); startPolling(proj.id);
+        setStep(5); setGenerating(true); startPolling(proj.id);
       } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
-        setStep(5);
+        setStep(6);
       } else {
         setStep(1);
       }
@@ -332,17 +334,17 @@ export function DirectedStudio({
 
   // Auto-recover: if stuck on step 3 with generating=false, check if outputs exist
   useEffect(() => {
-    if (step === 4 && !generating && projectId) {
+    if (step === 5 && !generating && projectId) {
       const check = setTimeout(() => {
         axios.get(`${API}/studio/projects/${projectId}/status`).then(res => {
           const d = res.data;
           if (d.status === 'complete' && d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(5);
+            setStep(6);
             toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
           } else if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(5);
+            setStep(6);
           }
         }).catch(() => {});
       }, 2000);
@@ -371,7 +373,7 @@ export function DirectedStudio({
         if (d.status === 'complete') {
           setOutputs(d.outputs || []);
           setGenerating(false);
-          setStep(5);
+          setStep(6);
           toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
           loadProjects();
           return;
@@ -381,7 +383,7 @@ export function DirectedStudio({
           // If outputs exist despite error, go to results (partial/recovered success)
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(5);
+            setStep(6);
             toast.success(lang === 'pt' ? `Produção finalizada — ${d.outputs.length} vídeos prontos` : `Production finished — ${d.outputs.length} videos ready`);
           } else {
             toast.error(d.error || 'Production error');
@@ -393,7 +395,7 @@ export function DirectedStudio({
           setGenerating(false);
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(5);
+            setStep(6);
           }
           return;
         }
@@ -546,7 +548,7 @@ export function DirectedStudio({
     setOutputs(proj.outputs || []);
     setCharacterAvatars(proj.character_avatars || {});
     setGenerating(true);
-    setStep(4);
+    setStep(5);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: proj.id,
@@ -754,7 +756,7 @@ export function DirectedStudio({
   const startProduction = async () => {
     if (!projectId || scenes.length === 0) return;
     setGenerating(true);
-    setStep(4);
+    setStep(5);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
@@ -1673,8 +1675,8 @@ export function DirectedStudio({
             characterAvatars={characterAvatars}
             lang={lang}
             onApprove={() => {
-              // After approving storyboard, proceed to production
-              startProduction();
+              // After approving storyboard, go to Dialogues step
+              setStep(4);
             }}
             onBack={() => setStep(2)}
           />
@@ -1682,8 +1684,22 @@ export function DirectedStudio({
       )}
 
 
-      {/* ═══ STEP 4: Production Progress ═══ */}
+      {/* ═══ STEP 4: Dialogues & Script Polish ═══ */}
       {step === 4 && !viewingProject && (
+        <div data-testid="studio-step-dialogues">
+          <DialogueEditor
+            projectId={projectId}
+            lang={lang}
+            scenes={scenes}
+            onComplete={() => setStep(5)}
+            onBack={() => setStep(3)}
+          />
+        </div>
+      )}
+
+
+      {/* ═══ STEP 5: Production Progress ═══ */}
+      {step === 5 && !viewingProject && (
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-production">
           <h3 className="text-xs font-semibold text-white flex items-center gap-2">
             <Clapperboard size={12} className="text-[#C9A84C]" />
@@ -2081,7 +2097,7 @@ export function DirectedStudio({
       )}
 
       {/* ═══ STEP 5: Resultado — Deliverables Showcase ═══ */}
-      {step === 5 && !viewingProject && (
+      {step === 6 && !viewingProject && (
         <div className="space-y-4" data-testid="studio-step-results">
           {/* Section Header */}
           <div className="text-center py-2">
@@ -2503,7 +2519,7 @@ export function DirectedStudio({
               className="flex-1 rounded-sm border border-[#C9A84C]/20 bg-[#C9A84C]/5 py-2.5 text-[10px] font-mono tracking-wider uppercase text-[#C9A84C] hover:bg-[#C9A84C]/10 transition flex items-center justify-center gap-1.5">
               <Camera size={10} /> Storyboard
             </button>
-            <button onClick={() => setStep(4)} data-testid="go-to-config-btn"
+            <button onClick={() => setStep(5)} data-testid="go-to-config-btn"
               className="flex-1 bg-[#C9A84C] text-black rounded-sm py-2.5 text-[10px] font-mono tracking-wider uppercase font-semibold hover:bg-white transition-colors duration-300 flex items-center justify-center gap-1.5">
               <RefreshCw size={10} /> {lang === 'pt' ? 'Re-produzir' : 'Re-produce'}
             </button>
