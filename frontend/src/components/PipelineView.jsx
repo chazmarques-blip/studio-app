@@ -2539,8 +2539,8 @@ export default function PipelineView({ context }) {
                           </div>
                         </div>
                       )}
-                      <div className="w-40 shrink-0">
-                      <div className="relative aspect-[3/5]">
+                      <div className="w-64 shrink-0">
+                      <div className="relative aspect-[2/3]">
                         {avatarMediaTab === 'video' && previewVideoUrl ? (
                           <video
                             data-testid="avatar-preview-video"
@@ -2551,7 +2551,7 @@ export default function PipelineView({ context }) {
                         ) : (
                           <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
                             <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                              className="w-full h-full rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg" />
+                              className="w-full h-full rounded-2xl object-contain border-2 border-[#C9A84C]/30 shadow-lg bg-[#0A0A0A]" />
                             <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
                               <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
                             </div>
