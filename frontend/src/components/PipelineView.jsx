@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera, Bot, ScanEye, ShieldCheck, Briefcase, User, History } from 'lucide-react';
+import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera, Bot, ScanEye, ShieldCheck, Briefcase, User, History, Sun, Layers } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
@@ -1879,9 +1879,9 @@ export default function PipelineView({ context }) {
 
         {/* Avatar Zoom Preview */}
         {avatarPreviewUrl && (
-          <div className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-6" onClick={() => setAvatarPreviewUrl(null)}>
-            <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
-              <img src={resolveImageUrl(avatarPreviewUrl)} alt="Avatar Preview" className="w-full rounded-2xl border border-[#C9A84C]/20 shadow-2xl" />
+          <div className="fixed inset-0 z-[80] bg-black/95 flex items-center justify-center p-4" onClick={() => setAvatarPreviewUrl(null)}>
+            <div className="relative max-w-3xl w-full max-h-[90vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
+              <img src={resolveImageUrl(avatarPreviewUrl)} alt="Avatar Preview" className="max-w-full max-h-[85vh] rounded-2xl border border-[#C9A84C]/20 shadow-2xl object-contain" />
               <button onClick={() => setAvatarPreviewUrl(null)}
                 className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-black border border-[#333] flex items-center justify-center hover:bg-[#1A1A1A] transition">
                 <X size={14} className="text-white" />
@@ -2539,8 +2539,8 @@ export default function PipelineView({ context }) {
                           </div>
                         </div>
                       )}
-                      <div className="w-40 shrink-0">
-                      <div className="relative aspect-[1/2]">
+                      <div className="w-48 shrink-0">
+                      <div className="relative aspect-[3/5]">
                         {avatarMediaTab === 'video' && previewVideoUrl ? (
                           <video
                             data-testid="avatar-preview-video"
@@ -2696,11 +2696,11 @@ export default function PipelineView({ context }) {
                         {/* Clothing style buttons */}
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { id: 'company_uniform', label: t('studio.clothing_uniform'), icon: '👕' },
-                            { id: 'business_formal', label: t('studio.clothing_business'), icon: '👔' },
-                            { id: 'casual', label: t('studio.clothing_casual'), icon: '🧥' },
-                            { id: 'streetwear', label: t('studio.clothing_streetwear'), icon: '🏙' },
-                            { id: 'creative', label: t('studio.clothing_creative'), icon: '🎨' },
+                            { id: 'company_uniform', label: t('studio.clothing_uniform'), icon: Shirt },
+                            { id: 'business_formal', label: t('studio.clothing_business'), icon: Briefcase },
+                            { id: 'casual', label: t('studio.clothing_casual'), icon: Sun },
+                            { id: 'streetwear', label: t('studio.clothing_streetwear'), icon: Layers },
+                            { id: 'creative', label: t('studio.clothing_creative'), icon: Palette },
                           ].map(style => (
                             <button key={style.id} data-testid={`clothing-${style.id}`}
                               onClick={() => applyClothing(style.id)}
@@ -2708,7 +2708,10 @@ export default function PipelineView({ context }) {
                               className={`rounded-xl border p-3 text-left transition ${
                                 tempAvatar?.clothing === style.id ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'} disabled:opacity-40`}>
                               <div className="flex items-center gap-2">
-                                <p className="text-lg">{style.icon}</p>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  tempAvatar?.clothing === style.id ? 'bg-[#C9A84C]/15' : 'bg-[#111] border border-[#222]'}`}>
+                                  <style.icon size={14} className={tempAvatar?.clothing === style.id ? 'text-[#C9A84C]' : 'text-[#666]'} />
+                                </div>
                                 <div>
                                   <p className="text-[10px] text-white font-medium">{style.label}</p>
                                   {clothingVariants[style.id] && (
