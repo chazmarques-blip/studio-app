@@ -28,9 +28,16 @@ Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI ag
 - Dark luxury theme (monochrome gold)
 - Bottom navigation with Movie shortcut
 
-### Directed Studio (Complete Pipeline)
-- 5-step production pipeline (Briefing -> Storyboard -> Production -> Post-Production -> Results)
+### Directed Studio (Complete Pipeline — 6 Steps)
+- 6-step production pipeline: Briefing -> Characters -> Storyboard -> **Dialogues** -> Production -> Results
 - AI-powered storyboard generation with multi-frame panels
+- **Storyboard expandable panels** (collapsed by default, lazy loading)
+- **Step 4 — Dialogues/Script Polish (NEW):**
+  - Tab DUBLADO: Edit character dialogues per scene + AI generation
+  - Tab NARRADO: Edit narrator text per scene + voice selection
+  - Tab LIVRO: Edit literary text per scene
+  - Character voice assignment per character
+  - Auto-save and per-scene AI regeneration
 - Continuity Director with user notes
 - Smart Editor (inpainting)
 - Character avatar system (upload, analyze, zoom)
@@ -94,6 +101,7 @@ Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI ag
 ## Test Reports
 - 110-118: Previous iterations (all passed)
 - 119: Infrastructure audit (Backend 100%, Frontend 100%)
+- 120: Dialogues Step + Expandable Panels (Backend 100%, Frontend 100%)
 
 ---
 
