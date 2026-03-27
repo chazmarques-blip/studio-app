@@ -2539,8 +2539,8 @@ export default function PipelineView({ context }) {
                           </div>
                         </div>
                       )}
-                      <div className="w-64 shrink-0">
-                      <div className="relative aspect-[2/3]">
+                      <div className="w-40 shrink-0">
+                      <div className="relative aspect-[1/2]">
                         {avatarMediaTab === 'video' && previewVideoUrl ? (
                           <video
                             data-testid="avatar-preview-video"

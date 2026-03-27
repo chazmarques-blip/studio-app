@@ -37,6 +37,11 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
 - **Backend**: POST /api/studio/projects/{id}/upload-narration/{scene_number}, DELETE /api/studio/projects/{id}/narration/{scene_number}
 - **Pós-Produção Card**: Shows completion status with green checkmark and "CONCLUÍDO — RECONFIGURAR" text
 
+### Avatar Frame Fix (2026-03-27)
+- **Avatar edit modal**: Frame changed from square-ish to tall portrait rectangle (160x320px, 1:2 ratio)
+- **object-contain**: Shows full character body without cropping (was `object-cover`)
+- **Layout preserved**: AI Edit side panel, history, tabs all properly aligned
+
 ### Storyboard Editavel
 - 6 individual frames per scene (Storybook Pages)
 - Gallery/Filmstrip layout with page numbers
