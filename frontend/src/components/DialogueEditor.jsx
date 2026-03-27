@@ -15,6 +15,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   const [characters, setCharacters] = useState([]);
   const [voices, setVoices] = useState([]);
   const [characterVoices, setCharacterVoices] = useState({});
+  const [autoVoiceInfo, setAutoVoiceInfo] = useState({});
   const [narratorVoice, setNarratorVoice] = useState('21m00Tcm4TlvDq8ikWAM');
   const [expandedScene, setExpandedScene] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -30,16 +31,29 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [dialogueRes, voicesRes] = await Promise.all([
-          axios.get(`${API}/studio/projects/${projectId}/dialogues`, { headers }),
-          axios.get(`${API}/studio/voices`, { headers }).catch(() => ({ data: { voices: [] } })),
-        ]);
+        const dialogueRes = await axios.get(`${API}/studio/projects/${projectId}/dialogues`, { headers });
         const d = dialogueRes.data;
         setScenesData(d.scenes || []);
         setCharacters(d.characters || []);
-        setCharacterVoices(d.character_voices || {});
+
+        // Auto-voices come pre-assigned from backend
+        const autoVoices = d.character_voices || {};
+        const voiceMap = {};
+        Object.entries(autoVoices).forEach(([name, info]) => {
+          voiceMap[name] = info.voice_id || '';
+        });
+        setCharacterVoices(voiceMap);
+        setAutoVoiceInfo(autoVoices);
+
         if (d.narrator_voice) setNarratorVoice(d.narrator_voice);
-        setVoices(voicesRes.data.voices || []);
+
+        // Load available voices for manual override
+        try {
+          const voicesRes = await axios.get(`${API}/studio/voices`, { headers });
+          setVoices(voicesRes.data.voices || []);
+        } catch {
+          setVoices([]);
+        }
       } catch (e) {
         toast.error(lang === 'pt' ? 'Erro ao carregar diálogos' : 'Error loading dialogues');
       }
@@ -194,23 +208,34 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
           <h3 className="text-[11px] font-semibold text-[#888] uppercase tracking-wider flex items-center gap-1.5">
             <Volume2 size={12} />
             {lang === 'pt' ? 'Vozes dos Personagens' : 'Character Voices'}
+            <span className="text-[9px] text-[#555] font-normal normal-case ml-1">
+              ({lang === 'pt' ? 'auto-atribuídas, altere se necessário' : 'auto-assigned, change if needed'})
+            </span>
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            {characters.map(char => (
-              <div key={char.name} className="flex flex-col gap-1">
-                <span className="text-[10px] text-white font-medium truncate">{char.name}</span>
-                <select
-                  value={characterVoices[char.name] || ''}
-                  onChange={e => setVoiceForCharacter(char.name, e.target.value)}
-                  data-testid={`voice-select-${char.name}`}
-                  className="bg-[#111] border border-[#222] rounded-lg text-[10px] text-[#aaa] px-2 py-1.5 focus:border-[#C9A84C]/50 outline-none">
-                  <option value="">{lang === 'pt' ? 'Auto (IA escolhe)' : 'Auto (AI picks)'}</option>
-                  {voices.map(v => (
-                    <option key={v.voice_id} value={v.voice_id}>{v.name}</option>
-                  ))}
-                </select>
-              </div>
-            ))}
+            {characters.map(char => {
+              const info = autoVoiceInfo[char.name] || {};
+              return (
+                <div key={char.name} className="bg-[#111] rounded-lg p-2 border border-[#1A1A1A]">
+                  <span className="text-[10px] text-white font-medium block truncate">{char.name}</span>
+                  <span className="text-[8px] text-[#C9A84C]/60 block mb-1.5">
+                    {info.voice_type || ''} {info.voice_name ? `(${info.voice_name})` : ''}
+                  </span>
+                  <select
+                    value={characterVoices[char.name] || info.voice_id || ''}
+                    onChange={e => setVoiceForCharacter(char.name, e.target.value)}
+                    data-testid={`voice-select-${char.name}`}
+                    className="w-full bg-[#0A0A0A] border border-[#222] rounded-md text-[9px] text-[#aaa] px-1.5 py-1 focus:border-[#C9A84C]/50 outline-none">
+                    <option value={info.voice_id || ''}>
+                      {info.voice_name ? `${info.voice_name} (Auto)` : (lang === 'pt' ? 'Auto (IA)' : 'Auto (AI)')}
+                    </option>
+                    {voices.filter(v => v.voice_id !== info.voice_id).map(v => (
+                      <option key={v.voice_id} value={v.voice_id}>{v.name}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

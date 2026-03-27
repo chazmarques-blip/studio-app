@@ -1601,11 +1601,59 @@ async def get_dialogues(project_id: str, tenant=Depends(get_current_tenant)):
             "thumbnail": panel.get("image_url", "") if panel else "",
         })
 
+    # Auto-assign voices based on character attributes (same logic as production)
+    VOICE_MAP = {
+        "narrator": {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "type": "Narrador"},
+        "male_elder": {"id": "VR6AewLTigWG4xSOukaG", "name": "Arnold", "type": "Masculino Adulto"},
+        "male_young": {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam", "type": "Masculino Jovem"},
+        "female_elder": {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella", "type": "Feminino Adulta"},
+        "female_young": {"id": "jBpfuIE2acCO8z3wKNLl", "name": "Gigi", "type": "Feminino Jovem"},
+        "child": {"id": "jsCqWAovK2LkecY7zXl4", "name": "Freya", "type": "Criança"},
+        "divine": {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "type": "Divino / Etéreo"},
+    }
+
+    auto_voices = {}
+    manual_voices = project.get("character_voices", {})
+    for c in characters:
+        name = c.get("name", "")
+        name_lower = name.lower()
+        desc = (c.get("description", "") or "").lower()
+
+        # Determine voice type by character attributes
+        if "narrador" in name_lower or "narrator" in name_lower:
+            vtype = "narrator"
+        elif "deus" in name_lower or "god" in name_lower or "anjo" in name_lower or "angel" in name_lower:
+            vtype = "divine"
+        elif "serpente" in name_lower or "snake" in name_lower:
+            vtype = "female_elder"
+        elif any(k in name_lower for k in ["criança", "bebê", "bebe", "child", "baby", "filhote"]):
+            vtype = "child"
+        elif any(k in desc for k in ["feminino", "female", "mulher", "woman", "menina", "girl", "mãe", "esposa"]):
+            if any(k in desc for k in ["jovem", "young", "menina", "girl"]):
+                vtype = "female_young"
+            else:
+                vtype = "female_elder"
+        elif any(k in name_lower for k in ["eva", "sara", "rebeca", "agar", "maria", "raquel", "ester"]):
+            vtype = "female_elder"
+        elif any(k in desc for k in ["jovem", "young", "menino", "boy", "adolescente"]):
+            vtype = "male_young"
+        else:
+            vtype = "male_elder"
+
+        voice_info = VOICE_MAP[vtype]
+        auto_voices[name] = {
+            "voice_id": manual_voices.get(name, voice_info["id"]),
+            "voice_name": voice_info["name"],
+            "voice_type": voice_info["type"],
+            "is_manual": name in manual_voices,
+        }
+
     return {
         "scenes": scene_data,
         "characters": [{"name": c.get("name", ""), "description": c.get("description", "")} for c in characters],
-        "character_voices": project.get("character_voices", {}),
-        "narrator_voice": project.get("narrator_voice", ""),
+        "character_voices": auto_voices,
+        "narrator_voice": project.get("narrator_voice", VOICE_MAP["narrator"]["id"]),
+        "narrator_voice_name": VOICE_MAP["narrator"]["name"],
         "dialogues_completed": project.get("dialogues_step_completed", False),
     }
 
