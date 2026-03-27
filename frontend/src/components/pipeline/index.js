@@ -6,3 +6,6 @@ export { CopyApproval, DesignApproval, VideoApproval } from './ApprovalCards';
 export { CompletedSummary } from './CompletedSummary';
 export { HistoryCard } from './HistoryCard';
 export { AssetUploader } from './AssetUploader';
+export { ActivePipelineView } from './ActivePipelineView';
+export { CompanyModal } from './CompanyModal';
+export { AvatarModal } from './AvatarModal';
