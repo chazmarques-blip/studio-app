@@ -3,7 +3,7 @@ from ._shared import *
 
 # ── STEP 1: Screenwriter Chat ──
 
-SCREENWRITER_SYSTEM_PHASE1 = """You are a MASTER SCREENWRITER and WORLD-BUILDER.
+SCREENWRITER_SYSTEM_PHASE1 = """You are a MASTER SCREENWRITER and WORLD-BUILDER. You create RICH, DETAILED screenplays that honor the source material.
 
 TASK: Create a screenplay structure. Return ONLY valid JSON:
 {{
@@ -22,13 +22,23 @@ Each scene:
 
 RULES:
 - Each scene = EXACTLY 12 seconds
-- Max 8 scenes per response (if more needed, note it)
+- There is NO LIMIT on the number of scenes or characters. Generate as many as the story NEEDS to be rich and faithful
+- Generate up to 10 scenes per response. Set "total_scenes" to the FULL number the story needs. If more than 10, I will ask you to continue
+- EVERY KEY NARRATIVE MOMENT deserves its OWN dedicated scene. NEVER compress multiple important events into a single scene
 - Describe characters PHYSICALLY in detail with species-accurate features
 - CRITICAL: If the story uses animals as characters, ALL descriptions MUST use animal features (fur, feathers, hooves, tails, snouts, paws). NEVER describe animal characters with human features (hands, fingers, human skin)
 - Characters MUST maintain visually consistent appearance across ALL scenes — same colors, same clothing, same distinguishing marks
+- Create as many UNIQUE characters as the story calls for — each with distinct visual identity. Secondary characters, crowds, and background characters ALL deserve proper names and descriptions
 - Every scene description MUST include: specific location, time of day, atmosphere, background elements
-- Be faithful to source material (bible, history, etc.)
-- **LANGUAGE RULE (MANDATORY)**: ALL text content — title, scene titles, descriptions, dialogue, narration, research_notes — MUST be written ENTIRELY in {lang_name} ({lang}). Do NOT write in English unless the language IS English. This is NON-NEGOTIABLE."""
+- Be faithful to source material (bible, history, etc.). Cover the FULL arc of the story — beginning, development, climax, and resolution — with sufficient detail
+- **LANGUAGE RULE (MANDATORY)**: ALL text content — title, scene titles, descriptions, dialogue, narration, research_notes — MUST be written ENTIRELY in {lang_name} ({lang}). Do NOT write in English unless the language IS English. This is NON-NEGOTIABLE.
+
+RICHNESS GUIDELINES:
+- A simple story (1-2 key events) → 5-8 scenes
+- A medium story (3-5 key events) → 8-15 scenes
+- A rich/epic story (biblical, historical, mythological) → 15-30+ scenes
+- Each emotional beat, each location change, each character introduction = a new scene
+- If in doubt, MORE scenes is better than fewer. The user wants depth, not summaries."""
 
 LANG_FULL_NAMES = {"pt": "Português (Brazilian Portuguese)", "en": "English", "es": "Español", "fr": "Français", "de": "Deutsch", "it": "Italiano"}
 
@@ -102,6 +112,8 @@ CONTINUATION RULES:
 - Scene numbers MUST start from {last_scene_num + 1}
 - Time starts from {last_time_end} (each scene = 12 seconds)
 - Keep the same characters, visual style, and narrative tone
+- There is NO limit on new scenes or characters — generate as many as needed to enrich the story
+- If the user asks to expand a specific part, create MULTIPLE detailed scenes for it
 - Return ONLY JSON with "scenes" array containing the NEW scenes (continuation only)
 - Also return "characters" array with any NEW characters introduced (or empty array if none)
 - Return "total_scenes" as the total number of NEW scenes in this batch
@@ -113,10 +125,10 @@ CONTINUATION RULES:
 Current request: {message}
 {audio_instruction}
 
-Create the screenplay. If the story needs more than 8 scenes, generate the first 8 now. Return ONLY valid JSON."""
+Create the screenplay. Generate as many scenes and characters as the story NEEDS to be rich and complete — there is NO limit. If the story needs more than 10 scenes, generate the first 10 and set "total_scenes" to the full amount. Return ONLY valid JSON."""
 
-        # Phase 1: Get first batch of scenes (up to 8)
-        result = _call_claude_sync(system, user_prompt, max_tokens=6000)
+        # Phase 1: Get first batch of scenes (up to 10)
+        result = _call_claude_sync(system, user_prompt, max_tokens=8000)
         parsed = _parse_json(result)
 
         if not parsed:
@@ -137,21 +149,38 @@ Create the screenplay. If the story needs more than 8 scenes, generate the first
             all_characters = parsed.get("characters", [])
             total_needed = parsed.get("total_scenes", len(all_scenes))
 
-            # Phase 2: If more scenes needed, generate continuation
-            if total_needed > len(all_scenes):
+            # Phase 2: Aggressive continuation loop — generate ALL remaining scenes
+            max_continuation_rounds = 10  # Safety limit (10 rounds × 10 scenes = 100 scenes max)
+            round_num = 0
+            while total_needed > len(all_scenes) and round_num < max_continuation_rounds:
+                round_num += 1
+                remaining = total_needed - len(all_scenes)
                 try:
-                    continuation_prompt = f"""Continue the screenplay from scene {len(all_scenes) + 1} to {total_needed}.
+                    scene_summary = '\n'.join(
+                        f"Scene {s.get('scene_number')}: {s.get('title')}"
+                        for s in all_scenes
+                    )
+                    char_names = ', '.join(c.get('name', '') for c in all_characters)
 
-Previous scenes already written:
-{', '.join(f'Scene {s.get("scene_number")}: {s.get("title")}' for s in all_scenes)}
+                    continuation_prompt = f"""Continue the screenplay. Generate scenes {len(all_scenes) + 1} to {total_needed}.
 
-Characters: {', '.join(c.get('name','') for c in all_characters)}
+SCENES ALREADY WRITTEN ({len(all_scenes)} of {total_needed}):
+{scene_summary}
+
+Characters so far: {char_names}
 Story: {message}
 
-ALL text (titles, descriptions, dialogue) MUST be in {LANG_FULL_NAMES.get(lang, lang)}.
-Return ONLY JSON with a "scenes" array containing the remaining scenes (same format)."""
+IMPORTANT:
+- Generate up to 10 scenes in this batch
+- Scene numbers start from {len(all_scenes) + 1}
+- Time starts from {all_scenes[-1].get('time_end', '0:00')} (each scene = 12 seconds)
+- Keep the same visual style, characters, and narrative tone
+- Introduce NEW characters when the story calls for them — there is NO character limit
+- If the story needs more key moments, add them. Be RICH and DETAILED
+- ALL text (titles, descriptions, dialogue) MUST be in {LANG_FULL_NAMES.get(lang, lang)}
+- Return ONLY JSON with "scenes" array and optionally "characters" array for NEW characters introduced"""
 
-                    cont_result = _call_claude_sync(system, continuation_prompt, max_tokens=3000)
+                    cont_result = _call_claude_sync(system, continuation_prompt, max_tokens=8000)
                     cont_parsed = _parse_json(cont_result)
                     if not cont_parsed:
                         import re
@@ -160,15 +189,26 @@ Return ONLY JSON with a "scenes" array containing the remaining scenes (same for
                             cont_parsed = _parse_json(json_match.group(1))
 
                     if cont_parsed and cont_parsed.get("scenes"):
-                        all_scenes.extend(cont_parsed["scenes"])
+                        new_scenes = cont_parsed["scenes"]
+                        all_scenes.extend(new_scenes)
                         if cont_parsed.get("characters"):
                             existing_names = {c["name"] for c in all_characters}
                             for c in cont_parsed["characters"]:
                                 if c.get("name") not in existing_names:
                                     all_characters.append(c)
-                        logger.info(f"Studio [{project_id}]: Phase 2 added {len(cont_parsed['scenes'])} more scenes (total: {len(all_scenes)})")
+                        # Update total_needed if Claude indicates more are needed
+                        if cont_parsed.get("total_scenes") and cont_parsed["total_scenes"] > total_needed:
+                            total_needed = cont_parsed["total_scenes"]
+                        logger.info(f"Studio [{project_id}]: Continuation round {round_num} added {len(new_scenes)} scenes (total: {len(all_scenes)}/{total_needed})")
+                    else:
+                        logger.warning(f"Studio [{project_id}]: Continuation round {round_num} returned no scenes. Stopping.")
+                        break
                 except Exception as e2:
-                    logger.warning(f"Studio [{project_id}]: Phase 2 continuation failed: {e2}. Using {len(all_scenes)} scenes.")
+                    logger.warning(f"Studio [{project_id}]: Continuation round {round_num} failed: {e2}. Using {len(all_scenes)} scenes.")
+                    break
+
+            if round_num > 0:
+                logger.info(f"Studio [{project_id}]: Screenplay complete — {len(all_scenes)} scenes, {len(all_characters)} characters after {round_num} continuation rounds")
 
             # Re-read existing scenes (project may have been re-fetched)
             prev_scenes = project.get("scenes", [])

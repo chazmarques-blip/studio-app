@@ -30,56 +30,38 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 ### Recent Changes (Feb 27, 2026)
 
 #### Backend: studio.py Split into Modular Package
-- `/app/backend/routers/studio/` — 11 modules:
-  - `_shared.py`, `projects.py`, `storyboard.py`, `dialogues.py`, `smart_edit.py`,
-    `continuity.py`, `book.py`, `screenwriter.py`, `production.py`, `narration.py`, `post_production.py`
+`/app/backend/routers/studio/` — 11 modules
 
 #### Frontend: PipelineView.jsx Split
-- 3095 → 1807 lines. Extracted: `ActivePipelineView.jsx`, `CompanyModal.jsx`, `AvatarModal.jsx`
+3095 → 1807 lines. Extracted: ActivePipelineView, CompanyModal, AvatarModal
 
 #### Voice Preview Endpoint
-- `POST /api/studio/voice-preview` — ElevenLabs TTS audio sample generation
+`POST /api/studio/voice-preview` — ElevenLabs TTS audio sample generation
 
 #### Continuity Director Architecture (Storyboard)
-Major upgrade to storyboard generation pipeline:
+1. **Character Identity Cards**: Claude Vision analyzes avatars → structured card with body_type, immutable_traits, prohibitions
+2. **Shot Director**: Claude pre-plans 6 frames/scene with spatial continuity
+3. **Identity-First Prompts**: Identity FIRST (highest weight), scene SECOND, per-character prohibitions inline
+4. **Parallelism**: 4 scenes × 6 frames = 24 concurrent (was 6)
 
-1. **Character Identity Cards** (`_analyze_avatars_with_vision()` upgraded):
-   - Claude Vision analyzes each avatar image → structured Identity Card
-   - Includes: species, body_type (BIPEDAL/QUADRUPED), locomotion, anatomy, immutable_traits, prohibitions
-   - Stored in project's `production_design.identity_cards`
+#### Unlimited Screenwriter (Script Generation)
+- Removed 8-scene limit — story generates as many scenes as needed (10 per batch, auto-continuation loop up to 100)
+- Removed character limit — more characters = richer story
+- Added richness guidelines: simple stories 5-8 scenes, rich/epic stories 15-30+
+- Aggressive auto-continuation: loop generates ALL scenes until complete
+- Instruction: "Every key narrative moment deserves its OWN scene — never compress"
 
-2. **Shot Director** (new `_generate_shot_briefs()`):
-   - Claude pre-plans 6 frames per scene with spatial continuity
-   - Each frame has: camera angle, character positioning, actions, expressions, continuity notes, prohibitions
-   - Receives context from previous/next scenes for cross-scene continuity
+## Backlog
 
-3. **Identity-First Prompts** (new `_build_identity_prompt()`):
-   - BLOCK 1: Character Identity (IMMUTABLE — highest weight)
-   - BLOCK 2: Scene Instruction (can vary per frame)
-   - BLOCK 3: Style & Rules
-   - Per-character prohibitions inline (e.g., "NEVER show on four legs")
-
-4. **Increased Parallelism**:
-   - Scene semaphore: 2 → 4 concurrent scenes
-   - Frame semaphore: 3 → 6 (all frames in parallel per scene)
-   - Shot brief semaphore: 8 concurrent Claude calls
-   - Total: up to 24 concurrent Gemini calls
-
-## Backlog (Prioritized)
-
-### P1 - High
-- Test Continuity Director with real storyboard generation (visual validation)
+### P1
+- Visual validation of Continuity Director + Unlimited Screenwriter with real project
 - Progressive Storyboard Pipeline (keyframe blitz → lazy expansion)
 
-### P2 - Medium
-- AI Marketing Studio (Phase 7.1/7.2) — Enterprise plan
-- Phase 8: Omnichannel Integrations (WhatsApp, SMS, Instagram, Telegram)
-- Admin Management System, Stripe Payment Gateway
+### P2
+- AI Marketing Studio (Phase 7), Omnichannel Integrations, Admin System, Stripe
 
-### P3 - Low
-- Native App packaging (Capacitor iOS/Android)
-- Legal & Publication
+### P3
+- Native App packaging (Capacitor), Legal & Publication
 
 ## Test Credentials
-- Email: test@agentflow.com
-- Password: password123
+- Email: test@agentflow.com / Password: password123
