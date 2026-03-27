@@ -32,3 +32,17 @@
         transform: rotate(360deg);
     }
 }
+
+
+/* ── Mobile Touch Targets (Apple HIG: 44px, Google MD: 48px) ── */
+@media (pointer: coarse) {
+    button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    /* Exception for inline/small UI elements */
+    .touch-target-sm {
+        min-height: 32px;
+        min-width: 32px;
+    }
+}

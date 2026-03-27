@@ -1,10 +1,20 @@
-from fastapi import FastAPI, APIRouter, Depends
+"""AgentZZ API Server — Production-ready with middleware stack."""
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 import os
 import logging
+import shutil
 
-from core.deps import supabase, get_current_user
+from core.deps import supabase, get_current_user, get_current_tenant
+from core.config import CORS_ORIGINS, APP_VERSION, APP_NAME
+from core.exceptions import AppError, app_error_handler
+from core.middleware import ObservabilityMiddleware, UploadSizeMiddleware
 
 from routers.auth import router as auth_router
 from routers.agents import router as agents_router
@@ -22,12 +32,32 @@ from routers.data import router as data_router
 from routers.avatar import router as avatar_router
 from routers.studio import router as studio_router
 
-app = FastAPI(title="AgentZZ API")
+app = FastAPI(title=APP_NAME, version=APP_VERSION)
 api_router = APIRouter(prefix="/api")
 
+# ── Rate Limiter ──
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+
+
+def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=429,
+        content={"error": {"code": "rate_limit_exceeded", "message": str(exc.detail), "details": {"retry_after": 60}}},
+    )
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# ── Register Error Handlers ──
+app.add_exception_handler(AppError, app_error_handler)
 
 
+# ── Lifecycle Events ──
 @app.on_event("startup")
 async def cleanup_stale_tasks():
     """Clean up stale generating/starting statuses that were orphaned by hot-reloads."""
@@ -35,7 +65,7 @@ async def cleanup_stale_tasks():
         from routers.studio import _cleanup_stale_storyboards
         _cleanup_stale_storyboards()
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Stale task cleanup skipped: {e}")
+        logger.warning(f"Stale task cleanup skipped: {e}")
 
 @app.on_event("shutdown")
 async def flush_caches():
@@ -44,16 +74,63 @@ async def flush_caches():
         from core.cache import project_cache
         project_cache.force_flush()
     except Exception as e:
-        logging.getLogger(__name__).warning(f"Cache flush on shutdown failed: {e}")
+        logger.warning(f"Cache flush on shutdown failed: {e}")
 
 
-
-
+# ── Health Checks ──
 @api_router.get("/health")
 async def health():
-    return {"status": "ok", "service": "agentzz-api", "version": "0.4.0", "database": "supabase"}
+    """Shallow health — for load balancer (fast)."""
+    return {"status": "ok", "service": "agentzz-api", "version": APP_VERSION}
 
 
+@api_router.get("/health/deep")
+async def deep_health(user=Depends(get_current_user)):
+    """Deep health — checks all dependencies. Requires auth."""
+    checks = {}
+
+    # Supabase
+    try:
+        supabase.table("tenants").select("id").limit(1).execute()
+        checks["supabase"] = {"status": "ok"}
+    except Exception as e:
+        checks["supabase"] = {"status": "error", "detail": str(e)[:100]}
+
+    # AI Provider keys
+    from core.config import ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY
+    for name, key in [("claude", ANTHROPIC_API_KEY), ("openai", OPENAI_API_KEY),
+                      ("gemini", GEMINI_API_KEY), ("elevenlabs", ELEVENLABS_API_KEY)]:
+        checks[name] = {"status": "ok" if key else "missing_key"}
+
+    # AI Circuit Breakers
+    try:
+        from providers.ai import get_provider_status
+        checks["ai_providers"] = get_provider_status()
+    except Exception:
+        checks["ai_providers"] = {"status": "not_initialized"}
+
+    # Disk
+    disk = shutil.disk_usage("/tmp")
+    checks["disk"] = {
+        "status": "ok" if disk.free > 500_000_000 else "low",
+        "free_gb": round(disk.free / 1e9, 1),
+    }
+
+    # Cache
+    try:
+        from core.cache import get_cache_stats
+        checks["cache"] = get_cache_stats()
+    except Exception:
+        checks["cache"] = {"status": "unavailable"}
+
+    overall = "ok" if all(
+        c.get("status") == "ok" for c in checks.values() if isinstance(c, dict) and "status" in c
+    ) else "degraded"
+
+    return {"status": overall, "version": APP_VERSION, "checks": checks}
+
+
+# ── Dashboard Stats ──
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(user=Depends(get_current_user)):
     from datetime import datetime, timezone, timedelta
@@ -89,9 +166,6 @@ async def get_dashboard_stats(user=Depends(get_current_user)):
     now = datetime.now(timezone.utc)
     week_ago = (now - timedelta(days=7)).isoformat()
     msgs_week = supabase.table("messages").select("created_at, sender").gte("created_at", week_ago).execute().data or []
-    # Filter by tenant conversations
-    convo_ids = {c["id"] for c in all_convos}
-    # Group by day
     day_counts = Counter()
     today_count = 0
     today_str = now.strftime("%Y-%m-%d")
@@ -144,6 +218,7 @@ async def get_dashboard_stats(user=Depends(get_current_user)):
     }
 
 
+# ── Billing ──
 PLAN_CONFIG = {
     "free": {"agents": 1, "messages_limit": 200, "messages_period": "month", "channels": 1, "personal_agent": False},
     "starter": {"agents": 3, "messages_limit": 1500, "messages_period": "month", "channels": 5, "personal_agent": False},
@@ -159,12 +234,10 @@ async def upgrade_plan(data: dict, user=Depends(get_current_user)):
     billing_cycle = data.get("billing_cycle", "monthly")
 
     if plan not in PLAN_CONFIG:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Invalid plan")
 
     tenant_result = supabase.table("tenants").select("*").eq("owner_id", user["id"]).execute()
     if not tenant_result.data:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Tenant not found")
 
     limits = PLAN_CONFIG[plan]
@@ -182,7 +255,7 @@ async def upgrade_plan(data: dict, user=Depends(get_current_user)):
     return {"status": "ok", "plan": plan, "limits": limits}
 
 
-# Include all routers
+# ── Include All Routers ──
 app.include_router(auth_router)
 app.include_router(agents_router)
 app.include_router(conversations_router)
@@ -200,14 +273,28 @@ app.include_router(avatar_router)
 app.include_router(studio_router)
 app.include_router(api_router)
 
-# Serve uploaded files (pipeline images, etc.)
+# ── Static Files ──
 os.makedirs("/app/backend/uploads/pipeline", exist_ok=True)
 app.mount("/api/uploads", StaticFiles(directory="/app/backend/uploads"), name="uploads")
 
+# ── Middleware Stack (order matters: last added = first executed) ──
+# 1. CORS
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 2. GZip compression (responses > 500 bytes)
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# 3. Upload size validation
+app.add_middleware(UploadSizeMiddleware)
+
+# 4. Observability (request tracing + timing)
+app.add_middleware(ObservabilityMiddleware)
+
+# 5. Rate Limiting
+app.add_middleware(SlowAPIMiddleware)

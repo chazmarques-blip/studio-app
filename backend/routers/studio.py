@@ -74,14 +74,14 @@ from core.llm import DirectSora2Client
 
 # Cache stats endpoint
 @router.get("/cache/stats")
-async def get_cache_stats():
-    """Get statistics from all cache layers."""
+async def get_cache_stats(tenant=Depends(get_current_tenant)):
+    """Get statistics from all cache layers. Requires auth."""
     from core.cache import get_cache_stats
     return get_cache_stats()
 
 @router.post("/cache/flush")
-async def flush_cache():
-    """Force flush all dirty project data to DB."""
+async def flush_cache(tenant=Depends(get_current_tenant)):
+    """Force flush all dirty project data to DB. Requires auth."""
     from core.cache import project_cache, image_cache, llm_cache
     project_cache.force_flush()
     image_cache.cleanup()

@@ -1,0 +1,21 @@
+{
+  "short_name": "AgentZZ",
+  "name": "AgentZZ - Plataforma de Agentes de IA",
+  "description": "Plataforma No-Code para criar e gerenciar agentes de IA multicanal",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    {
+      "src": "logo-agentzz.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "pt-BR",
+  "scope": "/"
+}

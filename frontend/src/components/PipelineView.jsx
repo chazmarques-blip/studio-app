@@ -1263,7 +1263,7 @@ export default function PipelineView({ context }) {
                   <div className="flex items-center gap-2">
                     <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${activeCompanyId === co.id ? 'bg-[#C9A84C]/15' : 'bg-[#1A1A1A]'}`}>
                       {co.logo_url ? (
-                        <img src={resolveImageUrl(co.logo_url)} alt="" className="h-full w-full object-cover" />
+                        <img src={resolveImageUrl(co.logo_url)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       ) : (
                         <Building2 size={11} className={activeCompanyId === co.id ? 'text-[#C9A84C]' : 'text-[#999]'} />
                       )}
@@ -1322,7 +1322,7 @@ export default function PipelineView({ context }) {
                   <div className={`h-10 w-10 rounded-lg overflow-hidden transition-all shrink-0 ${
                     active ? 'ring-2 ring-[#C9A84C]' : ''
                   }`}>
-                    <img src={type.icon} alt={type.label} className="h-full w-full object-cover" />
+                    <img src={type.icon} alt={type.label} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   </div>
                   <span className={`text-[10px] font-semibold text-center leading-tight w-full ${
                     active ? 'text-[#C9A84C]' : 'text-[#999]'
@@ -1344,7 +1344,7 @@ export default function PipelineView({ context }) {
                   <div className={`h-10 w-10 rounded-lg overflow-hidden transition-all shrink-0 ${
                     active ? 'ring-2 ring-[#C9A84C]' : ''
                   }`}>
-                    <img src="/icons/campaign-types/directed-video.png" alt="Directed Studio" className="h-full w-full object-cover" />
+                    <img src="/icons/campaign-types/directed-video.png" alt="Directed Studio" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   </div>
                   <span className={`text-[10px] font-semibold text-center leading-tight w-full ${
                     active ? 'text-[#C9A84C]' : 'text-[#999]'
@@ -1408,7 +1408,7 @@ export default function PipelineView({ context }) {
               {avatars.map(av => (
                 <div key={av.id} data-testid={`avatar-${av.id}`}
                   className={`relative rounded-xl overflow-hidden border-2 transition cursor-pointer ${selectedAvatarId === av.id ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-                  <img src={resolveImageUrl(av.url)} alt={av.name} className="h-24 w-16 object-cover"
+                  <img src={resolveImageUrl(av.url)} alt={av.name} loading="lazy" decoding="async" className="h-24 w-16 object-cover"
                     onClick={() => setSelectedAvatarId(av.id)} />
                   {selectedAvatarId === av.id && (
                     <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
@@ -1723,7 +1723,7 @@ export default function PipelineView({ context }) {
                 {applyBrandData && <Check size={10} className="text-black" />}
               </div>
               {activeCompany.logo_url ? (
-                <img src={resolveImageUrl(activeCompany.logo_url)} alt="" className="h-8 w-8 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
+                <img src={resolveImageUrl(activeCompany.logo_url)} alt="" loading="lazy" decoding="async" className="h-8 w-8 rounded-lg object-cover border border-[#1E1E1E] shrink-0" />
               ) : (
                 <div className="h-8 w-8 rounded-lg bg-[#1A1A1A] border border-[#1E1E1E] flex items-center justify-center shrink-0">
                   <Building2 size={12} className="text-[#999]" />
@@ -1890,7 +1890,7 @@ export default function PipelineView({ context }) {
         {avatarPreviewUrl && (
           <div className="fixed inset-0 z-[80] bg-black/95 flex items-center justify-center p-4" onClick={() => setAvatarPreviewUrl(null)}>
             <div className="relative max-w-3xl w-full max-h-[90vh] flex items-center justify-center" onClick={e => e.stopPropagation()}>
-              <img src={resolveImageUrl(avatarPreviewUrl)} alt="Avatar Preview" className="max-w-full max-h-[85vh] rounded-2xl border border-[#C9A84C]/20 shadow-2xl object-contain" />
+              <img src={resolveImageUrl(avatarPreviewUrl)} alt="Avatar Preview" loading="lazy" decoding="async" className="max-w-full max-h-[85vh] rounded-2xl border border-[#C9A84C]/20 shadow-2xl object-contain" />
               <button onClick={() => setAvatarPreviewUrl(null)}
                 className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-black border border-[#333] flex items-center justify-center hover:bg-[#1A1A1A] transition">
                 <X size={14} className="text-white" />
@@ -1952,7 +1952,7 @@ export default function PipelineView({ context }) {
                   disabled={logoUploading}
                   className={`relative shrink-0 h-14 w-14 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden transition ${newCompany.logo_url ? 'border-[#C9A84C]/40' : 'border-[#2A2A2A] hover:border-[#C9A84C]/30'}`}>
                   {newCompany.logo_url ? (
-                    <img src={resolveImageUrl(newCompany.logo_url)} alt="Logo" className="h-full w-full object-cover" />
+                    <img src={resolveImageUrl(newCompany.logo_url)} alt="Logo" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   ) : logoUploading ? (
                     <Loader2 size={16} className="animate-spin text-[#C9A84C]" />
                   ) : (
@@ -2088,7 +2088,7 @@ export default function PipelineView({ context }) {
                       {avatarSourcePhoto ? (
                         <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
                           <div className="relative shrink-0">
-                            <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Source"
+                            <img loading="lazy" decoding="async" src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Source"
                               onError={(e) => { if (avatarSourcePhoto.url) e.target.src = resolveImageUrl(avatarSourcePhoto.url); }}
                               className="h-16 w-16 rounded-lg object-cover border border-[#C9A84C]/30" />
                             <button onClick={() => { setAvatarSourcePhoto(null); }}
@@ -2130,7 +2130,7 @@ export default function PipelineView({ context }) {
                           {avatarVideoFrames.length > 0 && (
                             <div className="flex -space-x-2 shrink-0">
                               {avatarVideoFrames.slice(0, 3).map((url, i) => (
-                                <img key={i} src={resolveImageUrl(url)} alt={`frame ${i}`}
+                                <img loading="lazy" decoding="async" key={i} src={resolveImageUrl(url)} alt={`frame ${i}`}
                                   className="h-10 w-10 rounded-lg object-cover border-2 border-[#0A0A0A]" />
                               ))}
                             </div>
@@ -2247,7 +2247,7 @@ export default function PipelineView({ context }) {
                                 <div className="flex gap-2">
                                   {accuracyProgress.iterations.map((it, idx) => (
                                     it.url && <div key={idx} className="relative group/evo">
-                                      <img src={resolveImageUrl(it.url)} alt={`v${idx+1}`}
+                                      <img loading="lazy" decoding="async" src={resolveImageUrl(it.url)} alt={`v${idx+1}`}
                                         className={`h-20 w-14 rounded-xl object-cover border-2 transition ${
                                           it.passed ? 'border-green-500/40' : 'border-red-500/30'}`} />
                                       <div className={`absolute -top-1.5 -right-1.5 h-5 min-w-5 px-0.5 rounded-full text-[11px] font-bold flex items-center justify-center shadow-lg ${
@@ -2339,7 +2339,7 @@ export default function PipelineView({ context }) {
                           {avatarSourcePhoto ? (
                             <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
                               <div className="relative shrink-0">
-                                <img src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Ref"
+                                <img loading="lazy" decoding="async" src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Ref"
                                   onError={(e) => { if (avatarSourcePhoto.url) e.target.src = resolveImageUrl(avatarSourcePhoto.url); }}
                                   className="h-14 w-14 rounded-lg object-cover border border-[#C9A84C]/30" />
                                 <button onClick={() => setAvatarSourcePhoto(null)}
@@ -2470,7 +2470,7 @@ export default function PipelineView({ context }) {
                                     isCurrent ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.15)]' : 'border-[#1E1E1E] hover:border-[#333]'
                                   }`}
                                   onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}>
-                                  <img src={resolveImageUrl(entry.url)} alt={`v${idx + 1}`}
+                                  <img loading="lazy" decoding="async" src={resolveImageUrl(entry.url)} alt={`v${idx + 1}`}
                                     className="w-full aspect-[3/4] object-cover" />
                                   {entry.isBase && (
                                     <div className="absolute top-1 left-1 bg-[#C9A84C] rounded px-1.5 py-0.5">
@@ -2691,7 +2691,7 @@ export default function PipelineView({ context }) {
                                 <button key={style} onClick={() => setTempAvatar(p => ({ ...p, url, clothing: style }))}
                                   className={`relative rounded-xl overflow-hidden border-2 transition ${
                                     tempAvatar?.clothing === style ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
-                                  <img src={resolveImageUrl(url)} alt={style} className="w-14 h-20 object-cover" />
+                                  <img src={resolveImageUrl(url)} alt={style} loading="lazy" decoding="async" className="w-14 h-20 object-cover" />
                                   {tempAvatar?.clothing === style && (
                                     <div className="absolute top-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#C9A84C] flex items-center justify-center">
                                       <Check size={7} className="text-black" />
@@ -2768,7 +2768,7 @@ export default function PipelineView({ context }) {
                               disabled={generatingAngle === angle.id}
                               className="w-full">
                               {angleImages[angle.id] ? (
-                                <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} className="w-full aspect-[3/5] object-cover" />
+                                <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} loading="lazy" decoding="async" className="w-full aspect-[3/5] object-cover" />
                               ) : generatingAngle === angle.id ? (
                                 <div className="w-full aspect-[3/5] flex items-center justify-center bg-[#111]">
                                   <Loader2 size={14} className="animate-spin text-[#C9A84C]" />

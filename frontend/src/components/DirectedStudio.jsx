@@ -1458,7 +1458,7 @@ export function DirectedStudio({
                   /* ── View Mode ── */
                   <div className="flex items-start gap-2 mb-2">
                     {characterAvatars[char.name] ? (
-                      <img src={resolveImageUrl(characterAvatars[char.name])} alt="" className="h-12 w-10 rounded-lg object-cover border border-[#C9A84C]/30 flex-shrink-0" />
+                      <img src={resolveImageUrl(characterAvatars[char.name])} alt="" loading="lazy" decoding="async" className="h-12 w-10 rounded-lg object-cover border border-[#C9A84C]/30 flex-shrink-0" />
                     ) : (
                       <div className="h-12 w-10 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-dashed border-[#333] flex-shrink-0">
                         <Users size={14} className="text-[#444]" />
@@ -1501,7 +1501,7 @@ export function DirectedStudio({
                       <div key={ai} className={`relative rounded-lg overflow-hidden border-2 transition cursor-pointer group ${
                         isLinked ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.25)]' : 'border-[#222] hover:border-[#444]'
                       }`} style={{ width: 52, height: 68 }}>
-                        <img src={resolveImageUrl(av.url)} alt={av.name}
+                        <img loading="lazy" decoding="async" src={resolveImageUrl(av.url)} alt={av.name}
                           className="w-full h-full object-cover"
                           onClick={() => linkAvatar(char.name, av.url)} />
                         {isLinked && (
@@ -1955,7 +1955,7 @@ export function DirectedStudio({
                 <div className="w-full max-w-4xl">
                   {/* Main image */}
                   <div className="relative">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={previewModal.data.images[previewModal.data.currentIndex]?.url || previewModal.data.images[previewModal.data.currentIndex]}
                       alt=""
                       className="w-full max-h-[65vh] object-contain rounded-xl shadow-2xl"
@@ -2005,7 +2005,7 @@ export function DirectedStudio({
                         className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition ${
                           i === previewModal.data.currentIndex ? 'border-[#C9A84C] opacity-100' : 'border-transparent opacity-40 hover:opacity-70'
                         }`}>
-                        <img src={img?.url || img} alt="" className="w-full h-full object-cover" />
+                        <img src={img?.url || img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -2050,7 +2050,7 @@ export function DirectedStudio({
                       })}
                         className="relative rounded-lg overflow-hidden border border-white/5 hover:border-[#C9A84C]/30 transition group aspect-[4/3]"
                         data-testid={`pdf-preview-frame-${i}`}>
-                        <img src={frame.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <img src={frame.url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition" />
                         <span className="absolute bottom-1 left-1.5 text-[10px] font-mono text-white/80 opacity-0 group-hover:opacity-100 transition">
                           C{frame.scene} F{frame.frame}
@@ -2179,7 +2179,7 @@ export function DirectedStudio({
                 {/* Thumbnail background */}
                 {thumbs[0] && (
                   <div className="relative h-24 overflow-hidden">
-                    <img src={thumbs[0]} alt="" className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700" />
+                    <img src={thumbs[0]} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
                     <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
                       <Check size={10} className="text-emerald-400" />
@@ -2233,7 +2233,7 @@ export function DirectedStudio({
                   <div className="relative h-24 overflow-hidden">
                     <div className="grid grid-cols-2 gap-px h-full">
                       {thumbs.slice(0, 4).map((t, ti) => (
-                        <img key={ti} src={t} alt="" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+                        <img key={ti} src={t} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
                       ))}
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
@@ -2281,7 +2281,7 @@ export function DirectedStudio({
                     <div className="flex h-full">
                       {thumbs.slice(0, 3).map((t, ti) => (
                         <div key={ti} className="flex-1 relative">
-                          <img src={t} alt="" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+                          <img src={t} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
                         </div>
                       ))}
                     </div>

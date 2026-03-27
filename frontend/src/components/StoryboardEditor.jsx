@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
-  Sparkles, ChevronRight, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
+  Sparkles, ChevronRight, ChevronDown, ChevronUp, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
   Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -68,6 +68,18 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [continuityReport, setContinuityReport] = useState(null);
   const [correcting, setCorrecting] = useState(false);
   const [continuityNotes, setContinuityNotes] = useState('');
+  // Expandable panels — collapsed by default for performance
+  const [expandedPanels, setExpandedPanels] = useState(new Set());
+  const togglePanel = (sceneNum) => {
+    setExpandedPanels(prev => {
+      const next = new Set(prev);
+      if (next.has(sceneNum)) next.delete(sceneNum);
+      else next.add(sceneNum);
+      return next;
+    });
+  };
+  const expandAll = () => setExpandedPanels(new Set(panels.map(p => p.scene_number)));
+  const collapseAll = () => setExpandedPanels(new Set());
   const getSelectedFrame = (panelNum, frames) => {
     const idx = selectedFrames[panelNum] || 0;
     return frames?.[idx] || null;
@@ -608,10 +620,68 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             )}
           </div>
 
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-[#666]">
+              {expandedPanels.size === 0
+                ? (lang === 'pt' ? 'Clique numa cena para expandir' : 'Click a scene to expand')
+                : `${expandedPanels.size}/${panels.length} ${lang === 'pt' ? 'abertas' : 'open'}`}
+            </span>
+            <div className="flex gap-1.5">
+              <button onClick={expandAll} data-testid="expand-all-panels"
+                className="text-[10px] text-[#888] hover:text-[#C9A84C] transition px-2 py-1 rounded bg-[#111] border border-[#222]">
+                {lang === 'pt' ? 'Abrir Todas' : 'Expand All'}
+              </button>
+              <button onClick={collapseAll} data-testid="collapse-all-panels"
+                className="text-[10px] text-[#888] hover:text-white transition px-2 py-1 rounded bg-[#111] border border-[#222]">
+                {lang === 'pt' ? 'Fechar Todas' : 'Collapse All'}
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             {panels.map((panel) => {
               const isEditing = editingPanel === panel.scene_number;
               const isGenerating = generatingPanel === panel.scene_number;
+              const isExpanded = expandedPanels.has(panel.scene_number) || isEditing || isGenerating;
+
+              // ── COLLAPSED STATE: Lightweight card ──
+              if (!isExpanded) {
+                return (
+                  <button key={panel.scene_number}
+                    onClick={() => togglePanel(panel.scene_number)}
+                    data-testid={`storyboard-panel-${panel.scene_number}`}
+                    className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/40 transition-all text-left overflow-hidden group">
+                    <div className="flex items-center gap-2 p-2">
+                      {/* Mini thumbnail */}
+                      <div className="relative w-16 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#111]">
+                        {panel.image_url ? (
+                          <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
+                            loading="lazy" decoding="async"
+                            className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Image size={12} className="text-[#333]" />
+                          </div>
+                        )}
+                        <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#C9A84C] font-bold px-1 rounded">
+                          {panel.scene_number}
+                        </span>
+                      </div>
+                      {/* Title + info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-white truncate">{panel.title}</p>
+                        <p className="text-[9px] text-[#555] truncate">{panel.dialogue || panel.description || ''}</p>
+                        {panel.frames?.length > 1 && (
+                          <span className="text-[8px] text-[#C9A84C]/60">{panel.frames.length} frames</span>
+                        )}
+                      </div>
+                      {/* Expand icon */}
+                      <ChevronDown size={14} className="text-[#555] group-hover:text-[#C9A84C] transition flex-shrink-0" />
+                    </div>
+                  </button>
+                );
+              }
+
+              // ── EXPANDED STATE: Full panel content ──
 
               return (
                 <div key={panel.scene_number}
@@ -620,9 +690,16 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     panel.status === 'error'
                       ? 'border-red-500/30 bg-red-500/5'
                       : panel.image_url
-                        ? 'border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/30'
+                        ? 'border-[#C9A84C]/30 bg-[#0A0A0A]'
                         : 'border-[#1A1A1A] bg-[#0A0A0A]'
                   }`}>
+                  {/* Collapse header */}
+                  <button onClick={() => togglePanel(panel.scene_number)}
+                    data-testid={`collapse-panel-${panel.scene_number}`}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A] hover:bg-[#111] transition">
+                    <span className="text-[10px] text-[#C9A84C] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
+                    <ChevronUp size={12} className="text-[#666]" />
+                  </button>
                   {/* Image area — Gallery view with filmstrip */}
                   <div className="relative bg-[#0A0A0A] overflow-hidden">
                     {/* Main display image */}
@@ -636,6 +713,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             <img
                               src={resolveImageUrl(activeFrame?.image_url || panel.image_url)}
                               alt={activeFrame?.label || panel.title}
+                              loading="lazy" decoding="async"
                               className="w-full h-full object-cover"
                               data-testid={`panel-main-frame-${panel.scene_number}`}
                             />
@@ -667,6 +745,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                                 <img
                                   src={resolveImageUrl(frame.image_url)}
                                   alt={frame.label}
+                                  loading="lazy" decoding="async"
                                   className="w-full h-full object-cover"
                                 />
                                 <span className="absolute bottom-0.5 right-0.5 text-[5px] text-white/70 bg-black/60 px-0.5 rounded">
@@ -707,6 +786,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       <div>
                         <div className="relative aspect-video">
                           <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
+                            loading="lazy" decoding="async"
                             className="w-full h-full object-cover" />
                           <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
                             {panel.scene_number}
@@ -1076,6 +1156,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           {bookCover && (
             <div className="flex items-center gap-2 mt-1">
               <img src={resolveImageUrl(bookCover)} alt="Cover"
+                loading="lazy" decoding="async"
                 className="h-12 w-16 rounded object-cover border border-[#222]" />
               <div>
                 <p className="text-xs text-white font-medium">{bookTitle}</p>
