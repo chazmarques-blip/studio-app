@@ -90,6 +90,11 @@ Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for a
   pages/InteractiveBook.jsx
 ```
 
+### Movie Nav Shortcut (2026-03-27)
+- **BottomNav**: Added Film icon "Movie" tab linking to `/marketing/studio?mode=directed`
+- **PipelineView**: Auto-detects `?mode=directed` URL param and sets `campaignTypes` to `['directed_studio']`, instantly selecting "Estúdio" mode
+- **Result**: One-tap access to Directed Studio from any page via bottom nav
+
 ## Backlog
 - P1: Refactor studio.py (5200+ lines)
 - P2: Storyboard -> Video (Sora 2)

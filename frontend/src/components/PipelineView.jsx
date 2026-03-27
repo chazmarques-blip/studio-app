@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PenTool, Palette, CheckCircle, CalendarClock, Loader2, Check, ChevronDown, ChevronUp, ArrowRight, Zap, RotateCcw, Trash2, RefreshCw, AlertTriangle, Crown, Lock, Upload, X, Image, Phone, Globe, Mail, MapPin, FileText, Download, Eye, Clock, Maximize2, MessageSquare, Send, Award, Film, Play, Building2, Plus, Star, Sparkles, Mic, MicOff, Volume2, Shirt, RotateCw, Square, Camera, Bot, ScanEye, ShieldCheck, Briefcase, User, History, Sun, Layers } from 'lucide-react';
 import axios from 'axios';
@@ -20,6 +20,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 /* ── Main PipelineView ── */
 export default function PipelineView({ context }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const [pipelines, setPipelines] = useState([]);
   const [activePipeline, setActivePipeline] = useState(null);
@@ -60,6 +61,14 @@ export default function PipelineView({ context }) {
   // Campaign Type Selector
   const [campaignTypes, setCampaignTypes] = useState(['image_post']);
   const isDirectedMode = campaignTypes.includes('directed_studio');
+
+  // Auto-select directed studio mode from URL param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('mode') === 'directed') {
+      setCampaignTypes(['directed_studio']);
+    }
+  }, [location.search]);
 
   const toggleCampaignType = (typeId) => {
     if (typeId === 'directed_studio') {
