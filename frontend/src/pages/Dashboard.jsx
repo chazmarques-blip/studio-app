@@ -142,7 +142,7 @@ export default function Dashboard() {
               <h2 className="text-xs font-semibold text-white">{t('dashboard.messages_week')}</h2>
               <span className="text-[9px] text-[#B0B0B0]">{t('dashboard.last_7_days')}</span>
             </div>
-            <div className="h-[100px]">
+            <div className="h-[100px]" style={{ minWidth: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={stats?.messages_by_day || []} margin={{ top: 2, right: 2, left: -25, bottom: 0 }}>
                   <defs>

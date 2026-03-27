@@ -1,109 +1,104 @@
 # AgentZZ — Product Requirements Document
+## Version: 1.0.0 | Updated: 2026-03-27
+
+---
 
 ## Original Problem Statement
-Build "AgentZZ" — a no-code SaaS with AI agents + "Directed Studio Mode" for animated film production. Storyboard-First workflow with editable panels, intelligent editing, multilingual support, and exports (PDF + Interactive Book).
+Comprehensive, mobile-first, no-code SaaS platform "AgentZZ" for deploying AI agents on social media channels (WhatsApp, Instagram, Facebook, Telegram, SMS) with a Directed Studio for animated content production.
+
+## Core Architecture
+- **Frontend:** React 19 + Tailwind CSS + shadcn/ui + Framer Motion
+- **Backend:** FastAPI (Python) + Supabase (PostgreSQL) + MongoDB
+- **AI Providers:** Claude 3.5 Sonnet, Gemini (Image/Vision), OpenAI Whisper, ElevenLabs, Sora 2
+- **Build:** Craco (CRA with @/ alias support)
 
 ## Credentials
-- Test: test@agentflow.com / password123
+- Email: test@agentflow.com | Password: password123
 
 ---
 
-## Implemented Features
+## What's Been Implemented
 
-### Directed Studio Mode — 5-Step Pipeline
-`Roteiro -> Personagens -> Storyboard -> Producao -> Resultado`
+### Core Platform
+- Multi-tenant auth system (JWT)
+- Agent management (CRUD, marketplace, sandbox)
+- Dashboard with recharts analytics
+- CRM with Kanban board
+- Multi-language UI (PT, EN, ES)
+- Dark luxury theme (monochrome gold)
+- Bottom navigation with Movie shortcut
 
-### UX Redesign (2026-03-26)
-- **Pipeline Navigation**: Minimal timeline with gold active node, white done nodes, dark gray future nodes, connecting track
-- **Step 5 — Deliverables Showcase**:
-  - Hero Card: "O Filme Completo" (full video with download)
-  - Bento Grid: 4 product cards (Livro Animado, Storyboard PDF, Pós-Produção, Analytics)
-  - Horizontal Scroll: Individual scene videos with hover-to-play
-  - PostProduction moved to drawer/modal for cleaner layout
-- **Typography**: Cormorant Garamond (serif headings), Manrope (sans body), JetBrains Mono (labels/badges)
-- **Design System**: Enhanced with serif hierarchy, tracking-wide labels, inset glow hover effects
+### Directed Studio (Complete Pipeline)
+- 5-step production pipeline (Briefing -> Storyboard -> Production -> Post-Production -> Results)
+- AI-powered storyboard generation with multi-frame panels
+- Continuity Director with user notes
+- Smart Editor (inpainting)
+- Character avatar system (upload, analyze, zoom)
+- Video production (Sora 2)
+- Narration (ElevenLabs TTS)
+- Post-production audio engineering
+- Multi-language dubbing + subtitles
+- Export: PDF, Interactive Book (iframe), MP4 video
+- Media preview system (Video Modal, PDF Lightbox, Book iframe, Image Gallery)
 
-### Media Preview System (2026-03-26)
-- **Video Player Modal**: Full-screen video player with native controls, scene navigation buttons, download
-- **Image Gallery Modal**: Lightbox with left/right navigation, thumbnail strip, keyboard arrows support
-- **Book Preview Modal**: Embedded iframe of Interactive Book with "Tela cheia" link
-- **PDF Preview Modal**: Grid view of all storyboard illustrations (84 frames), click-to-expand, "Baixar PDF Completo" button
-- **Keyboard Support**: Escape closes, Arrow keys navigate gallery
+### Google Integration (Phase 6)
+- Google account connection
+- Calendar/Sheets selection per agent
+- Dynamic connection status
 
-### Final Video Hero Card & Post-Production Improvements (2026-03-26)
-- **Hero Card "Filme Final"**: Displays post-produced video at top of Step 5 with FILME FINAL, DUBLADO, TRILHA SONORA badges, metadata (duration, file size, language), click-to-preview, download button
-- **Narration Mode Selector**: 3 modes — IA (ElevenLabs), Áudio Manual (upload), Misto (IA + uploads)
-- **Per-Scene Audio Upload**: Upload custom narration/dubbing per scene with audio player, delete, and status indicators (Manual/IA)
-- **Backend**: POST /api/studio/projects/{id}/upload-narration/{scene_number}, DELETE /api/studio/projects/{id}/narration/{scene_number}
-- **Pós-Produção Card**: Shows completion status with green checkmark and "CONCLUÍDO — RECONFIGURAR" text
-
-### Typography Overhaul (2026-03-27)
-- **All 4 components** (StoryboardEditor, DirectedStudio, PostProduction, PipelineView) updated
-- **Minimum text sizes**: 6-7px → 9-10px, 8px → 11px, 9px → 12px (text-xs)
-- **`font-serif` removed** from DirectedStudio (14 instances → `font-medium`)
-- **Removed italic** from body/dialogue text
-- **Improved contrast**: `text-[#555]` → `text-[#888]`, `text-[#AAA]` → `text-[#BBB]`
-- **Professional icons**: Emoji clothing buttons replaced with Lucide icons (Shirt, Briefcase, Sun, Layers, Palette)
-
-### Avatar Frame Fix (2026-03-27)
-- **Avatar edit modal**: Frame changed from square-ish to tall portrait rectangle (160x320px, 1:2 ratio)
-- **object-contain**: Shows full character body without cropping (was `object-cover`)
-- **Layout preserved**: AI Edit side panel, history, tabs all properly aligned
-
-### Storyboard Editavel
-- 6 individual frames per scene (Storybook Pages)
-- Gallery/Filmstrip layout with page numbers
-
-### Smart Image Editor
-- Scene Analysis + Clickable Scene Map + Smart Edit
-
-### Language Agent
-- Convert (10 languages) + Review (AI quality)
-
-### Continuity Director Agent
-- ALL 6 FRAMES per scene analyzed against avatar images
-- Auto-Correction of high/medium issues
-
-### 4-Layer Cache System
-- ImageCache (disk + memory), ProjectCache (read-through + write-behind), LLMCache (content-addressable), Frontend SWR
-
-### Exports
-- PDF Storybook, Interactive Animated Book, MP4 Preview
-
-### Voice Commands (Whisper STT)
+### Infrastructure Refactoring (2026-03-27) - PHASE COMPLETE
+- **Error Boundary:** Global catch for component crashes
+- **Code Splitting:** React.lazy on ALL 20+ page routes
+- **Lazy Loading:** loading="lazy" on ALL img tags across 3 main components
+- **PWA:** manifest.json + service-worker.js + SW registration
+- **GZip Compression:** FastAPI GZipMiddleware
+- **Observability:** Request tracing (X-Request-Id, X-Response-Time)
+- **Rate Limiting:** slowapi middleware
+- **Auth on Cache Endpoints:** /cache/stats and /cache/flush now require auth
+- **Deep Health Check:** /api/health/deep checks Supabase, AI keys, disk, cache
+- **Circuit Breaker:** Auto-failover for AI providers (Claude->Gemini)
+- **Idempotency Guard:** Prevents duplicate expensive operations
+- **Provider Pattern:** Swap AI providers via config (text, image, video, voice, STT)
+- **Centralized Config:** /core/config.py with all env vars
+- **Error Taxonomy:** Standardized error responses (Stripe-style)
+- **API Layer:** Frontend api/client.js + api/studioApi.js
+- **Touch Targets:** CSS media query for 44px min (mobile)
+- **Storyboard Expandable Panels:** Collapsed by default, expand on click
+- **Scripts Cleanup:** 8 dead scripts moved to /scripts/
+- **Movie Nav Shortcut:** BottomNav -> /marketing/studio?mode=directed auto-selects Estudio
 
 ---
 
-## Code Architecture
-```
-/app/backend/core/
-  cache.py, continuity_director.py, smart_editor.py,
-  storyboard_inpaint.py, storyboard.py, language_agent.py,
-  book_generator.py, preview_generator.py, llm.py
-/app/backend/routers/studio.py (~5200 lines)
-/app/frontend/src/
-  hooks/useProjectCache.js
-  components/DirectedStudio.jsx (Redesigned Step 5 + Navigation)
-  components/StoryboardEditor.jsx
-  components/PostProduction.jsx
-  components/FinalPreview.jsx
-  pages/InteractiveBook.jsx
-```
+## Backlog (Prioritized)
 
-### Movie Nav Shortcut (2026-03-27)
-- **BottomNav**: Added Film icon "Movie" tab linking to `/marketing/studio?mode=directed`
-- **PipelineView**: Auto-detects `?mode=directed` URL param and sets `campaignTypes` to `['directed_studio']`, instantly selecting "Estúdio" mode
-- **Result**: One-tap access to Directed Studio from any page via bottom nav
+### P0 — Next Up
+- Complete frontend split: PipelineView.jsx (3094 lines -> 6-8 components)
+- Complete backend split: studio.py (5268 lines -> 10+ modules)
+- Database migration: JSONB -> dedicated tables
 
-## Backlog
-- P1: Refactor studio.py (5200+ lines)
-- P2: Storyboard -> Video (Sora 2)
-- P3: Omnichannel, Admin + Stripe
+### P1 — Important
+- Offline Queue (PWA write operations)
+- Image optimization (WebP via Supabase transforms)
+- Dashboard query optimization (8 -> 2 queries)
+- WebSocket/SSE for real-time progress updates
+
+### P2 — Future
+- Phase 8: Omnichannel (WhatsApp, SMS, Instagram, Telegram)
+- Admin Management System
+- Stripe Payment Integration
+- Legal & Publication pages
+- Capacitor wrapper for App Store/Google Play
+
+---
 
 ## Test Reports
-- 110-113: Core features (100%)
-- 114: Continuity Director (100%)
-- 115: Cache System (100%)
-- 116: UX Redesign Step 5 + Navigation (100%)
-- 117: Media Preview Modal System (100%) — Book, PDF, Video, Gallery all tested
-- 118: Hero Card Filme Final + Post-Production Upload (Backend 100%, Frontend 95%)
+- 110-118: Previous iterations (all passed)
+- 119: Infrastructure audit (Backend 100%, Frontend 100%)
+
+---
+
+## Technical Debt
+- studio.py: 5268 lines (needs splitting)
+- PipelineView.jsx: 3094 lines, 76 useState (needs splitting)
+- DirectedStudio.jsx: 2531 lines (needs splitting)
+- Recharts chart sizing warning (minor)
