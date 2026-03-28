@@ -23,45 +23,50 @@ Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for 
 - Dialogue Editor (Step 4): Visual Book Tab + Audio Preview
 - Production pipeline, Post-production, localization, subtitles
 
+### Project-Scoped Avatar System (Mar 28, 2026)
+- **Project Avatars**: Each project has its own `project_avatars[]` array (isolated from other projects)
+- **Global Library**: `studio_avatars[]` in tenant settings serves as the shared avatar repository
+- **New Project Flow**: Projects start with zero avatars. Users can "Criar" (create new) or "Acervo" (import from library)
+- **AvatarLibraryModal**: Search/filter global library, select multiple, import to project
+- **Backend Endpoints**:
+  - `GET /api/studio/projects/{id}/project-avatars` — project-scoped avatars
+  - `POST /api/studio/projects/{id}/project-avatars` — add to project + optionally to library
+  - `POST /api/studio/projects/{id}/project-avatars/import` — import from library
+  - `DELETE /api/studio/projects/{id}/project-avatars/{avatar_id}` — remove from project only
+- **Cache Unification**: `data.py` and `studio/` now share the same ProjectCache for consistency
+
 ### Infrastructure
 - Rate limiting (slowapi), GZip/Observability middleware, Circuit breakers
 - React Code Splitting + Lazy Loading, PWA
 
-### Recent Changes (Feb 27, 2026)
-
-#### Backend: studio.py Split into Modular Package
+### Backend: studio.py Split into Modular Package
 `/app/backend/routers/studio/` — 11 modules
 
-#### Frontend: PipelineView.jsx Split
+### Frontend: PipelineView.jsx Split
 3095 → 1807 lines. Extracted: ActivePipelineView, CompanyModal, AvatarModal
 
-#### Voice Preview Endpoint
-`POST /api/studio/voice-preview` — ElevenLabs TTS audio sample generation
-
-#### Continuity Director Architecture (Storyboard)
-1. **Character Identity Cards**: Claude Vision analyzes avatars → structured card with body_type, immutable_traits, prohibitions
+### Continuity Director Architecture (Storyboard)
+1. **Character Identity Cards**: Claude Vision analyzes avatars → structured card
 2. **Shot Director**: Claude pre-plans 6 frames/scene with spatial continuity
-3. **Identity-First Prompts**: Identity FIRST (highest weight), scene SECOND, per-character prohibitions inline
-4. **Parallelism**: 4 scenes × 6 frames = 24 concurrent (was 6)
+3. **Identity-First Prompts**: Identity FIRST, scene SECOND, per-character prohibitions
 
-#### Unlimited Screenwriter (Script Generation)
-- Removed 8-scene limit — story generates as many scenes as needed (10 per batch, auto-continuation loop up to 100)
-- Removed character limit — more characters = richer story
-- Added richness guidelines: simple stories 5-8 scenes, rich/epic stories 15-30+
-- Aggressive auto-continuation: loop generates ALL scenes until complete
-- Instruction: "Every key narrative moment deserves its OWN scene — never compress"
+### Unlimited Screenwriter
+- Removed 8-scene limit — auto-continuation loop up to 100 scenes
+- Rich narrative guidelines: simple stories 5-8 scenes, epic stories 15-30+
 
 ## Backlog
 
 ### P1
-- Visual validation of Continuity Director + Unlimited Screenwriter with real project
-- Progressive Storyboard Pipeline (keyframe blitz → lazy expansion)
+- AI Marketing Studio (Phase 7.1 & 7.2) — campaign generation, enterprise gating
+- Visual validation of Continuity Director with real projects
 
 ### P2
-- AI Marketing Studio (Phase 7), Omnichannel Integrations, Admin System, Stripe
+- Omnichannel Integrations (WhatsApp, SMS, Instagram, Telegram)
+- Admin Management System, Stripe Integration
 
 ### P3
-- Native App packaging (Capacitor), Legal & Publication
+- Native App packaging (Capacitor iOS/Android)
+- Legal & Publication (Terms, Privacy Policy)
 
 ## Test Credentials
 - Email: test@agentflow.com / Password: password123

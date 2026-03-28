@@ -43,15 +43,15 @@ class AvatarIn(BaseModel):
 
 
 def _get_settings(tenant_id: str) -> dict:
-    """Read current settings from tenant."""
-    r = supabase.table("tenants").select("settings").eq("id", tenant_id).single().execute()
-    return r.data.get("settings", {}) if r.data else {}
+    """Read current settings from tenant (via project cache for consistency)."""
+    from core.cache import project_cache
+    return project_cache.get_settings(tenant_id)
 
 
 def _save_settings(tenant_id: str, settings: dict):
-    """Save settings to tenant."""
-    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
-    supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
+    """Save settings to tenant (via project cache for consistency)."""
+    from core.cache import project_cache
+    project_cache.save_settings(tenant_id, settings)
 
 
 # ── Companies CRUD ──
