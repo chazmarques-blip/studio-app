@@ -1,72 +1,59 @@
-# AgentZZ — Product Requirements Document
+# AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive, mobile-first, no-code SaaS platform called "AgentZZ" for deploying AI agents on social channels and producing creative content via a Directed Studio Mode.
+AgentZZ is a comprehensive, mobile-first, no-code SaaS platform that allows users (small and medium business owners) to deploy and configure pre-built AI agents on various social media channels and produce AI-powered video content through a Directed Studio.
 
-## Architecture
-- **Frontend:** React + Tailwind CSS + shadcn/ui + Framer Motion + recharts
-- **Backend:** FastAPI (Python) + Supabase (PostgreSQL) + MongoDB
-- **3rd Party:** Anthropic Claude 4.5 Sonnet, OpenAI Whisper, Gemini Nano Banana, ElevenLabs (TTS), Google APIs
-- **PWA:** Service Worker + Manifest configured
+## Core Features Implemented
+- **Directed Studio**: Full video/storybook production pipeline with AI-powered screenwriting, storyboarding, character management, voice narration, and production
+- **Character/Avatar System**: Project-isolated character management with global library, context-aware editing (AvatarModal adapts to directed mode), incremental layer editing, 360-degree views
+- **Agent Management**: Agent marketplace, customization, Google Calendar/Sheets integration
+- **Omnichannel**: Unified inbox structure (WhatsApp, Instagram, Facebook, Telegram, SMS - mocked)
+- **CRM**: Built-in CRM with visual Kanban board
+- **Multi-language**: UI support for English, Portuguese, Spanish
+- **Dark Luxury Theme**: Premium monochrome gold/black/white/gray design
 
-## What's Been Implemented
+## Recent Changes (March 2026)
 
-### Core Platform
-- Authentication (Supabase Auth), Multi-language UI (EN/PT/ES), Dark luxury theme
-- Dashboard with recharts analytics, Agent Marketplace with plan-gating
-- Agent Configuration with Google Calendar/Sheets integration
+### Completed - Session Current
+- **Scene Character Editing (Step 1 - Roteiro)**: Users can now edit which characters appear in each scene directly from the script editor. Toggle chips allow selecting/deselecting characters per scene. Characters are displayed as gold chips in view mode. Backend `update-scene` endpoint now accepts `characters_in_scene` field.
+  - Files: `DirectedStudio.jsx` (lines 1385, 1427-1458, 1469-1480), `production.py` (line 1025)
+  - Testing: iteration_124.json - 100% pass rate
 
-### Directed Studio (Video/Book Production Pipeline)
-- 7-step pipeline: Config → Script → Characters → Storyboard → Dialogues → Production → Results
-- Screenwriter chat (Claude AI), Character avatar generation with accuracy loop
-- Storyboard editor with expandable/collapsible panels
-- Dialogue Editor (Step 4): Visual Book Tab + Audio Preview
-- Production pipeline, Post-production, localization, subtitles
+### Completed - Previous Sessions
+- Project-Specific Characters (project_avatars isolation)
+- localStorage caching for avatar library
+- Framer Motion downgrade to 11.18.2 (Safari fix)
+- Edit flow fixes (setAiEditLoading, AvatarModal auto-prefill)
+- DOM Flickering fix (React.memo, stopped polling in directed mode)
+- Apply Default Background endpoint
+- Context-Aware 360 Generation (keep_original for non-human chars)
+- Incremental Layer Editing (edits apply to latest version)
+- Front view + transparent background generation prompts
+- Google Integration in Agent Config (Phase 6)
 
-### Project-Scoped Avatar System (Mar 28, 2026)
-- **Project Avatars**: Each project has its own `project_avatars[]` array (isolated from other projects)
-- **Global Library**: `studio_avatars[]` in tenant settings serves as the shared avatar repository
-- **New Project Flow**: Projects start with zero avatars. Users can "Criar" (create new) or "Acervo" (import from library)
-- **AvatarLibraryModal**: Search/filter global library, select multiple, import to project
-- **Backend Endpoints**:
-  - `GET /api/studio/projects/{id}/project-avatars` — project-scoped avatars
-  - `POST /api/studio/projects/{id}/project-avatars` — add to project + optionally to library
-  - `POST /api/studio/projects/{id}/project-avatars/import` — import from library
-  - `DELETE /api/studio/projects/{id}/project-avatars/{avatar_id}` — remove from project only
-- **Cache Unification**: `data.py` and `studio/` now share the same ProjectCache for consistency
+## Pending Verification
+- 360-degree view clothing fix (company_uniform -> keep_original) - Code was applied in previous session but needs visual verification
 
-### Infrastructure
-- Rate limiting (slowapi), GZip/Observability middleware, Circuit breakers
-- React Code Splitting + Lazy Loading, PWA
+## Backlog (P0-P3)
+### P1 - AI Marketing Studio (Phase 7.1 & 7.2)
+- Campaign generation UI, backend with MongoDB, campaign library, Enterprise plan gating
+- Files: AiMarketingStudio.jsx, Marketing.jsx, marketing.py (all placeholders)
 
-### Backend: studio.py Split into Modular Package
-`/app/backend/routers/studio/` — 11 modules
+### P2 - Omnichannel Integrations (Phase 8)
+- WhatsApp (Evolution API), SMS (Twilio), Instagram, Facebook, Telegram
 
-### Frontend: PipelineView.jsx Split
-3095 → 1807 lines. Extracted: ActivePipelineView, CompanyModal, AvatarModal
+### P2 - Admin Management System & Stripe
+- Admin dashboard, payment gateway
 
-### Continuity Director Architecture (Storyboard)
-1. **Character Identity Cards**: Claude Vision analyzes avatars → structured card
-2. **Shot Director**: Claude pre-plans 6 frames/scene with spatial continuity
-3. **Identity-First Prompts**: Identity FIRST, scene SECOND, per-character prohibitions
+### P3 - Native App Packaging
+- Capacitor for iOS/Android
 
-### Unlimited Screenwriter
-- Removed 8-scene limit — auto-continuation loop up to 100 scenes
-- Rich narrative guidelines: simple stories 5-8 scenes, epic stories 15-30+
+## Tech Stack
+- **Frontend**: React, Tailwind CSS, shadcn-ui, Lucide Icons, Framer Motion 11.18.2, recharts
+- **Backend**: FastAPI (Python)
+- **Database**: Supabase (PostgreSQL) + MongoDB (for new features)
+- **3rd Party**: Anthropic Claude 3.5, OpenAI Whisper, Gemini (Image/Vision), ElevenLabs (TTS), Google APIs
 
-## Backlog
-
-### P1
-- AI Marketing Studio (Phase 7.1 & 7.2) — campaign generation, enterprise gating
-- Visual validation of Continuity Director with real projects
-
-### P2
-- Omnichannel Integrations (WhatsApp, SMS, Instagram, Telegram)
-- Admin Management System, Stripe Integration
-
-### P3
-- Native App packaging (Capacitor iOS/Android)
-- Legal & Publication (Terms, Privacy Policy)
-
-## Test Credentials
+## Key Credentials
 - Email: test@agentflow.com / Password: password123
+- Test project: 1a0779dd0ce7 (ADAO E EVA BIBLIZOO - 15 scenes, 4 characters)
