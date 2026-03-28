@@ -136,6 +136,136 @@ async def get_storyboard(project_id: str, tenant=Depends(get_current_tenant)):
     }
 
 
+@router.post("/projects/{project_id}/storyboard/sync-panels")
+async def sync_storyboard_panels(project_id: str, tenant=Depends(get_current_tenant)):
+    """Create placeholder panels for scenes missing storyboard, then regenerate them in background."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+    panels = project.get("storyboard_panels", [])
+    panel_nums = {p.get("scene_number") for p in panels}
+
+    missing = [s for s in scenes if s.get("scene_number") not in panel_nums]
+    if not missing:
+        return {"status": "ok", "synced": 0, "message": "All scenes already have storyboard panels"}
+
+    # Create placeholder panels for missing scenes
+    for s in missing:
+        panels.append({
+            "scene_number": s["scene_number"],
+            "status": "pending",
+            "image_url": None,
+            "frames": [],
+            "description": s.get("description", ""),
+        })
+    panels.sort(key=lambda x: x.get("scene_number", 0))
+    project["storyboard_panels"] = panels
+    _save_project(tenant["id"], settings, projects)
+
+    # Regenerate missing panels in background
+    missing_nums = [s["scene_number"] for s in missing]
+
+    def _bg_sync():
+        for scene_num in missing_nums:
+            try:
+                _settings, _projects, _project = _get_project(tenant["id"], project_id)
+                if not _project:
+                    return
+                _scene = next((s for s in _project.get("scenes", []) if s.get("scene_number") == scene_num), None)
+                if not _scene:
+                    continue
+
+                import tempfile
+                from core.storyboard import _generate_all_frames_for_scene, _generate_shot_briefs, FRAME_TYPES
+                char_avatars = _project.get("character_avatars", {})
+                pd = _project.get("agents_output", {}).get("production_design", {})
+                character_bible = pd.get("character_bible", {})
+                identity_cards = pd.get("identity_cards", {})
+
+                avatar_cache = {}
+                chars_in_scene = _scene.get("characters_in_scene", [])
+                supabase_url = os.environ.get('SUPABASE_URL', '')
+                for cname in chars_in_scene:
+                    url = char_avatars.get(cname)
+                    if url and url not in avatar_cache:
+                        try:
+                            full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
+                            ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                            urllib.request.urlretrieve(full_url, ref_file.name)
+                            avatar_cache[url] = ref_file.name
+                        except Exception:
+                            avatar_cache[url] = None
+
+                style_dna = "ART STYLE: Premium 3D CGI animation (Pixar/DreamWorks quality). Volumetric lighting."
+                style_anchors = pd.get("style_anchors", "")
+                if style_anchors:
+                    style_dna = f"{style_dna} {style_anchors}"
+
+                scenes_list = _project.get("scenes", [])
+                scene_idx = next((i for i, s in enumerate(scenes_list) if s.get("scene_number") == scene_num), 0)
+                prev_scene = scenes_list[scene_idx - 1] if scene_idx > 0 else None
+                next_scene = scenes_list[scene_idx + 1] if scene_idx < len(scenes_list) - 1 else None
+
+                shot_briefs = None
+                if identity_cards:
+                    shot_briefs = _generate_shot_briefs(
+                        scene=_scene, scene_num=scene_num,
+                        identity_cards=identity_cards, style_dna=style_dna,
+                        prev_scene=prev_scene, next_scene=next_scene,
+                        lang=_project.get("language", "pt"), project_id=project_id,
+                    )
+
+                frame_results = _generate_all_frames_for_scene(
+                    scene=_scene, scene_num=scene_num, project_id=project_id,
+                    char_avatars=char_avatars, avatar_cache=avatar_cache,
+                    character_bible=character_bible, identity_cards=identity_cards,
+                    style_dna=style_dna, shot_briefs=shot_briefs,
+                    lang=_project.get("language", "pt"),
+                )
+
+                image_url = None
+                frames = []
+                for fi, (ft, img_bytes) in enumerate(frame_results):
+                    if img_bytes:
+                        frame_fname = f"storyboard/{project_id}/panel_{scene_num}_frame_{fi+1}.png"
+                        frame_url = _upload_to_storage(img_bytes, frame_fname, "image/png")
+                        frames.append({"frame_type": ft, "image_url": frame_url})
+                        if not image_url:
+                            image_url = frame_url
+
+                # Update the panel
+                _settings2, _projects2, _project2 = _get_project(tenant["id"], project_id)
+                if _project2:
+                    _panels = _project2.get("storyboard_panels", [])
+                    _panel = next((p for p in _panels if p.get("scene_number") == scene_num), None)
+                    if _panel:
+                        _panel["status"] = "done"
+                        _panel["image_url"] = image_url
+                        _panel["frames"] = frames
+                        _save_project(tenant["id"], _settings2, _projects2)
+                        logger.info(f"Sync [{project_id}]: Panel {scene_num} generated ({len(frames)} frames)")
+
+            except Exception as e:
+                logger.error(f"Sync [{project_id}]: Failed to generate panel {scene_num}: {e}")
+                # Mark as error
+                try:
+                    _s, _ps, _p = _get_project(tenant["id"], project_id)
+                    if _p:
+                        _pnl = next((p for p in _p.get("storyboard_panels", []) if p.get("scene_number") == scene_num), None)
+                        if _pnl:
+                            _pnl["status"] = "error"
+                            _save_project(tenant["id"], _s, _ps)
+                except Exception:
+                    pass
+
+    thread = threading.Thread(target=_bg_sync, daemon=True)
+    thread.start()
+    return {"status": "syncing", "synced": len(missing), "missing_scenes": missing_nums}
+
+
+
 @router.post("/projects/{project_id}/storyboard/regenerate-panel")
 async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegeneratePanelRequest, tenant=Depends(get_current_tenant)):
     """Regenerate a single storyboard panel with 6 individual frames."""

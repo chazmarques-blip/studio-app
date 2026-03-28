@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
   Sparkles, ChevronRight, ChevronDown, ChevronUp, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
-  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool
+  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, RefreshCw
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { getErrorMsg } from '../utils/getErrorMsg';
@@ -38,6 +38,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   // Preview states
   const [showPreview, setShowPreview] = useState(false);
+  const [syncingPanels, setSyncingPanels] = useState(false);
   const [exportingMp4, setExportingMp4] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewStatus, setPreviewStatus] = useState({});
@@ -127,6 +128,24 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       setLoading(false);
     }
   };
+
+  const syncMissingPanels = async () => {
+    setSyncingPanels(true);
+    try {
+      const { data } = await axios.post(`${API}/studio/projects/${projectId}/storyboard/sync-panels`);
+      if (data.synced > 0) {
+        toast.success(lang === 'pt' ? `Gerando ${data.synced} painéis faltantes...` : `Generating ${data.synced} missing panels...`);
+        pollStoryboard();
+      } else {
+        toast.info(lang === 'pt' ? 'Todos os painéis já existem' : 'All panels already exist');
+        setSyncingPanels(false);
+      }
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao sincronizar painéis'));
+      setSyncingPanels(false);
+    }
+  };
+
 
   const pollStoryboard = () => {
     let attempts = 0;
@@ -609,6 +628,26 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       {/* Panels Grid */}
       {panels.length > 0 && (
         <div className="space-y-2">
+          {/* Missing panels alert */}
+          {scenes.length > panels.length && (
+            <div className="rounded-lg border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-3 flex items-center justify-between" data-testid="missing-panels-alert">
+              <div className="flex items-center gap-2">
+                <RefreshCw size={14} className={`text-[#C9A84C] ${syncingPanels ? 'animate-spin' : ''}`} />
+                <span className="text-xs text-[#C9A84C]">
+                  {lang === 'pt'
+                    ? `${scenes.length - panels.length} cena(s) sem storyboard`
+                    : `${scenes.length - panels.length} scene(s) without storyboard`}
+                </span>
+              </div>
+              <button onClick={syncMissingPanels} disabled={syncingPanels || loading}
+                data-testid="sync-panels-btn"
+                className="text-[10px] font-semibold bg-[#C9A84C] text-black px-3 py-1 rounded-full hover:bg-[#D4AF37] transition disabled:opacity-50 flex items-center gap-1">
+                {syncingPanels
+                  ? <>{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
+                  : <>{lang === 'pt' ? 'Gerar Faltantes' : 'Generate Missing'}</>}
+              </button>
+            </div>
+          )}
           {/* Summary bar */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-[#666]">
