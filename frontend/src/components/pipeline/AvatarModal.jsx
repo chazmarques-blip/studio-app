@@ -6,7 +6,7 @@ import {
   X, Loader2, Camera, PenTool, Sparkles, Upload, Check, Film, Volume2,
   ShieldCheck, ScanEye, Bot, Maximize2, Shirt, RotateCw, Sun, Layers,
   Briefcase, Palette, History, Download, Trash2, Plus, Play, Crown,
-  Mic, MicOff, Square, RefreshCw, Lock,
+  Mic, MicOff, Square, RefreshCw, Lock, Image as ImageIcon,
 } from 'lucide-react';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
 
@@ -209,7 +209,7 @@ export function AvatarModal({ ctx }) {
                           {generatingAvatar ? (
                             <><Loader2 size={14} className="animate-spin" /> {t('studio.generating_avatar')}</>
                           ) : (
-                            <><Sparkles size={14} /> {t('studio.generate_avatar_ai')}</>
+                            <><Sparkles size={14} /> {isDirectedMode ? 'Gerar Personagem com IA' : t('studio.generate_avatar_ai')}</>
                           )}
                         </button>
                         {generatingAvatar && (
@@ -302,7 +302,7 @@ export function AvatarModal({ ctx }) {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <PenTool size={12} className="text-[#C9A84C]" />
-                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.describe_avatar') || 'Describe your avatar'}</span>
+                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{isDirectedMode ? 'Descreva seu personagem' : (t('studio.describe_avatar') || 'Describe your avatar')}</span>
                           </div>
                           <textarea data-testid="avatar-prompt-input" value={avatarPromptText}
                             onChange={e => setAvatarPromptText(e.target.value)}
@@ -341,7 +341,7 @@ export function AvatarModal({ ctx }) {
                           {generatingAvatar ? (
                             <><Loader2 size={14} className="animate-spin" /> {accuracyProgress?.progress || t('studio.generating_avatar')}</>
                           ) : (
-                            <><Sparkles size={14} /> {t('studio.generate_avatar_ai')}</>
+                            <><Sparkles size={14} /> {isDirectedMode ? 'Gerar Personagem com IA' : t('studio.generate_avatar_ai')}</>
                           )}
                         </button>
                       </div>
@@ -438,7 +438,7 @@ export function AvatarModal({ ctx }) {
                           {generatingAvatar ? (
                             <><Loader2 size={14} className="animate-spin" /> {accuracyProgress?.progress || t('studio.generating_avatar')}</>
                           ) : (
-                            <><Sparkles size={14} /> Generate 3D Avatar</>
+                            <><Sparkles size={14} /> {isDirectedMode ? 'Gerar Personagem 3D' : 'Generate 3D Avatar'}</>
                           )}
                         </button>
                       </div>
@@ -606,12 +606,34 @@ export function AvatarModal({ ctx }) {
                         )}
                       </div>
                       {/* AI Edit button below avatar */}
-                      {avatarMediaTab !== 'video' && (
+                      {avatarMediaTab !== 'video' && (<>
                         <button data-testid="ai-edit-avatar-modal-btn" onClick={() => setAiEditAvatarId(aiEditAvatarId === 'temp' ? null : 'temp')}
                           className={`mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-xs transition ${aiEditAvatarId === 'temp' ? 'border-purple-500/50 bg-purple-500/10 text-purple-300' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'}`}>
                           <Sparkles size={10} /> {t('studio.ai_edit') || 'Editar com IA'}
                         </button>
-                      )}
+                        {/* Apply Standard Background button */}
+                        <button data-testid="apply-bg-btn" onClick={async () => {
+                          if (!tempAvatar?.url || applyingClothing) return;
+                          setApplyingClothing(true);
+                          try {
+                            const { data } = await axios.post(`${API}/pipeline/avatar/apply-background`, {
+                              avatar_url: tempAvatar.url,
+                            });
+                            if (data.url) {
+                              setTempAvatar(p => ({ ...p, url: data.url }));
+                              setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo padrão aplicado', timestamp: new Date().toISOString() }]);
+                              toast.success(isDirectedMode ? 'Fundo aplicado ao personagem!' : 'Background applied!');
+                            }
+                          } catch (e) {
+                            toast.error(e.response?.data?.detail || 'Erro ao aplicar fundo');
+                          } finally { setApplyingClothing(false); }
+                        }}
+                          disabled={applyingClothing}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#C9A84C]/30 text-[#C9A84C]/70 text-xs hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] transition disabled:opacity-40">
+                          {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
+                          {isDirectedMode ? 'Aplicar Fundo Padrão' : 'Apply Background'}
+                        </button>
+                      </>)}
                       </div>
                       {/* AI Edit Side Panel */}
                       {aiEditAvatarId === 'temp' && (

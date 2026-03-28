@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 
 from fastapi import Depends, UploadFile, File, Form, HTTPException
+from pydantic import BaseModel
 from PIL import Image
 from core.deps import supabase, get_current_user, logger
 from core.llm import generate_image_gemini, text_to_speech_sync, GEMINI_API_KEY, OPENAI_API_KEY
@@ -120,33 +121,35 @@ async def generate_avatar_from_prompt(req: AvatarFromPromptRequest, user=Depends
     try:
         style_prompts = {
             "realistic": (
-                f"Create a photorealistic FULL-BODY professional portrait of a {req.gender} person. "
+                f"Create a photorealistic FULL-BODY portrait of a {req.gender} character. "
                 f"Description: {req.prompt}. "
-                "Standing confidently in a modern studio with soft lighting. "
-                "Professional business attire. Full body visible from head to feet. "
-                "Clean minimal background. Photorealistic, 4K detail. "
+                "FACING DIRECTLY TOWARDS THE CAMERA, front view, standing confidently. "
+                "Full body visible from head to feet. "
+                "BACKGROUND: Plain solid white or very light neutral, clean and minimal. "
+                "Photorealistic, 4K detail. "
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             ),
             "3d_cartoon": (
-                f"Create a 3D animated cartoon character. Full body, standing pose. "
+                f"Create a 3D animated cartoon character. Full body, standing pose, FACING DIRECTLY TOWARDS THE CAMERA (front view). "
                 f"Character is a {req.gender}. Description: {req.prompt}. "
                 "Style: Modern 3D cartoon animation like Pixar/Disney, vibrant colors, "
                 "smooth shading, large expressive eyes, friendly appearance. "
-                "Clean white/gradient studio background. "
+                "BACKGROUND: Plain solid white or very light gradient, clean and minimal. "
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             ),
             "3d_pixar": (
-                f"Create a high-quality Pixar-style 3D animated character. Full body, standing pose. "
+                f"Create a high-quality Pixar-style 3D animated character. Full body, standing pose, FACING DIRECTLY TOWARDS THE CAMERA (front view). "
                 f"Character is a {req.gender}. Description: {req.prompt}. "
                 "Style: Ultra-polished Pixar animation quality with subsurface scattering on skin, "
                 "detailed hair strands, warm cinematic lighting, expressive face. "
-                "Clean studio background with soft gradient. "
+                "BACKGROUND: Plain solid white or very light gradient, clean and minimal. "
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             ),
             "custom": (
                 f"{req.prompt}\n\n"
-                "Full body character, standing pose, centered in frame. "
+                "Full body character, standing pose, FACING DIRECTLY TOWARDS THE CAMERA (front view), centered in frame. "
                 "High quality, detailed, clean execution. "
+                "BACKGROUND: Plain solid white or very light neutral, clean and minimal. "
                 "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
             ),
         }
@@ -1093,3 +1096,53 @@ async def generate_presenter_video_endpoint(
 
 
 
+
+
+class ApplyBackgroundRequest(BaseModel):
+    avatar_url: str
+
+
+@router.post("/apply-background")
+async def apply_background(req: ApplyBackgroundRequest, user=Depends(get_current_user)):
+    """Apply a professional studio gradient background to a character/avatar image."""
+    try:
+        # Download the source image
+        img_req = urllib.request.Request(req.avatar_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(img_req, timeout=20) as resp:
+            src_data = resp.read()
+            ct = resp.headers.get("Content-Type", "image/png")
+            mime = ct if ct.startswith("image/") else "image/png"
+        src_b64 = base64.b64encode(src_data).decode()
+
+        prompt = (
+            "Take this character image and place them on a professional studio background. "
+            "KEEP THE CHARACTER EXACTLY AS THEY ARE — same pose, same clothing, same accessories, same everything. "
+            "DO NOT modify the character in any way. "
+            "ONLY CHANGE THE BACKGROUND to: a soft warm gradient background, transitioning from warm beige/cream at the top "
+            "to soft light blue at the bottom, with gentle ambient lighting. Professional photography studio style. "
+            "The character should appear naturally placed in this environment with soft shadows beneath their feet. "
+            "Clean, elegant, premium look. "
+            "OUTPUT FORMAT: VERTICAL portrait (taller than wide, 3:5 ratio)."
+        )
+        system_msg = (
+            "You are an expert at compositing characters onto studio backgrounds. "
+            "CRITICAL: Do NOT alter the character's appearance, clothing, pose, or any detail. "
+            "Only replace the background behind them."
+        )
+
+        images = await _gemini_edit_image(system_msg, prompt, src_b64, mime)
+        if not images:
+            raise HTTPException(status_code=500, detail="Failed to generate background")
+
+        raw_bytes = base64.b64decode(images[0]['data'])
+        fname = f"avatars/{user.get('id', 'anon')}/{uuid.uuid4().hex[:8]}_bg_studio.png"
+        url = _upload_to_storage(raw_bytes, fname, "image/png")
+        if not url:
+            raise HTTPException(status_code=500, detail="Upload failed")
+
+        return {"url": url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Apply background failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
