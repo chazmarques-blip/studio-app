@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
   Sparkles, ChevronRight, ChevronDown, ChevronUp, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
-  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, RefreshCw
+  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { getErrorMsg } from '../utils/getErrorMsg';
