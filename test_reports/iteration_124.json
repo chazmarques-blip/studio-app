@@ -1,0 +1,65 @@
+{
+  "summary": "Iteration 124: Tested characters_in_scene feature for scene editing in DirectedStudio. Backend: 5/5 tests passed (100%). Frontend: Character toggle chips appear in edit mode, selection/deselection works, save persists correctly, view mode shows gold chips with user icon.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration124_characters_in_scene.py",
+    "/app/test_reports/pytest/pytest_results_iteration124.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend: POST /api/studio/projects/{project_id}/update-scene correctly includes 'characters_in_scene' in allowed keys (line 1025 in production.py)",
+    "Backend: characters_in_scene field persists correctly after update - verified via GET /status",
+    "Frontend: Scene edit form includes character toggle chips (lines 1422-1458 in DirectedStudio.jsx)",
+    "Frontend: Toggle chips use data-testid='scene-char-toggle-{scene_number}-{char_name}' for testing",
+    "Frontend: Selected characters shown in gold (bg-[#C9A84C]/15 border-[#C9A84C]/40 text-[#C9A84C])",
+    "Frontend: Unselected characters shown in gray (bg-[#111] border-[#333] text-[#666])",
+    "Frontend: View mode displays characters_in_scene as gold chips with Users icon (lines 1473-1481)",
+    "Frontend: Empty state message shown when no characters defined yet"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration124_characters_in_scene.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 tests passed)",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "Used existing test project 1a0779dd0ce7 (ADAO E EVA BIBLIZOO)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 124 complete. characters_in_scene feature fully verified. Test credentials: test@agentflow.com / password123. Test project: 1a0779dd0ce7 (ADAO E EVA BIBLIZOO - 15 scenes, 4 characters: Adão, Eva, A Serpente, Deus (Voz)). The feature allows users to select/deselect which characters appear in each scene via toggle chips in the scene edit form (Step 1 - Roteiro). Characters are displayed as gold chips in view mode.",
+  "test_results": {
+    "backend_tests": {
+      "test_get_project_status_has_scenes": "PASS - Project has 15 scenes and 4 characters",
+      "test_update_scene_with_characters_in_scene": "PASS - Scene 2 updated with characters, persisted correctly",
+      "test_update_scene_remove_characters": "PASS - Scene 3 characters cleared to empty array",
+      "test_update_scene_with_all_fields": "PASS - All fields including characters_in_scene persisted",
+      "test_scene_1_has_characters_from_curl_test": "PASS - Scene 1 has characters_in_scene"
+    },
+    "frontend_tests": {
+      "directed_studio_loads": "PASS",
+      "project_loads": "PASS - ADAO E EVA BIBLIZOO loaded",
+      "step1_roteiro_shows_scenes": "PASS - 15 scene cards found",
+      "edit_button_works": "PASS - Edit mode activated",
+      "character_toggle_chips_visible": "PASS - 4 character toggle chips found",
+      "character_selection_state": "PASS - Adão and Eva were selected (gold), A Serpente and Deus (Voz) unselected (gray)",
+      "toggle_click_works": "PASS - Clicking Adão deselected it",
+      "save_button_works": "PASS - Save button clicked, 'Cena atualizada!' toast shown",
+      "persistence_verified": "PASS - Scene 1 now has only ['Eva'] after deselecting Adão"
+    }
+  },
+  "features_verified": {
+    "backend_update_scene_accepts_characters_in_scene": "VERIFIED - POST /api/studio/projects/{id}/update-scene accepts characters_in_scene array",
+    "backend_characters_in_scene_persists": "VERIFIED - Field persists correctly after update",
+    "frontend_character_toggle_chips_in_edit_mode": "VERIFIED - Toggle chips appear when editing a scene",
+    "frontend_toggle_selection_works": "VERIFIED - Clicking toggles selection state",
+    "frontend_view_mode_shows_characters": "VERIFIED - Gold chips with user icon displayed in view mode"
+  }
+}

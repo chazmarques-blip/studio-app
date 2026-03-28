@@ -1382,7 +1382,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                           data-testid={`edit-scene-${s.scene_number}`}
                           onClick={() => {
                             if (isEditing) { setEditingScene(null); setEditSceneForm({}); }
-                            else { setEditingScene(s.scene_number); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }
+                            else { setEditingScene(s.scene_number); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera, characters_in_scene: s.characters_in_scene || [] }); }
                           }}
                           className="text-[11px] text-[#C9A84C] hover:text-white transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C9A84C]/40"
                         >
@@ -1419,6 +1419,43 @@ export const DirectedStudio = memo(function DirectedStudio({
                                 className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" data-testid={`edit-camera-${s.scene_number}`} />
                             </div>
                           </div>
+                          {/* Characters in scene selector */}
+                          <div>
+                            <label className="text-[10px] text-[#666] block mb-1">{lang === 'pt' ? 'Personagens na Cena' : 'Characters in Scene'}</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {characters.map((char) => {
+                                const isSelected = (editSceneForm.characters_in_scene || []).includes(char.name);
+                                return (
+                                  <button key={char.name} type="button"
+                                    data-testid={`scene-char-toggle-${s.scene_number}-${char.name}`}
+                                    onClick={() => {
+                                      setEditSceneForm(prev => {
+                                        const current = prev.characters_in_scene || [];
+                                        return {
+                                          ...prev,
+                                          characters_in_scene: isSelected
+                                            ? current.filter(c => c !== char.name)
+                                            : [...current, char.name]
+                                        };
+                                      });
+                                    }}
+                                    className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium transition-all border ${
+                                      isSelected
+                                        ? 'bg-[#C9A84C]/15 border-[#C9A84C]/40 text-[#C9A84C]'
+                                        : 'bg-[#111] border-[#333] text-[#666] hover:border-[#555] hover:text-[#999]'
+                                    }`}>
+                                    {isSelected ? <Check size={8} /> : <Plus size={8} />}
+                                    {char.name}
+                                  </button>
+                                );
+                              })}
+                              {characters.length === 0 && (
+                                <span className="text-[10px] text-[#555] italic">
+                                  {lang === 'pt' ? 'Nenhum personagem definido ainda' : 'No characters defined yet'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                           <button onClick={() => saveSceneEdit(s.scene_number)} data-testid={`save-scene-${s.scene_number}`}
                             className="w-full btn-gold rounded-lg py-1 text-xs font-semibold">
                             {lang === 'pt' ? 'Salvar Alterações' : 'Save Changes'}
@@ -1429,11 +1466,20 @@ export const DirectedStudio = memo(function DirectedStudio({
                           <p className="text-xs text-white font-medium">{s.title}</p>
                           <p className="text-[11px] text-[#888]">{s.description}</p>
                           <p className="text-[11px] text-[#AAA] italic mt-0.5">{s.dialogue}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             {s.emotion && <span className="text-[10px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.emotion}</span>}
                             {s.camera && <span className="text-[10px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.camera}</span>}
-                            {s.characters_in_scene && <span className="text-[10px] text-[#C9A84C]">{s.characters_in_scene.join(', ')}</span>}
                           </div>
+                          {s.characters_in_scene?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {s.characters_in_scene.map((charName) => (
+                                <span key={charName} className="inline-flex items-center gap-0.5 text-[10px] bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20 rounded-full px-1.5 py-0.5">
+                                  <Users size={8} />
+                                  {charName}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

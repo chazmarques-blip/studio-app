@@ -1022,7 +1022,7 @@ async def update_scene(project_id: str, payload: dict = Body(...), tenant=Depend
     scenes = project.get("scenes", [])
     for s in scenes:
         if s.get("scene_number") == scene_num:
-            for key in ["title", "description", "dialogue", "emotion", "camera", "transition"]:
+            for key in ["title", "description", "dialogue", "emotion", "camera", "transition", "characters_in_scene"]:
                 if key in payload:
                     s[key] = payload[key]
             break
