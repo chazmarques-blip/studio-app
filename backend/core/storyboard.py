@@ -396,25 +396,51 @@ def _generate_all_frames_for_scene(
     style_dna: str,
     shot_briefs: list = None,
     lang: str = "pt",
+    enable_validation: bool = True,
 ) -> list:
     """Generate 6 individual frames for a scene in parallel (6 at a time).
     Uses shot briefs for detailed per-frame instructions when available.
+    When enable_validation=True, each frame is validated against character avatars
+    using Claude Vision and regenerated up to 2 times if rejected.
     Returns list of (frame_type, image_bytes) tuples.
     """
     frame_sem = threading.Semaphore(6)  # All 6 frames in parallel
     results = [None] * len(FRAME_TYPES)
+    chars_in_scene = scene.get("characters_in_scene", [])
 
     def _gen_one(idx, ft):
         with frame_sem:
             try:
                 brief = shot_briefs[idx] if shot_briefs and idx < len(shot_briefs) else None
-                img = _generate_single_frame(
-                    scene=scene, scene_num=scene_num,
-                    frame_type=ft, frame_index=idx, project_id=project_id,
-                    char_avatars=char_avatars, avatar_cache=avatar_cache,
-                    character_bible=character_bible, identity_cards=identity_cards,
-                    style_dna=style_dna, shot_brief=brief, lang=lang,
-                )
+
+                def _do_generate():
+                    return _generate_single_frame(
+                        scene=scene, scene_num=scene_num,
+                        frame_type=ft, frame_index=idx, project_id=project_id,
+                        char_avatars=char_avatars, avatar_cache=avatar_cache,
+                        character_bible=character_bible, identity_cards=identity_cards,
+                        style_dna=style_dna, shot_brief=brief, lang=lang,
+                    )
+
+                # Use validation gate if enabled and characters exist
+                if enable_validation and chars_in_scene and char_avatars:
+                    try:
+                        from core.continuity_director import validate_and_retry
+                        img = validate_and_retry(
+                            generate_fn=_do_generate,
+                            character_names_in_scene=chars_in_scene,
+                            character_avatars=char_avatars,
+                            scene_description=scene.get("description", ""),
+                            frame_label=f"s{scene_num}_{ft['label']}",
+                            project_id=project_id,
+                            max_retries=2,
+                        )
+                    except Exception as e:
+                        logger.warning(f"Storyboard [{project_id}]: Validation gate failed for {ft['label']}, falling back: {e}")
+                        img = _do_generate()
+                else:
+                    img = _do_generate()
+
                 results[idx] = (ft, img)
             except Exception as e:
                 logger.error(f"Storyboard [{project_id}]: Frame {ft['label']} scene {scene_num} failed: {e}")
@@ -427,7 +453,7 @@ def _generate_all_frames_for_scene(
         t.start()
 
     for t in threads:
-        t.join(timeout=120)
+        t.join(timeout=180)  # Extended timeout for validation retries
 
     return [r for r in results if r is not None]
 

@@ -1,11 +1,11 @@
-"""Auto-generated module from studio.py split."""
+"""Continuity Director v2 Endpoints — Expert character consistency enforcer."""
 from ._shared import *
 
 # ══ CONTINUITY DIRECTOR ENDPOINTS ══
 
 @router.post("/projects/{project_id}/continuity/analyze")
 async def analyze_continuity_start(project_id: str, body: dict = Body(default={}), tenant=Depends(get_current_tenant)):
-    """Start a background continuity analysis of the entire storyboard."""
+    """Start a background continuity analysis using Claude Vision v2."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -14,13 +14,12 @@ async def analyze_continuity_start(project_id: str, body: dict = Body(default={}
     if not panels:
         raise HTTPException(status_code=400, detail="No storyboard panels to analyze")
 
-    # Check if already running
     cs = project.get("continuity_status", {})
     if cs.get("phase") == "analyzing":
         return {"status": "already_running"}
 
     user_notes = body.get("user_notes", "")
-    project["continuity_status"] = {"phase": "analyzing", "current": 0, "total": len(panels), "issues_found": 0}
+    project["continuity_status"] = {"phase": "analyzing", "current": 0, "total": len(panels), "issues_found": 0, "engine": "claude-vision-v2"}
     if user_notes:
         project["continuity_user_notes"] = user_notes
     _save_project(tenant["id"], settings, projects)
@@ -33,11 +32,13 @@ async def analyze_continuity_start(project_id: str, body: dict = Body(default={}
                 try:
                     _s, _p, _proj = _get_project(tenant["id"], project_id)
                     if _proj:
+                        prev_issues = _proj.get("continuity_status", {}).get("issues_found", 0)
                         _proj["continuity_status"] = {
                             "phase": "analyzing",
                             "current": current,
                             "total": total,
-                            "issues_found": _proj.get("continuity_status", {}).get("issues_found", 0) + batch_issues,
+                            "issues_found": prev_issues + batch_issues,
+                            "engine": "claude-vision-v2",
                         }
                         _save_project(tenant["id"], _s, _p)
                 except Exception:
@@ -65,14 +66,16 @@ async def analyze_continuity_start(project_id: str, body: dict = Body(default={}
                     "total": report.get("total_scenes_analyzed", 0),
                     "current": report.get("total_scenes_analyzed", 0),
                     "issues_found": report.get("total_issues", 0),
+                    "critical": report.get("critical_count", 0),
                     "high": report.get("high_count", 0),
                     "medium": report.get("medium_count", 0),
                     "low": report.get("low_count", 0),
+                    "engine": "claude-vision-v2",
                 }
                 _save_project(tenant["id"], _s, _p, flush_now=True)
-                logger.info(f"Continuity [{project_id}]: Analysis complete — {report.get('total_issues', 0)} issues")
+                logger.info(f"ContinuityV2 [{project_id}]: Analysis complete — {report.get('total_issues', 0)} issues")
         except Exception as e:
-            logger.error(f"Continuity [{project_id}]: Analysis failed: {e}")
+            logger.error(f"ContinuityV2 [{project_id}]: Analysis failed: {e}")
             try:
                 _s, _p, _proj = _get_project(tenant["id"], project_id)
                 if _proj:
@@ -83,7 +86,7 @@ async def analyze_continuity_start(project_id: str, body: dict = Body(default={}
 
     thread = threading.Thread(target=_bg_continuity_analyze, daemon=True)
     thread.start()
-    return {"status": "analyzing", "total_panels": len(panels)}
+    return {"status": "analyzing", "total_panels": len(panels), "engine": "claude-vision-v2"}
 
 
 @router.get("/projects/{project_id}/continuity/status")
@@ -96,6 +99,18 @@ async def get_continuity_status(project_id: str, tenant=Depends(get_current_tena
         "continuity_status": project.get("continuity_status", {}),
         "continuity_report": project.get("continuity_report", {}),
     }
+
+@router.post("/projects/{project_id}/continuity/reset")
+async def reset_continuity(project_id: str, tenant=Depends(get_current_tenant)):
+    """Reset continuity status (useful if background thread died)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project["continuity_status"] = {}
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "reset"}
+
+
 
 
 @router.post("/projects/{project_id}/continuity/auto-correct")
