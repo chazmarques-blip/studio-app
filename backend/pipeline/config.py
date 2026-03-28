@@ -1,6 +1,6 @@
 """Pipeline configuration: constants, models, and shared data."""
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 
 # Emergent proxy URL for LLM calls
@@ -973,3 +973,8 @@ class EditAvatarRequest(BaseModel):
     avatar_url: str
     instruction: str
     base_url: str = ""  # Original base character image for context preservation
+
+    @field_validator("base_url", mode="before")
+    @classmethod
+    def coerce_base_url(cls, v):
+        return v if isinstance(v, str) else ""

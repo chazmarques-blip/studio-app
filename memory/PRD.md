@@ -13,38 +13,31 @@ AgentZZ is a comprehensive, mobile-first, no-code SaaS platform that allows user
 - **Multi-language**: UI support for English, Portuguese, Spanish
 - **Dark Luxury Theme**: Premium monochrome gold/black/white/gray design
 
-## Recent Changes (March 2026)
+## Recent Bug Fixes (March 28, 2026)
 
-### Bug Fix - Toast Error Crash (Session Current)
-- **Root Cause**: `toast.error(err.response?.data?.detail)` was passing Pydantic validation error arrays (objects with keys `{type, loc, msg, input, url}`) directly to React/Sonner, causing "Objects are not valid as a React child" crash
-- **Fix**: Created `/app/frontend/src/utils/getErrorMsg.js` utility that safely extracts string messages from API error responses. Applied across ALL files (20+ files, 40+ occurrences)
-- **Files fixed**: DirectedStudio.jsx, StoryboardEditor.jsx, PipelineView.jsx, AvatarModal.jsx, Login.jsx, Marketing.jsx, Chat.jsx, Profile.jsx, Pricing.jsx, Agents.jsx, AgentBuilder.jsx, ChannelConnection.jsx, UpsellScreen.jsx, AvatarPicker.jsx, AvatarLibraryModal.jsx, ImageLightbox.jsx, CompletedSummary.jsx, ActivePipelineView.jsx, PostProduction.jsx
+### Fix 1 - "Input should be a valid string" on Character Edit
+- **Root Cause**: `AvatarModal.jsx` line 663 sent `base_url: null` when in Directed Mode. Pydantic's `EditAvatarRequest` model requires `str`, not `None`.
+- **Fix (Frontend)**: Changed `null` to `""` in `AvatarModal.jsx`
+- **Fix (Backend)**: Added `field_validator` on `EditAvatarRequest.base_url` in `config.py` to coerce `None` to `""`
+- **Files**: `AvatarModal.jsx:663`, `config.py:972-981`
 
-### Scene Character Editing (Session Current)
-- Backend `update-scene` endpoint now accepts `characters_in_scene` field
-- Frontend shows toggle chips in scene edit form (Step 1 - Roteiro)
-- View mode displays characters as gold chips with Users icon
+### Fix 2 - "Objects are not valid as a React child" Toast Crash  
+- **Root Cause**: Pydantic 422 validation errors (arrays of objects) passed directly to `toast.error()`, crashing React rendering
+- **Fix**: Created `getErrorMsg()` utility, applied across 20+ files (40+ occurrences)
+- **Files**: `utils/getErrorMsg.js` (new), all major components and pages
+
+### Feature - Scene Character Editing
+- Backend `update-scene` endpoint accepts `characters_in_scene`
+- Frontend shows toggle chips in scene edit form (Step 1)
 - Testing: iteration_124.json - 100% pass rate
 
-### Previous Session Completed
-- Project-Specific Characters, localStorage caching, Framer Motion fix
-- Edit flow fixes, DOM Flickering fix, Apply Default Background
-- Context-Aware 360 Generation, Incremental Layer Editing
-- Front view + transparent background prompts
-- Google Integration in Agent Config (Phase 6)
-
 ## Pending Verification
-- 360-degree view clothing fix (company_uniform -> keep_original) - needs visual verification
+- 360-degree view clothing fix (company_uniform -> keep_original)
 
 ## Backlog (P0-P3)
 ### P1 - AI Marketing Studio (Phase 7.1 & 7.2)
-- Campaign generation UI, backend with MongoDB, Enterprise plan gating
-
 ### P2 - Omnichannel Integrations (Phase 8)
-- WhatsApp (Evolution API), SMS (Twilio), Instagram, Facebook, Telegram
-
 ### P2 - Admin Management System & Stripe
-
 ### P3 - Native App Packaging (Capacitor)
 
 ## Tech Stack
@@ -55,4 +48,3 @@ AgentZZ is a comprehensive, mobile-first, no-code SaaS platform that allows user
 
 ## Key Credentials
 - Email: test@agentflow.com / Password: password123
-- Test project: 1a0779dd0ce7 (ADAO E EVA BIBLIZOO - 15 scenes, 4 characters)

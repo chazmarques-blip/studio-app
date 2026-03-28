@@ -660,7 +660,7 @@ export function AvatarModal({ ctx }) {
                                 const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
                                   avatar_url: tempAvatar.url,
                                   instruction: aiEditInstruction,
-                                  base_url: isDirectedMode ? null : (avatarBaseUrl || tempAvatar.url),
+                                  base_url: isDirectedMode ? "" : (avatarBaseUrl || tempAvatar.url),
                                 });
                                 if (data.url) {
                                   setTempAvatar(p => ({ ...p, url: data.url }));
