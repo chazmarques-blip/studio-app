@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ import { AvatarLibraryModal } from './pipeline/AvatarLibraryModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export function DirectedStudio({
+export const DirectedStudio = memo(function DirectedStudio({
   avatars = [], onAddAvatar, onEditAvatar, onRemoveAvatar, onPreviewAvatar,
   onAiEditAvatar, aiEditAvatarId, setAiEditAvatarId, aiEditInstruction, setAiEditInstruction, aiEditLoading,
   lastCreatedAvatar,
@@ -2579,7 +2579,7 @@ export function DirectedStudio({
       />
     </div>
   );
-}
+});
 
 function _calcProgress(status) {
   if (!status.total_scenes) return 0;

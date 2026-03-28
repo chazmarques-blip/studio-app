@@ -257,6 +257,29 @@ export default function PipelineView({ context }) {
     try { await axios.post(`${API}/data/companies/primary/${id}`); } catch {}
   };
 
+  // Stable callbacks for DirectedStudio (avoid re-renders)
+  const handleAddAvatarDirected = useCallback((promptText) => {
+    resetAvatarModal();
+    if (promptText) { setAvatarPromptText(promptText); setAvatarCreationMode('prompt'); }
+    setShowAvatarModal(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleEditAvatarDirected = useCallback((av) => {
+    openAvatarForEdit(av);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRemoveAvatarDirected = useCallback((av) => {
+    removeAvatar(av);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePreviewAvatarDirected = useCallback((url) => {
+    setAvatarPreviewUrl(url);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleAiEditAvatarDirected = useCallback((id) => {
+    aiEditAvatar(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const activeCompany = companies.find(c => c.id === activeCompanyId) || null;
   const selectedAvatar = avatars.find(a => a.id === selectedAvatarId) || null;
 
@@ -889,13 +912,13 @@ export default function PipelineView({ context }) {
   }, []);
 
   useEffect(() => {
-    if (activePipeline && ['running', 'pending'].includes(activePipeline.status)) {
+    if (activePipeline && ['running', 'pending'].includes(activePipeline.status) && !isDirectedMode) {
       startPolling(activePipeline.id);
     } else {
       if (pollRef.current) clearInterval(pollRef.current);
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [activePipeline?.id, activePipeline?.status, startPolling]);
+  }, [activePipeline?.id, activePipeline?.status, startPolling, isDirectedMode]);
 
   const loadPipelines = async () => {
     try {
@@ -1222,11 +1245,11 @@ export default function PipelineView({ context }) {
         {isDirectedMode ? (
           <DirectedStudio
             avatars={avatars}
-            onAddAvatar={(promptText) => { resetAvatarModal(); if (promptText) { setAvatarPromptText(promptText); setAvatarCreationMode('prompt'); } setShowAvatarModal(true); }}
-            onEditAvatar={openAvatarForEdit}
-            onRemoveAvatar={removeAvatar}
-            onPreviewAvatar={setAvatarPreviewUrl}
-            onAiEditAvatar={aiEditAvatar}
+            onAddAvatar={handleAddAvatarDirected}
+            onEditAvatar={handleEditAvatarDirected}
+            onRemoveAvatar={handleRemoveAvatarDirected}
+            onPreviewAvatar={handlePreviewAvatarDirected}
+            onAiEditAvatar={handleAiEditAvatarDirected}
             aiEditAvatarId={aiEditAvatarId}
             setAiEditAvatarId={setAiEditAvatarId}
             aiEditInstruction={aiEditInstruction}
