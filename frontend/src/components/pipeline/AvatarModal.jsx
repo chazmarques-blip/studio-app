@@ -47,9 +47,16 @@ export function AvatarModal({ ctx }) {
     avatars,
     // Refs
     avatarInputRef,
+    isDirectedMode,
   } = ctx;
 
   const setAiEditLoading = _setAiEditLoading || (() => {});
+
+  // Labels adapt based on context (Directed Studio = "Personagem", Campaign = "Avatar")
+  const entityLabel = isDirectedMode ? 'Personagem' : 'Avatar';
+
+  // In directed mode, skip clothing tab — default to view360
+  const effectiveTab = (isDirectedMode && customizeTab === 'clothing') ? 'view360' : customizeTab;
 
   if (!showAvatarModal) return null;
 
@@ -59,7 +66,11 @@ export function AvatarModal({ ctx }) {
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
-                  {avatarStage === 'customize' ? (editingAvatarId ? t('studio.edit_avatar') : t('studio.customize_avatar')) : t('studio.create_avatar')}
+                  {avatarStage === 'customize'
+                    ? (editingAvatarId
+                        ? (isDirectedMode ? `Editar ${entityLabel}` : t('studio.edit_avatar'))
+                        : (isDirectedMode ? `Personalizar ${entityLabel}` : t('studio.customize_avatar')))
+                    : (isDirectedMode ? `Criar ${entityLabel}` : t('studio.create_avatar'))}
                 </p>
                 <button onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#999]" /></button>
               </div>
@@ -670,7 +681,7 @@ export function AvatarModal({ ctx }) {
                     {/* Tabs */}
                     <div className="flex rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-0.5">
                       {[
-                        { id: 'clothing', icon: Shirt, label: t('studio.clothing') },
+                        ...(!isDirectedMode ? [{ id: 'clothing', icon: Shirt, label: t('studio.clothing') }] : []),
                         { id: 'view360', icon: RotateCw, label: t('studio.view_360') },
                         { id: 'voice', icon: Volume2, label: t('studio.voice') },
                       ].map(tab => (
@@ -683,19 +694,20 @@ export function AvatarModal({ ctx }) {
                               if (loadedAngles < 4) {
                                 const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
                                 const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
-                                startAuto360(sourceUrl, tempAvatar.clothing || 'company_uniform', tempAvatar?.avatar_style || 'realistic');
+                                const clothing360 = isDirectedMode ? 'keep_original' : (tempAvatar.clothing || 'company_uniform');
+                                startAuto360(sourceUrl, clothing360, tempAvatar?.avatar_style || 'realistic');
                               }
                             }
                           }}
                           className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-[10px] font-semibold transition ${
-                            customizeTab === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#999] hover:text-[#888]'}`}>
+                            effectiveTab === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#999] hover:text-[#888]'}`}>
                           <tab.icon size={12} /> {tab.label}
                         </button>
                       ))}
                     </div>
 
                     {/* Clothing Tab */}
-                    {customizeTab === 'clothing' && (
+                    {effectiveTab === 'clothing' && (
                       <div className="space-y-3">
                         {/* Clothing gallery of generated variants */}
                         {Object.keys(clothingVariants).length > 1 && (
@@ -757,7 +769,7 @@ export function AvatarModal({ ctx }) {
                     )}
 
                     {/* 360° View Tab */}
-                    {customizeTab === 'view360' && (
+                    {effectiveTab === 'view360' && (
                       <div className="space-y-2">
                         {auto360Progress && (
                           <div className="flex items-center gap-2 text-xs text-[#C9A84C] bg-[#C9A84C]/10 rounded-lg px-3 py-1.5">
@@ -823,7 +835,7 @@ export function AvatarModal({ ctx }) {
                     )}
 
                     {/* Voice Tab */}
-                    {customizeTab === 'voice' && (
+                    {effectiveTab === 'voice' && (
                       <div className="space-y-3">
                         {/* Voice sub-tabs */}
                         <div className="flex gap-1">

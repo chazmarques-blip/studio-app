@@ -1829,6 +1829,7 @@ export default function PipelineView({ context }) {
           startAuto360, saveAvatarAndClose, saveAvatarAsNew, previewVoice,
           startRecording, stopRecording, saveRecordingAsVoice, persistAvatarToServer,
           avatarInputRef,
+          isDirectedMode,
         }} />
 
     </div>

@@ -919,7 +919,8 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = 
         "right_profile": "body and face turned to THEIR RIGHT, showing the RIGHT side profile view",
         "back": "turned completely away from camera showing their back, looking slightly over shoulder",
     }
-    clothing_desc = CLOTHING_MAP.get(clothing, CLOTHING_MAP["company_uniform"])
+    keep_original = clothing == "keep_original"
+    clothing_desc = "" if keep_original else CLOTHING_MAP.get(clothing, CLOTHING_MAP["company_uniform"])
     is_3d = avatar_style in ("3d_cartoon", "3d_pixar")
 
     if is_3d:
@@ -930,17 +931,17 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = 
             "Do NOT make it photorealistic. Keep the 3D animation style — smooth skin, stylized proportions, "
             "expressive features, vibrant colors, cinematic lighting. "
             "Preserve the character's EXACT identity: same face shape, hair, skin tone, features. "
-            "Only change clothing and camera angle as instructed. "
-            "Output VERTICAL format (taller than wide, approximately 3:5 ratio)."
+            + ("Keep the character's EXACT SAME outfit, clothing, accessories, and props as shown in the input. " if keep_original else "Only change clothing and camera angle as instructed. ")
+            + "Output VERTICAL format (taller than wide, approximately 3:5 ratio)."
         )
     else:
         system_msg = (
-            "You are an expert at editing portrait photographs while preserving the person's EXACT identity. "
-            "CRITICAL RULE: The person in the output MUST be the EXACT SAME individual as in the input photo — "
+            "You are an expert at editing portrait images while preserving the character's EXACT identity. "
+            "CRITICAL RULE: The character in the output MUST be the EXACT SAME as in the input — "
             "same face shape, same eyes, same nose, same mouth, same skin tone, same hair color and style, "
-            "same body build. Do NOT generate a different person. Do NOT change their appearance. "
-            "Only change their clothing and camera angle as instructed. "
-            "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
+            "same body build. Do NOT generate a different character. Do NOT change their appearance. "
+            + ("Keep the character's EXACT SAME outfit, clothing, accessories, and props as shown in the input. " if keep_original else "Only change their clothing and camera angle as instructed. ")
+            + "The output must be VERTICAL portrait format (taller than wide, approximately 3:5 ratio)."
         )
 
     # Download source image once
@@ -971,29 +972,33 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = 
                     f"This is a {style_label} character. Generate the SAME character from a different angle.\n\n"
                     f"CRITICAL: Keep the EXACT SAME {style_label} art style — do NOT make it photorealistic.\n\n"
                     f"CHANGE ONLY:\n"
-                    f"1. CLOTHING: Dress them in: {clothing_desc}\n"
-                    f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
-                    f"KEEP EXACTLY THE SAME:\n"
+                    + (f"1. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n" if keep_original else
+                       f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+                       f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n")
+                    + f"KEEP EXACTLY THE SAME:\n"
                     f"- The {style_label} art style (smooth skin, stylized proportions, 3D rendering)\n"
                     f"- Their face design (every detail — eyes, nose, mouth, hair)\n"
                     f"- Their skin tone, hair color and style\n"
-                    f"- Their body proportions\n\n"
-                    f"OUTPUT: Full-body {style_label} character, VERTICAL format (taller than wide, 3:5 ratio), "
+                    f"- Their body proportions\n"
+                    + ("- Their EXACT outfit, clothing, accessories, and all visual details\n\n" if keep_original else "\n")
+                    + f"OUTPUT: Full-body {style_label} character, VERTICAL format (taller than wide, 3:5 ratio), "
                     f"head to feet visible, clean studio background with soft gradient, "
                     f"cinematic 3D lighting, high-quality render."
                 )
             else:
                 prompt = (
-                    f"EDIT this photo of this EXACT person. Do NOT replace them with a different person.\n\n"
+                    f"EDIT this image of this EXACT character. Do NOT replace them with a different character.\n\n"
                     f"CHANGE ONLY:\n"
-                    f"1. CLOTHING: Dress them in: {clothing_desc}\n"
-                    f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n"
-                    f"KEEP EXACTLY THE SAME:\n"
+                    + (f"1. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n" if keep_original else
+                       f"1. CLOTHING: Dress them in: {clothing_desc}\n"
+                       f"2. POSE/ANGLE: Reposition them so they are {angle_desc}\n\n")
+                    + f"KEEP EXACTLY THE SAME:\n"
                     f"- Their face (every detail — eyes, nose, mouth, jawline, eyebrows)\n"
                     f"- Their skin tone and complexion\n"
                     f"- Their hair color, style, and length\n"
-                    f"- Their body build and proportions\n\n"
-                    f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
+                    f"- Their body build and proportions\n"
+                    + ("- Their EXACT outfit, clothing, accessories, and all visual details\n\n" if keep_original else "\n")
+                    + f"OUTPUT: Full-body portrait, VERTICAL format (taller than wide, 3:5 ratio), "
                     f"head to feet visible, modern photo studio, soft professional lighting, clean minimal background. "
                     f"Photorealistic, 4K detail."
                 )

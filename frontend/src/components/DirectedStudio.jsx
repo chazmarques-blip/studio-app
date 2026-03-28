@@ -1468,10 +1468,10 @@ export const DirectedStudio = memo(function DirectedStudio({
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-characters">
           <h3 className="text-xs font-semibold text-white flex items-center gap-2">
             <Users size={12} className="text-[#C9A84C]" />
-            {lang === 'pt' ? 'Personagens & Avatares' : 'Characters & Avatars'}
+            {lang === 'pt' ? 'Personagens' : 'Characters'}
           </h3>
           <p className="text-xs text-[#666]">
-            {lang === 'pt' ? 'Edite, vincule avatares ou copie o prompt de cada personagem' : 'Edit, link avatars or copy each character prompt'}
+            {lang === 'pt' ? 'Crie, edite ou importe personagens da biblioteca' : 'Create, edit or import characters from library'}
           </p>
 
           <div className="space-y-2">
@@ -1524,7 +1524,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         <p className="text-[11px] font-bold text-white">{char.name}</p>
                         {!characterAvatars[char.name] && (
                           <span className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded px-1 py-0.5">
-                            {lang === 'pt' ? 'Sem avatar' : 'No avatar'}
+                            {lang === 'pt' ? 'Sem personagem' : 'No character'}
                           </span>
                         )}
                       </div>
@@ -1595,7 +1595,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   })}
                   {/* Create new avatar button */}
                   <button onClick={() => onAddAvatar(char.description || char.name || '')} data-testid={`add-avatar-${ci}`}
-                    title={lang === 'pt' ? 'Criar novo avatar' : 'Create new avatar'}
+                    title={lang === 'pt' ? 'Criar novo personagem' : 'Create new character'}
                     className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#C9A84C]/50 hover:bg-[#C9A84C]/5 transition group"
                     style={{ width: 52, height: 68 }}>
                     <Plus size={12} className="text-[#555] group-hover:text-[#C9A84C]" />
@@ -1614,7 +1614,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                 {/* Selected avatar AI edit hint (when avatar is linked but overlay not open) */}
                 {characterAvatars[char.name] && !projectAvatars.find(a => a.url === characterAvatars[char.name] && aiEditAvatarId === a.id) && (
                   <p className="text-[10px] text-[#555] mt-1.5 italic">
-                    {lang === 'pt' ? 'Passe o mouse sobre o avatar para ver, editar ou criar nova versão com IA' : 'Hover over avatar to preview, edit or create new AI version'}
+                    {lang === 'pt' ? 'Passe o mouse para ver, editar ou criar nova versão com IA' : 'Hover to preview, edit or create new AI version'}
                   </p>
                 )}
               </div>
