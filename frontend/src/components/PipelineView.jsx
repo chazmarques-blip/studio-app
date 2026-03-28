@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import FinalPreview from './FinalPreview';
 import { DirectedStudio } from './DirectedStudio';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
+import { getErrorMsg } from '../utils/getErrorMsg';
 import {
   cleanDisplayText, STEP_META, STEP_ORDER, PLATFORMS,
   ProgressTimer, ImageLightbox, StepCard,
@@ -246,7 +247,7 @@ export default function PipelineView({ context }) {
       const { data } = await axios.post(`${API}/campaigns/pipeline/upload`, form);
       setNewCompany(p => ({ ...p, logo_url: data.url }));
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Upload error');
+      toast.error(getErrorMsg(e, 'Upload error'));
     }
     setLogoUploading(false);
   };
@@ -323,7 +324,7 @@ export default function PipelineView({ context }) {
       setAvatarSourcePhoto({ url: data.url, preview: URL.createObjectURL(file) });
       toast.success(t('studio.photo_uploaded_toast'));
     } catch (e) {
-      toast.error(e.response?.data?.detail || t('studio.err_generic'));
+      toast.error(getErrorMsg(e, t('studio.err_generic')));
     }
     setAvatarPhotoUploading(false);
   };
@@ -352,7 +353,7 @@ export default function PipelineView({ context }) {
         }
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || t('studio.err_generic'));
+      toast.error(getErrorMsg(e, t('studio.err_generic')));
     }
     setAvatarVideoUploading(false);
   };
@@ -454,7 +455,7 @@ export default function PipelineView({ context }) {
         }, 4000);
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || t('studio.err_generic'));
+      toast.error(getErrorMsg(e, t('studio.err_generic')));
       setAccuracyProgress(null);
       setGeneratingAvatar(false);
     }
@@ -499,7 +500,7 @@ export default function PipelineView({ context }) {
         startAuto360(data.avatar_url, 'company_uniform', style);
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || t('studio.err_generic'));
+      toast.error(getErrorMsg(e, t('studio.err_generic')));
       setAccuracyProgress(null);
       setGeneratingAvatar(false);
     }
@@ -679,7 +680,7 @@ export default function PipelineView({ context }) {
         toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao editar avatar');
+      toast.error(getErrorMsg(err, 'Erro ao editar avatar'));
     } finally {
       setAiEditLoading(false);
       setAiEditAvatarId(null);
@@ -715,7 +716,7 @@ export default function PipelineView({ context }) {
         startAuto360(sourceUrl, style, tempAvatar?.avatar_style || 'realistic');
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Error');
+      toast.error(getErrorMsg(e, 'Error'));
     }
     setApplyingClothing(false);
   };
@@ -1019,7 +1020,7 @@ export default function PipelineView({ context }) {
       setQuestionnaire({ product: '', goal: '', audience: '', tone: '', offer: '', differentials: '', cta: '', urgency: '' });
       setCampaignLang('');
       toast.success(t('studio.pipeline_started') || 'Pipeline started!');
-    } catch (e) { toast.error(e.response?.data?.detail || t('studio.err_create') || 'Error creating pipeline'); }
+    } catch (e) { toast.error(getErrorMsg(e, t('studio.err_create') || 'Error creating pipeline')); }
     setCreating(false);
   };
 
@@ -1029,7 +1030,7 @@ export default function PipelineView({ context }) {
       await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/approve`, approvalData);
       toast.success(t('studio.approved') || 'Approved! Next step starting...');
       setTimeout(() => { pollPipeline(activePipeline.id); startPolling(activePipeline.id); }, 1000);
-    } catch (e) { toast.error(e.response?.data?.detail || t('studio.err_approve') || 'Error approving'); }
+    } catch (e) { toast.error(getErrorMsg(e, t('studio.err_approve') || 'Error approving')); }
   };
 
   const approveAudio = async (approvalData) => {
@@ -1046,7 +1047,7 @@ export default function PipelineView({ context }) {
         toast.success(t('studio.script_revision') || 'Script revision requested...');
       }
       setTimeout(() => { pollPipeline(activePipeline.id); startPolling(activePipeline.id); }, 1000);
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+    } catch (e) { toast.error(getErrorMsg(e, 'Error')); }
   };
 
   const retryPipeline = async () => {
@@ -1055,7 +1056,7 @@ export default function PipelineView({ context }) {
       await axios.post(`${API}/campaigns/pipeline/${activePipeline.id}/retry`);
       toast.success(t('studio.retrying') || 'Retrying...');
       setTimeout(() => { pollPipeline(activePipeline.id); startPolling(activePipeline.id); }, 1000);
-    } catch (e) { toast.error(e.response?.data?.detail || t('studio.err_generic') || 'Error'); }
+    } catch (e) { toast.error(getErrorMsg(e, t('studio.err_generic') || 'Error')); }
   };
 
   const deletePipeline = async (id) => {

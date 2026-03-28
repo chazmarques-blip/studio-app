@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Megaphone, Sparkles, Play, Pause, FileText, TrendingUp
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -398,7 +399,7 @@ function ArtGalleryModal({ campaign, onClose, labels }) {
         toast.success(labels.imageAdded);
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || labels.error || 'Error');
+      toast.error(getErrorMsg(e, labels.error || 'Error'));
     } finally {
       setStyleRegenLoading(false);
     }
@@ -552,7 +553,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
       await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/campaigns/pipeline/${pipelineId}/regenerate-video`);
       toast.success(labels.videoGenStarted);
     } catch (e) {
-      toast.error(e.response?.data?.detail || labels.error);
+      toast.error(getErrorMsg(e, labels.error));
       setRegenLoading(false);
     }
   };
@@ -577,7 +578,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
       setEditingCopy(false);
       refreshCampaign();
     } catch (e) {
-      toast.error(e.response?.data?.detail || labels.error);
+      toast.error(getErrorMsg(e, labels.error));
     } finally {
       setSavingCopy(false);
     }
@@ -612,7 +613,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
       }, 5000);
       setTimeout(() => { clearInterval(pollInterval); setRegenImageLoading(false); setRegenCountdown(0); }, 60000);
     } catch (e) {
-      toast.error(e.response?.data?.detail || labels.error);
+      toast.error(getErrorMsg(e, labels.error));
       setRegenImageLoading(false);
       setRegenCountdown(0);
     }
@@ -709,7 +710,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
       setShowCloneModal(false);
       onClose();
     } catch (e) {
-      toast.error(e.response?.data?.detail || labels.error);
+      toast.error(getErrorMsg(e, labels.error));
     } finally {
       setCloneLoading(false);
     }
@@ -1250,7 +1251,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             toast.success(labels.regenVariants + ' OK!');
                             refreshCampaign();
                           } catch (e) {
-                            toast.error(e.response?.data?.detail || labels.error);
+                            toast.error(getErrorMsg(e, labels.error));
                           } finally {
                             setRegenVariantsLoading(false);
                           }
@@ -1317,7 +1318,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                                 refreshCampaign();
                               }
                             } catch (e) {
-                              toast.error(e.response?.data?.detail || labels.error);
+                              toast.error(getErrorMsg(e, labels.error));
                             } finally {
                               setStyleRegenLoading(false);
                             }
@@ -1691,7 +1692,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         refreshCampaign();
                       }
                     } catch (err) {
-                      toast.error(err.response?.data?.detail || labels.error);
+                      toast.error(getErrorMsg(err, labels.error));
                     } finally {
                       setEditImageTextLoading(false);
                     }
@@ -2184,7 +2185,7 @@ export default function Marketing() {
       setCampaigns(prev => [data, ...prev]);
       setShowNew(false); setNewName('');
       toast.success(labels.created);
-    } catch (e) { toast.error(e.response?.data?.detail || labels.error); }
+    } catch (e) { toast.error(getErrorMsg(e, labels.error)); }
   };
 
   const handleAction = async (action, id) => {
@@ -2202,7 +2203,7 @@ export default function Marketing() {
         setCampaigns(prev => prev.filter(c => c.id !== id));
         toast.success(labels.deleted);
       }
-    } catch (e) { toast.error(e.response?.data?.detail || labels.error); }
+    } catch (e) { toast.error(getErrorMsg(e, labels.error)); }
   };
 
   const seedTest = async () => {

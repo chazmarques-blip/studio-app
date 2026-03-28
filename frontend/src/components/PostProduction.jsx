@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Volume2, Music, Globe, Play, Download, RefreshCw, CheckCircle, AlertTriangle, Headphones, Languages, Subtitles, FileText, Upload, Trash2, Mic } from 'lucide-react';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -153,7 +154,7 @@ export function PostProduction({ project, onUpdate }) {
       startPolling();
     } catch (e) {
       setIsProducing(false);
-      toast.error(e.response?.data?.detail || "Erro ao iniciar");
+      toast.error(getErrorMsg(e, "Erro ao iniciar"));
     }
   };
 
@@ -167,7 +168,7 @@ export function PostProduction({ project, onUpdate }) {
       toast.success(`Localização para ${targetLang.toUpperCase()} iniciada!`);
       startPolling();
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Erro");
+      toast.error(getErrorMsg(e, "Erro"));
       setLocTarget("");
     }
   };
@@ -187,7 +188,7 @@ export function PostProduction({ project, onUpdate }) {
       });
       toast.success(`Cena ${sceneNumber}: áudio enviado!`);
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Erro ao enviar áudio');
+      toast.error(getErrorMsg(e, 'Erro ao enviar áudio'));
     } finally {
       setUploadingScene(null);
     }
@@ -210,7 +211,7 @@ export function PostProduction({ project, onUpdate }) {
       setSubtitles(res.data.subtitles || {});
       toast.success(`Legendas geradas para ${(res.data.languages || []).join(', ').toUpperCase()}!`);
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Erro ao gerar legendas");
+      toast.error(getErrorMsg(e, "Erro ao gerar legendas"));
     } finally {
       setSubtitlesLoading(false);
     }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ArrowLeft, Check, Zap, Star, Crown, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { DateScrollPicker } from '../components/DateScrollPicker';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const PLAN_ICONS = [null, Zap, Star, Crown];
 
@@ -84,7 +85,7 @@ export default function Login() {
         navigate(data.user.onboarding_completed ? '/dashboard' : '/onboarding');
       }
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Authentication failed');
+      toast.error(getErrorMsg(err, 'Authentication failed'));
     } finally {
       setLoading(false);
     }

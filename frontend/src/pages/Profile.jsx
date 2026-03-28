@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Crown, MessageSquare, Bot, ChevronRight, LogOut } from
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -30,7 +31,7 @@ export default function Profile() {
       if (setUser) setUser(prev => ({ ...prev, ...form }));
       toast.success('Profile updated!');
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Error');
+      toast.error(getErrorMsg(e, 'Error'));
     } finally { setSaving(false); }
   };
 

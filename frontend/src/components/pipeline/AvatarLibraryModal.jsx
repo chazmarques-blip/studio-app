@@ -3,6 +3,7 @@ import { X, Search, Check, Download, Plus, BookOpen, RefreshCw } from 'lucide-re
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
+import { getErrorMsg } from '../../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -89,7 +90,7 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
       toast.success(`${data.imported} ${lang === 'pt' ? 'importado(s)' : 'imported'}!`);
       onClose();
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Error');
+      toast.error(getErrorMsg(e, 'Error'));
     } finally {
       setImporting(false);
     }

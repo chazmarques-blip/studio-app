@@ -9,6 +9,7 @@ import {
   Mic, MicOff, Square, RefreshCw, Lock, Image as ImageIcon,
 } from 'lucide-react';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
+import { getErrorMsg } from '../../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -625,7 +626,7 @@ export function AvatarModal({ ctx }) {
                               toast.success(isDirectedMode ? 'Fundo aplicado ao personagem!' : 'Background applied!');
                             }
                           } catch (e) {
-                            toast.error(e.response?.data?.detail || 'Erro ao aplicar fundo');
+                            toast.error(getErrorMsg(e, 'Erro ao aplicar fundo'));
                           } finally { setApplyingClothing(false); }
                         }}
                           disabled={applyingClothing}
@@ -683,7 +684,7 @@ export function AvatarModal({ ctx }) {
                                   toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
                                 }
                               } catch (err) {
-                                toast.error(err.response?.data?.detail || 'Erro ao editar avatar');
+                                toast.error(getErrorMsg(err, 'Erro ao editar avatar'));
                               } finally {
                                 setAiEditLoading(false);
                                 setAiEditAvatarId(null);

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Check, Wifi, WifiOff, RefreshCw, QrCode, MessageSquare, Phone, Loader2, AlertCircle, CheckCircle2, Trash2, Link2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -256,7 +257,7 @@ export default function ChannelConnection() {
       toast.success(lang === 'pt' ? 'Canal conectando...' : 'Channel connecting...');
       setShowConfig(null);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Error connecting');
+      toast.error(getErrorMsg(err, 'Error connecting'));
     } finally {
       setConnecting(null);
     }

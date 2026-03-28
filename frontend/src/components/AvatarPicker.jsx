@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, Upload, Sparkles, RotateCcw, Check, X, ZoomIn, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const DEFAULT_AVATAR = 'https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/e9e9c643eda7783e1e8eebf5e075b6cae5fbdd49181a39682085dd90fe69f0b9.png';
@@ -113,7 +114,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
       setSelectedIdx(newGen.length - 1);
       setGenCount(prev => prev + 1);
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Generation failed');
+      toast.error(getErrorMsg(err, 'Generation failed'));
     } finally { setGenerating(false); }
   };
 

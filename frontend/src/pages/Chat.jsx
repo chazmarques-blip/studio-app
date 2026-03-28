@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MessageSquare, Search, Send, ArrowLeft, Phone, UserCheck, Bot, Sparkles, Image, Mic, MicOff, FileAudio, X, Eye, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -143,7 +144,7 @@ export default function Chat() {
       }]);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Image analysis failed');
+      toast.error(getErrorMsg(err, 'Image analysis failed'));
     } finally {
       setMediaLoading(false);
     }
@@ -171,7 +172,7 @@ export default function Chat() {
       }]);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Transcription failed');
+      toast.error(getErrorMsg(err, 'Transcription failed'));
     } finally {
       setMediaLoading(false);
     }

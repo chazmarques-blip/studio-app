@@ -5,7 +5,8 @@ AgentZZ is a comprehensive, mobile-first, no-code SaaS platform that allows user
 
 ## Core Features Implemented
 - **Directed Studio**: Full video/storybook production pipeline with AI-powered screenwriting, storyboarding, character management, voice narration, and production
-- **Character/Avatar System**: Project-isolated character management with global library, context-aware editing (AvatarModal adapts to directed mode), incremental layer editing, 360-degree views
+- **Character/Avatar System**: Project-isolated character management with global library, context-aware editing, incremental layer editing, 360-degree views
+- **Scene Character Editing**: Users can edit which characters appear in each scene via toggle chips in the Roteiro (Step 1)
 - **Agent Management**: Agent marketplace, customization, Google Calendar/Sheets integration
 - **Omnichannel**: Unified inbox structure (WhatsApp, Instagram, Facebook, Telegram, SMS - mocked)
 - **CRM**: Built-in CRM with visual Kanban board
@@ -14,44 +15,42 @@ AgentZZ is a comprehensive, mobile-first, no-code SaaS platform that allows user
 
 ## Recent Changes (March 2026)
 
-### Completed - Session Current
-- **Scene Character Editing (Step 1 - Roteiro)**: Users can now edit which characters appear in each scene directly from the script editor. Toggle chips allow selecting/deselecting characters per scene. Characters are displayed as gold chips in view mode. Backend `update-scene` endpoint now accepts `characters_in_scene` field.
-  - Files: `DirectedStudio.jsx` (lines 1385, 1427-1458, 1469-1480), `production.py` (line 1025)
-  - Testing: iteration_124.json - 100% pass rate
+### Bug Fix - Toast Error Crash (Session Current)
+- **Root Cause**: `toast.error(err.response?.data?.detail)` was passing Pydantic validation error arrays (objects with keys `{type, loc, msg, input, url}`) directly to React/Sonner, causing "Objects are not valid as a React child" crash
+- **Fix**: Created `/app/frontend/src/utils/getErrorMsg.js` utility that safely extracts string messages from API error responses. Applied across ALL files (20+ files, 40+ occurrences)
+- **Files fixed**: DirectedStudio.jsx, StoryboardEditor.jsx, PipelineView.jsx, AvatarModal.jsx, Login.jsx, Marketing.jsx, Chat.jsx, Profile.jsx, Pricing.jsx, Agents.jsx, AgentBuilder.jsx, ChannelConnection.jsx, UpsellScreen.jsx, AvatarPicker.jsx, AvatarLibraryModal.jsx, ImageLightbox.jsx, CompletedSummary.jsx, ActivePipelineView.jsx, PostProduction.jsx
 
-### Completed - Previous Sessions
-- Project-Specific Characters (project_avatars isolation)
-- localStorage caching for avatar library
-- Framer Motion downgrade to 11.18.2 (Safari fix)
-- Edit flow fixes (setAiEditLoading, AvatarModal auto-prefill)
-- DOM Flickering fix (React.memo, stopped polling in directed mode)
-- Apply Default Background endpoint
-- Context-Aware 360 Generation (keep_original for non-human chars)
-- Incremental Layer Editing (edits apply to latest version)
-- Front view + transparent background generation prompts
+### Scene Character Editing (Session Current)
+- Backend `update-scene` endpoint now accepts `characters_in_scene` field
+- Frontend shows toggle chips in scene edit form (Step 1 - Roteiro)
+- View mode displays characters as gold chips with Users icon
+- Testing: iteration_124.json - 100% pass rate
+
+### Previous Session Completed
+- Project-Specific Characters, localStorage caching, Framer Motion fix
+- Edit flow fixes, DOM Flickering fix, Apply Default Background
+- Context-Aware 360 Generation, Incremental Layer Editing
+- Front view + transparent background prompts
 - Google Integration in Agent Config (Phase 6)
 
 ## Pending Verification
-- 360-degree view clothing fix (company_uniform -> keep_original) - Code was applied in previous session but needs visual verification
+- 360-degree view clothing fix (company_uniform -> keep_original) - needs visual verification
 
 ## Backlog (P0-P3)
 ### P1 - AI Marketing Studio (Phase 7.1 & 7.2)
-- Campaign generation UI, backend with MongoDB, campaign library, Enterprise plan gating
-- Files: AiMarketingStudio.jsx, Marketing.jsx, marketing.py (all placeholders)
+- Campaign generation UI, backend with MongoDB, Enterprise plan gating
 
 ### P2 - Omnichannel Integrations (Phase 8)
 - WhatsApp (Evolution API), SMS (Twilio), Instagram, Facebook, Telegram
 
 ### P2 - Admin Management System & Stripe
-- Admin dashboard, payment gateway
 
-### P3 - Native App Packaging
-- Capacitor for iOS/Android
+### P3 - Native App Packaging (Capacitor)
 
 ## Tech Stack
 - **Frontend**: React, Tailwind CSS, shadcn-ui, Lucide Icons, Framer Motion 11.18.2, recharts
 - **Backend**: FastAPI (Python)
-- **Database**: Supabase (PostgreSQL) + MongoDB (for new features)
+- **Database**: Supabase (PostgreSQL) + MongoDB
 - **3rd Party**: Anthropic Claude 3.5, OpenAI Whisper, Gemini (Image/Vision), ElevenLabs (TTS), Google APIs
 
 ## Key Credentials

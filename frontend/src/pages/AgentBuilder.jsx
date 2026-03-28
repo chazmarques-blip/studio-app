@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Sparkles, Bot, Loader2, RefreshCw, Rocket, ChevronDown, ChevronUp, Search, Globe, MessageSquare, Shield, Link2, Clock, Brain, Check } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -209,7 +210,7 @@ export default function AgentBuilder() {
       toast.success('Agente criado com sucesso!');
       navigate(`/agents/${data.id}/config`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao publicar agente');
+      toast.error(getErrorMsg(err, 'Erro ao publicar agente'));
     } finally {
       setDeploying(false);
     }

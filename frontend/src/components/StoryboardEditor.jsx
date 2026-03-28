@@ -8,6 +8,7 @@ import {
   Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
+import { getErrorMsg } from '../utils/getErrorMsg';
 import { StoryboardPreview } from './StoryboardPreview';
 import { VoiceInput } from './VoiceInput';
 import { preloadImages, useImagePreloader } from '../hooks/useProjectCache';
@@ -122,7 +123,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       toast.success(lang === 'pt' ? 'Gerando storyboard...' : 'Generating storyboard...');
       pollStoryboard();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao gerar storyboard');
+      toast.error(getErrorMsg(err, 'Erro ao gerar storyboard'));
       setLoading(false);
     }
   };
@@ -190,7 +191,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       };
       setTimeout(pollPanel, 3000);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro');
+      toast.error(getErrorMsg(err, 'Erro'));
       setGeneratingPanel(null);
     }
   };
@@ -274,7 +275,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       toast.success(lang === 'pt' ? 'Gerando preview MP4 com narração...' : 'Generating MP4 preview with narration...');
       pollPreviewStatus();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao exportar');
+      toast.error(getErrorMsg(err, 'Erro ao exportar'));
       setExportingMp4(false);
     }
   };
@@ -315,7 +316,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       setBookTitle(r.data.creative_title);
       toast.success(lang === 'pt' ? `Capa criada: "${r.data.creative_title}"` : `Cover created: "${r.data.creative_title}"`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao gerar capa');
+      toast.error(getErrorMsg(err, 'Erro ao gerar capa'));
     } finally {
       setGeneratingCover(false);
     }
@@ -336,7 +337,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       window.URL.revokeObjectURL(url);
       toast.success(lang === 'pt' ? 'PDF baixado!' : 'PDF downloaded!');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao exportar PDF');
+      toast.error(getErrorMsg(err, 'Erro ao exportar PDF'));
     } finally {
       setExportingPdf(false);
     }
@@ -392,7 +393,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         setTimeout(pollInpaint, 3000);
       }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro');
+      toast.error(getErrorMsg(err, 'Erro'));
       setInpaintLoading(false);
     }
   };
@@ -411,7 +412,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         ? `${(res.data.characters || []).length} personagens, ${(res.data.objects || []).length} objetos detectados`
         : `${(res.data.characters || []).length} characters, ${(res.data.objects || []).length} objects detected`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro na analise');
+      toast.error(getErrorMsg(err, 'Erro na analise'));
     } finally {
       setAnalyzing(null);
     }
@@ -432,13 +433,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r2 => setPanels(r2.data.panels || []));
           } else if (st?.phase === 'error') {
             setConverting(false);
-            toast.error(st.detail || 'Erro');
+            toast.error(typeof st.detail === 'string' ? st.detail : 'Erro');
           } else { setTimeout(pollLang, 4000); }
         }).catch(() => setTimeout(pollLang, 5000));
       };
       setTimeout(pollLang, 5000);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro na conversao');
+      toast.error(getErrorMsg(err, 'Erro na conversao'));
       setConverting(false);
     }
   };
@@ -459,13 +460,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r2 => setPanels(r2.data.panels || []));
           } else if (st?.phase === 'error') {
             setReviewing(false);
-            toast.error(st.detail || 'Erro');
+            toast.error(typeof st.detail === 'string' ? st.detail : 'Erro');
           } else { setTimeout(pollReview, 4000); }
         }).catch(() => setTimeout(pollReview, 5000));
       };
       setTimeout(pollReview, 5000);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro na revisao');
+      toast.error(getErrorMsg(err, 'Erro na revisao'));
       setReviewing(false);
     }
   };
@@ -481,7 +482,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       toast.success(lang === 'pt' ? 'Analisando continuidade do storyboard...' : 'Analyzing storyboard continuity...');
       pollContinuityStatus();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro');
+      toast.error(getErrorMsg(err, 'Erro'));
       setContinuityRunning(false);
     }
   };
@@ -505,7 +506,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         } else if (st.phase === 'error') {
           setContinuityRunning(false);
           setCorrecting(false);
-          toast.error(st.detail || 'Erro na analise');
+          toast.error(typeof st.detail === 'string' ? st.detail : 'Erro na analise');
         } else {
           setTimeout(poll, 4000);
         }
@@ -527,7 +528,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       toast.success(lang === 'pt' ? `Corrigindo ${res.data.total_corrections} problemas...` : `Correcting ${res.data.total_corrections} issues...`);
       pollContinuityStatus();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro');
+      toast.error(getErrorMsg(err, 'Erro'));
       setCorrecting(false);
     }
   };

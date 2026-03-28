@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
+import { getErrorMsg } from '../utils/getErrorMsg';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
 import { PreviewBoard } from './PreviewBoard';
 import { PostProduction } from './PostProduction';
@@ -336,7 +337,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       loadProjects();
       toast.success(lang === 'pt' ? 'Projecto criado!' : 'Project created!');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Error');
+      toast.error(getErrorMsg(err, 'Error'));
     }
   };
 
@@ -435,7 +436,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       // Poll for screenwriter result
       pollChatResult(pid);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Screenwriter error');
+      toast.error(getErrorMsg(err, 'Screenwriter error'));
       setChatMessages(prev => [...prev, { role: 'assistant', text: '❌ Erro ao processar. Tente novamente.' }]);
       setChatLoading(false);
     }
@@ -491,7 +492,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       toast.success(lang === 'pt' ? 'Reenviando ao Redator...' : 'Retrying Screenwriter...');
       pollChatResult(projectId);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao reenviar');
+      toast.error(getErrorMsg(err, 'Erro ao reenviar'));
       setChatLoading(false);
     }
   };
@@ -571,7 +572,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       startPolling(proj.id);
       toast.success(lang === 'pt' ? 'Retomando produção...' : 'Resuming production...');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed');
+      toast.error(getErrorMsg(err, 'Failed'));
       setGenerating(false);
     }
   };
@@ -592,7 +593,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       toast.success(lang === 'pt' ? 'Gerando narração...' : 'Generating narration...');
       pollNarrationStatus(projectId);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Narration failed');
+      toast.error(getErrorMsg(err, 'Narration failed'));
       setNarrationGenerating(false);
     }
   };
@@ -682,7 +683,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       toast.success(`Regenerando cena ${sceneNum}...`);
       startPolling(projectId);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao regenerar');
+      toast.error(getErrorMsg(err, 'Erro ao regenerar'));
     } finally {
       setRegenScene(null);
     }
@@ -794,7 +795,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       };
       setTimeout(pollPreview, 3000);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Preview failed');
+      toast.error(getErrorMsg(err, 'Preview failed'));
       setPreviewLoading(false);
     }
   };
@@ -819,7 +820,7 @@ export const DirectedStudio = memo(function DirectedStudio({
       });
       startPolling(projectId);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to start');
+      toast.error(getErrorMsg(err, 'Failed to start'));
       setGenerating(false);
     }
   };

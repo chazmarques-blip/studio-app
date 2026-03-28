@@ -4,6 +4,7 @@ import { X, ChevronDown, ChevronUp, RefreshCw, Loader2, Maximize2, Download, Mes
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
+import { getErrorMsg } from '../../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -29,7 +30,7 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
       if (onRegenerate) onRegenerate();
       onClose();
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Erro ao solicitar ajuste');
+      toast.error(getErrorMsg(e, 'Erro ao solicitar ajuste'));
     }
     setSubmitting(false);
   };

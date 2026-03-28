@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Zap, Check, ArrowRight, Clock, Crown, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -28,7 +29,7 @@ export default function UpsellScreen() {
       toast.success(lang === 'pt' ? `Upgrade para ${planKey} realizado!` : `Upgraded to ${planKey}!`);
       navigate(-1);
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Upgrade failed');
+      toast.error(getErrorMsg(e, 'Upgrade failed'));
     } finally {
       setUpgrading(null);
     }

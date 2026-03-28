@@ -7,6 +7,7 @@ import { STEP_ORDER, cleanDisplayText } from './constants';
 import FinalPreview from '../FinalPreview';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
 import { ImageLightbox } from './ImageLightbox';
+import { getErrorMsg } from '../../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -64,7 +65,7 @@ function CompletedSummary({ pipeline }) {
         toast.success(t('studio.variation_created') || 'New variation created!');
       }
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Failed to generate variation');
+      toast.error(getErrorMsg(e, 'Failed to generate variation'));
     }
     setGeneratingStyle(null);
   };

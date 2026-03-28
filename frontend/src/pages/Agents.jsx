@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { getAgentAvatar, DEFAULT_AVATAR } from '../data/agentAvatars';
 import AgentDetailsDrawer from '../components/AgentDetailsDrawer';
+import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -109,7 +110,7 @@ export default function Agents() {
       await axios.post(`${API}/agents/deploy`, { template_name: agent.name });
       toast.success(`${agent.name} deployed!`);
       loadData();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Deploy error'); }
+    } catch (err) { toast.error(getErrorMsg(err, 'Deploy error')); }
   };
 
   const handleDetails = (agent) => {

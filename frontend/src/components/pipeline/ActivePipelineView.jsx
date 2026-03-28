@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowRight, Check, X, AlertTriangle, Crown, Phone, Image, RefreshCw, Eye } from 'lucide-react';
 import FinalPreview from '../FinalPreview';
 import { STEP_ORDER, STEP_META, StepCard, CompletedSummary } from './index';
+import { getErrorMsg } from '../../utils/getErrorMsg';
 
 /**
  * ActivePipelineView — Displays the monitoring UI for a running/completed pipeline.
@@ -44,7 +45,7 @@ export function ActivePipelineView({
             navigate('/marketing');
           } catch (e) {
             const { toast } = await import('sonner');
-            toast.error(e.response?.data?.detail || t('studio.err_publish') || 'Error publishing campaign');
+            toast.error(getErrorMsg(e, t('studio.err_publish')) || 'Error publishing campaign');
           }
         }}
       />
