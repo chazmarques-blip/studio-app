@@ -146,7 +146,21 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
     panels = project.get("storyboard_panels", [])
     panel = next((p for p in panels if p.get("scene_number") == req.panel_number), None)
     if not panel:
-        raise HTTPException(status_code=404, detail="Panel not found")
+        # Auto-create panel for new scenes that don't have one yet
+        scene_check = next((s for s in project.get("scenes", []) if s.get("scene_number") == req.panel_number), None)
+        if not scene_check:
+            raise HTTPException(status_code=404, detail="Scene not found")
+        panel = {
+            "scene_number": req.panel_number,
+            "status": "pending",
+            "image_url": None,
+            "frames": [],
+            "description": scene_check.get("description", ""),
+        }
+        panels.append(panel)
+        panels.sort(key=lambda x: x.get("scene_number", 0))
+        project["storyboard_panels"] = panels
+        _save_project(tenant["id"], settings, projects)
 
     scene = next((s for s in project.get("scenes", []) if s.get("scene_number") == req.panel_number), None)
     if not scene:

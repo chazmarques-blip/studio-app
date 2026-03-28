@@ -1075,13 +1075,24 @@ async def add_scene(project_id: str, payload: dict = Body(...), tenant=Depends(g
     scenes.append(new_scene)
     scenes.sort(key=lambda x: x.get("scene_number", 0))
 
+    # Create placeholder storyboard panel for the new scene if storyboard exists
+    has_storyboard = len(panels) > 0
+    if has_storyboard:
+        new_panel = {
+            "scene_number": position,
+            "status": "pending",
+            "image_url": None,
+            "frames": [],
+            "description": scene_data.get("description", ""),
+        }
+        panels.append(new_panel)
+        panels.sort(key=lambda x: x.get("scene_number", 0))
+
     project["scenes"] = scenes
     project["storyboard_panels"] = panels
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     _save_project(tenant["id"], settings, projects)
 
-    # Auto-generate storyboard panel if storyboard already exists
-    has_storyboard = len(panels) > 0
     return {"status": "ok", "scene": new_scene, "total_scenes": len(scenes), "auto_storyboard": has_storyboard}
 
 

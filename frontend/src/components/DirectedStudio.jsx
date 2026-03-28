@@ -731,9 +731,13 @@ export const DirectedStudio = memo(function DirectedStudio({
       toast.success(lang === 'pt' ? 'Cena adicionada!' : 'Scene added!');
       // Auto-generate storyboard for the new scene if storyboard exists
       if (data.auto_storyboard) {
+        toast.info(lang === 'pt' ? 'Gerando storyboard da nova cena...' : 'Generating storyboard for new scene...');
         try {
           await axios.post(`${API}/studio/projects/${projectId}/storyboard/regenerate-panel`, { panel_number: position });
-        } catch { /* Storyboard gen will happen later if it fails */ }
+          toast.success(lang === 'pt' ? 'Storyboard da nova cena gerado!' : 'New scene storyboard generated!');
+        } catch (e) {
+          toast.info(lang === 'pt' ? 'Storyboard será gerado ao acessar o passo Storyboard.' : 'Storyboard will be generated when you access the Storyboard step.');
+        }
       }
     } catch (err) {
       toast.error(getErrorMsg(err, 'Erro ao adicionar cena'));
