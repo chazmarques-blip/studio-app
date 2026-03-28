@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef, memo, Fragment } from 'react';
+import { useState, useEffect, useRef, memo, Fragment, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music, GripVertical } from 'lucide-react';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { getErrorMsg } from '../utils/getErrorMsg';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
@@ -13,6 +16,23 @@ import { DialogueEditor } from './DialogueEditor';
 import { AvatarLibraryModal } from './pipeline/AvatarLibraryModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// ── Sortable wrapper for scene cards (drag-and-drop) ──
+const SortableSceneWrapper = ({ id, disabled, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 50 : 'auto',
+  };
+  return (
+    <div ref={setNodeRef} style={style} data-testid={`sortable-${id}`}>
+      {children({ dragHandleProps: { ...attributes, ...listeners }, isDragging })}
+    </div>
+  );
+};
 
 export const DirectedStudio = memo(function DirectedStudio({
   avatars = [], onAddAvatar, onEditAvatar, onRemoveAvatar, onPreviewAvatar,
@@ -774,6 +794,34 @@ export const DirectedStudio = memo(function DirectedStudio({
     }
   };
 
+  // ── Drag-and-Drop sensors & handler ──
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleDragEnd = useCallback(async (event) => {
+    const { active, over } = event;
+    if (!active || !over || active.id === over.id) return;
+    const oldIdx = scenes.findIndex(s => `scene-${s.scene_number}` === active.id);
+    const newIdx = scenes.findIndex(s => `scene-${s.scene_number}` === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    // Optimistic UI update
+    const reordered = arrayMove(scenes, oldIdx, newIdx);
+    setScenes(reordered);
+    // Build new order array and persist
+    const order = reordered.map(s => s.scene_number);
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/reorder-scenes`, { order });
+      const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
+      setScenes(status.data.scenes || []);
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao reordenar'));
+      // Revert on error
+      const status = await axios.get(`${API}/studio/projects/${projectId}/status`).catch(() => null);
+      if (status) setScenes(status.data.scenes || []);
+    }
+  }, [scenes, projectId]);
+
   const generateSceneAI = async (position) => {
     setAiSceneLoading(true);
     try {
@@ -1476,10 +1524,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                   </div>
                 )}
 
+                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={scenes.map(s => `scene-${s.scene_number}`)} strategy={verticalListSortingStrategy}>
                 {scenes.map((s, sceneIdx) => {
                   const isEditing = editingScene === s.scene_number;
                   return (
-                    <Fragment key={s.scene_number}>
+                    <SortableSceneWrapper key={s.scene_number} id={`scene-${s.scene_number}`} disabled={screenplayApproved}>
+                    {({ dragHandleProps, isDragging }) => (
+                    <Fragment>
                       {/* Add Scene Form (shown when addingSceneAt matches this position) */}
                       {addingSceneAt === s.scene_number && (
                         <div className="rounded-lg border-2 border-dashed border-[#C9A84C]/40 bg-[#0D0D0A] p-3 space-y-2" data-testid={`new-scene-form-${s.scene_number}`}>
@@ -1560,22 +1612,19 @@ export const DirectedStudio = memo(function DirectedStudio({
                         </div>
                       )}
 
-                    <div className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2 space-y-1" data-testid={`scene-card-${s.scene_number}`}>
+                    <div className={`rounded-lg border ${isDragging ? 'border-[#C9A84C]/50 shadow-[0_0_12px_rgba(201,168,76,0.15)]' : 'border-[#1A1A1A]'} bg-[#0A0A0A] p-2 space-y-1`} data-testid={`scene-card-${s.scene_number}`}>
                       <div className="flex items-center justify-between">
-                        <p className="text-[11px] font-bold text-[#C9A84C]">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
+                        <div className="flex items-center gap-1.5">
+                          {!screenplayApproved && (
+                            <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing text-[#444] hover:text-[#C9A84C] p-0.5 transition-colors touch-none" data-testid={`drag-handle-${s.scene_number}`}>
+                              <GripVertical size={14} />
+                            </div>
+                          )}
+                          <p className="text-[11px] font-bold text-[#C9A84C]">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
+                        </div>
                         <div className="flex items-center gap-0.5">
                           {!screenplayApproved && (
                             <>
-                              <button onClick={() => moveScene(s.scene_number, 'up')} disabled={sceneIdx === 0}
-                                data-testid={`move-scene-up-${s.scene_number}`}
-                                className="text-[#555] hover:text-[#C9A84C] disabled:opacity-20 disabled:hover:text-[#555] p-0.5 transition-colors" title={lang === 'pt' ? 'Mover acima' : 'Move up'}>
-                                <ChevronDown size={12} className="rotate-180" />
-                              </button>
-                              <button onClick={() => moveScene(s.scene_number, 'down')} disabled={sceneIdx === scenes.length - 1}
-                                data-testid={`move-scene-down-${s.scene_number}`}
-                                className="text-[#555] hover:text-[#C9A84C] disabled:opacity-20 disabled:hover:text-[#555] p-0.5 transition-colors" title={lang === 'pt' ? 'Mover abaixo' : 'Move down'}>
-                                <ChevronDown size={12} />
-                              </button>
                               <button onClick={() => deleteScene(s.scene_number)}
                                 data-testid={`delete-scene-${s.scene_number}`}
                                 className="text-[#555] hover:text-red-400 p-0.5 transition-colors" title={lang === 'pt' ? 'Eliminar cena' : 'Delete scene'}>
@@ -1701,8 +1750,12 @@ export const DirectedStudio = memo(function DirectedStudio({
                       </div>
                     )}
                     </Fragment>
+                    )}
+                    </SortableSceneWrapper>
                   );
                 })}
+                  </SortableContext>
+                </DndContext>
 
                 {/* Add scene form at the END of the list */}
                 {addingSceneAt === scenes.length + 1 && (
