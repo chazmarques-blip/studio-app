@@ -32,16 +32,30 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
     setSelected(new Set());
     setSearch('');
+
+    const CACHE_KEY = 'agentzz_avatar_library';
+    const CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+    // 1. Show cached data instantly (no loading spinner)
+    try {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+      if (cached.data?.length) {
+        setLibrary(cached.data);
+        // If cache is fresh, skip API call entirely
+        if (Date.now() - (cached.ts || 0) < CACHE_TTL) return;
+      }
+    } catch { /* ignore */ }
+
+    // 2. Fetch fresh data in background (or with spinner if no cache)
+    setLoading(prev => library.length === 0);
     axios.get(`${API}/data/avatars`).then(res => {
-      setLibrary(res.data || []);
-    }).catch(() => {
-      // Fallback to localStorage
-      try { setLibrary(JSON.parse(localStorage.getItem('agentzz_avatars') || '[]')); } catch { setLibrary([]); }
-    }).finally(() => setLoading(false));
-  }, [open]);
+      const fresh = res.data || [];
+      setLibrary(fresh);
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fresh, ts: Date.now() }));
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     if (!search.trim()) return library;

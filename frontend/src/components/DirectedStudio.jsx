@@ -641,6 +641,8 @@ export function DirectedStudio({
     });
     try {
       await axios.post(`${API}/studio/projects/${projectId}/project-avatars`, { avatar, save_to_library: true });
+      // Invalidate library cache so next open shows the new avatar
+      localStorage.removeItem('agentzz_avatar_library');
     } catch { /* silent */ }
   };
 
