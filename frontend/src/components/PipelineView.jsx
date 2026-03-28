@@ -1222,7 +1222,7 @@ export default function PipelineView({ context }) {
         {isDirectedMode ? (
           <DirectedStudio
             avatars={avatars}
-            onAddAvatar={() => { resetAvatarModal(); setShowAvatarModal(true); }}
+            onAddAvatar={(promptText) => { resetAvatarModal(); if (promptText) { setAvatarPromptText(promptText); setAvatarCreationMode('prompt'); } setShowAvatarModal(true); }}
             onEditAvatar={openAvatarForEdit}
             onRemoveAvatar={removeAvatar}
             onPreviewAvatar={setAvatarPreviewUrl}

@@ -1611,7 +1611,7 @@ export function DirectedStudio({
                     );
                   })}
                   {/* Create new avatar button */}
-                  <button onClick={onAddAvatar} data-testid={`add-avatar-${ci}`}
+                  <button onClick={() => onAddAvatar(char.description || char.name || '')} data-testid={`add-avatar-${ci}`}
                     title={lang === 'pt' ? 'Criar novo avatar' : 'Create new avatar'}
                     className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#C9A84C]/50 hover:bg-[#C9A84C]/5 transition group"
                     style={{ width: 52, height: 68 }}>
