@@ -1576,37 +1576,12 @@ export function DirectedStudio({
                               className="h-5 w-5 rounded flex items-center justify-center text-white/70 hover:text-white transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
                               <Eye size={9} />
                             </button>
-                            <button onClick={e => { e.stopPropagation(); setAiEditAvatarId(isEditing ? null : av.id); setAiEditInstruction(char.description || ''); }}
-                              className="h-5 w-5 rounded flex items-center justify-center text-purple-400 hover:text-purple-300 transition" title={lang === 'pt' ? 'Editar com IA' : 'AI Edit'}>
-                              <Sparkles size={9} />
-                            </button>
                             <button onClick={e => { e.stopPropagation(); onEditAvatar(av); }}
                               className="h-5 w-5 rounded flex items-center justify-center text-[#C9A84C] hover:text-[#D4B85C] transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
                               <PenTool size={9} />
                             </button>
                           </div>
                         </div>
-                        {/* AI Edit overlay */}
-                        {isEditing && (
-                          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-1 z-10" onClick={e => e.stopPropagation()}>
-                            <Sparkles size={10} className="text-purple-400 mb-0.5" />
-                            <textarea value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                              placeholder={lang === 'pt' ? 'Ex: mudar roupa...' : 'Ex: change outfit...'}
-                              className="w-full text-[10px] bg-[#1A1A1A] border border-[#333] rounded p-1 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
-                              rows={2} />
-                            <div className="flex gap-0.5 mt-0.5 w-full">
-                              <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                                className="flex-1 text-xs py-0.5 rounded border border-[#333] text-[#888] hover:text-white transition">
-                                {lang === 'pt' ? 'Cancelar' : 'Cancel'}
-                              </button>
-                              <button onClick={() => onAiEditAvatar(av.id)} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                className="flex-1 text-xs py-0.5 rounded bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-0.5">
-                                {aiEditLoading ? <RefreshCw size={7} className="animate-spin" /> : <Sparkles size={7} />}
-                                {aiEditLoading ? '' : (lang === 'pt' ? 'Criar' : 'Create')}
-                              </button>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
