@@ -1539,7 +1539,7 @@ export function DirectedStudio({
                         className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
                         <Copy size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Copiar' : 'Copy'}</span>
                       </button>
-                      <button onClick={() => startEditChar(ci)} data-testid={`edit-char-${ci}`}
+                      <button onClick={() => onAddAvatar(char.description || char.name || '')} data-testid={`edit-char-${ci}`}
                         title={lang === 'pt' ? 'Editar personagem' : 'Edit character'}
                         className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
                         <Edit3 size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Editar' : 'Edit'}</span>
