@@ -144,6 +144,7 @@ export default function PipelineView({ context }) {
   // Avatar Edit History (for customize modal)
   const [avatarEditHistory, setAvatarEditHistory] = useState([]); // [{url, instruction, timestamp, isBase}]
   const [avatarBaseUrl, setAvatarBaseUrl] = useState(null); // Original base character URL
+  const [lastCreatedAvatar, setLastCreatedAvatar] = useState(null); // Track last created/edited avatar for DirectedStudio
 
   useEffect(() => {
     // Load companies and avatars from Supabase (source of truth)
@@ -498,6 +499,7 @@ export default function PipelineView({ context }) {
       const updated = avatars.map(a => a.id === editingAvatarId ? { ...a, ...editedAvatar } : a);
       saveAvatars(updated);
       persistAvatarToServer(editedAvatar);
+      setLastCreatedAvatar({ ...editedAvatar, _ts: Date.now() });
     } else {
       const newAv = {
         id: Date.now().toString(),
@@ -517,6 +519,7 @@ export default function PipelineView({ context }) {
       saveAvatars(updated);
       setSelectedAvatarId(newAv.id);
       persistAvatarToServer(newAv);
+      setLastCreatedAvatar({ ...newAv, _ts: Date.now() });
     }
     resetAvatarModal();
   };
@@ -542,6 +545,7 @@ export default function PipelineView({ context }) {
     saveAvatars(updated);
     setSelectedAvatarId(newAv.id);
     persistAvatarToServer(newAv);
+    setLastCreatedAvatar({ ...newAv, _ts: Date.now() });
     resetAvatarModal();
     toast.success('Avatar saved as new!');
   };
@@ -648,6 +652,7 @@ export default function PipelineView({ context }) {
         const updated = avatars.map(a => a.id === avatarId ? { ...a, url: data.url } : a);
         saveAvatars(updated);
         try { await axios.post(`${API}/data/avatars`, { ...av, url: data.url }); } catch {}
+        setLastCreatedAvatar({ ...av, url: data.url, _ts: Date.now() });
         toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
       }
     } catch (err) {
@@ -1227,6 +1232,7 @@ export default function PipelineView({ context }) {
             aiEditInstruction={aiEditInstruction}
             setAiEditInstruction={setAiEditInstruction}
             aiEditLoading={aiEditLoading}
+            lastCreatedAvatar={lastCreatedAvatar}
           />
         ) : (
         <>

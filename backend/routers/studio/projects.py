@@ -34,6 +34,7 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "scenes": [],
         "characters": [],
         "character_avatars": {},
+        "project_avatars": [],
         "chat_history": [],
         "agents_output": {},
         "agent_status": {},
@@ -73,6 +74,7 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "scenes": project.get("scenes", []),
         "characters": project.get("characters", []),
         "character_avatars": project.get("character_avatars", {}),
+        "project_avatars": project.get("project_avatars", []),
         "outputs": project.get("outputs", []),
         "milestones": project.get("milestones", []),
         "narrations": project.get("narrations", []),
@@ -167,3 +169,106 @@ async def update_project_settings(project_id: str, payload: dict = Body(...), te
     return {"status": "ok"}
 
 
+
+
+# ── Project-scoped Avatars ──
+
+@router.get("/projects/{project_id}/project-avatars")
+async def get_project_avatars(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get avatars that belong to this specific project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"avatars": project.get("project_avatars", [])}
+
+
+@router.post("/projects/{project_id}/project-avatars")
+async def add_project_avatar(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Add/update an avatar in this project's local pool."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    avatar = payload.get("avatar", {})
+    if not avatar.get("id"):
+        avatar["id"] = uuid.uuid4().hex[:12]
+    avatar["added_at"] = datetime.now(timezone.utc).isoformat()
+
+    project_avatars = project.get("project_avatars", [])
+    existing_idx = next((i for i, a in enumerate(project_avatars) if a.get("id") == avatar["id"]), None)
+    if existing_idx is not None:
+        project_avatars[existing_idx] = {**project_avatars[existing_idx], **avatar}
+    else:
+        project_avatars.append(avatar)
+
+    project["project_avatars"] = project_avatars
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+
+    # Also persist to global library if save_to_library flag is set
+    if payload.get("save_to_library", True):
+        global_avatars = settings.get("studio_avatars", [])
+        g_idx = next((i for i, a in enumerate(global_avatars) if a.get("id") == avatar["id"]), None)
+        lib_doc = {k: v for k, v in avatar.items() if k != "added_at"}
+        lib_doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+        if g_idx is not None:
+            lib_doc["created_at"] = global_avatars[g_idx].get("created_at", lib_doc["updated_at"])
+            global_avatars[g_idx] = lib_doc
+        else:
+            lib_doc["created_at"] = lib_doc["updated_at"]
+            global_avatars.append(lib_doc)
+        settings["studio_avatars"] = global_avatars
+        _save_settings(tenant["id"], settings)
+
+    return {"status": "ok", "avatar": avatar}
+
+
+@router.post("/projects/{project_id}/project-avatars/import")
+async def import_avatar_from_library(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Import one or more avatars from the global library into a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    avatar_ids = payload.get("avatar_ids", [])
+    if not avatar_ids:
+        raise HTTPException(status_code=400, detail="No avatar_ids provided")
+
+    global_avatars = settings.get("studio_avatars", [])
+    project_avatars = project.get("project_avatars", [])
+    existing_ids = {a["id"] for a in project_avatars}
+    imported = 0
+
+    for aid in avatar_ids:
+        if aid in existing_ids:
+            continue
+        source = next((a for a in global_avatars if a.get("id") == aid), None)
+        if source:
+            copy = {**source, "added_at": datetime.now(timezone.utc).isoformat()}
+            project_avatars.append(copy)
+            imported += 1
+
+    project["project_avatars"] = project_avatars
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok", "imported": imported, "total": len(project_avatars)}
+
+
+@router.delete("/projects/{project_id}/project-avatars/{avatar_id}")
+async def remove_project_avatar(project_id: str, avatar_id: str, tenant=Depends(get_current_tenant)):
+    """Remove an avatar from a project (does NOT delete from global library)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project_avatars = project.get("project_avatars", [])
+    project["project_avatars"] = [a for a in project_avatars if a.get("id") != avatar_id]
+
+    # Also unlink from character_avatars if the removed avatar was linked
+    removed_av = next((a for a in project_avatars if a.get("id") == avatar_id), None)
+    if removed_av:
+        char_avatars = project.get("character_avatars", {})
+        project["character_avatars"] = {k: v for k, v in char_avatars.items() if v != removed_av.get("url")}
+
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok"}

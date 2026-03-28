@@ -9,12 +9,14 @@ import { PreviewBoard } from './PreviewBoard';
 import { PostProduction } from './PostProduction';
 import { StoryboardEditor } from './StoryboardEditor';
 import { DialogueEditor } from './DialogueEditor';
+import { AvatarLibraryModal } from './pipeline/AvatarLibraryModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export function DirectedStudio({
   avatars = [], onAddAvatar, onEditAvatar, onRemoveAvatar, onPreviewAvatar,
   onAiEditAvatar, aiEditAvatarId, setAiEditAvatarId, aiEditInstruction, setAiEditInstruction, aiEditLoading,
+  lastCreatedAvatar,
 }) {
   const { i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'pt';
@@ -62,6 +64,8 @@ export function DirectedStudio({
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [showPostProd, setShowPostProd] = useState(false);
   const [storyboardThumbs, setStoryboardThumbs] = useState([]);
+  const [projectAvatars, setProjectAvatars] = useState([]); // Avatars scoped to current project
+  const [showLibrary, setShowLibrary] = useState(false); // Avatar library modal
   const [previewModal, setPreviewModal] = useState(null); // { type: 'video'|'gallery'|'book'|'pdf', data: any }
   const [allPanelFrames, setAllPanelFrames] = useState([]); // All storyboard frames for gallery
   const skipAutoResume = useRef(false);
@@ -94,6 +98,13 @@ export function DirectedStudio({
     } catch { toast.error('Erro ao carregar analytics'); }
     setAnalyticsLoading(false);
   };
+
+  // Auto-add newly created avatars (from PipelineView modal) to the current project
+  useEffect(() => {
+    if (lastCreatedAvatar && projectId) {
+      addAvatarToProject(lastCreatedAvatar);
+    }
+  }, [lastCreatedAvatar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const STEPS = [
     { n: 1, icon: MessageSquare, label: lang === 'pt' ? 'Roteiro' : 'Script' },
@@ -218,6 +229,7 @@ export function DirectedStudio({
     setProjectName(proj.name || '');
     setProjectDesc(proj.briefing || '');
     setCharacterAvatars(proj.character_avatars || {});
+    setProjectAvatars(proj.project_avatars || []);
     setVisualStyle(proj.visual_style || 'animation');
     setProjectLang(proj.language || 'pt');
     setViewingProject(null);
@@ -233,6 +245,7 @@ export function DirectedStudio({
       setNarrations(full.narrations || []);
       setNarrationStatus(full.narration_status || {});
       setScreenplayApproved(full.screenplay_approved || false);
+      if (full.project_avatars?.length) setProjectAvatars(full.project_avatars);
 
       // Load storyboard thumbnails
       const panels = full.storyboard_panels || [];
@@ -547,6 +560,7 @@ export function DirectedStudio({
     setCharacters(proj.characters || []);
     setOutputs(proj.outputs || []);
     setCharacterAvatars(proj.character_avatars || {});
+    setProjectAvatars(proj.project_avatars || []);
     setGenerating(true);
     setStep(5);
     try {
@@ -616,6 +630,44 @@ export function DirectedStudio({
         await axios.post(`${API}/studio/projects/${projectId}/save-character-avatars`, { character_avatars: newAvatars });
       } catch (e) { /* silent */ }
     }
+  };
+
+  // Add avatar to current project's local pool + global library
+  const addAvatarToProject = async (avatar) => {
+    if (!projectId) return;
+    setProjectAvatars(prev => {
+      const exists = prev.some(a => a.id === avatar.id);
+      return exists ? prev.map(a => a.id === avatar.id ? { ...a, ...avatar } : a) : [...prev, avatar];
+    });
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/project-avatars`, { avatar, save_to_library: true });
+    } catch { /* silent */ }
+  };
+
+  // Remove avatar from current project (keeps in global library)
+  const removeAvatarFromProject = async (avatarId) => {
+    setProjectAvatars(prev => prev.filter(a => a.id !== avatarId));
+    // Unlink from characters if linked
+    const av = projectAvatars.find(a => a.id === avatarId);
+    if (av) {
+      const newCharAvatars = { ...characterAvatars };
+      for (const [k, v] of Object.entries(newCharAvatars)) {
+        if (v === av.url) delete newCharAvatars[k];
+      }
+      setCharacterAvatars(newCharAvatars);
+    }
+    if (projectId) {
+      try { await axios.delete(`${API}/studio/projects/${projectId}/project-avatars/${avatarId}`); } catch { /* silent */ }
+    }
+  };
+
+  // Handle import from library
+  const handleLibraryImport = (importedAvatars) => {
+    setProjectAvatars(prev => {
+      const existingIds = new Set(prev.map(a => a.id));
+      const newOnes = importedAvatars.filter(a => !existingIds.has(a.id));
+      return [...prev, ...newOnes];
+    });
   };
 
   // Regenerate a single scene
@@ -1494,13 +1546,13 @@ export function DirectedStudio({
                   </div>
                 )}
 
-                {/* Avatar selection with full controls */}
+                {/* Avatar selection with full controls — PROJECT-SCOPED */}
                 <div className="flex gap-1.5 flex-wrap items-center">
-                  {avatars.map((av, ai) => {
+                  {projectAvatars.map((av, ai) => {
                     const isLinked = characterAvatars[char.name] === av.url;
                     const isEditing = aiEditAvatarId === av.id;
                     return (
-                      <div key={ai} className={`relative rounded-lg overflow-hidden border-2 transition cursor-pointer group ${
+                      <div key={av.id || ai} className={`relative rounded-lg overflow-hidden border-2 transition cursor-pointer group ${
                         isLinked ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.25)]' : 'border-[#222] hover:border-[#444]'
                       }`} style={{ width: 52, height: 68 }}>
                         <img loading="lazy" decoding="async" src={resolveImageUrl(av.url)} alt={av.name}
@@ -1513,11 +1565,15 @@ export function DirectedStudio({
                         )}
                         {/* Action bar — always visible on hover */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-0.5 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={e => { e.stopPropagation(); onPreviewAvatar(av.url); }}
-                            className="h-5 w-5 rounded flex items-center justify-center text-white/70 hover:text-white transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
-                            <Eye size={9} />
+                          <button onClick={e => { e.stopPropagation(); removeAvatarFromProject(av.id); }}
+                            className="h-5 w-5 rounded flex items-center justify-center text-red-400/70 hover:text-red-400 transition" title={lang === 'pt' ? 'Remover' : 'Remove'}>
+                            <X size={9} />
                           </button>
                           <div className="flex items-center gap-0.5">
+                            <button onClick={e => { e.stopPropagation(); onPreviewAvatar(av.url); }}
+                              className="h-5 w-5 rounded flex items-center justify-center text-white/70 hover:text-white transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
+                              <Eye size={9} />
+                            </button>
                             <button onClick={e => { e.stopPropagation(); setAiEditAvatarId(isEditing ? null : av.id); setAiEditInstruction(char.description || ''); }}
                               className="h-5 w-5 rounded flex items-center justify-center text-purple-400 hover:text-purple-300 transition" title={lang === 'pt' ? 'Editar com IA' : 'AI Edit'}>
                               <Sparkles size={9} />
@@ -1558,12 +1614,20 @@ export function DirectedStudio({
                     className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#C9A84C]/50 hover:bg-[#C9A84C]/5 transition group"
                     style={{ width: 52, height: 68 }}>
                     <Plus size={12} className="text-[#555] group-hover:text-[#C9A84C]" />
-                    <span className="text-xs text-[#555] group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Novo' : 'New'}</span>
+                    <span className="text-[8px] text-[#555] group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Criar' : 'New'}</span>
+                  </button>
+                  {/* Import from library button */}
+                  <button onClick={() => setShowLibrary(true)} data-testid={`import-library-${ci}`}
+                    title={lang === 'pt' ? 'Importar da Biblioteca' : 'Import from Library'}
+                    className="rounded-lg border border-dashed border-[#C9A84C]/30 flex flex-col items-center justify-center hover:border-[#C9A84C]/60 hover:bg-[#C9A84C]/5 transition group"
+                    style={{ width: 52, height: 68 }}>
+                    <BookOpen size={12} className="text-[#C9A84C]/50 group-hover:text-[#C9A84C]" />
+                    <span className="text-[8px] text-[#C9A84C]/50 group-hover:text-[#C9A84C] mt-0.5">{lang === 'pt' ? 'Acervo' : 'Library'}</span>
                   </button>
                 </div>
 
                 {/* Selected avatar AI edit hint (when avatar is linked but overlay not open) */}
-                {characterAvatars[char.name] && !avatars.find(a => a.url === characterAvatars[char.name] && aiEditAvatarId === a.id) && (
+                {characterAvatars[char.name] && !projectAvatars.find(a => a.url === characterAvatars[char.name] && aiEditAvatarId === a.id) && (
                   <p className="text-[10px] text-[#555] mt-1.5 italic">
                     {lang === 'pt' ? 'Passe o mouse sobre o avatar para ver, editar ou criar nova versão com IA' : 'Hover over avatar to preview, edit or create new AI version'}
                   </p>
@@ -2526,6 +2590,16 @@ export function DirectedStudio({
           </div>
         </div>
       )}
+
+      {/* Avatar Library Modal */}
+      <AvatarLibraryModal
+        open={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        projectId={projectId}
+        projectAvatarIds={new Set(projectAvatars.map(a => a.id))}
+        onImported={handleLibraryImport}
+        lang={lang}
+      />
     </div>
   );
 }
