@@ -454,7 +454,7 @@ export function AvatarModal({ ctx }) {
                         type="text"
                         value={avatarName}
                         onChange={(e) => setAvatarName(e.target.value)}
-                        placeholder={t('studio.avatar_name_placeholder') || 'Name your avatar...'}
+                        placeholder={isDirectedMode ? 'Nome do personagem...' : (t('studio.avatar_name_placeholder') || 'Name your avatar...')}
                         className="flex-1 bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#888] focus:border-[#C9A84C]/50 focus:outline-none"
                       />
                     </div>
@@ -845,9 +845,10 @@ export function AvatarModal({ ctx }) {
                         <button data-testid="regen-all-360-btn"
                           onClick={() => {
                             const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
-                            const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
+                            const sourceUrl = isDirectedMode ? tempAvatar.url : (is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url));
                             setAngleImages({ front: tempAvatar.url });
-                            startAuto360(sourceUrl, tempAvatar?.clothing || 'company_uniform', tempAvatar?.avatar_style || 'realistic');
+                            const clothing360 = isDirectedMode ? 'keep_original' : (tempAvatar?.clothing || 'company_uniform');
+                            startAuto360(sourceUrl, clothing360, tempAvatar?.avatar_style || 'realistic');
                           }}
                           className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-xs text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5">
                           <RefreshCw size={10} /> {t('studio.regenerate_all_360') || 'Regenerate All 360°'}
@@ -1129,7 +1130,7 @@ export function AvatarModal({ ctx }) {
                   ) : (
                     <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
                       className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
-                      <Check size={14} /> {t('studio.save_avatar')}
+                      <Check size={14} /> {isDirectedMode ? 'Salvar Personagem' : t('studio.save_avatar')}
                     </button>
                   )}
                 </div>

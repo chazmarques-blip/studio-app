@@ -925,6 +925,7 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = 
     keep_original = clothing == "keep_original"
     clothing_desc = "" if keep_original else CLOTHING_MAP.get(clothing, CLOTHING_MAP["company_uniform"])
     is_3d = avatar_style in ("3d_cartoon", "3d_pixar")
+    logger.info(f"[360] clothing={clothing}, keep_original={keep_original}, style={avatar_style}")
 
     if is_3d:
         style_label = "Pixar-style 3D animated" if avatar_style == "3d_pixar" else "3D cartoon animated"

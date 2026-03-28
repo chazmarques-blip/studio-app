@@ -724,11 +724,12 @@ export default function PipelineView({ context }) {
     if (!tempAvatar || (angleImages[angle] && !forceRegenerate)) return;
     setGeneratingAngle(angle);
     const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
-    const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
+    const sourceUrl = isDirectedMode ? tempAvatar.url : (is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url));
+    const clothing = isDirectedMode ? 'keep_original' : (tempAvatar.clothing || 'company_uniform');
     try {
       const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
         source_image_url: sourceUrl,
-        clothing: tempAvatar.clothing || 'company_uniform',
+        clothing,
         angle,
         company_name: activeCompany?.name || '',
         logo_url: activeCompany?.logo_url || '',
