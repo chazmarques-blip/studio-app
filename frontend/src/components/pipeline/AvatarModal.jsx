@@ -35,7 +35,7 @@ export function AvatarModal({ ctx }) {
     setAvatarCreationMode, setAvatarSourceType, setAvatarSourcePhoto,
     setAvatarExtractedAudio, setAvatarVideoFrames, setAvatarName,
     setAvatarMediaTab, setAvatarPromptText, setAvatarPromptGender,
-    setAvatarPromptStyle, setAiEditAvatarId, setAiEditInstruction,
+    setAvatarPromptStyle, setAiEditAvatarId, setAiEditInstruction, setAiEditLoading,
     setTempAvatar, setCustomizeTab, setVoiceTab, setAngleImages,
     setPreviewLanguage, setAvatarPreviewUrl, setAvatarEditHistory,
     setPreviewVideoUrl, setGeneratingPreviewVideo,
