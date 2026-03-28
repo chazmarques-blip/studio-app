@@ -35,7 +35,7 @@ export function AvatarModal({ ctx }) {
     setAvatarCreationMode, setAvatarSourceType, setAvatarSourcePhoto,
     setAvatarExtractedAudio, setAvatarVideoFrames, setAvatarName,
     setAvatarMediaTab, setAvatarPromptText, setAvatarPromptGender,
-    setAvatarPromptStyle, setAiEditAvatarId, setAiEditInstruction, setAiEditLoading,
+    setAvatarPromptStyle, setAiEditAvatarId, setAiEditInstruction, setAiEditLoading: _setAiEditLoading,
     setTempAvatar, setCustomizeTab, setVoiceTab, setAngleImages,
     setPreviewLanguage, setAvatarPreviewUrl, setAvatarEditHistory,
     setPreviewVideoUrl, setGeneratingPreviewVideo,
@@ -48,6 +48,8 @@ export function AvatarModal({ ctx }) {
     // Refs
     avatarInputRef,
   } = ctx;
+
+  const setAiEditLoading = _setAiEditLoading || (() => {});
 
   if (!showAvatarModal) return null;
 
