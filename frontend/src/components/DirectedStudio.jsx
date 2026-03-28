@@ -125,24 +125,23 @@ export const DirectedStudio = memo(function DirectedStudio({
   };
 
   // Load all projects
+  const loadingRef = useRef(false);
   const loadProjects = async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setProjectsLoading(true);
     try {
       const r = await axios.get(`${API}/studio/projects`);
-      const projs = r.data.projects || [];
-      console.log('[DirectedStudio] Loaded projects:', projs.length);
-      setAllProjects(projs);
-    } catch (err) {
-      console.error('[DirectedStudio] Failed to load projects:', err?.response?.status, err?.message);
+      setAllProjects(r.data.projects || []);
+    } catch {
       try {
         await new Promise(res => setTimeout(res, 1500));
         const r = await axios.get(`${API}/studio/projects`);
-        const projs = r.data.projects || [];
-        console.log('[DirectedStudio] Retry loaded projects:', projs.length);
-        setAllProjects(projs);
+        setAllProjects(r.data.projects || []);
       } catch { /* silent */ }
     } finally {
       setProjectsLoading(false);
+      loadingRef.current = false;
     }
   };
 
@@ -1477,7 +1476,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           <div className="space-y-2">
             {characters.map((char, ci) => (
-              <div key={ci} className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2.5">
+              <div key={char.name || ci} className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2.5">
                 {/* Character header */}
                 {editingChar === ci ? (
                   /* ── Inline Edit Mode ── */
@@ -1539,7 +1538,16 @@ export const DirectedStudio = memo(function DirectedStudio({
                         className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
                         <Copy size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Copiar' : 'Copy'}</span>
                       </button>
-                      <button onClick={() => onAddAvatar(char.description || char.name || '')} data-testid={`edit-char-${ci}`}
+                      <button onClick={() => {
+                        // If character has a linked avatar, open edit mode; otherwise create mode
+                        const linkedUrl = characterAvatars[char.name];
+                        const linkedAv = linkedUrl && projectAvatars.find(a => a.url === linkedUrl);
+                        if (linkedAv) {
+                          onEditAvatar(linkedAv);
+                        } else {
+                          onAddAvatar(char.description || char.name || '');
+                        }
+                      }} data-testid={`edit-char-${ci}`}
                         title={lang === 'pt' ? 'Editar personagem' : 'Edit character'}
                         className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
                         <Edit3 size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Editar' : 'Edit'}</span>
