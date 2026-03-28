@@ -659,7 +659,7 @@ export function AvatarModal({ ctx }) {
                                 const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
                                   avatar_url: tempAvatar.url,
                                   instruction: aiEditInstruction,
-                                  base_url: avatarBaseUrl || tempAvatar.url,
+                                  base_url: isDirectedMode ? null : (avatarBaseUrl || tempAvatar.url),
                                 });
                                 if (data.url) {
                                   setTempAvatar(p => ({ ...p, url: data.url }));
@@ -715,7 +715,7 @@ export function AvatarModal({ ctx }) {
                               const loadedAngles = Object.values(angleImages).filter(Boolean).length;
                               if (loadedAngles < 4) {
                                 const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
-                                const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
+                                const sourceUrl = isDirectedMode ? tempAvatar.url : (is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url));
                                 const clothing360 = isDirectedMode ? 'keep_original' : (tempAvatar.clothing || 'company_uniform');
                                 startAuto360(sourceUrl, clothing360, tempAvatar?.avatar_style || 'realistic');
                               }
