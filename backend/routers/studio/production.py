@@ -1032,6 +1032,192 @@ async def update_scene(project_id: str, payload: dict = Body(...), tenant=Depend
     return {"status": "ok"}
 
 
+
+# ── Scene Management (Add, Delete, Reorder, AI Generate) ──
+
+@router.post("/projects/{project_id}/add-scene")
+async def add_scene(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Add a new scene at a given position. Auto-renumbers subsequent scenes."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    position = payload.get("position")  # 1-based insert position
+    scene_data = payload.get("scene", {})
+    scenes = project.get("scenes", [])
+
+    if position is None or position < 1:
+        position = len(scenes) + 1
+    position = min(position, len(scenes) + 1)
+
+    new_scene = {
+        "scene_number": position,
+        "title": scene_data.get("title", f"Cena {position}"),
+        "description": scene_data.get("description", ""),
+        "dialogue": scene_data.get("dialogue", ""),
+        "emotion": scene_data.get("emotion", ""),
+        "camera": scene_data.get("camera", ""),
+        "characters_in_scene": scene_data.get("characters_in_scene", []),
+        "transition": scene_data.get("transition", ""),
+    }
+
+    # Renumber scenes at and after the insertion point
+    for s in scenes:
+        if s.get("scene_number", 0) >= position:
+            s["scene_number"] = s["scene_number"] + 1
+
+    # Also renumber storyboard panels
+    panels = project.get("storyboard_panels", [])
+    for p in panels:
+        if p.get("scene_number", 0) >= position:
+            p["scene_number"] = p["scene_number"] + 1
+
+    scenes.append(new_scene)
+    scenes.sort(key=lambda x: x.get("scene_number", 0))
+
+    project["scenes"] = scenes
+    project["storyboard_panels"] = panels
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+
+    # Auto-generate storyboard panel if storyboard already exists
+    has_storyboard = len(panels) > 0
+    return {"status": "ok", "scene": new_scene, "total_scenes": len(scenes), "auto_storyboard": has_storyboard}
+
+
+@router.post("/projects/{project_id}/delete-scene")
+async def delete_scene(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Delete a scene and its associated storyboard panel. Renumbers remaining scenes."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scene_num = payload.get("scene_number")
+    if scene_num is None:
+        raise HTTPException(status_code=400, detail="scene_number is required")
+
+    scenes = project.get("scenes", [])
+    panels = project.get("storyboard_panels", [])
+
+    # Remove the scene
+    scenes = [s for s in scenes if s.get("scene_number") != scene_num]
+    # Remove its storyboard panel
+    panels = [p for p in panels if p.get("scene_number") != scene_num]
+
+    # Renumber everything after the deleted scene
+    for s in scenes:
+        if s.get("scene_number", 0) > scene_num:
+            s["scene_number"] = s["scene_number"] - 1
+    for p in panels:
+        if p.get("scene_number", 0) > scene_num:
+            p["scene_number"] = p["scene_number"] - 1
+
+    project["scenes"] = scenes
+    project["storyboard_panels"] = panels
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok", "total_scenes": len(scenes)}
+
+
+@router.post("/projects/{project_id}/reorder-scenes")
+async def reorder_scenes(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Reorder scenes by providing the new order as a list of scene_numbers."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    new_order = payload.get("order", [])  # List of scene_numbers in new order
+    scenes = project.get("scenes", [])
+    panels = project.get("storyboard_panels", [])
+
+    # Build lookup maps
+    scene_map = {s["scene_number"]: s for s in scenes}
+    panel_map = {p["scene_number"]: p for p in panels}
+
+    # Reassign scene_numbers based on new order
+    reordered_scenes = []
+    reordered_panels = []
+    for new_num, old_num in enumerate(new_order, start=1):
+        if old_num in scene_map:
+            s = scene_map[old_num]
+            s["scene_number"] = new_num
+            reordered_scenes.append(s)
+        if old_num in panel_map:
+            p = panel_map[old_num]
+            p["scene_number"] = new_num
+            reordered_panels.append(p)
+
+    project["scenes"] = reordered_scenes
+    project["storyboard_panels"] = reordered_panels
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok", "total_scenes": len(reordered_scenes)}
+
+
+@router.post("/projects/{project_id}/generate-scene-ai")
+async def generate_scene_ai(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Generate a new scene using AI based on context from neighboring scenes."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    user_hint = payload.get("hint", "")
+    position = payload.get("position", len(project.get("scenes", [])) + 1)
+    scenes = project.get("scenes", [])
+    characters = project.get("characters", [])
+    lang = project.get("language", "pt")
+
+    # Get neighboring scenes for context
+    prev_scene = next((s for s in scenes if s.get("scene_number") == position - 1), None)
+    next_scene = next((s for s in scenes if s.get("scene_number") == position), None)
+
+    context_parts = []
+    if prev_scene:
+        context_parts.append(f"CENA ANTERIOR ({prev_scene['scene_number']}): {prev_scene.get('title','')} — {prev_scene.get('description','')}")
+    if next_scene:
+        context_parts.append(f"CENA SEGUINTE ({next_scene['scene_number']}): {next_scene.get('title','')} — {next_scene.get('description','')}")
+    if characters:
+        char_names = [c.get("name", "") for c in characters]
+        context_parts.append(f"PERSONAGENS DISPONÍVEIS: {', '.join(char_names)}")
+
+    lang_instruction = {
+        "pt": "Responda em português.",
+        "en": "Respond in English.",
+        "es": "Responda en español.",
+    }.get(lang, "Responda em português.")
+
+    prompt = f"""Você é um roteirista profissional. Crie UMA nova cena que se encaixe perfeitamente na narrativa.
+
+{chr(10).join(context_parts)}
+
+INSTRUÇÃO DO USUÁRIO: {user_hint if user_hint else 'Crie uma cena que faça sentido como continuação natural da história.'}
+
+{lang_instruction}
+
+Retorne APENAS JSON válido:
+{{
+  "title": "Título da cena",
+  "description": "Descrição visual detalhada da cena",
+  "dialogue": "Narração ou diálogo",
+  "emotion": "emoção dominante",
+  "camera": "tipo de câmera (ex: close-up, wide shot)",
+  "characters_in_scene": ["nomes dos personagens presentes"]
+}}"""
+
+    try:
+        system = "Você é um roteirista profissional especializado em criar cenas narrativas detalhadas."
+        result = _call_claude_sync(system, prompt, max_tokens=1000)
+        parsed = _parse_json(result)
+        if not parsed:
+            raise HTTPException(status_code=500, detail="AI did not return valid scene data")
+        return {"status": "ok", "scene": parsed}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)[:200]}")
+
+
+
 # ── Production Preview (Pre-Production Only) ──
 
 def _generate_preview_task(tenant_id, project_id):

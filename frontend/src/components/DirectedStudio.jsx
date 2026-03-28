@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -61,6 +61,12 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [addingSceneAt, setAddingSceneAt] = useState(null); // position to insert new scene
+  const [newSceneForm, setNewSceneForm] = useState({ title: '', description: '', dialogue: '', emotion: '', camera: '', characters_in_scene: [] });
+  const [newSceneMode, setNewSceneMode] = useState('manual'); // 'manual' or 'ai'
+  const [aiSceneHint, setAiSceneHint] = useState('');
+  const [aiSceneLoading, setAiSceneLoading] = useState(false);
+  const [addingSceneLoading, setAddingSceneLoading] = useState(false);
   const [projectSearch, setProjectSearch] = useState('');
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [showPostProd, setShowPostProd] = useState(false);
@@ -706,6 +712,88 @@ export const DirectedStudio = memo(function DirectedStudio({
       toast.error('Erro ao salvar cena');
     }
   };
+
+  // ── Scene Management: Add, Delete, Reorder ──
+  const addScene = async (position) => {
+    setAddingSceneLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/studio/projects/${projectId}/add-scene`, {
+        position,
+        scene: newSceneForm,
+      });
+      // Refresh scenes from server
+      const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
+      setScenes(status.data.scenes || []);
+      setAddingSceneAt(null);
+      setNewSceneForm({ title: '', description: '', dialogue: '', emotion: '', camera: '', characters_in_scene: [] });
+      setNewSceneMode('manual');
+      setAiSceneHint('');
+      toast.success(lang === 'pt' ? 'Cena adicionada!' : 'Scene added!');
+      // Auto-generate storyboard for the new scene if storyboard exists
+      if (data.auto_storyboard) {
+        try {
+          await axios.post(`${API}/studio/projects/${projectId}/storyboard/regenerate-panel`, { panel_number: position });
+        } catch { /* Storyboard gen will happen later if it fails */ }
+      }
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao adicionar cena'));
+    }
+    setAddingSceneLoading(false);
+  };
+
+  const deleteScene = async (sceneNum) => {
+    if (!window.confirm(lang === 'pt' ? `Eliminar cena ${sceneNum}? Isso também remove o storyboard e áudio associados.` : `Delete scene ${sceneNum}?`)) return;
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/delete-scene`, { scene_number: sceneNum });
+      const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
+      setScenes(status.data.scenes || []);
+      toast.success(lang === 'pt' ? 'Cena eliminada!' : 'Scene deleted!');
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao eliminar cena'));
+    }
+  };
+
+  const moveScene = async (sceneNum, direction) => {
+    const idx = scenes.findIndex(s => s.scene_number === sceneNum);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= scenes.length) return;
+    const order = scenes.map(s => s.scene_number);
+    [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/reorder-scenes`, { order });
+      const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
+      setScenes(status.data.scenes || []);
+      toast.success(lang === 'pt' ? 'Ordem atualizada!' : 'Order updated!');
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao reordenar'));
+    }
+  };
+
+  const generateSceneAI = async (position) => {
+    setAiSceneLoading(true);
+    try {
+      const { data } = await axios.post(`${API}/studio/projects/${projectId}/generate-scene-ai`, {
+        hint: aiSceneHint,
+        position,
+      });
+      if (data.scene) {
+        setNewSceneForm({
+          title: data.scene.title || '',
+          description: data.scene.description || '',
+          dialogue: data.scene.dialogue || '',
+          emotion: data.scene.emotion || '',
+          camera: data.scene.camera || '',
+          characters_in_scene: data.scene.characters_in_scene || [],
+        });
+        toast.success(lang === 'pt' ? 'Cena gerada! Revise e salve.' : 'Scene generated! Review and save.');
+      }
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao gerar cena'));
+    }
+    setAiSceneLoading(false);
+  };
+
 
   const approveScreenplay = async () => {
     try {
@@ -1373,22 +1461,135 @@ export const DirectedStudio = memo(function DirectedStudio({
                 )}
               </div>
               <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
-                {scenes.map((s) => {
+                {/* Add scene at the beginning */}
+                {!screenplayApproved && (
+                  <div className="flex justify-center">
+                    <button onClick={() => { setAddingSceneAt(1); setNewSceneForm({ title: '', description: '', dialogue: '', emotion: '', camera: '', characters_in_scene: [] }); setNewSceneMode('manual'); setAiSceneHint(''); }}
+                      data-testid="add-scene-top"
+                      className="text-[10px] text-[#555] hover:text-[#C9A84C] transition-colors flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#333] hover:border-[#C9A84C]/40">
+                      <Plus size={10} /> {lang === 'pt' ? 'Inserir cena aqui' : 'Insert scene here'}
+                    </button>
+                  </div>
+                )}
+
+                {scenes.map((s, sceneIdx) => {
                   const isEditing = editingScene === s.scene_number;
                   return (
-                    <div key={s.scene_number} className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2 space-y-1" data-testid={`scene-card-${s.scene_number}`}>
+                    <Fragment key={s.scene_number}>
+                      {/* Add Scene Form (shown when addingSceneAt matches this position) */}
+                      {addingSceneAt === s.scene_number && (
+                        <div className="rounded-lg border-2 border-dashed border-[#C9A84C]/40 bg-[#0D0D0A] p-3 space-y-2" data-testid={`new-scene-form-${s.scene_number}`}>
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-bold text-[#C9A84C]">{lang === 'pt' ? 'Nova Cena' : 'New Scene'}</p>
+                            <div className="flex gap-1">
+                              <button onClick={() => setNewSceneMode('manual')} className={`text-[9px] px-2 py-0.5 rounded ${newSceneMode === 'manual' ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>Manual</button>
+                              <button onClick={() => setNewSceneMode('ai')} className={`text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5 ${newSceneMode === 'ai' ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}><Sparkles size={8} /> IA</button>
+                              <button onClick={() => setAddingSceneAt(null)} className="text-[9px] text-[#555] hover:text-red-400 ml-1"><X size={12} /></button>
+                            </div>
+                          </div>
+
+                          {newSceneMode === 'ai' && (
+                            <div className="space-y-1.5">
+                              <textarea value={aiSceneHint} onChange={e => setAiSceneHint(e.target.value)} placeholder={lang === 'pt' ? 'Descreva a ideia da cena (opcional)...' : 'Describe the scene idea (optional)...'} rows={2}
+                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" data-testid="ai-scene-hint" />
+                              <button onClick={() => generateSceneAI(s.scene_number)} disabled={aiSceneLoading}
+                                data-testid="generate-scene-ai-btn"
+                                className="w-full btn-gold rounded py-1 text-[10px] font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
+                                {aiSceneLoading ? <><RefreshCw size={10} className="animate-spin" /> {lang === 'pt' ? 'Gerando...' : 'Generating...'}</> : <><Sparkles size={10} /> {lang === 'pt' ? 'Gerar com IA' : 'Generate with AI'}</>}
+                              </button>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
+                            <input value={newSceneForm.title} onChange={e => setNewSceneForm(p => ({ ...p, title: e.target.value }))}
+                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" data-testid="new-scene-title" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição' : 'Description'}</label>
+                            <textarea value={newSceneForm.description} onChange={e => setNewSceneForm(p => ({ ...p, description: e.target.value }))} rows={2}
+                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" data-testid="new-scene-desc" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Narração/Diálogo' : 'Narration/Dialogue'}</label>
+                            <textarea value={newSceneForm.dialogue} onChange={e => setNewSceneForm(p => ({ ...p, dialogue: e.target.value }))} rows={2}
+                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" data-testid="new-scene-dialogue" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <div>
+                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
+                              <input value={newSceneForm.emotion} onChange={e => setNewSceneForm(p => ({ ...p, emotion: e.target.value }))}
+                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" data-testid="new-scene-emotion" />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
+                              <input value={newSceneForm.camera} onChange={e => setNewSceneForm(p => ({ ...p, camera: e.target.value }))}
+                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" data-testid="new-scene-camera" />
+                            </div>
+                          </div>
+                          {/* Characters selection for new scene */}
+                          {characters.length > 0 && (
+                            <div>
+                              <label className="text-[10px] text-[#666] block mb-1">{lang === 'pt' ? 'Personagens' : 'Characters'}</label>
+                              <div className="flex flex-wrap gap-1">
+                                {characters.map((char) => {
+                                  const sel = newSceneForm.characters_in_scene.includes(char.name);
+                                  return (
+                                    <button key={char.name} type="button"
+                                      onClick={() => setNewSceneForm(p => ({
+                                        ...p,
+                                        characters_in_scene: sel ? p.characters_in_scene.filter(c => c !== char.name) : [...p.characters_in_scene, char.name]
+                                      }))}
+                                      className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium border ${sel ? 'bg-[#C9A84C]/15 border-[#C9A84C]/40 text-[#C9A84C]' : 'bg-[#111] border-[#333] text-[#555]'}`}>
+                                      {sel ? <Check size={7} /> : <Plus size={7} />} {char.name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          <button onClick={() => addScene(s.scene_number)} disabled={addingSceneLoading || !newSceneForm.title.trim()}
+                            data-testid="save-new-scene-btn"
+                            className="w-full btn-gold rounded-lg py-1.5 text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1">
+                            {addingSceneLoading ? <><RefreshCw size={10} className="animate-spin" /> {lang === 'pt' ? 'Salvando...' : 'Saving...'}</> : <><Plus size={10} /> {lang === 'pt' ? 'Adicionar Cena' : 'Add Scene'}</>}
+                          </button>
+                        </div>
+                      )}
+
+                    <div className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2 space-y-1" data-testid={`scene-card-${s.scene_number}`}>
                       <div className="flex items-center justify-between">
                         <p className="text-[11px] font-bold text-[#C9A84C]">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
-                        <button
-                          data-testid={`edit-scene-${s.scene_number}`}
-                          onClick={() => {
-                            if (isEditing) { setEditingScene(null); setEditSceneForm({}); }
-                            else { setEditingScene(s.scene_number); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera, characters_in_scene: s.characters_in_scene || [] }); }
-                          }}
-                          className="text-[11px] text-[#C9A84C] hover:text-white transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C9A84C]/40"
-                        >
-                          {isEditing ? (lang === 'pt' ? 'Cancelar' : 'Cancel') : (lang === 'pt' ? 'Editar' : 'Edit')}
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          {!screenplayApproved && (
+                            <>
+                              <button onClick={() => moveScene(s.scene_number, 'up')} disabled={sceneIdx === 0}
+                                data-testid={`move-scene-up-${s.scene_number}`}
+                                className="text-[#555] hover:text-[#C9A84C] disabled:opacity-20 disabled:hover:text-[#555] p-0.5 transition-colors" title={lang === 'pt' ? 'Mover acima' : 'Move up'}>
+                                <ChevronDown size={12} className="rotate-180" />
+                              </button>
+                              <button onClick={() => moveScene(s.scene_number, 'down')} disabled={sceneIdx === scenes.length - 1}
+                                data-testid={`move-scene-down-${s.scene_number}`}
+                                className="text-[#555] hover:text-[#C9A84C] disabled:opacity-20 disabled:hover:text-[#555] p-0.5 transition-colors" title={lang === 'pt' ? 'Mover abaixo' : 'Move down'}>
+                                <ChevronDown size={12} />
+                              </button>
+                              <button onClick={() => deleteScene(s.scene_number)}
+                                data-testid={`delete-scene-${s.scene_number}`}
+                                className="text-[#555] hover:text-red-400 p-0.5 transition-colors" title={lang === 'pt' ? 'Eliminar cena' : 'Delete scene'}>
+                                <X size={12} />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            data-testid={`edit-scene-${s.scene_number}`}
+                            onClick={() => {
+                              if (isEditing) { setEditingScene(null); setEditSceneForm({}); }
+                              else { setEditingScene(s.scene_number); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera, characters_in_scene: s.characters_in_scene || [] }); }
+                            }}
+                            className="text-[11px] text-[#C9A84C] hover:text-white transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-[#C9A84C]/40"
+                          >
+                            {isEditing ? (lang === 'pt' ? 'Cancelar' : 'Cancel') : (lang === 'pt' ? 'Editar' : 'Edit')}
+                          </button>
+                        </div>
                       </div>
 
                       {isEditing ? (
@@ -1484,11 +1685,95 @@ export const DirectedStudio = memo(function DirectedStudio({
                         </div>
                       )}
                     </div>
+
+                    {/* Insert scene button after this scene */}
+                    {!screenplayApproved && (
+                      <div className="flex justify-center py-0.5">
+                        <button onClick={() => { setAddingSceneAt(s.scene_number + 1); setNewSceneForm({ title: '', description: '', dialogue: '', emotion: '', camera: '', characters_in_scene: [] }); setNewSceneMode('manual'); setAiSceneHint(''); }}
+                          data-testid={`add-scene-after-${s.scene_number}`}
+                          className="text-[10px] text-[#555] hover:text-[#C9A84C] transition-colors flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#333] hover:border-[#C9A84C]/40">
+                          <Plus size={10} /> {lang === 'pt' ? 'Inserir cena aqui' : 'Insert scene here'}
+                        </button>
+                      </div>
+                    )}
+                    </Fragment>
                   );
                 })}
-              </div>
 
-              {/* Approve + Proceed buttons */}
+                {/* Add scene form at the END of the list */}
+                {addingSceneAt === scenes.length + 1 && (
+                  <div className="rounded-lg border-2 border-dashed border-[#C9A84C]/40 bg-[#0D0D0A] p-3 space-y-2" data-testid="new-scene-form-end">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-bold text-[#C9A84C]">{lang === 'pt' ? 'Nova Cena' : 'New Scene'}</p>
+                      <div className="flex gap-1">
+                        <button onClick={() => setNewSceneMode('manual')} className={`text-[9px] px-2 py-0.5 rounded ${newSceneMode === 'manual' ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}>Manual</button>
+                        <button onClick={() => setNewSceneMode('ai')} className={`text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5 ${newSceneMode === 'ai' ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'text-[#555] hover:text-[#888]'}`}><Sparkles size={8} /> IA</button>
+                        <button onClick={() => setAddingSceneAt(null)} className="text-[9px] text-[#555] hover:text-red-400 ml-1"><X size={12} /></button>
+                      </div>
+                    </div>
+                    {newSceneMode === 'ai' && (
+                      <div className="space-y-1.5">
+                        <textarea value={aiSceneHint} onChange={e => setAiSceneHint(e.target.value)} placeholder={lang === 'pt' ? 'Descreva a ideia da cena (opcional)...' : 'Describe the scene idea (optional)...'} rows={2}
+                          className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" />
+                        <button onClick={() => generateSceneAI(scenes.length + 1)} disabled={aiSceneLoading}
+                          className="w-full btn-gold rounded py-1 text-[10px] font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
+                          {aiSceneLoading ? <><RefreshCw size={10} className="animate-spin" /> {lang === 'pt' ? 'Gerando...' : 'Generating...'}</> : <><Sparkles size={10} /> {lang === 'pt' ? 'Gerar com IA' : 'Generate with AI'}</>}
+                        </button>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
+                      <input value={newSceneForm.title} onChange={e => setNewSceneForm(p => ({ ...p, title: e.target.value }))}
+                        className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição' : 'Description'}</label>
+                      <textarea value={newSceneForm.description} onChange={e => setNewSceneForm(p => ({ ...p, description: e.target.value }))} rows={2}
+                        className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Narração/Diálogo' : 'Narration/Dialogue'}</label>
+                      <textarea value={newSceneForm.dialogue} onChange={e => setNewSceneForm(p => ({ ...p, dialogue: e.target.value }))} rows={2}
+                        className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none resize-none" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div>
+                        <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
+                        <input value={newSceneForm.emotion} onChange={e => setNewSceneForm(p => ({ ...p, emotion: e.target.value }))}
+                          className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
+                        <input value={newSceneForm.camera} onChange={e => setNewSceneForm(p => ({ ...p, camera: e.target.value }))}
+                          className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#C9A84C] outline-none" />
+                      </div>
+                    </div>
+                    {characters.length > 0 && (
+                      <div>
+                        <label className="text-[10px] text-[#666] block mb-1">{lang === 'pt' ? 'Personagens' : 'Characters'}</label>
+                        <div className="flex flex-wrap gap-1">
+                          {characters.map((char) => {
+                            const sel = newSceneForm.characters_in_scene.includes(char.name);
+                            return (
+                              <button key={char.name} type="button"
+                                onClick={() => setNewSceneForm(p => ({
+                                  ...p, characters_in_scene: sel ? p.characters_in_scene.filter(c => c !== char.name) : [...p.characters_in_scene, char.name]
+                                }))}
+                                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium border ${sel ? 'bg-[#C9A84C]/15 border-[#C9A84C]/40 text-[#C9A84C]' : 'bg-[#111] border-[#333] text-[#555]'}`}>
+                                {sel ? <Check size={7} /> : <Plus size={7} />} {char.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    <button onClick={() => addScene(scenes.length + 1)} disabled={addingSceneLoading || !newSceneForm.title.trim()}
+                      className="w-full btn-gold rounded-lg py-1.5 text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1">
+                      {addingSceneLoading ? <><RefreshCw size={10} className="animate-spin" /> {lang === 'pt' ? 'Salvando...' : 'Saving...'}</> : <><Plus size={10} /> {lang === 'pt' ? 'Adicionar Cena' : 'Add Scene'}</>}
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 pt-1">
                 {!screenplayApproved ? (
                   <button onClick={approveScreenplay} data-testid="approve-screenplay-btn"

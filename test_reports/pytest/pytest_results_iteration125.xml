@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="12" time="41.598" timestamp="2026-03-28T17:08:34.063904+00:00" hostname="agent-env-a301c09a-8b7e-4c74-83ed-b962badcd1af"><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_add_scene_at_end" time="2.960" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_add_scene_at_beginning" time="2.483" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_add_scene_in_middle" time="2.119"><failure message="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">/root/.venv/lib/python3.11/site-packages/requests/models.py:976: in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_iteration125_scene_management.py:129: in test_add_scene_in_middle
+    scenes = status.json().get("scenes", [])
+             ^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/models.py:980: in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+E   requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</failure></testcase><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_delete_scene" time="3.378" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_delete_scene_renumbers_subsequent" time="3.669" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_reorder_scenes" time="3.810" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_generate_scene_ai_endpoint_exists" time="12.494" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagement" name="test_cleanup_test_scenes" time="3.774" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagementEdgeCases" name="test_add_scene_invalid_position" time="2.690" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagementEdgeCases" name="test_delete_nonexistent_scene" time="1.502" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagementEdgeCases" name="test_delete_scene_missing_scene_number" time="1.341" /><testcase classname="backend.tests.test_iteration125_scene_management.TestSceneManagementEdgeCases" name="test_reorder_with_empty_order" time="1.252" /></testsuite></testsuites>
