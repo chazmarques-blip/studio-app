@@ -1,50 +1,53 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-AgentZZ is a comprehensive, mobile-first, no-code SaaS platform that allows users (small and medium business owners) to deploy and configure pre-built AI agents on various social media channels and produce AI-powered video content through a Directed Studio.
+AgentZZ is a comprehensive, mobile-first, no-code SaaS platform that allows users to deploy AI agents and produce AI-powered video content through a Directed Studio.
 
 ## Core Features Implemented
-- **Directed Studio**: Full video/storybook production pipeline with AI-powered screenwriting, storyboarding, character management, voice narration, and production
-- **Character/Avatar System**: Project-isolated character management with global library, context-aware editing, incremental layer editing, 360-degree views
-- **Scene Character Editing**: Users can edit which characters appear in each scene via toggle chips in the Roteiro (Step 1)
-- **Agent Management**: Agent marketplace, customization, Google Calendar/Sheets integration
-- **Omnichannel**: Unified inbox structure (WhatsApp, Instagram, Facebook, Telegram, SMS - mocked)
-- **CRM**: Built-in CRM with visual Kanban board
-- **Multi-language**: UI support for English, Portuguese, Spanish
-- **Dark Luxury Theme**: Premium monochrome gold/black/white/gray design
 
-## Recent Bug Fixes (March 28, 2026)
+### Directed Studio
+- Full video/storybook production pipeline (6 steps: Roteiro → Personagens → Storyboard → Diálogos → Produção → Resultado)
+- **Scene Management (NEW - March 28, 2026)**:
+  - Add scenes at any position (beginning, between, end)
+  - Manual creation or AI-assisted generation (Claude generates scene with context from neighboring scenes)
+  - Delete scenes with automatic removal of associated storyboard/audio
+  - Reorder scenes with up/down buttons
+  - Auto-renumbering of all scenes and storyboard panels
+  - Auto-storyboard generation for new scenes when storyboard already exists
+  - Character selection per scene via toggle chips
+- Character/Avatar System with project isolation, context-aware editing, 360° views
+- AI screenwriting, storyboarding, voice narration, production
 
-### Fix 1 - "Input should be a valid string" on Character Edit
-- **Root Cause**: `AvatarModal.jsx` line 663 sent `base_url: null` when in Directed Mode. Pydantic's `EditAvatarRequest` model requires `str`, not `None`.
-- **Fix (Frontend)**: Changed `null` to `""` in `AvatarModal.jsx`
-- **Fix (Backend)**: Added `field_validator` on `EditAvatarRequest.base_url` in `config.py` to coerce `None` to `""`
-- **Files**: `AvatarModal.jsx:663`, `config.py:972-981`
+### Other Features
+- Agent Management with marketplace and Google Calendar/Sheets integration
+- Omnichannel inbox structure (mocked)
+- CRM with Kanban board
+- Multi-language (EN/PT/ES)
+- Dark luxury theme
 
-### Fix 2 - "Objects are not valid as a React child" Toast Crash  
-- **Root Cause**: Pydantic 422 validation errors (arrays of objects) passed directly to `toast.error()`, crashing React rendering
-- **Fix**: Created `getErrorMsg()` utility, applied across 20+ files (40+ occurrences)
-- **Files**: `utils/getErrorMsg.js` (new), all major components and pages
+## Recent Changes (March 28, 2026)
+1. **Scene Management** - Add/Delete/Reorder/AI-Generate scenes in Roteiro (iteration_125 - 92% backend, 100% frontend)
+2. **Scene Character Editing** - Toggle chips per scene (iteration_124 - 100%)
+3. **Toast Error Crash Fix** - getErrorMsg utility across 20+ files
+4. **Character Edit Fix** - base_url null→"" in AvatarModal
 
-### Feature - Scene Character Editing
-- Backend `update-scene` endpoint accepts `characters_in_scene`
-- Frontend shows toggle chips in scene edit form (Step 1)
-- Testing: iteration_124.json - 100% pass rate
+## Key Endpoints
+- `POST /api/studio/projects/{id}/add-scene` - Add scene at position
+- `POST /api/studio/projects/{id}/delete-scene` - Delete scene + storyboard
+- `POST /api/studio/projects/{id}/reorder-scenes` - Reorder by order array
+- `POST /api/studio/projects/{id}/generate-scene-ai` - AI scene generation
 
-## Pending Verification
-- 360-degree view clothing fix (company_uniform -> keep_original)
-
-## Backlog (P0-P3)
-### P1 - AI Marketing Studio (Phase 7.1 & 7.2)
-### P2 - Omnichannel Integrations (Phase 8)
-### P2 - Admin Management System & Stripe
-### P3 - Native App Packaging (Capacitor)
+## Backlog
+- P1: AI Marketing Studio (Phase 7.1 & 7.2)
+- P2: Omnichannel Integrations (Phase 8)
+- P2: Admin System & Stripe
+- P3: Native App (Capacitor)
 
 ## Tech Stack
-- **Frontend**: React, Tailwind CSS, shadcn-ui, Lucide Icons, Framer Motion 11.18.2, recharts
-- **Backend**: FastAPI (Python)
-- **Database**: Supabase (PostgreSQL) + MongoDB
-- **3rd Party**: Anthropic Claude 3.5, OpenAI Whisper, Gemini (Image/Vision), ElevenLabs (TTS), Google APIs
+- Frontend: React, Tailwind, shadcn-ui, Framer Motion 11.18.2, recharts
+- Backend: FastAPI (Python)
+- DB: Supabase (PostgreSQL) + MongoDB
+- 3rd Party: Claude 3.5, OpenAI Whisper, Gemini, ElevenLabs, Google APIs
 
-## Key Credentials
+## Credentials
 - Email: test@agentflow.com / Password: password123
