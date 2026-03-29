@@ -2566,8 +2566,29 @@ export const DirectedStudio = memo(function DirectedStudio({
             {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
           </h3>
 
+          {/* Start Production Button - Only show if not generating */}
+          {!generating && !agentStatus.phase && scenes.length > 0 && (
+            <div className="mb-4 text-center">
+              <button
+                onClick={startProduction}
+                disabled={generating}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white font-bold text-sm shadow-lg shadow-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="start-production-btn">
+                <Film size={16} />
+                {lang === 'pt' ? 'INICIAR PRODUÇÃO COMPLETA' : 'START FULL PRODUCTION'}
+                <Sparkles size={16} />
+              </button>
+              <p className="text-xs text-[#666] mt-2">
+                {lang === 'pt' 
+                  ? `${scenes.length} cenas serão produzidas com direção profissional de fotografia, áudio e vídeo`
+                  : `${scenes.length} scenes will be produced with professional photography, audio and video direction`
+                }
+              </p>
+            </div>
+          )}
+
           {/* Segmented progress bar */}
-          {scenes.length > 0 && (
+          {scenes.length > 0 && generating && (
             <div>
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-[#999]">
