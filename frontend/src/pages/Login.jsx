@@ -82,7 +82,9 @@ export default function Login() {
         navigate('/onboarding');
       } else {
         const { data } = await signIn(email, password);
-        navigate(data.user.onboarding_completed ? '/dashboard' : '/onboarding');
+        console.log('✅ Login successful, user:', data.user);
+        // Redirecionar para /studio em vez de /dashboard
+        navigate('/studio');
       }
     } catch (err) {
       toast.error(getErrorMsg(err, 'Authentication failed'));

@@ -95,10 +95,17 @@ async def login(req: SignInRequest):
 
 @router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
-    result = supabase.table("users").select("id, email, full_name, ui_language, company_name, onboarding_completed, created_at").eq("id", user["id"]).execute()
+    result = supabase.table("users").select("id, email, name, created_at").eq("id", user["id"]).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
     user_data = result.data[0]
+    
+    # Adicionar campos padrão
+    user_data["full_name"] = user_data.get("name", "")  # Compatibilidade
+    user_data["ui_language"] = "pt"  # Default
+    user_data["company_name"] = ""
+    user_data["onboarding_completed"] = True  # Pular onboarding
+    
     # Get avatar and extended profile from tenant settings
     tenant = supabase.table("tenants").select("settings").eq("owner_id", user["id"]).execute()
     if tenant.data:
