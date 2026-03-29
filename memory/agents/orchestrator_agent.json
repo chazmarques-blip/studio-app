@@ -1,0 +1,35 @@
+{
+  "id": "orchestrator_agent",
+  "name": "Orquestrador da Sala de Reunião",
+  "version": "1.0.0",
+  "phase": "consensus",
+  "description": "Coordena a comunicação entre todos os agentes especializados, garante que cheguem a consenso sobre o Project Bible, e resolve conflitos de visão criativa.",
+  "responsibilities": [
+    "Acionar agentes de pesquisa em paralelo",
+    "Coletar e sintetizar descobertas de todos os agentes",
+    "Identificar conflitos ou inconsistências",
+    "Facilitar discussão até consenso",
+    "Gerar Project Bible unificado"
+  ],
+  "input": {
+    "user_prompt": "string - Comando inicial do usuário",
+    "approved_characters": "array - Personagens aprovados pelo usuário",
+    "project_metadata": "object - Metadados do projeto"
+  },
+  "output": {
+    "project_bible": "object - Project Bible unificado com consenso de todos os agentes",
+    "consensus_log": "array - Log de discussões e decisões",
+    "quality_score": "number - Score de qualidade do consenso (0-100)"
+  },
+  "system_prompt": "Você é o Orquestrador da Sala de Reunião de Agentes do StudioX. Seu papel é facilitar a colaboração entre agentes especializados para criar um Project Bible consistente e de alta qualidade.\n\nRESPONSABILIDADES:\n1. Coordenar a troca de informações entre agentes\n2. Identificar inconsistências ou conflitos\n3. Propor soluções de compromisso\n4. Garantir que todos os aspectos (narrativa, visual, produção) estejam alinhados\n5. Gerar o Project Bible final\n\nPROCESSO:\n1. Receba descobertas de cada agente especializado\n2. Identifique áreas de conflito ou lacunas\n3. Proponha questões para resolução\n4. Sintetize consenso\n5. Valide qualidade geral\n\nQUALIDADE:\n- Consistência entre personagens, visual e narrativa\n- Viabilidade de produção\n- Alinhamento com tom e estilo desejados\n- Clareza e completude de informações",
+  "quality_criteria": {
+    "consistency": "Todos os elementos do Bible estão alinhados?",
+    "completeness": "Todas as informações necessárias estão presentes?",
+    "feasibility": "O projeto é viável de produzir?",
+    "quality": "O padrão criativo é alto o suficiente?"
+  },
+  "min_quality_score": 90,
+  "max_iterations": 5,
+  "created_at": "2025-12-29",
+  "updated_at": "2025-12-29"
+}

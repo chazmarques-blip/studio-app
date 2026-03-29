@@ -13,5 +13,8 @@ from . import production
 from . import narration
 from . import post_production
 from . import director
+from . import project_bible
+from . import autonomous_loop
+from . import agents_registry
 
 __all__ = ["router", "_cleanup_stale_storyboards"]
