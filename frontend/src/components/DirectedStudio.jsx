@@ -444,10 +444,27 @@ export const DirectedStudio = memo(function DirectedStudio({
         continuity_mode: continuityMode,
       });
       setProjectId(res.data.id);
-      setStep(1); setChatMessages([]); setScenes([]); setCharacters([]); setOutputs([]);
-      setShowNewProject(false);
+      setStep(1); 
+      setChatMessages([]); 
+      setScenes([]); 
+      setCharacters([]); 
+      setOutputs([]);
+      
+      // Keep modal open for a brief moment to show success
+      toast.success(lang === 'pt' ? `✅ Projecto "${projectName}" criado com sucesso!` : `✅ Project "${projectName}" created successfully!`);
+      
+      // Show project details in a toast
+      setTimeout(() => {
+        setShowNewProject(false);
+        toast.info(
+          lang === 'pt' 
+            ? `📝 ${projectName}\n${projectDesc || 'Sem descrição'}\n🎬 ${animationSub}\n🌍 ${projectLang.toUpperCase()}`
+            : `📝 ${projectName}\n${projectDesc || 'No description'}\n🎬 ${animationSub}\n🌍 ${projectLang.toUpperCase()}`,
+          { duration: 5000 }
+        );
+      }, 1000);
+      
       loadProjects();
-      toast.success(lang === 'pt' ? 'Projecto criado!' : 'Project created!');
     } catch (err) {
       toast.error(getErrorMsg(err, 'Error'));
     }
@@ -1190,7 +1207,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   };
 
   return (
-    <div className="space-y-3" data-testid="directed-studio">
+    <div className="space-y-3 px-4 md:px-6 lg:px-8" data-testid="directed-studio">{/* Added responsive padding */}
       {/* Step Navigation — only when inside a project */}
       {step >= 1 && (
         <div className="flex items-center justify-between mb-1">
