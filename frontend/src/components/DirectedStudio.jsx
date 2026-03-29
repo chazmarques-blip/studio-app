@@ -98,6 +98,11 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [voiceMap, setVoiceMap] = useState({}); // {charName: voice_id}
   const [voiceDetails, setVoiceDetails] = useState({}); // {charName: {voice_id, voice_name, ...}}
   const [voiceMapLoading, setVoiceMapLoading] = useState(false);
+  const [soundAgentResults, setSoundAgentResults] = useState({}); // {charName: {previews, voice_description, ...}}
+  const [soundAgentRunning, setSoundAgentRunning] = useState(false);
+  const [soundAgentChar, setSoundAgentChar] = useState(null); // which char is being designed individually
+  const [playingPreview, setPlayingPreview] = useState(null); // "charName-idx"
+  const [selectingVoice, setSelectingVoice] = useState(null); // "charName-voiceId"
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -639,7 +644,7 @@ export const DirectedStudio = memo(function DirectedStudio({
     const newMap = { ...voiceMap, [charName]: voiceId };
     setVoiceMap(newMap);
     // Update details locally
-    const v = voices.find(v => v.id === voiceId);
+    const v = voices.find(vv => vv.id === voiceId);
     if (v) {
       setVoiceDetails(prev => ({ ...prev, [charName]: { voice_id: voiceId, voice_name: v.name, gender: v.gender, accent: v.accent, style: v.style } }));
     }
@@ -647,6 +652,69 @@ export const DirectedStudio = memo(function DirectedStudio({
     try {
       await axios.post(`${API}/studio/projects/${projectId}/voice-map`, { voice_map: { [charName]: voiceId } });
     } catch { /* silent */ }
+  };
+
+  // ── Sound Design Agent (Agente de Sonoplastia) ──
+  const runSoundAgentAll = async () => {
+    if (!projectId || characters.length === 0) return;
+    setSoundAgentRunning(true);
+    setSoundAgentResults({});
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/design-all-voices`, {}, { timeout: 180000 });
+      setSoundAgentResults(res.data.results || {});
+      toast.success(lang === 'pt'
+        ? `Sonoplastia IA: ${res.data.designed}/${res.data.total_characters} personagens processados!`
+        : `Sound Agent: ${res.data.designed}/${res.data.total_characters} characters processed!`);
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Sound Agent failed'));
+    } finally {
+      setSoundAgentRunning(false);
+    }
+  };
+
+  const runSoundAgentSingle = async (charName) => {
+    if (!projectId) return;
+    setSoundAgentChar(charName);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/design-character-voice`, { character_name: charName }, { timeout: 60000 });
+      setSoundAgentResults(prev => ({ ...prev, [charName]: res.data }));
+      toast.success(lang === 'pt' ? `Vozes geradas para ${charName}!` : `Voices generated for ${charName}!`);
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Voice design failed'));
+    } finally {
+      setSoundAgentChar(null);
+    }
+  };
+
+  const playPreviewAudio = (charName, idx, base64, mediaType) => {
+    const key = `${charName}-${idx}`;
+    if (playingPreview === key) {
+      setPlayingPreview(null);
+      return;
+    }
+    setPlayingPreview(key);
+    const audio = new Audio(`data:${mediaType || 'audio/mpeg'};base64,${base64}`);
+    audio.onended = () => setPlayingPreview(null);
+    audio.play().catch(() => setPlayingPreview(null));
+  };
+
+  const selectDesignedVoice = async (charName, generatedVoiceId) => {
+    if (!projectId) return;
+    setSelectingVoice(`${charName}-${generatedVoiceId}`);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/select-designed-voice`, {
+        character_name: charName,
+        generated_voice_id: generatedVoiceId,
+        voice_name: `AgentZZ_${charName}`,
+      });
+      setVoiceMap(prev => ({ ...prev, [charName]: res.data.voice_id }));
+      setVoiceDetails(prev => ({ ...prev, [charName]: { voice_id: res.data.voice_id, voice_name: res.data.voice_name, gender: '?', accent: 'Custom', style: 'Designed' } }));
+      toast.success(lang === 'pt' ? `Voz personalizada salva para ${charName}!` : `Custom voice saved for ${charName}!`);
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Save voice failed'));
+    } finally {
+      setSelectingVoice(null);
+    }
   };
 
   const generateNarration = async () => {
@@ -2065,52 +2133,137 @@ export const DirectedStudio = memo(function DirectedStudio({
 
             {/* ── Voice Map: AI-assigned voices per character ── */}
             {characters.length > 0 && (
-              <div className="space-y-1.5" data-testid="voice-map-section">
+              <div className="space-y-2" data-testid="voice-map-section">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] text-[#666]">
                     {lang === 'pt' ? 'Mapa de Vozes por Personagem' : 'Character Voice Map'}
                   </p>
-                  <button onClick={autoAssignVoices} disabled={voiceMapLoading || characters.length === 0}
-                    data-testid="auto-assign-voices-btn"
-                    className="text-[10px] px-2 py-1 rounded border border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C] hover:bg-[#C9A84C]/10 transition disabled:opacity-30 flex items-center gap-1">
-                    {voiceMapLoading ? <RefreshCw size={9} className="animate-spin" /> : <Sparkles size={9} />}
-                    {voiceMapLoading
-                      ? (lang === 'pt' ? 'Analisando...' : 'Analyzing...')
-                      : (lang === 'pt' ? 'IA Atribuir Vozes' : 'AI Assign Voices')
-                    }
-                  </button>
+                  <div className="flex gap-1">
+                    <button onClick={autoAssignVoices} disabled={voiceMapLoading || characters.length === 0}
+                      data-testid="auto-assign-voices-btn"
+                      className="text-[10px] px-2 py-1 rounded border border-[#333] bg-[#111] text-[#888] hover:text-white hover:border-[#555] transition disabled:opacity-30 flex items-center gap-1"
+                      title={lang === 'pt' ? 'Atribuir vozes do catálogo' : 'Assign catalog voices'}>
+                      {voiceMapLoading ? <RefreshCw size={9} className="animate-spin" /> : <Volume2 size={9} />}
+                      {lang === 'pt' ? 'Catálogo' : 'Catalog'}
+                    </button>
+                    <button onClick={runSoundAgentAll} disabled={soundAgentRunning || characters.length === 0}
+                      data-testid="sound-agent-all-btn"
+                      className="text-[10px] px-2 py-1 rounded border border-[#C9A84C]/40 bg-[#C9A84C]/5 text-[#C9A84C] hover:bg-[#C9A84C]/15 transition disabled:opacity-30 flex items-center gap-1">
+                      {soundAgentRunning ? <RefreshCw size={9} className="animate-spin" /> : <Sparkles size={9} />}
+                      {soundAgentRunning
+                        ? (lang === 'pt' ? 'Sonoplastia IA...' : 'Sound Agent...')
+                        : (lang === 'pt' ? 'Sonoplastia IA' : 'Sound Agent')
+                      }
+                    </button>
+                  </div>
                 </div>
 
-                {Object.keys(voiceDetails).length > 0 && (
-                  <div className="space-y-1 max-h-[200px] overflow-y-auto hide-scrollbar">
-                    {characters.map(c => {
-                      const detail = voiceDetails[c.name];
-                      if (!detail) return null;
-                      return (
-                        <div key={c.name} className="flex items-center gap-2 rounded-md border border-[#1A1A1A] bg-[#0A0A0A] px-2 py-1.5" data-testid={`voice-map-${c.name}`}>
-                          <span className="text-[10px] font-semibold text-white truncate w-28 shrink-0" title={c.name}>{c.name}</span>
-                          <select
-                            value={voiceMap[c.name] || ''}
-                            onChange={e => updateCharVoice(c.name, e.target.value)}
-                            data-testid={`voice-select-${c.name}`}
-                            className="flex-1 bg-[#111] border border-[#222] rounded px-1.5 py-1 text-[10px] text-[#ccc] outline-none focus:border-[#C9A84C]/50 min-w-0"
-                          >
-                            {voices.map(v => (
-                              <option key={v.id} value={v.id}>{v.name} — {v.gender} • {v.style}</option>
-                            ))}
-                          </select>
-                          <span className="text-[9px] text-[#555] shrink-0 w-14 text-right">{detail.accent}</span>
-                        </div>
-                      );
-                    })}
+                {soundAgentRunning && (
+                  <div className="text-center py-3 border border-[#C9A84C]/20 rounded-lg bg-[#C9A84C]/5">
+                    <RefreshCw size={14} className="animate-spin text-[#C9A84C] mx-auto mb-1" />
+                    <p className="text-[10px] text-[#C9A84C]">
+                      {lang === 'pt'
+                        ? 'O Agente de Sonoplastia está analisando cada personagem e criando vozes únicas...'
+                        : 'Sound Design Agent is analyzing each character and creating unique voices...'}
+                    </p>
+                    <p className="text-[9px] text-[#666] mt-0.5">{lang === 'pt' ? 'Isto pode demorar 1-2 minutos' : 'This may take 1-2 minutes'}</p>
                   </div>
                 )}
 
-                {Object.keys(voiceDetails).length === 0 && (
+                <div className="space-y-1.5 max-h-[350px] overflow-y-auto hide-scrollbar">
+                  {characters.map(c => {
+                    const detail = voiceDetails[c.name];
+                    const agentResult = soundAgentResults[c.name];
+                    const hasPreviews = agentResult?.previews?.length > 0;
+
+                    return (
+                      <div key={c.name} className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2 space-y-1.5" data-testid={`voice-map-${c.name}`}>
+                        {/* Character header */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-white truncate flex-1" title={c.name}>{c.name}</span>
+                          {detail && (
+                            <span className="text-[9px] text-[#C9A84C] shrink-0">
+                              {detail.voice_name || detail.accent || 'Assigned'}
+                            </span>
+                          )}
+                          <button onClick={() => runSoundAgentSingle(c.name)} disabled={soundAgentChar === c.name || soundAgentRunning}
+                            data-testid={`design-voice-${c.name}`}
+                            className="text-[9px] px-1.5 py-0.5 rounded border border-[#333] text-[#666] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition disabled:opacity-30 flex items-center gap-0.5 shrink-0">
+                            {soundAgentChar === c.name ? <RefreshCw size={8} className="animate-spin" /> : <Wand2 size={8} />}
+                            {lang === 'pt' ? 'Design' : 'Design'}
+                          </button>
+                        </div>
+
+                        {/* Voice selector (catalog voices) */}
+                        <select
+                          value={voiceMap[c.name] || ''}
+                          onChange={e => updateCharVoice(c.name, e.target.value)}
+                          data-testid={`voice-select-${c.name}`}
+                          className="w-full bg-[#111] border border-[#222] rounded px-1.5 py-1 text-[10px] text-[#ccc] outline-none focus:border-[#C9A84C]/50"
+                        >
+                          <option value="">{lang === 'pt' ? '— Seleccionar voz —' : '— Select voice —'}</option>
+                          {voices.map(v => (
+                            <option key={v.id} value={v.id}>{v.name} — {v.gender} | {v.style}</option>
+                          ))}
+                          {detail?.style === 'Designed' && (
+                            <option value={voiceMap[c.name]}>{detail.voice_name} (Custom Designed)</option>
+                          )}
+                        </select>
+
+                        {/* AI Voice Description */}
+                        {agentResult?.voice_description && (
+                          <p className="text-[9px] text-[#555] italic leading-tight">
+                            {agentResult.voice_description.slice(0, 150)}...
+                          </p>
+                        )}
+
+                        {/* Voice Previews from Sound Agent */}
+                        {hasPreviews && (
+                          <div className="flex gap-1.5 pt-0.5">
+                            {agentResult.previews.map((p, idx) => {
+                              const previewKey = `${c.name}-${idx}`;
+                              const isPlaying = playingPreview === previewKey;
+                              const isSelecting = selectingVoice === `${c.name}-${p.generated_voice_id}`;
+                              return (
+                                <div key={idx} className="flex-1 rounded border border-[#222] bg-[#080808] p-1.5 space-y-1" data-testid={`voice-preview-${c.name}-${idx}`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[9px] text-[#666]">
+                                      {lang === 'pt' ? `Opção ${idx + 1}` : `Option ${idx + 1}`}
+                                    </span>
+                                    <span className="text-[8px] text-[#444]">{p.duration_secs?.toFixed(1)}s</span>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <button onClick={() => playPreviewAudio(c.name, idx, p.audio_base64, p.media_type)}
+                                      data-testid={`play-preview-${c.name}-${idx}`}
+                                      className={`flex-1 text-[9px] py-1 rounded flex items-center justify-center gap-0.5 transition ${
+                                        isPlaying ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'bg-[#111] text-[#999] hover:text-white border border-[#222]'
+                                      }`}>
+                                      {isPlaying ? <Pause size={8} /> : <Play size={8} />}
+                                      {isPlaying ? (lang === 'pt' ? 'Ouvir' : 'Playing') : (lang === 'pt' ? 'Ouvir' : 'Play')}
+                                    </button>
+                                    <button onClick={() => selectDesignedVoice(c.name, p.generated_voice_id)}
+                                      disabled={isSelecting}
+                                      data-testid={`select-preview-${c.name}-${idx}`}
+                                      className="flex-1 text-[9px] py-1 rounded bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 transition flex items-center justify-center gap-0.5 disabled:opacity-50">
+                                      {isSelecting ? <RefreshCw size={8} className="animate-spin" /> : <Check size={8} />}
+                                      {lang === 'pt' ? 'Usar' : 'Use'}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {Object.keys(voiceDetails).length === 0 && Object.keys(soundAgentResults).length === 0 && (
                   <p className="text-[10px] text-[#444] italic text-center py-2">
                     {lang === 'pt'
-                      ? 'Clique "IA Atribuir Vozes" para o Claude analisar os personagens e escolher a voz ideal para cada um'
-                      : 'Click "AI Assign Voices" to let Claude analyze characters and pick the ideal voice for each'}
+                      ? 'Use "Catálogo" para vozes rápidas ou "Sonoplastia IA" para vozes personalizadas únicas'
+                      : 'Use "Catalog" for quick voices or "Sound Agent" for unique custom voices'}
                   </p>
                 )}
               </div>

@@ -221,6 +221,334 @@ async def get_voice_map(project_id: str, tenant=Depends(get_current_tenant)):
     return {"voice_map": voice_map, "voice_details": voice_details}
 
 
+# ── Sound Design Agent (Agente de Sonoplastia IA) ──
+
+class DesignCharacterVoiceRequest(BaseModel):
+    character_name: str
+    preview_text: str = ""  # optional custom preview text
+
+
+@router.post("/projects/{project_id}/design-character-voice")
+async def design_character_voice(project_id: str, req: DesignCharacterVoiceRequest, tenant=Depends(get_current_tenant)):
+    """Sound Design Agent: Analyze a character and generate 3 custom voice previews using ElevenLabs Voice Design."""
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not elevenlabs_key:
+        raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
+
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Find the character
+    characters = project.get("characters", [])
+    char = next((c for c in characters if c.get("name") == req.character_name), None)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{req.character_name}' not found")
+
+    lang = project.get("language", "pt")
+    LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
+
+    # Step 1: Claude analyzes the character and writes the ideal voice description
+    system_prompt = """You are an elite SOUND DESIGN DIRECTOR for animated films. Your specialty is CASTING — finding the PERFECT voice for each character based on their visual appearance, personality, role, and species.
+
+Given a character's details, write a VOICE DESIGN PROMPT (100-800 characters) that will be used to generate a custom AI voice. The prompt must describe the IDEAL vocal qualities for this character.
+
+RULES:
+1. Describe the voice in ENGLISH (the AI voice generator only understands English prompts)
+2. Include: age range, gender, vocal texture, energy level, emotional tone, speaking style
+3. For ANIMAL characters: describe how the animal's nature should influence the voice (e.g., a lion should have a deep resonant voice, a rabbit should be light and quick)
+4. For CHILD/YOUNG characters: specify youthful, lighter vocal qualities
+5. For VILLAIN/ANTAGONIST characters: add menacing, seductive, or unsettling qualities
+6. For NARRATOR characters: warm, storytelling, authoritative
+7. Be VERY specific about unique qualities that make this voice MEMORABLE and DISTINCT
+8. The voice must feel like it BELONGS to this character — when people hear it, they should immediately picture the character
+
+Return ONLY the voice description text, nothing else. No JSON, no labels."""
+
+    char_info = f"""Character: {char.get('name', '?')}
+Description: {char.get('description', 'No description')}
+Role: {char.get('role', '?')}
+Age: {char.get('age', '?')}
+Story: {project.get('briefing', '')[:300]}
+Language of the project: {LANG_NAMES.get(lang, lang)}"""
+
+    try:
+        voice_description = _call_claude_sync(system_prompt, char_info, max_tokens=500)
+        voice_description = voice_description.strip().strip('"').strip("'")
+        # Ensure it's within limits
+        if len(voice_description) < 100:
+            voice_description = voice_description + ". A distinctive, memorable voice with clear emotional range and natural expressiveness."
+        if len(voice_description) > 1000:
+            voice_description = voice_description[:997] + "..."
+
+        logger.info(f"Studio [{project_id}]: Sound Agent voice description for {req.character_name}: {voice_description[:100]}...")
+
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: Sound Agent Claude analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice analysis failed: {str(e)[:150]}")
+
+    # Step 2: Generate voice previews using ElevenLabs Voice Design
+    try:
+        from elevenlabs import ElevenLabs as ELClient
+        client = ELClient(api_key=elevenlabs_key)
+
+        # Use a sample dialogue line from the character, or a default
+        preview_text = req.preview_text
+        if not preview_text:
+            # Find a dialogue line from the scenes for this character
+            scenes = project.get("scenes", [])
+            for s in scenes:
+                dialogue = s.get("dialogue", "")
+                if req.character_name.lower() in dialogue.lower() and ":" in dialogue:
+                    parts = [p.strip() for p in dialogue.split(" / ")]
+                    for part in parts:
+                        if req.character_name.lower() in part.split(":")[0].lower():
+                            text = ":".join(part.split(":")[1:]).strip().strip("'\"")
+                            if len(text) > 10:
+                                preview_text = text[:200]
+                                break
+                if preview_text:
+                    break
+
+        result = client.text_to_voice.create_previews(
+            voice_description=voice_description,
+            text=preview_text if preview_text else None,
+            auto_generate_text=not bool(preview_text),
+            loudness=0.0,
+            quality=0.8,
+            guidance_scale=0.5,
+        )
+
+        previews = []
+        for p in result.previews:
+            previews.append({
+                "generated_voice_id": p.generated_voice_id,
+                "audio_base64": p.audio_base_64,
+                "duration_secs": p.duration_secs,
+                "media_type": p.media_type,
+            })
+
+        logger.info(f"Studio [{project_id}]: Sound Agent generated {len(previews)} voice previews for {req.character_name}")
+
+        # Save the voice description and previews for this character
+        designed_voices = project.get("designed_voices", {})
+        designed_voices[req.character_name] = {
+            "voice_description": voice_description,
+            "previews": [{"generated_voice_id": p["generated_voice_id"], "duration_secs": p["duration_secs"]} for p in previews],
+        }
+        _update_project_field(tenant["id"], project_id, {"designed_voices": designed_voices})
+
+        return {
+            "character_name": req.character_name,
+            "voice_description": voice_description,
+            "previews": previews,
+            "preview_text": result.text,
+        }
+
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: ElevenLabs Voice Design failed for {req.character_name}: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice design failed: {str(e)[:200]}")
+
+
+class SelectDesignedVoiceRequest(BaseModel):
+    character_name: str
+    generated_voice_id: str
+    voice_name: str = ""  # optional name for the saved voice
+
+
+@router.post("/projects/{project_id}/select-designed-voice")
+async def select_designed_voice(project_id: str, req: SelectDesignedVoiceRequest, tenant=Depends(get_current_tenant)):
+    """Save a designed voice preview as a permanent voice and assign it to the character."""
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not elevenlabs_key:
+        raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
+
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        from elevenlabs import ElevenLabs as ELClient
+        client = ELClient(api_key=elevenlabs_key)
+
+        # Get the voice description from stored data
+        designed = project.get("designed_voices", {}).get(req.character_name, {})
+        voice_desc = designed.get("voice_description", req.character_name)
+        voice_name = req.voice_name or f"AgentZZ_{req.character_name}"
+
+        # Save the preview as a permanent voice
+        voice = client.text_to_voice.create(
+            voice_name=voice_name,
+            voice_description=voice_desc[:500],
+            generated_voice_id=req.generated_voice_id,
+        )
+
+        # Update the voice map with the new permanent voice ID
+        voice_map = project.get("voice_map", {})
+        voice_map[req.character_name] = voice.voice_id
+        _update_project_field(tenant["id"], project_id, {"voice_map": voice_map})
+
+        logger.info(f"Studio [{project_id}]: Saved designed voice for {req.character_name}: {voice.voice_id} ({voice_name})")
+
+        return {
+            "character_name": req.character_name,
+            "voice_id": voice.voice_id,
+            "voice_name": voice_name,
+            "status": "saved",
+        }
+
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: Save designed voice failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Save voice failed: {str(e)[:200]}")
+
+
+@router.post("/projects/{project_id}/design-all-voices")
+async def design_all_voices(project_id: str, tenant=Depends(get_current_tenant)):
+    """Sound Design Agent: Run the full analysis for ALL characters and return voice previews for each."""
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not elevenlabs_key:
+        raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
+
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    characters = project.get("characters", [])
+    if not characters:
+        raise HTTPException(status_code=400, detail="No characters in project")
+
+    lang = project.get("language", "pt")
+    LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
+
+    # Step 1: ONE Claude call to analyze ALL characters and write voice descriptions
+    system_prompt = """You are an elite SOUND DESIGN DIRECTOR for animated films. Your specialty is VOICE CASTING — finding the PERFECT voice for each character.
+
+For EACH character, write a VOICE DESIGN PROMPT (100-500 chars each) that will generate a custom AI voice. Prompts must be in ENGLISH.
+
+RULES:
+1. Each voice must be DISTINCT and MEMORABLE — no two characters should sound similar
+2. For ANIMAL characters: the animal's nature MUST influence the voice (lion=deep, rabbit=quick/light, snake=breathy/sibilant)
+3. Include: age, gender, vocal texture, energy, tone, speaking style, unique qualities
+4. Consider the character's ROLE in the story (hero, villain, comic relief, wise mentor, etc.)
+5. Think about CONTRAST between characters — if one is deep, make another high; if one is slow, make another fast
+6. The voice should make the character INSTANTLY recognizable
+
+Return ONLY valid JSON:
+{"CharacterName": "voice description prompt in English", ...}"""
+
+    char_list = "\n".join([
+        f"- {c.get('name', '?')}: {c.get('description', 'No description')} | Role: {c.get('role', '?')} | Age: {c.get('age', '?')}"
+        for c in characters
+    ])
+
+    user_prompt = f"""Project: {project.get('name', 'Untitled')}
+Story: {project.get('briefing', '')[:400]}
+Language: {LANG_NAMES.get(lang, lang)}
+
+CHARACTERS TO CAST:
+{char_list}
+
+Design the PERFECT voice for each character. Make each voice UNIQUE and INSTANTLY recognizable."""
+
+    try:
+        result = _call_claude_sync(system_prompt, user_prompt, max_tokens=4000)
+        import json as json_mod
+        parsed = _parse_json(result)
+        if not parsed:
+            raise HTTPException(status_code=500, detail="Failed to parse voice descriptions")
+
+        logger.info(f"Studio [{project_id}]: Sound Agent analyzed {len(parsed)} characters")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Voice analysis failed: {str(e)[:150]}")
+
+    # Step 2: Generate voice previews for each character
+    from elevenlabs import ElevenLabs as ELClient
+    client = ELClient(api_key=elevenlabs_key)
+    scenes = project.get("scenes", [])
+
+    all_results = {}
+    designed_voices = project.get("designed_voices", {})
+
+    for char in characters:
+        name = char.get("name", "")
+        desc = parsed.get(name, "")
+        if not desc:
+            # Try fuzzy match
+            for k, v in parsed.items():
+                if k.lower() in name.lower() or name.lower() in k.lower():
+                    desc = v
+                    break
+        if not desc:
+            continue
+
+        # Ensure minimum length
+        if len(desc) < 100:
+            desc = desc + ". A distinctive, memorable voice with clear emotional range and natural expressiveness suitable for animation."
+
+        # Find a dialogue line for preview
+        preview_text = ""
+        for s in scenes:
+            dialogue = s.get("dialogue", "")
+            if name.lower() in dialogue.lower() and ":" in dialogue:
+                parts = [p.strip() for p in dialogue.split(" / ")]
+                for part in parts:
+                    if name.lower() in part.split(":")[0].lower():
+                        text = ":".join(part.split(":")[1:]).strip().strip("'\"")
+                        if len(text) > 10:
+                            preview_text = text[:200]
+                            break
+            if preview_text:
+                break
+
+        try:
+            result = client.text_to_voice.create_previews(
+                voice_description=desc[:1000],
+                text=preview_text if preview_text else None,
+                auto_generate_text=not bool(preview_text),
+                loudness=0.0,
+                quality=0.8,
+                guidance_scale=0.5,
+            )
+
+            previews = []
+            for p in result.previews:
+                previews.append({
+                    "generated_voice_id": p.generated_voice_id,
+                    "audio_base64": p.audio_base_64,
+                    "duration_secs": p.duration_secs,
+                    "media_type": p.media_type,
+                })
+
+            all_results[name] = {
+                "voice_description": desc,
+                "previews": previews,
+                "preview_text": result.text,
+            }
+
+            designed_voices[name] = {
+                "voice_description": desc,
+                "previews": [{"generated_voice_id": p["generated_voice_id"], "duration_secs": p["duration_secs"]} for p in previews],
+            }
+
+            logger.info(f"Studio [{project_id}]: Sound Agent — {name}: {len(previews)} previews ({desc[:60]}...)")
+
+        except Exception as e:
+            logger.warning(f"Studio [{project_id}]: Voice Design failed for {name}: {e}")
+            all_results[name] = {"voice_description": desc, "previews": [], "error": str(e)[:100]}
+
+    # Save all designed voices
+    _update_project_field(tenant["id"], project_id, {"designed_voices": designed_voices})
+
+    return {
+        "total_characters": len(characters),
+        "designed": len([r for r in all_results.values() if r.get("previews")]),
+        "results": all_results,
+    }
+
+
 # ── Narration Generation (ElevenLabs) ──
 
 def _generate_narration_audio(text: str, voice_id: str, stability: float, similarity: float, style_val: float, language_code: str = "") -> bytes:
