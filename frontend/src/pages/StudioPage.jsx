@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Film, Plus, Trash2, Clock, Layers, Users, Play, Folder, 
   ChevronRight, MoreHorizontal, Search, ArrowLeft, Eye,
-  FileText, Palette, Video, CheckCircle2, Circle, Sparkles
+  FileText, Palette, Video, CheckCircle2, Circle, Sparkles, Pencil, Check, X
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -42,8 +42,12 @@ function getProjectProgress(project) {
 }
 
 /* ── Unified Project Row ── */
-function ProjectRow({ project, onSelect, onDelete }) {
+function ProjectRow({ project, onSelect, onDelete, onRename }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(project.name || '');
+  const inputRef = useRef(null);
+  
   const thumbnail = project.scenes?.[0]?.panels?.[0]?.image_url;
   const progress = getProjectProgress(project);
   const updatedAt = project.updated_at ? new Date(project.updated_at) : null;
@@ -61,9 +65,35 @@ function ProjectRow({ project, onSelect, onDelete }) {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
 
+  const handleStartEdit = (e) => {
+    e.stopPropagation();
+    setEditName(project.name || '');
+    setIsEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleSaveEdit = async (e) => {
+    e?.stopPropagation();
+    if (editName.trim() && editName !== project.name) {
+      await onRename(project, editName.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = (e) => {
+    e?.stopPropagation();
+    setEditName(project.name || '');
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSaveEdit(e);
+    if (e.key === 'Escape') handleCancelEdit(e);
+  };
+
   return (
     <div 
-      onClick={() => onSelect(project)}
+      onClick={() => !isEditing && onSelect(project)}
       className="group relative flex items-center gap-4 p-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] hover:border-[#8B5CF6]/30 hover:bg-[#0F0F0F] cursor-pointer transition-all"
     >
       {/* Thumbnail */}
@@ -72,48 +102,78 @@ function ProjectRow({ project, onSelect, onDelete }) {
           <img src={resolveImageUrl(thumbnail)} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <Film size={20} className="text-[#333]" />
+            <Film size={20} className="text-[#555]" />
           </div>
         )}
       </div>
 
       {/* Project Info */}
       <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-semibold text-white truncate mb-1 group-hover:text-[#8B5CF6] transition-colors">
-          {project.name}
-        </h3>
+        {/* Editable Name */}
+        <div className="flex items-center gap-2 mb-1">
+          {isEditing ? (
+            <div className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 px-2 py-1 rounded bg-[#1A1A1A] border border-[#8B5CF6] text-sm text-white outline-none"
+              />
+              <button onClick={handleSaveEdit} className="p-1 rounded hover:bg-white/10 text-emerald-400">
+                <Check size={14} />
+              </button>
+              <button onClick={handleCancelEdit} className="p-1 rounded hover:bg-white/10 text-red-400">
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <h3 className="text-sm font-semibold text-white truncate group-hover:text-[#A78BFA] transition-colors">
+                {project.name}
+              </h3>
+              <button 
+                onClick={handleStartEdit}
+                className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Pencil size={12} className="text-white/70" />
+              </button>
+            </>
+          )}
+        </div>
         
-        {/* Stats Row */}
-        <div className="flex items-center gap-3 text-[10px] text-[#666] mb-2">
+        {/* Stats Row - CORES MAIS CLARAS */}
+        <div className="flex items-center gap-3 text-[11px] text-white/70 mb-2">
           <span className="flex items-center gap-1">
-            <Layers size={10} /> {scenesCount} cenas
+            <Layers size={11} className="text-white/60" /> {scenesCount} cenas
           </span>
           <span className="flex items-center gap-1">
-            <Users size={10} /> {charactersCount} personagens
+            <Users size={11} className="text-white/60" /> {charactersCount} personagens
           </span>
           {updatedAt && (
             <span className="flex items-center gap-1">
-              <Clock size={10} /> {formatDate(updatedAt)}
+              <Clock size={11} className="text-white/60" /> {formatDate(updatedAt)}
             </span>
           )}
         </div>
 
-        {/* Progress Steps - Mini */}
+        {/* Progress Steps - Mini - CORES MAIS CLARAS */}
         <div className="flex items-center gap-1">
           {progress.steps.map((step, i) => (
             <div 
               key={step.key}
               className={`flex items-center justify-center w-5 h-5 rounded ${
                 step.done 
-                  ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' 
-                  : 'bg-[#1A1A1A] text-[#444]'
+                  ? 'bg-[#8B5CF6]/30 text-[#A78BFA]' 
+                  : 'bg-[#1A1A1A] text-white/40'
               }`}
               title={step.label}
             >
               <step.icon size={10} />
             </div>
           ))}
-          <span className="ml-2 text-[10px] text-[#666]">
+          <span className="ml-2 text-[11px] text-white/60">
             {progress.completed}/{progress.total}
           </span>
         </div>
@@ -136,8 +196,8 @@ function ProjectRow({ project, onSelect, onDelete }) {
             {progress.percent}%
           </span>
         </div>
-        <span className={`text-[8px] font-medium ${
-          progress.percent === 100 ? 'text-emerald-400' : 'text-[#666]'
+        <span className={`text-[9px] font-medium ${
+          progress.percent === 100 ? 'text-emerald-400' : 'text-white/60'
         }`}>
           {progress.percent === 100 ? 'Concluído' : 'Em progresso'}
         </span>
@@ -147,24 +207,30 @@ function ProjectRow({ project, onSelect, onDelete }) {
       <div className="shrink-0 flex items-center gap-2">
         <button 
           onClick={(e) => { e.stopPropagation(); onSelect(project); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-semibold hover:bg-[#8B5CF6]/20 transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/20 text-[#A78BFA] text-[11px] font-semibold hover:bg-[#8B5CF6]/30 transition"
         >
-          <Play size={10} /> Abrir
+          <Play size={11} /> Abrir
         </button>
         
         {/* Menu */}
         <div className="relative">
           <button 
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="p-1.5 rounded-lg hover:bg-white/5 transition"
+            className="p-1.5 rounded-lg hover:bg-white/10 transition"
           >
-            <MoreHorizontal size={14} className="text-[#666]" />
+            <MoreHorizontal size={14} className="text-white/60" />
           </button>
           
           {showMenu && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+              <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
               <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-[#111] shadow-xl py-1 min-w-[120px]">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleStartEdit(e); setShowMenu(false); }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-white hover:bg-white/5 flex items-center gap-2"
+                >
+                  <Pencil size={12} /> Renomear
+                </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onDelete(project); setShowMenu(false); }}
                   className="w-full px-3 py-1.5 text-left text-xs text-red-400 hover:bg-red-500/10 flex items-center gap-2"
@@ -203,6 +269,7 @@ export default function StudioPage() {
       deleteConfirm: 'Tem certeza que deseja excluir este projeto?',
       deleted: 'Projeto excluído',
       created: 'Projeto criado',
+      renamed: 'Projeto renomeado',
       search: 'Buscar projeto...',
       back: 'Voltar',
     },
@@ -216,6 +283,7 @@ export default function StudioPage() {
       deleteConfirm: 'Are you sure you want to delete this project?',
       deleted: 'Project deleted',
       created: 'Project created',
+      renamed: 'Project renamed',
       search: 'Search project...',
       back: 'Back',
     },
@@ -229,6 +297,7 @@ export default function StudioPage() {
       deleteConfirm: '¿Estás seguro de que quieres eliminar este proyecto?',
       deleted: 'Proyecto eliminado',
       created: 'Proyecto creado',
+      renamed: 'Proyecto renombrado',
       search: 'Buscar proyecto...',
       back: 'Volver',
     },
@@ -296,7 +365,18 @@ export default function StudioPage() {
     }
   };
 
-  // Select project
+  // Rename project
+  const handleRenameProject = async (project, newName) => {
+    try {
+      await axios.patch(`${API}/studio/projects/${project.id}`, { name: newName });
+      toast.success(l.renamed);
+      await fetchProjects();
+    } catch (err) {
+      toast.error('Erro ao renomear projeto');
+    }
+  };
+
+  // Select project - CORRIGIDO
   const handleSelectProject = (project) => {
     setSelectedProject(project);
     setSearchParams({ project: project.id });
@@ -329,7 +409,7 @@ export default function StudioPage() {
         <div className="shrink-0 border-b border-[#1A1A1A] px-4 py-2 flex items-center gap-3">
           <button 
             onClick={handleBackToList}
-            className="flex items-center gap-2 text-xs text-[#888] hover:text-white transition"
+            className="flex items-center gap-2 text-xs text-white/70 hover:text-white transition"
           >
             <ArrowLeft size={14} /> {l.back}
           </button>
@@ -361,10 +441,10 @@ export default function StudioPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">{l.title}</h1>
-              <p className="text-xs text-[#666]">{l.subtitle}</p>
+              <p className="text-xs text-white/60">{l.subtitle}</p>
             </div>
           </div>
-          <span className="text-xs text-[#666] bg-[#1A1A1A] px-2 py-1 rounded-lg">
+          <span className="text-xs text-white/70 bg-[#1A1A1A] px-2 py-1 rounded-lg">
             {projects.length} {l.projects.toLowerCase()}
           </span>
         </div>
@@ -373,13 +453,13 @@ export default function StudioPage() {
       {/* Search + New Project */}
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-1 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
           <input 
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={l.search}
-            className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] text-sm text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/50 transition"
+            className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] text-sm text-white placeholder-white/40 outline-none focus:border-[#8B5CF6]/50 transition"
           />
         </div>
         <button 
@@ -401,10 +481,10 @@ export default function StudioPage() {
       {filteredProjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1A1A1A] mb-4">
-            <Folder size={28} className="text-[#333]" />
+            <Folder size={28} className="text-white/30" />
           </div>
           <h2 className="text-base font-semibold text-white mb-2">{l.noProjects}</h2>
-          <p className="text-sm text-[#666] mb-4 max-w-xs">{l.createFirst}</p>
+          <p className="text-sm text-white/60 mb-4 max-w-xs">{l.createFirst}</p>
           <button 
             onClick={handleCreateProject}
             disabled={creating}
@@ -421,6 +501,7 @@ export default function StudioPage() {
               project={project}
               onSelect={handleSelectProject}
               onDelete={handleDeleteProject}
+              onRename={handleRenameProject}
             />
           ))}
         </div>

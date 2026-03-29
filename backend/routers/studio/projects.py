@@ -169,6 +169,24 @@ async def update_project_settings(project_id: str, payload: dict = Body(...), te
     return {"status": "ok"}
 
 
+@router.patch("/projects/{project_id}")
+async def update_project(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update project basic info (name, etc.)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Update allowed fields
+    if "name" in payload:
+        project["name"] = payload["name"]
+    if "genre" in payload:
+        project["genre"] = payload["genre"]
+    if "duration_minutes" in payload:
+        project["duration_minutes"] = payload["duration_minutes"]
+    
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "ok", "project": project}
 
 
 # ── Project-scoped Avatars ──
