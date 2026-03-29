@@ -305,6 +305,29 @@ export default function StudioPage() {
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Avatar management - dummy handlers for DirectedStudio
+  const handleAddAvatar = (promptText) => {
+    console.log('Add avatar:', promptText);
+    // DirectedStudio will handle avatar creation internally via project avatars
+  };
+  
+  const handleEditAvatar = (av) => {
+    console.log('Edit avatar:', av);
+    // DirectedStudio will handle editing internally
+  };
+  
+  const handleRemoveAvatar = (av) => {
+    console.log('Remove avatar:', av);
+  };
+  
+  const handlePreviewAvatar = (url) => {
+    console.log('Preview avatar:', url);
+  };
+  
+  const handleAiEditAvatar = (id) => {
+    console.log('AI edit avatar:', id);
+  };
+
   const L = {
     pt: {
       title: 'Estúdio',
@@ -483,6 +506,18 @@ export default function StudioPage() {
             projectId={selectedProject.id}
             onProjectUpdate={fetchProjects}
             onBack={handleBackToList}
+            avatars={[]}
+            onAddAvatar={handleAddAvatar}
+            onEditAvatar={handleEditAvatar}
+            onRemoveAvatar={handleRemoveAvatar}
+            onPreviewAvatar={handlePreviewAvatar}
+            onAiEditAvatar={handleAiEditAvatar}
+            aiEditAvatarId={null}
+            setAiEditAvatarId={() => {}}
+            aiEditInstruction=""
+            setAiEditInstruction={() => {}}
+            aiEditLoading={false}
+            lastCreatedAvatar={null}
           />
         </div>
       </div>

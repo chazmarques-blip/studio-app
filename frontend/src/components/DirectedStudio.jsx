@@ -1149,14 +1149,23 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   // Auto-trigger when entering Step 2 (Characters)
   useEffect(() => {
+    console.log('[DirectedStudio] Step changed to:', step);
+    console.log('[DirectedStudio] Characters count:', characters.length);
+    console.log('[DirectedStudio] AutoGen status:', autoGenCharacters);
+    
     if (step === 2 && characters.length > 0 && !autoGenCharacters) {
       const missingAvatars = characters.filter(c => !characterAvatars[c.name]);
+      console.log('[DirectedStudio] Missing avatars count:', missingAvatars.length);
+      
       if (missingAvatars.length > 0) {
+        console.log('[DirectedStudio] Starting auto-generation in 500ms...');
         // Small delay to avoid race conditions
         const timer = setTimeout(() => {
           autoGenerateCharacterImages();
         }, 500);
         return () => clearTimeout(timer);
+      } else {
+        console.log('[DirectedStudio] All characters have avatars already');
       }
     }
   }, [step, characters.length]); // eslint-disable-line react-hooks/exhaustive-deps

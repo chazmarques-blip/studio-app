@@ -304,7 +304,7 @@ async def generate_all_character_images(project_id: str, tenant=Depends(get_curr
     """
     Auto-generate images for ALL characters that don't have avatars yet.
     - Checks global library first for reuse (same character name)
-    - Generates missing ones using Gemini imagen-3.0-generate-002
+    - Generates missing ones using Gemini Nano Banana (gemini-3.1-flash-image-preview)
     - Returns progress + results
     """
     settings, projects, project = _get_project(tenant["id"], project_id)
@@ -336,8 +336,11 @@ async def generate_all_character_images(project_id: str, tenant=Depends(get_curr
     }
 
     try:
-        from emergentintegrations.llm.gemeni.image_generation import GeminiImageGeneration
-        gen = GeminiImageGeneration(api_key=os.environ.get("GEMINI_API_KEY", ""))
+        import base64
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
+        if not api_key:
+            raise Exception("EMERGENT_LLM_KEY not found in environment")
     except Exception as e:
         logger.error(f"Failed to initialize Gemini: {e}")
         raise HTTPException(status_code=500, detail=f"Image generation unavailable: {str(e)}")
@@ -388,26 +391,35 @@ CRITICAL REQUIREMENTS:
 - Sharp details, well-lit, neutral standing pose"""
 
             logger.info(f"Generating image for character '{char_name}'")
-            image_results = await gen.generate_images(
-                prompt=prompt,
-                model="imagen-3.0-generate-002",
-                number_of_images=1
+            
+            # Use LlmChat for Gemini image generation
+            chat = LlmChat(
+                api_key=api_key, 
+                session_id=f"char-gen-{uuid.uuid4().hex[:8]}",
+                system_message="You are an expert AI image generator for animation character design."
             )
+            chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+            
+            msg = UserMessage(text=prompt)
+            text_response, images = await chat.send_message_multimodal_response(msg)
 
-            if not image_results or not image_results[0]:
-                raise Exception("No image data returned")
+            if not images or len(images) == 0:
+                raise Exception("No image generated")
+
+            # Decode base64 image
+            image_data = images[0]['data']
+            image_bytes = base64.b64decode(image_data)
 
             # Upload to Supabase Storage
-            image_bytes = image_results[0]
             file_name = f"character_{uuid.uuid4().hex[:12]}.png"
             
             try:
-                upload_res = supabase.storage.from_("studiox").upload(
+                upload_res = supabase.storage.from_("pipeline-assets").upload(
                     path=file_name,
                     file=image_bytes,
                     file_options={"content-type": "image/png"}
                 )
-                public_url = supabase.storage.from_("studiox").get_public_url(file_name)
+                public_url = supabase.storage.from_("pipeline-assets").get_public_url(file_name)
             except Exception as upload_err:
                 logger.error(f"Supabase upload failed for {char_name}: {upload_err}")
                 raise Exception(f"Upload failed: {str(upload_err)}")
