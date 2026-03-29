@@ -73,6 +73,7 @@ const Pricing = React.lazy(() => import('./pages/Pricing'));
 const GoogleIntegration = React.lazy(() => import('./pages/GoogleIntegration'));
 const Marketing = React.lazy(() => import('./pages/Marketing'));
 const MarketingStudio = React.lazy(() => import('./pages/MarketingStudio'));
+const StudioPage = React.lazy(() => import('./pages/StudioPage')); // NEW: Exclusive Studio Page
 const InteractiveBook = React.lazy(() => import('./pages/InteractiveBook'));
 const TrafficHub = React.lazy(() => import('./pages/TrafficHub'));
 
@@ -139,6 +140,7 @@ function App() {
           <Route path="/settings/channels" element={<ProtectedRoute><ChannelConnection /></ProtectedRoute>} />
           <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
           <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
+          <Route path="/studio" element={<ProtectedRoute><StudioPage /></ProtectedRoute>} />
           <Route path="/book/:projectId" element={<InteractiveBook />} />
           <Route path="/traffic-hub" element={<ProtectedRoute><TrafficHub /></ProtectedRoute>} />
           <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />

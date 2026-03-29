@@ -17,7 +17,7 @@ export function BottomNav() {
 
   const tabs = [
     { path: '/dashboard', icon: LayoutDashboard, label: l.dashboard },
-    { path: '/marketing/studio?mode=directed', icon: Film, label: l.studio, matchPath: '/marketing/studio' },
+    { path: '/studio', icon: Film, label: l.studio },
     { path: '/marketing', icon: Megaphone, label: l.marketing, exact: true },
     { path: '/agents', icon: Bot, label: l.agents },
     { path: '/settings', icon: Settings, label: l.settings },
