@@ -94,15 +94,15 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
   return (
     <div 
       onClick={() => !isEditing && onSelect(project)}
-      className="group relative flex items-center gap-4 p-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] hover:border-[#8B5CF6]/30 hover:bg-[#0F0F0F] cursor-pointer transition-all"
+      className="group relative flex items-center gap-5 p-4 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] hover:border-[#8B5CF6]/30 hover:bg-[#0F0F0F] cursor-pointer transition-all"
     >
       {/* Thumbnail */}
-      <div className="relative w-16 h-16 rounded-lg bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] overflow-hidden shrink-0">
+      <div className="relative w-20 h-20 rounded-lg bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] overflow-hidden shrink-0">
         {thumbnail ? (
           <img src={resolveImageUrl(thumbnail)} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <Film size={20} className="text-[#555]" />
+            <Film size={24} className="text-[#555]" />
           </div>
         )}
       </div>
@@ -144,59 +144,59 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
         </div>
         
         {/* Stats Row - CORES MAIS CLARAS */}
-        <div className="flex items-center gap-3 text-[11px] text-white/70 mb-2">
-          <span className="flex items-center gap-1">
-            <Layers size={11} className="text-white/60" /> {scenesCount} cenas
+        <div className="flex items-center gap-4 text-xs text-white/70 mb-3">
+          <span className="flex items-center gap-1.5">
+            <Layers size={13} className="text-white/60" /> {scenesCount} cenas
           </span>
-          <span className="flex items-center gap-1">
-            <Users size={11} className="text-white/60" /> {charactersCount} personagens
+          <span className="flex items-center gap-1.5">
+            <Users size={13} className="text-white/60" /> {charactersCount} personagens
           </span>
           {updatedAt && (
-            <span className="flex items-center gap-1">
-              <Clock size={11} className="text-white/60" /> {formatDate(updatedAt)}
+            <span className="flex items-center gap-1.5">
+              <Clock size={13} className="text-white/60" /> {formatDate(updatedAt)}
             </span>
           )}
         </div>
 
         {/* Progress Steps - Mini - CORES MAIS CLARAS */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {progress.steps.map((step, i) => (
             <div 
               key={step.key}
-              className={`flex items-center justify-center w-5 h-5 rounded ${
+              className={`flex items-center justify-center w-6 h-6 rounded-md ${
                 step.done 
                   ? 'bg-[#8B5CF6]/30 text-[#A78BFA]' 
                   : 'bg-[#1A1A1A] text-white/40'
               }`}
               title={step.label}
             >
-              <step.icon size={10} />
+              <step.icon size={12} />
             </div>
           ))}
-          <span className="ml-2 text-[11px] text-white/60">
+          <span className="ml-2 text-xs text-white/60">
             {progress.completed}/{progress.total}
           </span>
         </div>
       </div>
 
       {/* Progress Circle */}
-      <div className="shrink-0 flex flex-col items-center gap-1">
-        <div className="relative w-10 h-10">
-          <svg className="w-full h-full -rotate-90">
-            <circle cx="20" cy="20" r="16" fill="none" stroke="#1A1A1A" strokeWidth="3" />
+      <div className="shrink-0 flex flex-col items-center gap-1.5">
+        <div className="relative w-12 h-12">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#1A1A1A" strokeWidth="3" />
             <circle 
-              cx="20" cy="20" r="16" fill="none" 
+              cx="24" cy="24" r="20" fill="none" 
               stroke={progress.percent === 100 ? '#4ADE80' : '#8B5CF6'} 
               strokeWidth="3"
-              strokeDasharray={`${progress.percent} 100`}
+              strokeDasharray={`${progress.percent * 1.26} 126`}
               strokeLinecap="round"
             />
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white">
+          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white">
             {progress.percent}%
           </span>
         </div>
-        <span className={`text-[9px] font-medium ${
+        <span className={`text-[10px] font-medium ${
           progress.percent === 100 ? 'text-emerald-400' : 'text-white/60'
         }`}>
           {progress.percent === 100 ? 'Concluído' : 'Em progresso'}
@@ -204,38 +204,38 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
       </div>
 
       {/* Actions */}
-      <div className="shrink-0 flex items-center gap-2">
+      <div className="shrink-0 flex items-center gap-3">
         <button 
           onClick={(e) => { e.stopPropagation(); onSelect(project); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/20 text-[#A78BFA] text-[11px] font-semibold hover:bg-[#8B5CF6]/30 transition"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B5CF6]/20 text-[#A78BFA] text-xs font-semibold hover:bg-[#8B5CF6]/30 transition"
         >
-          <Play size={11} /> Abrir
+          <Play size={13} /> Abrir
         </button>
         
         {/* Menu */}
         <div className="relative">
           <button 
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="p-1.5 rounded-lg hover:bg-white/10 transition"
+            className="p-2 rounded-lg hover:bg-white/10 transition"
           >
-            <MoreHorizontal size={14} className="text-white/60" />
+            <MoreHorizontal size={16} className="text-white/60" />
           </button>
           
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-[#111] shadow-xl py-1 min-w-[120px]">
+              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-[#111] shadow-xl py-1.5 min-w-[140px]">
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleStartEdit(e); setShowMenu(false); }}
-                  className="w-full px-3 py-1.5 text-left text-xs text-white hover:bg-white/5 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-white hover:bg-white/5 flex items-center gap-2"
                 >
-                  <Pencil size={12} /> Renomear
+                  <Pencil size={14} /> Renomear
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onDelete(project); setShowMenu(false); }}
-                  className="w-full px-3 py-1.5 text-left text-xs text-red-400 hover:bg-red-500/10 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
                 >
-                  <Trash2 size={12} /> Excluir
+                  <Trash2 size={14} /> Excluir
                 </button>
               </div>
             </>
@@ -406,17 +406,17 @@ export default function StudioPage() {
     return (
       <div className="flex flex-col min-h-screen bg-[#0A0A0A]">
         {/* Back header */}
-        <div className="shrink-0 border-b border-[#1A1A1A] bg-[#0A0A0A] px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
+        <div className="shrink-0 border-b border-[#1A1A1A] bg-[#0A0A0A] px-6 sm:px-8 lg:px-12 py-4 flex items-center gap-4 sticky top-0 z-50">
           <button 
             onClick={handleBackToList}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1A1A] hover:bg-[#222] text-sm text-white/80 hover:text-white transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A1A1A] hover:bg-[#222] text-sm text-white/80 hover:text-white transition"
           >
-            <ArrowLeft size={16} /> {l.back}
+            <ArrowLeft size={18} /> {l.back}
           </button>
-          <div className="h-5 w-px bg-[#2A2A2A]" />
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Film size={16} className="text-[#8B5CF6] shrink-0" />
-            <span className="text-sm font-medium text-white truncate">{selectedProject.name}</span>
+          <div className="h-6 w-px bg-[#2A2A2A]" />
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Film size={18} className="text-[#8B5CF6] shrink-0" />
+            <span className="text-base font-medium text-white truncate">{selectedProject.name}</span>
           </div>
         </div>
         
@@ -435,81 +435,83 @@ export default function StudioPage() {
 
   // Project List View
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 py-4 pb-24">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED]">
-              <Film size={18} className="text-white" />
+    <div className="min-h-screen bg-[#0A0A0A] px-6 sm:px-8 lg:px-12 py-6 pb-28">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20">
+                <Film size={22} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">{l.title}</h1>
+                <p className="text-sm text-white/60">{l.subtitle}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">{l.title}</h1>
-              <p className="text-xs text-white/60">{l.subtitle}</p>
-            </div>
+            <span className="text-sm text-white/70 bg-[#1A1A1A] px-3 py-1.5 rounded-lg">
+              {projects.length} {l.projects.toLowerCase()}
+            </span>
           </div>
-          <span className="text-xs text-white/70 bg-[#1A1A1A] px-2 py-1 rounded-lg">
-            {projects.length} {l.projects.toLowerCase()}
-          </span>
         </div>
-      </div>
 
-      {/* Search + New Project */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
-          <input 
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={l.search}
-            className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] text-sm text-white placeholder-white/40 outline-none focus:border-[#8B5CF6]/50 transition"
-          />
-        </div>
-        <button 
-          onClick={handleCreateProject}
-          disabled={creating}
-          className="btn-gold flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
-        >
-          {creating ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          ) : (
-            <>
-              <Plus size={16} /> {l.newProject}
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Projects List */}
-      {filteredProjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1A1A1A] mb-4">
-            <Folder size={28} className="text-white/30" />
+        {/* Search + New Project */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
+            <input 
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={l.search}
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] text-sm text-white placeholder-white/40 outline-none focus:border-[#8B5CF6]/50 transition"
+            />
           </div>
-          <h2 className="text-base font-semibold text-white mb-2">{l.noProjects}</h2>
-          <p className="text-sm text-white/60 mb-4 max-w-xs">{l.createFirst}</p>
           <button 
             onClick={handleCreateProject}
             disabled={creating}
-            className="btn-gold flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
+            className="btn-gold flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
           >
-            <Sparkles size={16} /> {l.newProject}
+            {creating ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <>
+                <Plus size={18} /> {l.newProject}
+              </>
+            )}
           </button>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {filteredProjects.map((project) => (
-            <ProjectRow
-              key={project.id}
-              project={project}
-              onSelect={handleSelectProject}
-              onDelete={handleDeleteProject}
-              onRename={handleRenameProject}
-            />
-          ))}
-        </div>
-      )}
+
+        {/* Projects List */}
+        {filteredProjects.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#1A1A1A] mb-6">
+              <Folder size={36} className="text-white/30" />
+            </div>
+            <h2 className="text-lg font-semibold text-white mb-2">{l.noProjects}</h2>
+            <p className="text-sm text-white/60 mb-6 max-w-sm">{l.createFirst}</p>
+            <button 
+              onClick={handleCreateProject}
+              disabled={creating}
+              className="btn-gold flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            >
+              <Sparkles size={18} /> {l.newProject}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredProjects.map((project) => (
+              <ProjectRow
+                key={project.id}
+                project={project}
+                onSelect={handleSelectProject}
+                onDelete={handleDeleteProject}
+                onRename={handleRenameProject}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
