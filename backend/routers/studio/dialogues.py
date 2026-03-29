@@ -224,20 +224,46 @@ Write ENTIRELY in {lang_name}."""
         
         # Parse JSON from response
         import re
+        import json
+        
+        # Try to extract JSON array
         json_match = re.search(r'\[[\s\S]*\]', result_text)
         if json_match:
-            dialogues = _parse_json(json_match.group(0))
+            try:
+                dialogues = json.loads(json_match.group(0))
+            except:
+                dialogues = None
         else:
-            dialogues = _parse_json(result_text)
+            # Fallback: try parsing entire response
+            try:
+                parsed = json.loads(result_text)
+                # If it's a dict with dialogues key, extract it
+                if isinstance(parsed, dict) and 'dialogues' in parsed:
+                    dialogues = parsed['dialogues']
+                elif isinstance(parsed, list):
+                    dialogues = parsed
+                else:
+                    dialogues = None
+            except:
+                dialogues = None
 
-        if not dialogues:
+        if not dialogues or not isinstance(dialogues, list):
             raise HTTPException(status_code=500, detail="Failed to parse dialogue response")
 
         # Apply dialogues to scenes
         dialogue_key = f"{req.mode}_text" if req.mode != "dubbed" else "dubbed_text"
         for d in dialogues:
+            # Ensure d is a dict
+            if not isinstance(d, dict):
+                logger.warning(f"Skipping invalid dialogue entry: {type(d)}")
+                continue
+                
             sn = d.get("scene_number")
             text = d.get("dialogue", "")
+            
+            if not sn or not text:
+                continue
+                
             scene = next((s for s in scenes if s.get("scene_number") == sn), None)
             if scene:
                 scene[dialogue_key] = text
