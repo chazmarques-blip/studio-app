@@ -406,23 +406,27 @@ export default function StudioPage() {
     return (
       <div className="flex flex-col min-h-screen bg-[#0A0A0A]">
         {/* Back header */}
-        <div className="shrink-0 border-b border-[#1A1A1A] px-4 py-2 flex items-center gap-3">
+        <div className="shrink-0 border-b border-[#1A1A1A] bg-[#0A0A0A] px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
           <button 
             onClick={handleBackToList}
-            className="flex items-center gap-2 text-xs text-white/70 hover:text-white transition"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1A1A] hover:bg-[#222] text-sm text-white/80 hover:text-white transition"
           >
-            <ArrowLeft size={14} /> {l.back}
+            <ArrowLeft size={16} /> {l.back}
           </button>
-          <span className="text-[#333]">|</span>
-          <span className="text-sm font-medium text-white truncate">{selectedProject.name}</span>
+          <div className="h-5 w-px bg-[#2A2A2A]" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Film size={16} className="text-[#8B5CF6] shrink-0" />
+            <span className="text-sm font-medium text-white truncate">{selectedProject.name}</span>
+          </div>
         </div>
         
         {/* DirectedStudio */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-auto">
           <DirectedStudio 
             key={selectedProject.id} 
             projectId={selectedProject.id}
             onProjectUpdate={fetchProjects}
+            onBack={handleBackToList}
           />
         </div>
       </div>

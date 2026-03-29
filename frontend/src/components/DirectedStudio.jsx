@@ -39,13 +39,16 @@ export const DirectedStudio = memo(function DirectedStudio({
   avatars = [], onAddAvatar, onEditAvatar, onRemoveAvatar, onPreviewAvatar,
   onAiEditAvatar, aiEditAvatarId, setAiEditAvatarId, aiEditInstruction, setAiEditInstruction, aiEditLoading,
   lastCreatedAvatar,
+  projectId: initialProjectId = null, // NEW: Accept initial project ID
+  onProjectUpdate, // NEW: Callback when project updates
+  onBack, // NEW: Callback for back button
 }) {
   const { i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'pt';
   const studioCtx = useStudioProduction();
 
-  const [step, setStep] = useState(0); // 0 = project list, 1-4 = workflow
-  const [projectId, setProjectId] = useState(null);
+  const [step, setStep] = useState(initialProjectId ? 1 : 0); // Start at step 1 if project provided
+  const [projectId, setProjectId] = useState(initialProjectId);
   const [projectName, setProjectName] = useState('');
   const [projectDesc, setProjectDesc] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
@@ -183,6 +186,52 @@ export const DirectedStudio = memo(function DirectedStudio({
   };
 
   useEffect(() => { loadProjects(); loadVoices(); }, []);
+
+  // Load initial project when provided via props
+  useEffect(() => {
+    if (initialProjectId && !projectId) {
+      setProjectId(initialProjectId);
+      // Load project details
+      axios.get(`${API}/studio/projects/${initialProjectId}/status`).then(r => {
+        const p = r.data;
+        setProjectName(p.name || '');
+        setProjectDesc(p.synopsis || '');
+        setScenes(p.scenes || []);
+        setCharacters(p.characters || []);
+        setCharacterAvatars(p.character_avatars || {});
+        setOutputs(p.outputs || []);
+        setNarrations(p.narrations || []);
+        setScreenplayApproved(p.screenplay_approved || false);
+        setAudioMode(p.audio_mode || 'narrated');
+        setVisualStyle(p.visual_style || 'animation');
+        setAnimationSub(p.animation_sub || 'pixar_3d');
+        setContinuityMode(p.continuity_mode !== false);
+        setProjectLang(p.language || 'pt');
+        setProjectAvatars(p.project_avatars || []);
+        setChatMessages(p.chat_messages || []);
+        // Determine step based on project state
+        if (p.status === 'complete') {
+          setStep(7);
+        } else if (['running_agents', 'starting'].includes(p.status)) {
+          setStep(6); setGenerating(true); startPolling(initialProjectId);
+        } else if (p.scenes?.some(s => s.panels?.some(pa => pa.video_url))) {
+          setStep(7);
+        } else if (p.scenes?.some(s => s.panels?.some(pa => pa.image_url))) {
+          setStep(5);
+        } else if (p.scenes?.some(s => s.dialogues?.length > 0)) {
+          setStep(4);
+        } else if (p.characters?.length > 0) {
+          setStep(2);
+        } else if (p.scenes?.length > 0 || p.script || p.synopsis) {
+          setStep(1);
+        } else {
+          setStep(1);
+        }
+      }).catch(() => {
+        setStep(1);
+      });
+    }
+  }, [initialProjectId]);
 
   // Sync with global production context when returning from another page
   useEffect(() => {
