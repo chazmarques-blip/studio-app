@@ -402,6 +402,86 @@ async def select_designed_voice(project_id: str, req: SelectDesignedVoiceRequest
         raise HTTPException(status_code=500, detail=f"Save voice failed: {str(e)[:200]}")
 
 
+class RemixVoiceRequest(BaseModel):
+    character_name: str
+    voice_description: str  # What to change (e.g., "make it deeper", "add Brazilian accent")
+    prompt_strength: float = 0.5  # 0 = minimal change, 1 = maximum change
+    preview_text: str = ""
+
+
+@router.post("/projects/{project_id}/remix-voice")
+async def remix_voice(project_id: str, req: RemixVoiceRequest, tenant=Depends(get_current_tenant)):
+    """Voice Remix: Adjust an existing voice's characteristics (pitch, accent, tone) without creating from scratch."""
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not elevenlabs_key:
+        raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
+
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Get the current voice for this character
+    voice_map = project.get("voice_map", {})
+    current_voice_id = voice_map.get(req.character_name)
+    if not current_voice_id:
+        raise HTTPException(status_code=400, detail=f"No voice assigned to '{req.character_name}'. Assign one first.")
+
+    # Find a dialogue line for preview text
+    preview_text = req.preview_text
+    if not preview_text:
+        scenes = project.get("scenes", [])
+        for s in scenes:
+            dialogue = s.get("dubbed_text", "") or s.get("dialogue", "")
+            if req.character_name.lower() in dialogue.lower() and ":" in dialogue:
+                parts = [p.strip() for p in dialogue.split(" / ")]
+                for part in parts:
+                    if req.character_name.lower() in part.split(":")[0].lower():
+                        text = ":".join(part.split(":")[1:]).strip().strip("'\"")
+                        if len(text) > 10:
+                            preview_text = text[:200]
+                            break
+            if preview_text:
+                break
+
+    try:
+        from elevenlabs import ElevenLabs as ELClient
+        client = ELClient(api_key=elevenlabs_key)
+
+        result = client.text_to_voice.remix(
+            voice_id=current_voice_id,
+            voice_description=req.voice_description,
+            text=preview_text if preview_text else None,
+            auto_generate_text=not bool(preview_text),
+            prompt_strength=max(0.0, min(1.0, req.prompt_strength)),
+            guidance_scale=2.0,
+            loudness=0.0,
+        )
+
+        previews = []
+        for p in result.previews:
+            previews.append({
+                "generated_voice_id": p.generated_voice_id,
+                "audio_base64": p.audio_base_64,
+                "duration_secs": p.duration_secs,
+                "media_type": p.media_type,
+            })
+
+        logger.info(f"Studio [{project_id}]: Voice Remix for {req.character_name}: {len(previews)} previews ({req.voice_description[:60]})")
+
+        return {
+            "character_name": req.character_name,
+            "original_voice_id": current_voice_id,
+            "remix_description": req.voice_description,
+            "prompt_strength": req.prompt_strength,
+            "previews": previews,
+            "preview_text": result.text,
+        }
+
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: Voice Remix failed for {req.character_name}: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice remix failed: {str(e)[:200]}")
+
+
 @router.post("/projects/{project_id}/design-all-voices")
 async def design_all_voices(project_id: str, tenant=Depends(get_current_tenant)):
     """Sound Design Agent: Run the full analysis for ALL characters and return voice previews for each."""

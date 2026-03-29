@@ -531,12 +531,12 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
       <div className="flex items-center justify-between pt-2 border-t border-[#1A1A1A]">
         <button onClick={onBack} data-testid="dialogue-back"
           className="px-4 py-2 text-xs text-[#888] hover:text-white transition">
-          {lang === 'pt' ? 'Voltar ao Storyboard' : 'Back to Storyboard'}
+          {lang === 'pt' ? 'Voltar aos Personagens' : 'Back to Characters'}
         </button>
         <button onClick={async () => { if (hasChanges) await saveDialogues(); onComplete?.(); }}
           data-testid="dialogue-continue"
           className="px-4 py-2 bg-[#C9A84C] text-black rounded-lg text-xs font-semibold hover:bg-[#B8973F] transition">
-          {lang === 'pt' ? 'Continuar para Produção' : 'Continue to Production'}
+          {lang === 'pt' ? 'Continuar para Storyboard' : 'Continue to Storyboard'}
         </button>
       </div>
     </div>

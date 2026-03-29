@@ -193,39 +193,61 @@ def _build_identity_prompt(
     lang: str = "pt",
 ) -> str:
     """Build an identity-first prompt for Gemini. Avatar identity comes FIRST (highest weight),
-    scene instruction comes SECOND. Per-character prohibitions are inline.
+    scene instruction comes SECOND, dialogue context THIRD. Per-character prohibitions are inline.
     """
     chars_in_scene = scene.get("characters_in_scene", [])
     lang_name = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, "Portuguese")
 
     # ── BLOCK 1: CHARACTER IDENTITY (IMMUTABLE — highest priority) ──
-    identity_block = "═══ CHARACTER IDENTITY — ABSOLUTE VISUAL CONTRACT ═══\n"
-    identity_block += "The reference images below are the ONLY TRUTH for each character's appearance.\n\n"
+    identity_block = "═══ CHARACTER IDENTITY — ABSOLUTE VISUAL CONTRACT (NON-NEGOTIABLE) ═══\n"
+    identity_block += "⚠️ The reference images below are the ONLY TRUTH for each character's appearance.\n"
+    identity_block += "⚠️ You MUST match EVERY detail: species, body type, fur/skin color, clothing, posture.\n"
+    identity_block += "⚠️ ANY deviation from the reference image is a CRITICAL ERROR.\n\n"
 
     for cname in chars_in_scene:
         card = identity_cards.get(cname, {})
         bible_desc = character_bible.get(cname, "")
-        # Extract description from card if it's a dict
         if isinstance(bible_desc, dict):
             bible_desc = bible_desc.get("description", "")
 
         if isinstance(card, dict) and card.get("body_type"):
-            identity_block += f"▸ {cname.upper()}\n"
+            identity_block += f"▸ {cname.upper()} — VISUAL CONTRACT\n"
             identity_block += f"  Species: {card.get('species', '?')}\n"
-            identity_block += f"  Body: {card.get('body_type', '?')} — {card.get('locomotion', '?')}\n"
+            identity_block += f"  Body Type: {card.get('body_type', '?')}\n"
+            identity_block += f"  Locomotion: {card.get('locomotion', '?')}\n"
             if bible_desc:
-                identity_block += f"  Visual: {bible_desc}\n"
+                identity_block += f"  Visual Description: {bible_desc}\n"
             immutable = card.get("immutable_traits", [])
             for trait in immutable:
-                identity_block += f"  ✓ ALWAYS: {trait}\n"
+                identity_block += f"  ✅ MANDATORY: {trait}\n"
             prohib = card.get("prohibitions", [])
             for p in prohib:
-                identity_block += f"  ✗ NEVER: {p}\n"
+                identity_block += f"  🚫 FORBIDDEN: {p}\n"
+            # Redundancy: repeat the most critical trait
+            if card.get('body_type'):
+                identity_block += f"  ⚠️ REMINDER: {cname} is {card.get('body_type')} — {card.get('locomotion', 'maintain as designed')}\n"
             identity_block += "\n"
         elif bible_desc:
             identity_block += f"▸ {cname}: {bible_desc}\n\n"
 
-    # ── BLOCK 2: SCENE INSTRUCTION (can vary per frame) ──
+    # ── BLOCK 2: DIALOGUE & NARRATION CONTEXT (enriches visual storytelling) ──
+    dialogue_block = ""
+    dubbed_text = scene.get("dubbed_text", "").strip()
+    narrated_text = scene.get("narrated_text", "").strip()
+    dialogue = scene.get("dialogue", "").strip()
+
+    # Use the richest dialogue source available
+    context_text = dubbed_text or dialogue or narrated_text
+    if context_text:
+        dialogue_block = "═══ DIALOGUE & EMOTIONAL CONTEXT FOR THIS SCENE ═══\n"
+        dialogue_block += "Use this dialogue to inform character EXPRESSIONS, GESTURES, and BODY LANGUAGE:\n\n"
+        dialogue_block += f"{context_text}\n\n"
+        dialogue_block += "IMPORTANT: Characters should visually REFLECT what they are saying/feeling.\n"
+        dialogue_block += "- Speaking characters: mouth slightly open, expressive gestures\n"
+        dialogue_block += "- Listening characters: attentive posture, emotional reaction\n"
+        dialogue_block += "- Emotional moments: exaggerate facial expressions for readability\n\n"
+
+    # ── BLOCK 3: SCENE INSTRUCTION (can vary per frame) ──
     if shot_brief:
         # Use the detailed shot brief from Claude
         scene_block = f"═══ FRAME INSTRUCTION (Scene {scene_num}, {frame_type['label']}, {shot_brief.get('time_range', '')}) ═══\n"
@@ -256,13 +278,13 @@ def _build_identity_prompt(
     else:
         # Fallback to generic frame type prompt
         scene_block = f"═══ FRAME INSTRUCTION (Scene {scene_num}, {frame_type['label']}) ═══\n"
-        scene_block += f"SCENE: {scene.get('title', '')}\n"
-        scene_block += f"DESCRIPTION: {scene.get('description', '')}\n"
-        scene_block += f"EMOTION: {scene.get('emotion', '')}\n"
-        scene_block += f"DIALOGUE: {scene.get('dialogue', '')}\n"
+        scene_block += f"SCENE TITLE: {scene.get('title', '')}\n"
+        scene_block += f"SCENE DESCRIPTION: {scene.get('description', '')}\n"
+        scene_block += f"EMOTION/MOOD: {scene.get('emotion', '')}\n"
+        scene_block += f"CAMERA: {scene.get('camera', '')}\n"
         scene_block += f"NARRATIVE MOMENT: {frame_type['prompt']}\n\n"
 
-    # ── BLOCK 3: STYLE + RULES ──
+    # ── BLOCK 4: STYLE + RULES ──
     rules_block = f"""═══ STYLE & RULES ═══
 {style_dna}
 
@@ -277,9 +299,16 @@ MANDATORY RULES:
 - Fill the entire image with the illustration — no borders, no margins
 - Language context: {lang_name}
 
+CHARACTER CONSISTENCY ENFORCEMENT:
+- BEFORE generating, mentally review each character's Identity Card above
+- Cross-check: Does each character match their species? Body type? Locomotion?
+- If a character has fur, the color MUST match the reference image EXACTLY
+- If a character wears clothing, the clothing MUST match the reference image EXACTLY
+- Characters' proportions (head size, limb length, body shape) MUST be consistent
+
 The REFERENCE IMAGES below are the ABSOLUTE VISUAL TRUTH for each character. Match them EXACTLY."""
 
-    return f"{identity_block}\n{scene_block}\n{rules_block}"
+    return f"{identity_block}\n{dialogue_block}{scene_block}\n{rules_block}"
 
 
 def _generate_single_frame(

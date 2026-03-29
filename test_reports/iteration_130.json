@@ -1,0 +1,68 @@
+{
+  "summary": "Iteration 130: Verified pipeline reordering (Step 3=Diálogos, Step 4=Storyboard), DialogueEditor button labels, Voice Remix endpoint, and AI-assigned voice map. All backend tests passed (8/8). Frontend UI verified with correct step order and remix buttons.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration130_remix_voice.py",
+    "/app/test_reports/pytest/pytest_results_iteration130.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration130_remix_voice.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123",
+    "test_project_id": "d27afb0e79ff"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Pipeline order verified: Step 3=Diálogos, Step 4=Storyboard. DialogueEditor buttons show 'Voltar aos Personagens' and 'Continuar para Storyboard'. Voice Remix endpoint at /api/studio/projects/{id}/remix-voice accepts character_name, voice_description, prompt_strength. 17 remix buttons found on Personagens step. AI-assigned voices: Adão→Rachel, Eva→Lily, A Serpente→Charlotte, Leão Majestoso→Brian, etc.",
+  "verified_features": {
+    "pipeline_order": {
+      "step_3": "DIÁLOGOS",
+      "step_4": "STORYBOARD",
+      "full_order": ["ROTEIRO", "PERSONAGENS", "DIÁLOGOS", "STORYBOARD", "PRODUÇÃO", "RESULTADO"]
+    },
+    "dialogue_editor": {
+      "back_button": "Voltar aos Personagens",
+      "continue_button": "Continuar para Storyboard",
+      "data_testid": "dialogue-editor"
+    },
+    "storyboard_editor": {
+      "data_testid": "studio-step-storyboard",
+      "panels_count": 31
+    },
+    "voice_remix": {
+      "endpoint": "POST /api/studio/projects/{id}/remix-voice",
+      "parameters": ["character_name", "voice_description", "prompt_strength"],
+      "remix_buttons_count": 17,
+      "data_testids": ["remix-voice-{name}", "remix-form-{name}", "remix-desc-{name}", "remix-strength-{name}", "remix-generate-{name}"]
+    },
+    "voice_map": {
+      "ai_assigned_voices": {
+        "Adão": "Rachel (Calm, warm)",
+        "Eva": "Lily (Warm, elegant)",
+        "A Serpente": "Charlotte (Seductive, calm)",
+        "Leão Majestoso": "Brian (Deep, resonant)",
+        "Elefanta Sabedoria": "Rachel (Calm, warm)",
+        "Coelho Alegria": "Gigi (Youthful, animated)",
+        "Ursa Ternura": "Matilda (Friendly, warm)",
+        "Golfinho Esperança": "Charlie (Natural, laid-back)"
+      }
+    }
+  }
+}

@@ -144,8 +144,8 @@ export const DirectedStudio = memo(function DirectedStudio({
   const STEPS = [
     { n: 1, icon: MessageSquare, label: lang === 'pt' ? 'Roteiro' : 'Script' },
     { n: 2, icon: Users, label: lang === 'pt' ? 'Personagens' : 'Characters' },
-    { n: 3, icon: Camera, label: 'Storyboard' },
-    { n: 4, icon: Mic, label: lang === 'pt' ? 'Diálogos' : 'Dialogues' },
+    { n: 3, icon: Mic, label: lang === 'pt' ? 'Diálogos' : 'Dialogues' },
+    { n: 4, icon: Camera, label: 'Storyboard' },
     { n: 5, icon: Clapperboard, label: lang === 'pt' ? 'Produção' : 'Production' },
     { n: 6, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
   ];
@@ -714,6 +714,30 @@ export const DirectedStudio = memo(function DirectedStudio({
       toast.error(getErrorMsg(err, 'Save voice failed'));
     } finally {
       setSelectingVoice(null);
+    }
+  };
+
+  // ── Voice Remix ──
+  const [remixingChar, setRemixingChar] = useState(null); // charName being remixed
+  const [remixDesc, setRemixDesc] = useState('');
+  const [remixStrength, setRemixStrength] = useState(0.5);
+  const [remixResults, setRemixResults] = useState({}); // {charName: {previews, ...}}
+
+  const remixVoice = async (charName) => {
+    if (!projectId || !remixDesc.trim()) return;
+    setRemixingChar(charName);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/remix-voice`, {
+        character_name: charName,
+        voice_description: remixDesc,
+        prompt_strength: remixStrength,
+      }, { timeout: 60000 });
+      setRemixResults(prev => ({ ...prev, [charName]: res.data }));
+      toast.success(lang === 'pt' ? `Remix gerado para ${charName}!` : `Remix generated for ${charName}!`);
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Remix failed'));
+    } finally {
+      setRemixingChar(null);
     }
   };
 
@@ -2192,6 +2216,13 @@ export const DirectedStudio = memo(function DirectedStudio({
                             {soundAgentChar === c.name ? <RefreshCw size={8} className="animate-spin" /> : <Wand2 size={8} />}
                             {lang === 'pt' ? 'Design' : 'Design'}
                           </button>
+                          {voiceMap[c.name] && (
+                            <button onClick={() => setRemixResults(prev => ({ ...prev, [`${c.name}_showForm`]: !prev[`${c.name}_showForm`] }))}
+                              data-testid={`remix-voice-${c.name}`}
+                              className="text-[9px] px-1.5 py-0.5 rounded border border-[#333] text-[#666] hover:text-purple-400 hover:border-purple-400/30 transition flex items-center gap-0.5 shrink-0">
+                              <Music size={8} /> Remix
+                            </button>
+                          )}
                         </div>
 
                         {/* Voice selector (catalog voices) */}
@@ -2245,6 +2276,69 @@ export const DirectedStudio = memo(function DirectedStudio({
                                       disabled={isSelecting}
                                       data-testid={`select-preview-${c.name}-${idx}`}
                                       className="flex-1 text-[9px] py-1 rounded bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 transition flex items-center justify-center gap-0.5 disabled:opacity-50">
+                                      {isSelecting ? <RefreshCw size={8} className="animate-spin" /> : <Check size={8} />}
+                                      {lang === 'pt' ? 'Usar' : 'Use'}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Voice Remix Form */}
+                        {remixResults[`${c.name}_showForm`] && voiceMap[c.name] && (
+                          <div className="border border-purple-500/20 rounded-lg bg-purple-500/5 p-2 space-y-1.5 mt-1" data-testid={`remix-form-${c.name}`}>
+                            <p className="text-[9px] text-purple-300 font-medium flex items-center gap-1">
+                              <Music size={9} /> {lang === 'pt' ? 'Remix de Voz' : 'Voice Remix'}
+                            </p>
+                            <input
+                              type="text"
+                              value={remixDesc}
+                              onChange={e => setRemixDesc(e.target.value)}
+                              placeholder={lang === 'pt' ? 'Ex: mais grave, sotaque brasileiro, mais energético...' : 'E.g.: deeper, Brazilian accent, more energetic...'}
+                              data-testid={`remix-desc-${c.name}`}
+                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white placeholder-[#444] outline-none focus:border-purple-400/50"
+                            />
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] text-[#555] shrink-0">{lang === 'pt' ? 'Intensidade:' : 'Strength:'}</span>
+                              <input type="range" min="0" max="1" step="0.1" value={remixStrength} onChange={e => setRemixStrength(parseFloat(e.target.value))}
+                                className="flex-1 h-1 accent-purple-400" data-testid={`remix-strength-${c.name}`} />
+                              <span className="text-[9px] text-purple-300 w-6">{Math.round(remixStrength * 100)}%</span>
+                            </div>
+                            <button onClick={() => remixVoice(c.name)} disabled={remixingChar === c.name || !remixDesc.trim()}
+                              data-testid={`remix-generate-${c.name}`}
+                              className="w-full text-[9px] py-1.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition flex items-center justify-center gap-1 disabled:opacity-30">
+                              {remixingChar === c.name ? <RefreshCw size={8} className="animate-spin" /> : <Music size={8} />}
+                              {remixingChar === c.name ? (lang === 'pt' ? 'Remixando...' : 'Remixing...') : (lang === 'pt' ? 'Gerar Remix' : 'Generate Remix')}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Remix Previews */}
+                        {remixResults[c.name]?.previews?.length > 0 && (
+                          <div className="flex gap-1.5 pt-0.5">
+                            {remixResults[c.name].previews.map((p, idx) => {
+                              const previewKey = `remix-${c.name}-${idx}`;
+                              const isPlaying = playingPreview === previewKey;
+                              const isSelecting = selectingVoice === `${c.name}-${p.generated_voice_id}`;
+                              return (
+                                <div key={idx} className="flex-1 rounded border border-purple-500/20 bg-[#080808] p-1.5 space-y-1" data-testid={`remix-preview-${c.name}-${idx}`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[9px] text-purple-300">Remix {idx + 1}</span>
+                                    <span className="text-[8px] text-[#444]">{p.duration_secs?.toFixed(1)}s</span>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <button onClick={() => playPreviewAudio(`remix-${c.name}`, idx, p.audio_base64, p.media_type)}
+                                      className={`flex-1 text-[9px] py-1 rounded flex items-center justify-center gap-0.5 transition ${
+                                        isPlaying ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-[#111] text-[#999] hover:text-white border border-[#222]'
+                                      }`}>
+                                      {isPlaying ? <Pause size={8} /> : <Play size={8} />}
+                                      {lang === 'pt' ? 'Ouvir' : 'Play'}
+                                    </button>
+                                    <button onClick={() => selectDesignedVoice(c.name, p.generated_voice_id)}
+                                      disabled={isSelecting}
+                                      className="flex-1 text-[9px] py-1 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 hover:bg-purple-500/20 transition flex items-center justify-center gap-0.5 disabled:opacity-50">
                                       {isSelecting ? <RefreshCw size={8} className="animate-spin" /> : <Check size={8} />}
                                       {lang === 'pt' ? 'Usar' : 'Use'}
                                     </button>
@@ -2367,8 +2461,22 @@ export const DirectedStudio = memo(function DirectedStudio({
         </div>
       )}
 
-      {/* ═══ STEP 3: Storyboard ═══ */}
+      {/* ═══ STEP 3: Dialogues & Script Polish (BEFORE Storyboard) ═══ */}
       {step === 3 && !viewingProject && (
+        <div data-testid="studio-step-dialogues">
+          <DialogueEditor
+            projectId={projectId}
+            lang={lang}
+            scenes={scenes}
+            onComplete={() => setStep(4)}
+            onBack={() => setStep(2)}
+          />
+        </div>
+      )}
+
+
+      {/* ═══ STEP 4: Storyboard (AFTER Dialogues — enriched with dialogue context) ═══ */}
+      {step === 4 && !viewingProject && (
         <div className="glass-card p-3" data-testid="studio-step-storyboard">
           <StoryboardEditor
             projectId={projectId}
@@ -2377,23 +2485,8 @@ export const DirectedStudio = memo(function DirectedStudio({
             characterAvatars={characterAvatars}
             lang={lang}
             onApprove={() => {
-              // After approving storyboard, go to Dialogues step
-              setStep(4);
+              setStep(5);
             }}
-            onBack={() => setStep(2)}
-          />
-        </div>
-      )}
-
-
-      {/* ═══ STEP 4: Dialogues & Script Polish ═══ */}
-      {step === 4 && !viewingProject && (
-        <div data-testid="studio-step-dialogues">
-          <DialogueEditor
-            projectId={projectId}
-            lang={lang}
-            scenes={scenes}
-            onComplete={() => setStep(5)}
             onBack={() => setStep(3)}
           />
         </div>
