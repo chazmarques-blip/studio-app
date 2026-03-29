@@ -25,7 +25,7 @@ export default function MarketingStudio() {
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" />
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#8B5CF6] border-t-transparent" />
     </div>
   );
 
@@ -35,13 +35,13 @@ export default function MarketingStudio() {
       <div className="border-b border-[#1A1A1A] px-3 py-2 shrink-0">
         <div className="flex items-center gap-2.5">
           <button data-testid="studio-back" onClick={() => navigate('/marketing')} className="text-[#999] hover:text-white transition"><ArrowLeft size={18} /></button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#C9A84C] to-[#D4B85A] shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#D4B85A] shrink-0">
             <Sparkles size={14} className="text-black" />
           </div>
           <div className="flex-1">
             <h1 className="text-sm font-semibold text-white">Marketing AI Studio</h1>
           </div>
-          <button onClick={() => setShowContext(!showContext)} className="text-[9px] text-[#C9A84C] hover:underline">
+          <button onClick={() => setShowContext(!showContext)} className="text-[9px] text-[#8B5CF6] hover:underline">
             {lang === 'pt' ? 'Contexto' : lang === 'es' ? 'Contexto' : 'Context'}
           </button>
         </div>

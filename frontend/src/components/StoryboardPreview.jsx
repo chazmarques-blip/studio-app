@@ -142,7 +142,7 @@ export function StoryboardPreview({ panels, lang, onClose }) {
 
         {/* Scene number badge */}
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          <span className="bg-black/70 backdrop-blur-sm text-[#C9A84C] text-[10px] font-bold px-2.5 py-1 rounded-full">
+          <span className="bg-black/70 backdrop-blur-sm text-[#8B5CF6] text-[10px] font-bold px-2.5 py-1 rounded-full">
             {current.scene_number}/{total}
           </span>
           <span className="bg-black/50 backdrop-blur-sm text-white/80 text-[10px] px-2.5 py-1 rounded-full">
@@ -166,7 +166,7 @@ export function StoryboardPreview({ panels, lang, onClose }) {
                 {current.dialogue}
               </p>
               {current.characters_in_scene?.length > 0 && (
-                <p className="text-[#C9A84C] text-[10px] text-center mt-1 opacity-70">
+                <p className="text-[#8B5CF6] text-[10px] text-center mt-1 opacity-70">
                   {current.characters_in_scene.join(' & ')}
                 </p>
               )}
@@ -195,12 +195,12 @@ export function StoryboardPreview({ panels, lang, onClose }) {
               <button key={p.scene_number} onClick={() => goTo(i)}
                 data-testid={`preview-dot-${p.scene_number}`}
                 className={`flex-1 h-1 rounded-full transition-all cursor-pointer ${
-                  i < currentIdx ? 'bg-[#C9A84C]'
-                    : i === currentIdx ? 'bg-[#C9A84C]/70'
+                  i < currentIdx ? 'bg-[#8B5CF6]'
+                    : i === currentIdx ? 'bg-[#8B5CF6]/70'
                     : 'bg-[#333] hover:bg-[#444]'
                 }`}>
                 {i === currentIdx && (
-                  <div className="h-full rounded-full bg-[#C9A84C] transition-all"
+                  <div className="h-full rounded-full bg-[#8B5CF6] transition-all"
                     style={{ width: `${progress}%` }} />
                 )}
               </button>
@@ -220,7 +220,7 @@ export function StoryboardPreview({ panels, lang, onClose }) {
               <SkipBack size={12} />
             </button>
             <button onClick={togglePlay} data-testid="preview-play-btn"
-              className="h-9 w-9 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 flex items-center justify-center text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+              className="h-9 w-9 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 flex items-center justify-center text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition">
               {playing ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
             </button>
             <button onClick={() => goTo(currentIdx + 1)} disabled={currentIdx >= total - 1}
@@ -234,7 +234,7 @@ export function StoryboardPreview({ panels, lang, onClose }) {
             <button onClick={() => setShowSubtitles(s => !s)} data-testid="toggle-subtitles-btn"
               className={`h-7 px-2 rounded-full text-[9px] font-medium flex items-center gap-1 transition ${
                 showSubtitles
-                  ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C]'
+                  ? 'bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6]'
                   : 'bg-[#111] border border-[#222] text-[#666]'
               }`}>
               {showSubtitles ? <Volume2 size={10} /> : <VolumeX size={10} />}

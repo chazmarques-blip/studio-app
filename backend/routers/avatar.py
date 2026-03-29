@@ -211,7 +211,7 @@ async def download_avatar(req: DownloadAvatarRequest, user=Depends(get_current_u
 @router.get("/download-file")
 async def download_avatar_get(avatar_url: str, token: str):
     from jose import jwt
-    secret = os.environ.get("JWT_SECRET", "agentzz-secret-key-2025")
+    secret = os.environ.get("JWT_SECRET", "studiox-secret-key-2025")
     try:
         jwt.decode(token, secret, algorithms=["HS256"])
     except Exception:
@@ -245,7 +245,7 @@ def _build_download(avatar_url: str):
         draw = ImageDraw.Draw(result)
         draw.rectangle([(0, h), (w, h + bar_height)], fill=(10, 10, 10, 255))
 
-        logo_path = "/app/frontend/public/logo-agentzz.png"
+        logo_path = "/app/frontend/public/logo-studiox.png"
         if os.path.exists(logo_path):
             logo = Image.open(logo_path).convert("RGBA")
             logo_h = int(bar_height * 0.55)
@@ -261,7 +261,7 @@ def _build_download(avatar_url: str):
         buf.seek(0)
 
         return StreamingResponse(buf, media_type="image/png", headers={
-            "Content-Disposition": f"attachment; filename=agentzz_avatar_{uuid.uuid4().hex[:6]}.png"
+            "Content-Disposition": f"attachment; filename=studiox_avatar_{uuid.uuid4().hex[:6]}.png"
         })
 
     except HTTPException:

@@ -15,7 +15,7 @@ const STYLE_FILTERS = [
   { id: 'professional', label: 'Professional', icon: '💼', color: '#4A90D9' },
   { id: 'minimalist', label: 'Minimalist', icon: '◻️', color: '#A0A0A0' },
   { id: 'vibrant', label: 'Bold & Vibrant', icon: '🎨', color: '#FF6B6B' },
-  { id: 'luxury', label: 'Luxury', icon: '✨', color: '#C9A84C' },
+  { id: 'luxury', label: 'Luxury', icon: '✨', color: '#8B5CF6' },
   { id: 'playful', label: 'Fun & Playful', icon: '🎉', color: '#FF9F43' },
   { id: 'bold', label: 'Bold Impact', icon: '⚡', color: '#E74C3C' },
   { id: 'organic', label: 'Natural & Organic', icon: '🌿', color: '#27AE60' },
@@ -101,7 +101,7 @@ function CompletedSummary({ pipeline }) {
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`summary-tab-${tab.id}`}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-semibold transition ${
-                activeTab === tab.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20' : 'text-[#999] hover:text-white border border-transparent'
+                activeTab === tab.id ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20' : 'text-[#999] hover:text-white border border-transparent'
               }`}>
               <tab.icon size={10} />{tab.label}
             </button>
@@ -125,7 +125,7 @@ function CompletedSummary({ pipeline }) {
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((url, i) => (
                     <button key={i} onClick={() => setLightboxIdx(i)}
-                      className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#C9A84C]/30 transition">
+                      className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#8B5CF6]/30 transition">
                       <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                         <Maximize2 size={18} className="text-white" />
@@ -161,7 +161,7 @@ function CompletedSummary({ pipeline }) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <p className="text-[9px] text-[#999] uppercase tracking-wider">Copy Aprovada</p>
-              <button onClick={() => copyToClipboard(approvedCopy)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5"><FileText size={8} />Copiar</button>
+              <button onClick={() => copyToClipboard(approvedCopy)} className="text-[8px] text-[#8B5CF6] hover:underline flex items-center gap-0.5"><FileText size={8} />Copiar</button>
             </div>
             <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{approvedCopy}</pre>
           </div>
@@ -173,7 +173,7 @@ function CompletedSummary({ pipeline }) {
               <div className="grid grid-cols-3 gap-2">
                 {images.map((url, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
-                    className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#C9A84C]/30 transition">
+                    className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] relative group text-left hover:border-[#8B5CF6]/30 transition">
                     <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                       <Maximize2 size={16} className="text-white" />
@@ -207,11 +207,11 @@ function CompletedSummary({ pipeline }) {
               <span className="text-[8px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded">12 segundos</span>
               <span className="text-[8px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded">Sora 2</span>
               <button onClick={() => setShowVideoLightbox(true)} data-testid="video-tab-expand-text"
-                className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+                className="text-[8px] text-[#8B5CF6] hover:underline flex items-center gap-0.5">
                 <Maximize2 size={9} /> {t('studio.expand')}
               </button>
               <a href={videoUrl} target="_blank" rel="noopener noreferrer"
-                className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
+                className="ml-auto flex items-center gap-1 text-[9px] text-[#8B5CF6] hover:underline">
                 <Download size={10} /> {t('studio.download_video')}
               </a>
             </div>
@@ -227,11 +227,11 @@ function CompletedSummary({ pipeline }) {
                   disabled={generatingStyle !== null}
                   className={`rounded-lg border p-2 text-center transition-all hover:scale-[1.02] ${
                     generatingStyle === sf.id
-                      ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10'
+                      ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/10'
                       : 'border-[#1E1E1E] bg-[#0D0D0D] hover:border-white/[0.15] hover:bg-[#111]'
                   } disabled:opacity-40`}>
                   {generatingStyle === sf.id ? (
-                    <Loader2 size={16} className="animate-spin text-[#C9A84C] mx-auto mb-1" />
+                    <Loader2 size={16} className="animate-spin text-[#8B5CF6] mx-auto mb-1" />
                   ) : (
                     <span className="text-sm block mb-0.5">{sf.icon}</span>
                   )}
@@ -243,12 +243,12 @@ function CompletedSummary({ pipeline }) {
             {/* Generated variations gallery */}
             {styleVariations.length > 0 && (
               <div>
-                <p className="text-[9px] text-[#C9A84C] uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                <p className="text-[9px] text-[#8B5CF6] uppercase tracking-wider mb-1.5 flex items-center gap-1">
                   <Sparkles size={9} /> Generated Variations ({styleVariations.length})
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {styleVariations.map((sv, i) => (
-                    <div key={i} className="relative rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group hover:border-[#C9A84C]/30 transition">
+                    <div key={i} className="relative rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group hover:border-[#8B5CF6]/30 transition">
                       <img src={resolveImageUrl(sv.url)} alt={sv.label} className="w-full aspect-square object-cover" loading="lazy" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                         <a href={resolveImageUrl(sv.url)} target="_blank" rel="noopener noreferrer"
@@ -278,7 +278,7 @@ function CompletedSummary({ pipeline }) {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <p className="text-[9px] text-[#999] uppercase tracking-wider">Cronograma de Publicacao</p>
-              <button onClick={() => copyToClipboard(schedule)} className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5"><FileText size={8} />Copiar</button>
+              <button onClick={() => copyToClipboard(schedule)} className="text-[8px] text-[#8B5CF6] hover:underline flex items-center gap-0.5"><FileText size={8} />Copiar</button>
             </div>
             <pre className="text-[10px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{schedule}</pre>
           </div>

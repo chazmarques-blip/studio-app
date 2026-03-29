@@ -77,7 +77,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
 
   if (loading) return (
     <div className="flex items-center justify-center py-12">
-      <RefreshCw size={16} className="animate-spin text-[#C9A84C]" />
+      <RefreshCw size={16} className="animate-spin text-[#8B5CF6]" />
     </div>
   );
 
@@ -86,7 +86,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Film size={16} className="text-[#C9A84C]" />
+          <Film size={16} className="text-[#8B5CF6]" />
           <h3 className="text-sm font-bold text-white">
             {lang === 'pt' ? "Director's Preview" : "Director's Preview"}
           </h3>
@@ -96,7 +96,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
         </div>
         <button onClick={runReview} disabled={reviewing}
           data-testid="run-director-review-btn"
-          className="text-xs px-3 py-1.5 rounded-lg border border-[#C9A84C]/40 bg-[#C9A84C]/5 text-[#C9A84C] hover:bg-[#C9A84C]/15 transition disabled:opacity-30 flex items-center gap-1.5">
+          className="text-xs px-3 py-1.5 rounded-lg border border-[#8B5CF6]/40 bg-[#8B5CF6]/5 text-[#8B5CF6] hover:bg-[#8B5CF6]/15 transition disabled:opacity-30 flex items-center gap-1.5">
           {reviewing ? <RefreshCw size={11} className="animate-spin" /> : <Eye size={11} />}
           {reviewing
             ? (lang === 'pt' ? 'Director analisando...' : 'Director analyzing...')
@@ -107,9 +107,9 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
 
       {/* Reviewing state */}
       {reviewing && (
-        <div className="text-center py-8 border border-[#C9A84C]/20 rounded-xl bg-[#C9A84C]/5">
-          <RefreshCw size={20} className="animate-spin text-[#C9A84C] mx-auto mb-2" />
-          <p className="text-xs text-[#C9A84C] font-medium">
+        <div className="text-center py-8 border border-[#8B5CF6]/20 rounded-xl bg-[#8B5CF6]/5">
+          <RefreshCw size={20} className="animate-spin text-[#8B5CF6] mx-auto mb-2" />
+          <p className="text-xs text-[#8B5CF6] font-medium">
             {lang === 'pt'
               ? 'O Director está analisando cada cena com os padrões dos melhores cineastas do mundo...'
               : 'The Director is analyzing each scene with world-class filmmaking standards...'}
@@ -160,7 +160,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
               {hasRevisions && (
                 <button onClick={applyFixes} disabled={applying}
                   data-testid="apply-director-fixes-btn"
-                  className="text-xs px-3 py-2 rounded-lg bg-[#C9A84C] text-black font-bold hover:bg-[#B8973F] transition disabled:opacity-50 flex items-center gap-1.5">
+                  className="text-xs px-3 py-2 rounded-lg bg-[#8B5CF6] text-black font-bold hover:bg-[#7C3AED] transition disabled:opacity-50 flex items-center gap-1.5">
                   {applying ? <RefreshCw size={11} className="animate-spin" /> : <Zap size={11} />}
                   {applying
                     ? (lang === 'pt' ? 'Aplicando...' : 'Applying...')
@@ -207,7 +207,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             <div className="grid grid-cols-2 gap-2">
               {review.pacing_notes && (
                 <div className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2.5">
-                  <p className="text-[10px] font-bold text-[#C9A84C] mb-1 flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-[#8B5CF6] mb-1 flex items-center gap-1">
                     <BookOpen size={9} /> {lang === 'pt' ? 'Ritmo Narrativo' : 'Pacing'}
                   </p>
                   <p className="text-[9px] text-[#777] leading-relaxed">{review.pacing_notes}</p>
@@ -215,7 +215,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
               )}
               {review.emotional_arc && (
                 <div className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2.5">
-                  <p className="text-[10px] font-bold text-[#C9A84C] mb-1 flex items-center gap-1">
+                  <p className="text-[10px] font-bold text-[#8B5CF6] mb-1 flex items-center gap-1">
                     <Sparkles size={9} /> {lang === 'pt' ? 'Arco Emocional' : 'Emotional Arc'}
                   </p>
                   <p className="text-[9px] text-[#777] leading-relaxed">{review.emotional_arc}</p>
@@ -227,7 +227,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
           {/* Scene-by-Scene Review */}
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-white mb-1.5 flex items-center gap-1">
-              <Film size={10} className="text-[#C9A84C]" />
+              <Film size={10} className="text-[#8B5CF6]" />
               {lang === 'pt' ? 'Revisão Cena a Cena' : 'Scene-by-Scene Review'}
               <span className="text-[#555] font-normal ml-1">({sceneReviews.length} cenas)</span>
             </p>
@@ -271,7 +271,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
                         )}
                         {sr.suggestions?.length > 0 && (
                           <div>
-                            <p className="text-[9px] text-[#C9A84C] font-medium mb-0.5">{lang === 'pt' ? 'Sugestões:' : 'Suggestions:'}</p>
+                            <p className="text-[9px] text-[#8B5CF6] font-medium mb-0.5">{lang === 'pt' ? 'Sugestões:' : 'Suggestions:'}</p>
                             {sr.suggestions.map((sug, i) => (
                               <p key={i} className="text-[9px] text-[#888] pl-2 leading-relaxed">+ {sug}</p>
                             ))}
@@ -317,7 +317,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             isApproved
               ? 'bg-emerald-500 text-white hover:bg-emerald-600'
               : review
-                ? 'bg-[#C9A84C] text-black hover:bg-[#B8973F]'
+                ? 'bg-[#8B5CF6] text-black hover:bg-[#7C3AED]'
                 : 'bg-[#333] text-[#666] cursor-not-allowed'
           }`}>
           <ChevronRight size={12} />

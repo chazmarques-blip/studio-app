@@ -78,7 +78,7 @@ export default function GoogleIntegration() {
     } finally { setExporting(false); }
   };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /></div>;
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#8B5CF6] border-t-transparent" /></div>;
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] px-4 pt-5 pb-24">
@@ -89,16 +89,16 @@ export default function GoogleIntegration() {
       </div>
 
       {/* Connection Status */}
-      <div className={`mb-5 glass-card p-4 ${status.connected ? 'border-[#C9A84C]/20' : ''}`}>
+      <div className={`mb-5 glass-card p-4 ${status.connected ? 'border-[#8B5CF6]/20' : ''}`}>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#C9A84C]/10">
-            <Link2 size={18} className="text-[#C9A84C]" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8B5CF6]/10">
+            <Link2 size={18} className="text-[#8B5CF6]" />
           </div>
           <div className="flex-1">
             {status.connected ? (
               <>
                 <div className="flex items-center gap-1.5">
-                  <Check size={12} className="text-[#C9A84C]" />
+                  <Check size={12} className="text-[#8B5CF6]" />
                   <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Conectado' : 'Connected'}</p>
                 </div>
                 <p className="text-[10px] text-[#999]">{status.email}</p>
@@ -132,7 +132,7 @@ export default function GoogleIntegration() {
             { icon: HardDrive, name: 'Google Drive', desc: lang === 'pt' ? 'Usar documentos como base de conhecimento' : 'Use documents as knowledge base' },
           ].map((s, i) => (
             <div key={i} className="glass-card flex items-center gap-3 p-3.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C9A84C]/8"><s.icon size={16} className="text-[#C9A84C]" /></div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#8B5CF6]/8"><s.icon size={16} className="text-[#8B5CF6]" /></div>
               <div className="flex-1"><p className="text-xs font-medium text-white">{s.name}</p><p className="text-[10px] text-[#B0B0B0]">{s.desc}</p></div>
             </div>
           ))}
@@ -148,7 +148,7 @@ export default function GoogleIntegration() {
               { key: 'sheets', icon: Table2, label: 'Sheets' },
             ].map(tb => (
               <button key={tb.key} onClick={() => setTab(tb.key)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition ${tab === tb.key ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition ${tab === tb.key ? 'bg-[#8B5CF6] text-[#0A0A0A]' : 'text-[#999]'}`}>
                 <tb.icon size={13} /> {tb.label}
               </button>
             ))}
@@ -159,13 +159,13 @@ export default function GoogleIntegration() {
             <div>
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Proximos Eventos' : 'Upcoming Events'}</p>
-                <button onClick={loadCalendarEvents} className="text-[#999] hover:text-[#C9A84C] transition"><RefreshCw size={13} /></button>
+                <button onClick={loadCalendarEvents} className="text-[#999] hover:text-[#8B5CF6] transition"><RefreshCw size={13} /></button>
               </div>
               {events.length > 0 ? (
                 <div className="space-y-1.5">
                   {events.map(e => (
                     <div key={e.id} className="glass-card flex items-center gap-2.5 p-3">
-                      <Calendar size={14} className="text-[#C9A84C] shrink-0" />
+                      <Calendar size={14} className="text-[#8B5CF6] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white truncate">{e.summary}</p>
                         <p className="text-[9px] text-[#B0B0B0]">
@@ -189,21 +189,21 @@ export default function GoogleIntegration() {
           {tab === 'sheets' && (
             <div>
               <button data-testid="export-leads-btn" onClick={exportLeads} disabled={exporting}
-                className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#C9A84C]/20 bg-[#C9A84C]/5 py-3 text-xs font-semibold text-[#C9A84C] transition hover:bg-[#C9A84C]/10 disabled:opacity-50">
-                {exporting ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /> : <Download size={14} />}
+                className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#8B5CF6]/20 bg-[#8B5CF6]/5 py-3 text-xs font-semibold text-[#8B5CF6] transition hover:bg-[#8B5CF6]/10 disabled:opacity-50">
+                {exporting ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#8B5CF6] border-t-transparent" /> : <Download size={14} />}
                 {lang === 'pt' ? 'Exportar Leads para Google Sheets' : 'Export Leads to Google Sheets'}
               </button>
 
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Suas Planilhas' : 'Your Sheets'}</p>
-                <button onClick={loadSheets} className="text-[#999] hover:text-[#C9A84C] transition"><RefreshCw size={13} /></button>
+                <button onClick={loadSheets} className="text-[#999] hover:text-[#8B5CF6] transition"><RefreshCw size={13} /></button>
               </div>
               {sheets.length > 0 ? (
                 <div className="space-y-1.5">
                   {sheets.map(s => (
                     <a key={s.id} href={`https://docs.google.com/spreadsheets/d/${s.id}`} target="_blank" rel="noreferrer"
-                      className="glass-card flex items-center gap-2.5 p-3 transition hover:border-[#C9A84C]/20">
-                      <FileSpreadsheet size={14} className="text-[#C9A84C] shrink-0" />
+                      className="glass-card flex items-center gap-2.5 p-3 transition hover:border-[#8B5CF6]/20">
+                      <FileSpreadsheet size={14} className="text-[#8B5CF6] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white truncate">{s.name}</p>
                         <p className="text-[9px] text-[#B0B0B0]">{new Date(s.modified).toLocaleDateString(lang)}</p>

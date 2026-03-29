@@ -47,7 +47,7 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
           <div className="flex gap-2">
             {images.map((u, i) => u && (
               <button key={i} onClick={() => setIndex(i)}
-                className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${i === index ? 'border-[#C9A84C]' : 'border-[#333] opacity-60 hover:opacity-100'}`}>
+                className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${i === index ? 'border-[#8B5CF6]' : 'border-[#333] opacity-60 hover:opacity-100'}`}>
                 <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
               </button>
             ))}
@@ -58,19 +58,19 @@ function ImageLightbox({ images, initialIndex, onClose, pipelineId, onRegenerate
               <Download size={12} /> {t('studio.download')}
             </a>
             <button onClick={() => setShowAdjust(!showAdjust)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[11px] text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[11px] text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition">
               <MessageSquare size={12} /> {t('studio.request_adjust')}
             </button>
           </div>
         </div>
         {showAdjust && (
-          <div className="mt-3 p-3 rounded-xl bg-[#111] border border-[#C9A84C]/20">
+          <div className="mt-3 p-3 rounded-xl bg-[#111] border border-[#8B5CF6]/20">
             <p className="text-[10px] text-[#888] mb-1.5">{t('studio.describe_adjustment') || 'Describe the adjustment you want'} {index + 1}:</p>
             <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2}
               placeholder="Ex: Aumentar o logo, mudar a cor de fundo para azul, adicionar o telefone..."
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C]/30" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#8B5CF6]/30" />
             <button onClick={requestAdjust} disabled={submitting || !feedback.trim()}
-              className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] text-[11px] font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
+              className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] text-[11px] font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
               {submitting ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
               {submitting ? (t('studio.generating') || 'Generating...') : (t('studio.send_adjustment') || 'Send Adjustment')}
             </button>

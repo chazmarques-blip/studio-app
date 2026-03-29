@@ -38,7 +38,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
   }, [showGallery]);
 
   const handleDownload = async (url) => {
-    const token = localStorage.getItem('agentzz_token');
+    const token = localStorage.getItem('studiox_token');
     const downloadUrl = `${API}/avatar/download-file?avatar_url=${encodeURIComponent(url)}&token=${encodeURIComponent(token)}`;
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -46,7 +46,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
       try {
         const res = await fetch(downloadUrl);
         const blob = await res.blob();
-        const file = new File([blob], 'agentzz_avatar.png', { type: 'image/png' });
+        const file = new File([blob], 'studiox_avatar.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file] });
           toast.success(lang === 'pt' ? 'Avatar salvo no álbum de fotos!' : 'Avatar saved to photos!');
@@ -169,7 +169,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
         <div className="flex flex-col gap-1.5 items-center" style={{ width: 44 }}>
           {generated.slice(0, 2).map((g, i) => (
             <button key={i} onClick={() => setSelectedIdx(i)} data-testid={`avatar-thumb-${i}`}
-              className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === i ? 'ring-[#C9A84C] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
+              className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === i ? 'ring-[#8B5CF6] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
               <img src={g.url} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
@@ -177,10 +177,10 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
 
         {/* Main avatar */}
         <div className="relative group cursor-pointer" onClick={() => !generating && setZoomed(displayUrl)}>
-          <div className={`${compact ? 'h-20 w-20' : 'h-28 w-28'} rounded-full overflow-hidden ring-2 ${showingPhoto ? 'ring-white/20' : 'ring-[#C9A84C]/30'} transition-all group-hover:ring-[#C9A84C]/60`} data-testid="avatar-main-preview">
+          <div className={`${compact ? 'h-20 w-20' : 'h-28 w-28'} rounded-full overflow-hidden ring-2 ${showingPhoto ? 'ring-white/20' : 'ring-[#8B5CF6]/30'} transition-all group-hover:ring-[#8B5CF6]/60`} data-testid="avatar-main-preview">
             {generating ? (
               <div className="h-full w-full flex flex-col items-center justify-center bg-[#111] gap-1">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#C9A84C]" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#8B5CF6]" />
                 <span className="text-[8px] text-[#888]">{t.creating}</span>
               </div>
             ) : (
@@ -205,7 +205,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
             const realIdx = i + 2;
             return (
               <button key={realIdx} onClick={() => setSelectedIdx(realIdx)} data-testid={`avatar-thumb-${realIdx}`}
-                className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === realIdx ? 'ring-[#C9A84C] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
+                className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all shrink-0 ${selectedIdx === realIdx ? 'ring-[#8B5CF6] scale-110' : 'ring-white/10 opacity-50 hover:opacity-80'}`}>
                 <img src={g.url} alt="" className="h-full w-full object-cover" />
               </button>
             );
@@ -241,12 +241,12 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
           {!photoPreview && (
             <div className="flex gap-2">
               <button onClick={startCamera} data-testid="camera-btn"
-                className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#C9A84C]/25 transition">
-                <Camera size={14} className="text-[#C9A84C]" /> {t.selfie}
+                className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#8B5CF6]/25 transition">
+                <Camera size={14} className="text-[#8B5CF6]" /> {t.selfie}
               </button>
               <button onClick={() => fileInputRef.current?.click()} data-testid="upload-btn"
-                className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#C9A84C]/25 transition">
-                <Upload size={14} className="text-[#C9A84C]" /> {t.upload}
+                className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#8B5CF6]/25 transition">
+                <Upload size={14} className="text-[#8B5CF6]" /> {t.upload}
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
             </div>
@@ -263,12 +263,12 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
                 ) : (
                   <>
                     <button onClick={generate} disabled={!canGenerate} data-testid="regenerate-btn"
-                      className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#C9A84C]/25 transition disabled:opacity-30">
-                      <RotateCcw size={13} className="text-[#C9A84C]" /> {t.regen} ({MAX_GENERATIONS - genCount})
+                      className="flex-1 glass-card flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-[#B0B0B0] hover:text-white hover:border-[#8B5CF6]/25 transition disabled:opacity-30">
+                      <RotateCcw size={13} className="text-[#8B5CF6]" /> {t.regen} ({MAX_GENERATIONS - genCount})
                     </button>
                     {selectedUrl && (
                       <button onClick={() => handleDownload(selectedUrl)} disabled={downloading} data-testid="download-inline-btn"
-                        className="glass-card flex items-center justify-center px-3 py-2.5 text-[#B0B0B0] hover:text-[#C9A84C] hover:border-[#C9A84C]/25 transition disabled:opacity-40">
+                        className="glass-card flex items-center justify-center px-3 py-2.5 text-[#B0B0B0] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/25 transition disabled:opacity-40">
                         <Download size={14} />
                       </button>
                     )}
@@ -288,7 +288,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
 
           {onSkip && (
             <button onClick={onSkip} data-testid="skip-avatar-btn"
-              className="w-full text-[10px] text-[#666] hover:text-[#C9A84C] transition text-center py-1">
+              className="w-full text-[10px] text-[#666] hover:text-[#8B5CF6] transition text-center py-1">
               {t.skip}
             </button>
           )}
@@ -303,7 +303,7 @@ export function AvatarPicker({ currentAvatar, onSave, onSkip, lang = 'en', compa
             {gallery.map((g, i) => (
               <div key={i} className="relative group">
                 <button onClick={() => setZoomed(g.url)}
-                  className={`h-12 w-12 rounded-full overflow-hidden ring-2 transition-all ${currentAvatar === g.url ? 'ring-[#C9A84C]' : 'ring-white/10 hover:ring-white/30'}`}
+                  className={`h-12 w-12 rounded-full overflow-hidden ring-2 transition-all ${currentAvatar === g.url ? 'ring-[#8B5CF6]' : 'ring-white/10 hover:ring-white/30'}`}
                   data-testid={`gallery-avatar-${i}`}>
                   <img src={g.url} alt="" className="h-full w-full object-cover" />
                 </button>

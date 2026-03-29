@@ -26,8 +26,8 @@ function TechGridBg() {
         </defs>
         <rect width="100%" height="100%" fill="url(#app-grid)" mask="url(#app-grid-mask)" />
       </svg>
-      <div className="absolute left-1/4 top-0 h-[350px] w-[450px] rounded-full bg-[#C9A84C]/[0.02] blur-[140px]" />
-      <div className="absolute right-0 top-1/3 h-[250px] w-[300px] rounded-full bg-[#C9A84C]/[0.015] blur-[120px]" />
+      <div className="absolute left-1/4 top-0 h-[350px] w-[450px] rounded-full bg-[#8B5CF6]/[0.02] blur-[140px]" />
+      <div className="absolute right-0 top-1/3 h-[250px] w-[300px] rounded-full bg-[#8B5CF6]/[0.015] blur-[120px]" />
     </div>
   );
 }
@@ -39,7 +39,7 @@ function AppHeader() {
   const { t, i18n } = useTranslation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [stats, setStats] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('agentzz_avatar') || null);
+  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('studiox_avatar') || null);
   const profileRef = useRef(null);
   const lang = i18n.language?.substring(0, 2) || 'en';
 
@@ -47,7 +47,7 @@ function AppHeader() {
     axios.get(`${API}/avatar/me`).then(r => {
       const url = r.data.avatar_url;
       setAvatarUrl(url);
-      if (url) localStorage.setItem('agentzz_avatar', url);
+      if (url) localStorage.setItem('studiox_avatar', url);
     }).catch(() => {});
   };
 
@@ -81,7 +81,7 @@ function AppHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5">
         {/* Logo */}
         <button onClick={() => navigate('/dashboard')} className="shrink-0" data-testid="header-logo">
-          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-7 sm:h-8" />
+          <img src="/logo-studiox.png" alt="StudioX" className="h-7 sm:h-8" />
         </button>
 
         <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ function AppHeader() {
                 onClick={() => i18n.changeLanguage(lg.code)}
                 className={`px-2 py-1.5 text-[10px] font-mono font-semibold transition-all ${
                   lang === lg.code
-                    ? 'bg-[#C9A84C]/[0.12] text-[#C9A84C]'
+                    ? 'bg-[#8B5CF6]/[0.12] text-[#8B5CF6]'
                     : 'text-[#B0B0B0] hover:text-[#E5E5E5]'
                 }`}>
                 {lg.label}
@@ -106,8 +106,8 @@ function AppHeader() {
 
           {/* Credits */}
           <div data-testid="header-credits" onClick={() => navigate('/pricing')}
-            className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 cursor-pointer hover:border-[#C9A84C]/30 transition">
-            <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#C9A84C]'} />
+            className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 cursor-pointer hover:border-[#8B5CF6]/30 transition">
+            <Zap size={11} className={usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-[#8B5CF6]'} />
             <span className={`text-[11px] font-bold font-mono ${usagePercent > 80 ? 'text-[#FF6B6B]' : 'text-white'}`}>{creditsLeft}</span>
             <span className="text-[9px] text-[#B0B0B0] font-mono">/{msgsLimit}</span>
           </div>
@@ -118,7 +118,7 @@ function AppHeader() {
               {user?.full_name || user?.email?.split('@')[0] || 'User'}
             </span>
             <button data-testid="profile-menu-btn" onClick={() => setProfileOpen(!profileOpen)}
-              className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30 transition hover:ring-[#C9A84C]/60 hover:shadow-md hover:shadow-[#C9A84C]/20 shrink-0">
+              className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-[#8B5CF6]/30 transition hover:ring-[#8B5CF6]/60 hover:shadow-md hover:shadow-[#8B5CF6]/20 shrink-0">
               <img
                 src={avatarUrl || DEFAULT_AVATAR}
                 alt={user?.full_name || 'User'}
@@ -129,13 +129,13 @@ function AppHeader() {
             {profileOpen && (
               <div data-testid="profile-dropdown" className="absolute right-0 top-10 z-50 w-52 rounded-2xl border border-white/[0.06] bg-[#0E0E0E]/95 backdrop-blur-xl p-1 shadow-2xl shadow-black/60">
                 <div className="mb-1 border-b border-white/[0.04] px-3 py-2.5 flex items-center gap-2.5">
-                  <div className="h-10 w-10 rounded-full overflow-hidden ring-1 ring-[#C9A84C]/20 shrink-0">
+                  <div className="h-10 w-10 rounded-full overflow-hidden ring-1 ring-[#8B5CF6]/20 shrink-0">
                     <img src={avatarUrl || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover object-[center_20%]" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
                     <p className="text-[10px] text-[#B0B0B0] truncate">{user?.email}</p>
-                    <span className="mt-0.5 inline-block text-[7px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#C9A84C]/10 text-[#C9A84C]">
+                    <span className="mt-0.5 inline-block text-[7px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#8B5CF6]/10 text-[#8B5CF6]">
                       {stats?.plan || 'free'}
                     </span>
                   </div>

@@ -45,7 +45,7 @@ export function StudioProductionBanner() {
   if (minimized && isRunning) {
     return (
       <button onClick={() => setMinimized(false)} data-testid="studio-banner-minimized"
-        className="fixed bottom-20 right-3 z-50 h-10 w-10 rounded-full bg-[#C9A84C] text-black flex items-center justify-center shadow-lg shadow-[#C9A84C]/20 animate-pulse">
+        className="fixed bottom-20 right-3 z-50 h-10 w-10 rounded-full bg-[#8B5CF6] text-black flex items-center justify-center shadow-lg shadow-[#8B5CF6]/20 animate-pulse">
         <Film size={16} />
         {videosDone > 0 && (
           <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 text-[7px] text-white font-bold flex items-center justify-center">
@@ -61,20 +61,20 @@ export function StudioProductionBanner() {
       className={`fixed bottom-20 left-3 right-3 z-50 rounded-xl border shadow-xl backdrop-blur-xl transition-all ${
         isComplete ? 'border-emerald-500/30 bg-emerald-500/10 shadow-emerald-500/10'
         : isError ? 'border-red-500/30 bg-red-500/10 shadow-red-500/10'
-        : 'border-[#C9A84C]/30 bg-[#0A0A0A]/95 shadow-[#C9A84C]/10'
+        : 'border-[#8B5CF6]/30 bg-[#0A0A0A]/95 shadow-[#8B5CF6]/10'
       }`} style={{ maxWidth: '420px', margin: '0 auto' }}>
 
       <div className="p-2.5">
         {/* Header */}
         <div className="flex items-center gap-2 mb-1.5">
           <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${
-            isComplete ? 'bg-emerald-500' : isError ? 'bg-red-500' : 'bg-[#C9A84C]'
+            isComplete ? 'bg-emerald-500' : isError ? 'bg-red-500' : 'bg-[#8B5CF6]'
           }`}>
             {isComplete ? <Check size={12} className="text-black" /> : isError ? <X size={12} className="text-white" /> : <Film size={12} className="text-black" />}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[9px] font-semibold text-white truncate">{projectName || 'Produção'}</p>
-            <p className={`text-[7px] font-medium ${isComplete ? 'text-emerald-400' : isError ? 'text-red-400' : 'text-[#C9A84C]'}`}>
+            <p className={`text-[7px] font-medium ${isComplete ? 'text-emerald-400' : isError ? 'text-red-400' : 'text-[#8B5CF6]'}`}>
               {phaseLabel} {isRunning && elapsed > 0 ? `• ${elapsed}min` : ''}
             </p>
           </div>
@@ -87,7 +87,7 @@ export function StudioProductionBanner() {
             <button onClick={() => { navigate('/marketing/studio'); if (isComplete || isError) ctx.stopTracking(); }}
               data-testid="studio-banner-go"
               className={`rounded-lg px-2 py-1 text-[8px] font-semibold flex items-center gap-0.5 ${
-                isComplete ? 'bg-emerald-500 text-black' : 'bg-[#C9A84C]/20 text-[#C9A84C] hover:bg-[#C9A84C]/30'
+                isComplete ? 'bg-emerald-500 text-black' : 'bg-[#8B5CF6]/20 text-[#8B5CF6] hover:bg-[#8B5CF6]/30'
               }`}>
               {isComplete ? 'Ver Filme' : 'Ver'} <ChevronRight size={8} />
             </button>
@@ -97,7 +97,7 @@ export function StudioProductionBanner() {
         {/* Progress bar */}
         <div className="w-full bg-[#111] rounded-full h-1.5 overflow-hidden">
           <div className={`h-full rounded-full transition-all duration-1000 ${
-            isComplete ? 'bg-emerald-500' : isError ? 'bg-red-500' : 'bg-[#C9A84C]'
+            isComplete ? 'bg-emerald-500' : isError ? 'bg-red-500' : 'bg-[#8B5CF6]'
           } ${isRunning ? 'animate-pulse' : ''}`} style={{ width: `${progress}%` }} />
         </div>
 

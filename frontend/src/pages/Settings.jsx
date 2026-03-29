@@ -70,7 +70,7 @@ export default function SettingsPage() {
   const [phoneCountry, setPhoneCountry] = useState(COUNTRIES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('agentzz_avatar') || null);
+  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem('studiox_avatar') || null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const lang = i18n.language?.substring(0, 2) || 'en';
 
@@ -78,7 +78,7 @@ export default function SettingsPage() {
     axios.get(`${API}/avatar/me`).then(r => {
       const url = r.data.avatar_url;
       setAvatarUrl(url);
-      if (url) localStorage.setItem('agentzz_avatar', url);
+      if (url) localStorage.setItem('studiox_avatar', url);
     }).catch(() => {});
     axios.get(`${API}/auth/me`).then(r => {
       const nameParts = (r.data.full_name || '').split(' ');
@@ -131,7 +131,7 @@ export default function SettingsPage() {
 
   const handleChangeLang = (code) => {
     i18n.changeLanguage(code);
-    localStorage.setItem('agentzz_lang', code);
+    localStorage.setItem('studiox_lang', code);
     setShowLangPicker(false);
     toast.success(code === 'pt' ? 'Idioma alterado!' : code === 'es' ? 'Idioma cambiado!' : 'Language changed!');
   };
@@ -153,7 +153,7 @@ export default function SettingsPage() {
       <div data-testid="profile-card" className="glass-card mb-4 p-4 cursor-pointer transition-all hover:border-[rgba(201,168,76,0.3)]" onClick={() => setShowAccount(true)}>
         <div className="flex items-center gap-3">
           <div className="relative group shrink-0">
-            <div className="h-12 w-12 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30">
+            <div className="h-12 w-12 rounded-full overflow-hidden ring-2 ring-[#8B5CF6]/30">
               <img src={avatarUrl || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
             </div>
             <button data-testid="change-photo-btn"
@@ -173,7 +173,7 @@ export default function SettingsPage() {
       </div>
 
       {showAccount && (
-        <div data-testid="account-panel" className="mb-4 rounded-xl border border-[#C9A84C]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div data-testid="account-panel" className="mb-4 rounded-xl border border-[#8B5CF6]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white">{t('settings.account')}</h2>
             <button data-testid="account-close-btn" onClick={() => { setShowAccount(false); setShowAvatarPicker(false); }} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-white transition"><X size={16} /></button>
@@ -187,12 +187,12 @@ export default function SettingsPage() {
                 lang={lang}
                 compact={true}
                 showGallery={true}
-                onSave={(url) => { setAvatarUrl(url); if (url) localStorage.setItem('agentzz_avatar', url); setShowAvatarPicker(false); toast.success('Avatar saved!'); }}
+                onSave={(url) => { setAvatarUrl(url); if (url) localStorage.setItem('studiox_avatar', url); setShowAvatarPicker(false); toast.success('Avatar saved!'); }}
               />
             ) : (
               <div className="flex flex-col items-center">
                 <div className="relative group cursor-pointer" onClick={() => setShowAvatarPicker(true)}>
-                  <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/30">
+                  <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-[#8B5CF6]/30">
                     <img src={avatarUrl || DEFAULT_AVATAR} alt="" className="h-full w-full object-cover" onError={(e) => { e.target.src = DEFAULT_AVATAR; }} />
                   </div>
                   <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-all">
@@ -213,18 +213,18 @@ export default function SettingsPage() {
               <div>
                 <label className="mb-1 block text-xs text-[#999]">{lang === 'pt' ? 'Nome' : lang === 'es' ? 'Nombre' : 'First Name'}</label>
                 <input data-testid="account-firstname-input" value={firstName} onChange={e => setFirstName(capitalizeName(e.target.value))}
-                  placeholder="John" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                  placeholder="John" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
               </div>
               <div>
                 <label className="mb-1 block text-xs text-[#999]">{lang === 'pt' ? 'Sobrenome' : lang === 'es' ? 'Apellido' : 'Last Name'}</label>
                 <input data-testid="account-lastname-input" value={lastName} onChange={e => setLastName(capitalizeName(e.target.value))}
-                  placeholder="Smith" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                  placeholder="Smith" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
               </div>
             </div>
             <div>
               <label className="mb-1 block text-xs text-[#999]">{t('profile.company')}</label>
               <input data-testid="account-company-input" value={company} onChange={e => setCompany(e.target.value)}
-                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                     WhatsApp
                   </button>
                   <button type="button" data-testid="settings-contact-sms" onClick={() => setPreferredContact('sms')}
-                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'sms' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'sms' ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
                     SMS
                   </button>
                 </div>
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                       {COUNTRIES.map(c => (
                         <button type="button" key={c.code}
                           onClick={() => { setPhoneCountry(c); setShowCountryPicker(false); setPhoneNumber(''); }}
-                          className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-white/5 ${phoneCountry.code === c.code ? 'bg-[#C9A84C]/10 text-[#C9A84C]' : 'text-white'}`}>
+                          className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-white/5 ${phoneCountry.code === c.code ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-white'}`}>
                           <span>{c.flag}</span>
                           <span className="font-mono text-[#999]">{c.dial}</span>
                           <span className="text-[#666]">{c.code}</span>
@@ -276,7 +276,7 @@ export default function SettingsPage() {
                   )}
                 </div>
                 <input data-testid="account-phone-input" type="tel" value={phoneNumber} onChange={handlePhoneChange} placeholder={phoneCountry.placeholder}
-                  className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50" />
+                  className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
               </div>
             </div>
             <div>
@@ -285,7 +285,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <button data-testid="account-save-btn" onClick={handleSaveAccount} disabled={saving}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#A88B3D] py-2.5 text-sm font-semibold text-[#0A0A0A] transition hover:opacity-90 disabled:opacity-50">
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#A88B3D] py-2.5 text-sm font-semibold text-[#0A0A0A] transition hover:opacity-90 disabled:opacity-50">
             <Save size={15} /> {saving ? t('common.loading') : t('common.save')}
           </button>
         </div>
@@ -305,10 +305,10 @@ export default function SettingsPage() {
 
       {/* Inline Language Picker */}
       {showLangPicker && (
-        <div data-testid="language-picker-panel" className="mb-4 rounded-xl border border-[#C9A84C]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div data-testid="language-picker-panel" className="mb-4 rounded-xl border border-[#8B5CF6]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Globe size={14} className="text-[#C9A84C]" />
+              <Globe size={14} className="text-[#8B5CF6]" />
               {t('settings.language')}
             </h2>
             <button data-testid="lang-picker-close" onClick={() => setShowLangPicker(false)} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-white transition"><X size={16} /></button>
@@ -318,11 +318,11 @@ export default function SettingsPage() {
               <button key={l.code} data-testid={`lang-option-${l.code}`}
                 onClick={() => handleChangeLang(l.code)}
                 className={`flex items-center gap-2.5 rounded-lg border p-3 transition-all ${
-                  lang === l.code ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#444]'
+                  lang === l.code ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10' : 'border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#444]'
                 }`}>
                 <span className="text-lg">{l.flag}</span>
-                <span className={`text-xs font-medium ${lang === l.code ? 'text-[#C9A84C]' : 'text-white'}`}>{l.name}</span>
-                {lang === l.code && <Check size={12} className="text-[#C9A84C] ml-auto" />}
+                <span className={`text-xs font-medium ${lang === l.code ? 'text-[#8B5CF6]' : 'text-white'}`}>{l.name}</span>
+                {lang === l.code && <Check size={12} className="text-[#8B5CF6] ml-auto" />}
               </button>
             ))}
           </div>
@@ -334,7 +334,7 @@ export default function SettingsPage() {
         <div className="space-y-1">
           {channelStatus.map(ch => (
             <div key={ch.name} data-testid={`channel-${ch.name.toLowerCase()}`} className="glass-card flex items-center gap-3 p-3">
-              <div className="h-2.5 w-2.5 rounded-full bg-[#C9A84C]" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#8B5CF6]" />
               <span className="flex-1 text-sm text-white">{ch.name}</span>
               <span className={`text-xs ${ch.connected ? 'text-[#4CAF50]' : 'text-[#666]'}`}>{ch.connected ? t('settings.connected') : t('settings.not_connected')}</span>
             </div>

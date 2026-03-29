@@ -10,7 +10,7 @@ export default function Analytics() {
         <button className="glass-card px-3 py-1.5 text-xs text-[#A0A0A0]">{t('analytics.last_7_days')}</button>
       </div>
       <div className="mb-6 grid grid-cols-2 gap-3">
-        {[{ label: t('analytics.total_messages'), value: '0', color: '#C9A84C' }, { label: t('dashboard.resolution_rate'), value: '0%', color: '#4CAF50' }, { label: t('analytics.avg_response'), value: '0s', color: '#2196F3' }, { label: t('analytics.total_cost'), value: '$0.00', color: '#FF9800' }].map((s, i) => (
+        {[{ label: t('analytics.total_messages'), value: '0', color: '#8B5CF6' }, { label: t('dashboard.resolution_rate'), value: '0%', color: '#4CAF50' }, { label: t('analytics.avg_response'), value: '0s', color: '#2196F3' }, { label: t('analytics.total_cost'), value: '$0.00', color: '#FF9800' }].map((s, i) => (
           <div key={i} className="glass-card p-4"><p className="text-lg font-bold text-white">{s.value}</p><p className="text-xs text-[#666666]">{s.label}</p></div>
         ))}
       </div>

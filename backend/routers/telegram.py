@@ -188,4 +188,4 @@ async def telegram_webhook(agent_id: str, request: Request):
 
 @router.get("/webhook/telegram/{agent_id}")
 async def telegram_webhook_verify(agent_id: str):
-    return {"status": "ok", "service": "agentzz-telegram-webhook", "agent_id": agent_id}
+    return {"status": "ok", "service": "studiox-telegram-webhook", "agent_id": agent_id}

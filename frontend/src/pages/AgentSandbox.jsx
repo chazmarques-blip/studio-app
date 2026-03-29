@@ -154,7 +154,7 @@ export default function AgentSandbox() {
       <div className="border-b border-[#2A2A2A] px-4 py-3">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/agents')} className="text-[#A0A0A0] hover:text-white"><ArrowLeft size={20} /></button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C9A84C]/10"><Bot size={18} className="text-[#C9A84C]" /></div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#8B5CF6]/10"><Bot size={18} className="text-[#8B5CF6]" /></div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-white">{t('agents.sandbox_title')}</p>
             <p className="text-[10px] text-[#666666]">{agentConfig.name} ({agentConfig.type})</p>
@@ -174,12 +174,12 @@ export default function AgentSandbox() {
           <div>
             <label className="mb-1 block text-xs text-[#999]">{t('agents.agent_name')}</label>
             <input data-testid="sandbox-agent-name" value={agentConfig.name} onChange={e => setAgentConfig(p => ({ ...p, name: e.target.value }))}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white outline-none focus:border-[#C9A84C]" />
+              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white outline-none focus:border-[#8B5CF6]" />
           </div>
           <div>
             <label className="mb-1 block text-xs text-[#999]">{t('agents.agent_type')}</label>
             <select data-testid="sandbox-agent-type" value={agentConfig.type} onChange={e => setAgentConfig(p => ({ ...p, type: e.target.value }))}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white outline-none focus:border-[#C9A84C]">
+              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white outline-none focus:border-[#8B5CF6]">
               {['sales', 'support', 'scheduling', 'sac', 'onboarding'].map(tp => (
                 <option key={tp} value={tp}>{t(`agents.type_${tp}`)}</option>
               ))}
@@ -189,7 +189,7 @@ export default function AgentSandbox() {
             <label className="mb-1 block text-xs text-[#999]">{t('agents.system_prompt')}</label>
             <textarea data-testid="sandbox-prompt" value={agentConfig.prompt} onChange={e => setAgentConfig(p => ({ ...p, prompt: e.target.value }))} rows={3}
               placeholder={t('agents.system_prompt_placeholder')}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C] font-mono" />
+              className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-white placeholder-[#666] outline-none resize-none focus:border-[#8B5CF6] font-mono" />
           </div>
           <button onClick={() => { clearChat(); setShowConfig(false); }} className="btn-gold w-full rounded-lg py-2 text-xs">
             {t('agents.test_agent')}
@@ -201,16 +201,16 @@ export default function AgentSandbox() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#C9A84C]/10"><Bot size={32} className="text-[#C9A84C]" /></div>
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#8B5CF6]/10"><Bot size={32} className="text-[#8B5CF6]" /></div>
             <h3 className="mb-2 text-base font-semibold text-white">{t('agents.sandbox_title')}</h3>
             <p className="text-xs text-[#999] max-w-[280px]">{t('agents.send_test')}</p>
             <div className="mt-4 flex gap-2">
               <div className="flex items-center gap-1.5 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-3 py-1.5">
-                <Image size={12} className="text-[#C9A84C]" />
+                <Image size={12} className="text-[#8B5CF6]" />
                 <span className="text-[10px] text-[#999]">{lang === 'pt' ? 'Envie imagens' : 'Send images'}</span>
               </div>
               <div className="flex items-center gap-1.5 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] px-3 py-1.5">
-                <Mic size={12} className="text-[#C9A84C]" />
+                <Mic size={12} className="text-[#8B5CF6]" />
                 <span className="text-[10px] text-[#999]">{lang === 'pt' ? 'Grave audio' : 'Record audio'}</span>
               </div>
             </div>
@@ -219,12 +219,12 @@ export default function AgentSandbox() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-              msg.role === 'user' ? 'bg-[#C9A84C]/15 border border-[#C9A84C]/20' :
+              msg.role === 'user' ? 'bg-[#8B5CF6]/15 border border-[#8B5CF6]/20' :
               msg.role === 'agent' ? 'bg-[#1A1A1A] border border-[#2A2A2A]' :
               'bg-red-500/10 border border-red-500/20'
             }`}>
               {msg.role === 'agent' && (
-                <p className="mb-1 text-[10px] font-medium text-[#C9A84C]">
+                <p className="mb-1 text-[10px] font-medium text-[#8B5CF6]">
                   {msg.type === 'vision' ? <><Eye size={10} className="inline mr-1" />Vision</> :
                    msg.type === 'transcription' ? <><FileAudio size={10} className="inline mr-1" />Whisper</> :
                    <><Bot size={10} className="inline mr-1" />{agentConfig.name}</>}
@@ -242,9 +242,9 @@ export default function AgentSandbox() {
           <div className="flex justify-start">
             <div className="rounded-2xl bg-[#1A1A1A] border border-[#2A2A2A] px-4 py-3">
               <div className="flex gap-1.5">
-                <div className="h-2 w-2 animate-bounce rounded-full bg-[#C9A84C]" style={{ animationDelay: '0ms' }} />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-[#C9A84C]" style={{ animationDelay: '150ms' }} />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-[#C9A84C]" style={{ animationDelay: '300ms' }} />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-[#8B5CF6]" style={{ animationDelay: '0ms' }} />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-[#8B5CF6]" style={{ animationDelay: '150ms' }} />
+                <div className="h-2 w-2 animate-bounce rounded-full bg-[#8B5CF6]" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -263,7 +263,7 @@ export default function AgentSandbox() {
             </div>
             <button onClick={() => setImagePreview(null)} className="text-[#999] hover:text-red-400"><X size={16} /></button>
             <button data-testid="sandbox-send-image-btn" onClick={sendImage} disabled={loading}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#C9A84C] px-4 text-xs font-semibold text-[#0A0A0A] disabled:opacity-50">
+              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#8B5CF6] px-4 text-xs font-semibold text-[#0A0A0A] disabled:opacity-50">
               <Eye size={14} /> {lang === 'pt' ? 'Analisar' : 'Analyze'}
             </button>
           </div>
@@ -274,7 +274,7 @@ export default function AgentSandbox() {
       {debugInfo && (
         <div className="border-t border-[#2A2A2A] bg-[#111111] px-4 py-2.5">
           <div className="flex items-center gap-4 text-[10px]">
-            <div className="flex items-center gap-1 text-[#999]"><Activity size={10} className="text-[#C9A84C]" /> {t('agents.debug_panel')}</div>
+            <div className="flex items-center gap-1 text-[#999]"><Activity size={10} className="text-[#8B5CF6]" /> {t('agents.debug_panel')}</div>
             <div className="flex items-center gap-1 text-[#A0A0A0]"><Clock size={10} />{debugInfo.response_time_ms}ms</div>
             {debugInfo.tokens_estimate && <div className="flex items-center gap-1 text-[#A0A0A0]"><Zap size={10} />{debugInfo.tokens_estimate} tokens</div>}
             {debugInfo.language_detected && <div className="flex items-center gap-1 text-[#A0A0A0]"><Globe size={10} />{debugInfo.language_detected?.toUpperCase()}</div>}
@@ -289,27 +289,27 @@ export default function AgentSandbox() {
         <input type="file" ref={audioInputRef} accept="audio/*,.webm,.ogg,.mp3,.wav,.m4a" className="hidden" onChange={e => { if (e.target.files[0]) handleAudioFile(e.target.files[0]); e.target.value = ''; }} />
 
         <button data-testid="sandbox-image-btn" onClick={() => fileInputRef.current?.click()} disabled={loading}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#C9A84C]/50 disabled:opacity-50 transition" title={lang === 'pt' ? 'Enviar imagem' : 'Send image'}>
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#8B5CF6]/50 disabled:opacity-50 transition" title={lang === 'pt' ? 'Enviar imagem' : 'Send image'}>
           <Image size={16} className="text-[#A0A0A0]" />
         </button>
 
         <button data-testid="sandbox-mic-btn" onClick={toggleRecording} disabled={loading && !recording}
           className={`flex h-10 w-10 items-center justify-center rounded-lg border transition ${
-            recording ? 'border-red-500 bg-red-500/10 animate-pulse' : 'border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#C9A84C]/50'
+            recording ? 'border-red-500 bg-red-500/10 animate-pulse' : 'border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#8B5CF6]/50'
           } disabled:opacity-50`} title={lang === 'pt' ? 'Gravar audio' : 'Record audio'}>
           {recording ? <MicOff size={16} className="text-red-400" /> : <Mic size={16} className="text-[#A0A0A0]" />}
         </button>
 
         <button data-testid="sandbox-audio-file-btn" onClick={() => audioInputRef.current?.click()} disabled={loading}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#C9A84C]/50 disabled:opacity-50 transition" title={lang === 'pt' ? 'Enviar arquivo de audio' : 'Upload audio file'}>
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#8B5CF6]/50 disabled:opacity-50 transition" title={lang === 'pt' ? 'Enviar arquivo de audio' : 'Upload audio file'}>
           <FileAudio size={16} className="text-[#A0A0A0]" />
         </button>
 
         <input data-testid="sandbox-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder={t('agents.type_message')} disabled={loading}
-          className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none focus:border-[#C9A84C] disabled:opacity-50" />
+          className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none focus:border-[#8B5CF6] disabled:opacity-50" />
         <button data-testid="sandbox-send-btn" onClick={sendMessage} disabled={loading}
-          className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#C9A84C] disabled:opacity-50"><Send size={16} className="text-[#0A0A0A]" /></button>
+          className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6] disabled:opacity-50"><Send size={16} className="text-[#0A0A0A]" /></button>
       </div>
     </div>
   );

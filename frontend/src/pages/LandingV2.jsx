@@ -9,7 +9,7 @@ import {
   Quote, Heart, ThumbsUp, BarChart2
 } from 'lucide-react';
 
-const gold = '#C9A84C';
+const gold = '#8B5CF6';
 
 const AVATARS = {
   Sarah: "https://static.prod-images.emergentagent.com/jobs/84603ad5-04da-484d-beef-13c6455d5e93/images/4d686b82885d8f4f90f35055251245df4e68fbfb5f3c8b9fc5b6296511151a5a.png",
@@ -45,7 +45,7 @@ function TechGrid() {
       <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="micro-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(201,168,76,0.03)" strokeWidth="0.5" />
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(139,92,246,0.03)" strokeWidth="0.5" />
           </pattern>
           <radialGradient id="grid-fade" cx="50%" cy="40%" r="60%">
             <stop offset="0%" stopColor="white" stopOpacity="1" />
@@ -65,7 +65,7 @@ function Glass({ children, className = '', hover = false }) {
   return (
     <div className={`relative rounded-2xl border backdrop-blur-xl overflow-hidden transition-all duration-500
       border-white/[0.06] bg-white/[0.015]
-      ${hover ? 'hover:border-[#C9A84C]/20 hover:bg-white/[0.03] hover:shadow-xl hover:shadow-[#C9A84C]/[0.04]' : ''}
+      ${hover ? 'hover:border-[#8B5CF6]/20 hover:bg-white/[0.03] hover:shadow-xl hover:shadow-[#8B5CF6]/[0.04]' : ''}
       ${className}`}>
       {children}
     </div>
@@ -302,7 +302,7 @@ function AgentChat({ lang = 'en' }) {
       {/* Channel indicator dots */}
       <div className="flex justify-center gap-1.5 py-1.5 bg-white/[0.01]">
         {channels.map((_, i) => (
-          <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#C9A84C]/60' : 'w-1 bg-white/[0.08]'}`} />
+          <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === channelIdx ? 'w-4 bg-[#8B5CF6]/60' : 'w-1 bg-white/[0.08]'}`} />
         ))}
       </div>
       <div ref={ref} className="flex-1 overflow-y-auto px-3 py-2 space-y-2" style={{ scrollbarWidth: 'none' }}>
@@ -312,12 +312,12 @@ function AgentChat({ lang = 'en' }) {
               <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 className={`flex gap-1.5 mb-2 ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.from === 'agent' && (
-                  <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#C9A84C]/10">
+                  <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#8B5CF6]/10">
                     <img src={ch.avatar} alt="" className="h-full w-full object-cover" />
                   </div>
                 )}
                 <div className={`max-w-[78%] rounded-xl px-2.5 py-1.5 ${
-                  m.from === 'user' ? 'bg-[#C9A84C]/[0.08] border border-[#C9A84C]/12' : 'bg-white/[0.03] border border-white/[0.06]'
+                  m.from === 'user' ? 'bg-[#8B5CF6]/[0.08] border border-[#8B5CF6]/12' : 'bg-white/[0.03] border border-white/[0.06]'
                 }`}>
                   <p className="text-[9px] leading-relaxed text-[#ccc]">{m.text}</p>
                 </div>
@@ -325,11 +325,11 @@ function AgentChat({ lang = 'en' }) {
             ))}
             {typing && (
               <div className="flex gap-1.5 justify-start">
-                <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#C9A84C]/10">
+                <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0 mt-1 ring-1 ring-[#8B5CF6]/10">
                   <img src={ch.avatar} alt="" className="h-full w-full object-cover" />
                 </div>
                 <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2">
-                  <div className="flex gap-1">{[0, 120, 240].map(d => <div key={d} className="h-1 w-1 animate-bounce rounded-full bg-[#C9A84C]/40" style={{ animationDelay: `${d}ms` }} />)}</div>
+                  <div className="flex gap-1">{[0, 120, 240].map(d => <div key={d} className="h-1 w-1 animate-bounce rounded-full bg-[#8B5CF6]/40" style={{ animationDelay: `${d}ms` }} />)}</div>
                 </div>
               </div>
             )}
@@ -349,7 +349,7 @@ function CampaignDemo({ lang }) {
   const L = {
     pt: {
       tag: 'DEMO AO VIVO', title: 'Veja uma campanha sendo criada',
-      sub: 'Acompanhe o processo completo da IA criando uma campanha real para a marca AgentZZ.',
+      sub: 'Acompanhe o processo completo da IA criando uma campanha real para a marca StudioX.',
       steps: [
         { label: 'Brief', title: 'Briefing da campanha', desc: 'A IA recebe o objetivo e analisa a marca.' },
         { label: 'Copy', title: 'Textos gerados pela IA', desc: 'Copywriter IA cria textos para cada formato.' },
@@ -357,18 +357,18 @@ function CampaignDemo({ lang }) {
         { label: 'Video', title: 'Video com avatar', desc: 'Apresentador IA com lip-sync e narracao.' },
         { label: 'Resultado', title: 'Campanha pronta!', desc: 'Todos os formatos prontos para publicacao.' },
       ],
-      brief_brand: 'Marca:', brief_goal: 'Objetivo:', brief_goal_v: 'Lancamento da plataforma AgentZZ — mostrar que qualquer negocio pode ter agentes IA atendendo 24h em todos os canais.',
+      brief_brand: 'Marca:', brief_goal: 'Objetivo:', brief_goal_v: 'Lancamento da plataforma StudioX — mostrar que qualquer negocio pode ter agentes IA atendendo 24h em todos os canais.',
       brief_tone: 'Tom:', brief_tone_v: 'Premium, tecnologico, confiavel',
       brief_channels: 'Canais:', brief_channels_v: 'Instagram Feed, Story, Facebook, WhatsApp',
-      copy_feed: 'Seus clientes nunca mais esperam. Com AgentZZ, seus agentes IA atendem 24h no WhatsApp, Instagram e Telegram. Configure em 5 minutos.',
+      copy_feed: 'Seus clientes nunca mais esperam. Com StudioX, seus agentes IA atendem 24h no WhatsApp, Instagram e Telegram. Configure em 5 minutos.',
       copy_story: 'Atendimento 24h. Sem codigo. Sem espera. Comece gratis agora.',
       copy_cta: 'Comece Gratis',
-      video_title: 'Video Comercial — AgentZZ', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — Apresentador IA', video_voice: 'Narracao profissional PT-BR',
-      result_title: 'Campanha AgentZZ — Pronta', result_formats: '4 formatos gerados', result_ready: 'Pronto para publicar',
+      video_title: 'Video Comercial — StudioX', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — Apresentador IA', video_voice: 'Narracao profissional PT-BR',
+      result_title: 'Campanha StudioX — Pronta', result_formats: '4 formatos gerados', result_ready: 'Pronto para publicar',
     },
     en: {
       tag: 'LIVE DEMO', title: 'Watch a campaign being created',
-      sub: 'Follow the complete AI process creating a real campaign for the AgentZZ brand.',
+      sub: 'Follow the complete AI process creating a real campaign for the StudioX brand.',
       steps: [
         { label: 'Brief', title: 'Campaign briefing', desc: 'AI receives the goal and analyzes the brand.' },
         { label: 'Copy', title: 'AI-generated copy', desc: 'AI copywriter creates text for each format.' },
@@ -376,18 +376,18 @@ function CampaignDemo({ lang }) {
         { label: 'Video', title: 'Avatar video', desc: 'AI presenter with lip-sync and narration.' },
         { label: 'Result', title: 'Campaign ready!', desc: 'All formats ready for publishing.' },
       ],
-      brief_brand: 'Brand:', brief_goal: 'Goal:', brief_goal_v: 'AgentZZ platform launch — show any business can have AI agents serving 24/7 on all channels.',
+      brief_brand: 'Brand:', brief_goal: 'Goal:', brief_goal_v: 'StudioX platform launch — show any business can have AI agents serving 24/7 on all channels.',
       brief_tone: 'Tone:', brief_tone_v: 'Premium, technological, trustworthy',
       brief_channels: 'Channels:', brief_channels_v: 'Instagram Feed, Story, Facebook, WhatsApp',
-      copy_feed: 'Your customers never wait again. With AgentZZ, your AI agents serve 24/7 on WhatsApp, Instagram, and Telegram. Set up in 5 minutes.',
+      copy_feed: 'Your customers never wait again. With StudioX, your AI agents serve 24/7 on WhatsApp, Instagram, and Telegram. Set up in 5 minutes.',
       copy_story: '24/7 support. No code. No waiting. Start free now.',
       copy_cta: 'Start Free',
-      video_title: 'Commercial Video — AgentZZ', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — AI Presenter', video_voice: 'Professional narration EN',
-      result_title: 'AgentZZ Campaign — Ready', result_formats: '4 formats generated', result_ready: 'Ready to publish',
+      video_title: 'Commercial Video — StudioX', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — AI Presenter', video_voice: 'Professional narration EN',
+      result_title: 'StudioX Campaign — Ready', result_formats: '4 formats generated', result_ready: 'Ready to publish',
     },
     es: {
       tag: 'DEMO EN VIVO', title: 'Mira una campana siendo creada',
-      sub: 'Acompana el proceso completo de IA creando una campana real para AgentZZ.',
+      sub: 'Acompana el proceso completo de IA creando una campana real para StudioX.',
       steps: [
         { label: 'Brief', title: 'Briefing de campana', desc: 'La IA recibe el objetivo y analiza la marca.' },
         { label: 'Copy', title: 'Textos generados', desc: 'Copywriter IA crea textos para cada formato.' },
@@ -395,14 +395,14 @@ function CampaignDemo({ lang }) {
         { label: 'Video', title: 'Video con avatar', desc: 'Presentador IA con lip-sync y narracion.' },
         { label: 'Resultado', title: 'Campana lista!', desc: 'Todos los formatos listos para publicar.' },
       ],
-      brief_brand: 'Marca:', brief_goal: 'Objetivo:', brief_goal_v: 'Lanzamiento AgentZZ — mostrar que cualquier negocio puede tener agentes IA 24h.',
+      brief_brand: 'Marca:', brief_goal: 'Objetivo:', brief_goal_v: 'Lanzamiento StudioX — mostrar que cualquier negocio puede tener agentes IA 24h.',
       brief_tone: 'Tono:', brief_tone_v: 'Premium, tecnologico, confiable',
       brief_channels: 'Canales:', brief_channels_v: 'Instagram Feed, Story, Facebook, WhatsApp',
-      copy_feed: 'Tus clientes nunca mas esperan. Con AgentZZ, tus agentes IA atienden 24h. Configura en 5 minutos.',
+      copy_feed: 'Tus clientes nunca mas esperan. Con StudioX, tus agentes IA atienden 24h. Configura en 5 minutos.',
       copy_story: 'Atencion 24h. Sin codigo. Sin espera. Empieza gratis.',
       copy_cta: 'Empieza Gratis',
-      video_title: 'Video Comercial — AgentZZ', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — Presentador IA', video_voice: 'Narracion profesional ES',
-      result_title: 'Campana AgentZZ — Lista', result_formats: '4 formatos generados', result_ready: 'Listo para publicar',
+      video_title: 'Video Comercial — StudioX', video_dur: '0:30', video_res: '1080p', video_avatar: 'James — Presentador IA', video_voice: 'Narracion profesional ES',
+      result_title: 'Campana StudioX — Lista', result_formats: '4 formatos generados', result_ready: 'Listo para publicar',
     },
   };
   const d = L[lang] || L.en;
@@ -437,7 +437,7 @@ function CampaignDemo({ lang }) {
   return (
     <div>
       <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
-        <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{d.tag}</p>
+        <p className="text-[9px] font-mono font-semibold text-[#8B5CF6] tracking-[0.3em] uppercase mb-2">{d.tag}</p>
         <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{d.title}</h2>
         <p className="text-sm text-[#B0B0B0] max-w-lg mx-auto mt-2">{d.sub}</p>
       </motion.div>
@@ -449,7 +449,7 @@ function CampaignDemo({ lang }) {
           return (
             <button key={i} onClick={() => { setDemoStep(i); setAutoPlay(false); }}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all duration-400 text-[9px] font-mono ${
-                demoStep === i ? 'bg-[#C9A84C]/[0.12] border border-[#C9A84C]/20 text-[#C9A84C]' : 'border border-white/[0.05] text-[#B0B0B0] hover:text-[#E5E5E5]'
+                demoStep === i ? 'bg-[#8B5CF6]/[0.12] border border-[#8B5CF6]/20 text-[#8B5CF6]' : 'border border-white/[0.05] text-[#B0B0B0] hover:text-[#E5E5E5]'
               }`} data-testid={`demo-step-${i}`}>
               <Icon size={10} />
               <span className="hidden sm:inline">{s.label}</span>
@@ -468,10 +468,10 @@ function CampaignDemo({ lang }) {
               <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
               <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
             </div>
-            <span className="text-[9px] font-mono text-[#B0B0B0] ml-3">AgentZZ AI Marketing Studio</span>
+            <span className="text-[9px] font-mono text-[#B0B0B0] ml-3">StudioX AI Marketing Studio</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[8px] font-mono text-[#C9A84C]/50 border border-[#C9A84C]/10 rounded px-2 py-0.5 bg-[#C9A84C]/[0.03]">
+            <span className="text-[8px] font-mono text-[#8B5CF6]/50 border border-[#8B5CF6]/10 rounded px-2 py-0.5 bg-[#8B5CF6]/[0.03]">
               {d.steps[demoStep].label} — {demoStep + 1}/5
             </span>
           </div>
@@ -492,23 +492,23 @@ function CampaignDemo({ lang }) {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                      <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">{d.brief_brand}</p>
+                      <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-2">{d.brief_brand}</p>
                       <div className="flex items-center gap-3">
-                        <img src="/logo-agentzz.png" alt="AgentZZ" className="h-6" />
-                        <span className="text-[12px] text-white font-semibold">AgentZZ</span>
+                        <img src="/logo-studiox.png" alt="StudioX" className="h-6" />
+                        <span className="text-[12px] text-white font-semibold">StudioX</span>
                       </div>
                     </div>
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                      <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">{d.brief_goal}</p>
+                      <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-2">{d.brief_goal}</p>
                       <p className="text-[11px] text-[#ccc] leading-relaxed">{d.brief_goal_v}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                        <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-1">{d.brief_tone}</p>
+                        <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-1">{d.brief_tone}</p>
                         <p className="text-[10px] text-[#999]">{d.brief_tone_v}</p>
                       </div>
                       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                        <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-1">{d.brief_channels}</p>
+                        <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-1">{d.brief_channels}</p>
                         <p className="text-[10px] text-[#999]">{d.brief_channels_v}</p>
                       </div>
                     </div>
@@ -516,16 +516,16 @@ function CampaignDemo({ lang }) {
                   <div className="flex items-center justify-center">
                     <div className="relative">
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                        className="h-40 w-40 rounded-full border border-[#C9A84C]/10" />
+                        className="h-40 w-40 rounded-full border border-[#8B5CF6]/10" />
                       <motion.div animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
-                        className="absolute inset-4 rounded-full border border-dashed border-[#C9A84C]/15" />
+                        className="absolute inset-4 rounded-full border border-dashed border-[#8B5CF6]/15" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/15">
-                          <Brain size={28} className="text-[#C9A84C]" />
+                        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center border border-[#8B5CF6]/15">
+                          <Brain size={28} className="text-[#8B5CF6]" />
                         </div>
                       </div>
-                      <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-2 right-6 h-3 w-3 rounded-full bg-[#C9A84C]/20" />
-                      <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2.5, repeat: Infinity }} className="absolute bottom-4 left-4 h-2 w-2 rounded-full bg-[#C9A84C]/15" />
+                      <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute top-2 right-6 h-3 w-3 rounded-full bg-[#8B5CF6]/20" />
+                      <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2.5, repeat: Infinity }} className="absolute bottom-4 left-4 h-2 w-2 rounded-full bg-[#8B5CF6]/15" />
                     </div>
                   </div>
                 </div>
@@ -537,21 +537,21 @@ function CampaignDemo({ lang }) {
                   <div className="space-y-3">
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded bg-[#C9A84C]/[0.1] flex items-center justify-center"><MessageSquare size={10} className="text-[#C9A84C]" /></div>
-                        <span className="text-[9px] font-mono text-[#C9A84C]">Instagram Feed</span>
+                        <div className="h-5 w-5 rounded bg-[#8B5CF6]/[0.1] flex items-center justify-center"><MessageSquare size={10} className="text-[#8B5CF6]" /></div>
+                        <span className="text-[9px] font-mono text-[#8B5CF6]">Instagram Feed</span>
                       </div>
-                      <p className="text-[11px] text-[#ccc] leading-relaxed">{typedText}<motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }} className="text-[#C9A84C]">|</motion.span></p>
+                      <p className="text-[11px] text-[#ccc] leading-relaxed">{typedText}<motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }} className="text-[#8B5CF6]">|</motion.span></p>
                     </div>
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded bg-[#C9A84C]/[0.1] flex items-center justify-center"><MessageSquare size={10} className="text-[#C9A84C]" /></div>
-                        <span className="text-[9px] font-mono text-[#C9A84C]">Story / Reels</span>
+                        <div className="h-5 w-5 rounded bg-[#8B5CF6]/[0.1] flex items-center justify-center"><MessageSquare size={10} className="text-[#8B5CF6]" /></div>
+                        <span className="text-[9px] font-mono text-[#8B5CF6]">Story / Reels</span>
                       </div>
                       <p className="text-[11px] text-[#999]">{d.copy_story}</p>
                     </div>
-                    <div className="rounded-xl border border-[#C9A84C]/10 bg-[#C9A84C]/[0.03] p-3 flex items-center gap-2">
-                      <Send size={12} className="text-[#C9A84C]" />
-                      <span className="text-[10px] text-[#C9A84C] font-semibold">CTA: {d.copy_cta}</span>
+                    <div className="rounded-xl border border-[#8B5CF6]/10 bg-[#8B5CF6]/[0.03] p-3 flex items-center gap-2">
+                      <Send size={12} className="text-[#8B5CF6]" />
+                      <span className="text-[10px] text-[#8B5CF6] font-semibold">CTA: {d.copy_cta}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-center">
@@ -566,23 +566,23 @@ function CampaignDemo({ lang }) {
               {demoStep === 2 && (
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-1">
-                    <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">Instagram Feed</p>
+                    <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-2">Instagram Feed</p>
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}
-                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#C9A84C]/20 transition-colors">
+                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#8B5CF6]/20 transition-colors">
                       <img src={CAMPAIGN_IMAGES.feed} alt="Feed" className="w-full aspect-square object-cover" />
                     </motion.div>
                   </div>
                   <div className="col-span-1">
-                    <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">Story / Reels</p>
+                    <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-2">Story / Reels</p>
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}
-                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#C9A84C]/20 transition-colors">
+                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#8B5CF6]/20 transition-colors">
                       <img src={CAMPAIGN_IMAGES.story} alt="Story" className="w-full aspect-[9/16] object-cover" />
                     </motion.div>
                   </div>
                   <div className="col-span-1">
-                    <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-2">Facebook / Banner</p>
+                    <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-2">Facebook / Banner</p>
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.5 }}
-                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#C9A84C]/20 transition-colors mb-3">
+                      className="rounded-xl border border-white/[0.08] overflow-hidden shadow-xl shadow-black/40 hover:border-[#8B5CF6]/20 transition-colors mb-3">
                       <img src={CAMPAIGN_IMAGES.wide} alt="Banner" className="w-full aspect-video object-cover" />
                     </motion.div>
                     <div className="flex items-center gap-2 text-[9px]">
@@ -598,7 +598,7 @@ function CampaignDemo({ lang }) {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                      <p className="text-[8px] font-mono text-[#C9A84C] uppercase tracking-widest mb-3">{d.video_title}</p>
+                      <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-3">{d.video_title}</p>
                       <div className="space-y-2.5">
                         {[
                           { icon: Clock, label: 'Duration', value: d.video_dur },
@@ -607,7 +607,7 @@ function CampaignDemo({ lang }) {
                           { icon: Volume2, label: 'Audio', value: d.video_voice },
                         ].map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2">
-                            <item.icon size={10} className="text-[#C9A84C]/50" />
+                            <item.icon size={10} className="text-[#8B5CF6]/50" />
                             <span className="text-[9px] text-[#B0B0B0] font-mono w-16">{item.label}</span>
                             <span className="text-[10px] text-[#ccc]">{item.value}</span>
                           </div>
@@ -616,14 +616,14 @@ function CampaignDemo({ lang }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
-                        className="h-8 w-8 rounded-full bg-[#C9A84C]/[0.1] flex items-center justify-center border border-[#C9A84C]/15">
-                        <Volume2 size={12} className="text-[#C9A84C]" />
+                        className="h-8 w-8 rounded-full bg-[#8B5CF6]/[0.1] flex items-center justify-center border border-[#8B5CF6]/15">
+                        <Volume2 size={12} className="text-[#8B5CF6]" />
                       </motion.div>
                       <div className="flex-1 h-6 rounded-full bg-white/[0.03] border border-white/[0.06] overflow-hidden flex items-center px-2 gap-0.5">
                         {[...Array(30)].map((_, wi) => (
                           <motion.div key={wi} animate={{ scaleY: [0.3, Math.random() * 0.8 + 0.2, 0.3] }}
                             transition={{ duration: 0.5 + Math.random() * 0.5, repeat: Infinity, delay: wi * 0.03 }}
-                            className="w-1 bg-[#C9A84C]/40 rounded-full" style={{ height: '16px' }} />
+                            className="w-1 bg-[#8B5CF6]/40 rounded-full" style={{ height: '16px' }} />
                         ))}
                       </div>
                     </div>
@@ -631,21 +631,21 @@ function CampaignDemo({ lang }) {
                   <div className="flex items-center justify-center">
                     <div className="relative rounded-xl border border-white/[0.08] overflow-hidden shadow-2xl shadow-black/50 max-w-[260px]">
                       <video autoPlay muted loop playsInline className="w-full aspect-video object-cover">
-                        <source src="/agentzz-demo.mp4" type="video/mp4" />
+                        <source src="/studiox-demo.mp4" type="video/mp4" />
                       </video>
                       <div className="absolute top-2 left-2">
-                        <div className="flex items-center gap-1 bg-[#C9A84C]/80 backdrop-blur-sm rounded px-1.5 py-0.5">
+                        <div className="flex items-center gap-1 bg-[#8B5CF6]/80 backdrop-blur-sm rounded px-1.5 py-0.5">
                           <span className="text-[6px] text-[#0A0A0A] font-bold">SORA 2</span>
                         </div>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                         <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-[#C9A84C]/20">
+                          <div className="h-6 w-6 rounded-full overflow-hidden ring-1 ring-[#8B5CF6]/20">
                             <img src={AVATARS.James} alt="" className="h-full w-full object-cover" />
                           </div>
                           <div>
                             <p className="text-[9px] text-white font-semibold">James</p>
-                            <p className="text-[7px] text-[#C9A84C]/60 font-mono">AI Presenter</p>
+                            <p className="text-[7px] text-[#8B5CF6]/60 font-mono">AI Presenter</p>
                           </div>
                         </div>
                       </div>
@@ -671,10 +671,10 @@ function CampaignDemo({ lang }) {
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#E1306C]/30 transition-colors">
                       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
-                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
-                          <span className="text-[6px] font-bold text-[#C9A84C]">Az</span>
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center">
+                          <span className="text-[6px] font-bold text-[#8B5CF6]">Az</span>
                         </div>
-                        <span className="text-[8px] text-white font-semibold">agentzz</span>
+                        <span className="text-[8px] text-white font-semibold">studiox</span>
                         <IgIcon size={8} color="#E1306C" className="ml-auto" />
                       </div>
                       <img src={CAMPAIGN_IMAGES.feed} alt="IG Feed" className="w-full aspect-square object-cover" />
@@ -682,8 +682,8 @@ function CampaignDemo({ lang }) {
                         <div className="flex gap-2 mb-1.5">
                           <Heart size={10} className="text-[#ccc]" /><MessageSquare size={10} className="text-[#ccc]" /><Send size={10} className="text-[#ccc]" />
                         </div>
-                        <p className="text-[7px] text-[#888] leading-relaxed mb-1"><span className="text-white font-semibold">agentzz </span>Seus clientes nunca mais esperam. Com AgentZZ, seus agentes IA atendem 24h no WhatsApp, Instagram e Telegram. Configure em 5 minutos.</p>
-                        <p className="text-[6px] text-[#B0B0B0]">#IA #Atendimento #ChatBot #AgentZZ #Marketing</p>
+                        <p className="text-[7px] text-[#888] leading-relaxed mb-1"><span className="text-white font-semibold">studiox </span>Seus clientes nunca mais esperam. Com StudioX, seus agentes IA atendem 24h no WhatsApp, Instagram e Telegram. Configure em 5 minutos.</p>
+                        <p className="text-[6px] text-[#B0B0B0]">#IA #Atendimento #ChatBot #StudioX #Marketing</p>
                       </div>
                       <div className="px-2.5 pb-2 flex items-center gap-1">
                         <IgIcon size={7} color="#E1306C" />
@@ -695,11 +695,11 @@ function CampaignDemo({ lang }) {
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#0084FF]/30 transition-colors">
                       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
-                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
-                          <span className="text-[6px] font-bold text-[#C9A84C]">Az</span>
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center">
+                          <span className="text-[6px] font-bold text-[#8B5CF6]">Az</span>
                         </div>
                         <div>
-                          <span className="text-[8px] text-white font-semibold block leading-none">AgentZZ</span>
+                          <span className="text-[8px] text-white font-semibold block leading-none">StudioX</span>
                           <span className="text-[6px] text-[#B0B0B0]">Sponsored</span>
                         </div>
                         <FbIcon size={8} color="#0084FF" className="ml-auto" />
@@ -729,11 +729,11 @@ function CampaignDemo({ lang }) {
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#25D366]/30 transition-colors">
                       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
-                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
-                          <span className="text-[6px] font-bold text-[#C9A84C]">Az</span>
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center">
+                          <span className="text-[6px] font-bold text-[#8B5CF6]">Az</span>
                         </div>
                         <div>
-                          <span className="text-[8px] text-white font-semibold block leading-none">AgentZZ</span>
+                          <span className="text-[8px] text-white font-semibold block leading-none">StudioX</span>
                           <span className="text-[6px] text-[#B0B0B0]">Business</span>
                         </div>
                         <WaIcon size={8} color="#25D366" className="ml-auto" />
@@ -762,7 +762,7 @@ function CampaignDemo({ lang }) {
                           className="w-full aspect-[9/14] object-cover"
                           poster={CAMPAIGN_IMAGES.feed}
                         >
-                          <source src="/agentzz-demo.mp4" type="video/mp4" />
+                          <source src="/studiox-demo.mp4" type="video/mp4" />
                         </video>
                         {/* TikTok sidebar */}
                         <div className="absolute right-2 bottom-12 flex flex-col items-center gap-3">
@@ -772,7 +772,7 @@ function CampaignDemo({ lang }) {
                         </div>
                         {/* Bottom text */}
                         <div className="absolute left-2 bottom-2 right-10">
-                          <p className="text-[8px] text-white font-semibold">@agentzz</p>
+                          <p className="text-[8px] text-white font-semibold">@studiox</p>
                           <p className="text-[6px] text-white/70">Agentes IA que nunca dormem #IA #Marketing</p>
                         </div>
                         {/* Live badge */}
@@ -799,7 +799,7 @@ function CampaignDemo({ lang }) {
         {/* Progress bar */}
         <div className="border-t border-white/[0.05] px-5 py-2.5 flex items-center gap-3">
           <div className="flex-1 h-1 rounded-full bg-white/[0.04] overflow-hidden">
-            <motion.div className="h-full bg-[#C9A84C]/40 rounded-full"
+            <motion.div className="h-full bg-[#8B5CF6]/40 rounded-full"
               animate={{ width: `${((demoStep + 1) / 5) * 100}%` }}
               transition={{ duration: 0.5 }} />
           </div>
@@ -821,11 +821,11 @@ function PipelineStep({ icon: Icon, label, color, active, delay }) {
       className={`flex flex-col items-center transition-all duration-500 ${active ? 'scale-105' : ''}`}
     >
       <div className={`h-14 w-14 rounded-xl border flex items-center justify-center mb-2 transition-all duration-500 ${
-        active ? 'border-[#C9A84C]/30 bg-[#C9A84C]/[0.08] shadow-lg shadow-[#C9A84C]/10' : 'border-white/[0.06] bg-white/[0.02]'
+        active ? 'border-[#8B5CF6]/30 bg-[#8B5CF6]/[0.08] shadow-lg shadow-[#8B5CF6]/10' : 'border-white/[0.06] bg-white/[0.02]'
       }`}>
-        <Icon size={20} className={active ? 'text-[#C9A84C]' : color} />
+        <Icon size={20} className={active ? 'text-[#8B5CF6]' : color} />
       </div>
-      <span className={`text-[9px] font-mono transition-colors ${active ? 'text-[#C9A84C]' : 'text-[#B0B0B0]'}`}>{label}</span>
+      <span className={`text-[9px] font-mono transition-colors ${active ? 'text-[#8B5CF6]' : 'text-[#B0B0B0]'}`}>{label}</span>
     </motion.div>
   );
 }
@@ -843,110 +843,110 @@ export default function LandingV2() {
 
   /* Landing always defaults to English for new visitors */
   /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  useState(() => { if (!localStorage.getItem('agentzz_lang')) i18n.changeLanguage('en'); });
+  useState(() => { if (!localStorage.getItem('studiox_lang')) i18n.changeLanguage('en'); });
   const [billingAnnual, setBillingAnnual] = useState(true);
   const [activeAgent, setActiveAgent] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
 
   const L = {
     pt: {
-      badge: 'Plataforma de agentes IA',
-      h1a: 'Seus agentes.', h1b: 'Suas campanhas.', h1c: 'Todos os canais.',
-      sub: 'Crie agentes inteligentes, gere campanhas completas com IA e publique em todas as redes — sem codigo.',
-      cta: 'Comece Gratis', demo: 'Ver Demo',
-      s1: 'Agentes IA', s2: 'Canais', s3: 'Idiomas', s4: 'Uptime',
-      how_tag: 'Seus agentes', how_title: 'Agentes com personalidade. ', how_title2: 'Configuracao intuitiva.',
-      how_sub: 'Cada agente tem habilidades unicas e pode ser configurado em minutos.',
-      skill_sales: 'Vendas', skill_support: 'Suporte', skill_schedule: 'Agendamento',
-      skill_qualify: 'Qualificacao', skill_followup: 'Follow-up', skill_multilang: 'Multi-idioma',
-      ag1_name: 'Sarah', ag1_role: 'Agente de Vendas', ag1_desc: 'Especialista em conversao e qualificacao de leads.',
-      ag2_name: 'Carlos', ag2_role: 'Suporte Tecnico', ag2_desc: 'Resolve duvidas tecnicas com clareza.',
-      ag3_name: 'Sophia', ag3_role: 'Agendamento', ag3_desc: 'Gerencia agenda e envia lembretes automaticos.',
-      ag4_name: 'Emily', ag4_role: 'Agente Pessoal', ag4_desc: 'Assistente pessoal inteligente para tarefas do dia a dia.',
+      badge: 'Estúdio de Vídeo IA',
+      h1a: 'Seu roteiro.', h1b: 'Seus personagens.', h1c: 'Seu vídeo.',
+      sub: 'Crie vídeos profissionais com IA: roteiros, storyboards, avatares e produção completa — do script ao vídeo final.',
+      cta: 'Comece Grátis', demo: 'Ver Demo',
+      s1: 'Projetos', s2: 'Avatares', s3: 'Idiomas', s4: 'Uptime',
+      how_tag: 'Pipeline Criativo', how_title: 'Do roteiro ao vídeo. ', how_title2: 'Produção completa.',
+      how_sub: 'Pipeline inteligente com IA em cada etapa da produção.',
+      skill_sales: 'Roteiro', skill_support: 'Storyboard', skill_schedule: 'Produção',
+      skill_qualify: 'Vozes', skill_followup: 'Edição', skill_multilang: 'Multi-idioma',
+      ag1_name: 'Screenwriter', ag1_role: 'Roteirista IA', ag1_desc: 'Cria roteiros profissionais com diálogos e cenas.',
+      ag2_name: 'Director', ag2_role: 'Diretor IA', ag2_desc: 'Dirige cenas e cria storyboards visuais.',
+      ag3_name: 'Voice Artist', ag3_role: 'Design de Voz', ag3_desc: 'Cria vozes únicas para cada personagem.',
+      ag4_name: 'Producer', ag4_role: 'Produtor IA', ag4_desc: 'Gerencia produção e exporta vídeos finais.',
       skill_personal: 'Pessoal',
-      ag_personality: 'Personalidade', ag_knowledge: 'Base de conhecimento', ag_channels: 'Canais ativos',
-      ag_lang: 'Idiomas', ag_rules: 'Regras',
+      ag_personality: 'Estilo', ag_knowledge: 'Base criativa', ag_channels: 'Formatos',
+      ag_lang: 'Idiomas', ag_rules: 'Diretrizes',
       config_title: 'Configure em minutos',
-      ch_tag: 'Canais integrados', ch_title: 'Um inbox. ', ch_title2: 'Todos os canais.',
-      ch_sub: 'Seus agentes atendem em todas as plataformas com inbox unificado.',
-      ai_tag: 'AI Marketing Studio', ai_title: 'Da ideia ao ar ', ai_title2: 'em minutos.',
-      ai_sub: 'A IA cria copy, imagens, audio e video com avatar — tudo automatico. Veja o processo:',
-      ai_step1: 'Descreva seu objetivo', ai_step1d: 'A IA analisa seu negocio e gera a estrategia da campanha automaticamente.',
-      ai_step2: 'Copy + Design gerados', ai_step2d: 'Textos persuasivos e imagens profissionais criados em segundos.',
-      ai_step3: 'Video com avatar IA', ai_step3d: 'Apresentador virtual com lip-sync e narracao em qualquer idioma.',
-      ai_step4: 'Publicado nos canais', ai_step4d: 'Variantes automaticas para Instagram, WhatsApp, TikTok e mais.',
-      camp_tag: 'Campanhas criadas', camp_title: 'Resultados reais. ', camp_title2: 'Campanhas reais.',
-      camp_sub: 'Veja exemplos de campanhas geradas pela nossa IA.',
+      ch_tag: 'Formatos de saída', ch_title: 'Um projeto. ', ch_title2: 'Todos os formatos.',
+      ch_sub: 'Exporte para YouTube, TikTok, Instagram e mais.',
+      ai_tag: 'AI Video Studio', ai_title: 'Da ideia ao vídeo ', ai_title2: 'em minutos.',
+      ai_sub: 'A IA cria roteiro, storyboard, vozes e vídeo com avatar — tudo automatico. Veja o processo:',
+      ai_step1: 'Escreva seu roteiro', ai_step1d: 'A IA transforma sua ideia em roteiro profissional com cenas e diálogos.',
+      ai_step2: 'Storyboard + Personagens', ai_step2d: 'Painéis ilustrados e avatares criados em segundos.',
+      ai_step3: 'Vozes e produção', ai_step3d: 'Vozes únicas por personagem com narração profissional.',
+      ai_step4: 'Vídeo final', ai_step4d: 'Produção completa com Sora 2 e exportação multi-formato.',
+      camp_tag: 'Projetos criados', camp_title: 'Resultados reais. ', camp_title2: 'Vídeos reais.',
+      camp_sub: 'Veja exemplos de vídeos gerados pela nossa IA.',
       test_tag: 'Depoimentos', test_title: 'O que nossos clientes dizem',
-      feat_tag: 'Recursos', feat_title: 'Tudo que voce precisa',
-      feat_sub: 'Ferramentas poderosas para automatizar seu negocio.',
-      cta_title: 'Pronto para automatizar?', cta_sub: 'Comece gratis. Sem cartao. Configure em 5 minutos.',
+      feat_tag: 'Recursos', feat_title: 'Tudo que você precisa',
+      feat_sub: 'Ferramentas poderosas para produção de vídeo com IA.',
+      cta_title: 'Pronto para criar?', cta_sub: 'Comece grátis. Sem cartão. Crie seu primeiro vídeo em minutos.',
     },
     en: {
-      badge: 'AI Agent Platform',
-      h1a: 'Your agents.', h1b: 'Your campaigns.', h1c: 'Every channel.',
-      sub: 'Create intelligent agents, generate full AI campaigns, and publish everywhere — no code needed.',
+      badge: 'AI Video Studio',
+      h1a: 'Your script.', h1b: 'Your characters.', h1c: 'Your video.',
+      sub: 'Create professional videos with AI: scripts, storyboards, avatars, and full production — from script to final video.',
       cta: 'Start Free', demo: 'Watch Demo',
-      s1: 'AI Agents', s2: 'Channels', s3: 'Languages', s4: 'Uptime',
-      how_tag: 'Your agents', how_title: 'Agents with personality. ', how_title2: 'Intuitive setup.',
-      how_sub: 'Each agent has unique skills and can be configured in minutes.',
-      skill_sales: 'Sales', skill_support: 'Support', skill_schedule: 'Scheduling',
-      skill_qualify: 'Qualification', skill_followup: 'Follow-up', skill_multilang: 'Multi-language',
-      ag1_name: 'Sarah', ag1_role: 'Sales Agent', ag1_desc: 'Lead conversion specialist with a consultative approach.',
-      ag2_name: 'Carlos', ag2_role: 'Tech Support', ag2_desc: 'Resolves technical issues with clarity.',
-      ag3_name: 'Sophia', ag3_role: 'Scheduling', ag3_desc: 'Manages calendar and sends automatic reminders.',
-      ag4_name: 'Emily', ag4_role: 'Personal Agent', ag4_desc: 'Smart personal assistant for everyday tasks and reminders.',
+      s1: 'Projects', s2: 'Avatars', s3: 'Languages', s4: 'Uptime',
+      how_tag: 'Creative Pipeline', how_title: 'From script to video. ', how_title2: 'Full production.',
+      how_sub: 'Intelligent pipeline with AI at every production stage.',
+      skill_sales: 'Script', skill_support: 'Storyboard', skill_schedule: 'Production',
+      skill_qualify: 'Voices', skill_followup: 'Editing', skill_multilang: 'Multi-language',
+      ag1_name: 'Screenwriter', ag1_role: 'AI Screenwriter', ag1_desc: 'Creates professional scripts with dialogues and scenes.',
+      ag2_name: 'Director', ag2_role: 'AI Director', ag2_desc: 'Directs scenes and creates visual storyboards.',
+      ag3_name: 'Voice Artist', ag3_role: 'Voice Design', ag3_desc: 'Creates unique voices for each character.',
+      ag4_name: 'Producer', ag4_role: 'AI Producer', ag4_desc: 'Manages production and exports final videos.',
       skill_personal: 'Personal',
-      ag_personality: 'Personality', ag_knowledge: 'Knowledge base', ag_channels: 'Active channels',
-      ag_lang: 'Languages', ag_rules: 'Rules',
+      ag_personality: 'Style', ag_knowledge: 'Creative base', ag_channels: 'Formats',
+      ag_lang: 'Languages', ag_rules: 'Guidelines',
       config_title: 'Set up in minutes',
-      ch_tag: 'Integrated channels', ch_title: 'One inbox. ', ch_title2: 'Every channel.',
-      ch_sub: 'Your agents serve across every platform with a unified inbox.',
-      ai_tag: 'AI Marketing Studio', ai_title: 'From idea to live ', ai_title2: 'in minutes.',
-      ai_sub: 'AI creates copy, images, audio, and avatar video — fully automatic. See the process:',
-      ai_step1: 'Describe your goal', ai_step1d: 'AI analyzes your business and generates the campaign strategy.',
-      ai_step2: 'Copy + Design generated', ai_step2d: 'Persuasive text and professional images created in seconds.',
-      ai_step3: 'AI avatar video', ai_step3d: 'Virtual presenter with lip-sync and narration in any language.',
-      ai_step4: 'Published on channels', ai_step4d: 'Auto variants for Instagram, WhatsApp, TikTok, and more.',
-      camp_tag: 'Created campaigns', camp_title: 'Real results. ', camp_title2: 'Real campaigns.',
-      camp_sub: 'See examples of AI-generated campaigns.',
+      ch_tag: 'Output formats', ch_title: 'One project. ', ch_title2: 'Every format.',
+      ch_sub: 'Export to YouTube, TikTok, Instagram and more.',
+      ai_tag: 'AI Video Studio', ai_title: 'From idea to video ', ai_title2: 'in minutes.',
+      ai_sub: 'AI creates script, storyboard, voices, and avatar video — fully automatic. See the process:',
+      ai_step1: 'Write your script', ai_step1d: 'AI transforms your idea into professional script with scenes and dialogues.',
+      ai_step2: 'Storyboard + Characters', ai_step2d: 'Illustrated panels and avatars created in seconds.',
+      ai_step3: 'Voices and production', ai_step3d: 'Unique voices per character with professional narration.',
+      ai_step4: 'Final video', ai_step4d: 'Full production with Sora 2 and multi-format export.',
+      camp_tag: 'Created projects', camp_title: 'Real results. ', camp_title2: 'Real videos.',
+      camp_sub: 'See examples of AI-generated videos.',
       test_tag: 'Testimonials', test_title: 'What our clients say',
       feat_tag: 'Features', feat_title: 'Everything you need',
-      feat_sub: 'Powerful tools to automate your business.',
-      cta_title: 'Ready to automate?', cta_sub: 'Start free. No credit card. Set up in 5 minutes.',
+      feat_sub: 'Powerful tools for AI video production.',
+      cta_title: 'Ready to create?', cta_sub: 'Start free. No credit card. Create your first video in minutes.',
     },
     es: {
-      badge: 'Plataforma de agentes IA',
-      h1a: 'Tus agentes.', h1b: 'Tus campanas.', h1c: 'Todos los canales.',
-      sub: 'Crea agentes inteligentes, genera campanas con IA y publica en todas las redes — sin codigo.',
+      badge: 'Estudio de Video IA',
+      h1a: 'Tu guión.', h1b: 'Tus personajes.', h1c: 'Tu video.',
+      sub: 'Crea videos profesionales con IA: guiones, storyboards, avatares y producción completa — del script al video final.',
       cta: 'Empieza Gratis', demo: 'Ver Demo',
-      s1: 'Agentes IA', s2: 'Canales', s3: 'Idiomas', s4: 'Uptime',
-      how_tag: 'Tus agentes', how_title: 'Agentes con personalidad. ', how_title2: 'Configuracion intuitiva.',
-      how_sub: 'Cada agente tiene habilidades unicas y se configura en minutos.',
-      skill_sales: 'Ventas', skill_support: 'Soporte', skill_schedule: 'Agendamiento',
-      skill_qualify: 'Calificacion', skill_followup: 'Follow-up', skill_multilang: 'Multi-idioma',
-      ag1_name: 'Sarah', ag1_role: 'Agente de Ventas', ag1_desc: 'Especialista en conversion de leads.',
-      ag2_name: 'Carlos', ag2_role: 'Soporte Tecnico', ag2_desc: 'Resuelve dudas tecnicas con claridad.',
-      ag3_name: 'Sophia', ag3_role: 'Agendamiento', ag3_desc: 'Gestiona agenda y envia recordatorios.',
-      ag4_name: 'Emily', ag4_role: 'Agente Personal', ag4_desc: 'Asistente personal inteligente para tareas del dia a dia.',
+      s1: 'Proyectos', s2: 'Avatares', s3: 'Idiomas', s4: 'Uptime',
+      how_tag: 'Pipeline Creativo', how_title: 'Del guión al video. ', how_title2: 'Producción completa.',
+      how_sub: 'Pipeline inteligente con IA en cada etapa de producción.',
+      skill_sales: 'Guión', skill_support: 'Storyboard', skill_schedule: 'Producción',
+      skill_qualify: 'Voces', skill_followup: 'Edición', skill_multilang: 'Multi-idioma',
+      ag1_name: 'Screenwriter', ag1_role: 'Guionista IA', ag1_desc: 'Crea guiones profesionales con diálogos y escenas.',
+      ag2_name: 'Director', ag2_role: 'Director IA', ag2_desc: 'Dirige escenas y crea storyboards visuales.',
+      ag3_name: 'Voice Artist', ag3_role: 'Diseño de Voz', ag3_desc: 'Crea voces únicas para cada personaje.',
+      ag4_name: 'Producer', ag4_role: 'Productor IA', ag4_desc: 'Gestiona producción y exporta videos finales.',
       skill_personal: 'Personal',
-      ag_personality: 'Personalidad', ag_knowledge: 'Base de conocimiento', ag_channels: 'Canales activos',
-      ag_lang: 'Idiomas', ag_rules: 'Reglas',
+      ag_personality: 'Estilo', ag_knowledge: 'Base creativa', ag_channels: 'Formatos',
+      ag_lang: 'Idiomas', ag_rules: 'Directrices',
       config_title: 'Configura en minutos',
-      ch_tag: 'Canales integrados', ch_title: 'Un inbox. ', ch_title2: 'Todos los canales.',
-      ch_sub: 'Tus agentes atienden en todas las plataformas.',
-      ai_tag: 'AI Marketing Studio', ai_title: 'De la idea al aire ', ai_title2: 'en minutos.',
-      ai_sub: 'La IA crea copy, imagenes, audio y video con avatar — todo automatico.',
-      ai_step1: 'Describe tu objetivo', ai_step1d: 'La IA analiza tu negocio y genera la estrategia.',
-      ai_step2: 'Copy + Diseno generados', ai_step2d: 'Textos persuasivos e imagenes en segundos.',
-      ai_step3: 'Video con avatar IA', ai_step3d: 'Presentador virtual con lip-sync profesional.',
-      ai_step4: 'Publicado en canales', ai_step4d: 'Variantes auto para Instagram, WhatsApp, TikTok.',
-      camp_tag: 'Campanas creadas', camp_title: 'Resultados reales. ', camp_title2: 'Campanas reales.',
-      camp_sub: 'Mira ejemplos de campanas generadas por IA.',
+      ch_tag: 'Formatos de salida', ch_title: 'Un proyecto. ', ch_title2: 'Todos los formatos.',
+      ch_sub: 'Exporta a YouTube, TikTok, Instagram y más.',
+      ai_tag: 'AI Video Studio', ai_title: 'De la idea al video ', ai_title2: 'en minutos.',
+      ai_sub: 'La IA crea guión, storyboard, voces y video con avatar — todo automático.',
+      ai_step1: 'Escribe tu guión', ai_step1d: 'La IA transforma tu idea en guión profesional con escenas y diálogos.',
+      ai_step2: 'Storyboard + Personajes', ai_step2d: 'Paneles ilustrados y avatares creados en segundos.',
+      ai_step3: 'Voces y producción', ai_step3d: 'Voces únicas por personaje con narración profesional.',
+      ai_step4: 'Video final', ai_step4d: 'Producción completa con Sora 2 y exportación multi-formato.',
+      camp_tag: 'Proyectos creados', camp_title: 'Resultados reales. ', camp_title2: 'Videos reales.',
+      camp_sub: 'Mira ejemplos de videos generados por IA.',
       test_tag: 'Testimonios', test_title: 'Lo que dicen nuestros clientes',
       feat_tag: 'Recursos', feat_title: 'Todo lo que necesitas',
-      feat_sub: 'Herramientas poderosas para automatizar tu negocio.',
-      cta_title: 'Listo para automatizar?', cta_sub: 'Empieza gratis. Sin tarjeta.',
+      feat_sub: 'Herramientas poderosas para producción de video con IA.',
+      cta_title: '¿Listo para crear?', cta_sub: 'Empieza gratis. Sin tarjeta. Crea tu primer video en minutos.',
     },
   };
   const l = L[lang] || L.en;
@@ -997,7 +997,7 @@ export default function LandingV2() {
     { icon: Image, label: 'Design', color: 'text-pink-400' },
     { icon: Volume2, label: 'Audio', color: 'text-emerald-400' },
     { icon: Video, label: 'Video', color: 'text-orange-400' },
-    { icon: Send, label: 'Publish', color: 'text-[#C9A84C]' },
+    { icon: Send, label: 'Publish', color: 'text-[#8B5CF6]' },
   ];
 
   const studioSteps = [
@@ -1076,12 +1076,12 @@ export default function LandingV2() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#060606] text-white overflow-x-hidden selection:bg-[#C9A84C]/20 selection:text-[#C9A84C]">
+    <div className="min-h-screen bg-[#060606] text-white overflow-x-hidden selection:bg-[#8B5CF6]/20 selection:text-[#8B5CF6]">
 
       {/* ═══ HEADER ═══ */}
       <header className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.04] bg-[#060606]/70 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-          <img src="/logo-agentzz.png" alt="Agents" className="h-8" data-testid="landing-logo" />
+          <img src="/logo-studiox.svg" alt="StudioX" className="h-8" data-testid="landing-logo" />
           <div className="flex items-center gap-2.5">
             {/* Language selector */}
             <div className="flex items-center border border-white/[0.06] rounded-lg overflow-hidden" data-testid="lang-selector">
@@ -1091,10 +1091,10 @@ export default function LandingV2() {
                 { code: 'es', label: 'ES' },
               ].map(lg => (
                 <button key={lg.code} data-testid={`lang-${lg.code}`}
-                  onClick={() => { i18n.changeLanguage(lg.code); localStorage.setItem('agentzz_lang', lg.code); }}
+                  onClick={() => { i18n.changeLanguage(lg.code); localStorage.setItem('studiox_lang', lg.code); }}
                   className={`px-2.5 py-1.5 text-[10px] font-mono font-semibold transition-all ${
                     lang === lg.code
-                      ? 'bg-[#C9A84C]/[0.12] text-[#C9A84C]'
+                      ? 'bg-[#8B5CF6]/[0.12] text-[#8B5CF6]'
                       : 'text-[#B0B0B0] hover:text-[#E5E5E5]'
                   }`}>
                   {lg.label}
@@ -1116,19 +1116,19 @@ export default function LandingV2() {
       {/* ═══ HERO ═══ */}
       <section className="relative pt-24 pb-14 px-5 overflow-hidden" data-testid="hero-section">
         <TechGrid />
-        <Glow className="h-[400px] w-[500px] -top-24 left-[15%] bg-[#C9A84C]/[0.03]" />
+        <Glow className="h-[400px] w-[500px] -top-24 left-[15%] bg-[#8B5CF6]/[0.03]" />
         <div className="relative z-10 mx-auto max-w-6xl">
           <motion.div initial="hidden" animate="visible" variants={fade} custom={0} className="flex justify-center mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#C9A84C]/12 bg-[#C9A84C]/[0.04] px-4 py-1.5">
-              <Zap size={11} className="text-[#C9A84C]" />
-              <span className="text-[10px] font-mono font-medium text-[#C9A84C]/80 tracking-wider uppercase">{l.badge}</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#8B5CF6]/12 bg-[#8B5CF6]/[0.04] px-4 py-1.5">
+              <Zap size={11} className="text-[#8B5CF6]" />
+              <span className="text-[10px] font-mono font-medium text-[#8B5CF6]/80 tracking-wider uppercase">{l.badge}</span>
             </div>
           </motion.div>
 
           <motion.div initial="hidden" animate="visible" variants={fade} custom={1} className="text-center max-w-3xl mx-auto mb-4">
             <h1 className="text-2xl font-semibold leading-[1.15] tracking-tight whitespace-nowrap sm:text-3xl lg:text-4xl">
               <span className="text-white">{l.h1a}</span>{' '}
-              <span className="bg-gradient-to-r from-[#C9A84C] to-[#E0C76B] bg-clip-text text-transparent">{l.h1b}</span>{' '}
+              <span className="bg-gradient-to-r from-[#8B5CF6] to-[#E0C76B] bg-clip-text text-transparent">{l.h1b}</span>{' '}
               <span className="text-white">{l.h1c}</span>
             </h1>
           </motion.div>
@@ -1156,7 +1156,7 @@ export default function LandingV2() {
             <Glass hover className="p-4 flex flex-col">
               {/* Header */}
               <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-[#C9A84C]/15">
+                <div className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-[#8B5CF6]/15">
                   <img src={AVATARS.Sarah} alt="Sarah" className="h-full w-full object-cover" />
                 </div>
                 <div>
@@ -1169,7 +1169,7 @@ export default function LandingV2() {
               <div className="space-y-1.5 mb-3">
                 {['WhatsApp', 'Instagram', 'Telegram'].map(ch => (
                   <div key={ch} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-                    <div className="h-1.5 w-1.5 rounded-full bg-[#C9A84C]/60" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-[#8B5CF6]/60" />
                     <span className="text-[8px] text-[#888] font-mono">{ch}</span>
                     <span className="ml-auto text-[7px] text-emerald-400/70 font-mono">Active</span>
                   </div>
@@ -1178,7 +1178,7 @@ export default function LandingV2() {
               {/* Mentalidade */}
               <div className="border-t border-white/[0.05] pt-3 mb-3">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Brain size={9} className="text-[#C9A84C]" />
+                  <Brain size={9} className="text-[#8B5CF6]" />
                   <p className="text-[8px] text-white font-semibold tracking-wide">{lang === 'pt' ? 'Mentalidade' : lang === 'es' ? 'Mentalidad' : 'Mindset'}</p>
                 </div>
                 <p className="text-[7px] text-[#999] leading-relaxed">
@@ -1192,7 +1192,7 @@ export default function LandingV2() {
               {/* Skills with progress bars */}
               <div className="border-t border-white/[0.05] pt-3 flex-1">
                 <div className="flex items-center gap-1.5 mb-2.5">
-                  <Settings size={9} className="text-[#C9A84C]" />
+                  <Settings size={9} className="text-[#8B5CF6]" />
                   <p className="text-[8px] text-white font-semibold tracking-wide">Skills</p>
                 </div>
                 <div className="space-y-2">
@@ -1207,19 +1207,19 @@ export default function LandingV2() {
                     <div key={s.name}>
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="text-[7px] text-[#888]">{s.name}</span>
-                        <span className="text-[7px] text-[#C9A84C] font-bold font-mono">{s.pct}%</span>
+                        <span className="text-[7px] text-[#8B5CF6] font-bold font-mono">{s.pct}%</span>
                       </div>
                       <div className="h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
                         <motion.div initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }} viewport={{ once: true }}
                           transition={{ duration: 1, delay: 0.2 }}
-                          className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#C9A84C]/70" />
+                          className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#8B5CF6]/70" />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Footer stat */}
-              <div className="flex items-center gap-1 text-[8px] text-[#C9A84C]/60 font-mono mt-3 pt-2 border-t border-white/[0.05]">
+              <div className="flex items-center gap-1 text-[8px] text-[#8B5CF6]/60 font-mono mt-3 pt-2 border-t border-white/[0.05]">
                 <Sparkles size={8} /> 847 conversations
               </div>
             </Glass>
@@ -1228,8 +1228,8 @@ export default function LandingV2() {
 
             <Glass hover className="p-4 flex flex-col">
               <div className="flex items-center gap-2 mb-2.5">
-                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center border border-[#C9A84C]/10">
-                  <Megaphone size={13} className="text-[#C9A84C]" />
+                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center border border-[#8B5CF6]/10">
+                  <Megaphone size={13} className="text-[#8B5CF6]" />
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold text-white">AI Campaign</p>
@@ -1241,8 +1241,8 @@ export default function LandingV2() {
                 <img src={CAMPAIGN_IMAGES.feed} alt="Campaign" className="w-full aspect-[4/3] object-cover object-top" />
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
                 <div className="absolute bottom-2 left-2.5 right-2.5">
-                  <p className="text-[9px] font-bold text-white">AgentZZ</p>
-                  <p className="text-[7px] text-[#C9A84C]/70 font-mono">AI-Powered Campaign</p>
+                  <p className="text-[9px] font-bold text-white">StudioX</p>
+                  <p className="text-[7px] text-[#8B5CF6]/70 font-mono">AI-Powered Campaign</p>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-1 mb-3">
@@ -1255,7 +1255,7 @@ export default function LandingV2() {
                   <p className="text-[6px] text-[#B0B0B0] font-mono">Conv.</p>
                 </div>
                 <div className="rounded bg-white/[0.02] border border-white/[0.04] p-1 text-center">
-                  <p className="text-[9px] font-bold text-[#C9A84C] font-mono">1.7k</p>
+                  <p className="text-[9px] font-bold text-[#8B5CF6] font-mono">1.7k</p>
                   <p className="text-[6px] text-[#B0B0B0] font-mono">Leads</p>
                 </div>
               </div>
@@ -1333,13 +1333,13 @@ export default function LandingV2() {
       {/* ═══ AGENTS ═══ */}
       <section className="py-16 px-5 relative" data-testid="agents-section">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#080808] to-transparent" />
-        <Glow className="h-[300px] w-[400px] top-[20%] right-[-80px] bg-[#C9A84C]/[0.02]" />
+        <Glow className="h-[300px] w-[400px] top-[20%] right-[-80px] bg-[#8B5CF6]/[0.02]" />
         <div className="relative z-10 mx-auto max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade}
             className="text-center mb-10">
-            <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.how_tag}</p>
+            <p className="text-[9px] font-mono font-semibold text-[#8B5CF6] tracking-[0.3em] uppercase mb-2">{l.how_tag}</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
-              {l.how_title}<span className="text-[#C9A84C]">{l.how_title2}</span>
+              {l.how_title}<span className="text-[#8B5CF6]">{l.how_title2}</span>
             </h2>
             <p className="text-sm text-[#B0B0B0] max-w-md mx-auto mt-2">{l.how_sub}</p>
           </motion.div>
@@ -1350,17 +1350,17 @@ export default function LandingV2() {
                 <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i}
                   onClick={() => setActiveAgent(i)}
                   className={`cursor-pointer rounded-xl border p-3 transition-all duration-400 ${
-                    activeAgent === i ? 'border-[#C9A84C]/20 bg-[#C9A84C]/[0.03]' : 'border-white/[0.05] bg-white/[0.01] hover:border-white/[0.08]'
+                    activeAgent === i ? 'border-[#8B5CF6]/20 bg-[#8B5CF6]/[0.03]' : 'border-white/[0.05] bg-white/[0.01] hover:border-white/[0.08]'
                   }`} data-testid={`agent-selector-${i}`}>
                   <div className="flex items-center gap-2.5">
-                    <div className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all ${activeAgent === i ? 'ring-[#C9A84C]/30' : 'ring-white/[0.06]'}`}>
+                    <div className={`h-10 w-10 rounded-full overflow-hidden ring-2 transition-all ${activeAgent === i ? 'ring-[#8B5CF6]/30' : 'ring-white/[0.06]'}`}>
                       <img src={ag.avatar} alt={ag.name} className="h-full w-full object-cover" />
                     </div>
                     <div className="flex-1">
                       <p className="text-[11px] font-semibold text-white">{ag.name}</p>
                       <p className="text-[8px] text-[#999] font-mono">{ag.role}</p>
                     </div>
-                    {activeAgent === i && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="h-2 w-2 rounded-full bg-[#C9A84C]" />}
+                    {activeAgent === i && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="h-2 w-2 rounded-full bg-[#8B5CF6]" />}
                   </div>
                   <p className="text-[9px] text-[#B0B0B0] leading-relaxed mt-1.5">{ag.desc}</p>
                 </motion.div>
@@ -1373,12 +1373,12 @@ export default function LandingV2() {
                   <Glass className="p-4">
                     {/* Agent header */}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="h-11 w-11 rounded-xl overflow-hidden ring-2 ring-[#C9A84C]/20">
+                      <div className="h-11 w-11 rounded-xl overflow-hidden ring-2 ring-[#8B5CF6]/20">
                         <img src={current.avatar} alt={current.name} className="h-full w-full object-cover" />
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-white">{current.name}</h3>
-                        <p className="text-[9px] text-[#C9A84C] font-mono">{current.role}</p>
+                        <p className="text-[9px] text-[#8B5CF6] font-mono">{current.role}</p>
                       </div>
                       <div className="ml-auto flex items-center gap-1 rounded-full border border-emerald-400/15 bg-emerald-400/[0.05] px-2 py-0.5">
                         <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -1389,7 +1389,7 @@ export default function LandingV2() {
                     {/* Mindset description */}
                     <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2.5 mb-3">
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <Brain size={8} className="text-[#C9A84C]" />
+                        <Brain size={8} className="text-[#8B5CF6]" />
                         <p className="text-[8px] text-white font-semibold">{lang === 'pt' ? 'Mentalidade' : lang === 'es' ? 'Mentalidad' : 'Mindset'}</p>
                       </div>
                       <p className="text-[8px] text-[#999] leading-relaxed">{current.mindset}</p>
@@ -1398,17 +1398,17 @@ export default function LandingV2() {
                     {/* Skills + Channels row */}
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-1.5"><Settings size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Habilidades' : lang === 'es' ? 'Habilidades' : 'Skills'}</p>
+                        <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-1.5"><Settings size={7} className="inline mr-1 text-[#8B5CF6]" />{lang === 'pt' ? 'Habilidades' : lang === 'es' ? 'Habilidades' : 'Skills'}</p>
                         <div className="flex flex-wrap gap-1">
                           {current.skills.map((skill, si) => (
-                            <span key={si} className="flex items-center gap-1 rounded-full border border-[#C9A84C]/10 bg-[#C9A84C]/[0.04] px-2 py-0.5 text-[7px] font-mono text-[#C9A84C]/80">
-                              <Star size={7} className="text-[#C9A84C]" />{skill}
+                            <span key={si} className="flex items-center gap-1 rounded-full border border-[#8B5CF6]/10 bg-[#8B5CF6]/[0.04] px-2 py-0.5 text-[7px] font-mono text-[#8B5CF6]/80">
+                              <Star size={7} className="text-[#8B5CF6]" />{skill}
                             </span>
                           ))}
                         </div>
                       </div>
                       <div>
-                        <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-1.5"><Globe size={7} className="inline mr-1 text-[#C9A84C]" />{l.ag_channels}</p>
+                        <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-1.5"><Globe size={7} className="inline mr-1 text-[#8B5CF6]" />{l.ag_channels}</p>
                         <div className="flex flex-wrap gap-1">
                           {current.channels.map((ch, ci) => (
                             <span key={ci} className="flex items-center gap-1 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 text-[8px] text-[#888] font-mono">
@@ -1421,18 +1421,18 @@ export default function LandingV2() {
 
                     {/* Performance stats with progress bars */}
                     <div className="mb-3">
-                      <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-2"><BarChart3 size={7} className="inline mr-1 text-[#C9A84C]" />{lang === 'pt' ? 'Performance' : lang === 'es' ? 'Rendimiento' : 'Performance'}</p>
+                      <p className="text-[7px] font-mono text-[#B0B0B0] uppercase tracking-widest mb-2"><BarChart3 size={7} className="inline mr-1 text-[#8B5CF6]" />{lang === 'pt' ? 'Performance' : lang === 'es' ? 'Rendimiento' : 'Performance'}</p>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                         {current.stats.map((s, si) => (
                           <div key={si}>
                             <div className="flex items-center justify-between mb-0.5">
                               <span className="text-[7px] text-[#888]">{s.name}</span>
-                              <span className="text-[7px] text-[#C9A84C] font-bold font-mono">{s.pct}{s.pct > 10 ? '%' : '%'}</span>
+                              <span className="text-[7px] text-[#8B5CF6] font-bold font-mono">{s.pct}{s.pct > 10 ? '%' : '%'}</span>
                             </div>
                             <div className="h-[3px] rounded-full bg-white/[0.04] overflow-hidden">
                               <motion.div initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }} viewport={{ once: true }}
                                 transition={{ duration: 1, delay: si * 0.15 }}
-                                className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#C9A84C]/70" />
+                                className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#8B5CF6]/70" />
                             </div>
                           </div>
                         ))}
@@ -1450,7 +1450,7 @@ export default function LandingV2() {
                         <p className="text-[6px] text-[#B0B0B0] font-mono uppercase">{lang === 'pt' ? 'Resolvido' : lang === 'es' ? 'Resuelto' : 'Resolved'}</p>
                       </div>
                       <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-center">
-                        <p className="text-[11px] font-bold text-[#C9A84C] font-mono">{current.metrics.avgTime}</p>
+                        <p className="text-[11px] font-bold text-[#8B5CF6] font-mono">{current.metrics.avgTime}</p>
                         <p className="text-[6px] text-[#B0B0B0] font-mono uppercase">{lang === 'pt' ? 'Tempo Resp.' : lang === 'es' ? 'Tiempo Resp.' : 'Avg. Response'}</p>
                       </div>
                     </div>
@@ -1458,7 +1458,7 @@ export default function LandingV2() {
                     {/* Config compact */}
                     <div className="rounded-lg border border-white/[0.05] bg-white/[0.01] p-2.5">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Sliders size={9} className="text-[#C9A84C]" />
+                        <Sliders size={9} className="text-[#8B5CF6]" />
                         <p className="text-[9px] font-semibold text-white">{l.config_title}</p>
                       </div>
                       <div className="grid grid-cols-4 gap-1.5">
@@ -1470,7 +1470,7 @@ export default function LandingV2() {
                         ].map((cfg, ci) => (
                           <div key={ci} className="rounded border border-white/[0.04] bg-white/[0.02] p-1.5">
                             <div className="flex items-center gap-1 mb-0.5">
-                              <cfg.icon size={7} className="text-[#C9A84C]/60" />
+                              <cfg.icon size={7} className="text-[#8B5CF6]/60" />
                               <span className="text-[6px] text-[#B0B0B0] font-mono uppercase">{cfg.label}</span>
                             </div>
                             <p className="text-[8px] text-white font-medium truncate">{cfg.value}</p>
@@ -1491,15 +1491,15 @@ export default function LandingV2() {
         <TechGrid />
         <div className="relative z-10 mx-auto max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
-            <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.ch_tag}</p>
-            <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.ch_title}<span className="text-[#C9A84C]">{l.ch_title2}</span></h2>
+            <p className="text-[9px] font-mono font-semibold text-[#8B5CF6] tracking-[0.3em] uppercase mb-2">{l.ch_tag}</p>
+            <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.ch_title}<span className="text-[#8B5CF6]">{l.ch_title2}</span></h2>
             <p className="text-sm text-[#B0B0B0] max-w-md mx-auto mt-2">{l.ch_sub}</p>
           </motion.div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {channels.map((ch, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i * 0.4}>
                 <Glass hover className="p-4 text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#C9A84C]/[0.05] mx-auto mb-2 border border-[#C9A84C]/[0.08]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/[0.05] mx-auto mb-2 border border-[#8B5CF6]/[0.08]">
                     <ch.Icon size={18} color={gold} />
                   </div>
                   <p className="text-[11px] font-semibold text-white mb-0.5">{ch.name}</p>
@@ -1513,8 +1513,8 @@ export default function LandingV2() {
 
       {/* ═══ DEMO SHOWCASE ═══ */}
       <section id="demo-section" className="py-16 px-5 relative overflow-hidden" data-testid="demo-section">
-        <Glow className="h-[300px] w-[400px] top-[10%] left-[-80px] bg-[#C9A84C]/[0.03]" />
-        <Glow className="h-[250px] w-[350px] bottom-[10%] right-[-80px] bg-[#C9A84C]/[0.02]" />
+        <Glow className="h-[300px] w-[400px] top-[10%] left-[-80px] bg-[#8B5CF6]/[0.03]" />
+        <Glow className="h-[250px] w-[350px] bottom-[10%] right-[-80px] bg-[#8B5CF6]/[0.02]" />
         <div className="relative z-10 mx-auto max-w-5xl">
           <CampaignDemo lang={lang} />
         </div>
@@ -1525,8 +1525,8 @@ export default function LandingV2() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#080808] to-transparent" />
         <div className="relative z-10 mx-auto max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-8">
-            <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.camp_tag}</p>
-            <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.camp_title}<span className="text-[#C9A84C]">{l.camp_title2}</span></h2>
+            <p className="text-[9px] font-mono font-semibold text-[#8B5CF6] tracking-[0.3em] uppercase mb-2">{l.camp_tag}</p>
+            <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">{l.camp_title}<span className="text-[#8B5CF6]">{l.camp_title2}</span></h2>
             <p className="text-sm text-[#B0B0B0] max-w-md mx-auto mt-2">{l.camp_sub}</p>
           </motion.div>
 
@@ -1536,7 +1536,7 @@ export default function LandingV2() {
               <button key={i} onClick={() => setActiveCamp(i)} data-testid={`camp-tab-${i}`}
                 className={`px-4 py-2 rounded-full text-[11px] font-semibold transition-all duration-300 border ${
                   activeCamp === i
-                    ? 'bg-[#C9A84C]/[0.12] border-[#C9A84C]/25 text-[#C9A84C]'
+                    ? 'bg-[#8B5CF6]/[0.12] border-[#8B5CF6]/25 text-[#8B5CF6]'
                     : 'border-white/[0.06] text-[#B0B0B0] hover:text-[#E5E5E5] hover:border-white/[0.12]'
                 }`}>
                 {c.name}
@@ -1557,8 +1557,8 @@ export default function LandingV2() {
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#E1306C]/30 transition-colors">
                       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
-                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
-                          <span className="text-[5px] font-bold text-[#C9A84C]">{initials}</span>
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center">
+                          <span className="text-[5px] font-bold text-[#8B5CF6]">{initials}</span>
                         </div>
                         <span className="text-[8px] text-white font-semibold">{camp.handle}</span>
                         <IgIcon size={8} color="#E1306C" />
@@ -1581,8 +1581,8 @@ export default function LandingV2() {
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#0084FF]/30 transition-colors">
                       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
-                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
-                          <span className="text-[5px] font-bold text-[#C9A84C]">{initials}</span>
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center">
+                          <span className="text-[5px] font-bold text-[#8B5CF6]">{initials}</span>
                         </div>
                         <div>
                           <span className="text-[8px] text-white font-semibold block leading-none">{camp.name}</span>
@@ -1615,8 +1615,8 @@ export default function LandingV2() {
                     <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
                       className="rounded-xl border border-white/[0.08] bg-[#111] overflow-hidden hover:border-[#25D366]/30 transition-colors">
                       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.05]">
-                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#C9A84C]/20 to-[#C9A84C]/5 flex items-center justify-center">
-                          <span className="text-[5px] font-bold text-[#C9A84C]">{initials}</span>
+                        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-[#8B5CF6]/20 to-[#8B5CF6]/5 flex items-center justify-center">
+                          <span className="text-[5px] font-bold text-[#8B5CF6]">{initials}</span>
                         </div>
                         <div>
                           <span className="text-[8px] text-white font-semibold block leading-none">{camp.name}</span>
@@ -1676,7 +1676,7 @@ export default function LandingV2() {
           {/* Campaign name + type below cards */}
           <div className="text-center mt-5">
             <p className="text-[13px] font-semibold text-white">{REAL_CAMPAIGNS[activeCamp].name}</p>
-            <p className="text-[10px] text-[#C9A84C] font-mono">{REAL_CAMPAIGNS[activeCamp].type}</p>
+            <p className="text-[10px] text-[#8B5CF6] font-mono">{REAL_CAMPAIGNS[activeCamp].type}</p>
           </div>
         </div>
       </section>
@@ -1686,7 +1686,7 @@ export default function LandingV2() {
         <TechGrid />
         <div className="relative z-10 mx-auto max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
-            <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.test_tag}</p>
+            <p className="text-[9px] font-mono font-semibold text-[#8B5CF6] tracking-[0.3em] uppercase mb-2">{l.test_tag}</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl">{l.test_title}</h2>
           </motion.div>
 
@@ -1696,7 +1696,7 @@ export default function LandingV2() {
                 <Glass hover className="p-5 h-full flex flex-col">
                   <div className="flex items-center gap-1 mb-3">
                     {[...Array(5)].map((_, si) => (
-                      <Star key={si} size={10} className="text-[#C9A84C] fill-[#C9A84C]" />
+                      <Star key={si} size={10} className="text-[#8B5CF6] fill-[#8B5CF6]" />
                     ))}
                   </div>
                   <p className="text-[11px] text-[#999] leading-relaxed flex-1 mb-4">"{t.text}"</p>
@@ -1721,7 +1721,7 @@ export default function LandingV2() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#080808] to-transparent" />
         <div className="relative z-10 mx-auto max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-10">
-            <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">{l.feat_tag}</p>
+            <p className="text-[9px] font-mono font-semibold text-[#8B5CF6] tracking-[0.3em] uppercase mb-2">{l.feat_tag}</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl">{l.feat_title}</h2>
             <p className="text-sm text-[#B0B0B0] mt-2">{l.feat_sub}</p>
           </motion.div>
@@ -1729,8 +1729,8 @@ export default function LandingV2() {
             {features.map((f, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i * 0.2}>
                 <Glass hover className="p-4 h-full">
-                  <div className="h-9 w-9 rounded-lg bg-[#C9A84C]/[0.06] flex items-center justify-center mb-3 border border-[#C9A84C]/[0.08]">
-                    <f.icon size={14} className="text-[#C9A84C]" />
+                  <div className="h-9 w-9 rounded-lg bg-[#8B5CF6]/[0.06] flex items-center justify-center mb-3 border border-[#8B5CF6]/[0.08]">
+                    <f.icon size={14} className="text-[#8B5CF6]" />
                   </div>
                   <h3 className="text-[12px] font-semibold text-white mb-1">{f.title}</h3>
                   <p className="text-[10px] text-[#B0B0B0] leading-relaxed">{f.desc}</p>
@@ -1744,19 +1744,19 @@ export default function LandingV2() {
       {/* ═══ PRICING ═══ */}
       <section className="py-8 sm:py-14 px-4 sm:px-5 relative" data-testid="pricing-section">
         <TechGrid />
-        <Glow className="h-[300px] w-[400px] top-[30%] left-[30%] bg-[#C9A84C]/[0.02]" />
+        <Glow className="h-[300px] w-[400px] top-[30%] left-[30%] bg-[#8B5CF6]/[0.02]" />
         <div className="relative z-10 mx-auto max-w-5xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-40px' }} variants={fade} className="text-center mb-8">
-            <p className="text-[9px] font-mono font-semibold text-[#C9A84C] tracking-[0.3em] uppercase mb-2">Pricing</p>
+            <p className="text-[9px] font-mono font-semibold text-[#8B5CF6] tracking-[0.3em] uppercase mb-2">Pricing</p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl">{t('landing.pricing_title')}</h2>
             <p className="text-sm text-[#B0B0B0] mt-2 mb-5">{t('landing.pricing_subtitle')}</p>
             <div className="inline-flex items-center gap-0.5 rounded-full border border-white/[0.06] bg-white/[0.02] p-0.5">
               <button onClick={() => setBillingAnnual(true)}
-                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/15' : 'text-[#999] hover:text-white'}`}>
+                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${billingAnnual ? 'bg-[#8B5CF6] text-[#0A0A0A] shadow-lg shadow-[#8B5CF6]/15' : 'text-[#999] hover:text-white'}`}>
                 {t('landing.billing_annual')} <span className="text-[9px] opacity-70 ml-0.5">{t('landing.billing_save')}</span>
               </button>
               <button onClick={() => setBillingAnnual(false)}
-                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/15' : 'text-[#999] hover:text-white'}`}>
+                className={`rounded-full px-5 py-2 text-[11px] font-mono font-medium transition-all ${!billingAnnual ? 'bg-[#8B5CF6] text-[#0A0A0A] shadow-lg shadow-[#8B5CF6]/15' : 'text-[#999] hover:text-white'}`}>
                 {t('landing.billing_monthly')}
               </button>
             </div>
@@ -1779,28 +1779,28 @@ export default function LandingV2() {
             ].map((plan, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade} custom={i}>
                 {plan.pro ? (
-                  <div className="relative rounded-2xl p-px bg-gradient-to-b from-[#C9A84C]/30 via-[#C9A84C]/10 to-transparent h-full">
+                  <div className="relative rounded-2xl p-px bg-gradient-to-b from-[#8B5CF6]/30 via-[#8B5CF6]/10 to-transparent h-full">
                     <div className="rounded-2xl bg-[#090909] h-full flex flex-col pt-5 px-3.5 pb-3.5 sm:pt-7 sm:px-5 sm:pb-5 relative">
-                      <div className="absolute inset-0 bg-gradient-to-b from-[#C9A84C]/[0.03] to-transparent pointer-events-none rounded-2xl" />
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full bg-[#C9A84C] px-3 py-0.5 sm:py-1 text-[8px] sm:text-[9px] font-mono font-bold text-[#0A0A0A] shadow-lg shadow-[#C9A84C]/20 whitespace-nowrap">{plan.badge}</div>
+                      <div className="absolute inset-0 bg-gradient-to-b from-[#8B5CF6]/[0.03] to-transparent pointer-events-none rounded-2xl" />
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full bg-[#8B5CF6] px-3 py-0.5 sm:py-1 text-[8px] sm:text-[9px] font-mono font-bold text-[#0A0A0A] shadow-lg shadow-[#8B5CF6]/20 whitespace-nowrap">{plan.badge}</div>
                       <div className="relative z-10 flex flex-col h-full">
                         <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{plan.name}</h3>
                         <p className="text-[9px] sm:text-[10px] text-[#B0B0B0] font-mono mb-1.5 sm:mb-3">{plan.desc}</p>
                         <div className="mb-1.5 sm:mb-3"><span className="text-lg sm:text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[9px] sm:text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
-                        <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#C9A84C] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
+                        <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#8B5CF6] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#8B5CF6] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
                         <button className="btn-gold mx-auto block rounded-lg px-6 py-1 text-[10px] sm:w-full sm:rounded-xl sm:py-1.5 sm:text-[11px] font-semibold">{plan.cta}</button>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className={`relative rounded-2xl border backdrop-blur-xl transition-all duration-500
-                    border-white/[0.06] bg-white/[0.015] hover:border-[#C9A84C]/20 hover:bg-white/[0.03]
+                    border-white/[0.06] bg-white/[0.015] hover:border-[#8B5CF6]/20 hover:bg-white/[0.03]
                     flex flex-col ${plan.badge ? 'pt-5 px-3.5 pb-3.5 sm:pt-7 sm:px-5 sm:pb-5' : 'p-3.5 sm:p-5'} h-full`}>
-                    {plan.badge && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full border border-[#C9A84C]/15 bg-[#060606] px-3 py-0.5 sm:py-1 text-[8px] sm:text-[9px] font-mono text-[#C9A84C] whitespace-nowrap">{plan.badge}</div>}
+                    {plan.badge && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 rounded-full border border-[#8B5CF6]/15 bg-[#060606] px-3 py-0.5 sm:py-1 text-[8px] sm:text-[9px] font-mono text-[#8B5CF6] whitespace-nowrap">{plan.badge}</div>}
                     <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{plan.name}</h3>
                     <p className="text-[9px] sm:text-[10px] text-[#B0B0B0] font-mono mb-1.5 sm:mb-3">{plan.desc}</p>
                     <div className="mb-1.5 sm:mb-3"><span className="text-lg sm:text-2xl font-bold text-white font-mono">{plan.price}</span><span className="text-[9px] sm:text-[10px] text-[#B0B0B0]">{plan.period}</span></div>
-                    <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#C9A84C] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#C9A84C] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
+                    <ul className="flex-1 space-y-0.5 sm:space-y-1.5 mb-2 sm:mb-4">{plan.feats.map((f, j) => <li key={j} className="flex items-start gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-[#999]"><Check size={9} className="text-[#8B5CF6] mt-0.5 flex-shrink-0 sm:hidden" /><Check size={10} className="text-[#8B5CF6] mt-0.5 flex-shrink-0 hidden sm:block" />{f}</li>)}</ul>
                     {plan.note && <p className="text-center text-[8px] sm:text-[9px] text-[#B0B0B0] font-mono mb-1 sm:mb-2">{plan.note}</p>}
                     <button className="btn-gold mx-auto block rounded-lg px-6 py-1 text-[10px] sm:w-full sm:rounded-xl sm:py-1.5 sm:text-[11px] font-semibold">{plan.cta}</button>
                   </div>
@@ -1813,7 +1813,7 @@ export default function LandingV2() {
 
       {/* ═══ CTA ═══ */}
       <section className="py-20 px-5 relative" data-testid="cta-section">
-        <Glow className="h-[200px] w-[300px] top-[40%] left-[40%] bg-[#C9A84C]/[0.03]" />
+        <Glow className="h-[200px] w-[300px] top-[40%] left-[40%] bg-[#8B5CF6]/[0.03]" />
         <div className="relative z-10 mx-auto max-w-2xl text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fade}>
             <h2 className="text-3xl font-bold text-white mb-3 sm:text-4xl leading-tight">{l.cta_title}</h2>
@@ -1829,11 +1829,11 @@ export default function LandingV2() {
       {/* ═══ FOOTER ═══ */}
       <footer className="border-t border-white/[0.04] px-5 py-5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
-          <img src="/logo-agentzz.png" alt="Agents" className="h-6 opacity-60" />
+          <img src="/logo-studiox.svg" alt="StudioX" className="h-6 opacity-60" />
           <div className="flex items-center gap-4">
             <WaIcon size={12} color="#444" /><IgIcon size={12} color="#444" /><FbIcon size={12} color="#444" /><TgIcon size={12} color="#444" />
           </div>
-          <p className="text-[9px] text-[#999] font-mono">2026 Agents. All rights reserved.</p>
+          <p className="text-[9px] text-[#999] font-mono">2026 StudioX. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -1,7 +1,7 @@
-# AgentZZ - Product Requirements Document
+# StudioX - Product Requirements Document
 
 ## Original Problem Statement
-AgentZZ is a comprehensive, mobile-first, no-code SaaS platform for AI agents and Directed Studio video production.
+StudioX is a standalone AI-powered video studio platform focused on end-to-end video production with AI.
 
 ## Core Features Implemented
 

@@ -79,9 +79,9 @@ function Section({ title, icon: Icon, children, defaultOpen = false, badge }) {
   return (
     <div className="border border-[#1A1A1A] rounded-xl overflow-hidden">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left bg-[#0D0D0D] hover:bg-[#111] transition">
-        <Icon size={15} className="text-[#C9A84C] shrink-0" />
+        <Icon size={15} className="text-[#8B5CF6] shrink-0" />
         <span className="text-xs font-semibold text-white flex-1">{title}</span>
-        {badge && <span className="rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[8px] font-bold text-[#C9A84C]">{badge}</span>}
+        {badge && <span className="rounded-full bg-[#8B5CF6]/10 px-2 py-0.5 text-[8px] font-bold text-[#8B5CF6]">{badge}</span>}
         {open ? <ChevronUp size={14} className="text-[#B0B0B0]" /> : <ChevronDown size={14} className="text-[#B0B0B0]" />}
       </button>
       {open && <div className="px-3.5 py-3 space-y-2.5 bg-[#0A0A0A]">{children}</div>}
@@ -106,12 +106,12 @@ function Chips({ items, value, onChange, multi = false, cols = 3 }) {
         <button key={item.id} data-testid={`chip-${item.id}`} onClick={() => toggle(item.id)}
           className={`rounded-lg border px-2 py-2 text-left transition-all ${
             isActive(item.id)
-              ? 'border-[#C9A84C]/50 bg-[#C9A84C]/8'
+              ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/8'
               : 'border-[#1A1A1A] bg-[#0D0D0D] hover:border-[#2A2A2A]'
           }`}>
           {item.icon && <span className="text-sm">{item.icon}</span>}
           {item.flag && <span className="text-sm mr-1">{item.flag}</span>}
-          <span className={`text-[10px] font-medium block ${isActive(item.id) ? 'text-[#C9A84C]' : 'text-[#999]'}`}>
+          <span className={`text-[10px] font-medium block ${isActive(item.id) ? 'text-[#8B5CF6]' : 'text-[#999]'}`}>
             {item.l}
           </span>
           {item.d && <span className="text-[8px] text-[#B0B0B0] block mt-0.5">{item.d}</span>}
@@ -128,11 +128,11 @@ function Input({ label, value, onChange, placeholder, textarea, required }) {
   return (
     <div>
       <label className="mb-1 block text-[10px] font-medium text-[#999]">
-        {label} {required && <span className="text-[#C9A84C]">*</span>}
+        {label} {required && <span className="text-[#8B5CF6]">*</span>}
       </label>
       <C value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         rows={textarea ? 2 : undefined}
-        className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#C9A84C]/40" />
+        className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 text-xs text-white placeholder-[#666] outline-none resize-none focus:border-[#8B5CF6]/40" />
     </div>
   );
 }
@@ -224,8 +224,8 @@ export default function AgentBuilder() {
           <button data-testid="builder-back-btn" onClick={() => navigate('/agents')} className="text-[#999] hover:text-white transition">
             <ArrowLeft size={18} />
           </button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10">
-            <Sparkles size={16} className="text-[#C9A84C]" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/10">
+            <Sparkles size={16} className="text-[#8B5CF6]" />
           </div>
           <div className="flex-1">
             <h1 className="text-sm font-bold text-white">Criar Agente com IA</h1>
@@ -233,11 +233,11 @@ export default function AgentBuilder() {
           </div>
           {canGenerate && !generating && (
             <button data-testid="builder-generate-btn-top" onClick={generate}
-              className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#A88B3D] px-3 py-1.5 text-[10px] font-bold text-[#0A0A0A] flex items-center gap-1">
+              className="rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#A88B3D] px-3 py-1.5 text-[10px] font-bold text-[#0A0A0A] flex items-center gap-1">
               <Sparkles size={12} /> Gerar
             </button>
           )}
-          {generating && <Loader2 size={16} className="text-[#C9A84C] animate-spin" />}
+          {generating && <Loader2 size={16} className="text-[#8B5CF6] animate-spin" />}
         </div>
       </div>
 
@@ -264,7 +264,7 @@ export default function AgentBuilder() {
             <Search size={12} className="absolute left-2.5 top-2.5 text-[#999]" />
             <input data-testid="mindset-search" value={mindsetSearch} onChange={e => setMindsetSearch(e.target.value)}
               placeholder="Buscar mentalidade..."
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] pl-7 pr-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] pl-7 pr-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/40" />
           </div>
           <Chips items={filteredMindsets} value={f.mindset} onChange={v => set('mindset', v)} cols={2} />
         </Section>
@@ -308,7 +308,7 @@ export default function AgentBuilder() {
 
           <div className="flex items-center gap-2 mt-3 p-2.5 rounded-lg border border-[#1A1A1A] bg-[#0D0D0D]">
             <button data-testid="context-toggle" onClick={() => set('context_recovery', !f.context_recovery)}
-              className={`h-5 w-9 rounded-full transition-all flex items-center shrink-0 ${f.context_recovery ? 'bg-[#C9A84C] justify-end' : 'bg-[#2A2A2A] justify-start'}`}>
+              className={`h-5 w-9 rounded-full transition-all flex items-center shrink-0 ${f.context_recovery ? 'bg-[#8B5CF6] justify-end' : 'bg-[#2A2A2A] justify-start'}`}>
               <div className="h-4 w-4 rounded-full bg-white mx-0.5" />
             </button>
             <div>
@@ -325,7 +325,7 @@ export default function AgentBuilder() {
             placeholder="Ex: Vendas de carros, financiamento, test drive, pecas..." textarea />
           <Input label="Assuntos proibidos" value={f.forbidden_topics} onChange={v => set('forbidden_topics', v)}
             placeholder="Ex: Politica, religiao, concorrentes, outros produtos..." textarea />
-          <p className="text-[8px] text-[#C9A84C]/60 mt-1">Se o cliente perguntar sobre um assunto proibido, o agente redireciona educadamente.</p>
+          <p className="text-[8px] text-[#8B5CF6]/60 mt-1">Se o cliente perguntar sobre um assunto proibido, o agente redireciona educadamente.</p>
         </Section>
 
         {/* ═══ INTEGRACOES ═══ */}
@@ -337,7 +337,7 @@ export default function AgentBuilder() {
 
         {/* ═══ GENERATE BUTTON ═══ */}
         <button data-testid="builder-generate-btn" onClick={generate} disabled={!canGenerate || generating}
-          className="w-full rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#A88B3D] py-3.5 text-sm font-bold text-[#0A0A0A] transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2">
+          className="w-full rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#A88B3D] py-3.5 text-sm font-bold text-[#0A0A0A] transition hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-2">
           {generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
           {generating ? 'Gerando agente com IA...' : 'Gerar Agente com IA'}
         </button>
@@ -346,10 +346,10 @@ export default function AgentBuilder() {
         {generating && (
           <div className="flex flex-col items-center py-8 text-center">
             <div className="relative mb-4">
-              <div className="h-16 w-16 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center">
-                <Sparkles size={28} className="text-[#C9A84C] animate-pulse" />
+              <div className="h-16 w-16 rounded-2xl bg-[#8B5CF6]/10 flex items-center justify-center">
+                <Sparkles size={28} className="text-[#8B5CF6] animate-pulse" />
               </div>
-              <div className="absolute -inset-2 rounded-3xl border border-[#C9A84C]/20 animate-ping" style={{ animationDuration: '2s' }} />
+              <div className="absolute -inset-2 rounded-3xl border border-[#8B5CF6]/20 animate-ping" style={{ animationDuration: '2s' }} />
             </div>
             <p className="text-xs text-[#888]">A IA esta criando seu agente personalizado...</p>
             <p className="text-[10px] text-[#B0B0B0] mt-1">Isso pode levar ate 60 segundos</p>
@@ -359,16 +359,16 @@ export default function AgentBuilder() {
         {/* ═══ RESULT ═══ */}
         {result && !generating && (
           <div id="result-section" className="space-y-2.5 pt-2">
-            <div className="rounded-xl border border-[#C9A84C]/25 bg-[#C9A84C]/5 p-4">
+            <div className="rounded-xl border border-[#8B5CF6]/25 bg-[#8B5CF6]/5 p-4">
               <div className="flex items-center gap-3 mb-2">
-                <div className="h-11 w-11 rounded-xl bg-[#C9A84C]/15 flex items-center justify-center">
-                  <Bot size={22} className="text-[#C9A84C]" />
+                <div className="h-11 w-11 rounded-xl bg-[#8B5CF6]/15 flex items-center justify-center">
+                  <Bot size={22} className="text-[#8B5CF6]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base font-bold text-white truncate">{result.agent_name}</h3>
                   <p className="text-[9px] text-[#888]">{f.business_name} · {OBJECTIVES.find(o => o.id === f.objective)?.l}</p>
                 </div>
-                <span className="rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[8px] font-bold text-[#C9A84C] shrink-0">IA</span>
+                <span className="rounded-full bg-[#8B5CF6]/10 px-2 py-0.5 text-[8px] font-bold text-[#8B5CF6] shrink-0">IA</span>
               </div>
               <p className="text-[11px] text-[#999] leading-relaxed">{result.description}</p>
             </div>
@@ -380,9 +380,9 @@ export default function AgentBuilder() {
                 {result.sample_conversation.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'customer' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-xl px-2.5 py-1.5 ${
-                      msg.role === 'customer' ? 'bg-[#1A1A1A]' : 'bg-[#C9A84C]/8 border border-[#C9A84C]/10'
+                      msg.role === 'customer' ? 'bg-[#1A1A1A]' : 'bg-[#8B5CF6]/8 border border-[#8B5CF6]/10'
                     }`}>
-                      <p className={`text-[8px] font-semibold mb-0.5 ${msg.role === 'customer' ? 'text-[#B0B0B0]' : 'text-[#C9A84C]/60'}`}>
+                      <p className={`text-[8px] font-semibold mb-0.5 ${msg.role === 'customer' ? 'text-[#B0B0B0]' : 'text-[#8B5CF6]/60'}`}>
                         {msg.role === 'customer' ? 'Cliente' : result.agent_name}
                       </p>
                       <p className="text-[10px] text-[#999] leading-relaxed">{msg.message}</p>
@@ -406,9 +406,9 @@ export default function AgentBuilder() {
                   <div key={i} className="flex items-center gap-2">
                     <span className="text-[9px] text-[#999] w-16 shrink-0">{p.l}</span>
                     <div className="flex-1 h-1 rounded-full bg-[#1A1A1A]">
-                      <div className="h-full rounded-full bg-[#C9A84C]" style={{ width: `${(p.v || 0) * 100}%` }} />
+                      <div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${(p.v || 0) * 100}%` }} />
                     </div>
-                    <span className="text-[9px] font-bold text-[#C9A84C] w-7 text-right">{Math.round((p.v || 0) * 100)}%</span>
+                    <span className="text-[9px] font-bold text-[#8B5CF6] w-7 text-right">{Math.round((p.v || 0) * 100)}%</span>
                   </div>
                 ))}
               </div>
@@ -454,7 +454,7 @@ export default function AgentBuilder() {
                 <div className="space-y-1">
                   {result.suggested_knowledge.map((item, i) => (
                     <div key={i} className="flex items-start gap-1.5 p-1.5 rounded-lg bg-[#111]">
-                      <span className="rounded bg-[#C9A84C]/10 px-1 py-px text-[7px] uppercase text-[#C9A84C] shrink-0 mt-0.5">{item.type}</span>
+                      <span className="rounded bg-[#8B5CF6]/10 px-1 py-px text-[7px] uppercase text-[#8B5CF6] shrink-0 mt-0.5">{item.type}</span>
                       <div className="min-w-0">
                         <p className="text-[9px] font-medium text-white truncate">{item.title}</p>
                         <p className="text-[8px] text-[#B0B0B0] line-clamp-1">{item.content}</p>
@@ -473,11 +473,11 @@ export default function AgentBuilder() {
         <div className="fixed bottom-0 left-0 right-0 border-t border-[#1A1A1A] bg-[#0A0A0A]/95 backdrop-blur-sm px-4 py-3 pb-5">
           <div className="mx-auto flex max-w-lg gap-2">
             <button data-testid="builder-regenerate-btn" onClick={() => { setResult(null); generate(); }}
-              className="rounded-xl border border-[#2A2A2A] px-4 py-3 text-[10px] font-medium text-[#888] hover:border-[#C9A84C]/30 hover:text-white flex items-center gap-1.5 transition">
+              className="rounded-xl border border-[#2A2A2A] px-4 py-3 text-[10px] font-medium text-[#888] hover:border-[#8B5CF6]/30 hover:text-white flex items-center gap-1.5 transition">
               <RefreshCw size={13} /> Regenerar
             </button>
             <button data-testid="builder-deploy-btn" onClick={deploy} disabled={deploying}
-              className="flex-1 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#A88B3D] py-3 text-xs font-bold text-[#0A0A0A] hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-1.5 transition">
+              className="flex-1 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#A88B3D] py-3 text-xs font-bold text-[#0A0A0A] hover:opacity-90 disabled:opacity-30 flex items-center justify-center gap-1.5 transition">
               {deploying ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
               {deploying ? 'Publicando...' : 'Publicar Agente'}
             </button>

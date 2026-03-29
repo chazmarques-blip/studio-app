@@ -153,13 +153,13 @@ function WhatsAppSetup({ channel, lang, onConnect, onDisconnect }) {
             </div>
           ) : (
             <div className="flex h-48 w-48 items-center justify-center rounded-xl border border-[#2A2A2A] bg-[#111]">
-              <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
+              <Loader2 size={24} className="animate-spin text-[#8B5CF6]" />
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 p-2.5 mb-3">
-          <RefreshCw size={12} className="animate-spin text-[#C9A84C]" />
-          <p className="text-[10px] text-[#C9A84C]">{lang === 'pt' ? 'Aguardando conexao... QR atualiza automaticamente' : 'Waiting for connection... QR refreshes automatically'}</p>
+        <div className="flex items-center gap-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/15 p-2.5 mb-3">
+          <RefreshCw size={12} className="animate-spin text-[#8B5CF6]" />
+          <p className="text-[10px] text-[#8B5CF6]">{lang === 'pt' ? 'Aguardando conexao... QR atualiza automaticamente' : 'Waiting for connection... QR refreshes automatically'}</p>
         </div>
         <button onClick={() => { if (pollRef.current) clearInterval(pollRef.current); setStep('config'); setQrCode(null); }}
           className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] py-2 text-xs text-[#A0A0A0] hover:text-white transition">
@@ -302,9 +302,9 @@ export default function ChannelConnection() {
                         <span className="text-[10px] text-[#25D366] font-medium">{t('settings.connected')}</span>
                       </div>
                     ) : isConnecting ? (
-                      <div className="flex items-center gap-1 rounded-full bg-[#C9A84C]/10 px-2.5 py-1">
-                        <RefreshCw size={10} className="animate-spin text-[#C9A84C]" />
-                        <span className="text-[10px] text-[#C9A84C]">{lang === 'pt' ? 'Conectando...' : 'Connecting...'}</span>
+                      <div className="flex items-center gap-1 rounded-full bg-[#8B5CF6]/10 px-2.5 py-1">
+                        <RefreshCw size={10} className="animate-spin text-[#8B5CF6]" />
+                        <span className="text-[10px] text-[#8B5CF6]">{lang === 'pt' ? 'Conectando...' : 'Connecting...'}</span>
                       </div>
                     ) : (
                       <button data-testid="connect-whatsapp" onClick={() => setShowConfig(showConfig === 'whatsapp' ? null : 'whatsapp')}
@@ -321,9 +321,9 @@ export default function ChannelConnection() {
                       <button onClick={() => disconnectChannel(connected.id)} className="text-xs text-[#999] hover:text-red-400 transition">{t('channels.disconnect')}</button>
                     </>
                   ) : isConnecting ? (
-                    <div className="flex items-center gap-1 rounded-full bg-[#C9A84C]/10 px-2.5 py-1">
-                      <RefreshCw size={10} className="animate-spin text-[#C9A84C]" />
-                      <span className="text-[10px] text-[#C9A84C]">{lang === 'pt' ? 'Conectando...' : 'Connecting...'}</span>
+                    <div className="flex items-center gap-1 rounded-full bg-[#8B5CF6]/10 px-2.5 py-1">
+                      <RefreshCw size={10} className="animate-spin text-[#8B5CF6]" />
+                      <span className="text-[10px] text-[#8B5CF6]">{lang === 'pt' ? 'Conectando...' : 'Connecting...'}</span>
                     </div>
                   ) : (
                     <button data-testid={`connect-${ch.type}`} onClick={() => setShowConfig(showConfig === ch.type ? null : ch.type)}
@@ -345,7 +345,7 @@ export default function ChannelConnection() {
               {/* Always show WhatsApp setup if waiting_qr or connected */}
               {ch.type === 'whatsapp' && (isConnected || isConnecting) && showConfig !== 'whatsapp' && (
                 <div className="border-t border-[#1A1A1A]">
-                  <button onClick={() => setShowConfig('whatsapp')} className="w-full px-4 py-2 text-[10px] text-[#999] hover:text-[#C9A84C] transition text-center">
+                  <button onClick={() => setShowConfig('whatsapp')} className="w-full px-4 py-2 text-[10px] text-[#999] hover:text-[#8B5CF6] transition text-center">
                     {lang === 'pt' ? 'Ver detalhes' : 'View details'}
                   </button>
                 </div>

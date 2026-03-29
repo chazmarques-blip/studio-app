@@ -1,4 +1,4 @@
-"""AgentZZ API Server — Production-ready with middleware stack."""
+"""StudioX API Server — Production-ready with middleware stack."""
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
@@ -81,7 +81,7 @@ async def flush_caches():
 @api_router.get("/health")
 async def health():
     """Shallow health — for load balancer (fast)."""
-    return {"status": "ok", "service": "agentzz-api", "version": APP_VERSION}
+    return {"status": "ok", "service": "studiox-api", "version": APP_VERSION}
 
 
 @api_router.get("/health/deep")

@@ -148,7 +148,7 @@ async def whatsapp_webhook(payload: dict):
 
 @router.get("/webhook/whatsapp")
 async def whatsapp_webhook_verify():
-    return {"status": "ok", "service": "agentzz-whatsapp-webhook"}
+    return {"status": "ok", "service": "studiox-whatsapp-webhook"}
 
 
 # --- Evolution API Endpoints ---

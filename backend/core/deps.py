@@ -29,9 +29,9 @@ EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 # MongoDB
 from pymongo import MongoClient
 _mongo_client = MongoClient(os.environ.get('MONGO_URL', 'mongodb://localhost:27017'))
-mongo_db = _mongo_client[os.environ.get('DB_NAME', 'agentzz')]
+mongo_db = _mongo_client[os.environ.get('DB_NAME', 'studiox')]
 
-logger = logging.getLogger("agentzz")
+logger = logging.getLogger("studiox")
 
 
 def create_token(user_id: str, email: str):

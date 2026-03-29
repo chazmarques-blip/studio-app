@@ -31,7 +31,7 @@ export default function CampaignBuilder() {
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[#A0A0A0]">{t('campaigns.name')}</label>
           <input data-testid="campaign-name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Abandoned Cart Recovery"
-            className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none focus:border-[#C9A84C]" />
+            className="w-full rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-4 py-2.5 text-sm text-white placeholder-[#666666] outline-none focus:border-[#8B5CF6]" />
         </div>
 
         <div>
@@ -39,7 +39,7 @@ export default function CampaignBuilder() {
           <div className="grid grid-cols-2 gap-2">
             {types.map(tp => (
               <button key={tp.id} onClick={() => setSelectedType(tp.id)}
-                className={`glass-card flex items-center gap-2 p-3 text-sm ${selectedType === tp.id ? 'border-[#C9A84C] text-[#C9A84C]' : 'text-[#A0A0A0]'}`}>
+                className={`glass-card flex items-center gap-2 p-3 text-sm ${selectedType === tp.id ? 'border-[#8B5CF6] text-[#8B5CF6]' : 'text-[#A0A0A0]'}`}>
                 <span className="text-lg">{tp.icon}</span> {t(`campaigns.${tp.id}`)}
               </button>
             ))}
@@ -53,10 +53,10 @@ export default function CampaignBuilder() {
               <div key={i} className="relative">
                 {i > 0 && (
                   <div className="mb-2 flex items-center gap-2 ml-4">
-                    <div className="h-6 border-l border-dashed border-[#C9A84C]/50" />
-                    <div className="flex items-center gap-1 rounded-full bg-[#C9A84C]/10 px-2 py-0.5">
-                      <Clock size={10} className="text-[#C9A84C]" />
-                      <span className="text-[10px] text-[#C9A84C]">After {msg.delay}</span>
+                    <div className="h-6 border-l border-dashed border-[#8B5CF6]/50" />
+                    <div className="flex items-center gap-1 rounded-full bg-[#8B5CF6]/10 px-2 py-0.5">
+                      <Clock size={10} className="text-[#8B5CF6]" />
+                      <span className="text-[10px] text-[#8B5CF6]">After {msg.delay}</span>
                     </div>
                   </div>
                 )}
@@ -67,12 +67,12 @@ export default function CampaignBuilder() {
                   </div>
                   <textarea value={msg.text} onChange={e => { const newMsgs = [...messages]; newMsgs[i].text = e.target.value; setMessages(newMsgs); }}
                     rows={2} placeholder="Write your message... Use {{name}} for variables"
-                    className="w-full rounded border border-[#2A2A2A] bg-[#111111] px-3 py-2 text-sm text-white placeholder-[#666666] outline-none resize-none focus:border-[#C9A84C]" />
+                    className="w-full rounded border border-[#2A2A2A] bg-[#111111] px-3 py-2 text-sm text-white placeholder-[#666666] outline-none resize-none focus:border-[#8B5CF6]" />
                 </div>
               </div>
             ))}
           </div>
-          <button onClick={addMessage} className="mt-3 flex items-center gap-1.5 text-xs text-[#C9A84C] hover:text-[#D4B85A]"><Plus size={14} /> {t('campaigns.add_message')}</button>
+          <button onClick={addMessage} className="mt-3 flex items-center gap-1.5 text-xs text-[#8B5CF6] hover:text-[#D4B85A]"><Plus size={14} /> {t('campaigns.add_message')}</button>
         </div>
       </div>
 

@@ -364,7 +364,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   // Book Export — open interactive book
   const openInteractiveBook = () => {
-    const token = localStorage.getItem('agentzz_token');
+    const token = localStorage.getItem('studiox_token');
     const url = `/book/${projectId}?token=${encodeURIComponent(token)}`;
     window.open(url, '_blank');
   };
@@ -560,7 +560,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#C9A84C] to-[#8B6914] flex items-center justify-center">
+          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#8B6914] flex items-center justify-center">
             <BookOpen size={12} className="text-black" />
           </div>
           <div>
@@ -590,8 +590,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       {/* Generate button — show when no panels exist */}
       {panels.length === 0 && !loading && (
         <div className="text-center py-8 space-y-3">
-          <div className="h-16 w-16 rounded-2xl bg-[#C9A84C]/10 border border-[#C9A84C]/20 flex items-center justify-center mx-auto">
-            <Image size={24} className="text-[#C9A84C]" />
+          <div className="h-16 w-16 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center mx-auto">
+            <Image size={24} className="text-[#8B5CF6]" />
           </div>
           <p className="text-[10px] text-[#666] max-w-[280px] mx-auto">
             {lang === 'pt'
@@ -611,15 +611,15 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-[#999] flex items-center gap-1.5">
-              <FilmSpinner size={10} className="text-[#C9A84C]" />
+              <FilmSpinner size={10} className="text-[#8B5CF6]" />
               {lang === 'pt'
                 ? `Gerando painel ${storyboardStatus.current || '...'}/${storyboardStatus.total || totalPanels}`
                 : `Generating panel ${storyboardStatus.current || '...'}/${storyboardStatus.total || totalPanels}`}
             </span>
-            <span className="text-[#C9A84C] font-semibold">{doneCount}/{totalPanels}</span>
+            <span className="text-[#8B5CF6] font-semibold">{doneCount}/{totalPanels}</span>
           </div>
           <div className="w-full bg-[#111] rounded-full h-1.5">
-            <div className="h-1.5 rounded-full bg-[#C9A84C] transition-all duration-500"
+            <div className="h-1.5 rounded-full bg-[#8B5CF6] transition-all duration-500"
               style={{ width: `${totalPanels > 0 ? (doneCount / totalPanels) * 100 : 0}%` }} />
           </div>
         </div>
@@ -630,10 +630,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         <div className="space-y-2">
           {/* Missing panels alert */}
           {scenes.length > panels.length && (
-            <div className="rounded-lg border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-3 flex items-center justify-between" data-testid="missing-panels-alert">
+            <div className="rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 p-3 flex items-center justify-between" data-testid="missing-panels-alert">
               <div className="flex items-center gap-2">
-                <RefreshCw size={14} className={`text-[#C9A84C] ${syncingPanels ? 'animate-spin' : ''}`} />
-                <span className="text-xs text-[#C9A84C]">
+                <RefreshCw size={14} className={`text-[#8B5CF6] ${syncingPanels ? 'animate-spin' : ''}`} />
+                <span className="text-xs text-[#8B5CF6]">
                   {lang === 'pt'
                     ? `${scenes.length - panels.length} cena(s) sem storyboard`
                     : `${scenes.length - panels.length} scene(s) without storyboard`}
@@ -641,7 +641,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               </div>
               <button onClick={syncMissingPanels} disabled={syncingPanels || loading}
                 data-testid="sync-panels-btn"
-                className="text-[10px] font-semibold bg-[#C9A84C] text-black px-3 py-1 rounded-full hover:bg-[#D4AF37] transition disabled:opacity-50 flex items-center gap-1">
+                className="text-[10px] font-semibold bg-[#8B5CF6] text-black px-3 py-1 rounded-full hover:bg-[#D4AF37] transition disabled:opacity-50 flex items-center gap-1">
                 {syncingPanels
                   ? <>{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
                   : <>{lang === 'pt' ? 'Gerar Faltantes' : 'Generate Missing'}</>}
@@ -668,7 +668,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             </span>
             <div className="flex gap-1.5">
               <button onClick={expandAll} data-testid="expand-all-panels"
-                className="text-[10px] text-[#888] hover:text-[#C9A84C] transition px-2 py-1 rounded bg-[#111] border border-[#222]">
+                className="text-[10px] text-[#888] hover:text-[#8B5CF6] transition px-2 py-1 rounded bg-[#111] border border-[#222]">
                 {lang === 'pt' ? 'Abrir Todas' : 'Expand All'}
               </button>
               <button onClick={collapseAll} data-testid="collapse-all-panels"
@@ -689,7 +689,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   <button key={panel.scene_number}
                     onClick={() => togglePanel(panel.scene_number)}
                     data-testid={`storyboard-panel-${panel.scene_number}`}
-                    className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/40 transition-all text-left overflow-hidden group">
+                    className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group">
                     <div className="flex items-center gap-2 p-2">
                       {/* Mini thumbnail */}
                       <div className="relative w-16 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#111]">
@@ -702,7 +702,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             <Image size={12} className="text-[#333]" />
                           </div>
                         )}
-                        <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#C9A84C] font-bold px-1 rounded">
+                        <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#8B5CF6] font-bold px-1 rounded">
                           {panel.scene_number}
                         </span>
                       </div>
@@ -711,11 +711,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         <p className="text-[11px] font-medium text-white truncate">{panel.title}</p>
                         <p className="text-[9px] text-[#555] truncate">{panel.dialogue || panel.description || ''}</p>
                         {panel.frames?.length > 1 && (
-                          <span className="text-[8px] text-[#C9A84C]/60">{panel.frames.length} frames</span>
+                          <span className="text-[8px] text-[#8B5CF6]/60">{panel.frames.length} frames</span>
                         )}
                       </div>
                       {/* Expand icon */}
-                      <ChevronDown size={14} className="text-[#555] group-hover:text-[#C9A84C] transition flex-shrink-0" />
+                      <ChevronDown size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
                     </div>
                   </button>
                 );
@@ -730,14 +730,14 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     panel.status === 'error'
                       ? 'border-red-500/30 bg-red-500/5'
                       : panel.image_url
-                        ? 'border-[#C9A84C]/30 bg-[#0A0A0A]'
+                        ? 'border-[#8B5CF6]/30 bg-[#0A0A0A]'
                         : 'border-[#1A1A1A] bg-[#0A0A0A]'
                   }`}>
                   {/* Collapse header */}
                   <button onClick={() => togglePanel(panel.scene_number)}
                     data-testid={`collapse-panel-${panel.scene_number}`}
                     className="w-full flex items-center justify-between px-2.5 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A] hover:bg-[#111] transition">
-                    <span className="text-[10px] text-[#C9A84C] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
+                    <span className="text-[10px] text-[#8B5CF6] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
                     <ChevronUp size={12} className="text-[#666]" />
                   </button>
                   {/* Image area — Gallery view with filmstrip */}
@@ -758,12 +758,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                               data-testid={`panel-main-frame-${panel.scene_number}`}
                             />
                             {/* Scene number badge */}
-                            <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                            <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#8B5CF6] font-bold px-1.5 py-0.5 rounded">
                               {panel.scene_number}
                             </span>
                             {/* Frame label badge */}
                             {activeFrame?.label && (
-                              <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-[10px] text-[#C9A84C] font-medium px-2 py-0.5 rounded-full">
+                              <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-[10px] text-[#8B5CF6] font-medium px-2 py-0.5 rounded-full">
                                 {activeFrame.label}
                               </span>
                             )}
@@ -778,7 +778,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                                 data-testid={`frame-thumb-${panel.scene_number}-${fi}`}
                                 className={`relative flex-1 aspect-[16/10] overflow-hidden rounded-sm transition-all ${
                                   fi === activeIdx
-                                    ? 'ring-1 ring-[#C9A84C] brightness-100'
+                                    ? 'ring-1 ring-[#8B5CF6] brightness-100'
                                     : 'brightness-50 hover:brightness-75'
                                 }`}
                               >
@@ -792,7 +792,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                                   {fi + 1}
                                 </span>
                                 {fi === activeIdx && (
-                                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#C9A84C]" />
+                                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#8B5CF6]" />
                                 )}
                               </button>
                             ))}
@@ -812,7 +812,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                               </button>
                               <button onClick={() => regeneratePanel(panel.scene_number)}
                                 data-testid={`regen-panel-${panel.scene_number}`}
-                                className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#C9A84C]/60 hover:text-[#C9A84C] hover:bg-[#222] transition" title={lang === 'pt' ? 'Regenerar' : 'Regenerate'}>
+                                className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#8B5CF6]/60 hover:text-[#8B5CF6] hover:bg-[#222] transition" title={lang === 'pt' ? 'Regenerar' : 'Regenerate'}>
                                 <Film size={10} />
                               </button>
                             </div>
@@ -828,7 +828,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
                             loading="lazy" decoding="async"
                             className="w-full h-full object-cover" />
-                          <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#C9A84C] font-bold px-1.5 py-0.5 rounded">
+                          <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#8B5CF6] font-bold px-1.5 py-0.5 rounded">
                             {panel.scene_number}
                           </span>
                         </div>
@@ -840,14 +840,14 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             <Paintbrush size={10} />
                           </button>
                           <button onClick={() => regeneratePanel(panel.scene_number)}
-                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#C9A84C]/60 hover:text-[#C9A84C] hover:bg-[#222] transition">
+                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#8B5CF6]/60 hover:text-[#8B5CF6] hover:bg-[#222] transition">
                             <Film size={10} />
                           </button>
                         </div>
                       </div>
                     ) : isGenerating ? (
                       <div className="aspect-video flex flex-col items-center justify-center gap-2">
-                        <FilmSpinner size={20} className="text-[#C9A84C]" />
+                        <FilmSpinner size={20} className="text-[#8B5CF6]" />
                         <span className="text-[10px] text-[#666]">{lang === 'pt' ? 'Gerando 6 paginas...' : 'Generating 6 pages...'}</span>
                       </div>
                     ) : (
@@ -965,13 +965,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       <div className="space-y-2">
                         <input value={editForm.title || ''} onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))}
                           placeholder={lang === 'pt' ? 'Título' : 'Title'}
-                          className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#C9A84C]" />
+                          className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#8B5CF6]" />
                         <textarea value={editForm.description || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
                           placeholder={lang === 'pt' ? 'Descrição visual' : 'Visual description'}
-                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#C9A84C] resize-none" />
+                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#8B5CF6] resize-none" />
                         <textarea value={editForm.dialogue || ''} onChange={e => setEditForm(p => ({ ...p, dialogue: e.target.value }))}
                           placeholder={lang === 'pt' ? 'Diálogo/Narração' : 'Dialogue/Narration'}
-                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#C9A84C] resize-none" />
+                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#8B5CF6] resize-none" />
                         <div className="flex gap-1.5">
                           <button onClick={() => { setEditingPanel(null); setEditForm({}); }}
                             className="flex-1 rounded border border-[#333] py-1.5 text-[11px] text-[#999] hover:text-white transition">
@@ -982,7 +982,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             {lang === 'pt' ? 'Salvar' : 'Save'}
                           </button>
                           <button onClick={() => { saveEditPanel(panel.scene_number); setTimeout(() => regeneratePanel(panel.scene_number), 500); }}
-                            className="flex-1 rounded py-1.5 text-[11px] font-semibold bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C]">
+                            className="flex-1 rounded py-1.5 text-[11px] font-semibold bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6]">
                             {lang === 'pt' ? 'Salvar & Reger.' : 'Save & Regen'}
                           </button>
                         </div>
@@ -996,7 +996,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             setEditForm({ title: panel.title, description: panel.description, dialogue: panel.dialogue });
                           }}
                             data-testid={`edit-panel-${panel.scene_number}`}
-                            className="text-[#555] hover:text-[#C9A84C] transition ml-1">
+                            className="text-[#555] hover:text-[#8B5CF6] transition ml-1">
                             <Edit3 size={10} />
                           </button>
                         </div>
@@ -1008,7 +1008,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         {panel.characters_in_scene?.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {panel.characters_in_scene.map((c, ci) => (
-                              <span key={ci} className="text-xs bg-[#C9A84C]/10 text-[#C9A84C] rounded px-1.5 py-0.5">{c}</span>
+                              <span key={ci} className="text-xs bg-[#8B5CF6]/10 text-[#8B5CF6] rounded px-1.5 py-0.5">{c}</span>
                             ))}
                           </div>
                         )}
@@ -1143,8 +1143,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       {panels.length > 0 && doneCount > 0 && !loading && (
         <div className="rounded-xl border border-[#1A1A1A] bg-[#0A0A0A] p-3 space-y-2">
           <div className="flex items-center gap-2">
-            <BookOpen size={14} className="text-[#C9A84C]" />
-            <span className="text-[10px] font-semibold text-[#C9A84C]">
+            <BookOpen size={14} className="text-[#8B5CF6]" />
+            <span className="text-[10px] font-semibold text-[#8B5CF6]">
               {lang === 'pt' ? 'Exportar Livro' : 'Export Book'}
             </span>
             {bookTitle && (
@@ -1159,10 +1159,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             <button onClick={generateBookCover} disabled={generatingCover}
               data-testid="generate-cover-btn"
               className="flex-1 rounded-lg py-2 text-[10px] font-semibold transition-all
-                bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20
+                bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/20
                 flex items-center justify-center gap-1.5 disabled:opacity-40">
               {generatingCover ? (
-                <><FilmSpinner size={10} className="text-[#C9A84C]" /> {lang === 'pt' ? 'Criando Capa...' : 'Creating Cover...'}</>
+                <><FilmSpinner size={10} className="text-[#8B5CF6]" /> {lang === 'pt' ? 'Criando Capa...' : 'Creating Cover...'}</>
               ) : (
                 <><Sparkles size={12} /> {lang === 'pt' ? 'Gerar Capa + Titulo' : 'Generate Cover + Title'}</>
               )}
@@ -1431,7 +1431,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         {panels.length > 0 && !loading && (
           <>
             <button onClick={generateStoryboard} data-testid="regenerate-all-storyboard"
-              className="rounded-lg border border-[#333] py-2 px-3 text-[10px] text-[#999] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition flex items-center gap-1">
+              className="rounded-lg border border-[#333] py-2 px-3 text-[10px] text-[#999] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition flex items-center gap-1">
               <RefreshCw size={10} />
               {lang === 'pt' ? 'Reger. Tudo' : 'Regen All'}
             </button>

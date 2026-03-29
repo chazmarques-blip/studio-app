@@ -34,7 +34,7 @@ export function StudioProductionProvider({ children }) {
 
     const poll = async () => {
       try {
-        const token = localStorage.getItem('agentzz_token');
+        const token = localStorage.getItem('studiox_token');
         if (!token) return;
         const res = await axios.get(`${API}/studio/projects/${activeProduction.projectId}/status`, {
           headers: { Authorization: `Bearer ${token}` },

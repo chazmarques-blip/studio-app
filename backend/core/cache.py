@@ -1,4 +1,4 @@
-"""Centralized Cache System — 3-layer backend caching for AgentZZ.
+"""Centralized Cache System — 3-layer backend caching for StudioX.
 
 Layer 1: ImageCache — Disk-persistent, SHA256-keyed, dedup, pre-warming
 Layer 2: ProjectCache — Read-through, write-behind batching, dirty tracking, locks
@@ -16,7 +16,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = Path("/tmp/agentzz_cache")
+CACHE_DIR = Path("/tmp/studiox_cache")
 IMAGE_CACHE_DIR = CACHE_DIR / "images"
 LLM_CACHE_DIR = CACHE_DIR / "llm"
 IMAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)

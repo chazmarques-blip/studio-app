@@ -77,7 +77,7 @@ export function VoiceInput({ onResult, lang = 'pt', className = '', size = 12 })
           formData.append('audio', blob, `voice.${ext}`);
           formData.append('language', lang);
 
-          const token = localStorage.getItem('agentzz_token');
+          const token = localStorage.getItem('studiox_token');
           const headers = {};
           if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -135,8 +135,8 @@ export function VoiceInput({ onResult, lang = 'pt', className = '', size = 12 })
         recording
           ? 'bg-red-500/20 border border-red-500/50 text-red-400 animate-pulse'
           : transcribing
-            ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C]'
-            : 'bg-[#111] border border-[#333] text-[#666] hover:text-[#C9A84C] hover:border-[#C9A84C]/30'
+            ? 'bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6]'
+            : 'bg-[#111] border border-[#333] text-[#666] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30'
       } ${className}`}
       title={recording ? (lang === 'pt' ? 'Parar gravacao' : 'Stop recording') : (lang === 'pt' ? 'Comando de voz' : 'Voice command')}
     >

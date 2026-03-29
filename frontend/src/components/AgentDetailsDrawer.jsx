@@ -26,11 +26,11 @@ function SkillBar({ name, level, delay }) {
     <div className="space-y-1">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-[#999] font-medium">{name}</span>
-        <span className="text-[10px] font-bold text-[#C9A84C]">{level}%</span>
+        <span className="text-[10px] font-bold text-[#8B5CF6]">{level}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-[#1A1A1A] overflow-hidden">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#E8D48B] transition-all duration-700 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#E8D48B] transition-all duration-700 ease-out"
           style={{ width: `${width}%` }}
         />
       </div>
@@ -47,8 +47,8 @@ function Section({ icon: Icon, title, children, defaultOpen = true }) {
         className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
         data-testid={`section-${title.toLowerCase().replace(/\s/g, '-')}`}
       >
-        <div className="h-6 w-6 rounded-lg bg-[#C9A84C]/10 flex items-center justify-center shrink-0">
-          <Icon size={12} className="text-[#C9A84C]" />
+        <div className="h-6 w-6 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+          <Icon size={12} className="text-[#8B5CF6]" />
         </div>
         <span className="text-[11px] font-bold text-white flex-1">{title}</span>
         {open ? <ChevronUp size={14} className="text-[#B0B0B0]" /> : <ChevronDown size={14} className="text-[#B0B0B0]" />}
@@ -86,7 +86,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
         <button
           onClick={onClose}
           data-testid="close-agent-details"
-          className="absolute right-3 top-3 z-10 h-7 w-7 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-[#999] hover:text-white hover:border-[#C9A84C]/30 transition-all"
+          className="absolute right-3 top-3 z-10 h-7 w-7 rounded-full bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center text-[#999] hover:text-white hover:border-[#8B5CF6]/30 transition-all"
         >
           <X size={14} />
         </button>
@@ -96,27 +96,27 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
           {/* Hero Section */}
           <div className="flex flex-col items-center text-center pt-2 pb-4">
             <div className="relative mb-3">
-              <div className="h-20 w-20 rounded-2xl overflow-hidden ring-2 ring-[#C9A84C]/30 shadow-[0_0_30px_rgba(201,168,76,0.1)]">
+              <div className="h-20 w-20 rounded-2xl overflow-hidden ring-2 ring-[#8B5CF6]/30 shadow-[0_0_30px_rgba(201,168,76,0.1)]">
                 {avatar
                   ? <img src={avatar} alt={agent.name} className="h-full w-full object-cover" />
-                  : <div className="h-full w-full bg-[#C9A84C]/10 flex items-center justify-center"><Bot size={32} className="text-[#C9A84C]/50" /></div>}
+                  : <div className="h-full w-full bg-[#8B5CF6]/10 flex items-center justify-center"><Bot size={32} className="text-[#8B5CF6]/50" /></div>}
               </div>
               {agent.rating && (
-                <div className="absolute -bottom-1 -right-1 flex items-center gap-0.5 bg-[#0D0D0D] border border-[#C9A84C]/30 rounded-full px-1.5 py-0.5">
-                  <Star size={8} className="text-[#C9A84C] fill-[#C9A84C]" />
-                  <span className="text-[8px] font-bold text-[#C9A84C]">{agent.rating}</span>
+                <div className="absolute -bottom-1 -right-1 flex items-center gap-0.5 bg-[#0D0D0D] border border-[#8B5CF6]/30 rounded-full px-1.5 py-0.5">
+                  <Star size={8} className="text-[#8B5CF6] fill-[#8B5CF6]" />
+                  <span className="text-[8px] font-bold text-[#8B5CF6]">{agent.rating}</span>
                 </div>
               )}
             </div>
             <div className="flex items-center gap-1.5 mb-1">
               <h2 className="text-base font-bold text-white">{agent.name}</h2>
-              {isPersonal && <Crown size={14} className="text-[#C9A84C]" />}
+              {isPersonal && <Crown size={14} className="text-[#8B5CF6]" />}
             </div>
             {profile.full_title && (
-              <p className="text-[10px] text-[#C9A84C]/80 font-medium mb-1.5 max-w-[280px]">{profile.full_title}</p>
+              <p className="text-[10px] text-[#8B5CF6]/80 font-medium mb-1.5 max-w-[280px]">{profile.full_title}</p>
             )}
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/20 px-2 py-0.5 text-[8px] font-bold text-[#C9A84C] uppercase tracking-wider">
+              <span className="rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 px-2 py-0.5 text-[8px] font-bold text-[#8B5CF6] uppercase tracking-wider">
                 {typeLabels[agent.type] || agent.type}
               </span>
               {agent.category && agent.category !== 'general' && (
@@ -153,7 +153,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
                   {bg.education && (
                     <div>
                       <div className="flex items-center gap-1.5 mb-1">
-                        <GraduationCap size={10} className="text-[#C9A84C]/60" />
+                        <GraduationCap size={10} className="text-[#8B5CF6]/60" />
                         <span className="text-[9px] font-bold text-[#777] uppercase tracking-wider">Formacao</span>
                       </div>
                       <p className="text-[10px] text-[#ccc] pl-4">{bg.education}</p>
@@ -162,7 +162,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
                   {bg.experience?.length > 0 && (
                     <div>
                       <div className="flex items-center gap-1.5 mb-1">
-                        <Briefcase size={10} className="text-[#C9A84C]/60" />
+                        <Briefcase size={10} className="text-[#8B5CF6]/60" />
                         <span className="text-[9px] font-bold text-[#777] uppercase tracking-wider">Experiencia</span>
                       </div>
                       <div className="pl-4 space-y-1">
@@ -175,7 +175,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
                   {bg.certifications?.length > 0 && (
                     <div>
                       <div className="flex items-center gap-1.5 mb-1">
-                        <Award size={10} className="text-[#C9A84C]/60" />
+                        <Award size={10} className="text-[#8B5CF6]/60" />
                         <span className="text-[9px] font-bold text-[#777] uppercase tracking-wider">Certificacoes</span>
                       </div>
                       <div className="pl-4 flex flex-wrap gap-1">
@@ -194,7 +194,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
               <Section icon={Sparkles} title="Metodologias" defaultOpen={false}>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.methodologies.map((m, i) => (
-                    <span key={i} className="rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/15 px-2 py-1 text-[9px] font-medium text-[#C9A84C]/80">
+                    <span key={i} className="rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/15 px-2 py-1 text-[9px] font-medium text-[#8B5CF6]/80">
                       {m}
                     </span>
                   ))}
@@ -221,7 +221,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
                 <div className="space-y-1.5">
                   {profile.strengths.map((s, i) => (
                     <div key={i} className="flex items-start gap-2">
-                      <div className="h-1 w-1 rounded-full bg-[#C9A84C] mt-1.5 shrink-0" />
+                      <div className="h-1 w-1 rounded-full bg-[#8B5CF6] mt-1.5 shrink-0" />
                       <p className="text-[10px] text-[#999] leading-snug">{s}</p>
                     </div>
                   ))}
@@ -242,8 +242,8 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
                 <div className="space-y-1">
                   {profile.inspirations.map((ins, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="h-4 w-4 rounded-full bg-[#C9A84C]/10 flex items-center justify-center shrink-0">
-                        <span className="text-[7px] font-bold text-[#C9A84C]">{i + 1}</span>
+                      <div className="h-4 w-4 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                        <span className="text-[7px] font-bold text-[#8B5CF6]">{i + 1}</span>
                       </div>
                       <p className="text-[10px] text-[#999]">{ins}</p>
                     </div>
@@ -259,7 +259,7 @@ export default function AgentDetailsDrawer({ agent, open, onClose, onDeploy }) {
           <button
             data-testid={`deploy-modal-${agent.name}`}
             onClick={() => { onDeploy(agent); onClose(); }}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#B89A40] py-3 text-sm font-bold text-[#0A0A0A] transition-all hover:shadow-[0_0_24px_rgba(201,168,76,0.2)] active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#B89A40] py-3 text-sm font-bold text-[#0A0A0A] transition-all hover:shadow-[0_0_24px_rgba(201,168,76,0.2)] active:scale-[0.98]"
           >
             <Zap size={16} />
             Deploy {agent.name}

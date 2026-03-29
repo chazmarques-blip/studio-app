@@ -31,10 +31,10 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAu
   return (
     <div data-testid={`step-card-${step}`} className={`rounded-xl border transition-all duration-300 ${
       isWaitingAudio ? 'border-purple-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(147,51,234,0.08)]' :
-      isActive || isGenerating ? 'border-[#C9A84C]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
+      isActive || isGenerating ? 'border-[#8B5CF6]/50 bg-[#0D0D0D] shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
       needsApproval ? 'border-amber-500/40 bg-[#0D0D0D] shadow-[0_0_15px_rgba(245,158,11,0.08)]' :
       isFailed ? 'border-red-500/30 bg-[#0D0D0D]' :
-      requiresUpgrade ? 'border-[#C9A84C]/40 bg-[#0D0D0D]' :
+      requiresUpgrade ? 'border-[#8B5CF6]/40 bg-[#0D0D0D]' :
       status === 'completed' ? 'border-green-500/20 bg-[#0D0D0D]' :
       'border-[#1A1A1A] bg-[#0A0A0A]'
     }`}>
@@ -50,7 +50,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAu
           ) : isFailed ? (
             <AlertTriangle size={16} className="text-red-400" />
           ) : requiresUpgrade ? (
-            <Lock size={16} className="text-[#C9A84C]" />
+            <Lock size={16} className="text-[#8B5CF6]" />
           ) : (
             <Icon size={16} style={{ color: `${meta.color}55` }} />
           )}
@@ -58,7 +58,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAu
         <div className="flex-1 text-left min-w-0">
           <p className="text-xs font-semibold text-white">{meta.agent} <span className="text-[#999] font-normal">- {meta.role}</span></p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />{revisionRound > 0 ? `${t('studio.revising')} (${revisionRound}/1)` : t('studio.processing')}</span>}
+            {status === 'running' && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#8B5CF6]"><span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6] animate-pulse" />{revisionRound > 0 ? `${t('studio.revising')} (${revisionRound}/1)` : t('studio.processing')}</span>}
             {isGeneratingImages && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400"><Loader2 size={8} className="animate-spin" />{t('studio.generating_images') || 'Generating images...'}</span>}
             {isGeneratingVideo && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400"><Film size={8} className="animate-spin" />{t('studio.generating_video') || 'Generating commercial video...'}</span>}
             {isWaitingAudio && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 animate-pulse"><Headphones size={8} />{t('studio.waiting_audio') || 'Audio Pre-Approval'}</span>}
@@ -66,7 +66,7 @@ function StepCard({ step, data, isActive, pipelineStatus, onApprove, onApproveAu
             {needsApproval && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />{t('studio.status_waiting') || 'Waiting Approval'}</span>}
             {status === 'pending' && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#222] text-[#999]">{t('studio.pending')}</span>}
             {isFailed && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{t('studio.status_failed') || 'Failed'}</span>}
-            {requiresUpgrade && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#C9A84C]/15 text-[#C9A84C]"><Crown size={8} /> Upgrade Necessario</span>}
+            {requiresUpgrade && <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#8B5CF6]"><Crown size={8} /> Upgrade Necessario</span>}
             {reviewerRevisionCount > 0 && (step === 'ana_review_copy' || step === 'rafael_review_design') && (
               <span className="inline-flex items-center gap-1 text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400">
                 <RotateCcw size={7} />{reviewerRevisionCount} {t('studio.revision')}
@@ -156,11 +156,11 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
             <span className="text-[8px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded">{data.video_duration || 12}s</span>
             <span className="text-[8px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded capitalize">{data.video_format || 'vertical'}</span>
             <button onClick={() => setShowStepVideoLightbox(true)} data-testid="step-video-expand-text"
-              className="text-[8px] text-[#C9A84C] hover:underline flex items-center gap-0.5">
+              className="text-[8px] text-[#8B5CF6] hover:underline flex items-center gap-0.5">
               <Maximize2 size={9} /> {t('studio.expand')}
             </button>
             <a href={data.video_url} target="_blank" rel="noopener noreferrer"
-              className="ml-auto flex items-center gap-1 text-[9px] text-[#C9A84C] hover:underline">
+              className="ml-auto flex items-center gap-1 text-[9px] text-[#8B5CF6] hover:underline">
               <Download size={10} /> {t('studio.download_video')}
             </a>
           </div>
@@ -192,7 +192,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
           <div className="grid grid-cols-3 gap-2">
             {data.image_urls.map((url, i) => url && (
               <button key={i} onClick={() => setLightboxIndex(i)}
-                className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group relative text-left hover:border-[#C9A84C]/30 transition">
+                className="rounded-lg overflow-hidden border border-[#1E1E1E] bg-[#111] group relative text-left hover:border-[#8B5CF6]/30 transition">
                 <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" loading="lazy" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                   <Maximize2 size={18} className="text-white" />
@@ -210,7 +210,7 @@ function StepContent({ step, data, hasImages, hasVideo, isFailed, needsApproval,
               {Object.keys(data.platform_variants).map(p => {
                 const AR_LABELS = { tiktok: '9:16', google_ads: '16:9', instagram: '1:1', facebook: '1:1', whatsapp: '1:1', email: '16:9' };
                 return (
-                  <span key={p} className="text-[7px] px-1.5 py-0.5 rounded bg-[#1A1A1A] text-[#C9A84C] border border-[#C9A84C]/20 capitalize">
+                  <span key={p} className="text-[7px] px-1.5 py-0.5 rounded bg-[#1A1A1A] text-[#8B5CF6] border border-[#8B5CF6]/20 capitalize">
                     {p === 'google_ads' ? 'Google Ads' : p} {AR_LABELS[p] || ''}
                   </span>
                 );

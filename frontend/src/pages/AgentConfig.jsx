@@ -39,9 +39,9 @@ function Slider({ label, desc, value, onChange, min = 0, max = 1, step = 0.05 })
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-[#888] w-20 shrink-0">{label}</span>
         <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(parseFloat(e.target.value))}
-          className="flex-1 accent-[#C9A84C] h-1 rounded-full appearance-none bg-[#1E1E1E] cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#C9A84C]" />
-        <span className="text-[11px] font-semibold text-[#C9A84C] w-8 text-right">{pct}%</span>
+          className="flex-1 accent-[#8B5CF6] h-1 rounded-full appearance-none bg-[#1E1E1E] cursor-pointer
+            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#8B5CF6]" />
+        <span className="text-[11px] font-semibold text-[#8B5CF6] w-8 text-right">{pct}%</span>
       </div>
       {desc && <p className="text-[9px] text-[#999] ml-[88px] mt-0.5">{desc}</p>}
     </div>
@@ -57,7 +57,7 @@ function Toggle({ label, desc, checked, onChange, testId }) {
         {desc && <p className="text-[9px] text-[#999]">{desc}</p>}
       </div>
       <button data-testid={testId} onClick={onChange}
-        className={`h-4.5 w-8 rounded-full flex-shrink-0 transition ${checked ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+        className={`h-4.5 w-8 rounded-full flex-shrink-0 transition ${checked ? 'bg-[#8B5CF6]' : 'bg-[#222]'}`}>
         <div className={`h-3.5 w-3.5 rounded-full bg-white transition ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
       </button>
     </div>
@@ -169,7 +169,7 @@ export default function AgentConfig() {
     } finally { setResetting(false); }
   };
 
-  if (!agent) return <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /></div>;
+  if (!agent) return <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[#8B5CF6] border-t-transparent" /></div>;
 
   const tabs = [
     { key: 'personality', icon: Sliders, label: { en: 'Personality', pt: 'Personalidade', es: 'Personalidad' } },
@@ -201,17 +201,17 @@ export default function AgentConfig() {
       <div className="border-b border-[#1A1A1A] px-3 py-2.5">
         <div className="flex items-center gap-2.5">
           <button onClick={() => navigate('/agents')} className="text-[#999] hover:text-white transition"><ArrowLeft size={18} /></button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/10 shrink-0"><Bot size={16} className="text-[#C9A84C]" /></div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/10 shrink-0"><Bot size={16} className="text-[#8B5CF6]" /></div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               {editingName ? (
                 <input data-testid="agent-config-name" autoFocus value={agent.name} onChange={e => setAgent(p => ({ ...p, name: e.target.value }))}
                   onBlur={() => setEditingName(false)} onKeyDown={e => e.key === 'Enter' && setEditingName(false)}
-                  className="bg-transparent text-sm font-semibold text-white outline-none border-b border-[#C9A84C] w-full" />
+                  className="bg-transparent text-sm font-semibold text-white outline-none border-b border-[#8B5CF6] w-full" />
               ) : (
                 <span className="text-sm font-semibold text-white truncate">{agent.name}</span>
               )}
-              <button data-testid="edit-name-btn" onClick={() => setEditingName(true)} className="text-[#B0B0B0] hover:text-[#C9A84C] transition shrink-0">
+              <button data-testid="edit-name-btn" onClick={() => setEditingName(true)} className="text-[#B0B0B0] hover:text-[#8B5CF6] transition shrink-0">
                 <Pencil size={11} />
               </button>
             </div>
@@ -220,7 +220,7 @@ export default function AgentConfig() {
           <div className="flex items-center gap-1.5">
             {agent.has_original && (
               <button data-testid="agent-reset-btn" onClick={resetAgent} disabled={resetting}
-                className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] px-2.5 py-1.5 text-[10px] text-[#888] transition hover:border-[#C9A84C]/30 hover:text-white disabled:opacity-50">
+                className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] px-2.5 py-1.5 text-[10px] text-[#888] transition hover:border-[#8B5CF6]/30 hover:text-white disabled:opacity-50">
                 <RotateCcw size={11} className={resetting ? 'animate-spin' : ''} /> Reset
               </button>
             )}
@@ -235,13 +235,13 @@ export default function AgentConfig() {
       {/* System Prompt - Collapsible */}
       <div className="border-b border-[#141414] px-3 py-2">
         <button onClick={() => setPromptOpen(!promptOpen)} className="flex w-full items-center gap-2 text-left">
-          <Brain size={12} className="text-[#C9A84C]" />
+          <Brain size={12} className="text-[#8B5CF6]" />
           <span className="text-[10px] font-medium text-[#888] flex-1">{lang === 'pt' ? 'System Prompt' : 'System Prompt'}</span>
           {promptOpen ? <ChevronUp size={12} className="text-[#B0B0B0]" /> : <ChevronDown size={12} className="text-[#B0B0B0]" />}
         </button>
         {promptOpen && (
           <textarea data-testid="agent-system-prompt" value={agent.system_prompt || ''} onChange={e => setAgent(p => ({ ...p, system_prompt: e.target.value }))} rows={6}
-            className="mt-2 w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 text-[11px] leading-relaxed text-[#999] outline-none resize-none font-mono focus:border-[#C9A84C]/30" />
+            className="mt-2 w-full rounded-lg border border-[#1E1E1E] bg-[#0D0D0D] px-3 py-2 text-[11px] leading-relaxed text-[#999] outline-none resize-none font-mono focus:border-[#8B5CF6]/30" />
         )}
         {!promptOpen && agent.system_prompt && (
           <p className="mt-1 text-[9px] text-[#999] line-clamp-2 cursor-pointer" onClick={() => setPromptOpen(true)}>{agent.system_prompt}</p>
@@ -253,7 +253,7 @@ export default function AgentConfig() {
         {tabs.map(tb => (
           <button key={tb.key} data-testid={`tab-${tb.key}`} onClick={() => setTab(tb.key)}
             className={`flex items-center gap-1 whitespace-nowrap px-2.5 py-2 text-[10px] font-medium transition border-b-2 ${
-              tab === tb.key ? 'border-[#C9A84C] text-[#C9A84C]' : 'border-transparent text-[#B0B0B0] hover:text-[#E5E5E5]'}`}>
+              tab === tb.key ? 'border-[#8B5CF6] text-[#8B5CF6]' : 'border-transparent text-[#B0B0B0] hover:text-[#E5E5E5]'}`}>
             <tb.icon size={11} /> {tb.label[lang] || tb.label.en}
           </button>
         ))}
@@ -271,7 +271,7 @@ export default function AgentConfig() {
                 {TONES.map(to => (
                   <button key={to.value} data-testid={`tone-${to.value}`} onClick={() => setAgent(p => ({ ...p, tone: to.value }))}
                     className={`rounded-lg border px-3 py-1.5 text-[10px] transition ${
-                      agent.tone === to.value ? 'border-[#C9A84C]/40 bg-[#C9A84C]/8 text-[#C9A84C]' : 'border-[#1A1A1A] text-[#999] hover:border-[#222]'}`}>
+                      agent.tone === to.value ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/8 text-[#8B5CF6]' : 'border-[#1A1A1A] text-[#999] hover:border-[#222]'}`}>
                     {to.label[lang] || to.label.en}
                   </button>
                 ))}
@@ -299,8 +299,8 @@ export default function AgentConfig() {
             </div>
 
             {/* Preview */}
-            <div className="rounded-xl border border-[#C9A84C]/10 bg-[#C9A84C]/3 px-3 py-2">
-              <p className="text-[9px] text-[#C9A84C]/60 font-medium mb-1">Preview</p>
+            <div className="rounded-xl border border-[#8B5CF6]/10 bg-[#8B5CF6]/3 px-3 py-2">
+              <p className="text-[9px] text-[#8B5CF6]/60 font-medium mb-1">Preview</p>
               <p className="text-[11px] text-white leading-relaxed">{previewText()}</p>
             </div>
           </div>
@@ -331,7 +331,7 @@ export default function AgentConfig() {
               <div key={item.id} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3 flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="rounded bg-[#C9A84C]/15 px-1.5 py-px text-[8px] uppercase text-[#C9A84C]">{item.type}</span>
+                    <span className="rounded bg-[#8B5CF6]/15 px-1.5 py-px text-[8px] uppercase text-[#8B5CF6]">{item.type}</span>
                     <h4 className="text-[11px] font-medium text-white truncate">{item.title}</h4>
                   </div>
                   <p className="text-[10px] text-[#B0B0B0] line-clamp-2">{item.content}</p>
@@ -363,9 +363,9 @@ export default function AgentConfig() {
             <div>
               <h3 className="mb-2 text-[10px] font-semibold text-[#888] uppercase tracking-wider">Google</h3>
               {!googleStatus.connected ? (
-                <div className="rounded-xl border border-[#C9A84C]/15 bg-[#C9A84C]/3 p-4">
+                <div className="rounded-xl border border-[#8B5CF6]/15 bg-[#8B5CF6]/3 p-4">
                   <div className="flex items-start gap-3">
-                    <Link2 size={16} className="text-[#C9A84C] mt-0.5 shrink-0" />
+                    <Link2 size={16} className="text-[#8B5CF6] mt-0.5 shrink-0" />
                     <div className="flex-1">
                       <p className="text-[11px] font-medium text-white mb-0.5">{lang === 'pt' ? 'Conecte sua conta Google' : 'Connect your Google account'}</p>
                       <p className="text-[9px] text-[#888] mb-2.5">{lang === 'pt' ? 'Necessario para Calendar, Sheets e Drive. A conexao e feita uma vez e vale para todos os agentes.' : 'Required for Calendar, Sheets and Drive. Connect once, works for all agents.'}</p>
@@ -379,16 +379,16 @@ export default function AgentConfig() {
               ) : (
                 <div className="space-y-2">
                   {/* Connected status */}
-                  <div className="flex items-center gap-2 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/10 px-3 py-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-[#C9A84C]" />
-                    <p className="text-[10px] text-[#C9A84C] flex-1">{lang === 'pt' ? 'Google conectado' : 'Google connected'}: <span className="text-white">{googleStatus.email}</span></p>
+                  <div className="flex items-center gap-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/10 px-3 py-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-[#8B5CF6]" />
+                    <p className="text-[10px] text-[#8B5CF6] flex-1">{lang === 'pt' ? 'Google conectado' : 'Google connected'}: <span className="text-white">{googleStatus.email}</span></p>
                   </div>
 
                   {/* Calendar */}
                   {(() => { const cfg = agent.integrations_config || {}; const calEnabled = cfg.google_calendar?.enabled; return (
                     <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Calendar size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/8"><Calendar size={14} className="text-[#8B5CF6]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">Google Calendar</p>
                           <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Agendar e consultar eventos' : 'Schedule and query events'}</p>
@@ -399,7 +399,7 @@ export default function AgentConfig() {
                             setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_calendar: { ...p.integrations_config?.google_calendar, enabled: newEnabled } } }));
                             if (newEnabled && calendars.length === 0) fetchCalendars();
                           }}
-                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${calEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${calEnabled ? 'bg-[#8B5CF6]' : 'bg-[#222]'}`}>
                           <div className={`h-4 w-4 rounded-full bg-white transition ${calEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
@@ -415,11 +415,11 @@ export default function AgentConfig() {
                               {calendars.map(c => <option key={c.id} value={c.id}>{c.name}{c.primary ? ' (primary)' : ''}</option>)}
                             </select>
                             <button data-testid="refresh-calendars-btn" onClick={fetchCalendars} disabled={loadingCalendars}
-                              className="text-[#B0B0B0] hover:text-[#C9A84C] transition p-1 shrink-0">
+                              className="text-[#B0B0B0] hover:text-[#8B5CF6] transition p-1 shrink-0">
                               <RotateCcw size={11} className={loadingCalendars ? 'animate-spin' : ''} />
                             </button>
                           </div>
-                          {loadingCalendars && <p className="text-[9px] text-[#C9A84C]">{lang === 'pt' ? 'Carregando calendarios...' : 'Loading calendars...'}</p>}
+                          {loadingCalendars && <p className="text-[9px] text-[#8B5CF6]">{lang === 'pt' ? 'Carregando calendarios...' : 'Loading calendars...'}</p>}
                         </div>
                       )}
                     </div>
@@ -429,7 +429,7 @@ export default function AgentConfig() {
                   {(() => { const cfg = agent.integrations_config || {}; const shEnabled = cfg.google_sheets?.enabled; return (
                     <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><Table2 size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/8"><Table2 size={14} className="text-[#8B5CF6]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">Google Sheets</p>
                           <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Ler e escrever planilhas' : 'Read and write spreadsheets'}</p>
@@ -440,7 +440,7 @@ export default function AgentConfig() {
                             setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, enabled: newEnabled } } }));
                             if (newEnabled && sheets.length === 0) fetchSheets();
                           }}
-                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${shEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${shEnabled ? 'bg-[#8B5CF6]' : 'bg-[#222]'}`}>
                           <div className={`h-4 w-4 rounded-full bg-white transition ${shEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
@@ -459,17 +459,17 @@ export default function AgentConfig() {
                               {sheets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                             <button data-testid="refresh-sheets-btn" onClick={fetchSheets} disabled={loadingSheets}
-                              className="text-[#B0B0B0] hover:text-[#C9A84C] transition p-1 shrink-0">
+                              className="text-[#B0B0B0] hover:text-[#8B5CF6] transition p-1 shrink-0">
                               <RotateCcw size={11} className={loadingSheets ? 'animate-spin' : ''} />
                             </button>
                           </div>
-                          {loadingSheets && <p className="text-[9px] text-[#C9A84C]">{lang === 'pt' ? 'Carregando planilhas...' : 'Loading sheets...'}</p>}
+                          {loadingSheets && <p className="text-[9px] text-[#8B5CF6]">{lang === 'pt' ? 'Carregando planilhas...' : 'Loading sheets...'}</p>}
                           <input data-testid="sheets-range" value={cfg.google_sheets?.range || ''} onChange={e => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_sheets: { ...p.integrations_config?.google_sheets, range: e.target.value } } }))}
                             placeholder={lang === 'pt' ? 'Intervalo (ex: Sheet1!A1:D100)' : 'Range (e.g. Sheet1!A1:D100)'}
                             className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2.5 py-1.5 text-[10px] text-white placeholder-[#666] outline-none" />
                           {cfg.google_sheets?.spreadsheet_id && (
                             <a href={`https://docs.google.com/spreadsheets/d/${cfg.google_sheets.spreadsheet_id}`} target="_blank" rel="noreferrer"
-                              className="text-[9px] text-[#C9A84C] hover:underline inline-flex items-center gap-1">
+                              className="text-[9px] text-[#8B5CF6] hover:underline inline-flex items-center gap-1">
                               <Link2 size={9} /> {lang === 'pt' ? 'Abrir planilha' : 'Open spreadsheet'}
                             </a>
                           )}
@@ -482,14 +482,14 @@ export default function AgentConfig() {
                   {(() => { const cfg = agent.integrations_config || {}; const drEnabled = cfg.google_drive?.enabled; return (
                     <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><HardDrive size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/8"><HardDrive size={14} className="text-[#8B5CF6]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">Google Drive</p>
                           <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Documentos como base de conhecimento' : 'Docs as knowledge base'}</p>
                         </div>
                         <button data-testid="integ-google_drive"
                           onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, google_drive: { ...p.integrations_config?.google_drive, enabled: !drEnabled } } }))}
-                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${drEnabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${drEnabled ? 'bg-[#8B5CF6]' : 'bg-[#222]'}`}>
                           <div className={`h-4 w-4 rounded-full bg-white transition ${drEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
@@ -517,14 +517,14 @@ export default function AgentConfig() {
                   return (
                     <div key={integ.key} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><integ.icon size={14} className="text-[#C9A84C]" /></div>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/8"><integ.icon size={14} className="text-[#8B5CF6]" /></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] font-medium text-white">{integ.name}</p>
                           <p className="text-[9px] text-[#B0B0B0]">{integ.desc}</p>
                         </div>
                         <button data-testid={`integ-${integ.key}`}
                           onClick={() => setAgent(p => ({ ...p, integrations_config: { ...p.integrations_config, [integ.key]: { ...p.integrations_config?.[integ.key], enabled: !enabled } } }))}
-                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${enabled ? 'bg-[#C9A84C]' : 'bg-[#222]'}`}>
+                          className={`h-5 w-9 rounded-full flex-shrink-0 transition ${enabled ? 'bg-[#8B5CF6]' : 'bg-[#222]'}`}>
                           <div className={`h-4 w-4 rounded-full bg-white transition ${enabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
@@ -566,14 +566,14 @@ export default function AgentConfig() {
               return (
                 <div key={ch.key} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C9A84C]/8"><ch.icon size={14} className="text-[#C9A84C]" /></div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/8"><ch.icon size={14} className="text-[#8B5CF6]" /></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-medium text-white">{ch.name}</p>
                       <p className="text-[9px] text-[#B0B0B0]">{ch.desc}</p>
                     </div>
                     <button data-testid={`channel-${ch.key}`}
                       onClick={() => setAgent(p => ({ ...p, channel_config: { ...p.channel_config, [ch.key]: { ...p.channel_config?.[ch.key], enabled: !enabled } } }))}
-                      className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${enabled ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/20' : 'bg-[#1A1A1A] text-[#999] border border-[#1E1E1E]'}`}>
+                      className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${enabled ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/20' : 'bg-[#1A1A1A] text-[#999] border border-[#1E1E1E]'}`}>
                       {enabled ? (lang === 'pt' ? 'Ativo' : 'Active') : (lang === 'pt' ? 'Ativar' : 'Enable')}
                     </button>
                   </div>
@@ -616,7 +616,7 @@ export default function AgentConfig() {
                 onChange={() => setAgent(p => ({ ...p, escalation_rules: { ...p.escalation_rules, notify_operator: !p.escalation_rules?.notify_operator } }))} testId="flag-notify" />
             </div>
 
-            <button data-testid="test-agent-btn" onClick={() => navigate('/agents/sandbox')} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#C9A84C]/15 bg-[#C9A84C]/3 py-2 text-[10px] text-[#C9A84C] hover:bg-[#C9A84C]/8 transition">
+            <button data-testid="test-agent-btn" onClick={() => navigate('/agents/sandbox')} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#8B5CF6]/15 bg-[#8B5CF6]/3 py-2 text-[10px] text-[#8B5CF6] hover:bg-[#8B5CF6]/8 transition">
               <MessageCircle size={12} /> {lang === 'pt' ? 'Testar no Sandbox' : 'Test in Sandbox'}
             </button>
           </div>
@@ -633,12 +633,12 @@ export default function AgentConfig() {
                   <div>
                     <label className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Max. Reativacoes' : 'Max Follow-ups'}</label>
                     <input type="number" value={agent.follow_up_config?.max_follow_ups || 3} onChange={e => setAgent(p => ({ ...p, follow_up_config: { ...p.follow_up_config, max_follow_ups: parseInt(e.target.value) } }))}
-                      className="w-full bg-transparent text-sm font-bold text-white outline-none border-b border-[#1E1E1E] focus:border-[#C9A84C]" />
+                      className="w-full bg-transparent text-sm font-bold text-white outline-none border-b border-[#1E1E1E] focus:border-[#8B5CF6]" />
                   </div>
                   <div>
                     <label className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? 'Intervalo (dias)' : 'Cooldown (days)'}</label>
                     <input type="number" value={agent.follow_up_config?.cool_down_days || 7} onChange={e => setAgent(p => ({ ...p, follow_up_config: { ...p.follow_up_config, cool_down_days: parseInt(e.target.value) } }))}
-                      className="w-full bg-transparent text-sm font-bold text-white outline-none border-b border-[#1E1E1E] focus:border-[#C9A84C]" />
+                      className="w-full bg-transparent text-sm font-bold text-white outline-none border-b border-[#1E1E1E] focus:border-[#8B5CF6]" />
                   </div>
                 </div>
               )}
@@ -664,7 +664,7 @@ export default function AgentConfig() {
                 )}
                 {rules.map(rule => (
                   <div key={rule.id} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] flex items-start gap-2 p-3">
-                    <Clock size={13} className="text-[#C9A84C] shrink-0 mt-0.5" />
+                    <Clock size={13} className="text-[#8B5CF6] shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-medium text-white">{TRIGGER_TYPES.find(t => t.value === rule.trigger_type)?.label[lang] || rule.trigger_type}</p>
                       <p className="text-[9px] text-[#B0B0B0]">{lang === 'pt' ? `Apos ${rule.delay_hours}h` : `After ${rule.delay_hours}h`} — <span className="italic text-[#888]">"{rule.message_template}"</span></p>

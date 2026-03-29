@@ -41,7 +41,7 @@ function ScrollColumn({ items, value, onChange, testId }) {
 
   return (
     <div className="flex flex-col items-center gap-0.5" data-testid={testId}>
-      <button type="button" onClick={() => nudge(-1)} className="text-[#555] hover:text-[#C9A84C] transition p-0.5">
+      <button type="button" onClick={() => nudge(-1)} className="text-[#555] hover:text-[#8B5CF6] transition p-0.5">
         <ChevronUp size={12} />
       </button>
       <div
@@ -65,7 +65,7 @@ function ScrollColumn({ items, value, onChange, testId }) {
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => nudge(1)} className="text-[#555] hover:text-[#C9A84C] transition p-0.5">
+      <button type="button" onClick={() => nudge(1)} className="text-[#555] hover:text-[#8B5CF6] transition p-0.5">
         <ChevronDown size={12} />
       </button>
     </div>
@@ -116,8 +116,8 @@ export function DateScrollPicker({ value, onChange, compact }) {
     : '';
 
   const inputCls = compact
-    ? 'w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#C9A84C]/50 cursor-pointer'
-    : 'w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20 cursor-pointer';
+    ? 'w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50 cursor-pointer'
+    : 'w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#8B5CF6]/40 focus:ring-1 focus:ring-[#8B5CF6]/20 cursor-pointer';
 
   return (
     <div className="relative" ref={wrapRef}>
@@ -135,7 +135,7 @@ export function DateScrollPicker({ value, onChange, compact }) {
       {open && (
         <div
           data-testid="date-picker-dropdown"
-          className="absolute top-full left-0 mt-1 z-50 w-full rounded-xl border border-[#C9A84C]/20 bg-[#111] shadow-2xl shadow-black/40 p-3 animate-in fade-in slide-in-from-top-1 duration-150"
+          className="absolute top-full left-0 mt-1 z-50 w-full rounded-xl border border-[#8B5CF6]/20 bg-[#111] shadow-2xl shadow-black/40 p-3 animate-in fade-in slide-in-from-top-1 duration-150"
         >
           <div className="grid grid-cols-3 gap-1 text-center mb-1">
             <span className="text-[8px] font-semibold text-[#666] uppercase tracking-wider">Month</span>
@@ -144,7 +144,7 @@ export function DateScrollPicker({ value, onChange, compact }) {
           </div>
 
           <div className="relative">
-            <div className="absolute left-0 right-0 top-[28px] h-[28px] rounded-md bg-[#C9A84C]/8 border border-[#C9A84C]/15 pointer-events-none z-0" />
+            <div className="absolute left-0 right-0 top-[28px] h-[28px] rounded-md bg-[#8B5CF6]/8 border border-[#8B5CF6]/15 pointer-events-none z-0" />
             <div className="grid grid-cols-3 gap-1 relative z-10">
               <ScrollColumn
                 items={MONTHS.map((_, i) => i + 1)}
@@ -168,9 +168,9 @@ export function DateScrollPicker({ value, onChange, compact }) {
           </div>
 
           <div className="grid grid-cols-3 gap-1 text-center mt-0.5 mb-2">
-            <span className="text-[9px] text-[#C9A84C] font-medium">{month ? MONTHS[month - 1] : '-'}</span>
-            <span className="text-[9px] text-[#C9A84C] font-medium">{day || '-'}</span>
-            <span className="text-[9px] text-[#C9A84C] font-medium">{year || '-'}</span>
+            <span className="text-[9px] text-[#8B5CF6] font-medium">{month ? MONTHS[month - 1] : '-'}</span>
+            <span className="text-[9px] text-[#8B5CF6] font-medium">{day || '-'}</span>
+            <span className="text-[9px] text-[#8B5CF6] font-medium">{year || '-'}</span>
           </div>
 
           <button
@@ -178,7 +178,7 @@ export function DateScrollPicker({ value, onChange, compact }) {
             data-testid="date-picker-confirm"
             onClick={handleConfirm}
             disabled={!month || !day || !year}
-            className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#A88B3D] py-1.5 text-[10px] font-semibold text-[#0A0A0A] transition hover:opacity-90 disabled:opacity-30"
+            className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#A88B3D] py-1.5 text-[10px] font-semibold text-[#0A0A0A] transition hover:opacity-90 disabled:opacity-30"
           >
             Confirm
           </button>

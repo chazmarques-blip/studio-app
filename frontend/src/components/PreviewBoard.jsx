@@ -23,9 +23,9 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
 
   const SectionHeader = ({ id, icon: Icon, title, count }) => (
     <button onClick={() => toggle(id)} data-testid={`preview-section-${id}`}
-      className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#C9A84C]/20 transition group">
+      className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#8B5CF6]/20 transition group">
       <div className="flex items-center gap-2">
-        <Icon size={12} className="text-[#C9A84C]" />
+        <Icon size={12} className="text-[#8B5CF6]" />
         <span className="text-[10px] font-semibold text-white">{title}</span>
         {count !== undefined && <span className="text-[8px] text-[#555] bg-[#1A1A1A] rounded-full px-1.5 py-0.5">{count}</span>}
       </div>
@@ -41,7 +41,7 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Eye size={14} className="text-[#C9A84C]" />
+          <Eye size={14} className="text-[#8B5CF6]" />
           <h3 className="text-xs font-bold text-white">{lang === 'pt' ? 'Design de Produção' : 'Production Design'}</h3>
           {previewTime && (
             <span className="text-[7px] text-[#555] flex items-center gap-0.5"><Clock size={8} /> {previewTime}s</span>
@@ -54,10 +54,10 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
 
       {/* Style Anchors */}
       {pd.style_anchors && (
-        <div className="rounded-lg border border-[#C9A84C]/20 bg-[#C9A84C]/5 p-2.5" data-testid="preview-style-anchors">
+        <div className="rounded-lg border border-[#8B5CF6]/20 bg-[#8B5CF6]/5 p-2.5" data-testid="preview-style-anchors">
           <div className="flex items-center gap-1.5 mb-1">
-            <Sparkles size={10} className="text-[#C9A84C]" />
-            <span className="text-[9px] font-semibold text-[#C9A84C]">{lang === 'pt' ? 'Estilo Visual (em cada cena)' : 'Visual Style (every scene)'}</span>
+            <Sparkles size={10} className="text-[#8B5CF6]" />
+            <span className="text-[9px] font-semibold text-[#8B5CF6]">{lang === 'pt' ? 'Estilo Visual (em cada cena)' : 'Visual Style (every scene)'}</span>
           </div>
           <p className="text-[9px] text-[#CCC] leading-relaxed italic">"{pd.style_anchors}"</p>
         </div>
@@ -67,7 +67,7 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
       {Object.keys(colorPalette).length > 0 && (
         <div className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2.5" data-testid="preview-color-palette">
           <div className="flex items-center gap-1.5 mb-2">
-            <Palette size={10} className="text-[#C9A84C]" />
+            <Palette size={10} className="text-[#8B5CF6]" />
             <span className="text-[9px] font-semibold text-white">{lang === 'pt' ? 'Paleta de Cores & Iluminação' : 'Color Palette & Lighting'}</span>
           </div>
           {colorPalette.global && (
@@ -97,7 +97,7 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
               <div key={name} className="flex gap-2.5 rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2">
                 {/* Avatar */}
                 {avatarUrl ? (
-                  <img src={resolveImageUrl(avatarUrl)} alt={name} className="h-16 w-14 rounded-lg object-cover border border-[#C9A84C]/30 flex-shrink-0" />
+                  <img src={resolveImageUrl(avatarUrl)} alt={name} className="h-16 w-14 rounded-lg object-cover border border-[#8B5CF6]/30 flex-shrink-0" />
                 ) : (
                   <div className="h-16 w-14 rounded-lg bg-[#111] flex items-center justify-center border border-dashed border-[#333] flex-shrink-0">
                     <span className="text-[14px] text-[#444]">?</span>
@@ -106,8 +106,8 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
                 {/* Details */}
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold text-white">{name}</p>
-                  <div className="mt-1 rounded bg-[#C9A84C]/5 border border-[#C9A84C]/15 px-2 py-1">
-                    <p className="text-[7px] text-[#C9A84C] font-semibold mb-0.5">{lang === 'pt' ? 'DESCRIÇÃO CANÔNICA (Sora 2 usará)' : 'CANONICAL (Sora 2 will use)'}</p>
+                  <div className="mt-1 rounded bg-[#8B5CF6]/5 border border-[#8B5CF6]/15 px-2 py-1">
+                    <p className="text-[7px] text-[#8B5CF6] font-semibold mb-0.5">{lang === 'pt' ? 'DESCRIÇÃO CANÔNICA (Sora 2 usará)' : 'CANONICAL (Sora 2 will use)'}</p>
                     <p className="text-[8px] text-[#CCC] leading-relaxed">{desc}</p>
                   </div>
                   {origDesc && origDesc !== desc && (
@@ -131,7 +131,7 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
             <div className="grid grid-cols-2 gap-1.5 pl-1" data-testid="preview-locations">
               {Object.entries(locBible).map(([key, desc]) => (
                 <div key={key} className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2">
-                  <p className="text-[9px] font-bold text-[#C9A84C] mb-0.5">{key}</p>
+                  <p className="text-[9px] font-bold text-[#8B5CF6] mb-0.5">{key}</p>
                   <p className="text-[8px] text-[#999] leading-relaxed">{desc}</p>
                 </div>
               ))}
@@ -153,7 +153,7 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
                   <div key={i} className="flex items-start gap-2 rounded-md border border-[#1A1A1A] bg-[#0A0A0A] p-2">
                     {/* Scene number */}
                     <div className="flex flex-col items-center flex-shrink-0">
-                      <span className="text-[10px] font-bold text-[#C9A84C]">{sd.scene}</span>
+                      <span className="text-[10px] font-bold text-[#8B5CF6]">{sd.scene}</span>
                       <div className="w-3 h-3 rounded-full mt-0.5" style={{ backgroundColor: timeColor, opacity: 0.6 }} />
                     </div>
                     {/* Details */}
@@ -183,13 +183,13 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
             <div className="space-y-1 pl-1" data-testid="preview-music-plan">
               {musicPlan.map((mp, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-md border border-[#1A1A1A] bg-[#0A0A0A] p-2">
-                  <Music size={10} className="text-[#C9A84C] flex-shrink-0" />
+                  <Music size={10} className="text-[#8B5CF6] flex-shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[8px] font-bold text-white">
                         {lang === 'pt' ? 'Cenas' : 'Scenes'} {(mp.scenes || []).join(', ')}
                       </span>
-                      <span className="text-[7px] text-[#C9A84C] bg-[#C9A84C]/10 rounded px-1 py-0.5">{mp.category || mp.mood}</span>
+                      <span className="text-[7px] text-[#8B5CF6] bg-[#8B5CF6]/10 rounded px-1 py-0.5">{mp.category || mp.mood}</span>
                       <span className={`text-[6px] rounded px-1 py-0.5 ${mp.intensity === 'high' ? 'text-red-400 bg-red-500/10' : mp.intensity === 'medium' ? 'text-yellow-400 bg-yellow-500/10' : 'text-emerald-400 bg-emerald-500/10'}`}>
                         {mp.intensity}
                       </span>
@@ -211,7 +211,7 @@ export function PreviewBoard({ productionDesign, avatarDescriptions, characters,
             <div className="flex flex-wrap gap-1 pl-1" data-testid="preview-voice-plan">
               {voicePlan.map((vp, i) => (
                 <div key={i} className="rounded-md border border-[#1A1A1A] bg-[#0A0A0A] px-2 py-1 text-center">
-                  <span className="text-[8px] font-bold text-[#C9A84C]">C{vp.scene}</span>
+                  <span className="text-[8px] font-bold text-[#8B5CF6]">C{vp.scene}</span>
                   <p className="text-[7px] text-[#999]">{vp.tone}</p>
                   <p className="text-[6px] text-[#555]">{vp.pace}</p>
                 </div>

@@ -44,17 +44,17 @@ export default function UpsellScreen() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0A0A0A] px-4 py-8">
-      <div className="absolute inset-0 overflow-hidden"><div className="absolute left-1/2 top-1/3 h-[400px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#C9A84C]/5 blur-[120px]" /></div>
+      <div className="absolute inset-0 overflow-hidden"><div className="absolute left-1/2 top-1/3 h-[400px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8B5CF6]/5 blur-[120px]" /></div>
       <div className="relative z-10 w-full max-w-3xl">
         <div className="text-center mb-5">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A84C]/10">
-            <AlertTriangle size={28} className="text-[#C9A84C]" />
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#8B5CF6]/10">
+            <AlertTriangle size={28} className="text-[#8B5CF6]" />
           </div>
           <h1 className="mb-1.5 text-xl font-bold text-white">{t('upsell.title')}</h1>
           <p className="mb-3 text-xs text-[#A0A0A0]">{t('upsell.used', { used: 50, limit: 50 })}</p>
-          <div className="mx-auto max-w-xs mb-3 h-2 overflow-hidden rounded-full bg-[#1E1E1E]"><div className="h-full w-full rounded-full bg-gradient-to-r from-[#C9A84C] to-red-400" /></div>
+          <div className="mx-auto max-w-xs mb-3 h-2 overflow-hidden rounded-full bg-[#1E1E1E]"><div className="h-full w-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-red-400" /></div>
           <div className="flex items-center gap-2 justify-center text-xs text-[#A0A0A0]">
-            <Clock size={12} className="text-[#C9A84C]" />
+            <Clock size={12} className="text-[#8B5CF6]" />
             <span>{t('upsell.reset')}: <span className="font-semibold text-white">3{t('common.days')} 14{t('common.hours')} 22{t('common.minutes')}</span></span>
           </div>
         </div>
@@ -63,11 +63,11 @@ export default function UpsellScreen() {
         <div className="mb-5 flex justify-center">
           <div className="inline-flex items-center gap-1 rounded-full border border-[#1E1E1E] bg-[#0D0D0D] p-1">
             <button data-testid="billing-annual" onClick={() => setBillingAnnual(true)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${billingAnnual ? 'bg-[#8B5CF6] text-[#0A0A0A]' : 'text-[#999]'}`}>
               {lang === 'pt' ? 'Anual' : 'Annual'} <span className="ml-1 text-[9px] opacity-80">{lang === 'pt' ? 'Economize 14%' : 'Save 14%'}</span>
             </button>
             <button data-testid="billing-monthly" onClick={() => setBillingAnnual(false)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#C9A84C] text-[#0A0A0A]' : 'text-[#999]'}`}>
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${!billingAnnual ? 'bg-[#8B5CF6] text-[#0A0A0A]' : 'text-[#999]'}`}>
               {lang === 'pt' ? 'Mensal' : 'Monthly'}
             </button>
           </div>
@@ -85,40 +85,40 @@ export default function UpsellScreen() {
             return (
               <div key={plan.key} data-testid={`plan-${plan.key}`}
                 className={`rounded-xl border p-3.5 text-left flex flex-col transition ${
-                  isEnterprise ? 'border-[#C9A84C]/50 bg-gradient-to-b from-[#C9A84C]/10 to-transparent shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
+                  isEnterprise ? 'border-[#8B5CF6]/50 bg-gradient-to-b from-[#8B5CF6]/10 to-transparent shadow-[0_0_20px_rgba(201,168,76,0.1)]' :
                   isFree ? 'border-[#1E1E1E] bg-[#0D0D0D]' :
                   'border-[#1E1E1E] bg-[#0D0D0D]'
                 }`}>
                 <div className="flex items-center gap-1.5 mb-2">
-                  {!isFree && <Icon size={12} className="text-[#C9A84C]" />}
-                  <p className={`text-[11px] font-semibold capitalize ${isEnterprise ? 'text-[#C9A84C]' : isFree ? 'text-[#999]' : 'text-white'}`}>
+                  {!isFree && <Icon size={12} className="text-[#8B5CF6]" />}
+                  <p className={`text-[11px] font-semibold capitalize ${isEnterprise ? 'text-[#8B5CF6]' : isFree ? 'text-[#999]' : 'text-white'}`}>
                     {plan.key}{isFree ? (lang === 'pt' ? ' (atual)' : ' (current)') : ''}
                   </p>
                 </div>
                 <ul className="space-y-1 mb-3 flex-1">
                   <li className="flex items-center gap-1 text-[10px] text-[#A0A0A0]">
-                    {!isFree && <Check size={8} className="text-[#C9A84C] shrink-0" />}
+                    {!isFree && <Check size={8} className="text-[#8B5CF6] shrink-0" />}
                     {plan.agents} {plan.agents === 1 ? 'Agent' : 'Agents'}
                   </li>
                   <li className="flex items-center gap-1 text-[10px] text-[#A0A0A0]">
-                    {!isFree && <Check size={8} className="text-[#C9A84C] shrink-0" />}
+                    {!isFree && <Check size={8} className="text-[#8B5CF6] shrink-0" />}
                     {plan.msgs.toLocaleString()} msgs/mo
                   </li>
                   {!isFree && (
                     <li className="flex items-center gap-1 text-[10px] text-[#A0A0A0]">
-                      <Check size={8} className="text-[#C9A84C] shrink-0" />
+                      <Check size={8} className="text-[#8B5CF6] shrink-0" />
                       {lang === 'pt' ? 'Todos Canais' : 'All Channels'}
                     </li>
                   )}
                   {extras.map((e, i) => (
                     <li key={i} className="flex items-center gap-1 text-[10px] text-[#A0A0A0]">
-                      <Check size={8} className="text-[#C9A84C] shrink-0" />{e}
+                      <Check size={8} className="text-[#8B5CF6] shrink-0" />{e}
                     </li>
                   ))}
                 </ul>
                 {!isFree && (
                   <div>
-                    <p className={`text-base font-bold ${isEnterprise ? 'text-[#C9A84C]' : 'text-white'}`}>
+                    <p className={`text-base font-bold ${isEnterprise ? 'text-[#8B5CF6]' : 'text-white'}`}>
                       ${price}<span className="text-[10px] text-[#999] font-normal">/{lang === 'pt' ? 'mes' : 'mo'}</span>
                     </p>
                     {billingAnnual && plan.price.monthly > plan.price.annual && (
@@ -132,8 +132,8 @@ export default function UpsellScreen() {
                     disabled={upgrading === plan.key}
                     className={`mt-2 w-full rounded-lg py-2 text-[10px] font-semibold transition disabled:opacity-50 ${
                       isEnterprise
-                        ? 'bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] text-black hover:opacity-90'
-                        : 'border border-[#1E1E1E] text-[#888] hover:border-[#C9A84C]/30 hover:text-white'
+                        ? 'bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] text-black hover:opacity-90'
+                        : 'border border-[#1E1E1E] text-[#888] hover:border-[#8B5CF6]/30 hover:text-white'
                     }`}>
                     {upgrading === plan.key ? '...' : (lang === 'pt' ? `Upgrade` : `Upgrade`)}
                   </button>

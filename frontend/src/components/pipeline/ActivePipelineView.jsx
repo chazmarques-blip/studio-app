@@ -20,12 +20,12 @@ export function ActivePipelineView({
   const progressPct = Math.round((completedCount / STEP_ORDER.length) * 100);
   const allStepsComplete = completedCount === STEP_ORDER.length;
   const statusConfig = {
-    running: { label: t('studio.status_running') || 'Running', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
+    running: { label: t('studio.status_running') || 'Running', color: 'text-[#8B5CF6]', bg: 'bg-[#8B5CF6]' },
     waiting_approval: { label: t('studio.status_waiting') || 'Waiting Approval', color: 'text-amber-400', bg: 'bg-amber-400' },
     waiting_audio_approval: { label: t('studio.audio_preapproval') || 'Audio Pre-Approval', color: 'text-purple-400', bg: 'bg-purple-400' },
     completed: { label: t('studio.status_completed') || 'Completed!', color: 'text-green-400', bg: 'bg-green-400' },
     failed: { label: t('studio.status_failed') || 'Failed', color: 'text-red-400', bg: 'bg-red-400' },
-    pending: { label: t('studio.status_pending') || 'Starting...', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]' },
+    pending: { label: t('studio.status_pending') || 'Starting...', color: 'text-[#8B5CF6]', bg: 'bg-[#8B5CF6]' },
   };
   const sc = statusConfig[activePipeline.status] || statusConfig.pending;
 
@@ -108,9 +108,9 @@ export function ActivePipelineView({
               <div key={s} className="flex items-center flex-1 gap-0.5">
                 <div className="relative h-2 rounded-full flex-1 bg-[#1A1A1A] overflow-hidden">
                   <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
-                    st === 'completed' ? 'w-full bg-green-500' : isRun ? 'w-1/2 bg-[#C9A84C]' : st === 'failed' ? 'w-full bg-red-500' : 'w-0'
+                    st === 'completed' ? 'w-full bg-green-500' : isRun ? 'w-1/2 bg-[#8B5CF6]' : st === 'failed' ? 'w-full bg-red-500' : 'w-0'
                   }`} />
-                  {isRun && <div className="absolute inset-0 bg-[#C9A84C]/20 animate-pulse rounded-full" />}
+                  {isRun && <div className="absolute inset-0 bg-[#8B5CF6]/20 animate-pulse rounded-full" />}
                 </div>
                 {i < STEP_ORDER.length - 1 && <ArrowRight size={8} className="text-[#777] shrink-0" />}
               </div>
@@ -146,7 +146,7 @@ export function ActivePipelineView({
               Novo Pipeline
             </button>
             <button data-testid="open-final-preview" onClick={() => setShowFinalPreview(true)}
-              className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
+              className="flex-1 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)]">
               <Eye size={14} /> Ver Preview Final
             </button>
           </div>
@@ -158,22 +158,22 @@ export function ActivePipelineView({
             <AlertTriangle size={18} className="text-red-400" />
             <p className="text-xs font-semibold text-red-400 flex-1">A step has failed. Try again.</p>
             <button onClick={retryPipeline}
-              className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5">
+              className="rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5">
               <RefreshCw size={12} /> Retry
             </button>
           </div>
         </div>
       )}
       {activePipeline.status === 'requires_upgrade' && (
-        <div className="px-3 py-3 border-t border-[#111] bg-[#C9A84C]/5">
+        <div className="px-3 py-3 border-t border-[#111] bg-[#8B5CF6]/5">
           <div className="flex items-center gap-2">
-            <Crown size={18} className="text-[#C9A84C]" />
+            <Crown size={18} className="text-[#8B5CF6]" />
             <div className="flex-1">
-              <p className="text-xs font-bold text-[#C9A84C]">Upgrade to Enterprise</p>
+              <p className="text-xs font-bold text-[#8B5CF6]">Upgrade to Enterprise</p>
               <p className="text-xs text-[#888]">Your campaign is ready! Upgrade to publish.</p>
             </div>
             <button onClick={() => navigate('/upgrade')}
-              className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(201,168,76,0.2)]">
+              className="rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] px-4 py-2 text-[11px] font-bold text-black hover:opacity-90 transition flex items-center gap-1.5 shadow-[0_0_15px_rgba(201,168,76,0.2)]">
               <Crown size={12} /> Fazer Upgrade
             </button>
           </div>

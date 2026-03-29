@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component {
           <p className="text-sm text-gray-400 mb-4 text-center max-w-md">{this.state.error?.message || 'Erro inesperado'}</p>
           <button
             onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
-            className="px-4 py-2 bg-[#C9A84C] text-black rounded-lg text-sm font-medium hover:bg-[#B8973F] transition-colors"
+            className="px-4 py-2 bg-[#8B5CF6] text-black rounded-lg text-sm font-medium hover:bg-[#7C3AED] transition-colors"
             data-testid="error-boundary-reload"
           >
             Recarregar
@@ -46,7 +46,7 @@ class ErrorBoundary extends React.Component {
 // ── Loading Fallback ──
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]">
-    <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#C9A84C]" />
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#8B5CF6]" />
   </div>
 );
 

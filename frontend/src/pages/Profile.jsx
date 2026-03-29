@@ -54,7 +54,7 @@ export default function Profile() {
 
       {/* Avatar + Name */}
       <div className="flex flex-col items-center mb-6">
-        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] flex items-center justify-center mb-3">
+        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#A88B3D] flex items-center justify-center mb-3">
           <span className="text-2xl font-bold text-[#0A0A0A]">{(form.full_name || user?.email || 'U')[0].toUpperCase()}</span>
         </div>
         <p className="text-sm font-semibold text-white">{form.full_name || 'User'}</p>
@@ -63,13 +63,13 @@ export default function Profile() {
 
       {/* Plan quick card */}
       {stats && (
-        <button data-testid="plan-quick-card" onClick={() => navigate('/pricing')} className="w-full mb-5 rounded-xl border border-[#C9A84C]/15 bg-[#C9A84C]/5 p-4 text-left">
+        <button data-testid="plan-quick-card" onClick={() => navigate('/pricing')} className="w-full mb-5 rounded-xl border border-[#8B5CF6]/15 bg-[#8B5CF6]/5 p-4 text-left">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Crown size={14} className="text-[#C9A84C]" />
+              <Crown size={14} className="text-[#8B5CF6]" />
               <span className="text-xs font-semibold text-white capitalize">{plan} Plan</span>
             </div>
-            <ChevronRight size={14} className="text-[#C9A84C]" />
+            <ChevronRight size={14} className="text-[#8B5CF6]" />
           </div>
           <div className="flex items-center gap-3 text-[11px]">
             <div className="flex items-center gap-1.5 text-[#888]">
@@ -80,9 +80,9 @@ export default function Profile() {
             </div>
           </div>
           <div className="mt-2 h-1.5 rounded-full bg-[#1A1A1A] overflow-hidden">
-            <div className="h-full rounded-full bg-[#C9A84C] transition-all" style={{ width: `${msgsPct}%` }} />
+            <div className="h-full rounded-full bg-[#8B5CF6] transition-all" style={{ width: `${msgsPct}%` }} />
           </div>
-          <p className="mt-1 text-[10px] text-[#C9A84C]">Manage plan & billing</p>
+          <p className="mt-1 text-[10px] text-[#8B5CF6]">Manage plan & billing</p>
         </button>
       )}
 
@@ -91,17 +91,17 @@ export default function Profile() {
         <div>
           <label className="mb-1 block text-xs text-[#999]">Full Name</label>
           <input data-testid="profile-name" value={form.full_name} onChange={e => setForm(p => ({...p, full_name: e.target.value}))}
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#C9A84C]/40" />
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#8B5CF6]/40" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-[#999]">Company</label>
           <input data-testid="profile-company" value={form.company_name} onChange={e => setForm(p => ({...p, company_name: e.target.value}))}
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#C9A84C]/40" />
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#8B5CF6]/40" />
         </div>
         <div>
           <label className="mb-1 block text-xs text-[#999]">Language</label>
           <select data-testid="profile-lang" value={form.ui_language} onChange={e => setForm(p => ({...p, ui_language: e.target.value}))}
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#C9A84C]/40">
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-[#8B5CF6]/40">
             <option value="en">English</option>
             <option value="pt">Portugues</option>
             <option value="es">Espanol</option>

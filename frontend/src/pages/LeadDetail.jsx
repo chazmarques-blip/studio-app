@@ -7,7 +7,7 @@ import axios from 'axios';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const STAGES = [
-  { key: 'new', color: '#C9A84C', label: 'New' },
+  { key: 'new', color: '#8B5CF6', label: 'New' },
   { key: 'qualified', color: '#60A5FA', label: 'Qualified' },
   { key: 'proposal', color: '#A78BFA', label: 'Proposal' },
   { key: 'won', color: '#4ADE80', label: 'Won' },
@@ -58,7 +58,7 @@ export default function LeadDetail() {
     } catch { setDeleting(false); }
   };
 
-  if (loading) return <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /></div>;
+  if (loading) return <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[#8B5CF6] border-t-transparent" /></div>;
   if (!lead) return null;
 
   const currentStage = STAGES.find(s => s.key === lead.stage) || STAGES[0];
@@ -76,7 +76,7 @@ export default function LeadDetail() {
       {/* Lead info card */}
       <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-4 mb-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="h-11 w-11 rounded-full bg-gradient-to-br from-[#C9A84C] to-[#A88B3D] flex items-center justify-center flex-shrink-0">
+          <div className="h-11 w-11 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#A88B3D] flex items-center justify-center flex-shrink-0">
             <span className="text-base font-bold text-[#0A0A0A]">{lead.name?.[0] || '?'}</span>
           </div>
           <div className="flex-1 min-w-0">
@@ -103,8 +103,8 @@ export default function LeadDetail() {
           </div>
           {/* Score circle */}
           {lead.score > 0 && (
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 flex-shrink-0" style={{ borderColor: lead.score >= 70 ? '#4ADE80' : lead.score >= 40 ? '#C9A84C' : '#666' }}>
-              <span className="text-sm font-bold" style={{ color: lead.score >= 70 ? '#4ADE80' : lead.score >= 40 ? '#C9A84C' : '#666' }}>{lead.score}</span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 flex-shrink-0" style={{ borderColor: lead.score >= 70 ? '#4ADE80' : lead.score >= 40 ? '#8B5CF6' : '#666' }}>
+              <span className="text-sm font-bold" style={{ color: lead.score >= 70 ? '#4ADE80' : lead.score >= 40 ? '#8B5CF6' : '#666' }}>{lead.score}</span>
             </div>
           )}
         </div>
@@ -112,15 +112,15 @@ export default function LeadDetail() {
           {lead.phone && <div className="flex items-center gap-1.5 text-[#888]"><Phone size={11} className="text-[#B0B0B0]" />{lead.phone}</div>}
           {lead.email && <div className="flex items-center gap-1.5 text-[#888]"><Mail size={11} className="text-[#B0B0B0]" />{lead.email}</div>}
           {lead.company && <div className="flex items-center gap-1.5 text-[#888]"><Building size={11} className="text-[#B0B0B0]" />{lead.company}</div>}
-          {lead.value > 0 && <div className="flex items-center gap-1.5 text-[#C9A84C] font-semibold"><Target size={11} />${parseFloat(lead.value).toLocaleString()}</div>}
+          {lead.value > 0 && <div className="flex items-center gap-1.5 text-[#8B5CF6] font-semibold"><Target size={11} />${parseFloat(lead.value).toLocaleString()}</div>}
         </div>
       </div>
 
       {/* AI Analysis */}
       <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="flex items-center gap-2 text-xs font-semibold text-[#C9A84C]"><Sparkles size={14} /> {t('crm.ai_analysis')}</h3>
-          <button data-testid="ai-score-btn" onClick={handleAiScore} disabled={scoring} className="rounded-lg border border-[#C9A84C]/20 bg-[#C9A84C]/5 px-3 py-1 text-[10px] font-medium text-[#C9A84C] hover:bg-[#C9A84C]/10 transition disabled:opacity-40">
+          <h3 className="flex items-center gap-2 text-xs font-semibold text-[#8B5CF6]"><Sparkles size={14} /> {t('crm.ai_analysis')}</h3>
+          <button data-testid="ai-score-btn" onClick={handleAiScore} disabled={scoring} className="rounded-lg border border-[#8B5CF6]/20 bg-[#8B5CF6]/5 px-3 py-1 text-[10px] font-medium text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
             {scoring ? 'Analyzing...' : 'Run AI Score'}
           </button>
         </div>
@@ -130,7 +130,7 @@ export default function LeadDetail() {
               <p className="text-[10px] text-[#B0B0B0] mb-1">Score</p>
               <div className="flex items-center gap-2">
                 <div className="h-1.5 flex-1 rounded-full bg-[#1E1E1E]">
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${ai.score || 0}%`, backgroundColor: (ai.score || 0) >= 70 ? '#4ADE80' : (ai.score || 0) >= 40 ? '#C9A84C' : '#666' }} />
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${ai.score || 0}%`, backgroundColor: (ai.score || 0) >= 70 ? '#4ADE80' : (ai.score || 0) >= 40 ? '#8B5CF6' : '#666' }} />
                 </div>
                 <span className="text-xs font-bold text-white">{ai.score || 0}/100</span>
               </div>
@@ -139,12 +139,12 @@ export default function LeadDetail() {
             {ai.stage_suggestion && ai.stage_suggestion !== lead.stage && (
               <div className="flex items-center gap-2">
                 <p className="text-[10px] text-[#B0B0B0]">Suggested stage:</p>
-                <button onClick={() => handleStageChange(ai.stage_suggestion)} className="rounded-full bg-[#C9A84C]/10 px-2 py-0.5 text-[10px] font-medium text-[#C9A84C] hover:bg-[#C9A84C]/20 transition">
+                <button onClick={() => handleStageChange(ai.stage_suggestion)} className="rounded-full bg-[#8B5CF6]/10 px-2 py-0.5 text-[10px] font-medium text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition">
                   Move to {ai.stage_suggestion}
                 </button>
               </div>
             )}
-            {ai.next_action && <div><p className="text-[10px] text-[#B0B0B0]">Next action</p><p className="text-[#C9A84C]">{ai.next_action}</p></div>}
+            {ai.next_action && <div><p className="text-[10px] text-[#B0B0B0]">Next action</p><p className="text-[#8B5CF6]">{ai.next_action}</p></div>}
           </div>
         ) : (
           <p className="text-xs text-[#999]">Click "Run AI Score" to get an AI analysis of this lead</p>

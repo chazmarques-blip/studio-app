@@ -317,7 +317,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
                 <div key={i} className="relative">
                   <button onClick={() => setSelectedImage(i)}
                     className={`h-10 w-10 rounded-lg overflow-hidden border-2 transition ${
-                      i === selectedImage ? 'border-[#C9A84C] shadow-lg' : 'border-[#333] opacity-50 hover:opacity-80'
+                      i === selectedImage ? 'border-[#8B5CF6] shadow-lg' : 'border-[#333] opacity-50 hover:opacity-80'
                     }`}>
                     <img src={resolveImageSrc(url)} alt="" className="w-full h-full object-cover" />
                   </button>
@@ -328,8 +328,8 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
               );
             })}
             <button data-testid="upload-custom-image" onClick={() => fileInputRef.current?.click()}
-              className="h-10 w-10 rounded-lg border-2 border-dashed border-[#333] hover:border-[#C9A84C]/40 flex items-center justify-center transition group">
-              <ImageIcon size={14} className="text-[#888] group-hover:text-[#C9A84C]" />
+              className="h-10 w-10 rounded-lg border-2 border-dashed border-[#333] hover:border-[#8B5CF6]/40 flex items-center justify-center transition group">
+              <ImageIcon size={14} className="text-[#888] group-hover:text-[#8B5CF6]" />
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
           </div>
@@ -339,7 +339,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
             <div className="flex items-center gap-1.5 mb-1.5">
               <RefreshCw size={10} className="text-[#999]" />
               <p className="text-[8px] text-[#999] uppercase tracking-wider">{t('studio.generate_new_style')}</p>
-              {regenerating && <Loader2 size={10} className="text-[#C9A84C] animate-spin" />}
+              {regenerating && <Loader2 size={10} className="text-[#8B5CF6] animate-spin" />}
             </div>
             <div className="flex flex-wrap gap-1">
               {[
@@ -361,7 +361,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
               ].map(s => (
                 <button key={s.key} disabled={regenerating}
                   onClick={() => { setSelectedStyle(s.key); handleRegenerateImage(s.key); }}
-                  className={`rounded-md px-2 py-1 text-[9px] border transition disabled:opacity-30 ${selectedStyle === s.key && regenerating ? 'border-[#C9A84C]/40 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:text-white hover:border-[#333]'}`}>
+                  className={`rounded-md px-2 py-1 text-[9px] border transition disabled:opacity-30 ${selectedStyle === s.key && regenerating ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'border-[#1E1E1E] text-[#999] hover:text-white hover:border-[#333]'}`}>
                   {s.label}
                 </button>
               ))}
@@ -382,14 +382,14 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
                 </div>
               ) : (
                 <button data-testid="edit-copy-btn" onClick={handleStartEdit}
-                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#C9A84C] hover:bg-[#1A1A1A] transition">
+                  className="flex items-center gap-1 text-[9px] px-2 py-0.5 rounded bg-[#111] text-[#8B5CF6] hover:bg-[#1A1A1A] transition">
                   <Pencil size={9} /> {t('studio.edit') || 'Edit'}
                 </button>
               )}
             </div>
             {isEditing ? (
               <textarea data-testid="edit-copy-textarea" value={editedCopy} onChange={e => setEditedCopy(e.target.value)} rows={6}
-                className="w-full rounded-xl border border-[#C9A84C]/30 bg-[#0D0D0D] px-3 py-2.5 text-[11px] text-white outline-none resize-none focus:border-[#C9A84C]/50 transition" />
+                className="w-full rounded-xl border border-[#8B5CF6]/30 bg-[#0D0D0D] px-3 py-2.5 text-[11px] text-white outline-none resize-none focus:border-[#8B5CF6]/50 transition" />
             ) : (
               <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-3 py-2.5">
                 <p className="text-[10px] text-[#999] whitespace-pre-wrap leading-relaxed">{displayCopy}</p>
@@ -415,15 +415,15 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[7px] text-[#999] bg-[#111] px-1.5 py-0.5 rounded">12s Sora 2</span>
                 <a href={videoUrl} target="_blank" rel="noopener noreferrer"
-                  className="ml-auto text-[8px] text-[#C9A84C] hover:underline">Baixar</a>
+                  className="ml-auto text-[8px] text-[#8B5CF6] hover:underline">Baixar</a>
               </div>
             </div>
           )}
           {!videoUrl && pipeline?.id && (
             <div className="w-full max-w-[320px]">
               <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5 flex items-center gap-1">Video Comercial</p>
-              <div className="rounded-xl border border-dashed border-[#C9A84C]/30 bg-[#C9A84C]/5 p-4 text-center">
-                <Film size={18} className="mx-auto mb-1 text-[#C9A84C]/60" />
+              <div className="rounded-xl border border-dashed border-[#8B5CF6]/30 bg-[#8B5CF6]/5 p-4 text-center">
+                <Film size={18} className="mx-auto mb-1 text-[#8B5CF6]/60" />
                 <p className="text-[9px] text-[#888]">{t('studio.generating_video') || 'Video will appear here once generated'}</p>
               </div>
             </div>
@@ -449,7 +449,7 @@ export default function FinalPreview({ pipeline, campaignLang, onClose, onPublis
                 setPublishing(false);
               }
             }}
-            className="flex-1 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)] disabled:opacity-50">
+            className="flex-1 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-[12px] font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(201,168,76,0.15)] disabled:opacity-50">
             {publishing ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {publishing ? (t('studio.publishing') || 'Publishing...') : (t('studio.publish_campaign') || 'Publish Campaign')}
           </button>

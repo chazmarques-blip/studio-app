@@ -1,4 +1,4 @@
-"""Shared utility functions for AgentZZ API"""
+"""Shared utility functions for StudioX API"""
 from core.constants import AGENT_TYPE_DESCRIPTIONS
 
 

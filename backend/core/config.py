@@ -68,4 +68,4 @@ RATE_LIMIT_DEFAULT = "60/minute"
 
 # ── App Info ──
 APP_VERSION = "1.0.0"
-APP_NAME = "AgentZZ API"
+APP_NAME = "StudioX API"

@@ -28,7 +28,7 @@ export default function Onboarding() {
 
   const handleLangContinue = () => {
     i18n.changeLanguage(selectedLang);
-    localStorage.setItem('agentzz_lang', selectedLang);
+    localStorage.setItem('studiox_lang', selectedLang);
     setStep(2);
   };
 
@@ -36,7 +36,7 @@ export default function Onboarding() {
     setLoading(true);
     try {
       await updateProfile({ ui_language: selectedLang, onboarding_completed: true });
-      toast.success(selectedLang === 'pt' ? 'Bem-vindo ao AgentZZ!' : 'Welcome to AgentZZ!');
+      toast.success(selectedLang === 'pt' ? 'Bem-vindo ao StudioX!' : 'Welcome to StudioX!');
       navigate('/dashboard');
     } catch { toast.error('Failed'); }
     finally { setLoading(false); }
@@ -65,20 +65,20 @@ export default function Onboarding() {
           </defs>
           <rect width="100%" height="100%" fill="url(#ob-grid)" mask="url(#ob-mask)" />
         </svg>
-        <div className="absolute left-1/2 top-1/3 h-[300px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#C9A84C]/5 blur-[100px]" />
+        <div className="absolute left-1/2 top-1/3 h-[300px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8B5CF6]/5 blur-[100px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-lg">
         <div className="mb-6 flex items-center justify-center gap-2">
-          <div className={`h-2 w-8 rounded-full transition-all ${step >= 1 ? 'bg-[#C9A84C]' : 'bg-[#2A2A2A]'}`} />
-          <div className={`h-2 w-8 rounded-full transition-all ${step >= 2 ? 'bg-[#C9A84C]' : 'bg-[#2A2A2A]'}`} />
+          <div className={`h-2 w-8 rounded-full transition-all ${step >= 1 ? 'bg-[#8B5CF6]' : 'bg-[#2A2A2A]'}`} />
+          <div className={`h-2 w-8 rounded-full transition-all ${step >= 2 ? 'bg-[#8B5CF6]' : 'bg-[#2A2A2A]'}`} />
         </div>
 
         {step === 1 && (
           <div>
             <div className="mb-6 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#C9A84C]/10">
-                <Globe size={24} className="text-[#C9A84C]" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#8B5CF6]/10">
+                <Globe size={24} className="text-[#8B5CF6]" />
               </div>
               <h1 data-testid="onboarding-title" className="mb-1 text-xl font-bold text-white">{t('onboarding.choose_language')}</h1>
               <p className="text-xs text-[#A0A0A0]">{t('onboarding.choose_language_desc')}</p>
@@ -86,10 +86,10 @@ export default function Onboarding() {
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {languages.map(lang => (
                 <button key={lang.code} data-testid={`lang-${lang.code}`} onClick={() => setSelectedLang(lang.code)}
-                  className={`glass-card flex flex-col items-center gap-1.5 p-3 transition-all ${selectedLang === lang.code ? 'border-[#C9A84C] bg-[#C9A84C]/10' : 'hover:border-[#3A3A3A]'}`}>
+                  className={`glass-card flex flex-col items-center gap-1.5 p-3 transition-all ${selectedLang === lang.code ? 'border-[#8B5CF6] bg-[#8B5CF6]/10' : 'hover:border-[#3A3A3A]'}`}>
                   <span className="text-xl">{lang.flag}</span>
-                  <span className={`text-xs font-medium ${selectedLang === lang.code ? 'text-[#C9A84C]' : 'text-[#A0A0A0]'}`}>{lang.name}</span>
-                  {selectedLang === lang.code && <Check size={14} className="text-[#C9A84C]" />}
+                  <span className={`text-xs font-medium ${selectedLang === lang.code ? 'text-[#8B5CF6]' : 'text-[#A0A0A0]'}`}>{lang.name}</span>
+                  {selectedLang === lang.code && <Check size={14} className="text-[#8B5CF6]" />}
                 </button>
               ))}
             </div>
@@ -103,8 +103,8 @@ export default function Onboarding() {
         {step === 2 && (
           <div>
             <div className="mb-5 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#C9A84C]/10">
-                <Sparkles size={24} className="text-[#C9A84C]" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#8B5CF6]/10">
+                <Sparkles size={24} className="text-[#8B5CF6]" />
               </div>
               <h1 data-testid="onboarding-avatar-title" className="mb-1 text-xl font-bold text-white">
                 {selectedLang === 'pt' ? 'Crie seu Avatar' : selectedLang === 'es' ? 'Crea tu Avatar' : 'Create your Avatar'}

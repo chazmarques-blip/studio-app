@@ -35,7 +35,7 @@ function cleanDisplayText(raw) {
 }
 
 const STEP_META = {
-  sofia_copy: { agent: 'David', role: 'Copywriter', icon: PenTool, color: '#C9A84C', estimatedSec: 30 },
+  sofia_copy: { agent: 'David', role: 'Copywriter', icon: PenTool, color: '#8B5CF6', estimatedSec: 30 },
   ana_review_copy: { agent: 'Lee', role: 'Creative Director', icon: CheckCircle, color: '#4CAF50', estimatedSec: 20 },
   lucas_design: { agent: 'Stefan', role: 'Visual Designer', icon: Palette, color: '#7CB9E8', estimatedSec: 120 },
   rafael_review_design: { agent: 'George', role: 'Art Director', icon: Award, color: '#9B59B6', estimatedSec: 25 },

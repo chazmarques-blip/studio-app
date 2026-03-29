@@ -115,9 +115,9 @@ function AssetUploader({ assets, onAssetsChange }) {
       )}
 
       {uploading && (
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-[#C9A84C]/5 border border-[#C9A84C]/20">
-          <Loader2 size={12} className="animate-spin text-[#C9A84C]" />
-          <span className="text-[10px] text-[#C9A84C]">{t('studio.uploading')}</span>
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
+          <Loader2 size={12} className="animate-spin text-[#8B5CF6]" />
+          <span className="text-[10px] text-[#8B5CF6]">{t('studio.uploading')}</span>
         </div>
       )}
     </div>

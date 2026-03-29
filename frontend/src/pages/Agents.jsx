@@ -20,28 +20,28 @@ function AgentCard({ agent, onDeploy, onDetails, isPersonal, lang }) {
   const avatar = getAgentAvatar(agent.name);
   return (
     <div data-testid={`agent-card-${agent.name}`}
-      className="group relative glass-card p-2 transition-all duration-300 hover:border-[#C9A84C]/20 hover:shadow-[0_0_20px_rgba(201,168,76,0.04)]">
+      className="group relative glass-card p-2 transition-all duration-300 hover:border-[#8B5CF6]/20 hover:shadow-[0_0_20px_rgba(201,168,76,0.04)]">
       <div className="flex gap-2 mb-1.5">
-        <div className="h-10 w-10 rounded-lg overflow-hidden ring-1 ring-[#C9A84C]/15 shrink-0">
+        <div className="h-10 w-10 rounded-lg overflow-hidden ring-1 ring-[#8B5CF6]/15 shrink-0">
           {avatar ? <img src={avatar} alt={agent.name} className="h-full w-full object-cover" loading="lazy" />
-            : <div className="h-full w-full bg-[#C9A84C]/10 flex items-center justify-center"><Bot size={16} className="text-[#C9A84C]/50" /></div>}
+            : <div className="h-full w-full bg-[#8B5CF6]/10 flex items-center justify-center"><Bot size={16} className="text-[#8B5CF6]/50" /></div>}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 mb-px">
             <span className="text-[10px] font-bold text-white truncate">{agent.name}</span>
-            {isPersonal && <Crown size={8} className="text-[#C9A84C] shrink-0" />}
-            {agent.rating && <><Star size={7} className="text-[#C9A84C] fill-[#C9A84C] ml-auto shrink-0" /><span className="text-[7px] font-bold text-[#C9A84C]">{agent.rating}</span></>}
+            {isPersonal && <Crown size={8} className="text-[#8B5CF6] shrink-0" />}
+            {agent.rating && <><Star size={7} className="text-[#8B5CF6] fill-[#8B5CF6] ml-auto shrink-0" /><span className="text-[7px] font-bold text-[#8B5CF6]">{agent.rating}</span></>}
           </div>
           <p className="text-[7px] text-[#999] leading-[1.3] line-clamp-2">{agent.description}</p>
         </div>
       </div>
       <div className="flex gap-1">
         <button data-testid={`details-${agent.name}`} onClick={() => onDetails(agent)}
-          className="flex-1 flex items-center justify-center gap-0.5 rounded-lg border border-[#1E1E1E] bg-[#111] py-1.5 text-[8px] font-medium text-[#777] transition-all hover:border-[#C9A84C]/30 hover:text-[#C9A84C] active:scale-[0.97]">
+          className="flex-1 flex items-center justify-center gap-0.5 rounded-lg border border-[#1E1E1E] bg-[#111] py-1.5 text-[8px] font-medium text-[#777] transition-all hover:border-[#8B5CF6]/30 hover:text-[#8B5CF6] active:scale-[0.97]">
           <Eye size={10} /> Detalhes
         </button>
         <button data-testid={`deploy-${agent.name}`} onClick={() => onDeploy(agent)}
-          className="flex-1 flex items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#B89A40] py-1.5 text-[8px] font-bold text-[#0A0A0A] transition-all hover:shadow-[0_0_12px_rgba(201,168,76,0.15)] active:scale-[0.97]">
+          className="flex-1 flex items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#B89A40] py-1.5 text-[8px] font-bold text-[#0A0A0A] transition-all hover:shadow-[0_0_12px_rgba(201,168,76,0.15)] active:scale-[0.97]">
           <Zap size={10} /> Deploy
         </button>
       </div>
@@ -54,10 +54,10 @@ function MyAgentCard({ agent }) {
   const avatar = getAgentAvatar(agent.name);
   return (
     <button data-testid={`my-agent-${agent.id}`} onClick={() => navigate(`/agents/${agent.id}/config`)}
-      className="group flex items-center gap-2.5 glass-card p-2.5 text-left transition-all hover:border-[#C9A84C]/20 active:scale-[0.99] w-full">
-      <div className="h-9 w-9 rounded-lg overflow-hidden ring-1 ring-[#C9A84C]/15 shrink-0">
+      className="group flex items-center gap-2.5 glass-card p-2.5 text-left transition-all hover:border-[#8B5CF6]/20 active:scale-[0.99] w-full">
+      <div className="h-9 w-9 rounded-lg overflow-hidden ring-1 ring-[#8B5CF6]/15 shrink-0">
         {avatar ? <img src={avatar} alt={agent.name} className="h-full w-full object-cover" loading="lazy" />
-          : <div className="h-full w-full bg-[#C9A84C]/10 flex items-center justify-center"><Bot size={16} className="text-[#C9A84C]/50" /></div>}
+          : <div className="h-full w-full bg-[#8B5CF6]/10 flex items-center justify-center"><Bot size={16} className="text-[#8B5CF6]/50" /></div>}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
@@ -68,7 +68,7 @@ function MyAgentCard({ agent }) {
         </div>
         <span className="text-[8px] text-[#B0B0B0] capitalize">{agent.type}</span>
       </div>
-      <ChevronRight size={14} className="text-[#999] group-hover:text-[#C9A84C] transition shrink-0" />
+      <ChevronRight size={14} className="text-[#999] group-hover:text-[#8B5CF6] transition shrink-0" />
     </button>
   );
 }
@@ -149,13 +149,13 @@ export default function Agents() {
           <div className="relative mb-2">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#999]" />
             <input data-testid="agent-search" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('agents.search_placeholder') || "Search agents..."}
-              className="w-full rounded-lg border border-[#1A1A1A] bg-[#0D0D0D] pl-8 pr-3 py-2 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
+              className="w-full rounded-lg border border-[#1A1A1A] bg-[#0D0D0D] pl-8 pr-3 py-2 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
           </div>
           <div className="flex gap-1 overflow-x-auto no-scrollbar mb-3 pb-0.5">
             {TYPE_FILTERS.map(f => (
               <button key={f.id} data-testid={`filter-${f.id}`} onClick={() => setFilter(f.id)}
                 className={`shrink-0 rounded-md px-2.5 py-1 text-[9px] font-semibold transition-all ${
-                  filter === f.id ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1A1A1A] text-[#B0B0B0] hover:text-[#999]'}`}>
+                  filter === f.id ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1A1A1A] text-[#B0B0B0] hover:text-[#999]'}`}>
                 {t(f.k) || f.id}
               </button>
             ))}
@@ -164,9 +164,9 @@ export default function Agents() {
           {personal.length > 0 && (
             <div className="mb-3">
               <div className="flex items-center gap-1 mb-1.5">
-                <Crown size={11} className="text-[#C9A84C]" />
+                <Crown size={11} className="text-[#8B5CF6]" />
                 <span className="text-[10px] font-bold text-white">Pessoais</span>
-                <span className="text-[7px] text-[#C9A84C]/60 bg-[#C9A84C]/5 px-1 py-px rounded-full font-bold">PRO</span>
+                <span className="text-[7px] text-[#8B5CF6]/60 bg-[#8B5CF6]/5 px-1 py-px rounded-full font-bold">PRO</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {personal.map(a => <AgentCard key={a.name} agent={a} onDeploy={handleDeploy} onDetails={handleDetails} isPersonal lang={lang} />)}
@@ -204,7 +204,7 @@ export default function Agents() {
               <Bot size={28} className="text-[#999] mx-auto mb-2" />
               <p className="text-xs text-[#B0B0B0] mb-3">{t('agents.no_agents_yet') || 'No agents yet'}</p>
               <button onClick={() => navigate('/agents/builder')}
-                className="rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#B89A40] px-4 py-2 text-[10px] font-bold text-[#0A0A0A] active:scale-[0.97] transition-all">
+                className="rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#B89A40] px-4 py-2 text-[10px] font-bold text-[#0A0A0A] active:scale-[0.97] transition-all">
                 {t('agents.create_first') || 'Create First Agent'}
               </button>
             </div>

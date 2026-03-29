@@ -15,7 +15,7 @@ export function CompanyModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={cancelCompanyForm}>
-      <div data-testid="company-modal" className="w-full max-w-md rounded-2xl border border-[#C9A84C]/20 bg-[#0D0D0D] p-5 space-y-3" onClick={e => e.stopPropagation()}>
+      <div data-testid="company-modal" className="w-full max-w-md rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <p className="text-sm text-white font-semibold">{editingCompanyId ? t('studio.edit_company') : t('studio.new_company')}</p>
           <button onClick={cancelCompanyForm} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#999]" /></button>
@@ -30,7 +30,7 @@ export function CompanyModal({
             <button key={pt.id} data-testid={`profile-type-${pt.id}`}
               onClick={() => setNewCompany(p => ({ ...p, profile_type: pt.id }))}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[10px] font-semibold transition ${newCompany.profile_type === pt.id
-                ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]'
+                ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10 text-[#8B5CF6]'
                 : 'border-[#1E1E1E] text-[#999] hover:text-[#888] hover:border-[#333]'}`}>
               <pt.icon size={12} />
               {pt.label}
@@ -44,11 +44,11 @@ export function CompanyModal({
         <div className="flex items-center gap-3">
           <button data-testid="company-logo-upload" type="button" onClick={() => logoInputRef.current?.click()}
             disabled={logoUploading}
-            className={`relative shrink-0 h-14 w-14 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden transition ${newCompany.logo_url ? 'border-[#C9A84C]/40' : 'border-[#2A2A2A] hover:border-[#C9A84C]/30'}`}>
+            className={`relative shrink-0 h-14 w-14 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden transition ${newCompany.logo_url ? 'border-[#8B5CF6]/40' : 'border-[#2A2A2A] hover:border-[#8B5CF6]/30'}`}>
             {newCompany.logo_url ? (
               <img src={resolveImageUrl(newCompany.logo_url)} alt="Logo" loading="lazy" decoding="async" className="h-full w-full object-cover" />
             ) : logoUploading ? (
-              <Loader2 size={16} className="animate-spin text-[#C9A84C]" />
+              <Loader2 size={16} className="animate-spin text-[#8B5CF6]" />
             ) : (
               <Image size={18} className="text-[#888]" />
             )}
@@ -64,15 +64,15 @@ export function CompanyModal({
         <div>
           <label className="text-xs text-[#999] uppercase mb-1 block">{newCompany.profile_type === 'personal' ? 'Nome' : newCompany.profile_type === 'professional' ? 'Nome Profissional' : t('studio.company_name_label')} *</label>
           <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
-            placeholder="E.g.: AgentZZ, My Company..."
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
+            placeholder="E.g.: StudioX, My Company..."
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
         </div>
         <div className="grid grid-cols-[1fr_auto] gap-3">
           <div>
             <label className="text-xs text-[#999] uppercase mb-1 block">{t('studio.company_phone')}</label>
             <input data-testid="new-company-phone" value={newCompany.phone} onChange={e => setNewCompany(p => ({ ...p, phone: e.target.value }))}
               placeholder="+1 555 123-4567"
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
           </div>
           <div className="flex items-end pb-0.5">
             <button data-testid="new-company-whatsapp-toggle" onClick={() => setNewCompany(p => ({ ...p, is_whatsapp: !p.is_whatsapp }))}
@@ -87,14 +87,14 @@ export function CompanyModal({
           </label>
           <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
             placeholder="https://www.yourcompany.com"
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30" />
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
         </div>
         <div>
           <label className="text-xs text-[#999] uppercase mb-1 block">{t('studio.product_service') || 'Produto / Servico'}</label>
           <textarea data-testid="new-company-product" value={newCompany.product_description} onChange={e => setNewCompany(p => ({ ...p, product_description: e.target.value }))}
             placeholder="Ex: Plataforma de agentes IA para atendimento ao cliente, Loja de roupas femininas..."
             rows={2}
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 resize-none" />
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none" />
         </div>
         {/* Social Links */}
         <div className="grid grid-cols-3 gap-2">
@@ -123,7 +123,7 @@ export function CompanyModal({
             {t('studio.cancel')}
           </button>
           <button data-testid="save-company-btn" onClick={editingCompanyId ? saveEditCompany : addCompany} disabled={!newCompany.name.trim()}
-            className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-xs font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
+            className="flex-1 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2 text-xs font-bold text-black hover:opacity-90 disabled:opacity-30 transition">
             {editingCompanyId ? t('studio.update_company') : t('studio.save_company')}
           </button>
         </div>

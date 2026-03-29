@@ -8,7 +8,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 export default function InteractiveBook() {
   const { projectId } = useParams();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || localStorage.getItem('agentzz_token');
+  const token = searchParams.get('token') || localStorage.getItem('studiox_token');
 
   const [bookData, setBookData] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -122,7 +122,7 @@ export default function InteractiveBook() {
   );
   if (!bookData) return (
     <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-      <BookOpen className="text-[#C9A84C] animate-pulse" size={48} />
+      <BookOpen className="text-[#8B5CF6] animate-pulse" size={48} />
     </div>
   );
 
@@ -141,13 +141,13 @@ export default function InteractiveBook() {
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-[#0D0D0D] border-b border-[#1A1A1A] z-20">
-        <span className="text-xs text-[#C9A84C] font-semibold truncate max-w-[60%]">{bookData.title}</span>
+        <span className="text-xs text-[#8B5CF6] font-semibold truncate max-w-[60%]">{bookData.title}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleNarration}
             data-testid="toggle-narration"
             className={`h-8 w-8 rounded-full flex items-center justify-center transition ${
-              autoNarrate ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'bg-[#1A1A1A] text-[#555]'
+              autoNarrate ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'bg-[#1A1A1A] text-[#555]'
             }`}
           >
             {autoNarrate ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -159,7 +159,7 @@ export default function InteractiveBook() {
       {/* Progress bar */}
       <div className="h-[2px] bg-[#1A1A1A]">
         <div
-          className="h-full bg-[#C9A84C] transition-all duration-500"
+          className="h-full bg-[#8B5CF6] transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -186,7 +186,7 @@ export default function InteractiveBook() {
                     style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>
                   {page.title}
                 </h1>
-                <p className="text-sm md:text-base text-[#C9A84C]">{page.subtitle}</p>
+                <p className="text-sm md:text-base text-[#8B5CF6]">{page.subtitle}</p>
               </div>
             </div>
           ) : page.type === 'end' ? (
@@ -197,7 +197,7 @@ export default function InteractiveBook() {
                   className="w-full h-full object-cover opacity-40" />
               )}
               <div className="absolute inset-0 flex items-center justify-center">
-                <h1 className="text-5xl md:text-7xl font-bold text-[#C9A84C]"
+                <h1 className="text-5xl md:text-7xl font-bold text-[#8B5CF6]"
                     style={{ textShadow: '2px 2px 12px rgba(0,0,0,0.9)' }}>
                   {page.title}
                 </h1>
@@ -254,16 +254,16 @@ export default function InteractiveBook() {
         {(isPlaying || loadingAudio) && (
           <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full">
             {loadingAudio ? (
-              <div className="w-3 h-3 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
+              <div className="w-3 h-3 border-2 border-[#8B5CF6] border-t-transparent rounded-full animate-spin" />
             ) : (
               <div className="flex items-center gap-0.5">
                 {[1,2,3].map(i => (
-                  <div key={i} className="w-1 bg-[#C9A84C] rounded-full animate-pulse"
+                  <div key={i} className="w-1 bg-[#8B5CF6] rounded-full animate-pulse"
                     style={{ height: `${8 + i * 3}px`, animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
             )}
-            <span className="text-[9px] text-[#C9A84C]">
+            <span className="text-[9px] text-[#8B5CF6]">
               {loadingAudio ? 'Carregando...' : 'Narrando'}
             </span>
           </div>
@@ -277,7 +277,7 @@ export default function InteractiveBook() {
           <ChevronLeft size={16} className="inline" /> Anterior
         </button>
         <button onClick={() => goToPage(currentPage + 1)} disabled={isLast}
-          className="flex-1 py-3 text-center text-[10px] text-[#C9A84C] disabled:opacity-20">
+          className="flex-1 py-3 text-center text-[10px] text-[#8B5CF6] disabled:opacity-20">
           Proximo <ChevronRight size={16} className="inline" />
         </button>
       </div>

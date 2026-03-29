@@ -7,7 +7,7 @@ import axios from 'axios';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const STAGES = [
-  { key: 'new', color: '#C9A84C' },
+  { key: 'new', color: '#8B5CF6' },
   { key: 'qualified', color: '#60A5FA' },
   { key: 'proposal', color: '#A78BFA' },
   { key: 'won', color: '#4ADE80' },
@@ -22,20 +22,20 @@ function LeadCard({ lead, onDragStart }) {
       draggable
       onDragStart={(e) => { e.dataTransfer.setData('lead_id', lead.id); onDragStart(lead.id); }}
       onClick={() => navigate(`/crm/lead/${lead.id}`)}
-      className="group glass-card p-3 cursor-grab active:cursor-grabbing hover:border-[#C9A84C]/25 transition-all"
+      className="group glass-card p-3 cursor-grab active:cursor-grabbing hover:border-[#8B5CF6]/25 transition-all"
     >
       <div className="flex items-start gap-2 mb-1.5">
         <GripVertical size={12} className="text-[#999] mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition" />
         <p className="text-sm font-medium text-white truncate flex-1">{lead.name}</p>
         {lead.score > 0 && (
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-            lead.score >= 70 ? 'bg-[#4ADE80]/10 text-[#4ADE80]' : lead.score >= 40 ? 'bg-[#C9A84C]/10 text-[#C9A84C]' : 'bg-[#666]/10 text-[#999]'
+            lead.score >= 70 ? 'bg-[#4ADE80]/10 text-[#4ADE80]' : lead.score >= 40 ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'bg-[#666]/10 text-[#999]'
           }`}>{lead.score}</span>
         )}
       </div>
       {lead.company && <p className="flex items-center gap-1 text-[10px] text-[#B0B0B0] mb-0.5"><Building size={9} />{lead.company}</p>}
       {lead.phone && <p className="flex items-center gap-1 text-[10px] text-[#B0B0B0]"><Phone size={9} />{lead.phone}</p>}
-      {lead.value > 0 && <p className="mt-1.5 text-xs font-semibold text-[#C9A84C]">${parseFloat(lead.value).toLocaleString()}</p>}
+      {lead.value > 0 && <p className="mt-1.5 text-xs font-semibold text-[#8B5CF6]">${parseFloat(lead.value).toLocaleString()}</p>}
     </div>
   );
 }
@@ -56,7 +56,7 @@ function StageColumn({ stage, leads, onDrop, onDragStart, t }) {
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); const id = e.dataTransfer.getData('lead_id'); if (id) onDrop(id, stage.key); }}
         className={`min-h-[180px] glass-card p-2 space-y-2 transition-all ${
-          dragOver ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : ''
+          dragOver ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/5' : ''
         }`}
       >
         {stageLeads.length > 0 ? stageLeads.map(lead => (
@@ -100,12 +100,12 @@ function NewLeadModal({ open, onClose, onCreated }) {
           <button onClick={onClose} className="text-[#999] hover:text-white"><X size={18} /></button>
         </div>
         <div className="space-y-3">
-          <input data-testid="lead-name-input" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} placeholder="Name *" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-phone-input" value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="Phone" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-email-input" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))} placeholder="Email" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-company-input" value={form.company} onChange={e => setForm(p => ({...p, company: e.target.value}))} placeholder="Company" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
-          <input data-testid="lead-value-input" value={form.value} onChange={e => setForm(p => ({...p, value: e.target.value}))} placeholder="Value ($)" type="number" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/40" />
-          <select data-testid="lead-stage-select" value={form.stage} onChange={e => setForm(p => ({...p, stage: e.target.value}))} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-[#C9A84C]/40">
+          <input data-testid="lead-name-input" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} placeholder="Name *" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/40" />
+          <input data-testid="lead-phone-input" value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="Phone" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/40" />
+          <input data-testid="lead-email-input" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))} placeholder="Email" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/40" />
+          <input data-testid="lead-company-input" value={form.company} onChange={e => setForm(p => ({...p, company: e.target.value}))} placeholder="Company" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/40" />
+          <input data-testid="lead-value-input" value={form.value} onChange={e => setForm(p => ({...p, value: e.target.value}))} placeholder="Value ($)" type="number" className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/40" />
+          <select data-testid="lead-stage-select" value={form.stage} onChange={e => setForm(p => ({...p, stage: e.target.value}))} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-[#8B5CF6]/40">
             {STAGES.map(s => <option key={s.key} value={s.key}>{s.key.charAt(0).toUpperCase() + s.key.slice(1)}</option>)}
           </select>
         </div>
@@ -173,7 +173,7 @@ export default function CRM() {
         </div>
         <div className="flex-shrink-0 glass-card px-4 py-2.5">
           <p className="text-[10px] text-[#B0B0B0]">{t('crm.pipeline_value')}</p>
-          <p className="text-base font-bold text-white flex items-center gap-1 font-mono"><DollarSign size={14} className="text-[#C9A84C]" />{totalValue.toLocaleString()}</p>
+          <p className="text-base font-bold text-white flex items-center gap-1 font-mono"><DollarSign size={14} className="text-[#8B5CF6]" />{totalValue.toLocaleString()}</p>
         </div>
         <div className="flex-shrink-0 glass-card px-4 py-2.5">
           <p className="text-[10px] text-[#B0B0B0]">Won</p>
@@ -187,7 +187,7 @@ export default function CRM() {
 
       {/* Kanban Board */}
       {loading ? (
-        <div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" /></div>
+        <div className="flex h-48 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[#8B5CF6] border-t-transparent" /></div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4">
           {STAGES.map(stage => (

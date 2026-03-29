@@ -36,7 +36,7 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
     setSelected(new Set());
     setSearch('');
 
-    const CACHE_KEY = 'agentzz_avatar_library';
+    const CACHE_KEY = 'studiox_avatar_library';
     const CACHE_TTL = 5 * 60 * 1000; // 5 min
 
     // 1. Show cached data instantly (no loading spinner)
@@ -100,10 +100,10 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
-      <div data-testid="avatar-library-modal" className="w-full max-w-lg rounded-2xl border border-[#C9A84C]/20 bg-[#0D0D0D] overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div data-testid="avatar-library-modal" className="w-full max-w-lg rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#151515] flex items-center gap-2 shrink-0">
-          <BookOpen size={14} className="text-[#C9A84C]" />
+          <BookOpen size={14} className="text-[#8B5CF6]" />
           <h3 className="text-sm font-bold text-white flex-1">{L.title}</h3>
           <span className="text-[9px] text-[#888]">{library.length} total</span>
           <button onClick={onClose} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#999]" /></button>
@@ -115,11 +115,11 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#666]" />
             <input data-testid="library-search" value={search} onChange={e => setSearch(e.target.value)}
               placeholder={L.search}
-              className="w-full pl-8 pr-3 py-2 rounded-lg bg-[#111] border border-[#1E1E1E] text-xs text-white placeholder-[#555] outline-none focus:border-[#C9A84C]/30" />
+              className="w-full pl-8 pr-3 py-2 rounded-lg bg-[#111] border border-[#1E1E1E] text-xs text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/30" />
           </div>
           {filtered.length > 0 && (
             <button onClick={selectAllFiltered} data-testid="library-select-all"
-              className="mt-1.5 text-[9px] text-[#C9A84C] hover:underline">
+              className="mt-1.5 text-[9px] text-[#8B5CF6] hover:underline">
               {L.selectAll} ({filtered.filter(a => !projectAvatarIds.has(a.id)).length})
             </button>
           )}
@@ -129,7 +129,7 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw size={18} className="animate-spin text-[#C9A84C]" />
+              <RefreshCw size={18} className="animate-spin text-[#8B5CF6]" />
             </div>
           ) : filtered.length === 0 ? (
             <p className="text-xs text-[#888] text-center py-12">{library.length === 0 ? L.empty : L.noResults}</p>
@@ -144,14 +144,14 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
                     disabled={inProject}
                     className={`relative rounded-xl overflow-hidden border-2 transition text-left ${
                       inProject ? 'border-green-500/30 opacity-60 cursor-default' :
-                      isSelected ? 'border-[#C9A84C] shadow-[0_0_10px_rgba(201,168,76,0.2)]' :
+                      isSelected ? 'border-[#8B5CF6] shadow-[0_0_10px_rgba(201,168,76,0.2)]' :
                       'border-[#1E1E1E] hover:border-[#333] cursor-pointer'
                     }`}>
                     <img src={resolveImageUrl(av.url)} alt={av.name} loading="lazy" decoding="async"
                       className="w-full aspect-[3/4] object-cover" />
                     {/* Selection check */}
                     {isSelected && (
-                      <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                      <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-[#8B5CF6] flex items-center justify-center">
                         <Check size={10} className="text-black" />
                       </div>
                     )}
@@ -180,7 +180,7 @@ export function AvatarLibraryModal({ open, onClose, projectId, projectAvatarIds 
               {L.close}
             </button>
             <button data-testid="library-import-btn" onClick={doImport} disabled={importing}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#C9A84C] text-black text-xs font-bold hover:bg-[#D4B85A] transition disabled:opacity-50">
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6] text-black text-xs font-bold hover:bg-[#D4B85A] transition disabled:opacity-50">
               {importing ? <RefreshCw size={12} className="animate-spin" /> : <Download size={12} />}
               {L.import} ({selected.size})
             </button>

@@ -9,7 +9,7 @@ function HistoryCard({ pipeline, onSelect, onDelete }) {
   const steps = pipeline.steps || {};
   const completedCount = STEP_ORDER.filter(s => steps[s]?.status === 'completed').length;
   const hasImages = steps.lucas_design?.image_urls?.some(u => u);
-  const statusColors = { completed: 'text-green-400', failed: 'text-red-400', running: 'text-[#C9A84C]', waiting_approval: 'text-amber-400' };
+  const statusColors = { completed: 'text-green-400', failed: 'text-red-400', running: 'text-[#8B5CF6]', waiting_approval: 'text-amber-400' };
   const statusLabels = { completed: t('studio.status_completed') || 'Completed', failed: t('studio.status_failed') || 'Failed', running: t('studio.status_running') || 'Running', waiting_approval: t('studio.status_waiting') || 'Waiting', requires_upgrade: 'Upgrade' };
   const createdAt = pipeline.created_at ? new Date(pipeline.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
 

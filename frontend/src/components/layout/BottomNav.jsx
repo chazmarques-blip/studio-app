@@ -28,10 +28,10 @@ export function BottomNav() {
             : location.pathname.startsWith(checkPath) && (!exact || location.pathname === checkPath);
           return (
             <button key={path} data-testid={`nav-${label.toLowerCase().replace(/\s/g, '-')}`} onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 transition-all duration-200 ${isActive ? 'text-[#C9A84C]' : 'text-[#666666] hover:text-[#A0A0A0]'}`}>
+              className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 transition-all duration-200 ${isActive ? 'text-[#8B5CF6]' : 'text-[#666666] hover:text-[#A0A0A0]'}`}>
               <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
               <span className="text-[9px] font-medium">{label}</span>
-              {isActive && <div className="mt-0.5 h-1 w-1 rounded-full bg-[#C9A84C]" />}
+              {isActive && <div className="mt-0.5 h-1 w-1 rounded-full bg-[#8B5CF6]" />}
             </button>
           );
         })}

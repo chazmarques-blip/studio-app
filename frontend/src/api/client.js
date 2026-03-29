@@ -11,7 +11,7 @@ const api = axios.create({
 
 // Request interceptor: auto-attach auth token
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('agentzz_token');
+  const token = localStorage.getItem('studiox_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25,8 +25,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const path = window.location.pathname;
       if (path !== '/login' && path !== '/') {
-        localStorage.removeItem('agentzz_token');
-        localStorage.removeItem('agentzz_user');
+        localStorage.removeItem('studiox_token');
+        localStorage.removeItem('studiox_user');
         window.location.href = '/login';
       }
     }

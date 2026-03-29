@@ -111,7 +111,7 @@ export default function Login() {
     <div className="flex min-h-screen bg-[#0A0A0A]">
       {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute left-1/3 top-1/3 h-[300px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#C9A84C]/[0.03] blur-[120px]" />
+        <div className="absolute left-1/3 top-1/3 h-[300px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8B5CF6]/[0.03] blur-[120px]" />
       </div>
 
       {/* Left - Plans */}
@@ -120,7 +120,7 @@ export default function Login() {
           <button data-testid="back-to-landing" onClick={() => navigate('/')} className="mb-5 flex items-center gap-2 text-xs text-[#888] transition hover:text-white">
             <ArrowLeft size={14} /> {t('auth.back')}
           </button>
-          <img src="/logo-agentzz.png" alt="AgentZZ" className="h-10 mb-5" />
+          <img src="/logo-studiox.png" alt="StudioX" className="h-10 mb-5" />
           <h2 className="text-base font-bold text-white mb-0.5">{isSignUp ? t('auth.choose_plan_title', 'Choose your plan') : t('auth.upgrade_title', 'Upgrade anytime')}</h2>
           <p className="text-[11px] text-[#999] mb-4">{t('auth.plan_subtitle', 'Start free, upgrade when you need more power.')}</p>
 
@@ -128,8 +128,8 @@ export default function Login() {
           <div className="flex items-center gap-2 mb-4" data-testid="billing-toggle">
             <span className={`text-[10px] font-semibold transition ${!annual ? 'text-white' : 'text-[#666]'}`}>{t('landing.billing_monthly')}</span>
             <button onClick={() => setAnnual(!annual)} data-testid="billing-toggle-btn"
-              className={`relative w-9 h-5 rounded-full transition-colors ${annual ? 'bg-[#C9A84C]/30' : 'bg-white/10'}`}>
-              <div className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${annual ? 'left-[18px] bg-[#C9A84C]' : 'left-0.5 bg-[#888]'}`} />
+              className={`relative w-9 h-5 rounded-full transition-colors ${annual ? 'bg-[#8B5CF6]/30' : 'bg-white/10'}`}>
+              <div className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${annual ? 'left-[18px] bg-[#8B5CF6]' : 'left-0.5 bg-[#888]'}`} />
             </button>
             <span className={`text-[10px] font-semibold transition ${annual ? 'text-white' : 'text-[#666]'}`}>{t('landing.billing_annual')}</span>
             {annual && <span className="text-[8px] font-mono text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">-20%</span>}
@@ -142,13 +142,13 @@ export default function Login() {
                 <div key={i} data-testid={`login-plan-${i}`}
                   className={`rounded-xl border p-3 transition-all ${
                     plan.pro
-                      ? 'border-[#C9A84C]/20 bg-[#C9A84C]/[0.03]'
+                      ? 'border-[#8B5CF6]/20 bg-[#8B5CF6]/[0.03]'
                       : 'border-white/[0.05] bg-white/[0.01] hover:border-white/[0.08]'
                   }`}>
                   <div className="flex items-center gap-2 mb-1.5">
                     {Icon && (
-                      <div className={`h-6 w-6 rounded-md flex items-center justify-center ${plan.pro ? 'bg-[#C9A84C]/12' : 'bg-white/[0.03]'}`}>
-                        <Icon size={11} className={plan.pro ? 'text-[#C9A84C]' : 'text-[#888]'} />
+                      <div className={`h-6 w-6 rounded-md flex items-center justify-center ${plan.pro ? 'bg-[#8B5CF6]/12' : 'bg-white/[0.03]'}`}>
+                        <Icon size={11} className={plan.pro ? 'text-[#8B5CF6]' : 'text-[#888]'} />
                       </div>
                     )}
                     <div className="flex-1">
@@ -156,12 +156,12 @@ export default function Login() {
                         <span className="text-[12px] font-bold text-white">{plan.name}</span>
                         {plan.badge && (
                           <span className={`text-[6px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
-                            plan.pro ? 'bg-[#C9A84C]/12 text-[#C9A84C]' : 'bg-white/[0.04] text-[#777]'
+                            plan.pro ? 'bg-[#8B5CF6]/12 text-[#8B5CF6]' : 'bg-white/[0.04] text-[#777]'
                           }`}>{plan.badge}</span>
                         )}
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className={`text-sm font-bold font-mono ${plan.pro ? 'text-[#C9A84C]' : 'text-white'}`}>{plan.price}</span>
+                        <span className={`text-sm font-bold font-mono ${plan.pro ? 'text-[#8B5CF6]' : 'text-white'}`}>{plan.price}</span>
                         {plan.period && <span className="text-[8px] text-[#999]">{plan.period}</span>}
                       </div>
                     </div>
@@ -169,7 +169,7 @@ export default function Login() {
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                     {plan.feats.slice(0, 4).map((f, fi) => (
                       <span key={fi} className="flex items-center gap-1 text-[8px] text-[#888]">
-                        <Check size={7} className={plan.pro ? 'text-[#C9A84C]' : 'text-emerald-400/60'} />{f}
+                        <Check size={7} className={plan.pro ? 'text-[#8B5CF6]' : 'text-emerald-400/60'} />{f}
                       </span>
                     ))}
                   </div>
@@ -188,7 +188,7 @@ export default function Login() {
             <button data-testid="back-to-landing-mobile" onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-xs text-[#888] transition hover:text-white">
               <ArrowLeft size={14} /> {t('auth.back')}
             </button>
-            <img src="/logo-agentzz.png" alt="AgentZZ" className="h-12 mb-6" />
+            <img src="/logo-studiox.png" alt="StudioX" className="h-12 mb-6" />
           </div>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] backdrop-blur-xl p-5" data-testid="auth-form-card">
@@ -201,12 +201,12 @@ export default function Login() {
                     <div>
                       <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">First Name</label>
                       <input data-testid="input-firstname" type="text" value={firstName} onChange={(e) => setFirstName(capitalizeName(e.target.value))} placeholder="John"
-                        className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                        className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#8B5CF6]/40 focus:ring-1 focus:ring-[#8B5CF6]/20" />
                     </div>
                     <div>
                       <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">Last Name</label>
                       <input data-testid="input-lastname" type="text" value={lastName} onChange={(e) => setLastName(capitalizeName(e.target.value))} placeholder="Smith"
-                        className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                        className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#8B5CF6]/40 focus:ring-1 focus:ring-[#8B5CF6]/20" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -223,7 +223,7 @@ export default function Login() {
                           WhatsApp
                         </button>
                         <button type="button" data-testid="contact-sms" onClick={() => setPreferredContact('sms')}
-                          className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-1.5 text-[10px] font-medium transition ${preferredContact === 'sms' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10 text-[#C9A84C]' : 'border-[#222] bg-[#111] text-[#555] hover:border-[#333]'}`}>
+                          className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-1.5 text-[10px] font-medium transition ${preferredContact === 'sms' ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'border-[#222] bg-[#111] text-[#555] hover:border-[#333]'}`}>
                           SMS
                         </button>
                       </div>
@@ -244,7 +244,7 @@ export default function Login() {
                             {COUNTRIES.map(c => (
                               <button type="button" key={c.code} data-testid={`country-${c.code}`}
                                 onClick={() => { setSelectedCountry(c); setShowCountryPicker(false); setPhoneNumber(''); }}
-                                className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-white/5 ${selectedCountry.code === c.code ? 'bg-[#C9A84C]/10 text-[#C9A84C]' : 'text-white'}`}>
+                                className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-white/5 ${selectedCountry.code === c.code ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-white'}`}>
                                 <span>{c.flag}</span>
                                 <span className="font-mono text-[#999]">{c.dial}</span>
                                 <span className="text-[#666]">{c.code}</span>
@@ -254,7 +254,7 @@ export default function Login() {
                         )}
                       </div>
                       <input data-testid="input-phone" type="tel" value={phoneNumber} onChange={handlePhoneChange} placeholder={selectedCountry.placeholder}
-                        className="flex-1 rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                        className="flex-1 rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#8B5CF6]/40 focus:ring-1 focus:ring-[#8B5CF6]/20" />
                     </div>
                   </div>
                 </>
@@ -262,13 +262,13 @@ export default function Login() {
               <div>
                 <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">Email</label>
                 <input data-testid="input-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required
-                  className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                  className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#8B5CF6]/40 focus:ring-1 focus:ring-[#8B5CF6]/20" />
               </div>
               <div>
                 <label className="mb-0.5 block text-[9px] font-semibold text-[#777] uppercase tracking-wider">Password</label>
                 <div className="relative">
                   <input data-testid="input-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 characters" required minLength={6}
-                    className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 pr-9 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20" />
+                    className="w-full rounded-lg border border-[#222] bg-[#111] px-3 py-1.5 pr-9 text-[12px] text-white placeholder-[#555] outline-none transition focus:border-[#8B5CF6]/40 focus:ring-1 focus:ring-[#8B5CF6]/20" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555] transition hover:text-[#999]">{showPassword ? <EyeOff size={13} /> : <Eye size={13} />}</button>
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function Login() {
               )}
             </form>
             <div className="mt-4 text-center">
-              <button data-testid="auth-toggle-btn" onClick={() => setIsSignUp(!isSignUp)} className="text-[11px] text-[#888] transition hover:text-[#C9A84C]">{isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Start Free"}</button>
+              <button data-testid="auth-toggle-btn" onClick={() => setIsSignUp(!isSignUp)} className="text-[11px] text-[#888] transition hover:text-[#8B5CF6]">{isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Start Free"}</button>
             </div>
           </div>
         </div>

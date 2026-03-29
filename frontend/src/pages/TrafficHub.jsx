@@ -8,7 +8,7 @@ import { ArrowLeft, Target, TrendingUp, Play, Pause, Eye, Zap, BarChart3,
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const TRAFFIC_AGENTS = [
-  { id: 'james', name: 'James', role: 'Chief Traffic Manager', icon: Shield, color: '#C9A84C',
+  { id: 'james', name: 'James', role: 'Chief Traffic Manager', icon: Shield, color: '#8B5CF6',
     channels: ['all'], skills: ['Omnichannel Strategy', 'Budget Allocation', 'ROI Optimization'] },
   { id: 'emily', name: 'Emily', role: 'Meta Ads Specialist', icon: Instagram, color: '#E1306C',
     channels: ['instagram', 'facebook'], skills: ['Custom Audiences', 'A/B Testing', 'Retargeting'] },
@@ -198,7 +198,7 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
             <h3 className="text-sm font-bold text-white truncate">{campaign.name}</h3>
             <span className={`text-[7px] font-bold px-2 py-0.5 rounded-full uppercase ${
               isActive ? 'bg-green-500/15 text-green-400' :
-              isCreated ? 'bg-[#C9A84C]/15 text-[#C9A84C]' :
+              isCreated ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' :
               'bg-[#333]/50 text-[#999]'
             }`}>
               {isActive ? 'Ativa' : isCreated ? 'Pronta' : 'Rascunho'}
@@ -216,7 +216,7 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
         <div className="flex items-center gap-2">
           {isCreated && (
             <button data-testid="panel-activate" onClick={() => onAction(campaign, 'activate')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#C9A84C] text-[#0A0A0A] text-[10px] font-bold hover:bg-[#D4B85C] transition">
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#8B5CF6] text-[#0A0A0A] text-[10px] font-bold hover:bg-[#D4B85C] transition">
               <Play size={10} /> Ativar
             </button>
           )}
@@ -266,25 +266,25 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
             <p className="text-[10px] text-white font-semibold">{agent.name}</p>
             <p className="text-[8px] text-[#B0B0B0]">{agent.role}</p>
           </div>
-          <Sparkles size={12} className="text-[#C9A84C] ml-auto" />
-          <span className="text-[8px] text-[#C9A84C] font-semibold">Analise IA</span>
+          <Sparkles size={12} className="text-[#8B5CF6] ml-auto" />
+          <span className="text-[8px] text-[#8B5CF6] font-semibold">Analise IA</span>
         </div>
         <div className="space-y-2">
           {recs.map((rec, i) => (
             <div key={i} className={`flex items-start gap-2.5 p-2.5 rounded-lg border ${
-              rec.priority === 'high' ? 'border-[#C9A84C]/20 bg-[#C9A84C]/5' :
+              rec.priority === 'high' ? 'border-[#8B5CF6]/20 bg-[#8B5CF6]/5' :
               rec.priority === 'medium' ? 'border-[#333] bg-[#111]' :
               'border-[#1A1A1A] bg-[#0D0D0D]'
             }`}>
               <div className="mt-0.5">
-                {rec.type === 'optimization' && <TrendingUp size={11} className="text-[#C9A84C]" />}
+                {rec.type === 'optimization' && <TrendingUp size={11} className="text-[#8B5CF6]" />}
                 {rec.type === 'action' && <CheckCircle2 size={11} className="text-green-400" />}
                 {rec.type === 'insight' && <BarChart3 size={11} className="text-blue-400" />}
                 {rec.type === 'warning' && <AlertTriangle size={11} className="text-orange-400" />}
               </div>
               <div className="flex-1">
                 <span className={`text-[8px] font-bold uppercase tracking-wider ${
-                  rec.type === 'optimization' ? 'text-[#C9A84C]' :
+                  rec.type === 'optimization' ? 'text-[#8B5CF6]' :
                   rec.type === 'action' ? 'text-green-400' :
                   rec.type === 'insight' ? 'text-blue-400' : 'text-orange-400'
                 }`}>
@@ -312,7 +312,7 @@ function CampaignRow({ campaign, metrics, isSelected, onClick }) {
   return (
     <button data-testid={`traffic-row-${campaign.id}`} onClick={onClick}
       className={`w-full text-left p-3 rounded-xl border transition ${
-        isSelected ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
+        isSelected ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
       }`}>
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
@@ -320,7 +320,7 @@ function CampaignRow({ campaign, metrics, isSelected, onClick }) {
             <h4 className="text-[11px] font-semibold text-white truncate">{campaign.name}</h4>
             <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
               isActive ? 'bg-green-500/15 text-green-400' :
-              isCreated ? 'bg-[#C9A84C]/15 text-[#C9A84C]' :
+              isCreated ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' :
               'bg-[#333]/50 text-[#B0B0B0]'
             }`}>
               {isActive ? 'Ativa' : isCreated ? 'Pronta' : 'Rascunho'}
@@ -367,7 +367,7 @@ export default function TrafficHub() {
 
   const fetchCampaigns = useCallback(async () => {
     try {
-      const token = localStorage.getItem('agentzz_token');
+      const token = localStorage.getItem('studiox_token');
       const res = await fetch(`${API}/api/campaigns`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
@@ -391,7 +391,7 @@ export default function TrafficHub() {
   const handleAction = async (campaign, action) => {
     if (action === 'activate' || action === 'pause') {
       try {
-        const token = localStorage.getItem('agentzz_token');
+        const token = localStorage.getItem('studiox_token');
         const newStatus = action === 'activate' ? 'active' : 'paused';
         await fetch(`${API}/api/campaigns/${campaign.id}`, {
           method: 'PUT',
@@ -434,7 +434,7 @@ export default function TrafficHub() {
             </button>
             <div>
               <h1 className="text-base font-bold text-white flex items-center gap-2">
-                <Target size={18} className="text-[#C9A84C]" />
+                <Target size={18} className="text-[#8B5CF6]" />
                 Traffic Hub
               </h1>
               <p className="text-[10px] text-[#B0B0B0]">Centro de comando — performance e otimizacao de campanhas</p>
@@ -443,7 +443,7 @@ export default function TrafficHub() {
           {/* Global KPIs */}
           <div className="hidden md:flex items-center gap-4">
             {[
-              { icon: DollarSign, label: 'Gasto Total', value: `$${totalSpend.toLocaleString()}`, color: '#C9A84C' },
+              { icon: DollarSign, label: 'Gasto Total', value: `$${totalSpend.toLocaleString()}`, color: '#8B5CF6' },
               { icon: Users, label: 'Conversoes', value: totalConversions, color: '#4CAF50' },
               { icon: MousePointerClick, label: 'Impressoes', value: totalImpressions > 1000 ? `${(totalImpressions/1000).toFixed(1)}k` : totalImpressions, color: '#4285F4' },
               { icon: Play, label: 'Ativas', value: activeCampaigns, color: '#E1306C' },
@@ -479,7 +479,7 @@ export default function TrafficHub() {
                   <button key={agent.id} data-testid={`traffic-agent-${agent.id}`}
                     onClick={() => { setSelectedAgent(agent); setSelectedCampaign(null); }}
                     className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl border transition ${
-                      isSelected ? 'border-[#C9A84C]/40 bg-[#C9A84C]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
+                      isSelected ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
                     }`}>
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${agent.color}15` }}>
                       <Icon size={13} style={{ color: agent.color }} />
@@ -506,7 +506,7 @@ export default function TrafficHub() {
                   onClick={() => setFilter(tab.id)}
                   className={`text-[9px] px-2.5 py-1 rounded-full border transition font-medium ${
                     filter === tab.id
-                      ? 'bg-[#C9A84C]/10 border-[#C9A84C]/30 text-[#C9A84C]'
+                      ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30 text-[#8B5CF6]'
                       : 'border-[#1E1E1E] text-[#B0B0B0] hover:text-white hover:border-[#333]'
                   }`}>
                   {tab.label}
@@ -518,7 +518,7 @@ export default function TrafficHub() {
             <div className="space-y-1.5 max-h-[calc(100vh-340px)] overflow-y-auto pr-1">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-5 h-5 border-2 border-[#C9A84C]/30 border-t-[#C9A84C] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] rounded-full animate-spin" />
                 </div>
               ) : filteredCampaigns.length === 0 ? (
                 <div className="text-center py-8 bg-[#111] border border-[#1E1E1E] rounded-xl">
@@ -559,7 +559,7 @@ export default function TrafficHub() {
       {/* Simulated data notice */}
       <div className="fixed bottom-4 right-4 z-20">
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1A1A1A] border border-[#333] text-[9px] text-[#999]">
-          <Clock size={10} className="text-[#C9A84C]" />
+          <Clock size={10} className="text-[#8B5CF6]" />
           Dados simulados — metricas reais quando APIs de trafego forem conectadas
         </div>
       </div>

@@ -63,7 +63,7 @@ export function AvatarModal({ ctx }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
-      <div data-testid="avatar-modal" className="w-full max-w-lg rounded-2xl border border-[#C9A84C]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div data-testid="avatar-modal" className="w-full max-w-lg rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
@@ -88,7 +88,7 @@ export function AvatarModal({ ctx }) {
                       ].map(tab => (
                         <button key={tab.id} data-testid={`avatar-mode-${tab.id}`} onClick={() => setAvatarCreationMode(tab.id)}
                           className={`flex-1 rounded-lg py-2 text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
-                            avatarCreationMode === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999] hover:text-white'}`}>
+                            avatarCreationMode === tab.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999] hover:text-white'}`}>
                           <tab.icon size={11} /> {tab.label}
                         </button>
                       ))}
@@ -108,8 +108,8 @@ export function AvatarModal({ ctx }) {
                     {/* Photo Upload Section */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Camera size={12} className="text-[#C9A84C]" />
-                        <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
+                        <Camera size={12} className="text-[#8B5CF6]" />
+                        <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
                         {!avatarSourcePhoto && <span className="text-[10px] text-red-400/70 uppercase">*{t('studio.required') || 'Required'}</span>}
                       </div>
                       {avatarSourcePhoto ? (
@@ -117,7 +117,7 @@ export function AvatarModal({ ctx }) {
                           <div className="relative shrink-0">
                             <img loading="lazy" decoding="async" src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Source"
                               onError={(e) => { if (avatarSourcePhoto.url) e.target.src = resolveImageUrl(avatarSourcePhoto.url); }}
-                              className="h-16 w-16 rounded-lg object-cover border border-[#C9A84C]/30" />
+                              className="h-16 w-16 rounded-lg object-cover border border-[#8B5CF6]/30" />
                             <button onClick={() => { setAvatarSourcePhoto(null); }}
                               className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
                               <X size={8} className="text-white" />
@@ -132,13 +132,13 @@ export function AvatarModal({ ctx }) {
                       ) : (
                         <button data-testid="upload-photo-btn" onClick={() => { setAvatarSourceType('photo'); setTimeout(() => avatarInputRef.current?.click(), 100); }}
                           disabled={avatarPhotoUploading}
-                          className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
+                          className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#8B5CF6]/30 text-center transition group">
                           {avatarPhotoUploading ? (
-                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-xs text-[#999]">{t('studio.uploading')}</span></div>
+                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#8B5CF6]" /><span className="text-xs text-[#999]">{t('studio.uploading')}</span></div>
                           ) : (
                             <div className="flex items-center justify-center gap-2">
-                              <Upload size={14} className="text-[#888] group-hover:text-[#C9A84C] transition" />
-                              <span className="text-xs text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.select_photo') || 'Select photo'}</span>
+                              <Upload size={14} className="text-[#888] group-hover:text-[#8B5CF6] transition" />
+                              <span className="text-xs text-[#999] group-hover:text-[#8B5CF6] transition">{t('studio.select_photo') || 'Select photo'}</span>
                             </div>
                           )}
                         </button>
@@ -148,9 +148,9 @@ export function AvatarModal({ ctx }) {
                     {/* Video Upload Section */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Film size={12} className="text-[#C9A84C]" />
-                        <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.video_reference') || 'Video Reference'}</span>
-                        <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/15 text-xs text-[#C9A84C] font-bold uppercase">{t('studio.recommended') || 'Recommended'}</span>
+                        <Film size={12} className="text-[#8B5CF6]" />
+                        <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">{t('studio.video_reference') || 'Video Reference'}</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-xs text-[#8B5CF6] font-bold uppercase">{t('studio.recommended') || 'Recommended'}</span>
                       </div>
                       {avatarExtractedAudio || avatarVideoFrames.length > 0 ? (
                         <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
@@ -179,14 +179,14 @@ export function AvatarModal({ ctx }) {
                       ) : (
                         <button data-testid="upload-video-btn" onClick={() => { setAvatarSourceType('video'); setTimeout(() => avatarInputRef.current?.click(), 100); }}
                           disabled={avatarVideoUploading}
-                          className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
+                          className="w-full p-3 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#8B5CF6]/30 text-center transition group">
                           {avatarVideoUploading ? (
-                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-xs text-[#999]">{t('studio.extracting_video')}</span></div>
+                            <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#8B5CF6]" /><span className="text-xs text-[#999]">{t('studio.extracting_video')}</span></div>
                           ) : (
                             <div className="space-y-1">
                               <div className="flex items-center justify-center gap-2">
-                                <Upload size={14} className="text-[#888] group-hover:text-[#C9A84C] transition" />
-                                <span className="text-xs text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.select_video') || 'Select video'}</span>
+                                <Upload size={14} className="text-[#888] group-hover:text-[#8B5CF6] transition" />
+                                <span className="text-xs text-[#999] group-hover:text-[#8B5CF6] transition">{t('studio.select_video') || 'Select video'}</span>
                               </div>
                               <p className="text-[10px] text-[#777]">{t('studio.video_adds_accuracy') || 'Adds body, voice & expression data for higher accuracy'}</p>
                             </div>
@@ -206,7 +206,7 @@ export function AvatarModal({ ctx }) {
                         )}
                         <button data-testid="generate-avatar-btn" onClick={generateAvatarFromPhoto}
                           disabled={generatingAvatar}
-                          className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                          className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
                           {generatingAvatar ? (
                             <><Loader2 size={14} className="animate-spin" /> {t('studio.generating_avatar')}</>
                           ) : (
@@ -231,14 +231,14 @@ export function AvatarModal({ ctx }) {
                                   );
                                   return (
                                     <React.Fragment key={agent.name}>
-                                      {idx > 0 && <div className={`w-4 h-px ${isDone ? 'bg-[#C9A84C]' : 'bg-[#1E1E1E]'}`} />}
+                                      {idx > 0 && <div className={`w-4 h-px ${isDone ? 'bg-[#8B5CF6]' : 'bg-[#1E1E1E]'}`} />}
                                       <div className={`flex items-center gap-1 px-2 py-1 rounded-lg transition ${
-                                        isActive ? 'bg-[#C9A84C]/15 border border-[#C9A84C]/30' :
+                                        isActive ? 'bg-[#8B5CF6]/15 border border-[#8B5CF6]/30' :
                                         isDone ? 'bg-green-500/10 border border-green-500/20' :
                                         'bg-[#111] border border-[#1A1A1A]'}`}>
-                                        <agent.icon size={10} className={isActive ? 'text-[#C9A84C] animate-pulse' : isDone ? 'text-green-400' : 'text-[#888]'} />
+                                        <agent.icon size={10} className={isActive ? 'text-[#8B5CF6] animate-pulse' : isDone ? 'text-green-400' : 'text-[#888]'} />
                                         <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                                          isActive ? 'text-[#C9A84C]' : isDone ? 'text-green-400' : 'text-[#888]'}`}>
+                                          isActive ? 'text-[#8B5CF6]' : isDone ? 'text-green-400' : 'text-[#888]'}`}>
                                           {agent.name}
                                         </span>
                                       </div>
@@ -250,7 +250,7 @@ export function AvatarModal({ ctx }) {
 
                             {/* Progress info */}
                             <div className="flex items-center gap-2">
-                              <Loader2 size={12} className="animate-spin text-[#C9A84C] shrink-0" />
+                              <Loader2 size={12} className="animate-spin text-[#8B5CF6] shrink-0" />
                               <p className="text-xs text-[#888]">
                                 {accuracyProgress?.progress || t('studio.avatar_gen_time')}
                               </p>
@@ -260,7 +260,7 @@ export function AvatarModal({ ctx }) {
                             {accuracyProgress?.iteration > 0 && (
                               <div className="flex items-center gap-1.5">
                                 <div className="flex-1 h-1.5 bg-[#1E1E1E] rounded-full overflow-hidden">
-                                  <div className="h-full bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] transition-all duration-700 rounded-full"
+                                  <div className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] transition-all duration-700 rounded-full"
                                     style={{width: `${(accuracyProgress.iteration / 3) * 100}%`}} />
                                 </div>
                                 <span className="text-[11px] text-[#999] font-mono">{accuracyProgress.iteration}/3</span>
@@ -302,13 +302,13 @@ export function AvatarModal({ ctx }) {
                       <div className="space-y-3">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <PenTool size={12} className="text-[#C9A84C]" />
-                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{isDirectedMode ? 'Descreva seu personagem' : (t('studio.describe_avatar') || 'Describe your avatar')}</span>
+                            <PenTool size={12} className="text-[#8B5CF6]" />
+                            <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">{isDirectedMode ? 'Descreva seu personagem' : (t('studio.describe_avatar') || 'Describe your avatar')}</span>
                           </div>
                           <textarea data-testid="avatar-prompt-input" value={avatarPromptText}
                             onChange={e => setAvatarPromptText(e.target.value)}
                             placeholder={t('studio.avatar_prompt_placeholder') || 'E.g.: Young professional woman, 28 years old, brown hair, confident smile, business attire'}
-                            className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 resize-none h-20" />
+                            className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none h-20" />
                         </div>
                         <div className="flex gap-2">
                           <div className="flex-1 space-y-1">
@@ -316,7 +316,7 @@ export function AvatarModal({ ctx }) {
                             <div className="flex gap-1">
                               {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
                                 <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
-                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                   {g.label}
                                 </button>
                               ))}
@@ -330,7 +330,7 @@ export function AvatarModal({ ctx }) {
                             {[{id:'custom', label:'Custom'}, {id:'realistic', label:'Realistic'}, {id:'3d_cartoon', label:'3D Cartoon'}, {id:'3d_pixar', label:'3D Pixar'}].map(s => (
                               <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
                                 data-testid={`prompt-style-${s.id}`}
-                                className={`flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                className={`flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                 {s.label}
                               </button>
                             ))}
@@ -338,7 +338,7 @@ export function AvatarModal({ ctx }) {
                         </div>
                         <button data-testid="generate-avatar-prompt-btn" onClick={generateAvatarFromPrompt}
                           disabled={generatingAvatar || !avatarPromptText.trim()}
-                          className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                          className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
                           {generatingAvatar ? (
                             <><Loader2 size={14} className="animate-spin" /> {accuracyProgress?.progress || t('studio.generating_avatar')}</>
                           ) : (
@@ -359,16 +359,16 @@ export function AvatarModal({ ctx }) {
                         {/* Optional Photo Reference for 3D */}
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Camera size={12} className="text-[#C9A84C]" />
-                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
-                            <span className="px-1.5 py-0.5 rounded-full bg-[#C9A84C]/10 text-xs text-[#C9A84C]/70 font-bold uppercase">{t('studio.optional') || 'Optional'}</span>
+                            <Camera size={12} className="text-[#8B5CF6]" />
+                            <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">{t('studio.photo_reference') || 'Photo Reference'}</span>
+                            <span className="px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/10 text-xs text-[#8B5CF6]/70 font-bold uppercase">{t('studio.optional') || 'Optional'}</span>
                           </div>
                           {avatarSourcePhoto ? (
                             <div className="flex items-center gap-3 p-2 rounded-xl bg-[#0A0A0A] border border-[#1E1E1E]">
                               <div className="relative shrink-0">
                                 <img loading="lazy" decoding="async" src={avatarSourcePhoto.preview || resolveImageUrl(avatarSourcePhoto.url)} alt="Ref"
                                   onError={(e) => { if (avatarSourcePhoto.url) e.target.src = resolveImageUrl(avatarSourcePhoto.url); }}
-                                  className="h-14 w-14 rounded-lg object-cover border border-[#C9A84C]/30" />
+                                  className="h-14 w-14 rounded-lg object-cover border border-[#8B5CF6]/30" />
                                 <button onClick={() => setAvatarSourcePhoto(null)}
                                   className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
                                   <X size={8} className="text-white" />
@@ -383,14 +383,14 @@ export function AvatarModal({ ctx }) {
                           ) : (
                             <button data-testid="upload-3d-ref-photo-btn" onClick={() => { setAvatarSourceType('photo'); setTimeout(() => avatarInputRef.current?.click(), 100); }}
                               disabled={avatarPhotoUploading}
-                              className="w-full p-2.5 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#C9A84C]/30 text-center transition group">
+                              className="w-full p-2.5 rounded-xl border border-dashed border-[#2A2A2A] hover:border-[#8B5CF6]/30 text-center transition group">
                               {avatarPhotoUploading ? (
-                                <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#C9A84C]" /><span className="text-xs text-[#999]">{t('studio.uploading')}</span></div>
+                                <div className="flex items-center justify-center gap-2"><Loader2 size={12} className="animate-spin text-[#8B5CF6]" /><span className="text-xs text-[#999]">{t('studio.uploading')}</span></div>
                               ) : (
                                 <div className="space-y-0.5">
                                   <div className="flex items-center justify-center gap-2">
-                                    <Upload size={12} className="text-[#888] group-hover:text-[#C9A84C] transition" />
-                                    <span className="text-xs text-[#999] group-hover:text-[#C9A84C] transition">{t('studio.upload_ref_photo') || 'Upload reference photo'}</span>
+                                    <Upload size={12} className="text-[#888] group-hover:text-[#8B5CF6] transition" />
+                                    <span className="text-xs text-[#999] group-hover:text-[#8B5CF6] transition">{t('studio.upload_ref_photo') || 'Upload reference photo'}</span>
                                   </div>
                                   <p className="text-[10px] text-[#777]">{t('studio.photo_3d_hint') || 'Upload a face photo to guide the 3D style'}</p>
                                 </div>
@@ -401,13 +401,13 @@ export function AvatarModal({ ctx }) {
 
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Sparkles size={12} className="text-[#C9A84C]" />
-                            <span className="text-xs text-[#C9A84C] font-bold uppercase tracking-wider">3D Avatar Description</span>
+                            <Sparkles size={12} className="text-[#8B5CF6]" />
+                            <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">3D Avatar Description</span>
                           </div>
                           <textarea data-testid="avatar-3d-prompt-input" value={avatarPromptText}
                             onChange={e => setAvatarPromptText(e.target.value)}
                             placeholder={t('studio.avatar_3d_placeholder') || 'E.g.: Friendly 3D character, young man with glasses, wearing casual clothes, vibrant colors'}
-                            className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#C9A84C]/30 resize-none h-20" />
+                            className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none h-20" />
                         </div>
                         <div className="flex gap-2">
                           <div className="flex-1 space-y-1">
@@ -415,7 +415,7 @@ export function AvatarModal({ ctx }) {
                             <div className="flex gap-1">
                               {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
                                 <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
-                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                   {g.label}
                                 </button>
                               ))}
@@ -426,7 +426,7 @@ export function AvatarModal({ ctx }) {
                             <div className="flex gap-1">
                               {[{id:'3d_cartoon', label:'Cartoon'}, {id:'3d_pixar', label:'Pixar'}].map(s => (
                                 <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
-                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                                   {s.label}
                                 </button>
                               ))}
@@ -435,7 +435,7 @@ export function AvatarModal({ ctx }) {
                         </div>
                         <button data-testid="generate-avatar-3d-btn" onClick={generateAvatarFromPrompt}
                           disabled={generatingAvatar || !avatarPromptText.trim()}
-                          className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                          className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
                           {generatingAvatar ? (
                             <><Loader2 size={14} className="animate-spin" /> {accuracyProgress?.progress || t('studio.generating_avatar')}</>
                           ) : (
@@ -456,7 +456,7 @@ export function AvatarModal({ ctx }) {
                         value={avatarName}
                         onChange={(e) => setAvatarName(e.target.value)}
                         placeholder={isDirectedMode ? 'Nome do personagem...' : (t('studio.avatar_name_placeholder') || 'Name your avatar...')}
-                        className="flex-1 bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#888] focus:border-[#C9A84C]/50 focus:outline-none"
+                        className="flex-1 bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#888] focus:border-[#8B5CF6]/50 focus:outline-none"
                       />
                     </div>
 
@@ -467,12 +467,12 @@ export function AvatarModal({ ctx }) {
                         <div className="flex rounded-md border border-[#1E1E1E] overflow-hidden">
                           <button data-testid="media-tab-photo" onClick={() => setAvatarMediaTab('photo')}
                             className={`px-4 py-1 text-xs font-semibold flex items-center gap-1 transition ${
-                              avatarMediaTab === 'photo' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#999] hover:text-[#888]'}`}>
+                              avatarMediaTab === 'photo' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'text-[#999] hover:text-[#888]'}`}>
                             <Camera size={10} /> {t('studio.photo_tab') || 'Photo'}
                           </button>
                           <button data-testid="media-tab-video" onClick={() => setAvatarMediaTab('video')}
                             className={`px-4 py-1 text-xs font-semibold flex items-center gap-1 transition ${
-                              avatarMediaTab === 'video' ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#999] hover:text-[#888]'}`}>
+                              avatarMediaTab === 'video' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'text-[#999] hover:text-[#888]'}`}>
                             <Film size={10} /> {t('studio.video_tab') || 'Video'}
                           </button>
                         </div>
@@ -494,13 +494,13 @@ export function AvatarModal({ ctx }) {
                               return (
                                 <div key={idx} data-testid={`history-entry-${idx}`}
                                   className={`relative shrink-0 rounded-xl overflow-hidden border-2 cursor-pointer transition group ${
-                                    isCurrent ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.15)]' : 'border-[#1E1E1E] hover:border-[#333]'
+                                    isCurrent ? 'border-[#8B5CF6] shadow-[0_0_8px_rgba(201,168,76,0.15)]' : 'border-[#1E1E1E] hover:border-[#333]'
                                   }`}
                                   onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}>
                                   <img loading="lazy" decoding="async" src={resolveImageUrl(entry.url)} alt={`v${idx + 1}`}
                                     className="w-full aspect-[3/4] object-cover" />
                                   {entry.isBase && (
-                                    <div className="absolute top-1 left-1 bg-[#C9A84C] rounded px-1.5 py-0.5">
+                                    <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1.5 py-0.5">
                                       <span className="text-xs text-black font-bold uppercase">BASE</span>
                                     </div>
                                   )}
@@ -508,7 +508,7 @@ export function AvatarModal({ ctx }) {
                                     <span className="text-[10px] text-white font-bold">v{idx + 1}</span>
                                   </div>
                                   {isCurrent && (
-                                    <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                                    <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#8B5CF6] flex items-center justify-center">
                                       <Check size={8} className="text-black" />
                                     </div>
                                   )}
@@ -582,27 +582,27 @@ export function AvatarModal({ ctx }) {
                             data-testid="avatar-preview-video"
                             src={previewVideoUrl}
                             controls autoPlay loop playsInline
-                            className="w-full h-full rounded-2xl object-cover border-2 border-[#C9A84C]/30 shadow-lg bg-black"
+                            className="w-full h-full rounded-2xl object-cover border-2 border-[#8B5CF6]/30 shadow-lg bg-black"
                           />
                         ) : (
                           <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
                             <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                              className="w-full h-full rounded-2xl object-contain border-2 border-[#C9A84C]/30 shadow-lg bg-[#0A0A0A]" />
+                              className="w-full h-full rounded-2xl object-contain border-2 border-[#8B5CF6]/30 shadow-lg bg-[#0A0A0A]" />
                             <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
                               <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
                             </div>
                             {applyingClothing && (
                               <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
-                                <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
+                                <Loader2 size={24} className="animate-spin text-[#8B5CF6]" />
                               </div>
                             )}
                           </div>
                         )}
                         {/* Generating video overlay */}
                         {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
-                          <div className="absolute inset-0 rounded-2xl bg-black/80 border-2 border-[#C9A84C]/30 flex flex-col items-center justify-center gap-2">
-                            <Loader2 size={20} className="animate-spin text-[#C9A84C]" />
-                            <p className="text-[11px] text-[#C9A84C]">{t('studio.generating_preview')}</p>
+                          <div className="absolute inset-0 rounded-2xl bg-black/80 border-2 border-[#8B5CF6]/30 flex flex-col items-center justify-center gap-2">
+                            <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
+                            <p className="text-[11px] text-[#8B5CF6]">{t('studio.generating_preview')}</p>
                           </div>
                         )}
                       </div>
@@ -630,7 +630,7 @@ export function AvatarModal({ ctx }) {
                           } finally { setApplyingClothing(false); }
                         }}
                           disabled={applyingClothing}
-                          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#C9A84C]/30 text-[#C9A84C]/70 text-xs hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] transition disabled:opacity-40">
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
                           {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
                           {isDirectedMode ? 'Aplicar Fundo Padrão' : 'Apply Background'}
                         </button>
@@ -723,7 +723,7 @@ export function AvatarModal({ ctx }) {
                             }
                           }}
                           className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-[10px] font-semibold transition ${
-                            effectiveTab === tab.id ? 'bg-[#C9A84C]/15 text-[#C9A84C]' : 'text-[#999] hover:text-[#888]'}`}>
+                            effectiveTab === tab.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' : 'text-[#999] hover:text-[#888]'}`}>
                           <tab.icon size={12} /> {tab.label}
                         </button>
                       ))}
@@ -740,10 +740,10 @@ export function AvatarModal({ ctx }) {
                               {Object.entries(clothingVariants).map(([style, url]) => (
                                 <button key={style} onClick={() => setTempAvatar(p => ({ ...p, url, clothing: style }))}
                                   className={`relative rounded-xl overflow-hidden border-2 transition ${
-                                    tempAvatar?.clothing === style ? 'border-[#C9A84C] shadow-[0_0_8px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
+                                    tempAvatar?.clothing === style ? 'border-[#8B5CF6] shadow-[0_0_8px_rgba(201,168,76,0.2)]' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}>
                                   <img src={resolveImageUrl(url)} alt={style} loading="lazy" decoding="async" className="w-14 h-20 object-cover" />
                                   {tempAvatar?.clothing === style && (
-                                    <div className="absolute top-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#C9A84C] flex items-center justify-center">
+                                    <div className="absolute top-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#8B5CF6] flex items-center justify-center">
                                       <Check size={7} className="text-black" />
                                     </div>
                                   )}
@@ -765,11 +765,11 @@ export function AvatarModal({ ctx }) {
                               onClick={() => applyClothing(style.id)}
                               disabled={applyingClothing}
                               className={`rounded-xl border p-3 text-left transition ${
-                                tempAvatar?.clothing === style.id ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'} disabled:opacity-40`}>
+                                tempAvatar?.clothing === style.id ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'} disabled:opacity-40`}>
                               <div className="flex items-center gap-2">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                  tempAvatar?.clothing === style.id ? 'bg-[#C9A84C]/15' : 'bg-[#111] border border-[#222]'}`}>
-                                  <style.icon size={14} className={tempAvatar?.clothing === style.id ? 'text-[#C9A84C]' : 'text-[#666]'} />
+                                  tempAvatar?.clothing === style.id ? 'bg-[#8B5CF6]/15' : 'bg-[#111] border border-[#222]'}`}>
+                                  <style.icon size={14} className={tempAvatar?.clothing === style.id ? 'text-[#8B5CF6]' : 'text-[#666]'} />
                                 </div>
                                 <div>
                                   <p className="text-[10px] text-white font-medium">{style.label}</p>
@@ -783,7 +783,7 @@ export function AvatarModal({ ctx }) {
                         </div>
                         {applyingClothing && (
                           <div className="text-center py-2">
-                            <p className="text-xs text-[#C9A84C] flex items-center justify-center gap-1.5">
+                            <p className="text-xs text-[#8B5CF6] flex items-center justify-center gap-1.5">
                               <Loader2 size={10} className="animate-spin" /> {t('studio.applying_style')}
                             </p>
                           </div>
@@ -795,11 +795,11 @@ export function AvatarModal({ ctx }) {
                     {effectiveTab === 'view360' && (
                       <div className="space-y-2">
                         {auto360Progress && (
-                          <div className="flex items-center gap-2 text-xs text-[#C9A84C] bg-[#C9A84C]/10 rounded-lg px-3 py-1.5">
+                          <div className="flex items-center gap-2 text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 rounded-lg px-3 py-1.5">
                             <Loader2 size={10} className="animate-spin" />
                             <span>{t('studio.auto_generating_360') || 'Generating 360°...'} {auto360Progress.completed}/4</span>
                             <div className="flex-1 h-1 bg-[#1E1E1E] rounded-full overflow-hidden">
-                              <div className="h-full bg-[#C9A84C] transition-all duration-500 rounded-full" style={{width: `${(auto360Progress.completed / 4) * 100}%`}} />
+                              <div className="h-full bg-[#8B5CF6] transition-all duration-500 rounded-full" style={{width: `${(auto360Progress.completed / 4) * 100}%`}} />
                             </div>
                           </div>
                         )}
@@ -812,7 +812,7 @@ export function AvatarModal({ ctx }) {
                         ].map(angle => (
                           <div key={angle.id} data-testid={`angle-${angle.id}`}
                             className={`relative rounded-xl border overflow-hidden transition group/angle ${
-                              angleImages[angle.id] ? 'border-[#C9A84C]/30' : 'border-[#1E1E1E] border-dashed'}`}>
+                              angleImages[angle.id] ? 'border-[#8B5CF6]/30' : 'border-[#1E1E1E] border-dashed'}`}>
                             <button
                               onClick={() => { if (angleImages[angle.id]) setTempAvatar(p => ({ ...p, url: angleImages[angle.id] })); else generateAngle(angle.id); }}
                               disabled={generatingAngle === angle.id}
@@ -821,7 +821,7 @@ export function AvatarModal({ ctx }) {
                                 <img src={resolveImageUrl(angleImages[angle.id])} alt={angle.label} loading="lazy" decoding="async" className="w-full aspect-[3/5] object-cover" />
                               ) : generatingAngle === angle.id ? (
                                 <div className="w-full aspect-[3/5] flex items-center justify-center bg-[#111]">
-                                  <Loader2 size={14} className="animate-spin text-[#C9A84C]" />
+                                  <Loader2 size={14} className="animate-spin text-[#8B5CF6]" />
                                 </div>
                               ) : (
                                 <div className="w-full aspect-[3/5] flex items-center justify-center bg-[#0A0A0A]">
@@ -834,7 +834,7 @@ export function AvatarModal({ ctx }) {
                                 onClick={(e) => { e.stopPropagation(); generateAngle(angle.id, true); }}
                                 className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center opacity-0 group-hover/angle:opacity-100 transition"
                                 title={t('studio.regenerate_angle')}>
-                                <RefreshCw size={9} className="text-[#C9A84C]" />
+                                <RefreshCw size={9} className="text-[#8B5CF6]" />
                               </button>
                             )}
                             <p className="text-[11px] text-[#888] text-center py-1">{angle.label}</p>
@@ -851,7 +851,7 @@ export function AvatarModal({ ctx }) {
                             const clothing360 = isDirectedMode ? 'keep_original' : (tempAvatar?.clothing || 'company_uniform');
                             startAuto360(sourceUrl, clothing360, tempAvatar?.avatar_style || 'realistic');
                           }}
-                          className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-xs text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5">
+                          className="w-full rounded-lg border border-dashed border-[#8B5CF6]/20 py-2 text-xs text-[#8B5CF6] hover:bg-[#8B5CF6]/5 transition flex items-center justify-center gap-1.5">
                           <RefreshCw size={10} /> {t('studio.regenerate_all_360') || 'Regenerate All 360°'}
                         </button>
                       )}
@@ -864,15 +864,15 @@ export function AvatarModal({ ctx }) {
                         {/* Voice sub-tabs */}
                         <div className="flex gap-1">
                           <button onClick={() => setVoiceTab('bank')}
-                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${voiceTab === 'bank' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${voiceTab === 'bank' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                             {t('studio.voice_bank')}
                           </button>
                           <button onClick={() => setVoiceTab('premium')}
-                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition flex items-center justify-center gap-1 ${voiceTab === 'premium' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition flex items-center justify-center gap-1 ${voiceTab === 'premium' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                             <Crown size={9} /> {t('studio.premium_voices')}
                           </button>
                           <button onClick={() => setVoiceTab('record')}
-                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${voiceTab === 'record' ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${voiceTab === 'record' ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
                             {t('studio.custom_recording')}
                           </button>
                         </div>
@@ -890,7 +890,7 @@ export function AvatarModal({ ctx }) {
                               <div key={v.id} data-testid={`voice-${v.id}`}
                                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition ${
                                   tempAvatar?.voice?.type === 'openai' && tempAvatar?.voice?.voice_id === v.id
-                                    ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}
+                                    ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}
                                 onClick={() => setTempAvatar(p => ({ ...p, voice: { type: 'openai', voice_id: v.id } }))}>
                                 <div className="flex-1">
                                   <p className="text-[10px] text-white font-medium capitalize">{v.id}</p>
@@ -900,15 +900,15 @@ export function AvatarModal({ ctx }) {
                                   disabled={loadingVoicePreview === v.id}
                                   className="h-7 w-7 rounded-lg border border-[#2A2A2A] flex items-center justify-center hover:bg-[#1A1A1A] transition disabled:opacity-40">
                                   {loadingVoicePreview === v.id ? (
-                                    <Loader2 size={10} className="animate-spin text-[#C9A84C]" />
+                                    <Loader2 size={10} className="animate-spin text-[#8B5CF6]" />
                                   ) : playingVoiceId === v.id ? (
-                                    <Volume2 size={10} className="text-[#C9A84C]" />
+                                    <Volume2 size={10} className="text-[#8B5CF6]" />
                                   ) : (
                                     <Play size={10} className="text-[#999]" />
                                   )}
                                 </button>
                                 {tempAvatar?.voice?.type === 'openai' && tempAvatar?.voice?.voice_id === v.id && (
-                                  <Check size={12} className="text-[#C9A84C] shrink-0" />
+                                  <Check size={12} className="text-[#8B5CF6] shrink-0" />
                                 )}
                               </div>
                             ))}
@@ -923,7 +923,7 @@ export function AvatarModal({ ctx }) {
                             )}
                             {elevenLabsAvailable && elevenLabsVoices.length === 0 && (
                               <div className="text-center py-3">
-                                <Loader2 size={14} className="mx-auto text-[#C9A84C] animate-spin mb-1" />
+                                <Loader2 size={14} className="mx-auto text-[#8B5CF6] animate-spin mb-1" />
                                 <p className="text-xs text-[#999]">{t('studio.loading_voices')}</p>
                               </div>
                             )}
@@ -931,12 +931,12 @@ export function AvatarModal({ ctx }) {
                               <div key={v.id} data-testid={`voice-el-${v.name.toLowerCase()}`}
                                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition ${
                                   tempAvatar?.voice?.type === 'elevenlabs' && tempAvatar?.voice?.voice_id === v.id
-                                    ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}
+                                    ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10' : 'border-[#1E1E1E] hover:border-[#2A2A2A]'}`}
                                 onClick={() => setTempAvatar(p => ({ ...p, voice: { type: 'elevenlabs', voice_id: v.id } }))}>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5">
                                     <p className="text-[10px] text-white font-medium">{v.name}</p>
-                                    <Crown size={8} className="text-[#C9A84C] shrink-0" />
+                                    <Crown size={8} className="text-[#8B5CF6] shrink-0" />
                                   </div>
                                   <p className="text-[11px] text-[#999] truncate">{v.style} · {v.accent} · {v.gender === 'female' ? '♀' : '♂'}</p>
                                 </div>
@@ -944,15 +944,15 @@ export function AvatarModal({ ctx }) {
                                   disabled={loadingVoicePreview === v.id}
                                   className="h-7 w-7 rounded-lg border border-[#2A2A2A] flex items-center justify-center hover:bg-[#1A1A1A] transition disabled:opacity-40">
                                   {loadingVoicePreview === v.id ? (
-                                    <Loader2 size={10} className="animate-spin text-[#C9A84C]" />
+                                    <Loader2 size={10} className="animate-spin text-[#8B5CF6]" />
                                   ) : playingVoiceId === v.id ? (
-                                    <Volume2 size={10} className="text-[#C9A84C]" />
+                                    <Volume2 size={10} className="text-[#8B5CF6]" />
                                   ) : (
                                     <Play size={10} className="text-[#999]" />
                                   )}
                                 </button>
                                 {tempAvatar?.voice?.type === 'elevenlabs' && tempAvatar?.voice?.voice_id === v.id && (
-                                  <Check size={12} className="text-[#C9A84C] shrink-0" />
+                                  <Check size={12} className="text-[#8B5CF6] shrink-0" />
                                 )}
                               </div>
                             ))}
@@ -967,8 +967,8 @@ export function AvatarModal({ ctx }) {
                                 </button>
                               ) : (
                                 <button data-testid="start-recording-btn" onClick={startRecording}
-                                  className="h-16 w-16 rounded-full border-2 border-[#C9A84C]/40 bg-[#C9A84C]/10 flex items-center justify-center hover:bg-[#C9A84C]/20 transition">
-                                  <Mic size={24} className="text-[#C9A84C]" />
+                                  className="h-16 w-16 rounded-full border-2 border-[#8B5CF6]/40 bg-[#8B5CF6]/10 flex items-center justify-center hover:bg-[#8B5CF6]/20 transition">
+                                  <Mic size={24} className="text-[#8B5CF6]" />
                                 </button>
                               )}
                             </div>
@@ -978,7 +978,7 @@ export function AvatarModal({ ctx }) {
                             {recordedAudioUrl && (
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-[11px] text-[#C9A84C] font-medium uppercase tracking-wider">
+                                  <span className="text-[11px] text-[#8B5CF6] font-medium uppercase tracking-wider">
                                     {avatarExtractedAudio ? t('studio.original_voice') : t('studio.recorded_voice')}
                                   </span>
                                 </div>
@@ -1012,14 +1012,14 @@ export function AvatarModal({ ctx }) {
                                   }}
                                     disabled={masteringVoice || tempAvatar?.voice?.mastered}
                                     className={`flex-1 rounded-lg border py-2 text-xs font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-40 ${
-                                      tempAvatar?.voice?.mastered ? 'border-[#10B981]/30 text-[#10B981] bg-[#10B981]/5' : 'border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/5'}`}>
+                                      tempAvatar?.voice?.mastered ? 'border-[#10B981]/30 text-[#10B981] bg-[#10B981]/5' : 'border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/5'}`}>
                                     {masteringVoice ? <><Loader2 size={10} className="animate-spin" /> {t('studio.mastering')}</> :
                                      tempAvatar?.voice?.mastered ? <><Check size={10} /> {t('studio.mastered')}</> :
                                      <><Sparkles size={10} /> {t('studio.master_voice')}</>}
                                   </button>
                                   <button data-testid="save-recording-btn" onClick={saveRecordingAsVoice}
                                     disabled={uploadingRecording}
-                                    className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2 text-xs font-bold text-black flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                    className="flex-1 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2 text-xs font-bold text-black flex items-center justify-center gap-1.5 disabled:opacity-50">
                                     {uploadingRecording ? (
                                       <><Loader2 size={10} className="animate-spin" /> {t('studio.uploading_recording')}</>
                                     ) : (
@@ -1039,7 +1039,7 @@ export function AvatarModal({ ctx }) {
                         {/* No voice option */}
                         <button onClick={() => setTempAvatar(p => ({ ...p, voice: null }))}
                           className={`w-full rounded-lg border px-3 py-2 text-xs text-center transition ${
-                            !tempAvatar?.voice ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C]' : 'border-[#1E1E1E] text-[#999] hover:border-[#2A2A2A]'}`}>
+                            !tempAvatar?.voice ? 'border-[#8B5CF6]/30 bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#1E1E1E] text-[#999] hover:border-[#2A2A2A]'}`}>
                           {t('studio.no_voice')}
                         </button>
                       </div>
@@ -1058,14 +1058,14 @@ export function AvatarModal({ ctx }) {
                       {[{id:'pt',label:'PT'},{id:'en',label:'EN'},{id:'es',label:'ES'}].map(lang => (
                         <button key={lang.id} onClick={() => setPreviewLanguage(lang.id)}
                           className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
-                            previewLanguage === lang.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#999] border border-[#1E1E1E] hover:border-[#333]'}`}>
+                            previewLanguage === lang.id ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'text-[#999] border border-[#1E1E1E] hover:border-[#333]'}`}>
                           {lang.label}
                         </button>
                       ))}
                     </div>
                     {previewVideoUrl && (
                       <button onClick={() => { setPreviewVideoUrl(null); setAvatarMediaTab('photo'); }}
-                        className="ml-auto text-[11px] text-[#C9A84C] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
+                        className="ml-auto text-[11px] text-[#8B5CF6] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
                     )}
                   </div>
                   <button data-testid="generate-preview-video-btn"
@@ -1106,7 +1106,7 @@ export function AvatarModal({ ctx }) {
                       }
                     }}
                     disabled={generatingPreviewVideo}
-                    className="w-full rounded-lg border border-dashed border-[#C9A84C]/20 py-2 text-xs text-[#C9A84C] hover:bg-[#C9A84C]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
+                    className="w-full rounded-lg border border-dashed border-[#8B5CF6]/20 py-2 text-xs text-[#8B5CF6] hover:bg-[#8B5CF6]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
                     {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
                      previewVideoUrl ? <><Play size={10} /> {t('studio.regenerate_preview') || 'Regenerate Preview'}</> :
                      <><Play size={10} /> {t('studio.generate_video_preview')}</>}
@@ -1120,17 +1120,17 @@ export function AvatarModal({ ctx }) {
                   {editingAvatarId ? (
                     <>
                       <button data-testid="save-avatar-as-new-btn" onClick={saveAvatarAsNew}
-                        className="flex-1 rounded-lg border border-[#C9A84C]/40 py-2.5 text-xs font-bold text-[#C9A84C] hover:bg-[#C9A84C]/10 transition flex items-center justify-center gap-2">
+                        className="flex-1 rounded-lg border border-[#8B5CF6]/40 py-2.5 text-xs font-bold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition flex items-center justify-center gap-2">
                         <Plus size={14} /> {t('studio.save_as_new')}
                       </button>
                       <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
-                        className="flex-1 rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
+                        className="flex-1 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
                         <Check size={14} /> {t('studio.update_avatar')}
                       </button>
                     </>
                   ) : (
                     <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
-                      className="w-full rounded-lg bg-gradient-to-r from-[#C9A84C] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
+                      className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
                       <Check size={14} /> {isDirectedMode ? 'Salvar Personagem' : t('studio.save_avatar')}
                     </button>
                   )}

@@ -226,14 +226,14 @@ export function PostProduction({ project, onUpdate }) {
     <div data-testid="post-production-panel" className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <Headphones size={16} className="text-[#C9A84C]" />
+        <Headphones size={16} className="text-[#8B5CF6]" />
         <h3 className="text-sm font-semibold text-white">Pós-Produção</h3>
         {ppComplete && <CheckCircle size={14} className="text-green-500" />}
       </div>
 
       {/* Scene video count */}
       <div className="text-[10px] text-[#888] bg-[#0A0A0A] rounded-lg p-2 border border-[#222]">
-        <span className="text-[#C9A84C] font-medium">{sceneVideoCount}</span> vídeos de cena disponíveis
+        <span className="text-[#8B5CF6] font-medium">{sceneVideoCount}</span> vídeos de cena disponíveis
         {ppComplete && ppStatus.final_url && (
           <span className="ml-2 text-green-400">• Vídeo final com áudio pronto</span>
         )}
@@ -258,10 +258,10 @@ export function PostProduction({ project, onUpdate }) {
                   data-testid={`narration-mode-${m.id}`}
                   className={`p-2 rounded-lg border text-center transition-all ${
                     narrationMode === m.id
-                      ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10'
+                      ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10'
                       : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
                   }`}>
-                  <div className={`text-xs font-medium ${narrationMode === m.id ? 'text-[#C9A84C]' : 'text-white'}`}>{m.label}</div>
+                  <div className={`text-xs font-medium ${narrationMode === m.id ? 'text-[#8B5CF6]' : 'text-white'}`}>{m.label}</div>
                   <div className="text-[10px] text-[#555] mt-0.5">{m.desc}</div>
                 </button>
               ))}
@@ -282,11 +282,11 @@ export function PostProduction({ project, onUpdate }) {
                   onClick={() => setVoiceId(v.id)}
                   className={`text-left p-2 rounded-lg border text-xs transition-all ${
                     voiceId === v.id
-                      ? 'border-[#C9A84C]/50 bg-[#C9A84C]/10'
+                      ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10'
                       : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
                   }`}
                 >
-                  <span className={`font-medium ${voiceId === v.id ? 'text-[#C9A84C]' : 'text-white'}`}>
+                  <span className={`font-medium ${voiceId === v.id ? 'text-[#8B5CF6]' : 'text-white'}`}>
                     {v.name}
                   </span>
                   <span className="text-[#666] ml-1">({v.gender})</span>
@@ -325,13 +325,13 @@ export function PostProduction({ project, onUpdate }) {
                       </>
                     ) : (
                       <label className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed cursor-pointer transition ${
-                        isUploading ? 'border-[#C9A84C]/50 bg-[#C9A84C]/5' : 'border-[#333] hover:border-[#C9A84C]/30'
+                        isUploading ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/5' : 'border-[#333] hover:border-[#8B5CF6]/30'
                       }`}>
                         <input type="file" accept="audio/*" className="hidden"
                           onChange={e => { if (e.target.files[0]) uploadAudioForScene(sn, e.target.files[0]); }}
                           disabled={isUploading} />
                         {isUploading ? (
-                          <RefreshCw size={9} className="animate-spin text-[#C9A84C]" />
+                          <RefreshCw size={9} className="animate-spin text-[#8B5CF6]" />
                         ) : (
                           <Upload size={9} className="text-[#666]" />
                         )}
@@ -357,7 +357,7 @@ export function PostProduction({ project, onUpdate }) {
               data-testid="music-track-select"
               value={musicTrack}
               onChange={e => setMusicTrack(e.target.value)}
-              className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50"
+              className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50"
             >
               <option value="">Auto (baseado no Production Design)</option>
               {MUSIC_TRACKS.map(m => (
@@ -376,7 +376,7 @@ export function PostProduction({ project, onUpdate }) {
               min="0" max="0.5" step="0.05"
               value={musicVolume}
               onChange={e => setMusicVolume(parseFloat(e.target.value))}
-              className="w-full accent-[#C9A84C]"
+              className="w-full accent-[#8B5CF6]"
               data-testid="music-volume-slider"
             />
           </div>
@@ -387,7 +387,7 @@ export function PostProduction({ project, onUpdate }) {
             onClick={startPostProduction}
             disabled={isProducing || sceneVideoCount === 0}
             className="w-full py-2.5 rounded-lg font-medium text-xs transition-all disabled:opacity-40
-              bg-gradient-to-r from-[#C9A84C] to-[#B8973F] text-black hover:brightness-110"
+              bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-black hover:brightness-110"
           >
             {isProducing ? (
               <span className="flex items-center justify-center gap-2">
@@ -412,7 +412,7 @@ export function PostProduction({ project, onUpdate }) {
       {ppRunning && ppProgress > 0 && (
         <div className="w-full bg-[#1A1A1A] rounded-full h-1.5">
           <div
-            className="bg-[#C9A84C] h-1.5 rounded-full transition-all duration-500"
+            className="bg-[#8B5CF6] h-1.5 rounded-full transition-all duration-500"
             style={{ width: `${ppProgress}%` }}
           />
         </div>
@@ -427,7 +427,7 @@ export function PostProduction({ project, onUpdate }) {
             <p className="text-xs text-red-300/70 mt-0.5">{ppStatus.error}</p>
             <button
               onClick={startPostProduction}
-              className="text-xs text-[#C9A84C] mt-1 hover:underline"
+              className="text-xs text-[#8B5CF6] mt-1 hover:underline"
             >
               Tentar novamente
             </button>
@@ -456,7 +456,7 @@ export function PostProduction({ project, onUpdate }) {
             href={ppStatus.final_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1 text-xs text-[#C9A84C] hover:underline"
+            className="flex items-center justify-center gap-1 text-xs text-[#8B5CF6] hover:underline"
             data-testid="download-final-video"
           >
             <Download size={10} /> Baixar vídeo ({ppStatus.language?.toUpperCase()})
@@ -469,7 +469,7 @@ export function PostProduction({ project, onUpdate }) {
         <div className="space-y-2 bg-[#0F0F0F] rounded-xl border border-[#1E1E1E] p-3" data-testid="subtitles-section">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Subtitles size={14} className="text-[#C9A84C]" />
+              <Subtitles size={14} className="text-[#8B5CF6]" />
               <span className="text-xs font-medium text-white">Legendas (SRT)</span>
             </div>
             <button
@@ -477,7 +477,7 @@ export function PostProduction({ project, onUpdate }) {
               onClick={generateSubtitles}
               disabled={subtitlesLoading}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all
-                bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 disabled:opacity-40"
+                bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/20 disabled:opacity-40"
             >
               {subtitlesLoading ? (
                 <><RefreshCw size={9} className="animate-spin" /> Gerando...</>
@@ -498,14 +498,14 @@ export function PostProduction({ project, onUpdate }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     data-testid={`download-srt-${langCode}`}
-                    className="flex items-center gap-2 p-2 rounded-lg border border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/30 transition-all"
+                    className="flex items-center gap-2 p-2 rounded-lg border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/30 transition-all"
                   >
                     <span className="text-sm">{langInfo?.flag || langCode}</span>
                     <div className="flex-1">
                       <span className="text-xs text-white font-medium">{langInfo?.name || langCode.toUpperCase()}</span>
                       <span className="text-[11px] text-[#666] ml-1">.srt</span>
                     </div>
-                    <Download size={10} className="text-[#C9A84C]" />
+                    <Download size={10} className="text-[#8B5CF6]" />
                   </a>
                 );
               })}
@@ -522,7 +522,7 @@ export function PostProduction({ project, onUpdate }) {
       {ppComplete && (
         <div className="space-y-2 bg-[#0F0F0F] rounded-xl border border-[#1E1E1E] p-3">
           <div className="flex items-center gap-2 mb-2">
-            <Languages size={14} className="text-[#C9A84C]" />
+            <Languages size={14} className="text-[#8B5CF6]" />
             <span className="text-xs font-medium text-white">Localização Multi-Idioma</span>
           </div>
           <p className="text-xs text-[#666] mb-2">
@@ -546,19 +546,19 @@ export function PostProduction({ project, onUpdate }) {
                       isDone
                         ? 'border-green-500/30 bg-green-500/5'
                         : isRunning
-                        ? 'border-[#C9A84C]/30 bg-[#C9A84C]/5'
-                        : 'border-[#222] bg-[#0A0A0A] hover:border-[#C9A84C]/30'
+                        ? 'border-[#8B5CF6]/30 bg-[#8B5CF6]/5'
+                        : 'border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/30'
                     }`}
                   >
                     <div className="text-center">
                       <span className="text-sm">{lang.flag}</span>
-                      <div className={`font-medium mt-0.5 ${isDone ? 'text-green-400' : isRunning ? 'text-[#C9A84C]' : 'text-white'}`}>
+                      <div className={`font-medium mt-0.5 ${isDone ? 'text-green-400' : isRunning ? 'text-[#8B5CF6]' : 'text-white'}`}>
                         {lang.name}
                       </div>
                       {isRunning && (
                         <div className="flex items-center justify-center gap-1 mt-0.5">
-                          <RefreshCw size={8} className="animate-spin text-[#C9A84C]" />
-                          <span className="text-[11px] text-[#C9A84C]">{phaseLabels[locStatus.phase] || locStatus.phase}</span>
+                          <RefreshCw size={8} className="animate-spin text-[#8B5CF6]" />
+                          <span className="text-[11px] text-[#8B5CF6]">{phaseLabels[locStatus.phase] || locStatus.phase}</span>
                         </div>
                       )}
                       {isDone && <CheckCircle size={10} className="text-green-500 mx-auto mt-0.5" />}
@@ -582,7 +582,7 @@ export function PostProduction({ project, onUpdate }) {
               </div>
               <video src={fv.url} controls className="w-full rounded-lg border border-[#222] max-h-36" />
               <a href={fv.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 mt-1 text-xs text-[#C9A84C] hover:underline"
+                className="flex items-center justify-center gap-1 mt-1 text-xs text-[#8B5CF6] hover:underline"
                 data-testid={`download-${lc}-video`}
               >
                 <Download size={10} /> Baixar ({lc.toUpperCase()})

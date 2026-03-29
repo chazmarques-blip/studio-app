@@ -51,7 +51,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   const [bookFormats, setBookFormats] = useState({});
   const [needsDubbedGen, setNeedsDubbedGen] = useState(0);
 
-  const token = localStorage.getItem('agentzz_token');
+  const token = localStorage.getItem('studiox_token');
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
@@ -208,7 +208,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Loader2 size={24} className="animate-spin text-[#C9A84C]" />
+        <Loader2 size={24} className="animate-spin text-[#8B5CF6]" />
         <p className="text-sm text-[#666]">{lang === 'pt' ? 'Carregando diálogos...' : 'Loading dialogues...'}</p>
       </div>
     );
@@ -224,13 +224,13 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
         <div className="flex gap-2">
           <button onClick={() => generateWithAI([])} disabled={generating}
             data-testid="generate-all-dialogues"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] rounded-lg text-xs font-medium hover:bg-[#C9A84C]/20 transition disabled:opacity-50">
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] rounded-lg text-xs font-medium hover:bg-[#8B5CF6]/20 transition disabled:opacity-50">
             {generating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
             {lang === 'pt' ? 'Gerar Tudo' : 'Generate All'}
           </button>
           <button onClick={saveDialogues} disabled={saving || !hasChanges}
             data-testid="save-dialogues"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#C9A84C] text-black rounded-lg text-xs font-medium hover:bg-[#B8973F] transition disabled:opacity-50">
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8B5CF6] text-black rounded-lg text-xs font-medium hover:bg-[#7C3AED] transition disabled:opacity-50">
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
             {lang === 'pt' ? 'Salvar' : 'Save'}
           </button>
@@ -242,7 +242,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} data-testid={`tab-${tab.id}`}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition ${
-              activeTab === tab.id ? 'bg-[#1A1A1A] text-[#C9A84C] border border-[#C9A84C]/30' : 'text-[#666] hover:text-white'
+              activeTab === tab.id ? 'bg-[#1A1A1A] text-[#8B5CF6] border border-[#8B5CF6]/30' : 'text-[#666] hover:text-white'
             }`}>
             <tab.icon size={13} /> {tab.label}
           </button>
@@ -252,9 +252,9 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
 
       {/* Alert: Missing dubbed dialogues */}
       {activeTab === 'dubbed' && needsDubbedGen > 0 && !generating && (
-        <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/30 rounded-xl p-3 flex items-center justify-between" data-testid="dubbed-gen-alert">
+        <div className="bg-[#8B5CF6]/5 border border-[#8B5CF6]/30 rounded-xl p-3 flex items-center justify-between" data-testid="dubbed-gen-alert">
           <div>
-            <p className="text-xs font-medium text-[#C9A84C]">
+            <p className="text-xs font-medium text-[#8B5CF6]">
               {lang === 'pt'
                 ? `${needsDubbedGen} cena(s) sem diálogos dublados`
                 : `${needsDubbedGen} scene(s) missing dubbed dialogues`}
@@ -267,7 +267,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
           </div>
           <button onClick={() => generateWithAI([])} disabled={generating}
             data-testid="generate-all-dubbed"
-            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#C9A84C] text-black rounded-lg text-xs font-bold hover:bg-[#B8973F] transition">
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#8B5CF6] text-black rounded-lg text-xs font-bold hover:bg-[#7C3AED] transition">
             <Sparkles size={12} />
             {lang === 'pt' ? 'Gerar Diálogos' : 'Generate Dialogues'}
           </button>
@@ -291,14 +291,14 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
               return (
                 <div key={char.name} className="bg-[#111] rounded-lg p-2 border border-[#1A1A1A]">
                   <span className="text-[10px] text-white font-medium block truncate">{char.name}</span>
-                  <span className="text-[8px] text-[#C9A84C]/60 block mb-1">
+                  <span className="text-[8px] text-[#8B5CF6]/60 block mb-1">
                     {info.voice_type || ''} {info.voice_name ? `(${info.voice_name})` : ''}
                   </span>
                   <div className="flex gap-1">
                     <select value={currentVoiceId}
                       onChange={e => setVoiceForCharacter(char.name, e.target.value)}
                       data-testid={`voice-select-${char.name}`}
-                      className="flex-1 bg-[#0A0A0A] border border-[#222] rounded-md text-[9px] text-[#aaa] px-1.5 py-1 focus:border-[#C9A84C]/50 outline-none">
+                      className="flex-1 bg-[#0A0A0A] border border-[#222] rounded-md text-[9px] text-[#aaa] px-1.5 py-1 focus:border-[#8B5CF6]/50 outline-none">
                       <option value={info.voice_id || ''}>
                         {info.voice_name ? `${info.voice_name} (Auto)` : 'Auto'}
                       </option>
@@ -308,10 +308,10 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                     </select>
                     <button onClick={() => previewVoice(currentVoiceId)}
                       data-testid={`preview-voice-${char.name}`}
-                      className="p-1 bg-[#0A0A0A] border border-[#222] rounded-md hover:border-[#C9A84C]/40 transition">
+                      className="p-1 bg-[#0A0A0A] border border-[#222] rounded-md hover:border-[#8B5CF6]/40 transition">
                       {previewingVoice === currentVoiceId
                         ? <Square size={10} className="text-red-400" />
-                        : <Play size={10} className="text-[#C9A84C]" />}
+                        : <Play size={10} className="text-[#8B5CF6]" />}
                     </button>
                   </div>
                 </div>
@@ -332,7 +332,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
             <select value={narratorVoice}
               onChange={e => { setNarratorVoice(e.target.value); setHasChanges(true); }}
               data-testid="narrator-voice-select"
-              className="flex-1 bg-[#111] border border-[#222] rounded-lg text-xs text-[#aaa] px-3 py-2 focus:border-[#C9A84C]/50 outline-none">
+              className="flex-1 bg-[#111] border border-[#222] rounded-lg text-xs text-[#aaa] px-3 py-2 focus:border-[#8B5CF6]/50 outline-none">
               {voices.map(v => (
                 <option key={v.voice_id} value={v.voice_id}>{v.name}</option>
               ))}
@@ -340,10 +340,10 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
             </select>
             <button onClick={() => previewVoice(narratorVoice)}
               data-testid="preview-narrator-voice"
-              className="px-3 py-2 bg-[#111] border border-[#222] rounded-lg hover:border-[#C9A84C]/40 transition">
+              className="px-3 py-2 bg-[#111] border border-[#222] rounded-lg hover:border-[#8B5CF6]/40 transition">
               {previewingVoice === narratorVoice
                 ? <Square size={12} className="text-red-400" />
-                : <Play size={12} className="text-[#C9A84C]" />}
+                : <Play size={12} className="text-[#8B5CF6]" />}
             </button>
           </div>
         </div>
@@ -360,7 +360,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
           return (
             <div key={scene.scene_number} data-testid={`dialogue-scene-${scene.scene_number}`}
               className={`rounded-xl border transition-all ${
-                isExpanded ? 'border-[#C9A84C]/30 bg-[#0A0A0A]' : 'border-[#1A1A1A] bg-[#0D0D0D] hover:border-[#333]'
+                isExpanded ? 'border-[#8B5CF6]/30 bg-[#0A0A0A]' : 'border-[#1A1A1A] bg-[#0D0D0D] hover:border-[#333]'
               }`}>
 
               {/* Scene Header */}
@@ -378,7 +378,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] bg-[#C9A84C]/10 text-[#C9A84C] px-1.5 py-0.5 rounded font-bold">{scene.scene_number}</span>
+                    <span className="text-[9px] bg-[#8B5CF6]/10 text-[#8B5CF6] px-1.5 py-0.5 rounded font-bold">{scene.scene_number}</span>
                     <span className="text-[11px] font-medium text-white truncate">{scene.title}</span>
                   </div>
                   <p className="text-[9px] text-[#555] truncate mt-0.5">
@@ -434,7 +434,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                           <Type size={10} className="text-[#666]" />
                           <select value={fmt.font} onChange={e => updateBookFormat(scene.scene_number, 'font', e.target.value)}
                             data-testid={`book-font-${scene.scene_number}`}
-                            className="bg-[#111] border border-[#222] rounded text-[9px] text-[#aaa] px-1.5 py-1 outline-none focus:border-[#C9A84C]/50">
+                            className="bg-[#111] border border-[#222] rounded text-[9px] text-[#aaa] px-1.5 py-1 outline-none focus:border-[#8B5CF6]/50">
                             {BOOK_FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                           </select>
                         </div>
@@ -444,7 +444,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                           {FONT_SIZES.map(sz => (
                             <button key={sz.id} onClick={() => updateBookFormat(scene.scene_number, 'size', sz.id)}
                               className={`px-1.5 py-0.5 rounded text-[9px] border transition ${
-                                fmt.size === sz.id ? 'bg-[#C9A84C]/10 border-[#C9A84C]/30 text-[#C9A84C]' : 'border-[#222] text-[#666] hover:text-white'
+                                fmt.size === sz.id ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30 text-[#8B5CF6]' : 'border-[#222] text-[#666] hover:text-white'
                               }`}>{sz.label}</button>
                           ))}
                         </div>
@@ -456,7 +456,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                             <button key={pos.id} onClick={() => updateBookFormat(scene.scene_number, 'position', pos.id)}
                               data-testid={`book-pos-${pos.id}-${scene.scene_number}`}
                               className={`px-1.5 py-0.5 rounded text-[8px] border transition ${
-                                fmt.position === pos.id ? 'bg-[#C9A84C]/10 border-[#C9A84C]/30 text-[#C9A84C]' : 'border-[#222] text-[#666] hover:text-white'
+                                fmt.position === pos.id ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30 text-[#8B5CF6]' : 'border-[#222] text-[#666] hover:text-white'
                               }`}>{pos.label}</button>
                           ))}
                         </div>
@@ -470,7 +470,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                           ].map(al => (
                             <button key={al.id} onClick={() => updateBookFormat(scene.scene_number, 'align', al.id)}
                               className={`p-1 rounded border transition ${
-                                fmt.align === al.id ? 'bg-[#C9A84C]/10 border-[#C9A84C]/30 text-[#C9A84C]' : 'border-[#222] text-[#666] hover:text-white'
+                                fmt.align === al.id ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30 text-[#8B5CF6]' : 'border-[#222] text-[#666] hover:text-white'
                               }`}><al.Icon size={10} /></button>
                           ))}
                         </div>
@@ -488,7 +488,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                           : (lang === 'pt' ? 'Texto literário da cena...' : 'Literary text...')
                     }
                     rows={activeTab === 'book' ? 4 : 6}
-                    className="w-full bg-[#111] border border-[#222] rounded-lg text-xs text-white p-2.5 resize-y focus:border-[#C9A84C]/50 outline-none placeholder:text-[#333] leading-relaxed"
+                    className="w-full bg-[#111] border border-[#222] rounded-lg text-xs text-white p-2.5 resize-y focus:border-[#8B5CF6]/50 outline-none placeholder:text-[#333] leading-relaxed"
                   />
 
                   {/* Scene Actions */}
@@ -506,7 +506,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                           }
                         }}
                           data-testid={`preview-audio-scene-${scene.scene_number}`}
-                          className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#222] text-[#888] rounded-lg text-[10px] hover:text-[#C9A84C] hover:border-[#C9A84C]/30 transition">
+                          className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#222] text-[#888] rounded-lg text-[10px] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition">
                           <Volume2 size={10} />
                           Preview
                         </button>
@@ -514,7 +514,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                       <button onClick={() => generateWithAI([scene.scene_number])}
                         disabled={generatingScene === scene.scene_number}
                         data-testid={`generate-scene-${scene.scene_number}`}
-                        className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#222] text-[#C9A84C] rounded-lg text-[10px] hover:bg-[#222] transition disabled:opacity-50">
+                        className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#222] text-[#8B5CF6] rounded-lg text-[10px] hover:bg-[#222] transition disabled:opacity-50">
                         {generatingScene === scene.scene_number ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
                         {lang === 'pt' ? 'Gerar com IA' : 'AI Generate'}
                       </button>
@@ -535,7 +535,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
         </button>
         <button onClick={async () => { if (hasChanges) await saveDialogues(); onComplete?.(); }}
           data-testid="dialogue-continue"
-          className="px-4 py-2 bg-[#C9A84C] text-black rounded-lg text-xs font-semibold hover:bg-[#B8973F] transition">
+          className="px-4 py-2 bg-[#8B5CF6] text-black rounded-lg text-xs font-semibold hover:bg-[#7C3AED] transition">
           {lang === 'pt' ? "Continuar para Director's Preview" : "Continue to Director's Preview"}
         </button>
       </div>
