@@ -339,7 +339,7 @@ def _parse_json(text):
 
 # ── Pre-Production Intelligence ──
 
-def _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id):
+async def _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id):
     """Claude Vision analyzes ALL character avatars and produces structured Identity Cards.
     Returns dict: {character_name: {identity_card}} with immutable traits and prohibitions.
     Also returns legacy format for backward compatibility.
@@ -417,7 +417,7 @@ CRITICAL: Your analysis must be based SOLELY on what you SEE in the avatar image
         return {}
 
     try:
-        response = litellm.completion(
+        response = await litellm.acompletion(
             model="anthropic/claude-sonnet-4-5-20250929",
             messages=[{"role": "user", "content": content_parts}],
             max_tokens=4000, timeout=90, api_key=ANTHROPIC_API_KEY,
@@ -664,7 +664,7 @@ def _build_style_dna(animation_sub: str, production_design: dict) -> str:
     return base
 
 
-def _validate_scene_continuity(current_frame_path: str, prev_frame_path: str,
+async def _validate_scene_continuity(current_frame_path: str, prev_frame_path: str,
                                 character_descriptions: str, project_id: str, scene_num: int) -> dict:
     """P2.5 — Use Claude Vision to validate visual continuity between consecutive scenes.
     Returns: {'consistent': bool, 'issues': [...], 'severity': 'low'|'medium'|'high'}
@@ -694,7 +694,7 @@ Return ONLY JSON: {{"consistent": true/false, "issues": ["issue1", "issue2"], "s
         if len(content) < 3:
             return {"consistent": True, "issues": [], "severity": "low"}
 
-        response = litellm.completion(
+        response = await litellm.acompletion(
             model="anthropic/claude-sonnet-4-5-20250929",
             messages=[{"role": "user", "content": content}],
             max_tokens=500, timeout=30, api_key=ANTHROPIC_API_KEY,

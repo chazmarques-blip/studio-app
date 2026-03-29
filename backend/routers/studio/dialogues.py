@@ -209,7 +209,7 @@ Write ENTIRELY in {lang_name}."""
         import litellm
         api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
         
-        response = litellm.completion(
+        response = await litellm.acompletion(
             model="anthropic/claude-sonnet-4-5-20250929",
             messages=[
                 {"role": "system", "content": system},
@@ -359,7 +359,7 @@ Write a BEAUTIFUL storybook passage that captures this moment."""
         try:
             import litellm
             api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
-            response = litellm.completion(
+            response = await litellm.acompletion(
                 model="anthropic/claude-sonnet-4-5-20250929",
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
                 api_key=api_key, max_tokens=1500, timeout=60,

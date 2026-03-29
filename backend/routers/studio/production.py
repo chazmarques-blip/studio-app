@@ -1357,7 +1357,7 @@ async def generate_directed_image(req: StartProductionRequest, tenant=Depends(ge
         except Exception:
             pass
 
-    response = litellm.completion(
+    response = await litellm.acompletion(
         model="gemini/gemini-2.5-flash",
         messages=[{"role": "user", "content": content}],
         api_key=GEMINI_API_KEY,
