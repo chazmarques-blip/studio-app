@@ -16,6 +16,7 @@ import { StoryboardEditor } from './StoryboardEditor';
 import { DialogueEditor } from './DialogueEditor';
 import { AvatarLibraryModal } from './pipeline/AvatarLibraryModal';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
+import { NewProjectModal } from './NewProjectModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -428,21 +429,13 @@ export const DirectedStudio = memo(function DirectedStudio({
   };
 
   // Create a new project (name + description first)
-  const createNewProject = async () => {
-    if (!projectName.trim()) {
+  const createNewProject = async (projectData) => {
+    if (!projectData || !projectData.name.trim()) {
       toast.error(lang === 'pt' ? 'Dê um nome ao projecto' : 'Give the project a name');
       return;
     }
     try {
-      const res = await axios.post(`${API}/studio/projects`, {
-        name: projectName.trim(),
-        briefing: projectDesc.trim(),
-        language: projectLang,
-        visual_style: visualStyle,
-        audio_mode: audioMode,
-        animation_sub: animationSub,
-        continuity_mode: continuityMode,
-      });
+      const res = await axios.post(`${API}/studio/projects`, projectData);
       setProjectId(res.data.id);
       setStep(1); 
       setChatMessages([]); 
@@ -451,15 +444,17 @@ export const DirectedStudio = memo(function DirectedStudio({
       setOutputs([]);
       
       // Keep modal open for a brief moment to show success
-      toast.success(lang === 'pt' ? `✅ Projecto "${projectName}" criado com sucesso!` : `✅ Project "${projectName}" created successfully!`);
+      toast.success(lang === 'pt' ? `✅ Projecto "${projectData.name}" criado com sucesso!` : `✅ Project "${projectData.name}" created successfully!`);
       
       // Show project details in a toast
       setTimeout(() => {
         setShowNewProject(false);
+        setProjectName('');
+        setProjectDesc('');
         toast.info(
           lang === 'pt' 
-            ? `📝 ${projectName}\n${projectDesc || 'Sem descrição'}\n🎬 ${animationSub}\n🌍 ${projectLang.toUpperCase()}`
-            : `📝 ${projectName}\n${projectDesc || 'No description'}\n🎬 ${animationSub}\n🌍 ${projectLang.toUpperCase()}`,
+            ? `📝 ${projectData.name}\n${projectData.briefing || 'Sem descrição'}\n🎬 ${projectData.animation_sub}\n🌍 ${projectData.language.toUpperCase()}`
+            : `📝 ${projectData.name}\n${projectData.briefing || 'No description'}\n🎬 ${projectData.animation_sub}\n🌍 ${projectData.language.toUpperCase()}`,
           { duration: 5000 }
         );
       }, 1000);
@@ -3474,6 +3469,19 @@ export const DirectedStudio = memo(function DirectedStudio({
             </button>
           </div>
         </div>
+      )}
+
+      {/* ═══ New Project Modal ═══ */}
+      {showNewProject && (
+        <NewProjectModal
+          lang={lang}
+          onClose={() => {
+            setShowNewProject(false);
+            setProjectName('');
+            setProjectDesc('');
+          }}
+          onCreate={createNewProject}
+        />
       )}
 
       {/* ═══ Autonomous Workflow Overlay ═══ */}
