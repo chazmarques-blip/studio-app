@@ -1140,19 +1140,32 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   // Start multi-scene production
   const startProduction = async () => {
-    if (!projectId || scenes.length === 0) return;
+    if (!projectId || scenes.length === 0) {
+      toast.error(lang === 'pt' ? 'Nenhuma cena encontrada' : 'No scenes found');
+      return;
+    }
+    
     setGenerating(true);
     setStep(6);
+    
     try {
-      await axios.post(`${API}/studio/start-production`, {
+      const response = await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
         video_duration: 12,
-        character_avatars: characterAvatars,
-        visual_style: visualStyle,
+        character_avatars: characterAvatars || {},
+        visual_style: visualStyle || 'animation',
       });
+      
+      console.log('Production started:', response.data);
+      toast.success(lang === 'pt' 
+        ? `Produção iniciada! ${response.data.total_scenes} cenas` 
+        : `Production started! ${response.data.total_scenes} scenes`);
+      
       startPolling(projectId);
     } catch (err) {
-      toast.error(getErrorMsg(err, 'Failed to start'));
+      console.error('Production start error:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to start production';
+      toast.error(lang === 'pt' ? `Erro: ${errorMsg}` : `Error: ${errorMsg}`);
       setGenerating(false);
     }
   };
