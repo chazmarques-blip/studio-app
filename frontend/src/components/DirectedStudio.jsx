@@ -196,7 +196,14 @@ export const DirectedStudio = memo(function DirectedStudio({
       // Load project details
       axios.get(`${API}/studio/projects/${initialProjectId}/status`).then(r => {
         const p = r.data;
-        console.log('Loaded project:', p.name, 'Characters:', p.characters?.length);
+        console.log('🔍 Loaded project:', p.name);
+        console.log('📊 Data:', {
+          characters: p.characters?.length || 0,
+          scenes: p.scenes?.length || 0,
+          outputs: p.outputs?.length || 0,
+          status: p.status
+        });
+        
         setProjectName(p.name || '');
         setProjectDesc(p.synopsis || '');
         setScenes(p.scenes || []);
@@ -212,26 +219,32 @@ export const DirectedStudio = memo(function DirectedStudio({
         setProjectLang(p.language || 'pt');
         setProjectAvatars(p.project_avatars || []);
         setChatMessages(p.chat_messages || []);
+        
         // Determine step based on project state
-        if (p.status === 'complete') {
-          setStep(7);
+        let determinedStep = 1;
+        if (p.status === 'complete' || p.outputs?.some(o => o.type === 'video')) {
+          determinedStep = 7;
         } else if (['running_agents', 'starting'].includes(p.status)) {
-          setStep(6); setGenerating(true); startPolling(initialProjectId);
-        } else if (p.scenes?.some(s => s.panels?.some(pa => pa.video_url))) {
-          setStep(7);
-        } else if (p.scenes?.some(s => s.panels?.some(pa => pa.image_url))) {
-          setStep(5);
-        } else if (p.scenes?.some(s => s.dialogues?.length > 0)) {
-          setStep(4);
-        } else if (p.characters?.length > 0) {
-          setStep(2);
-        } else if (p.scenes?.length > 0 || p.script || p.synopsis) {
-          setStep(1);
-        } else {
-          setStep(1);
+          determinedStep = 6;
+          setGenerating(true);
+          startPolling(initialProjectId);
+        } else if (p.outputs?.some(o => o.type === 'keyframe' || o.type === 'image')) {
+          determinedStep = 5;
+        } else if (p.scenes?.length > 0) {
+          // Se tem cenas, verificar se tem personagens
+          if (p.characters?.length > 0) {
+            determinedStep = 3; // Diálogos/Storyboard
+          } else {
+            determinedStep = 2; // Personagens
+          }
+        } else if (p.synopsis || p.script || p.briefing) {
+          determinedStep = 1;
         }
+        
+        console.log('🎯 Determined step:', determinedStep);
+        setStep(determinedStep);
       }).catch((err) => {
-        console.error('Error loading project:', err);
+        console.error('❌ Error loading project:', err);
         setStep(1);
       });
     }
