@@ -33,32 +33,18 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         gen_params = {
             "model": "sora-2",
             "prompt": prompt[:1000],
+            "size": size,  # Use size directly (e.g., "1280x720")
+            "seconds": duration
         }
         
-        # Map size to OpenAI format (they use simple strings like "720p", "1080p")
-        size_map = {
-            "1280x720": "720p",
-            "1792x1024": "1080p",
-            "1024x1792": "1080p",
-            "1024x1024": "720p"
-        }
-        if size in size_map:
-            gen_params["size"] = size_map[size]
-        
-        # Duration (seconds parameter)
-        gen_params["seconds"] = duration
-        
-        # Add image reference if provided
-        if image_path and os.path.exists(image_path):
-            gen_params["input_reference"] = open(image_path, "rb")
+        # NOTE: input_reference for image-to-video is not well documented in Python SDK
+        # Skipping for now to test basic text-to-video functionality
+        # if image_path and os.path.exists(image_path):
+        #     gen_params["input_reference"] = open(image_path, "rb")
         
         # Create video generation request
         start = time.time()
         video = client.videos.create(**gen_params)
-        
-        # Close file if opened
-        if "input_reference" in gen_params:
-            gen_params["input_reference"].close()
         
         # Poll for completion
         video_id = video.id
