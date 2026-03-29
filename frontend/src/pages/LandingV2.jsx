@@ -494,7 +494,7 @@ function CampaignDemo({ lang }) {
                     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
                       <p className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-widest mb-2">{d.brief_brand}</p>
                       <div className="flex items-center gap-3">
-                        <img src="/logo-studiox.png" alt="StudioX" className="h-6" />
+                        <img src="/logo-studiox.svg" alt="StudioX" className="h-6" />
                         <span className="text-[12px] text-white font-semibold">StudioX</span>
                       </div>
                     </div>

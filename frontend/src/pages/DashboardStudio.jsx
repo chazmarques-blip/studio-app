@@ -303,7 +303,7 @@ export default function Dashboard() {
       {/* ── New Project CTA ── */}
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2} className="mb-6">
         <button 
-          onClick={() => navigate('/marketing')}
+          onClick={() => navigate('/marketing/studio?mode=directed')}
           className="w-full group glass-card p-4 flex items-center gap-4 border-[#8B5CF6]/20 hover:border-[#8B5CF6]/40 hover:bg-[#8B5CF6]/[0.03] transition-all"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20 group-hover:shadow-[#8B5CF6]/30 transition-all">
@@ -334,7 +334,7 @@ export default function Dashboard() {
               <ProjectCard 
                 key={project.id} 
                 project={project} 
-                onClick={() => navigate(`/marketing?project=${project.id}`)}
+                onClick={() => navigate(`/marketing/studio?mode=directed&project=${project.id}`)}
               />
             ))}
           </div>

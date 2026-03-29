@@ -120,7 +120,7 @@ export default function Login() {
           <button data-testid="back-to-landing" onClick={() => navigate('/')} className="mb-5 flex items-center gap-2 text-xs text-[#888] transition hover:text-white">
             <ArrowLeft size={14} /> {t('auth.back')}
           </button>
-          <img src="/logo-studiox.png" alt="StudioX" className="h-10 mb-5" />
+          <img src="/logo-studiox.svg" alt="StudioX" className="h-10 mb-5" />
           <h2 className="text-base font-bold text-white mb-0.5">{isSignUp ? t('auth.choose_plan_title', 'Choose your plan') : t('auth.upgrade_title', 'Upgrade anytime')}</h2>
           <p className="text-[11px] text-[#999] mb-4">{t('auth.plan_subtitle', 'Start free, upgrade when you need more power.')}</p>
 
@@ -188,7 +188,7 @@ export default function Login() {
             <button data-testid="back-to-landing-mobile" onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-xs text-[#888] transition hover:text-white">
               <ArrowLeft size={14} /> {t('auth.back')}
             </button>
-            <img src="/logo-studiox.png" alt="StudioX" className="h-12 mb-6" />
+            <img src="/logo-studiox.svg" alt="StudioX" className="h-12 mb-6" />
           </div>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] backdrop-blur-xl p-5" data-testid="auth-form-card">

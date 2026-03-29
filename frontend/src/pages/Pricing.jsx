@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Check, Zap, Bot, MessageSquare, Crown, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, Zap, Film, Video, Crown, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { getErrorMsg } from '../utils/getErrorMsg';
@@ -9,10 +9,10 @@ import { getErrorMsg } from '../utils/getErrorMsg';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const PLANS = [
-  { key: 'free', agents: 1, msgs: 200, price: { annual: 0, monthly: 0 } },
-  { key: 'starter', agents: 3, msgs: 1500, price: { annual: 49, monthly: 49 } },
-  { key: 'pro', agents: 5, msgs: 5000, price: { annual: 299, monthly: 349 } },
-  { key: 'enterprise', agents: 10, msgs: 10000, price: { annual: 699, monthly: 749 } },
+  { key: 'free', projects: 3, renders: 10, price: { annual: 0, monthly: 0 } },
+  { key: 'starter', projects: 10, renders: 50, price: { annual: 49, monthly: 49 } },
+  { key: 'pro', projects: 50, renders: 200, price: { annual: 299, monthly: 349 } },
+  { key: 'enterprise', projects: 999, renders: 1000, price: { annual: 699, monthly: 749 } },
 ];
 
 function UsageBar({ label, icon: Icon, used, limit, color = '#8B5CF6' }) {
@@ -98,8 +98,8 @@ export default function Pricing() {
       {/* Usage Bars */}
       {stats && (
         <div className="mb-6 space-y-3">
-          <UsageBar label="AI Messages" icon={MessageSquare} used={stats.messages_used || 0} limit={stats.messages_limit || 50} />
-          <UsageBar label="Agents" icon={Bot} used={stats.agents_count || 0} limit={stats.agents_limit || 1} color="#60A5FA" />
+          <UsageBar label="Projects" icon={Film} used={stats.projects_count || 0} limit={stats.projects_limit || 3} />
+          <UsageBar label="Video Renders" icon={Video} used={stats.renders_used || 0} limit={stats.renders_limit || 10} color="#60A5FA" />
         </div>
       )}
 
@@ -148,7 +148,7 @@ export default function Pricing() {
                     <h3 className="text-sm font-bold text-white capitalize">{plan.key}</h3>
                     {isCurrent && <span className="rounded-full bg-[#8B5CF6]/15 px-2 py-0.5 text-[9px] font-semibold text-[#8B5CF6]">Current</span>}
                   </div>
-                  <p className="text-[11px] text-[#B0B0B0] mt-0.5">{plan.agents} agents · {plan.msgs.toLocaleString()} msgs/month</p>
+                  <p className="text-[11px] text-[#B0B0B0] mt-0.5">{plan.projects} projects · {plan.renders} renders/month</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-lg font-bold text-white">${price}</p>
@@ -188,7 +188,7 @@ export default function Pricing() {
 
       {/* Note */}
       <p className="mt-4 text-center text-[10px] text-[#999]">
-        Only AI agent responses count as messages. Customer &amp; operator messages are free.
+        Renders include video generation with Sora 2 and image generation for storyboards.
       </p>
     </div>
   );
