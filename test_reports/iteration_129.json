@@ -1,0 +1,96 @@
+{
+  "summary": "Iteration 129: DialogueEditor bug fix verified. Backend: 9/9 tests passed. Frontend: All UI elements verified. The fix correctly uses AI-assigned voice_map (Rachel, Lily, Charlotte, Brian, etc.) instead of hardcoded fallback names (Arnold, Bella, Gigi). Alert banner shows '31 cena(s) sem diálogos dublados' with 'Gerar Diálogos' button. Dubbed tab is active by default.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration129_dialogues.py",
+    "/app/test_reports/pytest/pytest_results_iteration129.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend dialogues.py (lines 192-246): Correctly prioritizes manual_voices > ai_voice_map > fallback for character voice assignment",
+    "Backend dialogues.py (lines 248-259): Returns scenes_needing_dubbed count and has_voice_map flag",
+    "Frontend DialogueEditor.jsx (lines 98-109): getTextField() no longer falls back to narration in dubbed mode - only returns dubbed_text or dialogue with character format",
+    "Frontend DialogueEditor.jsx (lines 254-275): Alert banner shows when needsDubbedGen > 0 with 'Gerar Diálogos' button"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration129_dialogues.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "email": "test@agentflow.com",
+    "password": "password123"
+  },
+  "seed_data_creation": "Used existing project d27afb0e79ff (ADÃO E EVA - BIBLIZOO 2 - 17 characters, 31 scenes)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 129 complete. DialogueEditor bug fix verified. Project d27afb0e79ff has 17 characters with AI-assigned voices from voice_map. 31 scenes need dubbed dialogues. The Dubbed tab is active by default in Step 4 (DIÁLOGOS). Voice assignments visible: Adão→Rachel, Eva→Lily, A Serpente→Charlotte, Leão Majestoso→Brian, etc. The 'Gerar Diálogos' button triggers dialogue generation for all scenes (DO NOT click in tests - takes too long).",
+  "test_results": {
+    "backend_tests": {
+      "test_dialogues_endpoint_returns_200": "PASS",
+      "test_dialogues_has_voice_map_field": "PASS - has_voice_map=True",
+      "test_dialogues_has_scenes_needing_dubbed": "PASS - scenes_needing_dubbed=31",
+      "test_character_voices_uses_voice_map": "PASS - AI-assigned voices (Rachel, Lily, Charlotte, Brian, etc.)",
+      "test_character_voices_structure": "PASS - voice_id, voice_name, voice_type present",
+      "test_scenes_data_structure": "PASS - 31 scenes with correct structure",
+      "test_generate_dubbed_dialogue_for_single_scene": "PASS - Generated dialogue for scene 14",
+      "test_voice_map_endpoint_exists": "PASS",
+      "test_voice_map_has_ai_assigned_voices": "PASS - 17 character mappings"
+    },
+    "frontend_tests": {
+      "dialogue_editor_loads": "PASS - DialogueEditor component visible",
+      "dubbed_tab_active": "PASS - Dubbed tab is active by default",
+      "narrated_tab_present": "PASS",
+      "book_tab_present": "PASS",
+      "dubbed_gen_alert": "PASS - Shows '31 cena(s) sem diálogos dublados'",
+      "gerar_dialogos_button": "PASS - 'Gerar Diálogos' button in alert",
+      "vozes_dos_personagens_section": "PASS - Character voices section visible",
+      "voice_select_dropdowns": "PASS - 17 voice select dropdowns found",
+      "ai_assigned_voices_visible": "PASS - Rachel, Lily, Charlotte, Brian, Matilda, Charlie, Gigi visible",
+      "no_hardcoded_fallback_voices": "PASS - Arnold, Bella not visible",
+      "scene_cards": "PASS - 31 scene cards found",
+      "gerar_tudo_button": "PASS - 'Gerar Tudo' button found",
+      "salvar_button": "PASS - 'Salvar' button found"
+    }
+  },
+  "features_verified": {
+    "has_voice_map_field": "VERIFIED - GET /api/studio/projects/{id}/dialogues returns has_voice_map=true",
+    "scenes_needing_dubbed_field": "VERIFIED - Returns scenes_needing_dubbed=31",
+    "character_voices_uses_voice_map": "VERIFIED - Uses AI-assigned voice_map (Rachel, Lily, Charlotte, Brian) not hardcoded (Arnold, Bella, Gigi)",
+    "dialogue_generation_dubbed_mode": "VERIFIED - POST /api/studio/projects/{id}/dialogues/generate with mode='dubbed' generates character dialogues",
+    "dubbed_gen_alert_ui": "VERIFIED - Alert shows when scenes need dubbed text",
+    "gerar_dialogos_button_ui": "VERIFIED - 'Gerar Diálogos' button present in alert",
+    "dubbed_tab_active_default": "VERIFIED - Dubbed tab is active by default",
+    "scene_placeholder_text": "VERIFIED - Scene cards show narration text (not 'Sem diálogos' since they have narration)",
+    "vozes_dos_personagens_section": "VERIFIED - Shows character names with AI-assigned voices"
+  },
+  "voice_assignments_sample": {
+    "Adão": "Rachel (Calm, warm)",
+    "Eva": "Lily (Warm, elegant)",
+    "A Serpente": "Charlotte (Seductive, calm)",
+    "Leão Majestoso": "Brian (Deep, resonant)",
+    "Elefanta Sabedoria": "Rachel (Calm, warm)",
+    "Coelho Alegria": "Gigi (Youthful, animated)",
+    "Ursa Ternura": "Matilda (Friendly, warm)",
+    "Golfinho Esperança": "Charlie (Natural, laid-back)",
+    "Águia Visão": "Daniel (Authoritative, deep)",
+    "Macaco Curiosidade": "Will (Friendly, casual)",
+    "Corça Graça": "Sarah (Soft, gentle)",
+    "Pavão Glória": "Callum (Intense, dramatic)",
+    "Filhote Urso Doçura": "Gigi (Youthful, animated)",
+    "Pássaro Canção": "Laura (Upbeat, energetic)",
+    "Pássara Melodia": "Jessica (Expressive, conversational)",
+    "Veado Forte": "Liam (Articulate, deep)",
+    "Veada Suave": "Emily (Calm, clear)"
+  }
+}

@@ -189,60 +189,74 @@ async def get_dialogues(project_id: str, tenant=Depends(get_current_tenant)):
             "thumbnail": panel.get("image_url", "") if panel else "",
         })
 
-    # Auto-assign voices based on character attributes (same logic as production)
-    VOICE_MAP = {
+    # Use the AI-assigned voice_map from the project (from Sound Design Agent / auto-assign)
+    ai_voice_map = project.get("voice_map", {})
+    manual_voices = project.get("character_voices", {})
+
+    VOICE_MAP_FALLBACK = {
         "narrator": {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "type": "Narrador"},
         "male_elder": {"id": "VR6AewLTigWG4xSOukaG", "name": "Arnold", "type": "Masculino Adulto"},
-        "male_young": {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam", "type": "Masculino Jovem"},
         "female_elder": {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella", "type": "Feminino Adulta"},
         "female_young": {"id": "jBpfuIE2acCO8z3wKNLl", "name": "Gigi", "type": "Feminino Jovem"},
         "child": {"id": "jsCqWAovK2LkecY7zXl4", "name": "Freya", "type": "Criança"},
         "divine": {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel", "type": "Divino / Etéreo"},
     }
 
+    # Build voice info lookup from ELEVENLABS_VOICES
+    from pipeline.config import ELEVENLABS_VOICES
+    voice_lookup = {v["id"]: v for v in ELEVENLABS_VOICES}
+
     auto_voices = {}
-    manual_voices = project.get("character_voices", {})
     for c in characters:
         name = c.get("name", "")
-        name_lower = name.lower()
-        desc = (c.get("description", "") or "").lower()
-
-        # Determine voice type by character attributes
-        if "narrador" in name_lower or "narrator" in name_lower:
-            vtype = "narrator"
-        elif "deus" in name_lower or "god" in name_lower or "anjo" in name_lower or "angel" in name_lower:
-            vtype = "divine"
-        elif "serpente" in name_lower or "snake" in name_lower:
-            vtype = "female_elder"
-        elif any(k in name_lower for k in ["criança", "bebê", "bebe", "child", "baby", "filhote"]):
-            vtype = "child"
-        elif any(k in desc for k in ["feminino", "female", "mulher", "woman", "menina", "girl", "mãe", "esposa"]):
-            if any(k in desc for k in ["jovem", "young", "menina", "girl"]):
-                vtype = "female_young"
-            else:
-                vtype = "female_elder"
-        elif any(k in name_lower for k in ["eva", "sara", "rebeca", "agar", "maria", "raquel", "ester"]):
-            vtype = "female_elder"
-        elif any(k in desc for k in ["jovem", "young", "menino", "boy", "adolescente"]):
-            vtype = "male_young"
+        # Priority: manual_voices > ai_voice_map > fallback
+        if name in manual_voices:
+            vid = manual_voices[name]
+            v = voice_lookup.get(vid, {})
+            auto_voices[name] = {
+                "voice_id": vid,
+                "voice_name": v.get("name", "Custom"),
+                "voice_type": "Manual",
+                "is_manual": True,
+            }
+        elif name in ai_voice_map:
+            vid = ai_voice_map[name]
+            v = voice_lookup.get(vid, {})
+            auto_voices[name] = {
+                "voice_id": vid,
+                "voice_name": v.get("name", "AI Assigned"),
+                "voice_type": v.get("style", "AI"),
+                "is_manual": False,
+            }
         else:
-            vtype = "male_elder"
+            # Fallback to basic heuristic
+            name_lower = name.lower()
+            if "narrador" in name_lower or "narrator" in name_lower:
+                vtype = "narrator"
+            elif "deus" in name_lower or "anjo" in name_lower:
+                vtype = "divine"
+            else:
+                vtype = "male_elder"
+            voice_info = VOICE_MAP_FALLBACK[vtype]
+            auto_voices[name] = {
+                "voice_id": voice_info["id"],
+                "voice_name": voice_info["name"],
+                "voice_type": voice_info["type"],
+                "is_manual": False,
+            }
 
-        voice_info = VOICE_MAP[vtype]
-        auto_voices[name] = {
-            "voice_id": manual_voices.get(name, voice_info["id"]),
-            "voice_name": voice_info["name"],
-            "voice_type": voice_info["type"],
-            "is_manual": name in manual_voices,
-        }
+    # Count how many scenes need dubbed text generation
+    scenes_needing_dubbed = sum(1 for s in scenes if not s.get("dubbed_text", "").strip())
 
     return {
         "scenes": scene_data,
         "characters": [{"name": c.get("name", ""), "description": c.get("description", "")} for c in characters],
         "character_voices": auto_voices,
-        "narrator_voice": project.get("narrator_voice", VOICE_MAP["narrator"]["id"]),
-        "narrator_voice_name": VOICE_MAP["narrator"]["name"],
+        "narrator_voice": project.get("narrator_voice", VOICE_MAP_FALLBACK["narrator"]["id"]),
+        "narrator_voice_name": VOICE_MAP_FALLBACK["narrator"]["name"],
         "dialogues_completed": project.get("dialogues_step_completed", False),
+        "scenes_needing_dubbed": scenes_needing_dubbed,
+        "has_voice_map": bool(ai_voice_map),
     }
 
 

@@ -49,6 +49,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   const audioRef = useRef(null);
   // Book formatting per scene
   const [bookFormats, setBookFormats] = useState({});
+  const [needsDubbedGen, setNeedsDubbedGen] = useState(0);
 
   const token = localStorage.getItem('agentzz_token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -76,6 +77,12 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
         });
         setBookFormats(formats);
 
+        // Check if dubbed dialogues need generation
+        const needsDubbed = d.scenes_needing_dubbed || 0;
+        if (needsDubbed > 0 && activeTab === 'dubbed') {
+          setNeedsDubbedGen(needsDubbed);
+        }
+
         try {
           const voicesRes = await axios.get(`${API}/studio/voices`, { headers });
           setVoices(voicesRes.data.voices || []);
@@ -89,7 +96,15 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   }, [projectId]);
 
   const getTextField = (scene) => {
-    if (activeTab === 'dubbed') return scene.dubbed_text || scene.dialogue || '';
+    if (activeTab === 'dubbed') {
+      // Prioritize dubbed_text, then dialogue ONLY if it has character format (contains ":")
+      const dubbed = scene.dubbed_text || '';
+      if (dubbed.trim()) return dubbed;
+      const dialogue = scene.dialogue || '';
+      // Check if dialogue has character format (CharName: "text")
+      if (dialogue.includes(':') && !dialogue.toLowerCase().startsWith('narraç')) return dialogue;
+      return '';
+    }
     if (activeTab === 'narrated') return scene.narrated_text || scene.narration || '';
     return scene.book_text || '';
   };
@@ -127,6 +142,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
       }));
       setHasChanges(true);
       toast.success(`${results.length} ${lang === 'pt' ? 'cena(s) gerada(s)' : 'scene(s) generated'}`);
+      if (req.mode === 'dubbed') setNeedsDubbedGen(0);
     } catch (e) {
       toast.error(lang === 'pt' ? 'Erro ao gerar com IA' : 'AI generation error');
     }
@@ -233,6 +249,30 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
         ))}
       </div>
       <p className="text-[11px] text-[#555] px-1">{TABS.find(t => t.id === activeTab)?.desc}</p>
+
+      {/* Alert: Missing dubbed dialogues */}
+      {activeTab === 'dubbed' && needsDubbedGen > 0 && !generating && (
+        <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/30 rounded-xl p-3 flex items-center justify-between" data-testid="dubbed-gen-alert">
+          <div>
+            <p className="text-xs font-medium text-[#C9A84C]">
+              {lang === 'pt'
+                ? `${needsDubbedGen} cena(s) sem diálogos dublados`
+                : `${needsDubbedGen} scene(s) missing dubbed dialogues`}
+            </p>
+            <p className="text-[10px] text-[#666] mt-0.5">
+              {lang === 'pt'
+                ? 'Os textos actuais são de narração. Gere diálogos por personagem para dublagem perfeita.'
+                : 'Current texts are narration. Generate character dialogues for perfect dubbing.'}
+            </p>
+          </div>
+          <button onClick={() => generateWithAI([])} disabled={generating}
+            data-testid="generate-all-dubbed"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#C9A84C] text-black rounded-lg text-xs font-bold hover:bg-[#B8973F] transition">
+            <Sparkles size={12} />
+            {lang === 'pt' ? 'Gerar Diálogos' : 'Generate Dialogues'}
+          </button>
+        </div>
+      )}
 
       {/* ═══ DUBBED: Voice Selection with Preview ═══ */}
       {activeTab === 'dubbed' && characters.length > 0 && (
@@ -342,7 +382,11 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
                     <span className="text-[11px] font-medium text-white truncate">{scene.title}</span>
                   </div>
                   <p className="text-[9px] text-[#555] truncate mt-0.5">
-                    {hasText ? text.substring(0, 60) + '...' : (lang === 'pt' ? 'Sem texto' : 'No text')}
+                    {hasText ? text.substring(0, 60) + '...' : (
+                      activeTab === 'dubbed'
+                        ? (lang === 'pt' ? 'Sem diálogos — clique "Gerar com IA"' : 'No dialogues — click "AI Generate"')
+                        : (lang === 'pt' ? 'Sem texto' : 'No text')
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
