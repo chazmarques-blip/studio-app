@@ -252,24 +252,41 @@ Write ENTIRELY in {lang_name}."""
 
         # Apply dialogues to scenes
         dialogue_key = f"{req.mode}_text" if req.mode != "dubbed" else "dubbed_text"
-        for d in dialogues:
+        applied_count = 0
+        
+        for idx, d in enumerate(dialogues):
             # Ensure d is a dict
             if not isinstance(d, dict):
-                logger.warning(f"Skipping invalid dialogue entry: {type(d)}")
+                logger.warning(f"Item {idx} is not a dict: {type(d)} = {str(d)[:100]}")
                 continue
-                
-            sn = d.get("scene_number")
-            text = d.get("dialogue", "")
             
-            if not sn or not text:
+            # Try to get scene_number (might be 'scene_number' or 'scene')
+            sn = d.get("scene_number") or d.get("scene") or d.get("scene_num")
+            text = d.get("dialogue") or d.get("text") or d.get("content") or d.get("script")
+            
+            if not sn:
+                logger.warning(f"Item {idx} missing scene_number: {d.keys()}")
                 continue
-                
+            
+            if not text:
+                logger.warning(f"Item {idx} (scene {sn}) missing dialogue text")
+                continue
+            
+            # Find matching scene
             scene = next((s for s in scenes if s.get("scene_number") == sn), None)
-            if scene:
-                scene[dialogue_key] = text
-                scene["dialogue"] = text  # Also set generic dialogue field
-                if req.mode == "narrated":
-                    scene["narration"] = text
+            if not scene:
+                logger.warning(f"Scene {sn} not found in project")
+                continue
+            
+            # Apply dialogue
+            scene[dialogue_key] = text
+            scene["dialogue"] = text
+            if req.mode == "narrated":
+                scene["narration"] = text
+            
+            applied_count += 1
+        
+        logger.info(f"Applied {applied_count}/{len(dialogues)} dialogues to scenes")
 
         project["scenes"] = scenes
         project["dialogues_generated"] = True
@@ -686,5 +703,6 @@ async def get_language_status(project_id: str, tenant=Depends(get_current_tenant
         "language_status": project.get("language_status", {}),
         "review_status": project.get("review_status", {}),
     }
+
 
 
