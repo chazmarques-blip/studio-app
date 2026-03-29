@@ -536,7 +536,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
         <button onClick={async () => { if (hasChanges) await saveDialogues(); onComplete?.(); }}
           data-testid="dialogue-continue"
           className="px-4 py-2 bg-[#C9A84C] text-black rounded-lg text-xs font-semibold hover:bg-[#B8973F] transition">
-          {lang === 'pt' ? 'Continuar para Storyboard' : 'Continue to Storyboard'}
+          {lang === 'pt' ? "Continuar para Director's Preview" : "Continue to Director's Preview"}
         </button>
       </div>
     </div>

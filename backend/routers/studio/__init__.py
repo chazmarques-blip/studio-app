@@ -12,5 +12,6 @@ from . import screenwriter
 from . import production
 from . import narration
 from . import post_production
+from . import director
 
 __all__ = ["router", "_cleanup_stale_storyboards"]

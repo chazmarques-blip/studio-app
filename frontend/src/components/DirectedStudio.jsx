@@ -6,6 +6,7 @@ import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, Che
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { DirectorPreview } from './DirectorPreview';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { getErrorMsg } from '../utils/getErrorMsg';
 import { useStudioProduction } from '../contexts/StudioProductionContext';
@@ -145,9 +146,10 @@ export const DirectedStudio = memo(function DirectedStudio({
     { n: 1, icon: MessageSquare, label: lang === 'pt' ? 'Roteiro' : 'Script' },
     { n: 2, icon: Users, label: lang === 'pt' ? 'Personagens' : 'Characters' },
     { n: 3, icon: Mic, label: lang === 'pt' ? 'Diálogos' : 'Dialogues' },
-    { n: 4, icon: Camera, label: 'Storyboard' },
-    { n: 5, icon: Clapperboard, label: lang === 'pt' ? 'Produção' : 'Production' },
-    { n: 6, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
+    { n: 4, icon: Film, label: "Director's Preview" },
+    { n: 5, icon: Camera, label: 'Storyboard' },
+    { n: 6, icon: Clapperboard, label: lang === 'pt' ? 'Produção' : 'Production' },
+    { n: 7, icon: Eye, label: lang === 'pt' ? 'Resultado' : 'Result' },
   ];
 
   const STATUS_LABELS = {
@@ -193,9 +195,9 @@ export const DirectedStudio = memo(function DirectedStudio({
       setAgentStatus(ap.agentStatus || {});
       setNarrations(ap.narrations || []);
       if (ap.status === 'complete') {
-        setStep(6); setGenerating(false);
+        setStep(7); setGenerating(false);
       } else if (['running_agents', 'starting'].includes(ap.status)) {
-        setStep(5); setGenerating(true); startPolling(ap.projectId);
+        setStep(6); setGenerating(true); startPolling(ap.projectId);
       }
     }
   }, []);
@@ -209,9 +211,9 @@ export const DirectedStudio = memo(function DirectedStudio({
     if (step === 0) loadProjects();
   }, [step]);
 
-  // Load storyboard thumbnails and project data when entering Step 5
+  // Load storyboard thumbnails and project data when entering Step 7
   useEffect(() => {
-    if (step === 6 && projectId) {
+    if (step === 7 && projectId) {
       // Always fetch full status for Step 5 to ensure we have all data
       axios.get(`${API}/studio/projects/${projectId}/status`).then(r => {
         const full = r.data;
@@ -308,9 +310,9 @@ export const DirectedStudio = memo(function DirectedStudio({
       const status = full.status || proj.status;
       const outs = full.outputs || [];
       if (['starting', 'running_agents', 'generating_video'].includes(status)) {
-        setStep(5); setGenerating(true); startPolling(proj.id);
+        setStep(6); setGenerating(true); startPolling(proj.id);
       } else if (status === 'complete' && outs.length > 0) {
-        setStep(6); setOutputs(outs);
+        setStep(7); setOutputs(outs);
       } else {
         setGenerating(false);
         setAgentStatus({});
@@ -344,9 +346,9 @@ export const DirectedStudio = memo(function DirectedStudio({
       setNarrationStatus(proj.narration_status || {});
       setScreenplayApproved(proj.screenplay_approved || false);
       if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
-        setStep(5); setGenerating(true); startPolling(proj.id);
+        setStep(6); setGenerating(true); startPolling(proj.id);
       } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
-        setStep(6);
+        setStep(7);
       } else {
         setStep(1);
       }
@@ -385,17 +387,17 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   // Auto-recover: if stuck on step 3 with generating=false, check if outputs exist
   useEffect(() => {
-    if (step === 5 && !generating && projectId) {
+    if (step === 6 && !generating && projectId) {
       const check = setTimeout(() => {
         axios.get(`${API}/studio/projects/${projectId}/status`).then(res => {
           const d = res.data;
           if (d.status === 'complete' && d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(6);
+            setStep(7);
             toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
           } else if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(6);
+            setStep(7);
           }
         }).catch(() => {});
       }, 2000);
@@ -424,7 +426,7 @@ export const DirectedStudio = memo(function DirectedStudio({
         if (d.status === 'complete') {
           setOutputs(d.outputs || []);
           setGenerating(false);
-          setStep(6);
+          setStep(7);
           toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
           loadProjects();
           return;
@@ -434,7 +436,7 @@ export const DirectedStudio = memo(function DirectedStudio({
           // If outputs exist despite error, go to results (partial/recovered success)
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(6);
+            setStep(7);
             toast.success(lang === 'pt' ? `Produção finalizada — ${d.outputs.length} vídeos prontos` : `Production finished — ${d.outputs.length} videos ready`);
           } else {
             toast.error(d.error || 'Production error');
@@ -446,7 +448,7 @@ export const DirectedStudio = memo(function DirectedStudio({
           setGenerating(false);
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(6);
+            setStep(7);
           }
           return;
         }
@@ -600,7 +602,7 @@ export const DirectedStudio = memo(function DirectedStudio({
     setCharacterAvatars(proj.character_avatars || {});
     setProjectAvatars(proj.project_avatars || []);
     setGenerating(true);
-    setStep(5);
+    setStep(6);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: proj.id,
@@ -1087,7 +1089,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const startProduction = async () => {
     if (!projectId || scenes.length === 0) return;
     setGenerating(true);
-    setStep(5);
+    setStep(6);
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
@@ -2461,7 +2463,7 @@ export const DirectedStudio = memo(function DirectedStudio({
         </div>
       )}
 
-      {/* ═══ STEP 3: Dialogues & Script Polish (BEFORE Storyboard) ═══ */}
+      {/* ═══ STEP 3: Dialogues & Script Polish (BEFORE Director's Preview) ═══ */}
       {step === 3 && !viewingProject && (
         <div data-testid="studio-step-dialogues">
           <DialogueEditor
@@ -2474,9 +2476,19 @@ export const DirectedStudio = memo(function DirectedStudio({
         </div>
       )}
 
-
-      {/* ═══ STEP 4: Storyboard (AFTER Dialogues — enriched with dialogue context) ═══ */}
+      {/* ═══ STEP 4: Director's Preview (AI Director reviews everything) ═══ */}
       {step === 4 && !viewingProject && (
+        <DirectorPreview
+          projectId={projectId}
+          lang={lang}
+          scenes={scenes}
+          onApprove={() => setStep(5)}
+          onBack={() => setStep(3)}
+        />
+      )}
+
+      {/* ═══ STEP 5: Storyboard (AFTER Director's approval — enriched with dialogue context) ═══ */}
+      {step === 5 && !viewingProject && (
         <div className="glass-card p-3" data-testid="studio-step-storyboard">
           <StoryboardEditor
             projectId={projectId}
@@ -2485,16 +2497,16 @@ export const DirectedStudio = memo(function DirectedStudio({
             characterAvatars={characterAvatars}
             lang={lang}
             onApprove={() => {
-              setStep(5);
+              setStep(6);
             }}
-            onBack={() => setStep(3)}
+            onBack={() => setStep(4)}
           />
         </div>
       )}
 
 
-      {/* ═══ STEP 5: Production Progress ═══ */}
-      {step === 5 && !viewingProject && (
+      {/* ═══ STEP 6: Production Progress ═══ */}
+      {step === 6 && !viewingProject && (
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-production">
           <h3 className="text-xs font-semibold text-white flex items-center gap-2">
             <Clapperboard size={12} className="text-[#C9A84C]" />
@@ -2891,8 +2903,8 @@ export const DirectedStudio = memo(function DirectedStudio({
         </div>
       )}
 
-      {/* ═══ STEP 5: Resultado — Deliverables Showcase ═══ */}
-      {step === 6 && !viewingProject && (
+      {/* ═══ STEP 7: Resultado — Deliverables Showcase ═══ */}
+      {step === 7 && !viewingProject && (
         <div className="space-y-4" data-testid="studio-step-results">
           {/* Section Header */}
           <div className="text-center py-2">
@@ -3310,11 +3322,11 @@ export const DirectedStudio = memo(function DirectedStudio({
               className="flex-1 rounded-sm border border-[#222] py-2.5 text-[10px] font-mono tracking-wider uppercase text-[#666] hover:text-white hover:border-[#444] transition">
               {lang === 'pt' ? 'Projectos' : 'Projects'}
             </button>
-            <button onClick={() => setStep(3)} data-testid="go-to-storyboard"
+            <button onClick={() => setStep(4)} data-testid="go-to-storyboard"
               className="flex-1 rounded-sm border border-[#C9A84C]/20 bg-[#C9A84C]/5 py-2.5 text-[10px] font-mono tracking-wider uppercase text-[#C9A84C] hover:bg-[#C9A84C]/10 transition flex items-center justify-center gap-1.5">
               <Camera size={10} /> Storyboard
             </button>
-            <button onClick={() => setStep(5)} data-testid="go-to-config-btn"
+            <button onClick={() => setStep(6)} data-testid="go-to-config-btn"
               className="flex-1 bg-[#C9A84C] text-black rounded-sm py-2.5 text-[10px] font-mono tracking-wider uppercase font-semibold hover:bg-white transition-colors duration-300 flex items-center justify-center gap-1.5">
               <RefreshCw size={10} /> {lang === 'pt' ? 'Re-produzir' : 'Re-produce'}
             </button>
