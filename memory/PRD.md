@@ -1,27 +1,28 @@
 # AgentZZ - Product Requirements Document
 
 ## Original Problem Statement
-AgentZZ is a comprehensive, mobile-first, no-code SaaS platform for deploying AI agents and producing AI-powered video content through a Directed Studio. The platform targets small and medium business owners who need to easily deploy and configure pre-built AI agents on social media channels.
+AgentZZ is a comprehensive, mobile-first, no-code SaaS platform for deploying AI agents and producing AI-powered video content through a Directed Studio. Target: small and medium business owners.
 
 ## Core Features Implemented
 
 ### Directed Studio - Scene Management
 - Add scenes at any position (manual + AI-assisted with Claude)
 - Delete scenes (removes storyboard/audio, renumbers)
-- **Drag-and-Drop scene reordering** using @dnd-kit/sortable (replaced old Up/Down buttons) - DONE 2026-03-28
-- **Storyboard Sync** - auto-creates placeholder panels for new scenes, generates storyboard frames in background
-- `POST /api/studio/projects/{id}/storyboard/sync-panels` - creates & generates missing panels
-- `regenerate-panel` auto-creates panel if scene exists but panel doesn't
-- Frontend alert banner: "X cena(s) sem storyboard" with "Gerar Faltantes" button
+- **Drag-and-Drop scene reordering** using @dnd-kit/sortable (replaced Up/Down buttons) — DONE 2026-03-28
+- **Storyboard Sync** - auto-creates placeholder panels for new scenes
 - Character selection per scene via toggle chips
 
-### Continuity Director V2 (Claude Vision) - DONE 2026-03-28
-- Completely rewritten to use `claude-sonnet-4-5-20250929` via Emergent LLM Key
-- **Preventive Gate**: validate_frame() runs after every image generation, before saving
-- **Post-hoc Analysis**: Full audit of all frames across all scenes
-- **Auto-correction**: Fixes detected issues via inpainting
-- Optimized to only send relevant character avatars per scene (prevents payload overflow)
-- Analysis complete: 87 issues found (65 critical, 6 high, 13 medium, 3 low)
+### AI Voice Assignment System — DONE 2026-03-29
+- **Intelligent voice auto-assignment**: Claude analyzes each character's name, description, role, species and assigns the most suitable ElevenLabs voice from 24 available voices
+- **Manual override**: Users can change any character's voice via dropdown
+- **Voice Map persistence**: Saved per project in Supabase
+- **Dubbed mode integration**: `_run_narration_background` uses the AI-assigned voice_map instead of hardcoded biblical name mappings
+- Endpoints: `POST /auto-assign-voices`, `GET /voice-map`, `POST /voice-map`
+
+### Continuity Director V2 (Claude Vision) — DONE 2026-03-28
+- Rewritten for `claude-sonnet-4-5-20250929` via Emergent LLM Key
+- Preventive Gate + Post-hoc Analysis + Auto-correction
+- Optimized to only send relevant character avatars per scene
 
 ### Error Handling
 - `getErrorMsg()` utility prevents Pydantic validation arrays from crashing React
@@ -32,15 +33,16 @@ AgentZZ is a comprehensive, mobile-first, no-code SaaS platform for deploying AI
 - Google Integration in Agent Config (Phase 6 Complete)
 - recharts Dashboard
 
-## Key Endpoints
+## Key API Endpoints
+- `POST /api/studio/projects/{id}/auto-assign-voices` — AI voice assignment
+- `GET /api/studio/projects/{id}/voice-map` — Get voice assignments
+- `POST /api/studio/projects/{id}/voice-map` — Update voice assignments
 - `POST /api/studio/projects/{id}/add-scene`
 - `POST /api/studio/projects/{id}/delete-scene`
 - `POST /api/studio/projects/{id}/reorder-scenes`
-- `POST /api/studio/projects/{id}/generate-scene-ai`
 - `POST /api/studio/projects/{id}/storyboard/sync-panels`
 - `POST /api/studio/projects/{id}/continuity/analyze`
 - `GET /api/studio/projects/{id}/continuity/status`
-- `POST /api/studio/projects/{id}/continuity/auto-correct`
 
 ## Backlog
 - P1: AI Marketing Studio (Phase 7.1 & 7.2)
@@ -56,4 +58,4 @@ AgentZZ is a comprehensive, mobile-first, no-code SaaS platform for deploying AI
 
 ## Credentials
 - Email: test@agentflow.com / Password: password123
-- Test project: d27afb0e79ff (ADÃO E EVA - BIBLIZOO 2, 31 scenes)
+- Test project: d27afb0e79ff (ADÃO E EVA - BIBLIZOO 2, 31 scenes, 17 characters)
