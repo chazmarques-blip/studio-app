@@ -15,6 +15,7 @@ import { PostProduction } from './PostProduction';
 import { StoryboardEditor } from './StoryboardEditor';
 import { DialogueEditor } from './DialogueEditor';
 import { AvatarLibraryModal } from './pipeline/AvatarLibraryModal';
+import { AutonomousWorkflow } from './AutonomousWorkflow';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -107,6 +108,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [soundAgentChar, setSoundAgentChar] = useState(null); // which char is being designed individually
   const [playingPreview, setPlayingPreview] = useState(null); // "charName-idx"
   const [selectingVoice, setSelectingVoice] = useState(null); // "charName-voiceId"
+  const [showAutonomousFlow, setShowAutonomousFlow] = useState(false); // Autonomous workflow overlay
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -2523,24 +2525,37 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           {/* Action buttons — only show when preview is NOT open */}
           {!showPreview && (
-            <div className="flex gap-2">
-              <button onClick={() => setStep(1)} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
-                ← {lang === 'pt' ? 'Roteiro' : 'Script'}
+            <div className="space-y-2">
+              {/* Autonomous Loop Button */}
+              <button
+                onClick={() => setShowAutonomousFlow(true)}
+                disabled={characters.length === 0}
+                className="w-full rounded-lg border-2 border-violet-500/50 bg-gradient-to-r from-violet-600/20 to-purple-600/20 py-3 text-sm font-bold text-violet-200 hover:from-violet-600/30 hover:to-purple-600/30 transition disabled:opacity-30 flex items-center justify-center gap-2"
+              >
+                <Sparkles size={16} />
+                🤖 {lang === 'pt' ? 'Iniciar Loop Autônomo de Agentes' : 'Start Autonomous Agents Loop'}
               </button>
-              <button onClick={generatePreview} disabled={generating || previewLoading || scenes.length === 0}
-                data-testid="preview-production-btn"
-                className="flex-1 rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 py-2 text-[10px] font-semibold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition disabled:opacity-30 flex items-center justify-center gap-1">
-                {previewLoading ? <RefreshCw size={10} className="animate-spin" /> : <Eye size={12} />}
-                {previewLoading
-                  ? (lang === 'pt' ? 'Gerando preview...' : 'Generating preview...')
-                  : (lang === 'pt' ? 'Preview Design' : 'Preview Design')
-                }
-              </button>
-              <button onClick={() => setStep(3)} disabled={scenes.length === 0}
-                data-testid="go-to-storyboard-btn"
-                className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
-                <Camera size={12} /> Storyboard →
-              </button>
+              
+              {/* Original buttons */}
+              <div className="flex gap-2">
+                <button onClick={() => setStep(1)} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
+                  ← {lang === 'pt' ? 'Roteiro' : 'Script'}
+                </button>
+                <button onClick={generatePreview} disabled={generating || previewLoading || scenes.length === 0}
+                  data-testid="preview-production-btn"
+                  className="flex-1 rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 py-2 text-[10px] font-semibold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition disabled:opacity-30 flex items-center justify-center gap-1">
+                  {previewLoading ? <RefreshCw size={10} className="animate-spin" /> : <Eye size={12} />}
+                  {previewLoading
+                    ? (lang === 'pt' ? 'Gerando preview...' : 'Generating preview...')
+                    : (lang === 'pt' ? 'Preview Design' : 'Preview Design')
+                  }
+                </button>
+                <button onClick={() => setStep(3)} disabled={scenes.length === 0}
+                  data-testid="go-to-storyboard-btn"
+                  className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
+                  <Camera size={12} /> Storyboard →
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -3441,6 +3456,25 @@ export const DirectedStudio = memo(function DirectedStudio({
               <RefreshCw size={10} /> {lang === 'pt' ? 'Re-produzir' : 'Re-produce'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ═══ Autonomous Workflow Overlay ═══ */}
+      {showAutonomousFlow && (
+        <div className="fixed inset-0 z-[100] bg-black/95">
+          <AutonomousWorkflow
+            projectId={projectId}
+            characters={characters}
+            onComplete={(checkpoint) => {
+              setShowAutonomousFlow(false);
+              toast.success(lang === 'pt' ? 'Loop autônomo concluído! Pronto para gerar vídeos.' : 'Autonomous loop complete! Ready to generate videos.');
+              setStep(7); // Go to video production
+            }}
+            onCancel={() => {
+              setShowAutonomousFlow(false);
+              toast.info(lang === 'pt' ? 'Loop autônomo cancelado' : 'Autonomous loop cancelled');
+            }}
+          />
         </div>
       )}
 
