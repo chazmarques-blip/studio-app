@@ -1,6 +1,10 @@
 # Test Credentials
 
-## User Account
+## StudioX User Account
+- Email: test@studiox.com
+- Password: studiox123
+
+## Legacy AgentZZ Account (deprecated)
 - Email: test@agentflow.com
 - Password: password123
 

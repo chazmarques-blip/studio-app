@@ -3,6 +3,7 @@ Studio Agents Registry
 API for viewing and managing StudioX AI agent specifications
 """
 from ._shared import *
+from typing import Dict
 import os
 import json
 
