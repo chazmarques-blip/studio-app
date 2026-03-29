@@ -201,7 +201,8 @@ export const DirectedStudio = memo(function DirectedStudio({
           characters: p.characters?.length || 0,
           scenes: p.scenes?.length || 0,
           outputs: p.outputs?.length || 0,
-          status: p.status
+          status: p.status,
+          hasVideos: p.outputs?.some(o => o.type === 'video')
         });
         
         setProjectName(p.name || '');
@@ -221,24 +222,27 @@ export const DirectedStudio = memo(function DirectedStudio({
         setChatMessages(p.chat_messages || []);
         
         // Determine step based on project state
+        // PRIORIDADE: Status complete ou tem vídeos = ir para resultado
         let determinedStep = 1;
-        if (p.status === 'complete' || p.outputs?.some(o => o.type === 'video')) {
-          determinedStep = 7;
+        const hasVideos = p.outputs?.some(o => o.type === 'video');
+        const hasKeyframes = p.outputs?.some(o => o.type === 'keyframe' || o.type === 'image');
+        
+        if (p.status === 'complete' || hasVideos) {
+          determinedStep = 7; // Resultado final - SEMPRE mostrar vídeos se existirem
         } else if (['running_agents', 'starting'].includes(p.status)) {
-          determinedStep = 6;
+          determinedStep = 6; // Produção em andamento
           setGenerating(true);
           startPolling(initialProjectId);
-        } else if (p.outputs?.some(o => o.type === 'keyframe' || o.type === 'image')) {
-          determinedStep = 5;
+        } else if (hasKeyframes) {
+          determinedStep = 5; // Storyboard pronto
+        } else if (p.scenes?.length > 0 && p.characters?.length > 0) {
+          determinedStep = 3; // Tem cenas e personagens = Diálogos/Director
+        } else if (p.characters?.length > 0) {
+          determinedStep = 2; // Só tem personagens
         } else if (p.scenes?.length > 0) {
-          // Se tem cenas, verificar se tem personagens
-          if (p.characters?.length > 0) {
-            determinedStep = 3; // Diálogos/Storyboard
-          } else {
-            determinedStep = 2; // Personagens
-          }
+          determinedStep = 2; // Tem cenas mas sem personagens = criar personagens
         } else if (p.synopsis || p.script || p.briefing) {
-          determinedStep = 1;
+          determinedStep = 1; // Só tem roteiro
         }
         
         console.log('🎯 Determined step:', determinedStep);
@@ -3311,16 +3315,21 @@ export const DirectedStudio = memo(function DirectedStudio({
           })()}
 
           {/* ── HORIZONTAL SCROLL: Cenas Individuais ── */}
-          {outputs.filter(o => o.label !== 'complete' && o.url).length > 0 && (
+          {(() => {
+            // Filtrar vídeos válidos (type='video' e tem URL)
+            const sceneVideos = outputs.filter(o => o.type === 'video' && o.url && o.label !== 'complete');
+            console.log('🎬 Scene videos found:', sceneVideos.length, 'out of', outputs.length, 'total outputs');
+            
+            return sceneVideos.length > 0 && (
             <div data-testid="deliverables-cenas">
               <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#555] mb-2">
-                {lang === 'pt' ? 'Cenas Individuais' : 'Individual Scenes'} ({outputs.filter(o => o.label !== 'complete').length})
+                {lang === 'pt' ? 'Cenas Individuais' : 'Individual Scenes'} ({sceneVideos.length})
               </p>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-                {outputs.filter(o => o.label !== 'complete').map((out, i) => {
+                {sceneVideos.map((out, i) => {
                   const sceneState = (agentStatus.scene_status || {})[String(out.scene_number)] || '';
                   const isRegenerating = regenScene === out.scene_number;
-                  const allSceneVids = outputs.filter(o => o.label !== 'complete' && o.url);
+                  const allSceneVids = sceneVideos; // Usar a lista já filtrada
                   return (
                     <div key={out.id || i} className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden border border-white/5 bg-[#0A0A0A] group hover:border-[#8B5CF6]/20 transition-all duration-300 cursor-pointer"
                       data-testid={`deliverable-cena-${out.scene_number}`}
@@ -3355,7 +3364,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                 })}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Failed scenes */}
           {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).length > 0 && (
