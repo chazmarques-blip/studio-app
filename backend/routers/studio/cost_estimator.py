@@ -3,6 +3,7 @@ Cost Estimator for StudioX Production
 Calculates estimated costs for video production
 """
 from ._shared import *
+from typing import Dict
 
 # ── Cost Constants ──
 

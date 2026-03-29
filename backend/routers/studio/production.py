@@ -21,13 +21,14 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         prompt: Text description for the video
         size: Video resolution (1280x720, 1792x1024, 1024x1792, 1024x1024)
         duration: Video length in seconds (4, 8, or 12)
-        image_path: Optional path to reference image
+        image_path: Optional path to reference image (from Project Bible or keyframe)
         max_wait: Maximum time to wait for generation (seconds)
     
     Returns:
         Video bytes if successful, empty bytes if failed
     """
     import time
+    import os
     try:
         # Prepare generation parameters
         gen_params = {
@@ -37,10 +38,16 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
             "seconds": duration
         }
         
-        # NOTE: input_reference for image-to-video is not well documented in Python SDK
-        # Skipping for now to test basic text-to-video functionality
-        # if image_path and os.path.exists(image_path):
-        #     gen_params["input_reference"] = open(image_path, "rb")
+        # Use input_reference if image path provided (Project Bible keyframe or character reference)
+        if image_path and os.path.exists(image_path):
+            try:
+                with open(image_path, "rb") as img_file:
+                    # Encode image as base64 for input_reference
+                    img_data = base64.b64encode(img_file.read()).decode('utf-8')
+                    gen_params["input_reference"] = img_data
+                    logger.info(f"Sora 2: Using input_reference from {image_path[:50]}...")
+            except Exception as e:
+                logger.warning(f"Sora 2: Failed to load input_reference: {e}")
         
         # Create video generation request
         start = time.time()
