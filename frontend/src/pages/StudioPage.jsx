@@ -274,7 +274,12 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
                   <Pencil size={14} /> Renomear
                 </button>
                 <button 
-                  onClick={(e) => { e.stopPropagation(); onDelete(project); setShowMenu(false); }}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    e.preventDefault();
+                    setShowMenu(false); 
+                    onDelete(project); 
+                  }}
                   className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
                 >
                   <Trash2 size={14} /> Excluir
@@ -393,17 +398,26 @@ export default function StudioPage() {
 
   // Delete project
   const handleDeleteProject = async (project) => {
-    if (!confirm(l.deleteConfirm)) return;
+    const confirmDelete = window.confirm(l.deleteConfirm);
+    if (!confirmDelete) return;
+    
     try {
+      console.log('🗑️ Deletando projeto:', project.id, project.name);
       await axios.delete(`${API}/studio/projects/${project.id}`);
       toast.success(l.deleted);
+      
+      // Se o projeto deletado está selecionado, voltar para lista
       if (selectedProject?.id === project.id) {
         setSelectedProject(null);
         setSearchParams({});
       }
+      
+      // Recarregar lista
       await fetchProjects();
+      console.log('✅ Projeto deletado com sucesso');
     } catch (err) {
-      toast.error('Erro ao excluir projeto');
+      console.error('❌ Erro ao excluir projeto:', err);
+      toast.error('Erro ao excluir projeto: ' + (err.response?.data?.detail || err.message));
     }
   };
 
