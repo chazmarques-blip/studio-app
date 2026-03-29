@@ -66,9 +66,14 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return {
+        "id": project.get("id"),
+        "name": project.get("name", ""),
+        "synopsis": project.get("synopsis", ""),
+        "script": project.get("script", ""),
         "status": project.get("status"),
         "chat_status": project.get("chat_status"),
         "chat_history": project.get("chat_history", []),
+        "chat_messages": project.get("chat_messages", []),
         "agent_status": project.get("agent_status", {}),
         "agents_output": project.get("agents_output", {}),
         "scenes": project.get("scenes", []),
@@ -81,6 +86,8 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "narration_status": project.get("narration_status", {}),
         "voice_config": project.get("voice_config", {}),
         "visual_style": project.get("visual_style", "animation"),
+        "animation_sub": project.get("animation_sub", "pixar_3d"),
+        "continuity_mode": project.get("continuity_mode", True),
         "language": project.get("language", "pt"),
         "subtitles": project.get("subtitles", {}),
         "screenplay_approved": project.get("screenplay_approved", False),

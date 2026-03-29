@@ -188,12 +188,15 @@ export const DirectedStudio = memo(function DirectedStudio({
   useEffect(() => { loadProjects(); loadVoices(); }, []);
 
   // Load initial project when provided via props
+  const initialLoadDone = useRef(false);
   useEffect(() => {
-    if (initialProjectId && !projectId) {
+    if (initialProjectId && !initialLoadDone.current) {
+      initialLoadDone.current = true;
       setProjectId(initialProjectId);
       // Load project details
       axios.get(`${API}/studio/projects/${initialProjectId}/status`).then(r => {
         const p = r.data;
+        console.log('Loaded project:', p.name, 'Characters:', p.characters?.length);
         setProjectName(p.name || '');
         setProjectDesc(p.synopsis || '');
         setScenes(p.scenes || []);
@@ -227,7 +230,8 @@ export const DirectedStudio = memo(function DirectedStudio({
         } else {
           setStep(1);
         }
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('Error loading project:', err);
         setStep(1);
       });
     }
