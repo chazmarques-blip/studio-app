@@ -95,6 +95,9 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [showLibrary, setShowLibrary] = useState(false); // Avatar library modal
   const [previewModal, setPreviewModal] = useState(null); // { type: 'video'|'gallery'|'book'|'pdf', data: any }
   const [allPanelFrames, setAllPanelFrames] = useState([]); // All storyboard frames for gallery
+  const [voiceMap, setVoiceMap] = useState({}); // {charName: voice_id}
+  const [voiceDetails, setVoiceDetails] = useState({}); // {charName: {voice_id, voice_name, ...}}
+  const [voiceMapLoading, setVoiceMapLoading] = useState(false);
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
 
@@ -258,6 +261,7 @@ export const DirectedStudio = memo(function DirectedStudio({
     setProjectAvatars(proj.project_avatars || []);
     setVisualStyle(proj.visual_style || 'animation');
     setProjectLang(proj.language || 'pt');
+    setAudioMode(proj.audio_mode || 'narrated');
     setViewingProject(null);
 
     // Load full project data from /status for complete info
@@ -272,6 +276,9 @@ export const DirectedStudio = memo(function DirectedStudio({
       setNarrationStatus(full.narration_status || {});
       setScreenplayApproved(full.screenplay_approved || false);
       if (full.project_avatars?.length) setProjectAvatars(full.project_avatars);
+
+      // Load voice map
+      loadVoiceMap(proj.id);
 
       // Load storyboard thumbnails
       const panels = full.storyboard_panels || [];
@@ -604,6 +611,44 @@ export const DirectedStudio = memo(function DirectedStudio({
   };
 
   // Generate narration with ElevenLabs
+  // ── Voice Map (AI auto-assignment + manual edit) ──
+  const loadVoiceMap = useCallback(async (pid) => {
+    try {
+      const res = await axios.get(`${API}/studio/projects/${pid}/voice-map`);
+      setVoiceMap(res.data.voice_map || {});
+      setVoiceDetails(res.data.voice_details || {});
+    } catch { /* no voice map yet */ }
+  }, []);
+
+  const autoAssignVoices = async () => {
+    if (!projectId) return;
+    setVoiceMapLoading(true);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/auto-assign-voices`);
+      setVoiceMap(res.data.voice_map || {});
+      setVoiceDetails(res.data.voice_details || {});
+      toast.success(lang === 'pt' ? 'Vozes atribuídas por IA!' : 'Voices assigned by AI!');
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Voice assignment failed'));
+    } finally {
+      setVoiceMapLoading(false);
+    }
+  };
+
+  const updateCharVoice = async (charName, voiceId) => {
+    const newMap = { ...voiceMap, [charName]: voiceId };
+    setVoiceMap(newMap);
+    // Update details locally
+    const v = voices.find(v => v.id === voiceId);
+    if (v) {
+      setVoiceDetails(prev => ({ ...prev, [charName]: { voice_id: voiceId, voice_name: v.name, gender: v.gender, accent: v.accent, style: v.style } }));
+    }
+    // Persist
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/voice-map`, { voice_map: { [charName]: voiceId } });
+    } catch { /* silent */ }
+  };
+
   const generateNarration = async () => {
     if (!projectId || scenes.length === 0) return;
     setNarrationGenerating(true);
@@ -2018,28 +2063,94 @@ export const DirectedStudio = memo(function DirectedStudio({
               <span className="text-[10px] text-[#555] font-normal ml-1">ElevenLabs</span>
             </h4>
 
-            {/* Voice selector */}
+            {/* ── Voice Map: AI-assigned voices per character ── */}
+            {characters.length > 0 && (
+              <div className="space-y-1.5" data-testid="voice-map-section">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-[#666]">
+                    {lang === 'pt' ? 'Mapa de Vozes por Personagem' : 'Character Voice Map'}
+                  </p>
+                  <button onClick={autoAssignVoices} disabled={voiceMapLoading || characters.length === 0}
+                    data-testid="auto-assign-voices-btn"
+                    className="text-[10px] px-2 py-1 rounded border border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C] hover:bg-[#C9A84C]/10 transition disabled:opacity-30 flex items-center gap-1">
+                    {voiceMapLoading ? <RefreshCw size={9} className="animate-spin" /> : <Sparkles size={9} />}
+                    {voiceMapLoading
+                      ? (lang === 'pt' ? 'Analisando...' : 'Analyzing...')
+                      : (lang === 'pt' ? 'IA Atribuir Vozes' : 'AI Assign Voices')
+                    }
+                  </button>
+                </div>
+
+                {Object.keys(voiceDetails).length > 0 && (
+                  <div className="space-y-1 max-h-[200px] overflow-y-auto hide-scrollbar">
+                    {characters.map(c => {
+                      const detail = voiceDetails[c.name];
+                      if (!detail) return null;
+                      return (
+                        <div key={c.name} className="flex items-center gap-2 rounded-md border border-[#1A1A1A] bg-[#0A0A0A] px-2 py-1.5" data-testid={`voice-map-${c.name}`}>
+                          <span className="text-[10px] font-semibold text-white truncate w-28 shrink-0" title={c.name}>{c.name}</span>
+                          <select
+                            value={voiceMap[c.name] || ''}
+                            onChange={e => updateCharVoice(c.name, e.target.value)}
+                            data-testid={`voice-select-${c.name}`}
+                            className="flex-1 bg-[#111] border border-[#222] rounded px-1.5 py-1 text-[10px] text-[#ccc] outline-none focus:border-[#C9A84C]/50 min-w-0"
+                          >
+                            {voices.map(v => (
+                              <option key={v.id} value={v.id}>{v.name} — {v.gender} • {v.style}</option>
+                            ))}
+                          </select>
+                          <span className="text-[9px] text-[#555] shrink-0 w-14 text-right">{detail.accent}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {Object.keys(voiceDetails).length === 0 && (
+                  <p className="text-[10px] text-[#444] italic text-center py-2">
+                    {lang === 'pt'
+                      ? 'Clique "IA Atribuir Vozes" para o Claude analisar os personagens e escolher a voz ideal para cada um'
+                      : 'Click "AI Assign Voices" to let Claude analyze characters and pick the ideal voice for each'}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Narrator voice selector (for narrated mode or as fallback) */}
             <div className="flex gap-2 items-end">
               <div className="flex-1">
-                <label className="text-[11px] text-[#666] mb-0.5 block">{lang === 'pt' ? 'Voz' : 'Voice'}</label>
-                <select value={selectedVoice} onChange={e => setSelectedVoice(e.target.value)}
-                  data-testid="voice-selector"
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50">
-                  {voices.map(v => (
-                    <option key={v.id} value={v.id}>{v.name} — {v.gender} • {v.accent} • {v.style}</option>
-                  ))}
-                </select>
+                <label className="text-[11px] text-[#666] mb-0.5 block">{lang === 'pt' ? (audioMode === 'dubbed' ? 'Voz do Narrador (fallback)' : 'Voz do Narrador') : 'Narrator Voice'}</label>
+                  <select value={selectedVoice} onChange={e => setSelectedVoice(e.target.value)}
+                    data-testid="voice-selector"
+                    className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#C9A84C]/50">
+                    {voices.map(v => (
+                      <option key={v.id} value={v.id}>{v.name} — {v.gender} • {v.accent} • {v.style}</option>
+                    ))}
+                  </select>
+                </div>
+                <button onClick={generateNarration} disabled={narrationGenerating || scenes.length === 0}
+                  data-testid="generate-narration-btn"
+                  className="btn-gold rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-30 flex items-center gap-1 whitespace-nowrap">
+                  {narrationGenerating ? <RefreshCw size={10} className="animate-spin" /> : <Volume2 size={10} />}
+                  {narrationGenerating
+                    ? `${narrationStatus.done || 0}/${narrationStatus.total || '?'}`
+                    : (lang === 'pt' ? 'Gerar Narração' : 'Generate Narration')
+                  }
+                </button>
               </div>
+
+            {/* Generate narration button for dubbed mode */}
+            {audioMode === 'dubbed' && Object.keys(voiceMap).length > 0 && (
               <button onClick={generateNarration} disabled={narrationGenerating || scenes.length === 0}
-                data-testid="generate-narration-btn"
-                className="btn-gold rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-30 flex items-center gap-1 whitespace-nowrap">
+                data-testid="generate-dubbed-narration-btn"
+                className="w-full btn-gold rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-30 flex items-center justify-center gap-1.5">
                 {narrationGenerating ? <RefreshCw size={10} className="animate-spin" /> : <Volume2 size={10} />}
                 {narrationGenerating
-                  ? `${narrationStatus.done || 0}/${narrationStatus.total || '?'}`
-                  : (lang === 'pt' ? 'Gerar Narração' : 'Generate Narration')
+                  ? `${lang === 'pt' ? 'Gerando' : 'Generating'} ${narrationStatus.done || 0}/${narrationStatus.total || '?'}`
+                  : (lang === 'pt' ? 'Gerar Narração Dublada' : 'Generate Dubbed Narration')
                 }
               </button>
-            </div>
+            )}
 
             {/* Narration results */}
             {narrations.length > 0 && (
@@ -2049,7 +2160,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                     n.audio_url ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[#222] bg-[#0A0A0A]'
                   }`}>
                     <span className="text-[11px] font-bold text-[#C9A84C] shrink-0">C{n.scene_number}</span>
-                    <p className="text-[11px] text-[#999] flex-1 truncate">{n.text || '—'}</p>
+                    <p className="text-[11px] text-[#999] flex-1 truncate">{n.text || n.narration || '—'}</p>
                     {n.audio_url && (
                       <audio src={n.audio_url} controls className="h-6 w-24 shrink-0" style={{maxHeight: '24px'}} />
                     )}

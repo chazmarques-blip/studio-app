@@ -40,6 +40,186 @@ async def get_music_library(user=Depends(get_current_user)):
     return {"tracks": tracks}
 
 
+# ── Intelligent Voice Assignment (Claude) ──
+
+class AutoAssignVoicesRequest(BaseModel):
+    project_id: str
+
+
+@router.post("/projects/{project_id}/auto-assign-voices")
+async def auto_assign_voices(project_id: str, tenant=Depends(get_current_tenant)):
+    """Use Claude to intelligently assign ElevenLabs voices to each character based on their description."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    characters = project.get("characters", [])
+    if not characters:
+        raise HTTPException(status_code=400, detail="No characters in project")
+
+    # Build voices catalog for Claude
+    voices_catalog = "\n".join([
+        f"- ID: {v['id']} | Name: {v['name']} | Gender: {v['gender']} | Accent: {v['accent']} | Style: {v['style']}"
+        for v in ELEVENLABS_VOICES
+    ])
+
+    # Build character descriptions
+    char_descriptions = "\n".join([
+        f"- {c.get('name', '?')}: {c.get('description', 'No description')} | Role: {c.get('role', '?')}"
+        for c in characters
+    ])
+
+    lang = project.get("language", "pt")
+    system_prompt = f"""You are a professional casting director for animated films. Your job is to assign the PERFECT voice actor to each character.
+
+AVAILABLE VOICES:
+{voices_catalog}
+
+RULES:
+1. Match voice PERSONALITY to character PERSONALITY — not just gender
+2. For children/young characters, use youthful voices (Gigi, Freya-style light voices)
+3. For elder/wise characters, use deep authoritative voices (Brian, Bill, Daniel)
+4. For female characters, use female voices. For male, use male voices
+5. For animals with specific traits (e.g. curious monkey), match the energy level
+6. Narrators should get calm, warm, storytelling voices (Rachel, Drew, Matilda)
+7. If a character is comic/energetic, use expressive voices (Aria, Charlie, Will)
+8. If a character is divine/angelic, use ethereal voices (Daniel, River)
+9. Make each character's voice DISTINCT from others — avoid duplicates unless necessary
+10. The project language is {lang.upper()}, all voices support multilingual via eleven_multilingual_v2
+
+Return ONLY valid JSON mapping character names to voice IDs:
+{{"CharacterName": "voice_id", "AnotherCharacter": "voice_id"}}
+
+IMPORTANT: Use ONLY voice IDs from the catalog above. Assign a voice to EVERY character listed."""
+
+    user_prompt = f"""Project: {project.get('name', 'Untitled')}
+Story: {project.get('briefing', '')[:500]}
+
+CHARACTERS TO CAST:
+{char_descriptions}
+
+Assign the perfect voice for each character. Be creative and ensure each voice is distinct and matches the character's personality."""
+
+    try:
+        result = _call_claude_sync(system_prompt, user_prompt, max_tokens=2000)
+        import json as json_mod
+
+        # Parse the JSON response
+        parsed = _parse_json(result)
+        if not parsed:
+            # Try to extract JSON from text
+            if '{' in result:
+                start = result.index('{')
+                end = result.rindex('}') + 1
+                parsed = json_mod.loads(result[start:end])
+
+        if not parsed:
+            raise HTTPException(status_code=500, detail="Failed to parse AI voice assignment")
+
+        # Validate all voice IDs exist
+        valid_ids = {v['id'] for v in ELEVENLABS_VOICES}
+        voice_map = {}
+        for char_name, vid in parsed.items():
+            if vid in valid_ids:
+                voice_map[char_name] = vid
+            else:
+                # Fallback to Rachel
+                voice_map[char_name] = "21m00Tcm4TlvDq8ikWAM"
+
+        # Ensure all characters have a voice
+        for c in characters:
+            name = c.get("name", "")
+            if name and name not in voice_map:
+                # Fuzzy match
+                matched = False
+                for k in voice_map:
+                    if k.lower() in name.lower() or name.lower() in k.lower():
+                        voice_map[name] = voice_map[k]
+                        matched = True
+                        break
+                if not matched:
+                    voice_map[name] = "21m00Tcm4TlvDq8ikWAM"  # Rachel fallback
+
+        # Save to project
+        _update_project_field(tenant["id"], project_id, {"voice_map": voice_map})
+
+        # Build response with voice details
+        voice_details = {}
+        voice_lookup = {v['id']: v for v in ELEVENLABS_VOICES}
+        for char_name, vid in voice_map.items():
+            v = voice_lookup.get(vid, {})
+            voice_details[char_name] = {
+                "voice_id": vid,
+                "voice_name": v.get("name", "Unknown"),
+                "gender": v.get("gender", "?"),
+                "accent": v.get("accent", "?"),
+                "style": v.get("style", "?"),
+            }
+
+        logger.info(f"Studio [{project_id}]: AI Voice Assignment — {len(voice_map)} characters mapped")
+        return {"voice_map": voice_map, "voice_details": voice_details}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Studio [{project_id}]: Auto-assign voices failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice assignment failed: {str(e)[:150]}")
+
+
+class UpdateVoiceMapRequest(BaseModel):
+    voice_map: dict  # {character_name: voice_id}
+
+
+@router.post("/projects/{project_id}/voice-map")
+async def update_voice_map(project_id: str, req: UpdateVoiceMapRequest, tenant=Depends(get_current_tenant)):
+    """Manually update voice assignments for characters."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Merge with existing map
+    existing = project.get("voice_map", {})
+    existing.update(req.voice_map)
+    _update_project_field(tenant["id"], project_id, {"voice_map": existing})
+
+    # Build response with voice details
+    voice_lookup = {v['id']: v for v in ELEVENLABS_VOICES}
+    voice_details = {}
+    for char_name, vid in existing.items():
+        v = voice_lookup.get(vid, {})
+        voice_details[char_name] = {
+            "voice_id": vid,
+            "voice_name": v.get("name", "Unknown"),
+            "gender": v.get("gender", "?"),
+            "accent": v.get("accent", "?"),
+            "style": v.get("style", "?"),
+        }
+
+    return {"voice_map": existing, "voice_details": voice_details}
+
+
+@router.get("/projects/{project_id}/voice-map")
+async def get_voice_map(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get current voice assignments for a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    voice_map = project.get("voice_map", {})
+    voice_lookup = {v['id']: v for v in ELEVENLABS_VOICES}
+    voice_details = {}
+    for char_name, vid in voice_map.items():
+        v = voice_lookup.get(vid, {})
+        voice_details[char_name] = {
+            "voice_id": vid,
+            "voice_name": v.get("name", "Unknown"),
+            "gender": v.get("gender", "?"),
+            "accent": v.get("accent", "?"),
+            "style": v.get("style", "?"),
+        }
+
+    return {"voice_map": voice_map, "voice_details": voice_details}
+
 
 # ── Narration Generation (ElevenLabs) ──
 
@@ -102,51 +282,36 @@ def _run_narration_background(tenant_id: str, project_id: str, voice_id: str, st
 
         # ── DUBBED MODE: Use scene dialogues directly (already have character lines) ──
         if audio_mode == "dubbed":
-            # ElevenLabs voice mapping for character types
-            DUBBED_VOICES = {
-                "narrator": voice_id,  # User-selected voice for narrator
-                "male_elder": "VR6AewLTigWG4xSOukaG",   # Arnold - deep male
-                "male_young": "pNInz6obpgDQGcFmaJgB",    # Adam - young male
-                "female_elder": "EXAVITQu4vr4xnSDxMaL",  # Bella - female
-                "female_young": "jBpfuIE2acCO8z3wKNLl",   # Gigi - young female
-                "child": "jsCqWAovK2LkecY7zXl4",          # Freya - light voice for kids
-                "angel": "onwK4e9ZLuTAKqWW03F9",          # Daniel - ethereal male
-            }
+            # Use the AI-assigned voice_map from the project (set by auto-assign-voices endpoint)
+            voice_map = project.get("voice_map", {})
 
-            # Map character names to voice types
-            characters = project.get("characters", [])
-            char_voice_map = {}
-            for c in characters:
-                name = c.get("name", "").lower()
-                if "narrador" in name:
-                    char_voice_map[c["name"]] = DUBBED_VOICES["narrator"]
-                elif "anjo" in name or "angel" in name:
-                    char_voice_map[c["name"]] = DUBBED_VOICES["angel"]
-                elif "sara" in name or "rebeca" in name or "agar" in name:
-                    char_voice_map[c["name"]] = DUBBED_VOICES["female_elder"]
-                elif "isaque" in name or "isaac" in name:
-                    # Check if adolescent or child
-                    if "adolescente" in name or "jovem" in name:
-                        char_voice_map[c["name"]] = DUBBED_VOICES["male_young"]
-                    elif "bebê" in name or "bebe" in name or "criança" in name:
-                        char_voice_map[c["name"]] = DUBBED_VOICES["child"]
+            # Fallback: if no voice_map exists, create basic one
+            if not voice_map:
+                DUBBED_VOICES = {
+                    "narrator": voice_id,
+                    "male_elder": "VR6AewLTigWG4xSOukaG",
+                    "male_young": "pNInz6obpgDQGcFmaJgB",
+                    "female_elder": "EXAVITQu4vr4xnSDxMaL",
+                    "female_young": "jBpfuIE2acCO8z3wKNLl",
+                    "child": "jsCqWAovK2LkecY7zXl4",
+                    "angel": "onwK4e9ZLuTAKqWW03F9",
+                }
+                characters = project.get("characters", [])
+                for c in characters:
+                    name = c.get("name", "")
+                    n = name.lower()
+                    if "narrador" in n:
+                        voice_map[name] = DUBBED_VOICES["narrator"]
+                    elif any(k in n for k in ["anjo", "angel", "deus", "god"]):
+                        voice_map[name] = DUBBED_VOICES["angel"]
+                    elif any(k in n for k in ["criança", "bebê", "bebe", "child"]):
+                        voice_map[name] = DUBBED_VOICES["child"]
                     else:
-                        char_voice_map[c["name"]] = DUBBED_VOICES["male_young"]
-                elif "abraão" in name or "abraao" in name or "abraham" in name:
-                    if "jovem" in name:
-                        char_voice_map[c["name"]] = DUBBED_VOICES["male_young"]
-                    else:
-                        char_voice_map[c["name"]] = DUBBED_VOICES["male_elder"]
-                elif "deus" in name or "god" in name:
-                    char_voice_map[c["name"]] = DUBBED_VOICES["angel"]
-                else:
-                    char_voice_map[c["name"]] = DUBBED_VOICES["male_elder"]
+                        voice_map[name] = DUBBED_VOICES["male_elder"]
+                voice_map["Narrador"] = DUBBED_VOICES["narrator"]
+                voice_map["Deus"] = DUBBED_VOICES["angel"]
 
-            # Default mappings for common Portuguese names
-            char_voice_map["Narrador"] = DUBBED_VOICES["narrator"]
-            char_voice_map["Deus"] = DUBBED_VOICES["angel"]
-
-            logger.info(f"Studio [{project_id}]: DUBBED mode — {len(char_voice_map)} character voices mapped")
+            logger.info(f"Studio [{project_id}]: DUBBED mode — {len(voice_map)} character voices mapped")
 
             narration_outputs = []
             for i, scene in enumerate(scenes):
@@ -174,9 +339,9 @@ def _run_narration_background(tenant_id: str, project_id: str, voice_id: str, st
                             if not text:
                                 continue
 
-                            # Find matching voice
-                            matched_voice = DUBBED_VOICES["narrator"]
-                            for cname, vid in char_voice_map.items():
+                            # Find matching voice from voice_map
+                            matched_voice = voice_id  # default narrator
+                            for cname, vid in voice_map.items():
                                 if char_name_raw.lower() in cname.lower() or cname.lower() in char_name_raw.lower():
                                     matched_voice = vid
                                     break
