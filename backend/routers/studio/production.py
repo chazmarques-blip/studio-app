@@ -1,7 +1,8 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
-from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
 import asyncio
+from openai import OpenAI
+import base64
 
 def _run_async_in_thread(coro):
     """Execute async function in sync thread context"""
@@ -11,6 +12,86 @@ def _run_async_in_thread(coro):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
+
+def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = "1280x720", duration: int = 12, image_path: str = None, max_wait: int = 600) -> bytes:
+    """Generate video using OpenAI SDK directly (not emergentintegrations).
+    
+    Args:
+        client: OpenAI client instance
+        prompt: Text description for the video
+        size: Video resolution (1280x720, 1792x1024, 1024x1792, 1024x1024)
+        duration: Video length in seconds (4, 8, or 12)
+        image_path: Optional path to reference image
+        max_wait: Maximum time to wait for generation (seconds)
+    
+    Returns:
+        Video bytes if successful, empty bytes if failed
+    """
+    import time
+    try:
+        # Prepare generation parameters
+        gen_params = {
+            "model": "sora-2",
+            "prompt": prompt[:1000],
+        }
+        
+        # Map size to OpenAI format (they use simple strings like "720p", "1080p")
+        size_map = {
+            "1280x720": "720p",
+            "1792x1024": "1080p",
+            "1024x1792": "1080p",
+            "1024x1024": "720p"
+        }
+        if size in size_map:
+            gen_params["size"] = size_map[size]
+        
+        # Duration (seconds parameter)
+        gen_params["seconds"] = duration
+        
+        # Add image reference if provided
+        if image_path and os.path.exists(image_path):
+            gen_params["input_reference"] = open(image_path, "rb")
+        
+        # Create video generation request
+        start = time.time()
+        video = client.videos.create(**gen_params)
+        
+        # Close file if opened
+        if "input_reference" in gen_params:
+            gen_params["input_reference"].close()
+        
+        # Poll for completion
+        video_id = video.id
+        while (time.time() - start) < max_wait:
+            video_status = client.videos.retrieve(video_id)
+            
+            if video_status.status == "completed":
+                # Download video content
+                content = client.videos.download_content(video_id)
+                # content is a file-like object
+                video_bytes = content.read()
+                return video_bytes
+            
+            elif video_status.status == "failed":
+                error_msg = getattr(video_status, 'error', 'Unknown error')
+                logger.error(f"Sora 2 generation failed: {error_msg}")
+                return b""
+            
+            # Still processing (queued or in_progress)
+            progress = getattr(video_status, 'progress', 'N/A')
+            if progress != 'N/A':
+                logger.debug(f"Sora 2 video {video_id[:8]} progress: {progress}%")
+            time.sleep(10)  # Poll every 10 seconds
+        
+        # Timeout
+        logger.warning(f"Sora 2 generation timeout after {max_wait}s")
+        return b""
+        
+    except Exception as e:
+        logger.error(f"Sora 2 direct generation error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return b""
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 — Per-Scene Parallel Teams) ──
 
@@ -211,9 +292,9 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         # ── Rate limiter for Sora 2 ──
         sora_semaphore = threading.Semaphore(5)
 
-        # Use direct OpenAI key for Sora 2
-        video_gen = OpenAIVideoGeneration(api_key=OPENAI_API_KEY)
-        logger.info(f"Studio [{project_id}]: Using DIRECT OpenAI key for Sora 2")
+        # Use direct OpenAI SDK (not emergentintegrations)
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        logger.info(f"Studio [{project_id}]: Using DIRECT OpenAI SDK for Sora 2 (bypassing emergentintegrations)")
 
         # Track budget state across threads
         budget_exhausted = threading.Event()
@@ -332,12 +413,17 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
                     t_v = _time.time()
                     try:
-                        gen_kwargs = {"prompt": sora_prompt[:1000], "model": "sora-2", "size": "1280x720", "duration": 12, "max_wait_time": 600}
-                        if ref_path:
-                            gen_kwargs["image_path"] = ref_path
-
-                        logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora 2 attempt {attempt+1}/{max_retries} (avatar={'Y' if ref_path else 'N'})")
-                        video_bytes = video_gen.text_to_video(**gen_kwargs)
+                        logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora 2 attempt {attempt+1}/{max_retries} (ref_image={'Y' if ref_path else 'N'})")
+                        
+                        # Use direct OpenAI SDK
+                        video_bytes = _generate_video_with_openai_direct(
+                            client=openai_client,
+                            prompt=sora_prompt[:1000],
+                            size="1280x720",
+                            duration=12,
+                            image_path=ref_path,
+                            max_wait=600
+                        )
                         elapsed = _time.time() - t_v
 
                         if video_bytes and len(video_bytes) > 1000:
@@ -888,16 +974,20 @@ Story: {briefing[:300]}"""
         # Generate video with Sora 2 (3 retries)
         _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
 
-        video_gen = OpenAIVideoGeneration(api_key=OPENAI_API_KEY)
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
         for attempt in range(3):
             try:
-                gen_kwargs = {"prompt": sora_prompt[:1000], "model": "sora-2", "size": "1280x720", "duration": 12, "max_wait_time": 600}
-                if ref_path:
-                    gen_kwargs["image_path"] = ref_path
-
                 logger.info(f"Studio [{project_id}]: Regen scene {scene_num} attempt {attempt+1}/3")
-                video_bytes = video_gen.text_to_video(**gen_kwargs)
+                
+                video_bytes = _generate_video_with_openai_direct(
+                    client=openai_client,
+                    prompt=sora_prompt[:1000],
+                    size="1280x720",
+                    duration=12,
+                    image_path=ref_path,
+                    max_wait=600
+                )
                 if video_bytes and len(video_bytes) > 1000:
                     filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
