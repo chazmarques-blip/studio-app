@@ -1,7 +1,114 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
 
-# ══ DIALOGUE / SCRIPT POLISH ENDPOINTS ══
+# ══ MASTER DIALOGUE WRITER SYSTEM ══
+
+MASTER_DIALOGUE_SYSTEM = """You are a MASTER DIALOGUE WRITER — a legendary screenwriter known for creating dialogue that moves audiences to tears, laughter, and profound emotion.
+
+## YOUR EXPERTISE
+- Academy Award-level dramatic writing
+- Expert in children's literature (adapting complex themes to age-appropriate language)
+- Master of emotional beats and story rhythm
+- Deep understanding of character voice differentiation
+- Specialist in biblical, historical, and mythological adaptation
+
+## YOUR MISSION
+Transform raw scene descriptions into POWERFUL, MEMORABLE dialogue that:
+1. Honors the source material (biblical, historical, etc.) while making it accessible
+2. Creates EMOTIONAL IMPACT through carefully crafted words
+3. Gives each character a UNIQUE VOICE that reflects their personality
+4. Balances narration with dialogue for optimal pacing
+5. Uses SUBTEXT — characters don't always say what they mean directly
+
+## DIALOGUE QUALITY STANDARDS
+- **Emotional Truth**: Every line must feel genuine, not exposition
+- **Character Voice**: Each character speaks differently (vocabulary, rhythm, tone)
+- **Conflict & Tension**: Even in calm scenes, there's underlying emotion
+- **Show Don't Tell**: Actions and pauses carry meaning
+- **Age-Appropriate**: For children's content, simplify without dumbing down
+
+## TECHNICAL REQUIREMENTS
+- Scene duration: ~12 seconds = roughly 25-35 words of spoken dialogue
+- Include stage directions in parentheses: (whispering), (with tears), (looking away)
+- Use ellipses (...) for dramatic pauses
+- Use "—" for interruptions
+
+## LANGUAGE
+Write ALL content in {lang_name} ({lang}). This is NON-NEGOTIABLE.
+"""
+
+DUBBED_INSTRUCTIONS = """
+## DUBBED MODE (Character Voices + Narrator)
+Format: Each line starts with speaker name, colon, then dialogue in quotes.
+
+Example of EXCELLENT dubbed dialogue:
+---
+Narrador: "Sob o céu estrelado de Ur, uma voz ecoa no coração de um homem..."
+
+Abraão (olhando para o céu): "Sara... você ouviu isso? Uma voz... como se viesse das próprias estrelas."
+
+Sara (tocando seu rosto): "Você parece... diferente. O que aconteceu?"
+
+Abraão: "Ele me chamou, Sara. O Deus que criou tudo isso—" (gesticula para o céu) "—Ele quer que eu vá."
+
+Sara (com lágrimas): "Ir? Para onde? Esta é nossa casa, Abraão. Tudo que conhecemos está aqui."
+
+Abraão (segurando suas mãos): "Eu também tenho medo. Mas há uma promessa... algo maior que nós dois."
+---
+
+RULES:
+- 70%+ must be character dialogue
+- Narrador appears ONLY for scene transitions or emotional emphasis
+- Each character MUST speak if present
+- Include emotional stage directions
+- Make dialogue sound NATURAL, not theatrical
+- Children's voices should sound like children
+- Adults should be warm, not preachy
+"""
+
+NARRATED_INSTRUCTIONS = """
+## NARRATED MODE (Voice-Over Storytelling)
+Format: Narrador: "Full narration text..."
+
+Example of EXCELLENT narration:
+---
+Narrador: "Naquela noite, enquanto as estrelas dançavam silenciosas sobre a tenda de Abraão, algo extraordinário aconteceu. O velho patriarca sentiu seu coração acelerar — não de medo, mas de uma esperança que há muito pensara perdida. Deus havia falado. E Abraão... Abraão escolheu acreditar."
+---
+
+RULES:
+- Write in a WARM, ENGAGING storytelling voice
+- Create vivid imagery with words
+- Balance description with emotion
+- For children: be gentle but not condescending
+- Build suspense and wonder
+- 2-4 sentences per scene (matching the 12-second duration)
+"""
+
+BOOK_INSTRUCTIONS = """
+## BOOK MODE (Literary Text)
+Format: Mixed narrative prose with embedded dialogue.
+
+Example of EXCELLENT book text:
+---
+As estrelas brilhavam como mil velas acesas no céu daquela noite especial. Abraão não conseguia dormir. Havia algo diferente no ar — uma presença que ele não sabia explicar.
+
+"Sara," ele sussurrou, tocando gentilmente o ombro da esposa, "você está acordada?"
+
+Ela abriu os olhos devagar. "O que foi, meu amor?"
+
+"Eu tive um sonho. Mas não era um sonho comum." Ele fez uma pausa, buscando as palavras certas. "Era uma promessa. Uma promessa do próprio Criador."
+
+Sara sentou-se, os olhos arregalados de curiosidade e um pouquinho de medo. Porque quando Deus fala... tudo pode mudar.
+---
+
+RULES:
+- Write in literary, children's book style
+- Mix narrative with dialogue naturally
+- Create atmosphere and emotion
+- Simple but beautiful vocabulary
+- Each scene = 3-6 sentences
+- End with emotional hooks when possible
+"""
 
 class DialogueGenerateRequest(BaseModel):
     mode: str = "dubbed"  # dubbed, narrated, book
@@ -12,6 +119,149 @@ class DialogueSaveRequest(BaseModel):
     scenes_dialogue: list = []  # [{scene_number, dubbed_text, narrated_text, book_text}]
     character_voices: dict = {}  # {character_name: voice_id}
     narrator_voice: str = ""
+
+class MasterDialogueRequest(BaseModel):
+    """Request for master dialogue generation with full context."""
+    mode: str = "dubbed"
+    user_instructions: str = ""
+    regenerate_all: bool = False
+
+LANG_NAMES = {"pt": "Português Brasileiro", "en": "English", "es": "Español", "fr": "Français", "de": "Deutsch", "it": "Italiano"}
+
+
+@router.post("/projects/{project_id}/dialogues/master-generate")
+async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest, tenant=Depends(get_current_tenant)):
+    """MASTER DIALOGUE GENERATION: Creates high-quality, emotionally impactful dialogues using full story context."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    scenes = project.get("scenes", [])
+    if not scenes:
+        raise HTTPException(status_code=400, detail="No scenes available")
+
+    characters = project.get("characters", [])
+    lang = project.get("language", "pt")
+    lang_name = LANG_NAMES.get(lang, lang)
+    project_name = project.get("name", "")
+    synopsis = project.get("synopsis", "") or project.get("script", "")
+
+    # Build character profiles
+    character_profiles = "\n".join([
+        f"- **{c.get('name')}**: {c.get('description', '')} | Age: {c.get('age', 'adult')} | Role: {c.get('role', 'supporting')}"
+        for c in characters
+    ])
+
+    # Build full scene context
+    scene_context = "\n\n".join([
+        f"### Scene {s.get('scene_number')}: {s.get('title')}\n"
+        f"Time: {s.get('time_start', '0:00')} - {s.get('time_end', '0:12')}\n"
+        f"Characters: {', '.join(s.get('characters_in_scene', []))}\n"
+        f"Description: {s.get('description', '')}\n"
+        f"Emotion: {s.get('emotion', 'neutral')}\n"
+        f"Camera: {s.get('camera', 'medium shot')}"
+        for s in scenes
+    ])
+
+    # Get mode-specific instructions
+    mode_instructions = {
+        "dubbed": DUBBED_INSTRUCTIONS,
+        "narrated": NARRATED_INSTRUCTIONS,
+        "book": BOOK_INSTRUCTIONS
+    }.get(req.mode, DUBBED_INSTRUCTIONS)
+
+    system = MASTER_DIALOGUE_SYSTEM.replace("{lang_name}", lang_name).replace("{lang}", lang)
+    system += mode_instructions
+
+    user_prompt = f"""# PROJECT: {project_name}
+
+## STORY SYNOPSIS
+{synopsis}
+
+## CHARACTERS
+{character_profiles}
+
+## SCENES TO WRITE DIALOGUE FOR
+{scene_context}
+
+## SPECIAL INSTRUCTIONS
+{req.user_instructions if req.user_instructions else "Write naturally, following the emotional arc of the story. For biblical/children's content, make it warm, accessible, and impactful without being preachy."}
+
+---
+
+## YOUR TASK
+Generate {req.mode.upper()} dialogue for ALL scenes above. Return a JSON array:
+
+```json
+[
+  {{
+    "scene_number": 1,
+    "dialogue": "The full dialogue text for this scene..."
+  }},
+  ...
+]
+```
+
+Make each scene EMOTIONALLY POWERFUL. Honor the characters' unique voices. Create moments that audiences will remember.
+Write ENTIRELY in {lang_name}."""
+
+    try:
+        import litellm
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
+        
+        response = litellm.completion(
+            model="anthropic/claude-sonnet-4-5-20250929",
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_prompt}
+            ],
+            api_key=api_key,
+            max_tokens=8000,
+            timeout=120,
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Parse JSON from response
+        import re
+        json_match = re.search(r'\[[\s\S]*\]', result_text)
+        if json_match:
+            dialogues = _parse_json(json_match.group(0))
+        else:
+            dialogues = _parse_json(result_text)
+
+        if not dialogues:
+            raise HTTPException(status_code=500, detail="Failed to parse dialogue response")
+
+        # Apply dialogues to scenes
+        dialogue_key = f"{req.mode}_text" if req.mode != "dubbed" else "dubbed_text"
+        for d in dialogues:
+            sn = d.get("scene_number")
+            text = d.get("dialogue", "")
+            scene = next((s for s in scenes if s.get("scene_number") == sn), None)
+            if scene:
+                scene[dialogue_key] = text
+                scene["dialogue"] = text  # Also set generic dialogue field
+                if req.mode == "narrated":
+                    scene["narration"] = text
+
+        project["scenes"] = scenes
+        project["dialogues_generated"] = True
+        project["dialogue_mode"] = req.mode
+        project["updated_at"] = datetime.now(timezone.utc).isoformat()
+        _save_project(tenant["id"], settings, projects)
+
+        return {
+            "status": "ok",
+            "dialogues": dialogues,
+            "mode": req.mode,
+            "scenes_updated": len(dialogues)
+        }
+
+    except Exception as e:
+        logger.error(f"Master dialogue generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/projects/{project_id}/dialogues/generate")
 async def generate_dialogues(project_id: str, req: DialogueGenerateRequest, tenant=Depends(get_current_tenant)):
@@ -28,6 +278,7 @@ async def generate_dialogues(project_id: str, req: DialogueGenerateRequest, tena
     char_names = [c.get("name", "") for c in characters]
     target_scenes = [s for s in scenes if not req.scene_numbers or s.get("scene_number") in req.scene_numbers]
     lang = project.get("language", "pt")
+    lang_name = LANG_NAMES.get(lang, lang)
     project_name = project.get("name", "")
 
     results = []
@@ -41,64 +292,69 @@ async def generate_dialogues(project_id: str, req: DialogueGenerateRequest, tena
         chars_in = scene.get("characters_in_scene", [])
 
         if req.mode == "dubbed":
-            system = f"""You are a professional screenwriter creating CHARACTER DIALOGUES for dubbing.
-Project: {project_name}. Language: {lang}.
+            system = f"""You are a MASTER screenwriter creating emotional, impactful CHARACTER DIALOGUES.
+Project: {project_name}. Language: {lang_name}.
 Characters available: {', '.join(char_names)}.
 Characters in this scene: {', '.join(chars_in)}.
 {f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
 
-Rules:
-- Write ONLY character dialogue lines, formatted as: CharacterName: "dialogue text"
-- Each character MUST speak at least once
-- Make dialogue natural, emotional, and expressive
-- Include stage directions in parentheses: CharacterName (whispering): "..."
-- Dialogue should match the scene action and tone
-- Write in {lang} language
-- Minimum 3 lines of dialogue per scene"""
+RULES:
+- Write ONLY character dialogue lines, formatted as: CharacterName (stage direction): "dialogue text"
+- Each character MUST speak with their UNIQUE voice
+- Include emotional stage directions: (whispering), (with tears), (laughing)
+- Make dialogue NATURAL, EMOTIONAL, and MEMORABLE
+- Use subtext — characters don't always say what they mean
+- Write in {lang_name}
+- Minimum 3-5 lines of dialogue per scene
+- For children's content: warm, accessible, impactful"""
 
             user_msg = f"""Scene {sn}: {title}
 Description: {desc}
-Existing text: {existing_dialogue or existing_narration}
+Emotion: {scene.get('emotion', 'neutral')}
+{f'Existing reference: {existing_dialogue or existing_narration}' if existing_dialogue or existing_narration else ''}
 
-Generate natural character dialogues for dubbing."""
+Generate POWERFUL character dialogues that will move the audience."""
 
         elif req.mode == "narrated":
-            system = f"""You are a professional narrator/voice-over writer.
-Project: {project_name}. Language: {lang}.
+            system = f"""You are a MASTER narrator/voice-over writer creating CINEMATIC storytelling.
+Project: {project_name}. Language: {lang_name}.
 {f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
 
-Rules:
-- Write NARRATOR text (third person)
+RULES:
+- Write NARRATOR text in storytelling voice
 - Format: Narrador: "text..."
-- Be descriptive, cinematic, emotionally engaging
-- Write 2-4 sentences per scene
-- Write in {lang} language"""
+- Be VIVID, EMOTIONAL, and ENGAGING
+- Create imagery with your words
+- Write 2-4 sentences that CAPTURE the scene's essence
+- For children: warm, gentle, not condescending
+- Write in {lang_name}"""
 
             user_msg = f"""Scene {sn}: {title}
 Description: {desc}
 Characters present: {', '.join(chars_in)}
+Emotion: {scene.get('emotion', 'neutral')}
 
-Generate narrator voice-over text."""
+Generate narrator voice-over that brings this scene to LIFE."""
 
         else:  # book
-            system = f"""You are a children's book author writing literary text.
-Project: {project_name}. Language: {lang}.
+            system = f"""You are a MASTER children's book author creating LITERARY MAGIC.
+Project: {project_name}. Language: {lang_name}.
 {f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
 
-Rules:
-- Write in a warm, engaging, literary style suitable for children/young adults
-- Include both narrative prose AND character dialogue
-- Dialogue in quotes with character attribution
-- Be descriptive about the setting and emotions
-- Write 3-6 sentences per scene
-- Write in {lang} language"""
+RULES:
+- Write in warm, engaging, LITERARY style
+- Mix narrative prose with character dialogue
+- Dialogue in quotes with attribution
+- Create ATMOSPHERE and EMOTION
+- Write 3-6 sentences that make children FEEL the story
+- End with hooks that make them want to turn the page
+- Write in {lang_name}"""
 
             user_msg = f"""Scene {sn}: {title}
 Description: {desc}
 Characters: {', '.join(chars_in)}
-Existing text: {existing_narration or existing_dialogue}
 
-Write literary text for a storybook page."""
+Write a BEAUTIFUL storybook passage that captures this moment."""
 
         try:
             import litellm

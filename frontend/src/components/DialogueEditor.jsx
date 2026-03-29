@@ -126,9 +126,44 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
     setHasChanges(true);
   };
 
+  // Master Generate: Uses full story context for higher quality
+  const masterGenerateWithAI = async () => {
+    setGenerating(true);
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/dialogues/master-generate`, {
+        mode: activeTab,
+        user_instructions: "", // Can be customized
+        regenerate_all: true,
+      }, { headers, timeout: 180000 }); // 3 minutes for full generation
+      
+      const dialogues = res.data.dialogues || [];
+      setScenesData(prev => prev.map(s => {
+        const match = dialogues.find(d => d.scene_number === s.scene_number);
+        if (!match) return s;
+        const field = activeTab === 'dubbed' ? 'dubbed_text' : activeTab === 'narrated' ? 'narrated_text' : 'book_text';
+        return { ...s, [field]: match.dialogue };
+      }));
+      setHasChanges(true);
+      toast.success(`${dialogues.length} ${lang === 'pt' ? 'cena(s) gerada(s) com Master AI!' : 'scene(s) generated with Master AI!'}`);
+      if (activeTab === 'dubbed') setNeedsDubbedGen(0);
+    } catch (e) {
+      console.error('Master generate error:', e);
+      // Fallback to regular generation
+      toast.error(lang === 'pt' ? 'Usando geração alternativa...' : 'Using fallback generation...');
+      await generateWithAI([]);
+    }
+    setGenerating(false);
+  };
+
   const generateWithAI = async (sceneNumbers = []) => {
     const isAll = sceneNumbers.length === 0;
-    if (isAll) setGenerating(true); else setGeneratingScene(sceneNumbers[0]);
+    
+    // If generating all, use master generator for better quality
+    if (isAll) {
+      return masterGenerateWithAI();
+    }
+    
+    setGeneratingScene(sceneNumbers[0]);
     try {
       const res = await axios.post(`${API}/studio/projects/${projectId}/dialogues/generate`, {
         mode: activeTab, scene_numbers: sceneNumbers,
@@ -142,11 +177,11 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
       }));
       setHasChanges(true);
       toast.success(`${results.length} ${lang === 'pt' ? 'cena(s) gerada(s)' : 'scene(s) generated'}`);
-      if (req.mode === 'dubbed') setNeedsDubbedGen(0);
+      if (activeTab === 'dubbed') setNeedsDubbedGen(0);
     } catch (e) {
       toast.error(lang === 'pt' ? 'Erro ao gerar com IA' : 'AI generation error');
     }
-    setGenerating(false); setGeneratingScene(null);
+    setGeneratingScene(null);
   };
 
   const saveDialogues = async () => {
