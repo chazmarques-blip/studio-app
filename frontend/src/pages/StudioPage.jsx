@@ -25,19 +25,30 @@ const STEPS = [
 function getProjectProgress(project) {
   if (!project) return { completed: 0, total: 5, steps: [] };
   
+  // Corrigir: Usar campos corretos do projeto
+  const hasScript = !!(project.briefing || project.book_title || project.synopsis || project.script);
+  const hasCharacters = (project.characters?.length || 0) > 0;
+  const hasScenes = (project.scenes?.length || 0) > 0;
+  const hasStoryboard = (project.storyboard_panels?.length || 0) > 0 || 
+                        project.outputs?.some(o => o.type === 'keyframe' || o.type === 'image');
+  const hasVideos = project.outputs?.some(o => o.type === 'video') || 
+                    (project.scene_videos?.length || 0) > 0;
+  
   const steps = [
-    { ...STEPS[0], done: !!(project.script || project.synopsis) },
-    { ...STEPS[1], done: (project.characters?.length || 0) > 0 },
-    { ...STEPS[2], done: project.scenes?.some(s => s.dialogues?.length > 0) },
-    { ...STEPS[3], done: project.scenes?.some(s => s.panels?.some(p => p.image_url)) },
-    { ...STEPS[4], done: project.scenes?.some(s => s.panels?.some(p => p.video_url)) },
+    { ...STEPS[0], done: hasScript },
+    { ...STEPS[1], done: hasCharacters },
+    { ...STEPS[2], done: hasScenes }, // Diálogos estão nas cenas
+    { ...STEPS[3], done: hasStoryboard },
+    { ...STEPS[4], done: hasVideos },
   ];
   
+  const completed = steps.filter(s => s.done).length;
+  
   return {
-    completed: steps.filter(s => s.done).length,
+    completed,
     total: steps.length,
     steps,
-    percent: Math.round((steps.filter(s => s.done).length / steps.length) * 100)
+    percent: Math.round((completed / steps.length) * 100)
   };
 }
 
@@ -46,13 +57,37 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(project.name || '');
+  const [videoThumbnail, setVideoThumbnail] = useState(null);
   const inputRef = useRef(null);
+  const videoRef = useRef(null);
   
-  const thumbnail = project.scenes?.[0]?.panels?.[0]?.image_url;
+  // Corrigir: Buscar thumbnail do primeiro vídeo ou primeiro output
+  const firstVideo = project.outputs?.find(o => o.type === 'video');
+  const firstImage = project.outputs?.find(o => o.type === 'keyframe' || o.type === 'image');
+  const thumbnail = firstVideo?.url || firstImage?.url || project.book_cover_url;
   const progress = getProjectProgress(project);
   const updatedAt = project.updated_at ? new Date(project.updated_at) : null;
   const scenesCount = project.scenes?.length || 0;
   const charactersCount = project.characters?.length || 0;
+  
+  // Extrair thumbnail do vídeo (primeiro frame)
+  useEffect(() => {
+    if (firstVideo?.url && !firstImage && !videoThumbnail) {
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.src = resolveImageUrl(firstVideo.url);
+      video.currentTime = 1; // Pegar frame em 1 segundo
+      
+      video.addEventListener('loadeddata', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        setVideoThumbnail(canvas.toDataURL('image/jpeg', 0.7));
+      });
+    }
+  }, [firstVideo, firstImage, videoThumbnail]);
   
   const formatDate = (date) => {
     if (!date) return '';
@@ -98,11 +133,18 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
     >
       {/* Thumbnail */}
       <div className="relative w-20 h-20 rounded-lg bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] overflow-hidden shrink-0">
-        {thumbnail ? (
+        {videoThumbnail ? (
+          <img src={videoThumbnail} alt="" className="w-full h-full object-cover" />
+        ) : thumbnail ? (
           <img src={resolveImageUrl(thumbnail)} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="flex items-center justify-center h-full">
             <Film size={24} className="text-[#555]" />
+          </div>
+        )}
+        {firstVideo && (
+          <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
+            <Video size={10} className="text-white" />
           </div>
         )}
       </div>
