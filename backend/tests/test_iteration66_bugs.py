@@ -13,7 +13,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://agent-campaign-hub.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://seguimiento-2.preview.emergentagent.com').rstrip('/')
 
 # Campaign and pipeline IDs from context
 AMIGAS_CAMPAIGN_ID = "068141ee-0f89-40ae-8a27-617c1d5db4ae"

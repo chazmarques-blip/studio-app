@@ -8,7 +8,7 @@ import os
 import time
 import re
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://agent-campaign-hub.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://seguimiento-2.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "test@agentflow.com"

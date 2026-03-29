@@ -20,7 +20,7 @@ import uuid
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://agent-campaign-hub.preview.emergentagent.com"
+    BASE_URL = "https://seguimiento-2.preview.emergentagent.com"
 
 TEST_USER_EMAIL = "test@agentflow.com"
 TEST_USER_PASSWORD = "password123"
