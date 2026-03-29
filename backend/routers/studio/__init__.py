@@ -16,5 +16,6 @@ from . import director
 from . import project_bible
 from . import autonomous_loop
 from . import agents_registry
+from . import cost_estimator
 
 __all__ = ["router", "_cleanup_stale_storyboards"]

@@ -112,6 +112,148 @@ Return ONLY valid JSON in this format:
 
 # ── Quality Validation ──
 
+# ── Dialogue Generation ──
+
+async def generate_dialogues(project_id: str, tenant_id: str, bible: Dict, screenplay: Dict) -> List[Dict]:
+    """
+    FASE 3.2: Generate high-quality cinematic dialogues
+    """
+    logger.info(f"DialogueWriter [{project_id}]: Generating dialogues")
+    
+    dialogue_spec = load_agent_spec("dialogue_writer_agent")
+    
+    scenes = screenplay.get("scenes", [])
+    all_dialogues = []
+    
+    for scene in scenes[:3]:  # Process first 3 scenes for now (can be parallelized)
+        context = f"""
+PROJECT BIBLE:
+{json.dumps(bible.get('characters', []), indent=2)}
+
+SCENE:
+- Number: {scene.get('scene_number', '?')}
+- Title: {scene.get('title', '')}
+- Location: {scene.get('location', '')}
+- Characters: {', '.join(scene.get('characters_in_scene', []))}
+- Emotion: {scene.get('emotion', '')}
+- Description: {scene.get('description', '')}
+
+Write cinematic dialogues for this scene following the quality criteria.
+Return ONLY valid JSON:
+{{
+  "scene_{scene.get('scene_number', 1)}": {{
+    "dialogues": [
+      {{
+        "character": "name",
+        "line": "dialogue text",
+        "emotion": "emotion",
+        "timing": "2.5s",
+        "action_note": "what character is doing"
+      }}
+    ],
+    "subtext": "underlying meaning",
+    "quality_score": 92
+  }}
+}}
+"""
+        
+        try:
+            response = client_anthropic.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=2000,
+                system=dialogue_spec["system_prompt"],
+                messages=[{"role": "user", "content": context}],
+                temperature=0.8
+            )
+            
+            raw_text = response.content[0].text.strip()
+            
+            if "```json" in raw_text:
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_text:
+                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+            
+            scene_dialogues = json.loads(raw_text)
+            all_dialogues.append({
+                "scene_number": scene.get('scene_number'),
+                **list(scene_dialogues.values())[0]
+            })
+            
+        except Exception as e:
+            logger.error(f"DialogueWriter [{project_id}]: Error in scene {scene.get('scene_number')} - {e}")
+            continue
+    
+    logger.info(f"DialogueWriter [{project_id}]: Generated dialogues for {len(all_dialogues)} scenes")
+    return all_dialogues
+
+
+# ── Narration Generation ──
+
+async def generate_narration(project_id: str, tenant_id: str, bible: Dict, screenplay: Dict, dialogues: List[Dict]) -> List[Dict]:
+    """
+    FASE 3.3: Generate high-quality cinematic narration
+    """
+    logger.info(f"Narrator [{project_id}]: Generating narration")
+    
+    narrator_spec = load_agent_spec("narrator_agent")
+    
+    context = f"""
+PROJECT BIBLE:
+{json.dumps(bible.get('narrative_elements', {}), indent=2)}
+
+SCREENPLAY:
+{json.dumps(screenplay.get('scenes', [])[:3], indent=2)}
+
+DIALOGUES ALREADY WRITTEN:
+{json.dumps(dialogues, indent=2)}
+
+Write cinematic narration that COMPLEMENTS (not duplicates) the visuals and dialogues.
+Focus on emotional context, transitions, and poetic atmosphere.
+
+Return ONLY valid JSON:
+{{
+  "narration": [
+    {{
+      "scene_range": [1, 3],
+      "text": "narration text",
+      "timing": "12.5s",
+      "tone": "epic/intimate/reflective",
+      "voice_instruction": "pause instructions"
+    }}
+  ],
+  "quality_score": 95
+}}
+"""
+    
+    try:
+        response = client_anthropic.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=2000,
+            system=narrator_spec["system_prompt"],
+            messages=[{"role": "user", "content": context}],
+            temperature=0.8
+        )
+        
+        raw_text = response.content[0].text.strip()
+        
+        if "```json" in raw_text:
+            raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_text:
+            raw_text = raw_text.split("```")[1].split("```")[0].strip()
+        
+        narration_result = json.loads(raw_text)
+        narration = narration_result.get("narration", [])
+        
+        logger.info(f"Narrator [{project_id}]: Generated {len(narration)} narration blocks")
+        return narration
+        
+    except Exception as e:
+        logger.error(f"Narrator [{project_id}]: Error - {e}")
+        return []
+
+
+# ── Quality Validation ──
+
 async def validate_quality(project_id: str, tenant_id: str, bible: Dict) -> Dict:
     """
     FASE 4: Quality Validation
@@ -236,6 +378,59 @@ async def start_autonomous_loop(
         except Exception as e:
             logger.error(f"AutonomousLoop [{project_id}]: Consensus failed - {e}")
             break
+        
+        # FASE 3.1: Generate Screenplay Structure (simplified for now)
+        try:
+            screenplay = {
+                "scenes": [
+                    {
+                        "scene_number": 1,
+                        "title": "Opening",
+                        "location": "Laboratory",
+                        "characters_in_scene": [c["name"] for c in bible.get("characters", [])[:2]],
+                        "emotion": "Determined",
+                        "description": "Scientist working late at night"
+                    },
+                    {
+                        "scene_number": 2,
+                        "title": "Discovery",
+                        "location": "Laboratory",
+                        "characters_in_scene": [c["name"] for c in bible.get("characters", [])[:2]],
+                        "emotion": "Excited",
+                        "description": "Breakthrough moment"
+                    },
+                    {
+                        "scene_number": 3,
+                        "title": "Recognition",
+                        "location": "Academy",
+                        "characters_in_scene": [c["name"] for c in bible.get("characters", [])[:1]],
+                        "emotion": "Triumphant",
+                        "description": "Receiving award"
+                    }
+                ]
+            }
+            bible["screenplay"] = screenplay
+            logger.info(f"AutonomousLoop [{project_id}]: Screenplay created with {len(screenplay['scenes'])} scenes")
+        except Exception as e:
+            logger.error(f"AutonomousLoop [{project_id}]: Screenplay generation failed - {e}")
+        
+        # FASE 3.2: Generate Dialogues
+        try:
+            dialogues = await generate_dialogues(project_id, tenant["id"], bible, screenplay)
+            bible["dialogues"] = dialogues
+            logger.info(f"AutonomousLoop [{project_id}]: Dialogues generated for {len(dialogues)} scenes")
+        except Exception as e:
+            logger.error(f"AutonomousLoop [{project_id}]: Dialogue generation failed - {e}")
+            bible["dialogues"] = []
+        
+        # FASE 3.3: Generate Narration
+        try:
+            narration = await generate_narration(project_id, tenant["id"], bible, screenplay, dialogues)
+            bible["narration"] = narration
+            logger.info(f"AutonomousLoop [{project_id}]: Narration generated ({len(narration)} blocks)")
+        except Exception as e:
+            logger.error(f"AutonomousLoop [{project_id}]: Narration generation failed - {e}")
+            bible["narration"] = []
         
         # FASE 4: Quality Validation
         try:
