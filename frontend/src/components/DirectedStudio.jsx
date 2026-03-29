@@ -98,6 +98,8 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [showPostProd, setShowPostProd] = useState(false);
   const [storyboardThumbs, setStoryboardThumbs] = useState([]);
   const [projectAvatars, setProjectAvatars] = useState([]); // Avatars scoped to current project
+  const [autoGenCharacters, setAutoGenCharacters] = useState(false); // Auto-generate characters flag
+  const [charGenProgress, setCharGenProgress] = useState({ current: 0, total: 0, status: '' });
   const [showLibrary, setShowLibrary] = useState(false); // Avatar library modal
   const [previewModal, setPreviewModal] = useState(null); // { type: 'video'|'gallery'|'book'|'pdf', data: any }
   const [allPanelFrames, setAllPanelFrames] = useState([]); // All storyboard frames for gallery
@@ -1081,6 +1083,83 @@ export const DirectedStudio = memo(function DirectedStudio({
       toast.error('Erro ao aprovar roteiro');
     }
   };
+
+  // Auto-generate character images when entering Step 2
+  const autoGenerateCharacterImages = async () => {
+    if (!projectId || characters.length === 0) return;
+
+    // Check if all characters already have avatars
+    const missingAvatars = characters.filter(c => !characterAvatars[c.name]);
+    if (missingAvatars.length === 0) {
+      setAutoGenCharacters(false);
+      return;
+    }
+
+    setAutoGenCharacters(true);
+    setCharGenProgress({ current: 0, total: missingAvatars.length, status: 'starting' });
+
+    try {
+      const { data } = await axios.post(`${API}/studio/projects/${projectId}/characters/generate-all`);
+      
+      // Update state with generated avatars
+      if (data.characters) {
+        const newCharAvatars = { ...characterAvatars };
+        const newProjectAvatars = [...projectAvatars];
+        
+        data.characters.forEach(char => {
+          if (char.status === 'generated' || char.status === 'reused') {
+            newCharAvatars[char.name] = char.avatar_url;
+            if (char.avatar_id) {
+              const avatarRecord = {
+                id: char.avatar_id,
+                name: char.name,
+                url: char.avatar_url,
+              };
+              // Check if not already in projectAvatars
+              if (!newProjectAvatars.find(a => a.id === char.avatar_id)) {
+                newProjectAvatars.push(avatarRecord);
+              }
+            }
+          }
+        });
+        
+        setCharacterAvatars(newCharAvatars);
+        setProjectAvatars(newProjectAvatars);
+      }
+
+      const msg = lang === 'pt'
+        ? `✨ ${data.generated} personagens gerados, ${data.reused} reutilizados do acervo${data.failed > 0 ? `, ${data.failed} falharam` : ''}!`
+        : `✨ ${data.generated} generated, ${data.reused} reused${data.failed > 0 ? `, ${data.failed} failed` : ''}!`;
+      
+      toast.success(msg);
+      setCharGenProgress({ current: data.total, total: data.total, status: 'complete' });
+    } catch (err) {
+      console.error('Auto-gen characters error:', err);
+      toast.error(lang === 'pt' ? 'Erro ao gerar personagens automaticamente' : 'Failed to auto-generate characters');
+      setCharGenProgress({ current: 0, total: 0, status: 'error' });
+    } finally {
+      setTimeout(() => setAutoGenCharacters(false), 2000);
+    }
+  };
+
+  // Manual trigger for character generation (fallback button)
+  const manualGenerateCharacters = () => {
+    autoGenerateCharacterImages();
+  };
+
+  // Auto-trigger when entering Step 2 (Characters)
+  useEffect(() => {
+    if (step === 2 && characters.length > 0 && !autoGenCharacters) {
+      const missingAvatars = characters.filter(c => !characterAvatars[c.name]);
+      if (missingAvatars.length > 0) {
+        // Small delay to avoid race conditions
+        const timer = setTimeout(() => {
+          autoGenerateCharacterImages();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [step, characters.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unapproveScreenplay = async () => {
     try {
@@ -2099,8 +2178,24 @@ export const DirectedStudio = memo(function DirectedStudio({
             {lang === 'pt' ? 'Crie, edite ou importe personagens da biblioteca' : 'Create, edit or import characters from library'}
           </p>
 
-          <div className="space-y-2">
-            {characters.map((char, ci) => (
+          {/* Auto-generation progress overlay */}
+          {autoGenCharacters && charGenProgress.status === 'starting' && (
+            <div className="rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 p-4 space-y-2" data-testid="char-gen-progress">
+              <div className="flex items-center justify-center gap-2">
+                <RefreshCw size={16} className="animate-spin text-[#8B5CF6]" />
+                <p className="text-sm font-bold text-[#8B5CF6]">
+                  {lang === 'pt' ? '✨ Gerando personagens automaticamente...' : '✨ Auto-generating characters...'}
+                </p>
+              </div>
+              <p className="text-xs text-[#888] text-center">
+                {lang === 'pt'
+                  ? 'Verificando acervo e criando imagens com IA...'
+                  : 'Checking library and creating AI images...'}
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-2">{characters.map((char, ci) => (
               <div key={char.name || ci} className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2.5">
                 {/* Character header */}
                 {editingChar === ci ? (
@@ -2245,6 +2340,18 @@ export const DirectedStudio = memo(function DirectedStudio({
               </div>
             ))}
           </div>
+
+          {/* Fallback: Manual generation button (if auto-gen failed or was skipped) */}
+          {!autoGenCharacters && characters.some(c => !characterAvatars[c.name]) && (
+            <button
+              onClick={manualGenerateCharacters}
+              data-testid="manual-gen-characters-btn"
+              className="w-full rounded-lg border-2 border-dashed border-[#8B5CF6]/40 bg-[#8B5CF6]/5 py-2.5 text-xs font-bold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/60 transition flex items-center justify-center gap-2"
+            >
+              <Sparkles size={14} />
+              {lang === 'pt' ? '🎨 Gerar Todos os Personagens Faltantes' : '🎨 Generate All Missing Characters'}
+            </button>
+          )}
 
           {/* ── Voice Narration (ElevenLabs) ── */}
           <div className="border-t border-[#222] pt-3 space-y-2" data-testid="studio-narration-section">

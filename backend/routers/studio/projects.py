@@ -297,3 +297,165 @@ async def remove_project_avatar(project_id: str, avatar_id: str, tenant=Depends(
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     _save_project(tenant["id"], settings, projects)
     return {"status": "ok"}
+
+
+@router.post("/projects/{project_id}/characters/generate-all")
+async def generate_all_character_images(project_id: str, tenant=Depends(get_current_tenant)):
+    """
+    Auto-generate images for ALL characters that don't have avatars yet.
+    - Checks global library first for reuse (same character name)
+    - Generates missing ones using Gemini imagen-3.0-generate-002
+    - Returns progress + results
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    characters = project.get("characters", [])
+    character_avatars = project.get("character_avatars", {})
+    visual_style = project.get("animation_sub", "pixar_3d")
+    global_avatars = settings.get("studio_avatars", [])
+    project_avatars = project.get("project_avatars", [])
+
+    # Map style to prompt hints
+    STYLE_MAP = {
+        "pixar_3d": "Pixar 3D animation style, high quality CGI render",
+        "cartoon_3d": "Stylized 3D cartoon with cel-shading",
+        "cartoon_2d": "Classic 2D hand-drawn animation style",
+        "anime_2d": "Japanese anime art style (Makoto Shinkai quality)",
+        "realistic": "Photorealistic rendering",
+    }
+    style_hint = STYLE_MAP.get(visual_style, "High quality animation style")
+
+    results = {
+        "total": len(characters),
+        "generated": 0,
+        "reused": 0,
+        "failed": 0,
+        "characters": []
+    }
+
+    try:
+        from emergentintegrations.llm.gemeni.image_generation import GeminiImageGeneration
+        gen = GeminiImageGeneration(api_key=os.environ.get("GEMINI_API_KEY", ""))
+    except Exception as e:
+        logger.error(f"Failed to initialize Gemini: {e}")
+        raise HTTPException(status_code=500, detail=f"Image generation unavailable: {str(e)}")
+
+    for char in characters:
+        char_name = char.get("name", "")
+        char_desc = char.get("description", "")
+        
+        # Skip if already has avatar
+        if character_avatars.get(char_name):
+            results["characters"].append({
+                "name": char_name,
+                "status": "skipped",
+                "reason": "already_has_avatar"
+            })
+            continue
+
+        # 1. Check global library for reuse (same name)
+        existing_global = next((a for a in global_avatars if a.get("name", "").lower() == char_name.lower()), None)
+        
+        if existing_global:
+            # Reuse from library
+            avatar_copy = {**existing_global, "added_at": datetime.now(timezone.utc).isoformat()}
+            avatar_copy["id"] = uuid.uuid4().hex[:12]  # New ID for project scope
+            project_avatars.append(avatar_copy)
+            character_avatars[char_name] = avatar_copy["url"]
+            results["reused"] += 1
+            results["characters"].append({
+                "name": char_name,
+                "status": "reused",
+                "avatar_url": avatar_copy["url"],
+                "avatar_id": avatar_copy["id"]
+            })
+            logger.info(f"Reused avatar for '{char_name}' from global library")
+            continue
+
+        # 2. Generate new image
+        try:
+            prompt = f"""{char_desc}
+
+{style_hint}
+
+CRITICAL REQUIREMENTS:
+- Character facing FRONT (looking directly at camera)
+- TRANSPARENT background (no background elements)
+- Full body portrait visible
+- Character reference sheet quality
+- Sharp details, well-lit, neutral standing pose"""
+
+            logger.info(f"Generating image for character '{char_name}'")
+            image_results = await gen.generate_images(
+                prompt=prompt,
+                model="imagen-3.0-generate-002",
+                number_of_images=1
+            )
+
+            if not image_results or not image_results[0]:
+                raise Exception("No image data returned")
+
+            # Upload to Supabase Storage
+            image_bytes = image_results[0]
+            file_name = f"character_{uuid.uuid4().hex[:12]}.png"
+            
+            try:
+                upload_res = supabase.storage.from_("studiox").upload(
+                    path=file_name,
+                    file=image_bytes,
+                    file_options={"content-type": "image/png"}
+                )
+                public_url = supabase.storage.from_("studiox").get_public_url(file_name)
+            except Exception as upload_err:
+                logger.error(f"Supabase upload failed for {char_name}: {upload_err}")
+                raise Exception(f"Upload failed: {str(upload_err)}")
+
+            # Create avatar record
+            new_avatar = {
+                "id": uuid.uuid4().hex[:12],
+                "name": char_name,
+                "url": public_url,
+                "prompt": prompt,
+                "description": char_desc,
+                "visual_style": visual_style,
+                "added_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+            # Add to project avatars
+            project_avatars.append(new_avatar)
+            character_avatars[char_name] = public_url
+            
+            # Also save to global library for future reuse
+            global_avatars.append({k: v for k, v in new_avatar.items() if k != "added_at"})
+
+            results["generated"] += 1
+            results["characters"].append({
+                "name": char_name,
+                "status": "generated",
+                "avatar_url": public_url,
+                "avatar_id": new_avatar["id"]
+            })
+            logger.info(f"Successfully generated avatar for '{char_name}'")
+
+        except Exception as gen_err:
+            logger.error(f"Failed to generate avatar for '{char_name}': {gen_err}")
+            results["failed"] += 1
+            results["characters"].append({
+                "name": char_name,
+                "status": "failed",
+                "error": str(gen_err)
+            })
+
+    # Save everything
+    project["project_avatars"] = project_avatars
+    project["character_avatars"] = character_avatars
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    settings["studio_avatars"] = global_avatars
+    _save_project(tenant["id"], settings, projects)
+    _save_settings(tenant["id"], settings)
+
+    return results
