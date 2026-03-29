@@ -55,7 +55,7 @@ const LandingV2 = React.lazy(() => import('./pages/LandingV2'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const OnboardingAgentLang = React.lazy(() => import('./pages/OnboardingAgentLang'));
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Dashboard = React.lazy(() => import('./pages/DashboardStudio')); // StudioX Dashboard
 const Chat = React.lazy(() => import('./pages/Chat'));
 const Agents = React.lazy(() => import('./pages/Agents'));
 const AgentBuilder = React.lazy(() => import('./pages/AgentBuilder'));

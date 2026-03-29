@@ -81,7 +81,7 @@ function AppHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5">
         {/* Logo */}
         <button onClick={() => navigate('/dashboard')} className="shrink-0" data-testid="header-logo">
-          <img src="/logo-studiox.png" alt="StudioX" className="h-7 sm:h-8" />
+          <img src="/logo-studiox.svg" alt="StudioX" className="h-7 sm:h-8" />
         </button>
 
         <div className="flex items-center gap-2">
