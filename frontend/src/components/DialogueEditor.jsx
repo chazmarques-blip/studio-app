@@ -50,7 +50,6 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   // Book formatting per scene
   const [bookFormats, setBookFormats] = useState({});
   const [needsDubbedGen, setNeedsDubbedGen] = useState(0);
-  const [autoGenerationStarted, setAutoGenerationStarted] = useState(false);
 
   const token = localStorage.getItem('studiox_token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -95,26 +94,6 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
     };
     loadData();
   }, [projectId]);
-
-  // Auto-generate dialogues when entering for the first time if none exist
-  useEffect(() => {
-    if (loading || autoGenerationStarted || generating) return;
-    
-    // Check if dialogues are empty for current mode
-    const hasDialogues = scenesData.some(s => {
-      const text = getTextField(s);
-      return text && text.trim().length > 0;
-    });
-    
-    // Auto-start generation if no dialogues exist
-    if (!hasDialogues && scenesData.length > 0) {
-      setAutoGenerationStarted(true);
-      toast.info(lang === 'pt' 
-        ? '🎬 Gerando diálogos automaticamente com foco em continuidade...' 
-        : '🎬 Auto-generating dialogues with continuity focus...');
-      masterGenerateWithAI();
-    }
-  }, [loading, scenesData, activeTab, autoGenerationStarted, generating]);
 
   const getTextField = (scene) => {
     if (activeTab === 'dubbed') {
