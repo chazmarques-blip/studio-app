@@ -9,6 +9,7 @@ import {
 import axios from 'axios';
 import { toast } from 'sonner';
 import { DirectedStudio } from '../components/DirectedStudio';
+import { NewProjectModal } from '../components/NewProjectModal';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -304,6 +305,7 @@ export default function StudioPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
 
   // Avatar management - dummy handlers for DirectedStudio
   const handleAddAvatar = (promptText) => {
@@ -399,16 +401,12 @@ export default function StudioPage() {
   }, [fetchProjects]);
 
   // Create new project
-  const handleCreateProject = async () => {
+  const handleCreateProject = async (projectData) => {
     setCreating(true);
     try {
-      const { data } = await axios.post(`${API}/studio/projects`, {
-        name: `Novo Projeto ${projects.length + 1}`,
-        genre: 'drama',
-        duration_minutes: 5,
-        mode: 'film'
-      });
+      const { data } = await axios.post(`${API}/studio/projects`, projectData);
       toast.success(l.created);
+      setShowNewProjectModal(false);
       await fetchProjects();
       setSelectedProject(data);
       setSearchParams({ project: data.id });
@@ -417,6 +415,11 @@ export default function StudioPage() {
     } finally {
       setCreating(false);
     }
+  };
+  
+  // Open new project modal
+  const openNewProjectModal = () => {
+    setShowNewProjectModal(true);
   };
 
   // Delete project
@@ -559,17 +562,11 @@ export default function StudioPage() {
             />
           </div>
           <button 
-            onClick={handleCreateProject}
+            onClick={openNewProjectModal}
             disabled={creating}
             className="btn-gold flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
           >
-            {creating ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <>
-                <Plus size={18} /> {l.newProject}
-              </>
-            )}
+            <Plus size={18} /> {l.newProject}
           </button>
         </div>
 
@@ -582,7 +579,7 @@ export default function StudioPage() {
             <h2 className="text-lg font-semibold text-white mb-2">{l.noProjects}</h2>
             <p className="text-sm text-white/60 mb-6 max-w-sm">{l.createFirst}</p>
             <button 
-              onClick={handleCreateProject}
+              onClick={openNewProjectModal}
               disabled={creating}
               className="btn-gold flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
             >
@@ -603,6 +600,15 @@ export default function StudioPage() {
           </div>
         )}
       </div>
+      
+      {/* New Project Modal */}
+      {showNewProjectModal && (
+        <NewProjectModal
+          lang={lang}
+          onClose={() => setShowNewProjectModal(false)}
+          onCreate={handleCreateProject}
+        />
+      )}
     </div>
   );
 }
