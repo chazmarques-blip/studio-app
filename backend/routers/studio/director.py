@@ -129,7 +129,25 @@ RESPOND IN {LANG_MAP.get(lang, 'Portuguese')} with this JSON structure:
     user_prompt = f"Review this project with your highest professional standards:\n\n{script_text}"
 
     try:
-        result = _call_claude_sync(system_prompt, user_prompt, max_tokens=8000)
+        import litellm
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
+        
+        logger.info(f"Director review started for {len(scenes)} scenes")
+        
+        response = await litellm.acompletion(
+            model="anthropic/claude-sonnet-4-5-20250929",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            api_key=api_key,
+            max_tokens=8000,
+            timeout=180,  # Increased timeout for large projects
+        )
+        
+        result = response.choices[0].message.content.strip()
+        logger.info(f"Director review response received: {len(result)} chars")
+        
         review = _parse_json(result)
 
         if not review:
