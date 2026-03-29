@@ -1,6 +1,16 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
 from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+import asyncio
+
+def _run_async_in_thread(coro):
+    """Execute async function in sync thread context"""
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 — Per-Scene Parallel Teams) ──
 
@@ -159,7 +169,9 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             logger.info(f"Studio [{project_id}]: PRE-PRODUCTION — Analyzing avatars and building production design")
 
             # Step 1: Analyze avatars with Claude Vision (ONE call for all avatars)
-            avatar_descriptions = _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
+            avatar_descriptions = _run_async_in_thread(
+                _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
+            )
 
             # Step 2: Build Production Design Document (ONE call — replaces music, style, location, continuity planning)
             production_design = _build_production_design(
