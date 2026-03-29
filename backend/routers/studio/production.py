@@ -1,5 +1,6 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
+from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 — Per-Scene Parallel Teams) ──
 
@@ -199,7 +200,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         sora_semaphore = threading.Semaphore(5)
 
         # Use direct OpenAI key for Sora 2
-        video_gen = DirectSora2Client(api_key=OPENAI_API_KEY)
+        video_gen = OpenAIVideoGeneration(api_key=OPENAI_API_KEY)
         logger.info(f"Studio [{project_id}]: Using DIRECT OpenAI key for Sora 2")
 
         # Track budget state across threads
@@ -875,7 +876,7 @@ Story: {briefing[:300]}"""
         # Generate video with Sora 2 (3 retries)
         _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
 
-        video_gen = DirectSora2Client(api_key=OPENAI_API_KEY)
+        video_gen = OpenAIVideoGeneration(api_key=OPENAI_API_KEY)
 
         for attempt in range(3):
             try:
