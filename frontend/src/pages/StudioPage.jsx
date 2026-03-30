@@ -487,20 +487,55 @@ export default function StudioPage() {
   if (selectedProject) {
     return (
       <div className="flex flex-col min-h-screen bg-[#0A0A0A]">
-        {/* Back header */}
-        <div className="shrink-0 border-b border-[#1A1A1A] bg-[#0A0A0A] px-6 sm:px-8 lg:px-12 py-4 flex items-center gap-4 sticky top-0 z-50">
-          <button 
-            onClick={handleBackToList}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1A1A1A] hover:bg-[#222] text-sm text-white/80 hover:text-white transition"
-          >
-            <ArrowLeft size={18} /> {l.back}
-          </button>
-          <div className="h-6 w-px bg-[#2A2A2A]" />
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Film size={18} className="text-[#8B5CF6] shrink-0" />
-            <span className="text-base font-medium text-white truncate">{selectedProject.name}</span>
+        {/* ═══ NAVBAR ═══ */}
+        <nav className="shrink-0 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-[#1A1A1A] sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+            <div className="flex items-center justify-between h-16">
+              {/* Left: Back + Project Info */}
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <button 
+                  onClick={handleBackToList}
+                  className="flex items-center gap-2 text-white/70 hover:text-white transition group shrink-0"
+                >
+                  <ArrowLeft size={20} className="group-hover:-translate-x-1 transition" />
+                  <span className="text-sm font-medium hidden sm:inline">Projetos</span>
+                </button>
+                
+                <div className="h-8 w-px bg-[#1A1A1A] shrink-0" />
+                
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shrink-0">
+                    <Film size={18} className="text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-base font-bold text-white truncate">
+                      {selectedProject.name || 'Sem título'}
+                    </h1>
+                    <p className="text-xs text-white/50">
+                      {selectedProject.scenes?.length || 0} cenas • {selectedProject.characters?.length || 0} personagens
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Quick Actions */}
+              <div className="flex items-center gap-2 shrink-0 ml-4">
+                <button 
+                  className="p-2 rounded-lg hover:bg-[#1A1A1A] transition text-white/70 hover:text-white"
+                  title="Visualizar"
+                >
+                  <Eye size={18} />
+                </button>
+                <button 
+                  className="p-2 rounded-lg hover:bg-[#1A1A1A] transition text-white/70 hover:text-white"
+                  title="Mais opções"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </nav>
         
         {/* DirectedStudio */}
         <div className="flex-1 overflow-auto">
@@ -529,46 +564,69 @@ export default function StudioPage() {
 
   // Project List View
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-6 sm:px-8 lg:px-12 py-6 pb-28">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20">
-                <Film size={22} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">{l.title}</h1>
-                <p className="text-sm text-white/60">{l.subtitle}</p>
+    <div className="min-h-screen bg-[#0A0A0A]">
+      {/* ═══ NAVBAR ═══ */}
+      <nav className="sticky top-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-[#1A1A1A]">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex items-center justify-between h-16">
+            {/* Left: Logo + Back */}
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center gap-2 text-white/70 hover:text-white transition group"
+              >
+                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition" />
+                <span className="text-sm font-medium hidden sm:inline">Dashboard</span>
+              </button>
+              
+              <div className="h-8 w-px bg-[#1A1A1A]" />
+              
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20">
+                  <Film size={18} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-base font-bold text-white">{l.title}</h1>
+                  <p className="text-xs text-white/50">{l.subtitle}</p>
+                </div>
               </div>
             </div>
-            <span className="text-sm text-white/70 bg-[#1A1A1A] px-3 py-1.5 rounded-lg">
-              {projects.length} {l.projects.toLowerCase()}
-            </span>
-          </div>
-        </div>
 
-        {/* Search + New Project */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
-            <input 
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={l.search}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] text-sm text-white placeholder-white/40 outline-none focus:border-[#8B5CF6]/50 transition"
-            />
+            {/* Right: Project Count + Actions */}
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-white/70 bg-[#1A1A1A] px-3 py-1.5 rounded-lg">
+                {projects.length} {l.projects.toLowerCase()}
+              </span>
+              
+              <button 
+                onClick={openNewProjectModal}
+                disabled={creating}
+                className="btn-gold flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition hover:scale-105"
+              >
+                <Plus size={16} />
+                <span className="hidden sm:inline">{l.newProject}</span>
+              </button>
+            </div>
           </div>
-          <button 
-            onClick={openNewProjectModal}
-            disabled={creating}
-            className="btn-gold flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-          >
-            <Plus size={18} /> {l.newProject}
-          </button>
         </div>
+      </nav>
+
+      {/* ═══ CONTENT ═══ */}
+      <div className="px-6 sm:px-8 lg:px-12 py-6 pb-28">
+        <div className="max-w-5xl mx-auto">
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
+              <input 
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={l.search}
+                className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] text-sm text-white placeholder-white/40 outline-none focus:border-[#8B5CF6]/50 transition"
+              />
+            </div>
+          </div>
 
         {/* Projects List */}
         {filteredProjects.length === 0 ? (
@@ -599,6 +657,7 @@ export default function StudioPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
       
       {/* New Project Modal */}
