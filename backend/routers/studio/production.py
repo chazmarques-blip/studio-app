@@ -29,6 +29,8 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
     """
     import time
     import os
+    
+    img_file_handle = None
     try:
         # Prepare generation parameters
         gen_params = {
@@ -41,11 +43,10 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         # Use input_reference if image path provided (Project Bible keyframe or character reference)
         if image_path and os.path.exists(image_path):
             try:
-                with open(image_path, "rb") as img_file:
-                    # Encode image as base64 for input_reference
-                    img_data = base64.b64encode(img_file.read()).decode('utf-8')
-                    gen_params["input_reference"] = img_data
-                    logger.info(f"Sora 2: Using input_reference from {image_path[:50]}...")
+                # OpenAI SDK expects a file handle, not base64 string
+                img_file_handle = open(image_path, "rb")
+                gen_params["input_reference"] = img_file_handle
+                logger.info(f"Sora 2: Using input_reference from {image_path[:50]}...")
             except Exception as e:
                 logger.warning(f"Sora 2: Failed to load input_reference: {e}")
         
@@ -85,6 +86,13 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         return b""
+    finally:
+        # Clean up file handle
+        if img_file_handle:
+            try:
+                img_file_handle.close()
+            except:
+                pass
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 — Per-Scene Parallel Teams) ──
 

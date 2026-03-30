@@ -742,38 +742,28 @@ def _apply_color_grading(video_path: str, output_path: str, style: str = "warm_c
 def _generate_scene_keyframe(sora_prompt: str, char_avatars: dict, avatar_cache: dict,
                               chars_in_scene: list, project_id: str, scene_num: int,
                               character_bible: dict = None) -> str:
-    """KEYFRAME-FIRST PIPELINE: Generate a starting frame image via Gemini Nano Banana to force
+    """KEYFRAME-FIRST PIPELINE: Generate a starting frame image via Gemini 2.5 Flash Image to force
     correct character identity before Sora 2 animation.
-    Uses EMERGENT_LLM_KEY with gemini-3.1-flash-image-preview model.
+    Uses direct Gemini API with user's GEMINI_API_KEY.
     Now passes ALL character avatars + character_bible for maximum consistency.
     """
     import tempfile
-    import asyncio
+    from core.llm import generate_image_gemini_sync
+    
     try:
-        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        if not api_key:
-            logger.warning(f"Studio [{project_id}]: No EMERGENT_LLM_KEY — skipping keyframe")
+        if not GEMINI_API_KEY:
+            logger.warning(f"Studio [{project_id}]: No GEMINI_API_KEY — skipping keyframe")
             return None
 
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+        # Build character descriptions from character_bible
+        char_desc_block = ""
+        if character_bible:
+            for cname in chars_in_scene:
+                desc = character_bible.get(cname, "")
+                if desc:
+                    char_desc_block += f"\n- {cname}: {desc}"
 
-        async def _gen():
-            chat = LlmChat(
-                api_key=api_key,
-                session_id=f"keyframe-{project_id}-{scene_num}",
-                system_message="You are a professional animation art director. Generate exactly one high-quality image."
-            )
-            chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
-
-            # Build character descriptions from character_bible
-            char_desc_block = ""
-            if character_bible:
-                for cname in chars_in_scene:
-                    desc = character_bible.get(cname, "")
-                    if desc:
-                        char_desc_block += f"\n- {cname}: {desc}"
-
-            prompt_text = f"""Generate a SINGLE FRAME for an animated film. This will be used as a starting keyframe for Sora 2 video generation.
+        prompt_text = f"""Generate a SINGLE FRAME for an animated film. This will be used as a starting keyframe for Sora 2 video generation.
 
 {sora_prompt}
 
@@ -787,42 +777,18 @@ CRITICAL RULES:
 - Style MUST be 3D CGI Pixar quality with volumetric lighting
 - This is ONE static frame — capture the opening moment of this scene"""
 
-            # Collect ALL character avatar references for this scene
-            ref_images = []
-            for char_name in chars_in_scene:
-                url = char_avatars.get(char_name)
-                cached_path = avatar_cache.get(url) if url else None
-                if cached_path and os.path.exists(cached_path):
-                    with open(cached_path, 'rb') as f:
-                        ref_b64 = base64.b64encode(f.read()).decode('utf-8')
-                    ref_images.append(ImageContent(ref_b64))
+        # Use first character's avatar as reference image (Gemini only accepts one input image)
+        input_image_bytes = None
+        for char_name in chars_in_scene:
+            url = char_avatars.get(char_name)
+            cached_path = avatar_cache.get(url) if url else None
+            if cached_path and os.path.exists(cached_path):
+                with open(cached_path, 'rb') as f:
+                    input_image_bytes = f.read()
+                break  # Use first available avatar as base
 
-            if ref_images:
-                msg = UserMessage(
-                    text=f"{prompt_text}\n\nReference avatar images for characters in this scene (match these EXACTLY):",
-                    file_contents=ref_images
-                )
-            else:
-                msg = UserMessage(text=prompt_text)
-
-            text, images = await chat.send_message_multimodal_response(msg)
-            if images and len(images) > 0:
-                img_bytes = base64.b64decode(images[0]['data'])
-                return img_bytes
-            return None
-
-        # Run async in sync context
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop and loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                result = pool.submit(lambda: asyncio.run(_gen())).result(timeout=60)
-        else:
-            result = asyncio.run(_gen())
+        # Generate keyframe using Gemini direct API
+        result = generate_image_gemini_sync(prompt_text, input_image_bytes)
 
         if result:
             keyframe_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
