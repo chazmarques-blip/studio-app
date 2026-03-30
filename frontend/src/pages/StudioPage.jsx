@@ -643,6 +643,7 @@ export default function StudioPage() {
   // If project is selected, show DirectedStudio
   if (selectedProject) {
     return (
+      <>
       <div className="flex flex-col min-h-screen bg-gray-50">
         {/* ═══ NAVBAR ═══ */}
         <nav className="shrink-0 bg-gray-50/95 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-50">
@@ -717,6 +718,70 @@ export default function StudioPage() {
           />
         </div>
       </div>
+
+      {/* ═══════ PREVIEW MODAL (moved inside selectedProject block) ═══════ */}
+      {avatarPreviewUrl && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          onClick={() => setAvatarPreviewUrl(null)}>
+          <div className="relative">
+            <button className="absolute -top-12 right-0 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+              onClick={(e) => { e.stopPropagation(); setAvatarPreviewUrl(null); }}>
+              <X size={20} />
+            </button>
+            <img src={resolveImageUrl(avatarPreviewUrl)} alt="Preview" className="max-w-full max-h-[85vh] rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ AVATAR MODAL (moved inside selectedProject block) ═══════ */}
+      {showAvatarModal && (
+        <AvatarModal
+          show={showAvatarModal} onClose={resetAvatarModal}
+          avatarSourcePhoto={avatarSourcePhoto} setAvatarSourcePhoto={setAvatarSourcePhoto}
+          avatarSourceType={avatarSourceType} setAvatarSourceType={setAvatarSourceType}
+          avatarVideoUploading={avatarVideoUploading} setAvatarVideoUploading={setAvatarVideoUploading}
+          avatarExtractedAudio={avatarExtractedAudio} setAvatarExtractedAudio={setAvatarExtractedAudio}
+          avatarVideoFrames={avatarVideoFrames} setAvatarVideoFrames={setAvatarVideoFrames}
+          masteringVoice={masteringVoice} setMasteringVoice={setMasteringVoice}
+          generatingPreviewVideo={generatingPreviewVideo} setGeneratingPreviewVideo={setGeneratingPreviewVideo}
+          previewVideoUrl={previewVideoUrl} setPreviewVideoUrl={setPreviewVideoUrl}
+          previewLanguage={previewLanguage} setPreviewLanguage={setPreviewLanguage}
+          avatarName={avatarName} setAvatarName={setAvatarName}
+          avatarMediaTab={avatarMediaTab} setAvatarMediaTab={setAvatarMediaTab}
+          accuracyProgress={accuracyProgress} setAccuracyProgress={setAccuracyProgress}
+          generatingAvatar={generatingAvatar} setGeneratingAvatar={setGeneratingAvatar}
+          avatarPhotoUploading={avatarPhotoUploading} setAvatarPhotoUploading={setAvatarPhotoUploading}
+          logoUploading={logoUploading} setLogoUploading={setLogoUploading}
+          avatarStage={avatarStage} setAvatarStage={setAvatarStage}
+          avatarCreationMode={avatarCreationMode} setAvatarCreationMode={setAvatarCreationMode}
+          avatarPromptText={avatarPromptText} setAvatarPromptText={setAvatarPromptText}
+          avatarPromptGender={avatarPromptGender} setAvatarPromptGender={setAvatarPromptGender}
+          avatarPromptStyle={avatarPromptStyle} setAvatarPromptStyle={setAvatarPromptStyle}
+          tempAvatar={tempAvatar} setTempAvatar={setTempAvatar}
+          editingAvatarId={editingAvatarId}
+          customizeTab={customizeTab} setCustomizeTab={setCustomizeTab}
+          applyingClothing={applyingClothing} setApplyingClothing={setApplyingClothing}
+          clothingVariants={clothingVariants} setClothingVariants={setClothingVariants}
+          generatingAngle={generatingAngle} setGeneratingAngle={setGeneratingAngle}
+          angleImages={angleImages} setAngleImages={setAngleImages}
+          auto360Progress={auto360Progress} setAuto360Progress={setAuto360Progress}
+          voiceTab={voiceTab} setVoiceTab={setVoiceTab}
+          loadingVoicePreview={loadingVoicePreview} setLoadingVoicePreview={setLoadingVoicePreview}
+          playingVoiceId={playingVoiceId} setPlayingVoiceId={setPlayingVoiceId}
+          elevenLabsVoices={elevenLabsVoices} setElevenLabsVoices={setElevenLabsVoices}
+          elevenLabsAvailable={elevenLabsAvailable} setElevenLabsAvailable={setElevenLabsAvailable}
+          isRecording={isRecording} setIsRecording={setIsRecording}
+          recordedAudioUrl={recordedAudioUrl} setRecordedAudioUrl={setRecordedAudioUrl}
+          recordedAudioBlob={recordedAudioBlob} setRecordedAudioBlob={setRecordedAudioBlob}
+          uploadingRecording={uploadingRecording} setUploadingRecording={setUploadingRecording}
+          avatarEditHistory={avatarEditHistory} setAvatarEditHistory={setAvatarEditHistory}
+          avatarBaseUrl={avatarBaseUrl} setAvatarBaseUrl={setAvatarBaseUrl}
+          avatarInputRef={avatarInputRef} logoInputRef={logoInputRef}
+          mediaRecorderRef={mediaRecorderRef} audioChunksRef={audioChunksRef} audioPlayerRef={audioPlayerRef}
+          selectedCompany={selectedProject} lang={lang}
+        />
+      )}
+      </>
     );
   }
 
