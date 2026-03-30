@@ -2703,12 +2703,6 @@ export const DirectedStudio = memo(function DirectedStudio({
             projectId={projectId}
             lang={lang}
             scenes={scenes}
-            characters={characters}
-            characterAvatars={characterAvatars}
-            projectAvatars={projectAvatars}
-            onEditAvatar={safeOnEditAvatar}
-            onAddAvatar={safeOnAddAvatar}
-            onPreviewAvatar={safeOnPreviewAvatar}
             onComplete={() => setStep(4)}
             onBack={() => setStep(2)}
           />
