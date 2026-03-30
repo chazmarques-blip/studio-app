@@ -842,8 +842,12 @@ export default function LandingV2() {
   const lang = i18n.language?.startsWith('pt') ? 'pt' : i18n.language?.startsWith('es') ? 'es' : 'en';
 
   /* Landing always defaults to English for new visitors */
-  /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  useState(() => { if (!localStorage.getItem('studiox_lang')) i18n.changeLanguage('en'); });
+  useEffect(() => { 
+    if (!localStorage.getItem('studiox_lang')) {
+      i18n.changeLanguage('en'); 
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  
   const [billingAnnual, setBillingAnnual] = useState(true);
   const [activeAgent, setActiveAgent] = useState(0);
   const [activeStep, setActiveStep] = useState(0);

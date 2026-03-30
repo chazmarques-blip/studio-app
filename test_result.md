@@ -102,9 +102,24 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Visual validation of Light Theme implementation - capture screenshots of /dashboard, /studio, and /marketing pages to verify white/light backgrounds, dark text, and orange primary color (#F97316)"
+user_problem_statement: "🚨 URGENT: User reports project is broken after Light Theme implementation. Error message: 'O DIRETOR NÃO CONSEGUIU APLICAR A CORREÇÃO QUE DEU ERRO. AI NAO CONSEGUIMOS SEGUIR O PROJETO' (The director couldn't apply the correction that gave error. We can't continue the project). Need comprehensive diagnostic to identify all blocking errors."
 
 frontend:
+  - task: "React setState Error in LandingV2"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/LandingV2.jsx"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL: Found React error preventing login: 'Cannot update a component (AuthProvider) while rendering a different component (LandingV2)'. Line 846 was incorrectly using useState(() => { i18n.changeLanguage('en'); }) instead of useEffect. This caused landing page to fail and login button to be unresponsive."
+        - working: true
+          agent: "testing"
+          comment: "✅ FIXED: Changed useState to useEffect for language initialization. Login now works successfully. Users can authenticate and access dashboard/studio/marketing pages."
+
   - task: "Light Theme - Dashboard Page"
     implemented: true
     working: true
@@ -116,6 +131,9 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ Dashboard page successfully displays Light Theme. White/light background confirmed, orange primary color visible in buttons (Upgrade, Novo Projeto), dark text on light backgrounds, clean card designs with subtle borders. Screenshot captured at /tmp/04_dashboard_page.png"
+        - working: true
+          agent: "testing"
+          comment: "✅ Dashboard page loads and renders correctly with Light Theme. However, dashboard stats API is failing (see backend issues)."
 
   - task: "Light Theme - Studio Page"
     implemented: true
@@ -128,6 +146,9 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ Studio page successfully displays Light Theme. White/light background, orange 'Novo Projeto' button, purple accent for active tab (secondary color), project cards with light backgrounds, dark text. Screenshot captured at /tmp/05_studio_page.png"
+        - working: true
+          agent: "testing"
+          comment: "✅ Studio page loads correctly, displays projects, and Light Theme is working. All project data loads successfully."
 
   - task: "Light Theme - Marketing Page"
     implemented: true
@@ -140,6 +161,9 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ Marketing page successfully displays Light Theme. White/light background with subtle gradient, orange primary buttons ('Criar com AI Studio', 'Criar Campanha'), orange active state in bottom navigation, clean modern design. Screenshot captured at /tmp/06_marketing_page.png"
+        - working: true
+          agent: "testing"
+          comment: "✅ Marketing Studio page loads and renders correctly with Light Theme. Pipeline View elements are present. However, pipeline data APIs are failing (see backend issues)."
 
   - task: "CSS Syntax Error Fix"
     implemented: true
@@ -156,21 +180,63 @@ frontend:
           agent: "testing"
           comment: "✅ Fixed CSS syntax error by removing duplicate text. Changed line 263 from '.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }idth: none; }' to '.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }'. Frontend restarted successfully."
 
+backend:
+  - task: "Dashboard Stats API"
+    implemented: true
+    working: false
+    file: "/app/backend/routes/dashboard.py"
+    stuck_count: 1
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL: /api/dashboard/stats endpoint returning HTTP 500. Backend error: 'Could not find the table public.pipelines in the schema cache'. This is a missing database table issue in Supabase. The pipelines table does not exist in the database schema."
+
+  - task: "Pipeline Saved History API"
+    implemented: true
+    working: false
+    file: "/app/backend/pipeline/routes.py"
+    stuck_count: 1
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL: /api/campaigns/pipeline/saved/history endpoint returning HTTP 500. Same root cause: missing 'pipelines' table in Supabase database. Error: postgrest.exceptions.APIError: 'Could not find the table public.pipelines in the schema cache'."
+
+  - task: "Pipeline List API"
+    implemented: true
+    working: false
+    file: "/app/backend/pipeline/routes.py"
+    stuck_count: 1
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL: /api/campaigns/pipeline/list endpoint returning HTTP 500. Same root cause: missing 'pipelines' table in Supabase database. Line 135 in pipeline/routes.py tries to query supabase.table('pipelines') but table doesn't exist."
+
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
+  version: "1.1"
+  test_sequence: 2
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Light Theme - Dashboard Page"
-    - "Light Theme - Studio Page"
-    - "Light Theme - Marketing Page"
-  stuck_tasks: []
+    - "Dashboard Stats API"
+    - "Pipeline Saved History API"
+    - "Pipeline List API"
+  stuck_tasks:
+    - "Dashboard Stats API"
+    - "Pipeline Saved History API"
+    - "Pipeline List API"
   test_all: false
-  test_priority: "high_first"
+  test_priority: "critical_first"
 
 agent_communication:
     - agent: "testing"
       message: "Visual validation complete. Fixed CSS syntax error in index.css that was blocking app compilation. Successfully captured screenshots of all three pages (/dashboard, /studio, /marketing) after login. Light Theme implementation is working correctly on authenticated pages with white/light backgrounds, orange primary color, and dark text. Note: Landing page and login modal still use dark theme (may be intentional for marketing)."
+    - agent: "testing"
+      message: "🚨 URGENT DIAGNOSTIC COMPLETE - CRITICAL ISSUES FOUND: 1) Fixed React setState error in LandingV2.jsx that was preventing login (changed useState to useEffect for language initialization). Login now works. 2) Discovered CRITICAL backend database issue: Missing 'pipelines' table in Supabase causing 3 API endpoints to fail with HTTP 500 errors: /api/dashboard/stats, /api/campaigns/pipeline/saved/history, /api/campaigns/pipeline/list. Root cause: postgrest.exceptions.APIError - 'Could not find the table public.pipelines in the schema cache'. This is blocking dashboard stats and marketing pipeline features. DirectedStudio component is intact and director/apply-fixes endpoint works (200 OK). Frontend is functional but backend needs database schema fix."
