@@ -78,8 +78,13 @@ def _row_to_campaign(row):
 @router.get("")
 async def list_campaigns(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    result = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).order("created_at", desc=True).execute()
-    return {"campaigns": [_row_to_campaign(r) for r in (result.data or [])]}
+    try:
+        result = supabase.table("campaigns").select("*").eq("tenant_id", tenant["id"]).order("created_at", desc=True).execute()
+        return {"campaigns": [_row_to_campaign(r) for r in (result.data or [])]}
+    except Exception as e:
+        # Table campaigns might not exist yet - return empty list
+        print(f"Warning: campaigns table not accessible: {e}")
+        return {"campaigns": []}
 
 
 @router.post("")
