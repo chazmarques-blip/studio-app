@@ -285,6 +285,95 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
       </div>
       <p className="text-[11px] text-[#555] px-1">{TABS.find(t => t.id === activeTab)?.desc}</p>
 
+      {/* ══════ PERSONAGENS COM AVATARES EDITÁVEIS ══════ */}
+      {characters && characters.length > 0 && (
+        <div className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl p-3 space-y-2">
+          <h3 className="text-xs font-semibold text-white flex items-center gap-2">
+            <Users size={12} className="text-[#8B5CF6]" />
+            {lang === 'pt' ? 'Personagens' : 'Characters'}
+            <span className="text-[10px] text-[#666] font-normal ml-auto">
+              {lang === 'pt' ? 'Clique para editar avatar ou descrição' : 'Click to edit avatar or description'}
+            </span>
+          </h3>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {characters.map((char, i) => {
+              const avatarUrl = characterAvatars?.[char.name];
+              const linkedAvatar = avatarUrl && projectAvatars?.find(a => a.url === avatarUrl);
+              
+              return (
+                <div key={char.name || i} className="group relative bg-[#111] border border-[#222] rounded-lg p-2 hover:border-[#8B5CF6]/50 transition">
+                  {/* Avatar Image */}
+                  {avatarUrl ? (
+                    <div className="relative aspect-[3/4] rounded-md overflow-hidden mb-2">
+                      <img 
+                        src={resolveImageUrl(avatarUrl)} 
+                        alt={char.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Hover Overlay com Botões */}
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                        <button
+                          onClick={() => onEditAvatar && onEditAvatar(linkedAvatar || { url: avatarUrl, name: char.name })}
+                          className="px-2 py-1 bg-[#8B5CF6] text-black text-[10px] font-bold rounded hover:bg-[#7C3AED] transition flex items-center gap-1"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                          {lang === 'pt' ? 'Editar' : 'Edit'}
+                        </button>
+                        <button
+                          onClick={() => onPreviewAvatar && onPreviewAvatar(avatarUrl)}
+                          className="px-2 py-1 bg-white/20 text-white text-[10px] font-medium rounded hover:bg-white/30 transition flex items-center gap-1"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                          </svg>
+                          {lang === 'pt' ? 'Zoom' : 'Zoom'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => onAddAvatar && onAddAvatar(char.description || char.name)}
+                      className="aspect-[3/4] rounded-md mb-2 bg-[#1A1A1A] border-2 border-dashed border-[#333] flex flex-col items-center justify-center cursor-pointer hover:border-[#8B5CF6]/50 transition"
+                    >
+                      <svg className="w-6 h-6 text-[#666]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="text-[9px] text-[#666] mt-1">{lang === 'pt' ? 'Criar' : 'Create'}</span>
+                    </div>
+                  )}
+                  
+                  {/* Nome do Personagem */}
+                  <p className="text-[11px] font-semibold text-white truncate text-center">
+                    {char.name}
+                  </p>
+                  
+                  {/* Descrição Editável */}
+                  <button
+                    onClick={() => {
+                      const newDesc = window.prompt(
+                        lang === 'pt' ? 'Editar descrição do personagem:' : 'Edit character description:',
+                        char.description || ''
+                      );
+                      if (newDesc !== null) {
+                        // TODO: Save via API
+                        toast.info(lang === 'pt' ? 'Edição de descrição em breve!' : 'Description editing coming soon!');
+                      }
+                    }}
+                    className="w-full mt-1 text-[9px] text-[#666] hover:text-[#8B5CF6] truncate text-center transition"
+                    title={char.description || 'Sem descrição'}
+                  >
+                    {char.description ? `${char.description.slice(0, 30)}...` : (lang === 'pt' ? 'Adicionar descrição' : 'Add description')}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Alert: Missing dubbed dialogues */}
       {activeTab === 'dubbed' && needsDubbedGen > 0 && !generating && (
         <div className="bg-[#8B5CF6]/5 border border-[#8B5CF6]/30 rounded-xl p-3 flex items-center justify-between" data-testid="dubbed-gen-alert">
