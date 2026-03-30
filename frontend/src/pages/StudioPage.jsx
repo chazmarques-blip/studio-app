@@ -313,36 +313,146 @@ export default function StudioPage() {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [showCompanySelector, setShowCompanySelector] = useState(false);
   
-  // Avatar preview/zoom modal
+  // ═══════ AVATAR MODAL - COMPLETE STATES (copied from PipelineView) ═══════
+  const [avatars, setAvatars] = useState([]);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(null);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null);
+  const [avatarSourceType, setAvatarSourceType] = useState('video');
+  const [avatarVideoUploading, setAvatarVideoUploading] = useState(false);
+  const [avatarExtractedAudio, setAvatarExtractedAudio] = useState(null);
+  const [avatarVideoFrames, setAvatarVideoFrames] = useState([]);
+  const [masteringVoice, setMasteringVoice] = useState(false);
+  const [generatingPreviewVideo, setGeneratingPreviewVideo] = useState(false);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
+  const [previewLanguage, setPreviewLanguage] = useState('pt');
+  const [avatarName, setAvatarName] = useState('');
+  const [avatarMediaTab, setAvatarMediaTab] = useState('photo');
+  const [accuracyProgress, setAccuracyProgress] = useState(null);
+  const [generatingAvatar, setGeneratingAvatar] = useState(false);
+  const [avatarPhotoUploading, setAvatarPhotoUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [avatarStage, setAvatarStage] = useState('upload');
+  const [avatarCreationMode, setAvatarCreationMode] = useState('photo');
+  const [avatarPromptText, setAvatarPromptText] = useState('');
+  const [avatarPromptGender, setAvatarPromptGender] = useState('female');
+  const [avatarPromptStyle, setAvatarPromptStyle] = useState('custom');
+  const [tempAvatar, setTempAvatar] = useState(null);
+  const [editingAvatarId, setEditingAvatarId] = useState(null);
+  const [customizeTab, setCustomizeTab] = useState('clothing');
+  const [applyingClothing, setApplyingClothing] = useState(false);
+  const [clothingVariants, setClothingVariants] = useState({});
+  const [generatingAngle, setGeneratingAngle] = useState(null);
+  const [angleImages, setAngleImages] = useState({});
+  const [auto360Progress, setAuto360Progress] = useState(null);
+  const [voiceTab, setVoiceTab] = useState('bank');
+  const [loadingVoicePreview, setLoadingVoicePreview] = useState(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const [elevenLabsVoices, setElevenLabsVoices] = useState([]);
+  const [elevenLabsAvailable, setElevenLabsAvailable] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
+  const [recordedAudioBlob, setRecordedAudioBlob] = useState(null);
+  const [uploadingRecording, setUploadingRecording] = useState(false);
+  const [avatarEditHistory, setAvatarEditHistory] = useState([]);
+  const [avatarBaseUrl, setAvatarBaseUrl] = useState(null);
+  const [lastCreatedAvatar, setLastCreatedAvatar] = useState(null);
   
-  // AI Avatar editing states
+  // AI Avatar editing
   const [aiEditAvatarId, setAiEditAvatarId] = useState(null);
   const [aiEditInstruction, setAiEditInstruction] = useState('');
   const [aiEditLoading, setAiEditLoading] = useState(false);
   
-  // Last created avatar tracking
-  const [lastCreatedAvatar, setLastCreatedAvatar] = useState(null);
+  // Refs
+  const avatarInputRef = useRef(null);
+  const logoInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioPlayerRef = useRef(null);
 
-  // Avatar management handlers
-  const handleAddAvatar = useCallback((promptText) => {
-    // For now, show info message - full AvatarModal integration coming soon
-    toast.info(lang === 'pt' 
-      ? 'Use o botão "Criar" ou "Acervo" na seção de personagens para adicionar avatares'
-      : 'Use the "Create" or "Library" buttons in the characters section to add avatars', 
-      { duration: 4000 }
-    );
-  }, [lang]);
+  // ═══════ AVATAR MODAL - HELPER FUNCTIONS ═══════
+  const resetAvatarModal = () => {
+    setShowAvatarModal(false);
+    setAvatarSourcePhoto(null);
+    setAvatarVideoUploading(false);
+    setAvatarExtractedAudio(null);
+    setAvatarVideoFrames([]);
+    setGeneratingAvatar(false);
+    setAvatarPhotoUploading(false);
+    setAvatarName('');
+    setAvatarStage('upload');
+    setTempAvatar(null);
+    setEditingAvatarId(null);
+    setAngleImages({});
+    setClothingVariants({});
+    setCustomizeTab('clothing');
+    setAvatarCreationMode('photo');
+    setAvatarPromptText('');
+    setAvatarPromptGender('female');
+    setAvatarPromptStyle('custom');
+    setVoiceTab('bank');
+    setRecordedAudioUrl(null);
+    setRecordedAudioBlob(null);
+    setPreviewVideoUrl(null);
+    setMasteringVoice(false);
+    setGeneratingPreviewVideo(false);
+    setAvatarEditHistory([]);
+    setAvatarBaseUrl(null);
+  };
+  
+  const openAvatarForEdit = (av) => {
+    setEditingAvatarId(av.id);
+    let inferredStyle = av.avatar_style || 'realistic';
+    if (!av.avatar_style && av.creation_mode === '3d') {
+      inferredStyle = '3d_pixar';
+    }
+    const is3dAvatar = inferredStyle !== 'realistic';
+    setTempAvatar({
+      url: av.url,
+      source_photo_url: av.source_photo_url || '',
+      clothing: av.clothing || 'company_uniform',
+      voice: av.voice || null,
+      avatar_style: inferredStyle,
+      creation_mode: av.creation_mode || 'photo',
+    });
+    setAvatarName(av.name || '');
+    setPreviewVideoUrl(av.video_url || null);
+    setAvatarMediaTab(av.video_url ? 'photo' : 'photo');
+    const savedAngles = av.angles || {};
+    if (is3dAvatar && savedAngles.front && savedAngles.front !== av.url) {
+      setAngleImages({ front: av.url });
+    } else {
+      setAngleImages(savedAngles.front ? savedAngles : { front: av.url });
+    }
+    setPreviewLanguage(av.language || 'pt');
+    if (av.voice?.url) {
+      setRecordedAudioUrl(av.voice.url);
+      setVoiceTab('record');
+    } else if (av.voice?.type === 'elevenlabs' && av.voice?.voice_id) {
+      setVoiceTab('premium');
+    } else if (av.voice?.voice_id) {
+      setVoiceTab('bank');
+    }
+    const variants = {};
+    if (av.clothing && av.url) variants[av.clothing] = av.url;
+    setClothingVariants(variants);
+    setAvatarStage('customize');
+    setAvatarCreationMode(av.creation_mode || 'photo');
+    setAvatarPromptStyle(inferredStyle);
+    setAvatarEditHistory(av.edit_history || []);
+    setAvatarBaseUrl(av.url);
+    setShowAvatarModal(true);
+  };
   
   const handleEditAvatar = useCallback((av) => {
-    // For now, show info about AI editing
-    toast.info(lang === 'pt'
-      ? `Edição de avatar: Use a ferramenta de regeneração ou ajuste manual na biblioteca. Avatar: ${av.name || 'sem nome'}`
-      : `Avatar editing: Use regeneration tool or manual adjustment in library. Avatar: ${av.name || 'unnamed'}`,
-      { duration: 4000 }
-    );
-    console.log('Edit avatar:', av);
-  }, [lang]);
+    openAvatarForEdit(av);
+  }, []);
+  
+  const handleAddAvatar = useCallback(() => {
+    resetAvatarModal();
+    setShowAvatarModal(true);
+  }, []);
   
   const handleRemoveAvatar = useCallback((av) => {
     console.log('Remove avatar:', av);
@@ -354,12 +464,7 @@ export default function StudioPage() {
   
   const handleAiEditAvatar = useCallback((id) => {
     setAiEditAvatarId(id);
-    toast.info(lang === 'pt'
-      ? 'Edição com IA: Em breve você poderá editar avatares com instruções de texto'
-      : 'AI Editing: Soon you will be able to edit avatars with text instructions',
-      { duration: 3000 }
-    );
-  }, [lang]);
+  }, []);
 
   const L = {
     pt: {
@@ -823,6 +928,98 @@ export default function StudioPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* ═══════ AVATAR MODAL (Full Featured) ═══════ */}
+      {showAvatarModal && (
+        <AvatarModal
+          show={showAvatarModal}
+          onClose={resetAvatarModal}
+          avatarSourcePhoto={avatarSourcePhoto}
+          setAvatarSourcePhoto={setAvatarSourcePhoto}
+          avatarSourceType={avatarSourceType}
+          setAvatarSourceType={setAvatarSourceType}
+          avatarVideoUploading={avatarVideoUploading}
+          setAvatarVideoUploading={setAvatarVideoUploading}
+          avatarExtractedAudio={avatarExtractedAudio}
+          setAvatarExtractedAudio={setAvatarExtractedAudio}
+          avatarVideoFrames={avatarVideoFrames}
+          setAvatarVideoFrames={setAvatarVideoFrames}
+          masteringVoice={masteringVoice}
+          setMasteringVoice={setMasteringVoice}
+          generatingPreviewVideo={generatingPreviewVideo}
+          setGeneratingPreviewVideo={setGeneratingPreviewVideo}
+          previewVideoUrl={previewVideoUrl}
+          setPreviewVideoUrl={setPreviewVideoUrl}
+          previewLanguage={previewLanguage}
+          setPreviewLanguage={setPreviewLanguage}
+          avatarName={avatarName}
+          setAvatarName={setAvatarName}
+          avatarMediaTab={avatarMediaTab}
+          setAvatarMediaTab={setAvatarMediaTab}
+          accuracyProgress={accuracyProgress}
+          setAccuracyProgress={setAccuracyProgress}
+          generatingAvatar={generatingAvatar}
+          setGeneratingAvatar={setGeneratingAvatar}
+          avatarPhotoUploading={avatarPhotoUploading}
+          setAvatarPhotoUploading={setAvatarPhotoUploading}
+          logoUploading={logoUploading}
+          setLogoUploading={setLogoUploading}
+          avatarStage={avatarStage}
+          setAvatarStage={setAvatarStage}
+          avatarCreationMode={avatarCreationMode}
+          setAvatarCreationMode={setAvatarCreationMode}
+          avatarPromptText={avatarPromptText}
+          setAvatarPromptText={setAvatarPromptText}
+          avatarPromptGender={avatarPromptGender}
+          setAvatarPromptGender={setAvatarPromptGender}
+          avatarPromptStyle={avatarPromptStyle}
+          setAvatarPromptStyle={setAvatarPromptStyle}
+          tempAvatar={tempAvatar}
+          setTempAvatar={setTempAvatar}
+          editingAvatarId={editingAvatarId}
+          customizeTab={customizeTab}
+          setCustomizeTab={setCustomizeTab}
+          applyingClothing={applyingClothing}
+          setApplyingClothing={setApplyingClothing}
+          clothingVariants={clothingVariants}
+          setClothingVariants={setClothingVariants}
+          generatingAngle={generatingAngle}
+          setGeneratingAngle={setGeneratingAngle}
+          angleImages={angleImages}
+          setAngleImages={setAngleImages}
+          auto360Progress={auto360Progress}
+          setAuto360Progress={setAuto360Progress}
+          voiceTab={voiceTab}
+          setVoiceTab={setVoiceTab}
+          loadingVoicePreview={loadingVoicePreview}
+          setLoadingVoicePreview={setLoadingVoicePreview}
+          playingVoiceId={playingVoiceId}
+          setPlayingVoiceId={setPlayingVoiceId}
+          elevenLabsVoices={elevenLabsVoices}
+          setElevenLabsVoices={setElevenLabsVoices}
+          elevenLabsAvailable={elevenLabsAvailable}
+          setElevenLabsAvailable={setElevenLabsAvailable}
+          isRecording={isRecording}
+          setIsRecording={setIsRecording}
+          recordedAudioUrl={recordedAudioUrl}
+          setRecordedAudioUrl={setRecordedAudioUrl}
+          recordedAudioBlob={recordedAudioBlob}
+          setRecordedAudioBlob={setRecordedAudioBlob}
+          uploadingRecording={uploadingRecording}
+          setUploadingRecording={setUploadingRecording}
+          avatarEditHistory={avatarEditHistory}
+          setAvatarEditHistory={setAvatarEditHistory}
+          avatarBaseUrl={avatarBaseUrl}
+          setAvatarBaseUrl={setAvatarBaseUrl}
+          avatarInputRef={avatarInputRef}
+          logoInputRef={logoInputRef}
+          mediaRecorderRef={mediaRecorderRef}
+          audioChunksRef={audioChunksRef}
+          audioPlayerRef={audioPlayerRef}
+          selectedCompany={selectedCompany}
+          lang={lang}
+        />
       )}
     </div>
   );
