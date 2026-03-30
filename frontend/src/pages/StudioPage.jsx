@@ -308,6 +308,11 @@ export default function StudioPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   
+  // Company selection (duplicated from Marketing for Videos context)
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [showCompanySelector, setShowCompanySelector] = useState(false);
+  
   // Avatar preview/zoom modal
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
   
@@ -425,6 +430,23 @@ export default function StudioPage() {
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  // Fetch companies (shared with Marketing context)
+  const fetchCompanies = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/data/companies`);
+      setCompanies(res.data || []);
+      // Auto-select primary company
+      const primary = (res.data || []).find(c => c.is_primary);
+      if (primary) setSelectedCompany(primary);
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [fetchCompanies]);
 
   // Create new project
   const handleCreateProject = async (projectData) => {
@@ -570,6 +592,7 @@ export default function StudioPage() {
             projectId={selectedProject.id}
             onProjectUpdate={fetchProjects}
             onBack={handleBackToList}
+            selectedCompany={selectedCompany}
             avatars={[]}
             onAddAvatar={handleAddAvatar}
             onEditAvatar={handleEditAvatar}
@@ -656,6 +679,73 @@ export default function StudioPage() {
       {/* ═══ CONTENT ═══ */}
       <div className="px-6 sm:px-8 lg:px-12 py-6 pb-28">
         <div className="max-w-5xl mx-auto">
+          {/* Company Selector */}
+          {!selectedProject && companies.length > 0 && (
+            <div className="mb-6 bg-gradient-to-r from-[#8B5CF6]/10 to-transparent border border-[#8B5CF6]/20 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/20">
+                    <Users size={20} className="text-[#8B5CF6]" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-white/50 mb-0.5">Empresa do Projeto</p>
+                    <p className="text-sm font-semibold text-white">
+                      {selectedCompany ? selectedCompany.name : 'Selecione uma empresa'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCompanySelector(!showCompanySelector)}
+                  className="text-xs text-[#8B5CF6] hover:text-[#9F7CF6] transition flex items-center gap-1"
+                >
+                  {showCompanySelector ? 'Fechar' : 'Trocar'}
+                  <ChevronRight size={14} className={`transition-transform ${showCompanySelector ? 'rotate-90' : ''}`} />
+                </button>
+              </div>
+              
+              {/* Company List */}
+              {showCompanySelector && (
+                <div className="mt-4 pt-4 border-t border-white/5 grid gap-2">
+                  {companies.map(company => (
+                    <button
+                      key={company.id}
+                      onClick={() => {
+                        setSelectedCompany(company);
+                        setShowCompanySelector(false);
+                        toast.success(`Empresa "${company.name}" selecionada`);
+                      }}
+                      className={`text-left p-3 rounded-lg border transition ${
+                        selectedCompany?.id === company.id
+                          ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                          : 'border-white/5 bg-[#1A1A1A] hover:border-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-white">{company.name}</p>
+                          {company.phone && (
+                            <p className="text-xs text-white/50 mt-0.5">{company.phone}</p>
+                          )}
+                        </div>
+                        {company.is_primary && (
+                          <span className="text-[9px] bg-[#8B5CF6]/20 text-[#8B5CF6] px-2 py-0.5 rounded-full">
+                            PRINCIPAL
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => navigate('/marketing')}
+                    className="p-3 rounded-lg border border-dashed border-white/20 hover:border-[#8B5CF6]/50 text-white/50 hover:text-white transition text-sm"
+                  >
+                    + Gerenciar Empresas
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* Search */}
           <div className="mb-6">
             <div className="relative">
