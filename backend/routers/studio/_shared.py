@@ -13,7 +13,7 @@ __all__ = [
     # API Keys
     "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
     # Helper functions
-    "_ensure_ffmpeg", "_ffmpeg_checked",
+    "_ensure_ffmpeg", "_ffmpeg_checked", "_run_async_in_thread",
     "_get_settings", "_save_settings", "_get_project", "_save_project",
     "_update_project_field", "_add_milestone", "_cleanup_stale_storyboards",
     "_upload_to_storage", "_call_claude_async", "_call_claude_sync", "_parse_json",
@@ -97,6 +97,15 @@ from core.llm import DirectSora2Client
 
 
 # ── Helpers ──
+
+def _run_async_in_thread(coro):
+    """Execute async function in sync thread context"""
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 
 # Cache stats endpoint

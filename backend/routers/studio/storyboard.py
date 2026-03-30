@@ -1,16 +1,5 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
-import asyncio
-
-# ══ ASYNC HELPER ══
-def _run_async_in_thread(coro):
-    """Execute async function in sync thread context"""
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(coro)
 
 # ══ STORYBOARD ENDPOINTS ══
 
