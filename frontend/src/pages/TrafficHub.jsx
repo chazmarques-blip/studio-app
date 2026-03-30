@@ -441,18 +441,29 @@ export default function TrafficHub() {
             </div>
           </div>
           
-          {/* Mode Switcher */}
-          <div className="flex items-center gap-2 bg-[#111] rounded-lg p-1 mr-4">
+          <div className="flex items-center gap-3">
+            {/* Mode Switcher */}
+            <div className="flex items-center gap-2 bg-[#111] rounded-lg p-1">
+              <button
+                onClick={() => navigate('/studio')}
+                className="px-3 py-1 text-[10px] font-medium rounded-md transition text-white/70 hover:text-white hover:bg-[#1A1A1A]"
+              >
+                Estúdio
+              </button>
+              <button
+                className="px-3 py-1 text-[10px] font-medium rounded-md transition bg-[#8B5CF6] text-white"
+              >
+                Marketing
+              </button>
+            </div>
+            
+            {/* Nova Campanha Button */}
             <button
-              onClick={() => navigate('/studio')}
-              className="px-3 py-1 text-[10px] font-medium rounded-md transition text-white/70 hover:text-white hover:bg-[#1A1A1A]"
+              onClick={() => navigate('/campaigns/new')}
+              className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] rounded-lg text-xs font-semibold text-black hover:opacity-90 transition"
             >
-              Estúdio
-            </button>
-            <button
-              className="px-3 py-1 text-[10px] font-medium rounded-md transition bg-[#8B5CF6] text-white"
-            >
-              Marketing
+              <Sparkles size={14} />
+              Nova Campanha
             </button>
           </div>
           
