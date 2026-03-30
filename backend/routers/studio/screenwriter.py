@@ -315,10 +315,29 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
     project["error"] = None
     _save_project(tenant["id"], settings, projects)
 
-    # Start background thread
+    # Start background thread - USE PARALLEL GENERATION
+    from .parallel_agents import generate_screenplay_parallel
+    
+    def _parallel_screenplay_wrapper():
+        try:
+            audio_mode = project.get("audio_mode", "narrated")
+            result = generate_screenplay_parallel(
+                tenant_id=tenant["id"],
+                project_id=project["id"],
+                user_prompt=req.message,
+                lang=lang,
+                audio_mode=audio_mode,
+                max_scenes=50,
+                batch_size=10,
+                max_workers=3
+            )
+            _merge_screenplay_results(tenant["id"], project["id"], result)
+        except Exception as e:
+            logger.error(f"Parallel screenplay error: {e}, falling back")
+            _run_screenwriter_background(tenant["id"], project["id"], req.message, lang)
+    
     thread = threading.Thread(
-        target=_run_screenwriter_background,
-        args=(tenant["id"], project["id"], req.message, lang),
+        target=_parallel_screenplay_wrapper,
         daemon=True,
     )
     thread.start()
@@ -330,6 +349,43 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
         "scenes": project.get("scenes", []),
         "characters": project.get("characters", []),
     }
+
+
+def _merge_screenplay_results(tenant_id: str, project_id: str, result: dict):
+    """Merge parallel generation results"""
+    settings, projects, project = _get_project(tenant_id, project_id)
+    if not project:
+        return
+    
+    existing_scenes = project.get("scenes", [])
+    new_scenes = result.get("scenes", [])
+    
+    if existing_scenes:
+        last_num = max(s.get("scene_number", 0) for s in existing_scenes)
+        for ns in new_scenes:
+            ns["scene_number"] = last_num + 1
+            last_num += 1
+        existing_scenes.extend(new_scenes)
+    else:
+        existing_scenes = new_scenes
+    
+    existing_chars = project.get("characters", [])
+    existing_names = {c.get("name") for c in existing_chars}
+    for new_char in result.get("characters", []):
+        if new_char.get("name") not in existing_names:
+            existing_chars.append(new_char)
+    
+    project["scenes"] = existing_scenes
+    project["characters"] = existing_chars
+    project["title"] = result.get("title", project.get("title", "Untitled"))
+    
+    chat_history = project.get("chat_history", [])
+    chat_history.append({"role": "agent", "text": f"✅ {len(new_scenes)} cenas geradas!"})
+    project["chat_history"] = chat_history[-20:]
+    project["chat_status"] = "idle"
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    _save_project(tenant_id, settings, projects)
 
 
 

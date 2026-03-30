@@ -131,7 +131,7 @@ LANG_NAMES = {"pt": "Português Brasileiro", "en": "English", "es": "Español", 
 
 @router.post("/projects/{project_id}/dialogues/master-generate")
 async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest, tenant=Depends(get_current_tenant)):
-    """MASTER DIALOGUE GENERATION: Creates high-quality, emotionally impactful dialogues using full story context."""
+    """MASTER DIALOGUE GENERATION: Creates high-quality dialogues using PARALLEL AGENTS for speed."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -143,111 +143,55 @@ async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest,
     characters = project.get("characters", [])
     lang = project.get("language", "pt")
     lang_name = LANG_NAMES.get(lang, lang)
-    project_name = project.get("name", "")
-    synopsis = project.get("synopsis", "") or project.get("script", "")
 
-    # Build character profiles
-    character_profiles = "\n".join([
-        f"- **{c.get('name')}**: {c.get('description', '')} | Age: {c.get('age', 'adult')} | Role: {c.get('role', 'supporting')}"
-        for c in characters
-    ])
+    logger.info(f"MasterDialogue [{project_id}]: Starting PARALLEL generation for {len(scenes)} scenes")
 
-    # Build full scene context
-    scene_context = "\n\n".join([
-        f"### Scene {s.get('scene_number')}: {s.get('title')}\n"
-        f"Time: {s.get('time_start', '0:00')} - {s.get('time_end', '0:12')}\n"
-        f"Characters: {', '.join(s.get('characters_in_scene', []))}\n"
-        f"Description: {s.get('description', '')}\n"
-        f"Emotion: {s.get('emotion', 'neutral')}\n"
-        f"Camera: {s.get('camera', 'medium shot')}"
-        for s in scenes
-    ])
-
-    # Get mode-specific instructions
-    mode_instructions = {
-        "dubbed": DUBBED_INSTRUCTIONS,
-        "narrated": NARRATED_INSTRUCTIONS,
-        "book": BOOK_INSTRUCTIONS
-    }.get(req.mode, DUBBED_INSTRUCTIONS)
-
-    system = MASTER_DIALOGUE_SYSTEM.replace("{lang_name}", lang_name).replace("{lang}", lang)
-    system += mode_instructions
-
-    user_prompt = f"""# PROJECT: {project_name}
-
-## STORY SYNOPSIS
-{synopsis}
-
-## CHARACTERS
-{character_profiles}
-
-## SCENES TO WRITE DIALOGUE FOR
-{scene_context}
-
-## SPECIAL INSTRUCTIONS
-{req.user_instructions if req.user_instructions else "Write naturally, following the emotional arc of the story. For biblical/children's content, make it warm, accessible, and impactful without being preachy."}
-
----
-
-## YOUR TASK
-Generate {req.mode.upper()} dialogue for ALL scenes above. Return a JSON array:
-
-```json
-[
-  {{
-    "scene_number": 1,
-    "dialogue": "The full dialogue text for this scene..."
-  }},
-  ...
-]
-```
-
-Make each scene EMOTIONALLY POWERFUL. Honor the characters' unique voices. Create moments that audiences will remember.
-Write ENTIRELY in {lang_name}."""
-
-    try:
-        import litellm
-        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
-        
-        response = await litellm.acompletion(
-            model="anthropic/claude-sonnet-4-5-20250929",
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_prompt}
-            ],
-            api_key=api_key,
-            max_tokens=8000,
-            timeout=120,
-        )
-        
-        result_text = response.choices[0].message.content.strip()
-        
-        # Parse JSON from response
-        import re
-        import json
-        
-        # Try to extract JSON array
-        json_match = re.search(r'\[[\s\S]*\]', result_text)
-        if json_match:
-            try:
-                dialogues = json.loads(json_match.group(0))
-            except:
-                dialogues = None
-        else:
-            # Fallback: try parsing entire response
-            try:
-                parsed = json.loads(result_text)
-                # If it's a dict with dialogues key, extract it
-                if isinstance(parsed, dict) and 'dialogues' in parsed:
-                    dialogues = parsed['dialogues']
-                elif isinstance(parsed, list):
-                    dialogues = parsed
-                else:
-                    dialogues = None
-            except:
-                dialogues = None
-
-        if not dialogues or not isinstance(dialogues, list):
+    # Launch parallel dialogue generation in background
+    import threading
+    from .parallel_agents import generate_dialogues_parallel
+    
+    def _parallel_dialogue_task():
+        try:
+            dialogues = generate_dialogues_parallel(
+                tenant_id=tenant["id"],
+                project_id=project_id,
+                scenes=scenes,
+                characters=characters,
+                audio_mode=req.mode,
+                lang=lang,
+                max_workers=5  # 5 agents in parallel
+            )
+            
+            # Apply dialogues to scenes
+            settings, projects, project = _get_project(tenant["id"], project_id)
+            if not project:
+                return
+            
+            scenes_updated = project.get("scenes", [])
+            dialogue_map = {d["scene_number"]: d["dialogue"] for d in dialogues if "dialogue" in d}
+            
+            for scene in scenes_updated:
+                scene_num = scene.get("scene_number")
+                if scene_num in dialogue_map:
+                    scene["dialogue"] = dialogue_map[scene_num]
+            
+            project["scenes"] = scenes_updated
+            project["updated_at"] = datetime.now(timezone.utc).isoformat()
+            _save_project(tenant["id"], settings, projects)
+            
+            logger.info(f"MasterDialogue [{project_id}]: Applied {len(dialogue_map)}/{len(scenes)} dialogues to scenes")
+            
+        except Exception as e:
+            logger.error(f"MasterDialogue parallel error: {e}")
+    
+    thread = threading.Thread(target=_parallel_dialogue_task, daemon=True)
+    thread.start()
+    
+    return {
+        "status": "generating",
+        "message": f"Generating dialogues for {len(scenes)} scenes using parallel agents...",
+        "scenes_total": len(scenes)
+    }
             raise HTTPException(status_code=500, detail="Failed to parse dialogue response")
 
         # Apply dialogues to scenes
