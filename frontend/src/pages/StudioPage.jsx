@@ -306,8 +306,9 @@ export default function StudioPage() {
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [zoomedAvatar, setZoomedAvatar] = useState(null);
 
-  // Avatar management - dummy handlers for DirectedStudio
+  // Avatar management handlers
   const handleAddAvatar = (promptText) => {
     console.log('Add avatar:', promptText);
     // DirectedStudio will handle avatar creation internally via project avatars
@@ -323,7 +324,7 @@ export default function StudioPage() {
   };
   
   const handlePreviewAvatar = (url) => {
-    console.log('Preview avatar:', url);
+    setZoomedAvatar(url);
   };
   
   const handleAiEditAvatar = (id) => {
@@ -667,6 +668,30 @@ export default function StudioPage() {
           onClose={() => setShowNewProjectModal(false)}
           onCreate={handleCreateProject}
         />
+      )}
+
+      {/* Avatar Zoom Modal */}
+      {zoomedAvatar && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in"
+          onClick={() => setZoomedAvatar(null)}
+        >
+          <div className="relative max-w-2xl max-h-[90vh] p-4">
+            <button 
+              onClick={() => setZoomedAvatar(null)}
+              className="absolute -top-2 -right-2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+              aria-label="Fechar"
+            >
+              <X size={20} />
+            </button>
+            <img 
+              src={resolveImageUrl(zoomedAvatar)} 
+              alt="Preview" 
+              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
