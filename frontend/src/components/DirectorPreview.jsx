@@ -59,8 +59,18 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
       toast.success(lang === 'pt'
         ? `${res.data.applied} cena(s) corrigida(s) pelo Director!`
         : `${res.data.applied} scene(s) fixed by Director!`);
-      // Re-run review after applying
-      runReview();
+      
+      // Notify parent component that scenes were updated (for real-time UI update)
+      if (onApprove && typeof onApprove === 'function') {
+        // Trigger parent to reload project data
+        setTimeout(() => {
+          toast.info(lang === 'pt' 
+            ? 'Correções aplicadas! Volte aos Diálogos para ver as mudanças.' 
+            : 'Fixes applied! Go back to Dialogues to see changes.');
+        }, 1000);
+      }
+      
+      // Don't re-run full review (too slow), user can manually re-analyze if needed
     } catch (err) {
       toast.error(getErrorMsg(err, 'Apply fixes failed'));
     } finally {
