@@ -192,9 +192,16 @@ async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest,
         "message": f"Generating dialogues for {len(scenes)} scenes using parallel agents...",
         "scenes_total": len(scenes)
     }
-            raise HTTPException(status_code=500, detail="Failed to parse dialogue response")
 
-        # Apply dialogues to scenes
+
+# Old endpoint (kept for backward compatibility)
+async def master_generate_dialogues_old(project_id: str, req: MasterDialogueRequest, tenant=Depends(get_current_tenant)):
+    """Legacy endpoint - will be deprecated"""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Apply dialogues to scenes
         dialogue_key = f"{req.mode}_text" if req.mode != "dubbed" else "dubbed_text"
         applied_count = 0
         
