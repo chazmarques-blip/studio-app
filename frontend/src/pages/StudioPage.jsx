@@ -446,23 +446,27 @@ export default function StudioPage() {
   };
   
   const handleEditAvatar = useCallback((av) => {
+    console.log('🔧 handleEditAvatar chamado:', av);
     openAvatarForEdit(av);
   }, []);
   
   const handleAddAvatar = useCallback(() => {
+    console.log('➕ handleAddAvatar chamado');
     resetAvatarModal();
     setShowAvatarModal(true);
   }, []);
   
   const handleRemoveAvatar = useCallback((av) => {
-    console.log('Remove avatar:', av);
+    console.log('🗑️ handleRemoveAvatar chamado:', av);
   }, []);
   
   const handlePreviewAvatar = useCallback((url) => {
+    console.log('🔍 handlePreviewAvatar chamado:', url);
     setAvatarPreviewUrl(url);
   }, []);
   
   const handleAiEditAvatar = useCallback((id) => {
+    console.log('🤖 handleAiEditAvatar chamado:', id);
     setAiEditAvatarId(id);
   }, []);
 

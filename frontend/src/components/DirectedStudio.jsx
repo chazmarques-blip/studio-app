@@ -45,6 +45,13 @@ export const DirectedStudio = memo(function DirectedStudio({
   onProjectUpdate, // NEW: Callback when project updates
   onBack, // NEW: Callback for back button
 }) {
+  // Guard: Ensure handlers exist or provide no-op defaults
+  const safeOnAddAvatar = onAddAvatar || (() => console.warn('onAddAvatar not provided'));
+  const safeOnEditAvatar = onEditAvatar || (() => console.warn('onEditAvatar not provided'));
+  const safeOnRemoveAvatar = onRemoveAvatar || (() => console.warn('onRemoveAvatar not provided'));
+  const safeOnPreviewAvatar = onPreviewAvatar || (() => console.warn('onPreviewAvatar not provided'));
+  const safeOnAiEditAvatar = onAiEditAvatar || (() => console.warn('onAiEditAvatar not provided'));
+
   const { i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'pt';
   const studioCtx = useStudioProduction();
@@ -2272,9 +2279,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                         const linkedUrl = characterAvatars[char.name];
                         const linkedAv = linkedUrl && projectAvatars.find(a => a.url === linkedUrl);
                         if (linkedAv) {
-                          onEditAvatar(linkedAv);
+                          safeOnEditAvatar(linkedAv);
                         } else {
-                          onAddAvatar(char.description || char.name || '');
+                          safeOnAddAvatar(char.description || char.name || '');
                         }
                       }} data-testid={`edit-char-${ci}`}
                         title={lang === 'pt' ? 'Editar personagem' : 'Edit character'}
@@ -2309,11 +2316,11 @@ export const DirectedStudio = memo(function DirectedStudio({
                             <X size={9} />
                           </button>
                           <div className="flex items-center gap-0.5">
-                            <button onClick={e => { e.stopPropagation(); onPreviewAvatar(av.url); }}
+                            <button onClick={e => { e.stopPropagation(); safeOnPreviewAvatar(av.url); }}
                               className="h-5 w-5 rounded flex items-center justify-center text-gray-900/70 hover:text-gray-900 transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
                               <Eye size={9} />
                             </button>
-                            <button onClick={e => { e.stopPropagation(); onEditAvatar(av); }}
+                            <button onClick={e => { e.stopPropagation(); safeOnEditAvatar(av); }}
                               className="h-5 w-5 rounded flex items-center justify-center text-orange-600 hover:text-[#D4B85C] transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
                               <PenTool size={9} />
                             </button>
@@ -2323,7 +2330,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                     );
                   })}
                   {/* Create new avatar button */}
-                  <button onClick={() => onAddAvatar(char.description || char.name || '')} data-testid={`add-avatar-${ci}`}
+                  <button onClick={() => safeOnAddAvatar(char.description || char.name || '')} data-testid={`add-avatar-${ci}`}
                     title={lang === 'pt' ? 'Criar novo personagem' : 'Create new character'}
                     className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-orange-500/50 hover:bg-[#8B5CF6]/5 transition group"
                     style={{ width: 52, height: 68 }}>
