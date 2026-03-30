@@ -1356,7 +1356,7 @@ def _generate_preview_task(tenant_id, project_id):
                     avatar_cache[url] = None
 
         # Step 1: Avatar analysis with Claude Vision
-        avatar_descriptions = _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
+        avatar_descriptions = _run_async_in_thread(_analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id))
 
         # Step 2: Production Design Document
         production_design = _build_production_design(

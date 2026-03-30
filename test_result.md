@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "✅ TESTE DirectorPreview Light Theme - Verificar se o componente DirectorPreview está com Light Theme após correção. Validar cores: fundo branco, texto escuro, botões laranja #F97316, score visível."
+user_problem_statement: "🧪 TESTE CRÍTICO - Director's Preview & Storyboard Generation - Usuário diz que Director's Preview e Storyboard NÃO estão funcionando no projeto 'Historia de Jonas'. Correções aplicadas para async/await violations em storyboard.py linha 73-75 e production.py linha 1359, adicionado _run_async_in_thread() helper."
 
 frontend:
   - task: "React setState Error in LandingV2"
@@ -193,65 +193,41 @@ frontend:
           comment: "✅ Fixed CSS syntax error by removing duplicate text. Changed line 263 from '.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }idth: none; }' to '.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }'. Frontend restarted successfully."
 
 backend:
-  - task: "Dashboard Stats API"
+  - task: "Director's Preview API"
     implemented: true
-    working: true
-    file: "/app/backend/routes/dashboard.py"
-    stuck_count: 0
+    working: false
+    file: "/app/backend/routers/studio/director.py"
+    stuck_count: 1
     priority: "critical"
     needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
-          comment: "❌ CRITICAL: /api/dashboard/stats endpoint returning HTTP 500. Backend error: 'Could not find the table public.pipelines in the schema cache'. This is a missing database table issue in Supabase. The pipelines table does not exist in the database schema."
-        - working: true
-          agent: "testing"
-          comment: "✅ FIXED: /api/dashboard/stats now returns 200 OK. Main agent implemented graceful degradation to handle missing database tables. Endpoint works correctly even without 'pipelines' and 'agents' tables."
+          comment: "❌ CRITICAL: Director's Preview API (/api/studio/projects/{project_id}/director/review) is FAILING. Found exact errors mentioned in review request: 'Object of type coroutine is not JSON serializable' in cache flush and 'coroutine _analyze_avatars_with_vision was never awaited'. API returns 502 Bad Gateway after timeout. Director review starts (logs show 'Director review started for 24 scenes') but never completes. Despite fixes being applied (_run_async_in_thread helper present in storyboard.py line 6-13 and used in production.py line 1359), the async/await violations are still occurring."
 
-  - task: "Pipeline Saved History API"
+  - task: "Storyboard Generation API"
     implemented: true
-    working: "NA"
-    file: "/app/backend/pipeline/routes.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-        - working: false
-          agent: "testing"
-          comment: "❌ CRITICAL: /api/campaigns/pipeline/saved/history endpoint returning HTTP 500. Same root cause: missing 'pipelines' table in Supabase database. Error: postgrest.exceptions.APIError: 'Could not find the table public.pipelines in the schema cache'."
-        - working: "NA"
-          agent: "testing"
-          comment: "⚠️ NOT TESTED: This endpoint was not called during final testing. Marketing page uses /api/campaigns instead. Backend logs show /api/campaigns/pipeline/list returns 200 with graceful degradation, suggesting this endpoint may also be fixed."
-
-  - task: "Pipeline List API"
-    implemented: true
-    working: true
-    file: "/app/backend/pipeline/routes.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-        - working: false
-          agent: "testing"
-          comment: "❌ CRITICAL: /api/campaigns/pipeline/list endpoint returning HTTP 500. Same root cause: missing 'pipelines' table in Supabase database. Line 135 in pipeline/routes.py tries to query supabase.table('pipelines') but table doesn't exist."
-        - working: true
-          agent: "testing"
-          comment: "✅ FIXED: Backend logs show /api/campaigns/pipeline/list now returns 200 OK with warning message 'pipelines table not accessible'. Graceful degradation implemented successfully."
-
-  - task: "Campaigns List API"
-    implemented: true
-    working: true
-    file: "/app/backend/routers/campaigns.py"
-    stuck_count: 0
+    working: false
+    file: "/app/backend/routers/studio/storyboard.py"
+    stuck_count: 1
     priority: "critical"
     needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
-          comment: "❌ CRITICAL: /api/campaigns endpoint (line 78-82 in campaigns.py) returns HTTP 500. Error: 'Could not find the table public.campaigns in the schema cache'. The Marketing page calls this endpoint on load (line 2165 in Marketing.jsx), causing 4 critical console errors. Unlike /api/dashboard/stats and /api/campaigns/pipeline/list which have graceful degradation, this endpoint lacks error handling for missing 'campaigns' table."
-        - working: true
+          comment: "❌ CRITICAL: Storyboard Generation API (/api/studio/projects/{project_id}/generate-storyboard) is FAILING. Found exact error mentioned in review request: 'object of type coroutine has no len()' in backend logs. API accepts request (returns 200 with status: generating) but gets stuck in 'starting' phase and never progresses. Backend logs show: 'Storyboard [4355d8d9f043]: Generation failed: object of type coroutine has no len()'. The _run_async_in_thread() helper is present (lines 6-13) and used (line 84-86) but the coroutine errors persist. Identity Cards generation is failing due to async/await violations."
+
+  - task: "Async/Await Fixes Implementation"
+    implemented: true
+    working: false
+    file: "/app/backend/routers/studio/storyboard.py, /app/backend/routers/studio/production.py"
+    stuck_count: 1
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
           agent: "testing"
-          comment: "✅ FIXED: /api/campaigns endpoint now has graceful degradation (lines 78-88 in campaigns.py). Try-catch block returns empty campaigns array when table doesn't exist. Marketing page loads successfully with ZERO HTTP 500 errors. Comprehensive testing confirms all pages work correctly."
+          comment: "❌ CRITICAL: The async/await fixes mentioned in review request are IMPLEMENTED but NOT WORKING. Found: (1) _run_async_in_thread() helper function exists in storyboard.py lines 6-13, (2) Used in production.py line 1359 for _analyze_avatars_with_vision, (3) Used in storyboard.py lines 84-86 for identity cards generation. However, backend logs still show the exact same errors: 'Object of type coroutine is not JSON serializable', 'coroutine _analyze_avatars_with_vision was never awaited', and 'object of type coroutine has no len()'. The fixes are present but ineffective - deeper investigation needed."
 
 metadata:
   created_by: "testing_agent"
@@ -261,20 +237,17 @@ metadata:
 
 test_plan:
   current_focus:
-    - "DirectorPreview Light Theme - COMPLETE"
-  stuck_tasks: []
+    - "Director's Preview API"
+    - "Storyboard Generation API"
+    - "Async/Await Fixes Implementation"
+  stuck_tasks:
+    - "Director's Preview API"
+    - "Storyboard Generation API"
+    - "Async/Await Fixes Implementation"
   test_all: false
-  test_priority: "complete"
+  test_priority: "critical_first"
 
 agent_communication:
     - agent: "testing"
-      message: "Visual validation complete. Fixed CSS syntax error in index.css that was blocking app compilation. Successfully captured screenshots of all three pages (/dashboard, /studio, /marketing) after login. Light Theme implementation is working correctly on authenticated pages with white/light backgrounds, orange primary color, and dark text. Note: Landing page and login modal still use dark theme (may be intentional for marketing)."
-    - agent: "testing"
-      message: "🚨 URGENT DIAGNOSTIC COMPLETE - CRITICAL ISSUES FOUND: 1) Fixed React setState error in LandingV2.jsx that was preventing login (changed useState to useEffect for language initialization). Login now works. 2) Discovered CRITICAL backend database issue: Missing 'pipelines' table in Supabase causing 3 API endpoints to fail with HTTP 500 errors: /api/dashboard/stats, /api/campaigns/pipeline/saved/history, /api/campaigns/pipeline/list. Root cause: postgrest.exceptions.APIError - 'Could not find the table public.pipelines in the schema cache'. This is blocking dashboard stats and marketing pipeline features. DirectedStudio component is intact and director/apply-fixes endpoint works (200 OK). Frontend is functional but backend needs database schema fix."
-    - agent: "testing"
-      message: "✅ FINAL TEST COMPLETE - MOSTLY WORKING: Tested all user requirements. Login works perfectly (test@studiox.com). Dashboard, Studio, and Marketing pages all load successfully with Light Theme applied (white backgrounds, orange buttons, dark text). /api/dashboard/stats now returns 200 (graceful degradation implemented). /api/campaigns/pipeline/list returns 200 per backend logs. However, 1 CRITICAL ISSUE REMAINS: /api/campaigns endpoint (used by Marketing page) still returns 500 due to missing 'campaigns' table. This endpoint needs same graceful degradation as dashboard/stats. Marketing page loads but shows 'Nenhuma campanha encontrada' and generates 4 console errors. Fix needed: Add try-catch error handling to /api/campaigns endpoint in /app/backend/routers/campaigns.py line 78-82 to return empty campaigns array when table doesn't exist."
-    - agent: "testing"
-      message: "🎉 ALL TESTS PASSED - APPLICATION 100% FUNCTIONAL: Completed comprehensive final testing per user requirements. Results: ✅ Login successful (test@studiox.com/studiox123), ✅ Dashboard loads with Light Theme (white background rgb(255,255,255)), ✅ Studio page displays 30 projects correctly, ✅ Marketing page loads without errors, ✅ Marketing AI Studio pipeline accessible and working, ✅ ZERO HTTP 500 errors across all endpoints, ✅ ZERO console errors, ✅ Light Theme fully implemented (white backgrounds, orange primary buttons, dark text). All backend APIs have graceful degradation including /api/campaigns endpoint. Application is production-ready!"
-    - agent: "testing"
-      message: "✅ DIRECTORPREVIEW LIGHT THEME TEST COMPLETE: Successfully tested DirectorPreview component on 'Historia de Jonas' project (24 scenes, 28 characters). All user requirements validated: (1) ✅ White background confirmed - rgba(255,255,255,0.95) instead of black #0A0A0A, (2) ✅ Dark text - rgb(17,24,39) instead of white, (3) ✅ Orange buttons #F97316 confirmed - 'Aplicar Correções do Director' has rgb(249,115,22) background with black text, not purple #8B5CF6, (4) ✅ Orange 'Re-analisar' button with orange border and text, (5) ✅ Score 88 visible in emerald green (high score color), (6) ✅ Light theme cards with appropriate borders for Pontos Fortes, Melhorias, Ritmo Narrativo, Arco Emocional sections, (7) ✅ Scene-by-scene review list displays with light backgrounds and colored status badges. Page body background: rgb(255,255,255). Light theme implementation is 100% working. Minor non-blocking issues: 1 React key warning in select component, 28 failed network requests (CDN/Supabase video assets). Screenshots captured: /tmp/01_studio_page.png, /tmp/02_project_opened.png, /tmp/03_director_preview.png."
+      message: "🚨 CRITICAL TESTING COMPLETE - ASYNC/AWAIT FIXES NOT WORKING: Tested Director's Preview and Storyboard Generation as requested. Found ALL the exact errors mentioned in review request still occurring: (1) 'Object of type coroutine is not JSON serializable' in cache flush, (2) 'coroutine _analyze_avatars_with_vision was never awaited' as RuntimeWarning, (3) 'object of type coroutine has no len()' in storyboard generation. The fixes ARE IMPLEMENTED (_run_async_in_thread helper exists and is used) but are INEFFECTIVE. Director's Preview times out with 502 error, Storyboard Generation gets stuck in 'starting' phase. Both features are completely broken. The async/await violations persist despite the applied fixes."
 

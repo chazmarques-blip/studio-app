@@ -1,5 +1,16 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
+import asyncio
+
+# ══ ASYNC HELPER ══
+def _run_async_in_thread(coro):
+    """Execute async function in sync thread context"""
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 # ══ STORYBOARD ENDPOINTS ══
 
@@ -70,9 +81,9 @@ async def generate_storyboard(project_id: str, tenant=Depends(get_current_tenant
                             except Exception:
                                 temp_cache[url] = None
 
-                    identity_cards = _analyze_avatars_with_vision(
+                    identity_cards = _run_async_in_thread(_analyze_avatars_with_vision(
                         characters_list, char_avatars_dict, temp_cache, project_id
-                    )
+                    ))
 
                     # Clean up temp files
                     for path in temp_cache.values():
