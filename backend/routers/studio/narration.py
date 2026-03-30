@@ -119,22 +119,6 @@ async def auto_assign_voices(project_id: str, tenant=Depends(get_current_tenant)
         # Fallback to old simple assignment
         logger.warning(f"Falling back to simple voice assignment")
         return await auto_assign_voices_simple(project_id, tenant)
-            voice_details[char_name] = {
-                "voice_id": vid,
-                "voice_name": v.get("name", "Unknown"),
-                "gender": v.get("gender", "?"),
-                "accent": v.get("accent", "?"),
-                "style": v.get("style", "?"),
-            }
-
-        logger.info(f"Studio [{project_id}]: AI Voice Assignment — {len(voice_map)} characters mapped")
-        return {"voice_map": voice_map, "voice_details": voice_details}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Studio [{project_id}]: Auto-assign voices failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Voice assignment failed: {str(e)[:150]}")
 
 
 async def auto_assign_voices_simple(project_id: str, tenant: dict):
