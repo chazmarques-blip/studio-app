@@ -318,18 +318,25 @@ export default function StudioPage() {
   // Last created avatar tracking
   const [lastCreatedAvatar, setLastCreatedAvatar] = useState(null);
 
-  // Avatar management handlers - Now with real implementations!
+  // Avatar management handlers
   const handleAddAvatar = useCallback((promptText) => {
-    // DirectedStudio manages this internally via project avatars
-    // This is just a placeholder for the callback interface
-    console.log('Add avatar triggered:', promptText);
-  }, []);
+    // For now, show info message - full AvatarModal integration coming soon
+    toast.info(lang === 'pt' 
+      ? 'Use o botão "Criar" ou "Acervo" na seção de personagens para adicionar avatares'
+      : 'Use the "Create" or "Library" buttons in the characters section to add avatars', 
+      { duration: 4000 }
+    );
+  }, [lang]);
   
   const handleEditAvatar = useCallback((av) => {
-    // DirectedStudio manages editing internally
-    // The edit UI is already built into DirectedStudio character section
-    console.log('Edit avatar triggered:', av);
-  }, []);
+    // For now, show info about AI editing
+    toast.info(lang === 'pt'
+      ? `Edição de avatar: Use a ferramenta de regeneração ou ajuste manual na biblioteca. Avatar: ${av.name || 'sem nome'}`
+      : `Avatar editing: Use regeneration tool or manual adjustment in library. Avatar: ${av.name || 'unnamed'}`,
+      { duration: 4000 }
+    );
+    console.log('Edit avatar:', av);
+  }, [lang]);
   
   const handleRemoveAvatar = useCallback((av) => {
     console.log('Remove avatar:', av);
@@ -341,7 +348,12 @@ export default function StudioPage() {
   
   const handleAiEditAvatar = useCallback((id) => {
     setAiEditAvatarId(id);
-  }, []);
+    toast.info(lang === 'pt'
+      ? 'Edição com IA: Em breve você poderá editar avatares com instruções de texto'
+      : 'AI Editing: Soon you will be able to edit avatars with text instructions',
+      { duration: 3000 }
+    );
+  }, [lang]);
 
   const L = {
     pt: {
