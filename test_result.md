@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "🔍 DEBUG - Director Preview Not Showing - Usuário reporta que a revisão do Director não está aparecendo na interface para o projeto 'A criacao' (ID: fb10927114e0), mesmo que o backend retorne os dados."
+user_problem_statement: "🔍 TEST - Avatar Edit Buttons in Step 2 (PERSONAGENS) - Testar os botões de edição de avatar no Step 2 (PERSONAGENS) do projeto 'Jonas e o Peixe Grande'. Verificar se botões Editar (laranja, PenTool) e Zoom (branco, Eye) aparecem no rodapé dos avatares, se console logs funcionam, e se modais abrem corretamente."
 
 frontend:
   - task: "React setState Error in LandingV2"
@@ -195,6 +195,18 @@ frontend:
           agent: "testing"
           comment: "✅ Fixed CSS syntax error by removing duplicate text. Changed line 263 from '.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }idth: none; }' to '.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }'. Frontend restarted successfully."
 
+  - task: "Avatar Edit Buttons in Step 2 (PERSONAGENS)"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/DirectedStudio.jsx, /app/frontend/src/pages/StudioPage.jsx"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL BUG FOUND: Avatar edit buttons are visible and clickable in Step 2 (PERSONAGENS), console logs work correctly, BUT modals do NOT open. ROOT CAUSE: In StudioPage.jsx, when a project is selected, the component returns early (lines 644-720) rendering only DirectedStudio. The AvatarModal (lines 938-1027) and Preview Modal (lines 914-935) are rendered AFTER this return statement, so they are NEVER in the DOM when viewing a project. EVIDENCE: (1) Tested project 'JONAS E O PEIXE GRANDE' with 11 characters and 132 avatars. (2) Edit button (orange, PenTool icon) clicked successfully - console shows '🔧 handleEditAvatar chamado: {id: 2d58b559fbf8, ...}' but AvatarModal does NOT appear. (3) Zoom button (white, Eye icon) clicked successfully - console shows '👁️ Preview: https://...' and '🔍 handlePreviewAvatar chamado: https://...' but preview modal does NOT appear. (4) Code analysis confirms: DirectedStudio.jsx lines 2320 and 2325 have correct console.log statements and call handlers. StudioPage.jsx lines 448-451 (handleEditAvatar) and 463-466 (handlePreviewAvatar) set state correctly. However, modals are unreachable. FIX REQUIRED: Move modal components INSIDE the selectedProject conditional block (before line 720) OR render them at root level outside the conditional."
+
 backend:
   - task: "Director's Preview API for Project 'A criacao'"
     implemented: true
@@ -237,14 +249,13 @@ backend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.5"
-  test_sequence: 6
+  version: "1.6"
+  test_sequence: 7
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Director's Preview UI Display for Project 'A criacao'"
-    - "Director's Preview API for Project 'A criacao'"
+    - "Avatar Edit Buttons in Step 2 (PERSONAGENS)"
   stuck_tasks: []
   test_all: false
   test_priority: "critical_first"
@@ -254,4 +265,6 @@ agent_communication:
       message: "🚨 CRITICAL TESTING COMPLETE - ASYNC/AWAIT FIXES NOT WORKING: Tested Director's Preview and Storyboard Generation as requested. Found ALL the exact errors mentioned in review request still occurring: (1) 'Object of type coroutine is not JSON serializable' in cache flush, (2) 'coroutine _analyze_avatars_with_vision was never awaited' as RuntimeWarning, (3) 'object of type coroutine has no len()' in storyboard generation. The fixes ARE IMPLEMENTED (_run_async_in_thread helper exists and is used) but are INEFFECTIVE. Director's Preview times out with 502 error, Storyboard Generation gets stuck in 'starting' phase. Both features are completely broken. The async/await violations persist despite the applied fixes."
     - agent: "testing"
       message: "✅ USER REPORT INCORRECT - DIRECTOR'S PREVIEW IS FULLY WORKING: Completed comprehensive testing of Director's Preview for project 'A criacao' (fb10927114e0). RESULTS: (1) Backend API working perfectly - GET endpoint returns 200 OK with complete review data (score: 78, verdict: NEEDS_REVISION, 24 scene reviews with detailed feedback). (2) Frontend UI rendering correctly - displays score, verdict, director notes, scene-by-scene reviews, action buttons. (3) Full user flow tested: Login → Studio → Open Project → Navigate to Step 4 (Director's Preview) → All elements visible and functional. (4) Network monitoring confirms API call succeeds with valid JSON response. CONCLUSION: The user's report that 'Director's Preview is not showing' is INCORRECT. The feature is fully functional. Possible explanations: (a) User was looking at wrong project, (b) Temporary browser cache issue (now resolved), (c) User confusion about navigation. NO ACTION REQUIRED from main agent."
+    - agent: "testing"
+      message: "❌ CRITICAL BUG - AVATAR MODALS NOT RENDERING: Tested avatar edit buttons in Step 2 (PERSONAGENS) for project 'JONAS E O PEIXE GRANDE'. FINDINGS: (1) Buttons are visible and functional - 132 edit buttons and 121 zoom buttons found. (2) Console logs work correctly - '👁️ Preview:' and '🔧 handleEditAvatar chamado:' appear in console. (3) Event handlers execute successfully - state is set in StudioPage.jsx. (4) CRITICAL ISSUE: Modals do NOT appear because they are rendered outside the selectedProject conditional block in StudioPage.jsx. When DirectedStudio is active (lines 644-720), the component returns early, and modals (lines 914-935 for Preview, 938-1027 for AvatarModal) are never rendered in DOM. FIX: Move modal components inside the selectedProject block OR render at root level. This is a structural bug affecting all avatar editing functionality when viewing projects."
 

@@ -2298,31 +2298,34 @@ export const DirectedStudio = memo(function DirectedStudio({
                     const isLinked = characterAvatars[char.name] === av.url;
                     const isEditing = aiEditAvatarId === av.id;
                     return (
-                      <div key={av.id || ai} className={`relative rounded-lg overflow-hidden border-2 transition cursor-pointer group ${
+                      <div key={av.id || ai} className={`relative rounded-lg overflow-hidden border-2 transition ${
                         isLinked ? 'border-orange-500 shadow-[0_0_8px_rgba(201,168,76,0.25)]' : 'border-[#222] hover:border-[#444]'
                       }`} style={{ width: 52, height: 68 }}>
                         <img loading="lazy" decoding="async" src={resolveImageUrl(av.url)} alt={av.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover cursor-pointer"
                           onClick={() => linkAvatar(char.name, av.url)} />
                         {isLinked && (
-                          <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+                          <div className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#8B5CF6] flex items-center justify-center pointer-events-none">
                             <Check size={8} className="text-black" />
                           </div>
                         )}
-                        {/* Action bar — ALWAYS visible (not just hover) */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-0.5 py-0.5 flex items-center justify-between">
-                          <button onClick={e => { e.stopPropagation(); removeAvatarFromProject(av.id); }}
-                            className="h-5 w-5 rounded flex items-center justify-center text-red-400/70 hover:text-red-400 transition" title={lang === 'pt' ? 'Remover' : 'Remove'}>
-                            <X size={9} />
+                        {/* Action bar — SEMPRE visível e clicável */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-1 flex items-center justify-between z-10">
+                          <button onClick={e => { e.stopPropagation(); console.log('❌ Remover:', av.id); removeAvatarFromProject(av.id); }}
+                            className="h-6 w-6 rounded bg-red-500/80 hover:bg-red-500 flex items-center justify-center text-white transition cursor-pointer" 
+                            title={lang === 'pt' ? 'Remover' : 'Remove'}>
+                            <X size={11} />
                           </button>
-                          <div className="flex items-center gap-0.5">
-                            <button onClick={e => { e.stopPropagation(); safeOnPreviewAvatar(av.url); }}
-                              className="h-5 w-5 rounded flex items-center justify-center text-white/80 hover:text-white transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
-                              <Eye size={10} />
+                          <div className="flex items-center gap-1">
+                            <button onClick={e => { e.stopPropagation(); console.log('👁️ Preview:', av.url); safeOnPreviewAvatar(av.url); }}
+                              className="h-6 w-6 rounded bg-white/90 hover:bg-white flex items-center justify-center text-black transition cursor-pointer" 
+                              title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
+                              <Eye size={11} />
                             </button>
-                            <button onClick={e => { e.stopPropagation(); safeOnEditAvatar(av); }}
-                              className="h-5 w-5 rounded flex items-center justify-center text-orange-500 hover:text-orange-400 transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
-                              <PenTool size={10} />
+                            <button onClick={e => { e.stopPropagation(); console.log('✏️ Editar:', av); safeOnEditAvatar(av); }}
+                              className="h-6 w-6 rounded bg-orange-500 hover:bg-orange-600 flex items-center justify-center text-white transition cursor-pointer" 
+                              title={lang === 'pt' ? 'Editar' : 'Edit'}>
+                              <PenTool size={11} />
                             </button>
                           </div>
                         </div>
