@@ -457,13 +457,14 @@ export default function TrafficHub() {
               </button>
             </div>
             
-            {/* Nova Campanha Button */}
+            {/* Pipeline AI Button */}
             <button
-              onClick={() => navigate('/campaigns/new')}
+              onClick={() => navigate('/marketing/studio')}
               className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] rounded-lg text-xs font-semibold text-black hover:opacity-90 transition"
+              title="Pipeline completo com AI para criar campanhas"
             >
               <Sparkles size={14} />
-              Nova Campanha
+              Criar com AI Studio
             </button>
           </div>
           
