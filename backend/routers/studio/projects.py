@@ -60,6 +60,49 @@ async def list_projects(tenant=Depends(get_current_tenant)):
     settings = _get_settings(tenant["id"])
     return {"projects": settings.get("studio_projects", [])}
 
+@router.get("/projects/{project_id}")
+async def get_project(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get complete project data - same as /status"""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {
+        "id": project.get("id"),
+        "name": project.get("name", ""),
+        "synopsis": project.get("synopsis", ""),
+        "briefing": project.get("briefing", ""),
+        "script": project.get("script", ""),
+        "status": project.get("status"),
+        "chat_status": project.get("chat_status"),
+        "chat_history": project.get("chat_history", []),
+        "chat_messages": project.get("chat_messages", []),
+        "agent_status": project.get("agent_status", {}),
+        "agents_output": project.get("agents_output", {}),
+        "scenes": project.get("scenes", []),
+        "characters": project.get("characters", []),
+        "character_avatars": project.get("character_avatars", {}),
+        "project_avatars": project.get("project_avatars", []),
+        "outputs": project.get("outputs", []),
+        "milestones": project.get("milestones", []),
+        "narrations": project.get("narrations", []),
+        "narration_status": project.get("narration_status", {}),
+        "voice_config": project.get("voice_config", {}),
+        "visual_style": project.get("visual_style", "animation"),
+        "animation_sub": project.get("animation_sub", "pixar_3d"),
+        "continuity_mode": project.get("continuity_mode", True),
+        "language": project.get("language", "pt"),
+        "subtitles": project.get("subtitles", {}),
+        "screenplay_approved": project.get("screenplay_approved", False),
+        "audio_mode": project.get("audio_mode", "narrated"),
+        "storyboard_panels": project.get("storyboard_panels", []),
+        "storyboard_status": project.get("storyboard_status", {}),
+        "storyboard_approved": project.get("storyboard_approved", False),
+        "storyboard_chat_history": project.get("storyboard_chat_history", []),
+        "continuity_status": project.get("continuity_status", {}),
+        "continuity_report": project.get("continuity_report", {}),
+        "error": project.get("error"),
+    }
+
 @router.get("/projects/{project_id}/status")
 async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)):
     settings, projects, project = _get_project(tenant["id"], project_id)
