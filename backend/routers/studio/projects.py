@@ -469,5 +469,33 @@ CRITICAL REQUIREMENTS:
     settings["studio_avatars"] = global_avatars
     _save_project(tenant["id"], settings, projects)
     _save_settings(tenant["id"], settings)
+    
+    # ═══ AUTO-ASSIGN VOICES using Sound Designer Agent ═══
+    logger.info(f"CharacterGen [{project_id}]: Triggering Sound Designer Agent for voice assignment")
+    try:
+        from .sound_design_agent import auto_assign_voices_with_sound_designer
+        from pipeline.config import ELEVENLABS_VOICES
+        
+        voice_result = await auto_assign_voices_with_sound_designer(
+            project_id=project_id,
+            tenant_id=tenant_id,
+            available_voices=ELEVENLABS_VOICES
+        )
+        
+        # Save voice assignments to project
+        voice_map = voice_result["voice_map"]
+        project["voice_map"] = voice_map
+        _save_project(tenant_id, settings, projects)
+        
+        logger.info(f"CharacterGen [{project_id}]: Voice assignment complete - {len(voice_map)} characters")
+        
+        results["voice_assignments"] = {
+            "assigned": len(voice_map),
+            "details": voice_result["detailed_assignments"][:5]  # First 5 for preview
+        }
+        
+    except Exception as voice_err:
+        logger.warning(f"CharacterGen [{project_id}]: Voice assignment failed, skipping - {voice_err}")
+        results["voice_assignments"] = {"assigned": 0, "error": str(voice_err)}
 
     return results

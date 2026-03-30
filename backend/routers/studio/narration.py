@@ -48,7 +48,13 @@ class AutoAssignVoicesRequest(BaseModel):
 
 @router.post("/projects/{project_id}/auto-assign-voices")
 async def auto_assign_voices(project_id: str, tenant=Depends(get_current_tenant)):
-    """Use Claude to intelligently assign ElevenLabs voices to each character based on their description."""
+    """
+    Use SOUND DESIGNER AGENT to intelligently assign voices based on:
+    - Species/character type (bird, lion, dolphin, human, etc.)
+    - Physical characteristics (size, build)
+    - Age (child, adult, elder)
+    - Personality (playful, wise, energetic, etc.)
+    """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -57,97 +63,62 @@ async def auto_assign_voices(project_id: str, tenant=Depends(get_current_tenant)
     if not characters:
         raise HTTPException(status_code=400, detail="No characters in project")
 
-    # Build voices catalog for Claude
-    voices_catalog = "\n".join([
-        f"- ID: {v['id']} | Name: {v['name']} | Gender: {v['gender']} | Accent: {v['accent']} | Style: {v['style']}"
-        for v in ELEVENLABS_VOICES
-    ])
-
-    # Build character descriptions
-    char_descriptions = "\n".join([
-        f"- {c.get('name', '?')}: {c.get('description', 'No description')} | Role: {c.get('role', '?')}"
-        for c in characters
-    ])
-
-    lang = project.get("language", "pt")
-    system_prompt = f"""You are a professional casting director for animated films. Your job is to assign the PERFECT voice actor to each character.
-
-AVAILABLE VOICES:
-{voices_catalog}
-
-RULES:
-1. Match voice PERSONALITY to character PERSONALITY — not just gender
-2. For children/young characters, use youthful voices (Gigi, Freya-style light voices)
-3. For elder/wise characters, use deep authoritative voices (Brian, Bill, Daniel)
-4. For female characters, use female voices. For male, use male voices
-5. For animals with specific traits (e.g. curious monkey), match the energy level
-6. Narrators should get calm, warm, storytelling voices (Rachel, Drew, Matilda)
-7. If a character is comic/energetic, use expressive voices (Aria, Charlie, Will)
-8. If a character is divine/angelic, use ethereal voices (Daniel, River)
-9. Make each character's voice DISTINCT from others — avoid duplicates unless necessary
-10. The project language is {lang.upper()}, all voices support multilingual via eleven_multilingual_v2
-
-Return ONLY valid JSON mapping character names to voice IDs:
-{{"CharacterName": "voice_id", "AnotherCharacter": "voice_id"}}
-
-IMPORTANT: Use ONLY voice IDs from the catalog above. Assign a voice to EVERY character listed."""
-
-    user_prompt = f"""Project: {project.get('name', 'Untitled')}
-Story: {project.get('briefing', '')[:500]}
-
-CHARACTERS TO CAST:
-{char_descriptions}
-
-Assign the perfect voice for each character. Be creative and ensure each voice is distinct and matches the character's personality."""
+    logger.info(f"SoundDesigner [{project_id}]: Starting intelligent voice assignment for {len(characters)} characters")
 
     try:
-        result = _call_claude_sync(system_prompt, user_prompt, max_tokens=2000)
-        import json as json_mod
-
-        # Parse the JSON response
-        parsed = _parse_json(result)
-        if not parsed:
-            # Try to extract JSON from text
-            if '{' in result:
-                start = result.index('{')
-                end = result.rindex('}') + 1
-                parsed = json_mod.loads(result[start:end])
-
-        if not parsed:
-            raise HTTPException(status_code=500, detail="Failed to parse AI voice assignment")
-
-        # Validate all voice IDs exist
-        valid_ids = {v['id'] for v in ELEVENLABS_VOICES}
-        voice_map = {}
-        for char_name, vid in parsed.items():
-            if vid in valid_ids:
-                voice_map[char_name] = vid
-            else:
-                # Fallback to Rachel
-                voice_map[char_name] = "21m00Tcm4TlvDq8ikWAM"
-
-        # Ensure all characters have a voice
-        for c in characters:
-            name = c.get("name", "")
-            if name and name not in voice_map:
-                # Fuzzy match
-                matched = False
-                for k in voice_map:
-                    if k.lower() in name.lower() or name.lower() in k.lower():
-                        voice_map[name] = voice_map[k]
-                        matched = True
-                        break
-                if not matched:
-                    voice_map[name] = "21m00Tcm4TlvDq8ikWAM"  # Rachel fallback
-
+        from .sound_design_agent import auto_assign_voices_with_sound_designer
+        
+        # Use Sound Designer Agent for intelligent assignment
+        result = await auto_assign_voices_with_sound_designer(
+            project_id=project_id,
+            tenant_id=tenant["id"],
+            available_voices=ELEVENLABS_VOICES
+        )
+        
+        voice_map = result["voice_map"]
+        detailed_assignments = result["detailed_assignments"]
+        stats = result["stats"]
+        
         # Save to project
         _update_project_field(tenant["id"], project_id, {"voice_map": voice_map})
 
-        # Build response with voice details
-        voice_details = {}
+        # Build detailed response
         voice_lookup = {v['id']: v for v in ELEVENLABS_VOICES}
-        for char_name, vid in voice_map.items():
-            v = voice_lookup.get(vid, {})
+        assignments_with_details = []
+        
+        for assignment in detailed_assignments:
+            char_name = assignment["character_name"]
+            voice_id = assignment["voice_id"]
+            voice_info = voice_lookup.get(voice_id, {})
+            
+            assignments_with_details.append({
+                "character": char_name,
+                "voice_id": voice_id,
+                "voice_name": voice_info.get("name", "Unknown"),
+                "voice_gender": voice_info.get("gender", ""),
+                "voice_accent": voice_info.get("accent", ""),
+                "confidence": assignment["confidence"],
+                "reasoning": assignment["reasoning"],
+                "characteristics": assignment.get("voice_characteristics", {}),
+                "status": assignment["status"]
+            })
+
+        logger.info(f"SoundDesigner [{project_id}]: Complete - {stats['unique_voices_used']} unique voices assigned")
+
+        return {
+            "voice_map": voice_map,
+            "assignments": assignments_with_details,
+            "stats": stats,
+            "message": f"✅ {len(voice_map)} personagens receberam vozes inteligentes! "
+                      f"({stats['unique_voices_used']} vozes únicas, "
+                      f"{stats['fallbacks']} fallbacks)"
+        }
+
+    except Exception as e:
+        logger.error(f"SoundDesigner error: {e}")
+        # Fallback to old simple assignment
+        logger.warning(f"Falling back to simple voice assignment")
+        return await auto_assign_voices_simple(project_id, tenant)
             voice_details[char_name] = {
                 "voice_id": vid,
                 "voice_name": v.get("name", "Unknown"),
@@ -164,6 +135,31 @@ Assign the perfect voice for each character. Be creative and ensure each voice i
     except Exception as e:
         logger.error(f"Studio [{project_id}]: Auto-assign voices failed: {e}")
         raise HTTPException(status_code=500, detail=f"Voice assignment failed: {str(e)[:150]}")
+
+
+async def auto_assign_voices_simple(project_id: str, tenant: dict):
+    """Simple fallback voice assignment (old method)"""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    characters = project.get("characters", [])
+    
+    # Simple rule-based assignment
+    voice_map = {}
+    for char in characters:
+        name = char.get("name", "")
+        desc = char.get("description", "").lower()
+        
+        # Simple heuristics
+        if any(word in desc for word in ["bird", "pássaro", "ave"]):
+            voice_map[name] = "pNInz6obpgDQGcFmaJgB"  # Adam - higher pitched
+        elif any(word in desc for word in ["lion", "leão", "tiger"]):
+            voice_map[name] = "N2lVS1w4EtoT3dr4eOWO"  # Callum - deep
+        else:
+            voice_map[name] = "21m00Tcm4TlvDq8ikWAM"  # Rachel - default
+    
+    _update_project_field(tenant["id"], project_id, {"voice_map": voice_map})
+    
+    return {"voice_map": voice_map, "message": "Simple assignment completed"}
+
 
 
 class UpdateVoiceMapRequest(BaseModel):
