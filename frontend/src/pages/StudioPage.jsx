@@ -9,6 +9,7 @@ import {
 import axios from 'axios';
 import { toast } from 'sonner';
 import { DirectedStudio } from '../components/DirectedStudio';
+import { AvatarModal } from '../components/pipeline/AvatarModal';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 
@@ -615,6 +616,22 @@ export default function StudioPage() {
                   <p className="text-xs text-white/50">{l.subtitle}</p>
                 </div>
               </div>
+            </div>
+
+            {/* Center: Mode Switcher */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 bg-[#1A1A1A] rounded-lg p-1">
+              <button
+                onClick={() => navigate('/studio')}
+                className="px-4 py-1.5 text-xs font-medium rounded-md transition bg-[#8B5CF6] text-white"
+              >
+                {l.studioMode || 'Estúdio de Vídeos'}
+              </button>
+              <button
+                onClick={() => navigate('/traffic-hub')}
+                className="px-4 py-1.5 text-xs font-medium rounded-md transition text-white/70 hover:text-white hover:bg-[#2A2A2A]"
+              >
+                {l.marketingMode || 'Campanhas de Marketing'}
+              </button>
             </div>
 
             {/* Right: Project Count + Actions */}

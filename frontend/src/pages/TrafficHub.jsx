@@ -440,6 +440,22 @@ export default function TrafficHub() {
               <p className="text-[10px] text-[#B0B0B0]">Centro de comando — performance e otimizacao de campanhas</p>
             </div>
           </div>
+          
+          {/* Mode Switcher */}
+          <div className="flex items-center gap-2 bg-[#111] rounded-lg p-1 mr-4">
+            <button
+              onClick={() => navigate('/studio')}
+              className="px-3 py-1 text-[10px] font-medium rounded-md transition text-white/70 hover:text-white hover:bg-[#1A1A1A]"
+            >
+              Estúdio
+            </button>
+            <button
+              className="px-3 py-1 text-[10px] font-medium rounded-md transition bg-[#8B5CF6] text-white"
+            >
+              Marketing
+            </button>
+          </div>
+          
           {/* Global KPIs */}
           <div className="hidden md:flex items-center gap-4">
             {[
