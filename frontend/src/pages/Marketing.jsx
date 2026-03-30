@@ -2257,21 +2257,30 @@ export default function Marketing() {
 
       <div className="px-3 pt-3 max-w-4xl mx-auto">
         {/* AI Studio CTA for non-Enterprise */}
-        {!isEnterprise && (
-          <div data-testid="studio-upsell" className="mb-3 rounded-xl border border-[#8B5CF6]/15 bg-gradient-to-r from-[#8B5CF6]/5 to-transparent p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8B5CF6]/10 shrink-0"><Sparkles size={18} className="text-[#8B5CF6]" /></div>
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <h3 className="text-[12px] font-semibold text-white">Marketing AI Studio</h3>
-                  <span className="text-[8px] font-bold bg-[#8B5CF6]/15 text-[#8B5CF6] px-1.5 py-0.5 rounded flex items-center gap-0.5"><Lock size={7} /> ENTERPRISE</span>
-                </div>
-                <p className="text-[10px] text-[#888] mb-2">{labels.studioDesc}</p>
-                <button onClick={() => navigate('/upgrade')} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">{labels.upgradeEnterprise}</button>
+        {/* Marketing AI Studio Card - DESBLOQUEADO */}
+        <div 
+          onClick={() => navigate('/marketing/studio')}
+          data-testid="studio-upsell" 
+          className="mb-3 rounded-xl border border-[#8B5CF6]/20 bg-gradient-to-r from-[#8B5CF6]/5 to-transparent p-4 cursor-pointer hover:border-[#8B5CF6]/40 transition group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8B5CF6]/10 shrink-0">
+              <Sparkles size={18} className="text-[#8B5CF6]" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <h3 className="text-[12px] font-semibold text-white">Marketing AI Studio</h3>
               </div>
+              <p className="text-[10px] text-[#888] mb-2">{labels.studioDesc}</p>
+              <button 
+                onClick={(e) => { e.stopPropagation(); navigate('/marketing/studio'); }}
+                className="btn-gold rounded-lg px-3 py-1.5 text-[10px] group-hover:shadow-lg transition"
+              >
+                {labels.createWithStudio}
+              </button>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-4 gap-2 mb-3">
