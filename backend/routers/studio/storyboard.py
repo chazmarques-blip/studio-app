@@ -62,6 +62,10 @@ async def get_storyboard_cost_estimate():
     }
 
 
+class StoryboardApproveRequest(BaseModel):
+    approved: bool = True
+
+
 @router.post("/projects/{project_id}/generate-storyboard")
 async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = None, tenant=Depends(get_current_tenant)):
     """Generate storyboard panels for scenes using Gemini Nano Banana.
