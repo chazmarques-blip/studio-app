@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "🚨 URGENT: User reports project is broken after Light Theme implementation. Error message: 'O DIRETOR NÃO CONSEGUIU APLICAR A CORREÇÃO QUE DEU ERRO. AI NAO CONSEGUIMOS SEGUIR O PROJETO' (The director couldn't apply the correction that gave error. We can't continue the project). Need comprehensive diagnostic to identify all blocking errors."
+user_problem_statement: "✅ TESTE DirectorPreview Light Theme - Verificar se o componente DirectorPreview está com Light Theme após correção. Validar cores: fundo branco, texto escuro, botões laranja #F97316, score visível."
 
 frontend:
   - task: "React setState Error in LandingV2"
@@ -164,6 +164,18 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ Marketing Studio page loads and renders correctly with Light Theme. Pipeline View elements are present. However, pipeline data APIs are failing (see backend issues)."
+
+  - task: "Light Theme - DirectorPreview Component"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/DirectorPreview.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ DIRECTOR'S PREVIEW LIGHT THEME CONFIRMED: Comprehensive testing completed on 'Historia de Jonas' project (24 scenes). All visual requirements met: (1) White background confirmed - rgba(255,255,255,0.95), (2) Dark text color - rgb(17,24,39), (3) Orange buttons #F97316 confirmed - 'Aplicar Correções do Director' button has rgb(249,115,22) background with black text, (4) Orange 'Re-analisar' button with orange border rgba(249,115,22,0.4), (5) Score 88 visible in emerald green for high score, (6) Light theme cards for 'Pontos Fortes', 'Melhorias', 'Ritmo Narrativo', 'Arco Emocional' sections, (7) Scene-by-scene review list with light backgrounds. Body background: rgb(255,255,255). Component renders correctly with all expected light theme colors. Screenshots: /tmp/01_studio_page.png, /tmp/02_project_opened.png, /tmp/03_director_preview.png. Minor issues: 1 React key warning (non-critical), 28 failed network requests (CDN/Supabase assets, non-blocking)."
 
   - task: "CSS Syntax Error Fix"
     implemented: true
@@ -243,13 +255,13 @@ backend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.3"
-  test_sequence: 4
+  version: "1.4"
+  test_sequence: 5
   run_ui: true
 
 test_plan:
   current_focus:
-    - "All tests complete"
+    - "DirectorPreview Light Theme - COMPLETE"
   stuck_tasks: []
   test_all: false
   test_priority: "complete"
@@ -263,3 +275,6 @@ agent_communication:
       message: "✅ FINAL TEST COMPLETE - MOSTLY WORKING: Tested all user requirements. Login works perfectly (test@studiox.com). Dashboard, Studio, and Marketing pages all load successfully with Light Theme applied (white backgrounds, orange buttons, dark text). /api/dashboard/stats now returns 200 (graceful degradation implemented). /api/campaigns/pipeline/list returns 200 per backend logs. However, 1 CRITICAL ISSUE REMAINS: /api/campaigns endpoint (used by Marketing page) still returns 500 due to missing 'campaigns' table. This endpoint needs same graceful degradation as dashboard/stats. Marketing page loads but shows 'Nenhuma campanha encontrada' and generates 4 console errors. Fix needed: Add try-catch error handling to /api/campaigns endpoint in /app/backend/routers/campaigns.py line 78-82 to return empty campaigns array when table doesn't exist."
     - agent: "testing"
       message: "🎉 ALL TESTS PASSED - APPLICATION 100% FUNCTIONAL: Completed comprehensive final testing per user requirements. Results: ✅ Login successful (test@studiox.com/studiox123), ✅ Dashboard loads with Light Theme (white background rgb(255,255,255)), ✅ Studio page displays 30 projects correctly, ✅ Marketing page loads without errors, ✅ Marketing AI Studio pipeline accessible and working, ✅ ZERO HTTP 500 errors across all endpoints, ✅ ZERO console errors, ✅ Light Theme fully implemented (white backgrounds, orange primary buttons, dark text). All backend APIs have graceful degradation including /api/campaigns endpoint. Application is production-ready!"
+    - agent: "testing"
+      message: "✅ DIRECTORPREVIEW LIGHT THEME TEST COMPLETE: Successfully tested DirectorPreview component on 'Historia de Jonas' project (24 scenes, 28 characters). All user requirements validated: (1) ✅ White background confirmed - rgba(255,255,255,0.95) instead of black #0A0A0A, (2) ✅ Dark text - rgb(17,24,39) instead of white, (3) ✅ Orange buttons #F97316 confirmed - 'Aplicar Correções do Director' has rgb(249,115,22) background with black text, not purple #8B5CF6, (4) ✅ Orange 'Re-analisar' button with orange border and text, (5) ✅ Score 88 visible in emerald green (high score color), (6) ✅ Light theme cards with appropriate borders for Pontos Fortes, Melhorias, Ritmo Narrativo, Arco Emocional sections, (7) ✅ Scene-by-scene review list displays with light backgrounds and colored status badges. Page body background: rgb(255,255,255). Light theme implementation is 100% working. Minor non-blocking issues: 1 React key warning in select component, 28 failed network requests (CDN/Supabase video assets). Screenshots captured: /tmp/01_studio_page.png, /tmp/02_project_opened.png, /tmp/03_director_preview.png."
+
