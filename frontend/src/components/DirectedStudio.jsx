@@ -2309,20 +2309,20 @@ export const DirectedStudio = memo(function DirectedStudio({
                             <Check size={8} className="text-black" />
                           </div>
                         )}
-                        {/* Action bar — always visible on hover */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-0.5 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Action bar — ALWAYS visible (not just hover) */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-0.5 py-0.5 flex items-center justify-between">
                           <button onClick={e => { e.stopPropagation(); removeAvatarFromProject(av.id); }}
                             className="h-5 w-5 rounded flex items-center justify-center text-red-400/70 hover:text-red-400 transition" title={lang === 'pt' ? 'Remover' : 'Remove'}>
                             <X size={9} />
                           </button>
                           <div className="flex items-center gap-0.5">
                             <button onClick={e => { e.stopPropagation(); safeOnPreviewAvatar(av.url); }}
-                              className="h-5 w-5 rounded flex items-center justify-center text-gray-900/70 hover:text-gray-900 transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
-                              <Eye size={9} />
+                              className="h-5 w-5 rounded flex items-center justify-center text-white/80 hover:text-white transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
+                              <Eye size={10} />
                             </button>
                             <button onClick={e => { e.stopPropagation(); safeOnEditAvatar(av); }}
-                              className="h-5 w-5 rounded flex items-center justify-center text-orange-600 hover:text-[#D4B85C] transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
-                              <PenTool size={9} />
+                              className="h-5 w-5 rounded flex items-center justify-center text-orange-500 hover:text-orange-400 transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
+                              <PenTool size={10} />
                             </button>
                           </div>
                         </div>
