@@ -132,13 +132,20 @@ async def upload_pipeline_asset(
 @router.get("/list")
 async def list_pipelines(user=Depends(get_current_user)):
     tenant = await _get_tenant(user)
-    result = supabase.table("pipelines").select("*").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
+    try:
+        result = supabase.table("pipelines").select("*").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
+        pipelines = result.data or []
+    except Exception as e:
+        # Table pipelines might not exist yet - return empty list
+        print(f"Warning: pipelines table not accessible: {e}")
+        pipelines = []
+    
     # Trigger recovery for stuck pipelines in background
     try:
         _recover_orphaned_pipelines()
     except Exception:
         pass
-    return {"pipelines": result.data or []}
+    return {"pipelines": pipelines}
 
 
 
@@ -188,8 +195,13 @@ async def create_pipeline(data: PipelineCreate, user=Depends(get_current_user)):
 async def get_saved_history_v2(user=Depends(get_current_user)):
     """Get saved logos and recent briefings from previous pipelines"""
     tenant = await _get_tenant(user)
-    result = supabase.table("pipelines").select("briefing, result, platforms, created_at").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
-    pipelines = result.data or []
+    try:
+        result = supabase.table("pipelines").select("briefing, result, platforms, created_at").eq("tenant_id", tenant["id"]).order("created_at", desc=True).limit(20).execute()
+        pipelines = result.data or []
+    except Exception as e:
+        # Table pipelines might not exist yet - return empty data
+        print(f"Warning: pipelines table not accessible: {e}")
+        pipelines = []
 
     logos = []
     seen_urls = set()

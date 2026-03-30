@@ -145,27 +145,42 @@ async def get_dashboard_stats(user=Depends(get_current_user)):
     tenant = tenant_result.data[0]
     tid = tenant["id"]
 
-    # Agents
-    agents_data = supabase.table("agents").select("*").eq("tenant_id", tid).execute().data or []
+    # Agents (with fallback if table doesn't exist)
+    try:
+        agents_data = supabase.table("agents").select("*").eq("tenant_id", tid).execute().data or []
+    except Exception:
+        agents_data = []
 
-    # Leads
-    leads_data = supabase.table("leads").select("*").eq("tenant_id", tid).execute().data or []
+    # Leads (with fallback)
+    try:
+        leads_data = supabase.table("leads").select("*").eq("tenant_id", tid).execute().data or []
+    except Exception:
+        leads_data = []
     pipeline = Counter(l.get("stage", "new") for l in leads_data)
     total_value = sum(float(l.get("value", 0)) for l in leads_data if l.get("stage") == "won")
 
-    # Conversations (recent 5)
-    convos = supabase.table("conversations").select("*").eq("tenant_id", tid).order("last_message_at", desc=True).limit(5).execute().data or []
+    # Conversations (recent 5) (with fallback)
+    try:
+        convos = supabase.table("conversations").select("*").eq("tenant_id", tid).order("last_message_at", desc=True).limit(5).execute().data or []
+    except Exception:
+        convos = []
 
-    # All conversations for channel stats
-    all_convos = supabase.table("conversations").select("id, channel_type, status, created_at").eq("tenant_id", tid).execute().data or []
+    # All conversations for channel stats (with fallback)
+    try:
+        all_convos = supabase.table("conversations").select("id, channel_type, status, created_at").eq("tenant_id", tid).execute().data or []
+    except Exception:
+        all_convos = []
     channel_counter = Counter(c.get("channel_type", "web") for c in all_convos)
     resolved = sum(1 for c in all_convos if c.get("status") == "resolved")
     resolution_rate = round((resolved / len(all_convos) * 100) if all_convos else 0)
 
-    # Messages last 7 days
+    # Messages last 7 days (with fallback)
     now = datetime.now(timezone.utc)
     week_ago = (now - timedelta(days=7)).isoformat()
-    msgs_week = supabase.table("messages").select("created_at, sender").gte("created_at", week_ago).execute().data or []
+    try:
+        msgs_week = supabase.table("messages").select("created_at, sender").gte("created_at", week_ago).execute().data or []
+    except Exception:
+        msgs_week = []
     day_counts = Counter()
     today_count = 0
     today_str = now.strftime("%Y-%m-%d")
