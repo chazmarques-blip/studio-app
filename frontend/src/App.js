@@ -110,7 +110,14 @@ function App() {
       <AuthProvider>
         <StudioProductionProvider>
         <ErrorBoundary>
-        <Toaster position="top-center" toastOptions={{ style: { background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#FFFFFF', fontSize: '13px' } }} />
+        <Toaster 
+          position="bottom-right" 
+          toastOptions={{ 
+            style: { background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#FFFFFF', fontSize: '13px' },
+            duration: 3000,
+            success: { duration: 2500 }
+          }} 
+        />
         <StudioProductionBanner />
         <Suspense fallback={<PageLoader />}>
         <Routes>
