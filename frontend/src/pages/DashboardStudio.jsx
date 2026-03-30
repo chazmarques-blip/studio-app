@@ -24,18 +24,18 @@ const fadeUp = {
 const AgentCard = ({ icon: Icon, name, role, description, color, onClick }) => (
   <button 
     onClick={onClick}
-    className="group glass-card p-4 text-left transition-all hover:border-[#8B5CF6]/30 hover:bg-white/[0.02]"
+    className="group glass-card p-4 text-left transition-all hover:border-orange-500/30 hover:bg-white/[0.02]"
   >
     <div className="flex items-start gap-3">
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color} transition-all group-hover:scale-105`}>
-        <Icon size={18} className="text-white" />
+        <Icon size={18} className="text-gray-900" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white truncate">{name}</p>
-        <p className="text-[10px] text-[#8B5CF6] font-mono mb-1">{role}</p>
+        <p className="text-sm font-semibold text-gray-900 truncate">{name}</p>
+        <p className="text-[10px] text-orange-600 font-mono mb-1">{role}</p>
         <p className="text-[10px] text-[#888] leading-relaxed line-clamp-2">{description}</p>
       </div>
-      <ChevronRight size={14} className="text-[#444] group-hover:text-[#8B5CF6] transition-colors mt-1" />
+      <ChevronRight size={14} className="text-[#444] group-hover:text-orange-600 transition-colors mt-1" />
     </div>
   </button>
 );
@@ -48,7 +48,7 @@ const ProjectCard = ({ project, onClick }) => {
   return (
     <button 
       onClick={onClick}
-      className="group glass-card overflow-hidden text-left transition-all hover:border-[#8B5CF6]/30"
+      className="group glass-card overflow-hidden text-left transition-all hover:border-orange-500/30"
     >
       {/* Thumbnail */}
       <div className="relative h-24 bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] overflow-hidden">
@@ -61,13 +61,13 @@ const ProjectCard = ({ project, onClick }) => {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
         <div className="absolute bottom-2 left-2 right-2">
-          <p className="text-xs font-semibold text-white truncate">{project.name}</p>
+          <p className="text-xs font-semibold text-gray-900 truncate">{project.name}</p>
         </div>
         {/* Status badge */}
         <div className="absolute top-2 right-2">
           <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold ${
             progress === 100 ? 'bg-emerald-500/20 text-emerald-400' :
-            progress > 0 ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' :
+            progress > 0 ? 'bg-[#8B5CF6]/20 text-orange-600' :
             'bg-white/10 text-[#888]'
           }`}>
             {progress === 100 ? 'Concluído' : progress > 0 ? `${progress}%` : 'Novo'}
@@ -85,7 +85,7 @@ const ProjectCard = ({ project, onClick }) => {
           </span>
         </div>
         {/* Progress bar */}
-        <div className="mt-2 h-1 rounded-full bg-[#1A1A1A] overflow-hidden">
+        <div className="mt-2 h-1 rounded-full bg-gray-100 overflow-hidden">
           <div 
             className="h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] transition-all duration-500"
             style={{ width: `${progress}%` }}
@@ -259,7 +259,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#8B5CF6]" />
       </div>
     );
@@ -275,7 +275,7 @@ export default function Dashboard() {
     <div className="min-h-screen px-4 pt-4 pb-6 max-w-6xl mx-auto">
       {/* ── Header ── */}
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">
           {l.greeting}, {user?.email?.split('@')[0] || 'Creator'}
         </h1>
         <p className="text-sm text-[#888]">{l.subtitle}</p>
@@ -290,10 +290,10 @@ export default function Dashboard() {
         ].map((stat, i) => (
           <div key={i} className="glass-card p-3 flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#8B5CF6]/10">
-              <stat.icon size={16} className="text-[#8B5CF6]" />
+              <stat.icon size={16} className="text-orange-600" />
             </div>
             <div>
-              <p className="text-lg font-bold text-white">{stat.value}</p>
+              <p className="text-lg font-bold text-gray-900">{stat.value}</p>
               <p className="text-[10px] text-[#888]">{stat.label}</p>
             </div>
           </div>
@@ -304,25 +304,25 @@ export default function Dashboard() {
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2} className="mb-6">
         <button 
           onClick={() => navigate('/studio')}
-          className="w-full group glass-card p-4 flex items-center gap-4 border-[#8B5CF6]/20 hover:border-[#8B5CF6]/40 hover:bg-[#8B5CF6]/[0.03] transition-all"
+          className="w-full group glass-card p-4 flex items-center gap-4 border-orange-500/20 hover:border-orange-500/40 hover:bg-[#8B5CF6]/[0.03] transition-all"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20 group-hover:shadow-[#8B5CF6]/30 transition-all">
-            <Plus size={22} className="text-white" />
+            <Plus size={22} className="text-gray-900" />
           </div>
           <div className="flex-1 text-left">
-            <p className="text-sm font-semibold text-white">{l.newProject}</p>
+            <p className="text-sm font-semibold text-gray-900">{l.newProject}</p>
             <p className="text-[11px] text-[#888]">Roteiro → Storyboard → Vídeo com IA</p>
           </div>
-          <ArrowRight size={18} className="text-[#8B5CF6] group-hover:translate-x-1 transition-transform" />
+          <ArrowRight size={18} className="text-orange-600 group-hover:translate-x-1 transition-transform" />
         </button>
       </motion.div>
 
       {/* ── Recent Projects ── */}
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3} className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-white">{l.recentProjects}</h2>
+          <h2 className="text-sm font-semibold text-gray-900">{l.recentProjects}</h2>
           {projects.length > 4 && (
-            <button onClick={() => navigate('/marketing')} className="text-[10px] text-[#8B5CF6] hover:underline">
+            <button onClick={() => navigate('/marketing')} className="text-[10px] text-orange-600 hover:underline">
               {l.viewAll}
             </button>
           )}
@@ -356,12 +356,12 @@ export default function Dashboard() {
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={4} className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-sm font-semibold text-white">{l.studioAgents}</h2>
+            <h2 className="text-sm font-semibold text-gray-900">{l.studioAgents}</h2>
             <p className="text-[10px] text-[#666]">{l.agentsDesc}</p>
           </div>
           <button 
             onClick={() => navigate('/agents')}
-            className="text-[10px] text-[#8B5CF6] hover:underline flex items-center gap-1"
+            className="text-[10px] text-orange-600 hover:underline flex items-center gap-1"
           >
             <Settings size={10} /> Configurar
           </button>
@@ -383,11 +383,11 @@ export default function Dashboard() {
         <div className="glass-card p-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/10">
-              <Sparkles size={14} className="text-[#8B5CF6]" />
+              <Sparkles size={14} className="text-orange-600" />
             </div>
             <div>
               <p className="text-[9px] text-[#666]">{l.plan}</p>
-              <p className="text-xs font-semibold text-white capitalize">{stats?.plan || 'free'}</p>
+              <p className="text-xs font-semibold text-gray-900 capitalize">{stats?.plan || 'free'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

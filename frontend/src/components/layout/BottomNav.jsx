@@ -24,8 +24,8 @@ export function BottomNav() {
   ];
 
   return (
-    <nav data-testid="bottom-nav" className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#2A2A2A] bg-[#111111]/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-lg items-center justify-around px-1 py-2">
+    <nav data-testid="bottom-nav" className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur-md shadow-lg">
+      <div className="mx-auto flex max-w-lg items-center justify-around px-1 py-2.5">
         {tabs.map(({ path, icon: Icon, label, exact, matchPath }) => {
           const checkPath = matchPath || path.split('?')[0];
           const isActive = exact 
@@ -33,10 +33,10 @@ export function BottomNav() {
             : location.pathname.startsWith(checkPath);
           return (
             <button key={path} data-testid={`nav-${label.toLowerCase().replace(/\s/g, '-')}`} onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 transition-all duration-200 ${isActive ? 'text-[#8B5CF6]' : 'text-[#666666] hover:text-[#A0A0A0]'}`}>
-              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-              <span className="text-[9px] font-medium">{label}</span>
-              {isActive && <div className="mt-0.5 h-1 w-1 rounded-full bg-[#8B5CF6]" />}
+              className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-all duration-200 ${isActive ? 'text-orange-600 bg-orange-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
+              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              <span className="text-[10px] font-semibold">{label}</span>
+              {isActive && <div className="h-1 w-1 rounded-full bg-orange-500" />}
             </button>
           );
         })}

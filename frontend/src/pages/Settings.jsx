@@ -147,7 +147,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen px-4 pt-6">
-      <h1 className="mb-6 text-xl font-bold text-white">{t('settings.title')}</h1>
+      <h1 className="mb-6 text-xl font-bold text-gray-900">{t('settings.title')}</h1>
 
       {/* Profile Card */}
       <div data-testid="profile-card" className="glass-card mb-4 p-4 cursor-pointer transition-all hover:border-[rgba(201,168,76,0.3)]" onClick={() => setShowAccount(true)}>
@@ -160,23 +160,23 @@ export default function SettingsPage() {
               onClick={(e) => { e.stopPropagation(); setShowAccount(true); setShowAvatarPicker(true); }}
               className="absolute inset-0 rounded-full flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-all">
               <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-all">
-                <Camera size={12} className="text-white" />
-                <span className="text-[7px] text-white font-medium mt-0.5">
+                <Camera size={12} className="text-gray-900" />
+                <span className="text-[7px] text-gray-900 font-medium mt-0.5">
                   {lang === 'pt' ? 'Trocar' : lang === 'es' ? 'Cambiar' : 'Change'}
                 </span>
               </div>
             </button>
           </div>
-          <div><p className="text-sm font-semibold text-white">{user?.full_name || 'User'}</p><p className="text-xs text-[#666]">{user?.email}</p></div>
+          <div><p className="text-sm font-semibold text-gray-900">{user?.full_name || 'User'}</p><p className="text-xs text-[#666]">{user?.email}</p></div>
           <ChevronRight size={16} className="ml-auto text-[#3A3A3A]" />
         </div>
       </div>
 
       {showAccount && (
-        <div data-testid="account-panel" className="mb-4 rounded-xl border border-[#8B5CF6]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div data-testid="account-panel" className="mb-4 rounded-xl border border-orange-500/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">{t('settings.account')}</h2>
-            <button data-testid="account-close-btn" onClick={() => { setShowAccount(false); setShowAvatarPicker(false); }} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-white transition"><X size={16} /></button>
+            <h2 className="text-sm font-semibold text-gray-900">{t('settings.account')}</h2>
+            <button data-testid="account-close-btn" onClick={() => { setShowAccount(false); setShowAvatarPicker(false); }} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-gray-900 transition"><X size={16} /></button>
           </div>
 
           {/* Avatar Picker */}
@@ -197,8 +197,8 @@ export default function SettingsPage() {
                   </div>
                   <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-all">
                     <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-all">
-                      <Camera size={16} className="text-white" />
-                      <span className="text-[8px] text-white font-medium mt-0.5">
+                      <Camera size={16} className="text-gray-900" />
+                      <span className="text-[8px] text-gray-900 font-medium mt-0.5">
                         {lang === 'pt' ? 'Trocar Foto' : lang === 'es' ? 'Cambiar Foto' : 'Change Photo'}
                       </span>
                     </div>
@@ -213,18 +213,18 @@ export default function SettingsPage() {
               <div>
                 <label className="mb-1 block text-xs text-[#999]">{lang === 'pt' ? 'Nome' : lang === 'es' ? 'Nombre' : 'First Name'}</label>
                 <input data-testid="account-firstname-input" value={firstName} onChange={e => setFirstName(capitalizeName(e.target.value))}
-                  placeholder="John" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
+                  placeholder="John" className="w-full rounded-lg border border-[#2A2A2A] bg-gray-100 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-orange-500/50" />
               </div>
               <div>
                 <label className="mb-1 block text-xs text-[#999]">{lang === 'pt' ? 'Sobrenome' : lang === 'es' ? 'Apellido' : 'Last Name'}</label>
                 <input data-testid="account-lastname-input" value={lastName} onChange={e => setLastName(capitalizeName(e.target.value))}
-                  placeholder="Smith" className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
+                  placeholder="Smith" className="w-full rounded-lg border border-[#2A2A2A] bg-gray-100 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-orange-500/50" />
               </div>
             </div>
             <div>
               <label className="mb-1 block text-xs text-[#999]">{t('profile.company')}</label>
               <input data-testid="account-company-input" value={company} onChange={e => setCompany(e.target.value)}
-                className="w-full rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
+                className="w-full rounded-lg border border-[#2A2A2A] bg-gray-100 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-orange-500/50" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -239,11 +239,11 @@ export default function SettingsPage() {
                 </label>
                 <div className="flex gap-1.5">
                   <button type="button" data-testid="settings-contact-whatsapp" onClick={() => setPreferredContact('whatsapp')}
-                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'whatsapp' ? 'border-[#25D366]/50 bg-[#25D366]/10 text-[#25D366]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'whatsapp' ? 'border-[#25D366]/50 bg-[#25D366]/10 text-[#25D366]' : 'border-[#2A2A2A] bg-gray-100 text-[#666] hover:border-[#333]'}`}>
                     WhatsApp
                   </button>
                   <button type="button" data-testid="settings-contact-sms" onClick={() => setPreferredContact('sms')}
-                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'sms' ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'border-[#2A2A2A] bg-[#1A1A1A] text-[#666] hover:border-[#333]'}`}>
+                    className={`flex-1 flex items-center justify-center gap-1 rounded-lg border py-2 text-[10px] font-medium transition ${preferredContact === 'sms' ? 'border-orange-500/50 bg-[#8B5CF6]/10 text-orange-600' : 'border-[#2A2A2A] bg-gray-100 text-[#666] hover:border-[#333]'}`}>
                     SMS
                   </button>
                 </div>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
               <div className="flex gap-1.5">
                 <div className="relative">
                   <button type="button" data-testid="settings-country-picker-btn" onClick={() => setShowCountryPicker(!showCountryPicker)}
-                    className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-2 py-2 text-[11px] text-white transition hover:border-[#333] whitespace-nowrap">
+                    className="flex items-center gap-1 rounded-lg border border-[#2A2A2A] bg-gray-100 px-2 py-2 text-[11px] text-gray-900 transition hover:border-[#333] whitespace-nowrap">
                     <span>{phoneCountry.flag}</span>
                     <span className="text-[#999] font-mono text-[10px]">{phoneCountry.dial}</span>
                     <ChevronDown size={10} className="text-[#555]" />
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                       {COUNTRIES.map(c => (
                         <button type="button" key={c.code}
                           onClick={() => { setPhoneCountry(c); setShowCountryPicker(false); setPhoneNumber(''); }}
-                          className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-white/5 ${phoneCountry.code === c.code ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 'text-white'}`}>
+                          className={`flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition hover:bg-white/5 ${phoneCountry.code === c.code ? 'bg-[#8B5CF6]/10 text-orange-600' : 'text-gray-900'}`}>
                           <span>{c.flag}</span>
                           <span className="font-mono text-[#999]">{c.dial}</span>
                           <span className="text-[#666]">{c.code}</span>
@@ -276,7 +276,7 @@ export default function SettingsPage() {
                   )}
                 </div>
                 <input data-testid="account-phone-input" type="tel" value={phoneNumber} onChange={handlePhoneChange} placeholder={phoneCountry.placeholder}
-                  className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 py-2 text-sm text-white outline-none transition focus:border-[#8B5CF6]/50" />
+                  className="flex-1 rounded-lg border border-[#2A2A2A] bg-gray-100 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-orange-500/50" />
               </div>
             </div>
             <div>
@@ -297,7 +297,7 @@ export default function SettingsPage() {
             onClick={() => item.action ? item.action() : item.path && navigate(item.path)}
             className="glass-card flex w-full items-center gap-3 p-4 text-left transition-all hover:border-[rgba(201,168,76,0.3)]">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1E1E1E]"><item.icon size={16} className="text-[#A0A0A0]" /></div>
-            <div className="flex-1"><p className="text-sm font-medium text-white">{item.label}</p><p className="text-xs text-[#666]">{item.desc}</p></div>
+            <div className="flex-1"><p className="text-sm font-medium text-gray-900">{item.label}</p><p className="text-xs text-[#666]">{item.desc}</p></div>
             <ChevronRight size={16} className="text-[#3A3A3A]" />
           </button>
         ))}
@@ -305,24 +305,24 @@ export default function SettingsPage() {
 
       {/* Inline Language Picker */}
       {showLangPicker && (
-        <div data-testid="language-picker-panel" className="mb-4 rounded-xl border border-[#8B5CF6]/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div data-testid="language-picker-panel" className="mb-4 rounded-xl border border-orange-500/30 bg-[#141414] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Globe size={14} className="text-[#8B5CF6]" />
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Globe size={14} className="text-orange-600" />
               {t('settings.language')}
             </h2>
-            <button data-testid="lang-picker-close" onClick={() => setShowLangPicker(false)} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-white transition"><X size={16} /></button>
+            <button data-testid="lang-picker-close" onClick={() => setShowLangPicker(false)} className="rounded-lg p-1 text-[#999] hover:bg-[#1E1E1E] hover:text-gray-900 transition"><X size={16} /></button>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {LANGUAGES.map(l => (
               <button key={l.code} data-testid={`lang-option-${l.code}`}
                 onClick={() => handleChangeLang(l.code)}
                 className={`flex items-center gap-2.5 rounded-lg border p-3 transition-all ${
-                  lang === l.code ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10' : 'border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#444]'
+                  lang === l.code ? 'border-orange-500/50 bg-[#8B5CF6]/10' : 'border-[#2A2A2A] bg-gray-100 hover:border-[#444]'
                 }`}>
                 <span className="text-lg">{l.flag}</span>
-                <span className={`text-xs font-medium ${lang === l.code ? 'text-[#8B5CF6]' : 'text-white'}`}>{l.name}</span>
-                {lang === l.code && <Check size={12} className="text-[#8B5CF6] ml-auto" />}
+                <span className={`text-xs font-medium ${lang === l.code ? 'text-orange-600' : 'text-gray-900'}`}>{l.name}</span>
+                {lang === l.code && <Check size={12} className="text-orange-600 ml-auto" />}
               </button>
             ))}
           </div>
@@ -335,7 +335,7 @@ export default function SettingsPage() {
           {channelStatus.map(ch => (
             <div key={ch.name} data-testid={`channel-${ch.name.toLowerCase()}`} className="glass-card flex items-center gap-3 p-3">
               <div className="h-2.5 w-2.5 rounded-full bg-[#8B5CF6]" />
-              <span className="flex-1 text-sm text-white">{ch.name}</span>
+              <span className="flex-1 text-sm text-gray-900">{ch.name}</span>
               <span className={`text-xs ${ch.connected ? 'text-[#4CAF50]' : 'text-[#666]'}`}>{ch.connected ? t('settings.connected') : t('settings.not_connected')}</span>
             </div>
           ))}

@@ -131,7 +131,7 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
   return (
     <div 
       onClick={() => !isEditing && onSelect(project)}
-      className="group relative flex items-center gap-5 p-4 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] hover:border-[#8B5CF6]/30 hover:bg-[#0F0F0F] cursor-pointer transition-all"
+      className="group relative flex items-center gap-5 p-4 rounded-xl border border-gray-200 bg-white hover:border-orange-500/30 hover:bg-[#0F0F0F] cursor-pointer transition-all"
     >
       {/* Thumbnail */}
       <div className="relative w-20 h-20 rounded-lg bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] overflow-hidden shrink-0">
@@ -141,12 +141,12 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
           <img src={resolveImageUrl(thumbnail)} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <Film size={24} className="text-[#555]" />
+            <Film size={24} className="text-gray-400" />
           </div>
         )}
         {firstVideo && (
           <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
-            <Video size={10} className="text-white" />
+            <Video size={10} className="text-gray-900" />
           </div>
         )}
       </div>
@@ -163,7 +163,7 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 px-2 py-1 rounded bg-[#1A1A1A] border border-[#8B5CF6] text-sm text-white outline-none"
+                className="flex-1 px-2 py-1 rounded bg-gray-100 border border-orange-500 text-sm text-gray-900 outline-none"
               />
               <button onClick={handleSaveEdit} className="p-1 rounded hover:bg-white/10 text-emerald-400">
                 <Check size={14} />
@@ -174,30 +174,30 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
             </div>
           ) : (
             <>
-              <h3 className="text-sm font-semibold text-white truncate group-hover:text-[#A78BFA] transition-colors">
+              <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#A78BFA] transition-colors">
                 {project.name}
               </h3>
               <button 
                 onClick={handleStartEdit}
                 className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Pencil size={12} className="text-white/70" />
+                <Pencil size={12} className="text-gray-900/70" />
               </button>
             </>
           )}
         </div>
         
         {/* Stats Row - CORES MAIS CLARAS */}
-        <div className="flex items-center gap-4 text-xs text-white/70 mb-3">
+        <div className="flex items-center gap-4 text-xs text-gray-900/70 mb-3">
           <span className="flex items-center gap-1.5">
-            <Layers size={13} className="text-white/60" /> {scenesCount} cenas
+            <Layers size={13} className="text-gray-900/60" /> {scenesCount} cenas
           </span>
           <span className="flex items-center gap-1.5">
-            <Users size={13} className="text-white/60" /> {charactersCount} personagens
+            <Users size={13} className="text-gray-900/60" /> {charactersCount} personagens
           </span>
           {updatedAt && (
             <span className="flex items-center gap-1.5">
-              <Clock size={13} className="text-white/60" /> {formatDate(updatedAt)}
+              <Clock size={13} className="text-gray-900/60" /> {formatDate(updatedAt)}
             </span>
           )}
         </div>
@@ -210,14 +210,14 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
               className={`flex items-center justify-center w-6 h-6 rounded-md ${
                 step.done 
                   ? 'bg-[#8B5CF6]/30 text-[#A78BFA]' 
-                  : 'bg-[#1A1A1A] text-white/40'
+                  : 'bg-gray-100 text-gray-900/40'
               }`}
               title={step.label}
             >
               <step.icon size={12} />
             </div>
           ))}
-          <span className="ml-2 text-xs text-white/60">
+          <span className="ml-2 text-xs text-gray-900/60">
             {progress.completed}/{progress.total}
           </span>
         </div>
@@ -236,12 +236,12 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
               strokeLinecap="round"
             />
           </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white">
+          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-gray-900">
             {progress.percent}%
           </span>
         </div>
         <span className={`text-[10px] font-medium ${
-          progress.percent === 100 ? 'text-emerald-400' : 'text-white/60'
+          progress.percent === 100 ? 'text-emerald-400' : 'text-gray-900/60'
         }`}>
           {progress.percent === 100 ? 'Concluído' : 'Em progresso'}
         </span>
@@ -262,16 +262,16 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
             className="p-2 rounded-lg hover:bg-white/10 transition"
           >
-            <MoreHorizontal size={16} className="text-white/60" />
+            <MoreHorizontal size={16} className="text-gray-900/60" />
           </button>
           
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-[#111] shadow-xl py-1.5 min-w-[140px]">
+              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-gray-50 shadow-xl py-1.5 min-w-[140px]">
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleStartEdit(e); setShowMenu(false); }}
-                  className="w-full px-4 py-2 text-left text-sm text-white hover:bg-white/5 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-white/5 flex items-center gap-2"
                 >
                   <Pencil size={14} /> Renomear
                 </button>
@@ -525,7 +525,7 @@ export default function StudioPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2A2A2A] border-t-[#8B5CF6]" />
       </div>
     );
@@ -534,32 +534,32 @@ export default function StudioPage() {
   // If project is selected, show DirectedStudio
   if (selectedProject) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#0A0A0A]">
+      <div className="flex flex-col min-h-screen bg-gray-50">
         {/* ═══ NAVBAR ═══ */}
-        <nav className="shrink-0 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-[#1A1A1A] sticky top-0 z-50">
+        <nav className="shrink-0 bg-gray-50/95 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="flex items-center justify-between h-16">
               {/* Left: Back + Project Info */}
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <button 
                   onClick={handleBackToList}
-                  className="flex items-center gap-2 text-white/70 hover:text-white transition group shrink-0"
+                  className="flex items-center gap-2 text-gray-900/70 hover:text-gray-900 transition group shrink-0"
                 >
                   <ArrowLeft size={20} className="group-hover:-translate-x-1 transition" />
                   <span className="text-sm font-medium hidden sm:inline">Projetos</span>
                 </button>
                 
-                <div className="h-8 w-px bg-[#1A1A1A] shrink-0" />
+                <div className="h-8 w-px bg-gray-100 shrink-0" />
                 
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shrink-0">
-                    <Film size={18} className="text-white" />
+                    <Film size={18} className="text-gray-900" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h1 className="text-base font-bold text-white truncate">
+                    <h1 className="text-base font-bold text-gray-900 truncate">
                       {selectedProject.name || 'Sem título'}
                     </h1>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-gray-900/50">
                       {selectedProject.scenes?.length || 0} cenas • {selectedProject.characters?.length || 0} personagens
                     </p>
                   </div>
@@ -569,13 +569,13 @@ export default function StudioPage() {
               {/* Right: Quick Actions */}
               <div className="flex items-center gap-2 shrink-0 ml-4">
                 <button 
-                  className="p-2 rounded-lg hover:bg-[#1A1A1A] transition text-white/70 hover:text-white"
+                  className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-900/70 hover:text-gray-900"
                   title="Visualizar"
                 >
                   <Eye size={18} />
                 </button>
                 <button 
-                  className="p-2 rounded-lg hover:bg-[#1A1A1A] transition text-white/70 hover:text-white"
+                  className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-900/70 hover:text-gray-900"
                   title="Mais opções"
                 >
                   <MoreHorizontal size={18} />
@@ -613,45 +613,45 @@ export default function StudioPage() {
 
   // Project List View
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
+    <div className="min-h-screen bg-gray-50">
       {/* ═══ NAVBAR ═══ */}
-      <nav className="sticky top-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-[#1A1A1A]">
+      <nav className="sticky top-0 z-50 bg-gray-50/95 backdrop-blur-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex items-center justify-between h-16">
             {/* Left: Logo + Back */}
             <div className="flex items-center gap-6">
               <button
                 onClick={() => navigate('/')}
-                className="flex items-center gap-2 text-white/70 hover:text-white transition group"
+                className="flex items-center gap-2 text-gray-900/70 hover:text-gray-900 transition group"
               >
                 <ArrowLeft size={20} className="group-hover:-translate-x-1 transition" />
                 <span className="text-sm font-medium hidden sm:inline">Dashboard</span>
               </button>
               
-              <div className="h-8 w-px bg-[#1A1A1A]" />
+              <div className="h-8 w-px bg-gray-100" />
               
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20">
-                  <Film size={18} className="text-white" />
+                  <Film size={18} className="text-gray-900" />
                 </div>
                 <div>
-                  <h1 className="text-base font-bold text-white">{l.title}</h1>
-                  <p className="text-xs text-white/50">{l.subtitle}</p>
+                  <h1 className="text-base font-bold text-gray-900">{l.title}</h1>
+                  <p className="text-xs text-gray-900/50">{l.subtitle}</p>
                 </div>
               </div>
             </div>
 
             {/* Center: Mode Switcher */}
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 bg-[#1A1A1A] rounded-lg p-1">
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => navigate('/studio')}
-                className="px-4 py-1.5 text-xs font-medium rounded-md transition bg-[#8B5CF6] text-white"
+                className="px-4 py-1.5 text-xs font-medium rounded-md transition bg-[#8B5CF6] text-gray-900"
               >
                 {l.studioMode || 'Estúdio de Vídeos'}
               </button>
               <button
                 onClick={() => navigate('/traffic-hub')}
-                className="px-4 py-1.5 text-xs font-medium rounded-md transition text-white/70 hover:text-white hover:bg-[#2A2A2A]"
+                className="px-4 py-1.5 text-xs font-medium rounded-md transition text-gray-900/70 hover:text-gray-900 hover:bg-[#2A2A2A]"
               >
                 {l.marketingMode || 'Campanhas de Marketing'}
               </button>
@@ -659,7 +659,7 @@ export default function StudioPage() {
 
             {/* Right: Project Count + Actions */}
             <div className="flex items-center gap-4">
-              <span className="text-sm text-white/70 bg-[#1A1A1A] px-3 py-1.5 rounded-lg">
+              <span className="text-sm text-gray-900/70 bg-gray-100 px-3 py-1.5 rounded-lg">
                 {projects.length} {l.projects.toLowerCase()}
               </span>
               
@@ -681,22 +681,22 @@ export default function StudioPage() {
         <div className="max-w-5xl mx-auto">
           {/* Company Selector */}
           {!selectedProject && companies.length > 0 && (
-            <div className="mb-6 bg-gradient-to-r from-[#8B5CF6]/10 to-transparent border border-[#8B5CF6]/20 rounded-xl p-4">
+            <div className="mb-6 bg-gradient-to-r from-[#8B5CF6]/10 to-transparent border border-orange-500/20 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/20">
-                    <Users size={20} className="text-[#8B5CF6]" />
+                    <Users size={20} className="text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-white/50 mb-0.5">Empresa do Projeto</p>
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-xs text-gray-900/50 mb-0.5">Empresa do Projeto</p>
+                    <p className="text-sm font-semibold text-gray-900">
                       {selectedCompany ? selectedCompany.name : 'Selecione uma empresa'}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCompanySelector(!showCompanySelector)}
-                  className="text-xs text-[#8B5CF6] hover:text-[#9F7CF6] transition flex items-center gap-1"
+                  className="text-xs text-orange-600 hover:text-[#9F7CF6] transition flex items-center gap-1"
                 >
                   {showCompanySelector ? 'Fechar' : 'Trocar'}
                   <ChevronRight size={14} className={`transition-transform ${showCompanySelector ? 'rotate-90' : ''}`} />
@@ -716,19 +716,19 @@ export default function StudioPage() {
                       }}
                       className={`text-left p-3 rounded-lg border transition ${
                         selectedCompany?.id === company.id
-                          ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                          : 'border-white/5 bg-[#1A1A1A] hover:border-white/10'
+                          ? 'border-orange-500 bg-[#8B5CF6]/10'
+                          : 'border-white/5 bg-gray-100 hover:border-white/10'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-white">{company.name}</p>
+                          <p className="text-sm font-medium text-gray-900">{company.name}</p>
                           {company.phone && (
-                            <p className="text-xs text-white/50 mt-0.5">{company.phone}</p>
+                            <p className="text-xs text-gray-900/50 mt-0.5">{company.phone}</p>
                           )}
                         </div>
                         {company.is_primary && (
-                          <span className="text-[9px] bg-[#8B5CF6]/20 text-[#8B5CF6] px-2 py-0.5 rounded-full">
+                          <span className="text-[9px] bg-[#8B5CF6]/20 text-orange-600 px-2 py-0.5 rounded-full">
                             PRINCIPAL
                           </span>
                         )}
@@ -737,7 +737,7 @@ export default function StudioPage() {
                   ))}
                   <button
                     onClick={() => navigate('/marketing')}
-                    className="p-3 rounded-lg border border-dashed border-white/20 hover:border-[#8B5CF6]/50 text-white/50 hover:text-white transition text-sm"
+                    className="p-3 rounded-lg border border-dashed border-white/20 hover:border-orange-500/50 text-gray-900/50 hover:text-gray-900 transition text-sm"
                   >
                     + Gerenciar Empresas
                   </button>
@@ -749,13 +749,13 @@ export default function StudioPage() {
           {/* Search */}
           <div className="mb-6">
             <div className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900/50" />
               <input 
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={l.search}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] text-sm text-white placeholder-white/40 outline-none focus:border-[#8B5CF6]/50 transition"
+                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-white/40 outline-none focus:border-orange-500/50 transition"
               />
             </div>
           </div>
@@ -763,11 +763,11 @@ export default function StudioPage() {
         {/* Projects List */}
         {filteredProjects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#1A1A1A] mb-6">
-              <Folder size={36} className="text-white/30" />
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-100 mb-6">
+              <Folder size={36} className="text-gray-900/30" />
             </div>
-            <h2 className="text-lg font-semibold text-white mb-2">{l.noProjects}</h2>
-            <p className="text-sm text-white/60 mb-6 max-w-sm">{l.createFirst}</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">{l.noProjects}</h2>
+            <p className="text-sm text-gray-900/60 mb-6 max-w-sm">{l.createFirst}</p>
             <button 
               onClick={openNewProjectModal}
               disabled={creating}
@@ -810,7 +810,7 @@ export default function StudioPage() {
           <div className="relative max-w-2xl max-h-[90vh] p-4">
             <button 
               onClick={() => setAvatarPreviewUrl(null)}
-              className="absolute -top-2 -right-2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+              className="absolute -top-2 -right-2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-900 transition"
               aria-label="Fechar"
             >
               <X size={20} />

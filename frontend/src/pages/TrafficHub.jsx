@@ -126,7 +126,7 @@ function MetricCard({ label, value, prefix, suffix, trend, trendPct, small }) {
     <div className={`bg-[#111] border border-[#1E1E1E] rounded-xl ${small ? 'p-2.5' : 'p-3'}`}>
       <p className="text-[8px] text-[#B0B0B0] uppercase tracking-wider">{label}</p>
       <div className="flex items-end gap-1.5 mt-1">
-        <span className={`${small ? 'text-lg' : 'text-xl'} font-bold text-white`}>
+        <span className={`${small ? 'text-lg' : 'text-xl'} font-bold text-gray-900`}>
           {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
         </span>
         {trend && trend !== 'neutral' && (
@@ -154,15 +154,15 @@ function ChannelRow({ channel, data }) {
         <Icon size={12} style={{ color: meta.color }} />
       </div>
       <div className="w-20">
-        <span className="text-[10px] text-white font-medium">{meta.label}</span>
+        <span className="text-[10px] text-gray-900 font-medium">{meta.label}</span>
       </div>
       <div className="flex-1 grid grid-cols-5 gap-2 text-center">
         <div>
-          <span className="text-[10px] text-white font-semibold">{data.impressions.toLocaleString()}</span>
+          <span className="text-[10px] text-gray-900 font-semibold">{data.impressions.toLocaleString()}</span>
           <p className="text-[7px] text-[#B0B0B0]">Impres.</p>
         </div>
         <div>
-          <span className="text-[10px] text-white font-semibold">{data.clicks}</span>
+          <span className="text-[10px] text-gray-900 font-semibold">{data.clicks}</span>
           <p className="text-[7px] text-[#B0B0B0]">Cliques</p>
         </div>
         <div>
@@ -170,7 +170,7 @@ function ChannelRow({ channel, data }) {
           <p className="text-[7px] text-[#B0B0B0]">CTR</p>
         </div>
         <div>
-          <span className="text-[10px] text-white font-semibold">${data.spend}</span>
+          <span className="text-[10px] text-gray-900 font-semibold">${data.spend}</span>
           <p className="text-[7px] text-[#B0B0B0]">Gasto</p>
         </div>
         <div>
@@ -190,15 +190,15 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
   const isCreated = campaign.status === 'created';
 
   return (
-    <div data-testid="campaign-panel" className="bg-[#0D0D0D] border border-[#1E1E1E] rounded-2xl overflow-hidden">
+    <div data-testid="campaign-panel" className="bg-white border border-[#1E1E1E] rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-[#1A1A1A] flex items-start justify-between">
+      <div className="p-4 border-b border-gray-200 flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-white truncate">{campaign.name}</h3>
+            <h3 className="text-sm font-bold text-gray-900 truncate">{campaign.name}</h3>
             <span className={`text-[7px] font-bold px-2 py-0.5 rounded-full uppercase ${
               isActive ? 'bg-green-500/15 text-green-400' :
-              isCreated ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' :
+              isCreated ? 'bg-[#8B5CF6]/15 text-orange-600' :
               'bg-[#333]/50 text-[#999]'
             }`}>
               {isActive ? 'Ativa' : isCreated ? 'Pronta' : 'Rascunho'}
@@ -226,14 +226,14 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
               <Pause size={10} /> Pausar
             </button>
           )}
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] text-[#999] hover:text-white transition">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-[#999] hover:text-gray-900 transition">
             <X size={14} />
           </button>
         </div>
       </div>
 
       {/* Metrics overview */}
-      <div className="p-4 border-b border-[#1A1A1A]">
+      <div className="p-4 border-b border-gray-200">
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           <MetricCard label="Impressoes" value={metrics.totals.impressions} trend={metrics.trend} trendPct={metrics.trendPct} small />
           <MetricCard label="Cliques" value={metrics.totals.clicks} trend={metrics.trend} trendPct={metrics.trendPct} small />
@@ -246,9 +246,9 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
 
       {/* Channel breakdown */}
       {isActive && (
-        <div className="p-4 border-b border-[#1A1A1A]">
+        <div className="p-4 border-b border-gray-200">
           <p className="text-[9px] text-[#B0B0B0] uppercase tracking-wider mb-2">Performance por Canal</p>
-          <div className="bg-[#0A0A0A] rounded-xl border border-[#151515] px-3">
+          <div className="bg-gray-50 rounded-xl border border-[#151515] px-3">
             {platforms.map(p => metrics.channels[p] && (
               <ChannelRow key={p} channel={p} data={metrics.channels[p]} />
             ))}
@@ -263,28 +263,28 @@ function CampaignPanel({ campaign, metrics, agent, onClose, onAction }) {
             <agent.icon size={12} style={{ color: agent.color }} />
           </div>
           <div>
-            <p className="text-[10px] text-white font-semibold">{agent.name}</p>
+            <p className="text-[10px] text-gray-900 font-semibold">{agent.name}</p>
             <p className="text-[8px] text-[#B0B0B0]">{agent.role}</p>
           </div>
-          <Sparkles size={12} className="text-[#8B5CF6] ml-auto" />
-          <span className="text-[8px] text-[#8B5CF6] font-semibold">Analise IA</span>
+          <Sparkles size={12} className="text-orange-600 ml-auto" />
+          <span className="text-[8px] text-orange-600 font-semibold">Analise IA</span>
         </div>
         <div className="space-y-2">
           {recs.map((rec, i) => (
             <div key={i} className={`flex items-start gap-2.5 p-2.5 rounded-lg border ${
-              rec.priority === 'high' ? 'border-[#8B5CF6]/20 bg-[#8B5CF6]/5' :
+              rec.priority === 'high' ? 'border-orange-500/20 bg-[#8B5CF6]/5' :
               rec.priority === 'medium' ? 'border-[#333] bg-[#111]' :
-              'border-[#1A1A1A] bg-[#0D0D0D]'
+              'border-gray-200 bg-white'
             }`}>
               <div className="mt-0.5">
-                {rec.type === 'optimization' && <TrendingUp size={11} className="text-[#8B5CF6]" />}
+                {rec.type === 'optimization' && <TrendingUp size={11} className="text-orange-600" />}
                 {rec.type === 'action' && <CheckCircle2 size={11} className="text-green-400" />}
                 {rec.type === 'insight' && <BarChart3 size={11} className="text-blue-400" />}
                 {rec.type === 'warning' && <AlertTriangle size={11} className="text-orange-400" />}
               </div>
               <div className="flex-1">
                 <span className={`text-[8px] font-bold uppercase tracking-wider ${
-                  rec.type === 'optimization' ? 'text-[#8B5CF6]' :
+                  rec.type === 'optimization' ? 'text-orange-600' :
                   rec.type === 'action' ? 'text-green-400' :
                   rec.type === 'insight' ? 'text-blue-400' : 'text-orange-400'
                 }`}>
@@ -312,15 +312,15 @@ function CampaignRow({ campaign, metrics, isSelected, onClick }) {
   return (
     <button data-testid={`traffic-row-${campaign.id}`} onClick={onClick}
       className={`w-full text-left p-3 rounded-xl border transition ${
-        isSelected ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
+        isSelected ? 'border-orange-500/40 bg-[#8B5CF6]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
       }`}>
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className="text-[11px] font-semibold text-white truncate">{campaign.name}</h4>
+            <h4 className="text-[11px] font-semibold text-gray-900 truncate">{campaign.name}</h4>
             <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase ${
               isActive ? 'bg-green-500/15 text-green-400' :
-              isCreated ? 'bg-[#8B5CF6]/15 text-[#8B5CF6]' :
+              isCreated ? 'bg-[#8B5CF6]/15 text-orange-600' :
               'bg-[#333]/50 text-[#B0B0B0]'
             }`}>
               {isActive ? 'Ativa' : isCreated ? 'Pronta' : 'Rascunho'}
@@ -339,7 +339,7 @@ function CampaignRow({ campaign, metrics, isSelected, onClick }) {
         <div className="text-right ml-3">
           {isActive ? (
             <>
-              <div className="text-[11px] font-bold text-white">{metrics.totals.conversions} <span className="text-[8px] text-[#B0B0B0] font-normal">conv</span></div>
+              <div className="text-[11px] font-bold text-gray-900">{metrics.totals.conversions} <span className="text-[8px] text-[#B0B0B0] font-normal">conv</span></div>
               <div className="flex items-center gap-1 justify-end">
                 <span className={`text-[9px] font-semibold flex items-center ${metrics.trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
                   {metrics.trend === 'up' ? <ArrowUpRight size={9} /> : <ArrowDownRight size={9} />}{metrics.trendPct}%
@@ -424,17 +424,17 @@ export default function TrafficHub() {
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white" data-testid="traffic-hub-page">
+    <div className="min-h-screen bg-gray-50 text-gray-900" data-testid="traffic-hub-page">
       {/* Header */}
-      <div className="border-b border-[#1A1A1A] bg-[#0A0A0A]/95 backdrop-blur sticky top-0 z-30">
+      <div className="border-b border-gray-200 bg-gray-50/95 backdrop-blur sticky top-0 z-30">
         <div className="max-w-[1400px] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button data-testid="traffic-back" onClick={() => navigate('/marketing')} className="text-[#999] hover:text-white transition">
+            <button data-testid="traffic-back" onClick={() => navigate('/marketing')} className="text-[#999] hover:text-gray-900 transition">
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-base font-bold text-white flex items-center gap-2">
-                <Target size={18} className="text-[#8B5CF6]" />
+              <h1 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Target size={18} className="text-orange-600" />
                 Traffic Hub
               </h1>
               <p className="text-[10px] text-[#B0B0B0]">Centro de comando — performance e otimizacao de campanhas</p>
@@ -446,12 +446,12 @@ export default function TrafficHub() {
             <div className="flex items-center gap-2 bg-[#111] rounded-lg p-1">
               <button
                 onClick={() => navigate('/studio')}
-                className="px-3 py-1 text-[10px] font-medium rounded-md transition text-white/70 hover:text-white hover:bg-[#1A1A1A]"
+                className="px-3 py-1 text-[10px] font-medium rounded-md transition text-gray-900/70 hover:text-gray-900 hover:bg-gray-100"
               >
                 Estúdio
               </button>
               <button
-                className="px-3 py-1 text-[10px] font-medium rounded-md transition bg-[#8B5CF6] text-white"
+                className="px-3 py-1 text-[10px] font-medium rounded-md transition bg-[#8B5CF6] text-gray-900"
               >
                 Marketing
               </button>
@@ -479,7 +479,7 @@ export default function TrafficHub() {
               <div key={kpi.label} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111] border border-[#1E1E1E]">
                 <kpi.icon size={13} style={{ color: kpi.color }} />
                 <div>
-                  <div className="text-xs font-bold text-white">{kpi.value}</div>
+                  <div className="text-xs font-bold text-gray-900">{kpi.value}</div>
                   <div className="text-[7px] text-[#B0B0B0]">{kpi.label}</div>
                 </div>
               </div>
@@ -507,16 +507,16 @@ export default function TrafficHub() {
                   <button key={agent.id} data-testid={`traffic-agent-${agent.id}`}
                     onClick={() => { setSelectedAgent(agent); setSelectedCampaign(null); }}
                     className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl border transition ${
-                      isSelected ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
+                      isSelected ? 'border-orange-500/40 bg-[#8B5CF6]/5' : 'border-[#1E1E1E] bg-[#111] hover:border-[#333]'
                     }`}>
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${agent.color}15` }}>
                       <Icon size={13} style={{ color: agent.color }} />
                     </div>
                     <div className="flex-1 text-left min-w-0">
-                      <span className="text-[10px] font-semibold text-white">{agent.name}</span>
+                      <span className="text-[10px] font-semibold text-gray-900">{agent.name}</span>
                       <p className="text-[8px] text-[#B0B0B0] truncate">{agent.role}</p>
                     </div>
-                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[#1A1A1A] text-[#999] font-bold">{count}</span>
+                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-gray-100 text-[#999] font-bold">{count}</span>
                   </button>
                 );
               })}
@@ -534,8 +534,8 @@ export default function TrafficHub() {
                   onClick={() => setFilter(tab.id)}
                   className={`text-[9px] px-2.5 py-1 rounded-full border transition font-medium ${
                     filter === tab.id
-                      ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/30 text-[#8B5CF6]'
-                      : 'border-[#1E1E1E] text-[#B0B0B0] hover:text-white hover:border-[#333]'
+                      ? 'bg-[#8B5CF6]/10 border-orange-500/30 text-orange-600'
+                      : 'border-[#1E1E1E] text-[#B0B0B0] hover:text-gray-900 hover:border-[#333]'
                   }`}>
                   {tab.label}
                 </button>
@@ -546,7 +546,7 @@ export default function TrafficHub() {
             <div className="space-y-1.5 max-h-[calc(100vh-340px)] overflow-y-auto pr-1">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-5 h-5 border-2 border-[#8B5CF6]/30 border-t-[#8B5CF6] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-orange-500/30 border-t-[#8B5CF6] rounded-full animate-spin" />
                 </div>
               ) : filteredCampaigns.length === 0 ? (
                 <div className="text-center py-8 bg-[#111] border border-[#1E1E1E] rounded-xl">
@@ -586,8 +586,8 @@ export default function TrafficHub() {
 
       {/* Simulated data notice */}
       <div className="fixed bottom-4 right-4 z-20">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1A1A1A] border border-[#333] text-[9px] text-[#999]">
-          <Clock size={10} className="text-[#8B5CF6]" />
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 border border-[#333] text-[9px] text-[#999]">
+          <Clock size={10} className="text-orange-600" />
           Dados simulados — metricas reais quando APIs de trafego forem conectadas
         </div>
       </div>

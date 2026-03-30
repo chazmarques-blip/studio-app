@@ -211,12 +211,12 @@ function cleanCampaignText(raw) {
 
 function StatCard({ icon: Icon, value, label, trend }) {
   return (
-    <div data-testid={`stat-${label?.toLowerCase().replace(/\s+/g, '-')}`} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] px-3 py-2">
+    <div data-testid={`stat-${label?.toLowerCase().replace(/\s+/g, '-')}`} className="rounded-xl border border-gray-200 bg-white px-3 py-2">
       <div className="flex items-center gap-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#8B5CF6]/8 shrink-0">
-          <Icon size={11} className="text-[#8B5CF6]" />
+          <Icon size={11} className="text-orange-600" />
         </div>
-        <p className="text-base font-bold text-white leading-none">{value}</p>
+        <p className="text-base font-bold text-gray-900 leading-none">{value}</p>
         {trend && <span className="text-[8px] text-green-400 ml-auto">+{trend}%</span>}
       </div>
       <p className="text-[8px] text-[#999] mt-0.5 ml-8">{label}</p>
@@ -255,19 +255,19 @@ function VideoLightbox({ videoUrl, onClose, labels }) {
     });
   }, []);
   return (
-    <div data-testid="video-lightbox" className="fixed inset-0 z-[70] bg-black/95 flex items-center justify-center p-4" onClick={onClose}>
+    <div data-testid="video-lightbox" className="fixed inset-0 z-[70] bg-white/95 flex items-center justify-center p-4" onClick={onClose}>
       <div className="relative w-full max-w-4xl" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} data-testid="video-lightbox-close"
           className="absolute -top-3 -right-3 z-10 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] transition">
-          <X size={16} className="text-white" />
+          <X size={16} className="text-gray-900" />
         </button>
-        <div className="rounded-xl overflow-hidden border border-[#333] bg-black shadow-2xl">
+        <div className="rounded-xl overflow-hidden border border-[#333] bg-white shadow-2xl">
           <video src={videoUrl} controls playsInline autoPlay className="w-full" data-testid="video-lightbox-player" style={{ maxHeight: '80vh' }} />
         </div>
         <div className="flex items-center justify-between mt-3">
           <span className="text-[9px] text-[#999] bg-[#111] px-2 py-1 rounded">Sora 2</span>
           <button onClick={downloadVideo} disabled={downloading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-[11px] text-white hover:bg-[#222] transition disabled:opacity-50">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 border border-[#333] text-[11px] text-gray-900 hover:bg-[#222] transition disabled:opacity-50">
             {downloading ? <RefreshCw size={12} className="animate-spin" /> : <Download size={12} />} {labels?.download || 'Baixar'}
           </button>
         </div>
@@ -285,12 +285,12 @@ function PreviewModal({ campaign, onClose, labels }) {
   const [lightboxIdx, setLightboxIdx] = useState(null);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0D0D0D] border border-[#1A1A1A] rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-white/85 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-[#111] flex items-center gap-2">
-          <Eye size={14} className="text-[#8B5CF6]" />
-          <h3 className="text-sm font-bold text-white flex-1">Preview: {campaign.name}</h3>
-          <button onClick={onClose} className="text-[#999] hover:text-white"><X size={16} /></button>
+          <Eye size={14} className="text-orange-600" />
+          <h3 className="text-sm font-bold text-gray-900 flex-1">Preview: {campaign.name}</h3>
+          <button onClick={onClose} className="text-[#999] hover:text-gray-900"><X size={16} /></button>
         </div>
         <div className="p-4 overflow-y-auto max-h-[75vh] space-y-3">
           {/* Images */}
@@ -300,10 +300,10 @@ function PreviewModal({ campaign, onClose, labels }) {
               <div className="grid grid-cols-3 gap-2">
                 {images.map((url, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
-                    className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-[#8B5CF6]/30 transition">
+                    className="rounded-lg overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-orange-500/30 transition">
                     <img src={resolveImageUrl(url)} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                      <Maximize2 size={16} className="text-white" />
+                    <div className="absolute inset-0 bg-white/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                      <Maximize2 size={16} className="text-gray-900" />
                     </div>
                   </button>
                 ))}
@@ -314,7 +314,7 @@ function PreviewModal({ campaign, onClose, labels }) {
           {mainText && (
             <div>
               <p className="text-[9px] text-[#999] uppercase tracking-wider mb-1">{labels.campaignText}</p>
-              <pre className="text-[11px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-[#1A1A1A]">{cleanCampaignText(mainText)}</pre>
+              <pre className="text-[11px] text-[#ccc] whitespace-pre-wrap leading-relaxed font-sans bg-[#111] rounded-lg p-3 border border-gray-200">{cleanCampaignText(mainText)}</pre>
             </div>
           )}
           {images.length === 0 && !mainText && (
@@ -322,16 +322,16 @@ function PreviewModal({ campaign, onClose, labels }) {
           )}
         </div>
         {lightboxIdx !== null && (
-          <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
+          <div className="fixed inset-0 z-[60] bg-white/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
             <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
               <button onClick={() => setLightboxIdx(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333]">
-                <X size={14} className="text-white" />
+                <X size={14} className="text-gray-900" />
               </button>
               <img src={resolveImageUrl(images[lightboxIdx])} alt="" className="w-full rounded-xl" />
               <div className="flex gap-2 mt-2 justify-center">
                 {images.map((u, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
-                    className={`h-10 w-10 rounded-lg overflow-hidden border-2 ${i === lightboxIdx ? 'border-[#8B5CF6]' : 'border-[#333] opacity-50'}`}>
+                    className={`h-10 w-10 rounded-lg overflow-hidden border-2 ${i === lightboxIdx ? 'border-orange-500' : 'border-[#333] opacity-50'}`}>
                     <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -406,21 +406,21 @@ function ArtGalleryModal({ campaign, onClose, labels }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0D0D0D] border border-[#1A1A1A] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-white/85 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-[#111] flex items-center gap-2 shrink-0">
-          <Image size={14} className="text-[#8B5CF6]" />
-          <h3 className="text-sm font-bold text-white flex-1">{labels.artGallery}: {campaign.name}</h3>
+          <Image size={14} className="text-orange-600" />
+          <h3 className="text-sm font-bold text-gray-900 flex-1">{labels.artGallery}: {campaign.name}</h3>
           <span className="text-[9px] text-[#999]">{images.length} {images.length === 1 ? 'art' : 'artes'}</span>
-          <button onClick={onClose} className="text-[#999] hover:text-white"><X size={16} /></button>
+          <button onClick={onClose} className="text-[#999] hover:text-gray-900"><X size={16} /></button>
         </div>
 
         {/* Style generator strip */}
         {pipelineId && (
           <div className="px-4 py-2.5 border-b border-[#111] shrink-0">
             <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles size={10} className="text-[#8B5CF6]" />
-              <p className="text-[9px] font-bold text-[#8B5CF6] uppercase tracking-wider">{labels.generateNewImage}</p>
+              <Sparkles size={10} className="text-orange-600" />
+              <p className="text-[9px] font-bold text-orange-600 uppercase tracking-wider">{labels.generateNewImage}</p>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {ART_STYLES.map(s => (
@@ -429,8 +429,8 @@ function ArtGalleryModal({ campaign, onClose, labels }) {
                   onClick={() => generateStyleImage(s.key)}
                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[9px] transition ${
                     styleRegenLoading === s.key
-                      ? 'border-[#8B5CF6]/40 bg-[#8B5CF6]/10 text-[#8B5CF6]'
-                      : 'border-[#1E1E1E] bg-[#0A0A0A] text-[#888] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30'
+                      ? 'border-orange-500/40 bg-[#8B5CF6]/10 text-orange-600'
+                      : 'border-[#1E1E1E] bg-gray-50 text-[#888] hover:text-orange-600 hover:border-orange-500/30'
                   } disabled:opacity-50`}>
                   <span className="text-[8px]">{s.icon}</span>
                   {styleRegenLoading === s.key ? labels.generatingImage : s.label}
@@ -446,13 +446,13 @@ function ArtGalleryModal({ campaign, onClose, labels }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {images.map((url, i) => (
                 <button key={i} data-testid={`gallery-art-${i}`} onClick={() => setLightboxIdx(i)}
-                  className="rounded-xl overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-[#8B5CF6]/30 transition">
+                  className="rounded-xl overflow-hidden border border-[#1E1E1E] relative group text-left hover:border-orange-500/30 transition">
                   <img src={resolveImageUrl(url)} alt={`Art ${i + 1}`} className="w-full aspect-square object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                    <Maximize2 size={18} className="text-white" />
+                  <div className="absolute inset-0 bg-white/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                    <Maximize2 size={18} className="text-gray-900" />
                   </div>
-                  <div className="absolute bottom-1.5 left-1.5 bg-black/60 rounded px-1.5 py-0.5">
-                    <span className="text-[8px] text-white font-medium">{i + 1}/{images.length}</span>
+                  <div className="absolute bottom-1.5 left-1.5 bg-white/60 rounded px-1.5 py-0.5">
+                    <span className="text-[8px] text-gray-900 font-medium">{i + 1}/{images.length}</span>
                   </div>
                 </button>
               ))}
@@ -462,16 +462,16 @@ function ArtGalleryModal({ campaign, onClose, labels }) {
           )}
         </div>
         {lightboxIdx !== null && (
-          <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
+          <div className="fixed inset-0 z-[60] bg-white/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
             <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
               <button onClick={() => setLightboxIdx(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10">
-                <X size={14} className="text-white" />
+                <X size={14} className="text-gray-900" />
               </button>
               <img src={resolveImageUrl(images[lightboxIdx])} alt="" className="w-full rounded-xl" />
               <div className="flex gap-2 mt-3 justify-center flex-wrap">
                 {images.map((u, i) => (
                   <button key={i} onClick={() => setLightboxIdx(i)}
-                    className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${i === lightboxIdx ? 'border-[#8B5CF6]' : 'border-[#333] opacity-50 hover:opacity-80'}`}>
+                    className={`h-12 w-12 rounded-lg overflow-hidden border-2 transition ${i === lightboxIdx ? 'border-orange-500' : 'border-[#333] opacity-50 hover:opacity-80'}`}>
                     <img src={resolveImageUrl(u)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -479,13 +479,13 @@ function ArtGalleryModal({ campaign, onClose, labels }) {
               <div className="flex justify-center mt-2 gap-2">
                 <button onClick={() => setLightboxIdx(Math.max(0, lightboxIdx - 1))}
                   disabled={lightboxIdx === 0}
-                  className="px-3 py-1 rounded-lg border border-[#333] text-[10px] text-[#888] hover:text-white disabled:opacity-30 transition">
+                  className="px-3 py-1 rounded-lg border border-[#333] text-[10px] text-[#888] hover:text-gray-900 disabled:opacity-30 transition">
                   <ChevronLeft size={14} />
                 </button>
                 <span className="text-[10px] text-[#999] flex items-center">{lightboxIdx + 1} / {images.length}</span>
                 <button onClick={() => setLightboxIdx(Math.min(images.length - 1, lightboxIdx + 1))}
                   disabled={lightboxIdx === images.length - 1}
-                  className="px-3 py-1 rounded-lg border border-[#333] text-[10px] text-[#888] hover:text-white disabled:opacity-30 transition">
+                  className="px-3 py-1 rounded-lg border border-[#333] text-[10px] text-[#888] hover:text-gray-900 disabled:opacity-30 transition">
                   <ChevronRight size={14} />
                 </button>
               </div>
@@ -733,60 +733,60 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-3" onClick={onClose}>
-      <div data-testid="campaign-detail-modal" className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-white/85 flex items-center justify-center p-3" onClick={onClose}>
+      <div data-testid="campaign-detail-modal" className="bg-gray-50 border border-gray-200 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         {/* ── Compact Header with KPIs ── */}
         <div className="px-4 py-2.5 border-b border-[#111] shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: type.color, backgroundColor: `${type.color}15` }}>{metaLabel(type, labels)}</span>
             <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: status.color, backgroundColor: `${status.color}15` }}>{metaLabel(status, labels)}</span>
-            <h2 className="text-sm font-bold text-white flex-1 truncate ml-1">{campaign.name}</h2>
+            <h2 className="text-sm font-bold text-gray-900 flex-1 truncate ml-1">{campaign.name}</h2>
             {startDate && <span className="text-[8px] text-[#888] flex items-center gap-0.5 shrink-0"><CalendarDays size={8} />{new Date(startDate).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}</span>}
             {pipelineId && (
               <button data-testid="clone-language-btn" onClick={() => setShowCloneModal(!showCloneModal)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-[#8B5CF6]/30 text-[8px] text-[#8B5CF6] font-semibold hover:bg-[#8B5CF6]/10 transition shrink-0">
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-orange-500/30 text-[8px] text-orange-600 font-semibold hover:bg-[#8B5CF6]/10 transition shrink-0">
                 <Globe size={9} /> {labels.cloneLanguage}
               </button>
             )}
-            <button className="text-[#999] hover:text-white cursor-pointer shrink-0 ml-1" onClick={onClose}><X size={16} /></button>
+            <button className="text-[#999] hover:text-gray-900 cursor-pointer shrink-0 ml-1" onClick={onClose}><X size={16} /></button>
           </div>
 
           {/* Inline KPI Strip */}
           <div className="flex items-center gap-2 mt-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-gray-200">
               <Send size={9} className="text-[#999]" />
-              <span className="text-[11px] font-bold text-white">{stats.sent || 0}</span>
+              <span className="text-[11px] font-bold text-gray-900">{stats.sent || 0}</span>
               <span className="text-[7px] text-[#999]">{labels.sent}</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
-              <TrendingUp size={9} className="text-[#8B5CF6]" />
-              <span className="text-[11px] font-bold text-white">{deliveryRate}%</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-gray-200">
+              <TrendingUp size={9} className="text-orange-600" />
+              <span className="text-[11px] font-bold text-gray-900">{deliveryRate}%</span>
               <span className="text-[7px] text-[#999]">{labels.delivered}</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
-              <Eye size={9} className="text-[#8B5CF6]" />
-              <span className="text-[11px] font-bold text-[#8B5CF6]">{openRate}%</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-gray-200">
+              <Eye size={9} className="text-orange-600" />
+              <span className="text-[11px] font-bold text-orange-600">{openRate}%</span>
               <span className="text-[7px] text-[#999]">{labels.opens}</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#111] border border-gray-200">
               <Users size={9} className="text-green-400" />
               <span className="text-[11px] font-bold text-green-400">{convRate}%</span>
               <span className="text-[7px] text-[#999]">{labels.conversion}</span>
             </div>
             {/* CPL by channel - compact */}
             {channels.slice(0, 4).map(ch => (
-              <div key={ch} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#111] border border-[#1A1A1A]">
+              <div key={ch} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#111] border border-gray-200">
                 <ChannelIcon channel={ch} active size={10} />
                 <span className="text-[7px] text-[#999]">CPL</span>
-                <span className="text-[9px] font-bold text-white">${stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</span>
+                <span className="text-[9px] font-bold text-gray-900">${stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</span>
               </div>
             ))}
           </div>
 
           {/* Clone Language Modal */}
           {showCloneModal && (
-            <div data-testid="clone-language-modal" className="mt-2 p-3 rounded-xl bg-[#111] border border-[#8B5CF6]/20">
-              <p className="text-[9px] text-[#8B5CF6] font-bold mb-2">{labels.selectLanguage}</p>
+            <div data-testid="clone-language-modal" className="mt-2 p-3 rounded-xl bg-[#111] border border-orange-500/20">
+              <p className="text-[9px] text-orange-600 font-bold mb-2">{labels.selectLanguage}</p>
               <div className="flex gap-2 flex-wrap">
                 {[
                   { code: 'pt', label: 'Portugues', flag: 'BR' },
@@ -798,7 +798,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 ].map(l => (
                   <button key={l.code} data-testid={`clone-lang-${l.code}`}
                     onClick={() => cloneCampaign(l.code)} disabled={cloneLoading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1E1E1E] bg-[#0A0A0A] text-[10px] text-white hover:border-[#8B5CF6]/40 hover:bg-[#8B5CF6]/5 transition disabled:opacity-50">
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#1E1E1E] bg-gray-50 text-[10px] text-gray-900 hover:border-orange-500/40 hover:bg-[#8B5CF6]/5 transition disabled:opacity-50">
                     <span className="text-[8px] text-[#999] font-bold">{l.flag}</span>
                     {l.label}
                     {cloneLoading && <RefreshCw size={9} className="animate-spin ml-1" />}
@@ -817,7 +817,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
           ].map(tab => (
             <button key={tab.id} data-testid={`tab-${tab.id}`}
               onClick={() => setDetailTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition ${detailTab === tab.id ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20' : 'text-[#999] hover:text-white border border-transparent'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition ${detailTab === tab.id ? 'bg-[#8B5CF6]/10 text-orange-600 border border-orange-500/20' : 'text-[#999] hover:text-gray-900 border border-transparent'}`}>
               <tab.icon size={10} />
               {tab.label}
             </button>
@@ -825,13 +825,13 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
           {avatarUrl && (
             <div className="ml-auto flex items-center gap-2">
               <button data-testid="view-avatar-btn" onClick={() => setShowAvatarLightbox(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 text-[10px] text-[#8B5CF6] font-semibold hover:bg-[#8B5CF6]/20 transition">
-                <img src={resolveImageUrl(avatarUrl)} alt="" className="w-5 h-5 rounded-full object-cover border border-[#8B5CF6]/40" />
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#8B5CF6]/10 border border-orange-500/20 text-[10px] text-orange-600 font-semibold hover:bg-[#8B5CF6]/20 transition">
+                <img src={resolveImageUrl(avatarUrl)} alt="" className="w-5 h-5 rounded-full object-cover border border-orange-500/40" />
                 <Eye size={10} /> {labels.viewAvatar || 'Ver Avatar'}
               </button>
               <button onClick={() => downloadAsset(avatarUrl, 'avatar.png', 'avatar')} data-testid="download-avatar-btn"
                 disabled={downloadingAsset === 'avatar'}
-                className="flex items-center p-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#888] hover:text-white hover:border-[#8B5CF6]/30 transition disabled:opacity-50">
+                className="flex items-center p-1.5 rounded-lg bg-gray-100 border border-[#2A2A2A] text-[#888] hover:text-gray-900 hover:border-orange-500/30 transition disabled:opacity-50">
                 {downloadingAsset === 'avatar' ? <RefreshCw size={10} className="animate-spin" /> : <Download size={10} />}
               </button>
             </div>
@@ -858,14 +858,14 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                     <button key={ch} onClick={() => setSelectedChannel(ch)} data-testid={`channel-select-${ch}`}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
                         selectedChannel === ch
-                          ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10 shadow-[0_0_10px_rgba(201,168,76,0.1)]'
-                          : 'border-[#1A1A1A] bg-[#111] hover:border-[#333]'
+                          ? 'border-orange-500/50 bg-[#8B5CF6]/10 shadow-[0_0_10px_rgba(201,168,76,0.1)]'
+                          : 'border-gray-200 bg-[#111] hover:border-[#333]'
                       }`}>
                       <ChannelIcon channel={ch} active={selectedChannel === ch} size={14} />
-                      <span className={`text-[9px] font-semibold capitalize ${selectedChannel === ch ? 'text-[#8B5CF6]' : 'text-[#999]'}`}>
+                      <span className={`text-[9px] font-semibold capitalize ${selectedChannel === ch ? 'text-orange-600' : 'text-[#999]'}`}>
                         {ch === 'google_ads' ? 'Google Ads' : ch}
                       </span>
-                      <span className="text-[7px] px-1 py-0.5 rounded bg-[#1A1A1A] text-[#888]">{FORMAT_BADGE[ch] || '1:1'}</span>
+                      <span className="text-[7px] px-1 py-0.5 rounded bg-gray-100 text-[#888]">{FORMAT_BADGE[ch] || '1:1'}</span>
                     </button>
                     );
                   })}
@@ -890,8 +890,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   // Toggle for image/video
                   const MediaToggle = () => (channelVideo && imgSrc) ? (
                     <div className="flex gap-1 mb-2 max-w-[340px] mx-auto">
-                      <button onClick={() => setShowChannelVideo(false)} className={`text-[8px] px-2 py-1 rounded ${!showChannelVideo ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-[#111] text-[#999] border border-[#1A1A1A]'}`} data-testid={`toggle-image-${channel}`}>{labels.imageLabel}</button>
-                      <button onClick={() => setShowChannelVideo(true)} className={`text-[8px] px-2 py-1 rounded ${showChannelVideo ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-[#111] text-[#999] border border-[#1A1A1A]'}`} data-testid={`toggle-video-${channel}`}>{labels.video}</button>
+                      <button onClick={() => setShowChannelVideo(false)} className={`text-[8px] px-2 py-1 rounded ${!showChannelVideo ? 'bg-[#8B5CF6]/20 text-orange-600 border border-orange-500/30' : 'bg-[#111] text-[#999] border border-gray-200'}`} data-testid={`toggle-image-${channel}`}>{labels.imageLabel}</button>
+                      <button onClick={() => setShowChannelVideo(true)} className={`text-[8px] px-2 py-1 rounded ${showChannelVideo ? 'bg-[#8B5CF6]/20 text-orange-600 border border-orange-500/30' : 'bg-[#111] text-[#999] border border-gray-200'}`} data-testid={`toggle-video-${channel}`}>{labels.video}</button>
                     </div>
                   ) : null;
                   // Format badge for channel
@@ -908,14 +908,14 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <MediaToggle />
                       <div className="w-full max-w-[340px] mx-auto">
                         <div className="bg-[#075E54] rounded-t-xl px-3 py-2 flex items-center gap-2">
-                          <ChevronLeft size={14} className="text-white/70" />
-                          <div className="w-6 h-6 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-[8px] text-[#8B5CF6] font-bold">{brandName[0]}</div>
-                          <div className="flex-1"><p className="text-[10px] font-semibold text-white">{brandName}</p><p className="text-[7px] text-white/50">online</p></div>
+                          <ChevronLeft size={14} className="text-gray-900/70" />
+                          <div className="w-6 h-6 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-[8px] text-orange-600 font-bold">{brandName[0]}</div>
+                          <div className="flex-1"><p className="text-[10px] font-semibold text-gray-900">{brandName}</p><p className="text-[7px] text-gray-900/50">online</p></div>
                         </div>
                         <div className="bg-[#0B141A] px-2.5 py-3 min-h-[200px] rounded-b-xl">
                           <div className="max-w-[85%] ml-auto">
                             {showChannelVideo && channelVideo ? (
-                              <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-1 aspect-square bg-black" data-testid="whatsapp-video" style={{objectFit: 'contain'}} />
+                              <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-1 aspect-square bg-white" data-testid="whatsapp-video" style={{objectFit: 'contain'}} />
                             ) : imgSrc ? (
                               <img src={imgSrc} alt="" className="w-full rounded-lg mb-1 aspect-square object-cover" />
                             ) : null}
@@ -933,24 +933,24 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   if (channel === 'instagram') return (
                     <div>
                       <MediaToggle />
-                      <div className="w-full max-w-[340px] mx-auto bg-black rounded-xl overflow-hidden border border-[#262626]">
+                      <div className="w-full max-w-[340px] mx-auto bg-white rounded-xl overflow-hidden border border-[#262626]">
                         <div className="flex items-center gap-2 px-3 py-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
-                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[7px] text-white font-bold">{brandName[0]}</div>
+                            <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-[7px] text-gray-900 font-bold">{brandName[0]}</div>
                           </div>
-                          <p className="text-[10px] font-semibold text-white flex-1">{handle}</p>
-                          <MoreHorizontal size={12} className="text-white/50" />
+                          <p className="text-[10px] font-semibold text-gray-900 flex-1">{handle}</p>
+                          <MoreHorizontal size={12} className="text-gray-900/50" />
                         </div>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full aspect-square bg-black" data-testid="instagram-video" style={{objectFit: 'contain'}} />
+                          <video src={channelVideo} controls playsInline className="w-full aspect-square bg-white" data-testid="instagram-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full aspect-square object-cover" />
                         ) : null}
                         <div className="px-3 py-2">
                           <div className="flex items-center gap-3 mb-1.5">
-                            <Heart size={18} className="text-white" /><MessageCircle size={18} className="text-white" /><Send size={18} className="text-white" /><Bookmark size={18} className="text-white ml-auto" />
+                            <Heart size={18} className="text-gray-900" /><MessageCircle size={18} className="text-gray-900" /><Send size={18} className="text-gray-900" /><Bookmark size={18} className="text-gray-900 ml-auto" />
                           </div>
-                          <p className="text-[9px] text-white/60 mb-1">1,247 likes</p>
+                          <p className="text-[9px] text-gray-900/60 mb-1">1,247 likes</p>
                           <p className="text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-6"><span className="font-bold">{handle}</span> {copyText_ch}</p>
                         </div>
                       </div>
@@ -963,13 +963,13 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <MediaToggle />
                       <div className="w-full max-w-[340px] mx-auto bg-[#242526] rounded-xl overflow-hidden border border-[#3A3B3C]">
                         <div className="flex items-center gap-2 px-3 py-2">
-                          <div className="w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center text-[9px] text-white font-bold">{brandName[0]}</div>
+                          <div className="w-7 h-7 rounded-full bg-[#1877F2] flex items-center justify-center text-[9px] text-gray-900 font-bold">{brandName[0]}</div>
                           <div className="flex-1"><p className="text-[10px] font-semibold text-[#E4E6EB]">{brandName}</p><p className="text-[7px] text-[#B0B3B8]">{labels.sponsored || 'Patrocinado'}</p></div>
                           <MoreHorizontal size={12} className="text-[#B0B3B8]" />
                         </div>
                         <p className="px-3 pb-2 text-[9px] text-[#E4E6EB] leading-relaxed whitespace-pre-wrap line-clamp-4">{copyText_ch}</p>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full aspect-video bg-black" data-testid="facebook-video" style={{objectFit: 'contain'}} />
+                          <video src={channelVideo} controls playsInline className="w-full aspect-video bg-white" data-testid="facebook-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full aspect-video object-cover" />
                         ) : null}
@@ -986,23 +986,23 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   if (channel === 'tiktok') return (
                     <div>
                       <MediaToggle />
-                      <div className="w-full max-w-[240px] mx-auto bg-black rounded-2xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16'}}>
+                      <div className="w-full max-w-[240px] mx-auto bg-white rounded-2xl overflow-hidden border border-[#333] relative" style={{aspectRatio: '9/16'}}>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full h-full bg-black absolute inset-0" data-testid="tiktok-video" style={{objectFit: 'contain'}} />
+                          <video src={channelVideo} controls playsInline className="w-full h-full bg-white absolute inset-0" data-testid="tiktok-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full h-full object-cover absolute inset-0" />
                         ) : null}
                         {!showChannelVideo && <>
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                           <div className="absolute bottom-0 left-0 right-10 p-3">
-                            <p className="text-[10px] font-bold text-white mb-1">@{handle}</p>
-                            <p className="text-[8px] text-white/90 leading-relaxed line-clamp-3">{copyText_ch.substring(0, 150)}</p>
-                            <p className="text-[7px] text-white/50 mt-1">#marketing #ia #agentZZ</p>
+                            <p className="text-[10px] font-bold text-gray-900 mb-1">@{handle}</p>
+                            <p className="text-[8px] text-gray-900/90 leading-relaxed line-clamp-3">{copyText_ch.substring(0, 150)}</p>
+                            <p className="text-[7px] text-gray-900/50 mt-1">#marketing #ia #agentZZ</p>
                           </div>
                           <div className="absolute right-2 bottom-20 flex flex-col items-center gap-3">
-                            <div className="flex flex-col items-center"><Heart size={18} className="text-white" /><span className="text-[6px] text-white">24.5K</span></div>
-                            <div className="flex flex-col items-center"><MessageCircle size={18} className="text-white" /><span className="text-[6px] text-white">1,234</span></div>
-                            <div className="flex flex-col items-center"><Share2 size={18} className="text-white" /><span className="text-[6px] text-white">892</span></div>
+                            <div className="flex flex-col items-center"><Heart size={18} className="text-gray-900" /><span className="text-[6px] text-gray-900">24.5K</span></div>
+                            <div className="flex flex-col items-center"><MessageCircle size={18} className="text-gray-900" /><span className="text-[6px] text-gray-900">1,234</span></div>
+                            <div className="flex flex-col items-center"><Share2 size={18} className="text-gray-900" /><span className="text-[6px] text-gray-900">892</span></div>
                           </div>
                         </>}
                       </div>
@@ -1025,13 +1025,13 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         </div>
                         <div className="bg-white rounded-xl overflow-hidden border border-[#ddd]">
                           {showChannelVideo && channelVideo ? (
-                            <video src={channelVideo} controls playsInline className="w-full aspect-[1.91/1] bg-black" data-testid="google-ads-video" style={{objectFit: 'contain'}} />
+                            <video src={channelVideo} controls playsInline className="w-full aspect-[1.91/1] bg-white" data-testid="google-ads-video" style={{objectFit: 'contain'}} />
                           ) : imgSrc ? (
                             <img src={imgSrc} alt="" className="w-full aspect-[1.91/1] object-cover" />
                           ) : null}
                           <div className="p-2.5 border-t border-[#eee]">
                             <div className="flex items-center gap-1 mb-0.5">
-                              <span className="text-[7px] font-bold text-white bg-[#FBBC04] px-1 py-0.5 rounded">Ad</span>
+                              <span className="text-[7px] font-bold text-gray-900 bg-[#FBBC04] px-1 py-0.5 rounded">Ad</span>
                               <span className="text-[8px] text-[#70757a]">{handle}.com</span>
                             </div>
                             <p className="text-[10px] font-medium text-[#202124] line-clamp-1">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
@@ -1048,12 +1048,12 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <div className="w-full max-w-[340px] mx-auto">
                         <div className="bg-[#17212B] rounded-t-xl px-3 py-2 flex items-center gap-2">
                           <ChevronLeft size={14} className="text-[#6AB2F2]" />
-                          <div className="w-6 h-6 rounded-full bg-[#6AB2F2] flex items-center justify-center text-[8px] text-white font-bold">{brandName[0]}</div>
-                          <div className="flex-1"><p className="text-[10px] font-semibold text-white">{brandName}</p><p className="text-[7px] text-[#6AB2F2]">canal</p></div>
+                          <div className="w-6 h-6 rounded-full bg-[#6AB2F2] flex items-center justify-center text-[8px] text-gray-900 font-bold">{brandName[0]}</div>
+                          <div className="flex-1"><p className="text-[10px] font-semibold text-gray-900">{brandName}</p><p className="text-[7px] text-[#6AB2F2]">canal</p></div>
                         </div>
                         <div className="bg-[#0E1621] px-2.5 py-3 rounded-b-xl">
                           {showChannelVideo && channelVideo ? (
-                            <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-2 aspect-video bg-black" data-testid="telegram-video" style={{objectFit: 'contain'}} />
+                            <video src={channelVideo} controls playsInline className="w-full rounded-lg mb-2 aspect-video bg-white" data-testid="telegram-video" style={{objectFit: 'contain'}} />
                           ) : imgSrc ? (
                             <img src={imgSrc} alt="" className="w-full rounded-lg mb-2 aspect-video object-cover" />
                           ) : null}
@@ -1076,13 +1076,13 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           <p className="text-[10px] font-semibold text-[#202124] mt-0.5">{copyText_ch.split('\n')[0]?.substring(0, 50) || brandName}</p>
                         </div>
                         {showChannelVideo && channelVideo ? (
-                          <video src={channelVideo} controls playsInline className="w-full aspect-video bg-black" data-testid="email-video" style={{objectFit: 'contain'}} />
+                          <video src={channelVideo} controls playsInline className="w-full aspect-video bg-white" data-testid="email-video" style={{objectFit: 'contain'}} />
                         ) : imgSrc ? (
                           <img src={imgSrc} alt="" className="w-full aspect-video object-cover" />
                         ) : null}
                         <div className="px-3 py-3">
                           <p className="text-[9px] text-[#202124] leading-relaxed whitespace-pre-wrap line-clamp-6">{copyText_ch}</p>
-                          <button className="mt-2 px-4 py-1.5 bg-[#8B5CF6] text-white text-[9px] font-semibold rounded-lg">{labels.cta || 'Saiba Mais'}</button>
+                          <button className="mt-2 px-4 py-1.5 bg-[#8B5CF6] text-gray-900 text-[9px] font-semibold rounded-lg">{labels.cta || 'Saiba Mais'}</button>
                         </div>
                       </div>
                       <p className="text-center text-[7px] text-[#888] mt-1">{FORMAT_SIZES.email}</p>
@@ -1093,12 +1093,12 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                     <div>
                       <div className="w-full max-w-[260px] mx-auto bg-[#1C1C1E] rounded-2xl overflow-hidden border border-[#333]">
                         <div className="bg-[#2C2C2E] px-3 py-2 text-center">
-                          <p className="text-[10px] font-semibold text-white">{brandName}</p>
+                          <p className="text-[10px] font-semibold text-gray-900">{brandName}</p>
                           <p className="text-[7px] text-[#8E8E93]">SMS</p>
                         </div>
                         <div className="px-3 py-3 min-h-[150px]">
                           <div className="max-w-[85%] bg-[#3A3A3C] rounded-2xl rounded-tl-none px-3 py-2">
-                            <p className="text-[9px] text-white leading-relaxed whitespace-pre-wrap line-clamp-[10]">{copyText_ch}</p>
+                            <p className="text-[9px] text-gray-900 leading-relaxed whitespace-pre-wrap line-clamp-[10]">{copyText_ch}</p>
                             <p className="text-[6px] text-[#8E8E93] text-right mt-1">10:30</p>
                           </div>
                         </div>
@@ -1109,7 +1109,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
                   return (
                     <div>
-                      <div className="w-full max-w-[340px] mx-auto bg-[#111] rounded-xl border border-[#1A1A1A] p-3">
+                      <div className="w-full max-w-[340px] mx-auto bg-[#111] rounded-xl border border-gray-200 p-3">
                         {imgSrc && <img src={imgSrc} alt="" className="w-full rounded-lg mb-2" />}
                         <p className="text-[9px] text-[#ccc] whitespace-pre-wrap line-clamp-6">{copyText_ch}</p>
                       </div>
@@ -1130,8 +1130,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         onClick={() => { setShareImgIdx(i); setShareIsVideo(false); }}
                         role="button" tabIndex={0}
                         className={`rounded-xl overflow-hidden border-2 transition-all relative group cursor-pointer ${!shareIsVideo && shareImgIdx === i
-                          ? 'border-[#8B5CF6] shadow-[0_0_12px_rgba(201,168,76,0.25)] scale-[1.02]'
-                          : 'border-[#1A1A1A] opacity-70 hover:opacity-100 hover:border-[#333]'}`}>
+                          ? 'border-orange-500 shadow-[0_0_12px_rgba(201,168,76,0.25)] scale-[1.02]'
+                          : 'border-gray-200 opacity-70 hover:opacity-100 hover:border-[#333]'}`}>
                         <img src={resolveImageUrl(url)} alt={`Design ${i + 1}`} className="w-full aspect-square object-cover" />
                         {/* Selection indicator */}
                         {!shareIsVideo && shareImgIdx === i && (
@@ -1140,8 +1140,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           </div>
                         )}
                         {/* Regen button */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1 flex justify-between items-center">
-                          <span className="text-[8px] text-white font-bold">Design {i + 1}</span>
+                        <div className="absolute bottom-0 left-0 right-0 bg-white/70 px-2 py-1 flex justify-between items-center">
+                          <span className="text-[8px] text-gray-900 font-bold">Design {i + 1}</span>
                           <div className="flex items-center gap-1.5">
                             <button onClick={e => { e.stopPropagation(); startEditImageText(i); }}
                               data-testid={`edit-text-${i}`}
@@ -1150,28 +1150,28 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             </button>
                             <button onClick={e => { e.stopPropagation(); setRegenImageIdx(i); setRegenImageFeedback(''); }}
                               data-testid={`regen-image-${i}`}
-                              className="text-[#8B5CF6] hover:text-[#D4B85C] transition" title={labels.regenImage}>
+                              className="text-orange-600 hover:text-[#D4B85C] transition" title={labels.regenImage}>
                               <RefreshCw size={10} />
                             </button>
                             <button onClick={e => { e.stopPropagation(); downloadImage(url, i); }} data-testid={`download-image-${i}`}
                               disabled={downloadingIdx === i}
-                              className="text-white/60 hover:text-white transition disabled:opacity-50">
+                              className="text-gray-900/60 hover:text-gray-900 transition disabled:opacity-50">
                               {downloadingIdx === i ? <RefreshCw size={10} className="animate-spin" /> : <Download size={10} />}
                             </button>
                           </div>
                         </div>
                         {/* Edit Image Text — handled by modal below */}
                         {regenImageIdx === i && (
-                          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
-                            <p className="text-[8px] text-[#8B5CF6] font-bold mb-1.5">{labels.regenImage}</p>
+                          <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center p-2 z-10" onClick={e => e.stopPropagation()}>
+                            <p className="text-[8px] text-orange-600 font-bold mb-1.5">{labels.regenImage}</p>
                             <textarea data-testid={`regen-feedback-${i}`}
                               value={regenImageFeedback} onChange={e => setRegenImageFeedback(e.target.value)}
                               placeholder={labels.regenImageFeedback}
-                              className="w-full text-[9px] bg-[#1A1A1A] border border-[#333] rounded-lg p-2 text-white placeholder-[#666] resize-none"
+                              className="w-full text-[9px] bg-gray-100 border border-[#333] rounded-lg p-2 text-gray-900 placeholder-[#666] resize-none"
                               rows={2} />
                             <div className="flex gap-1.5 mt-1.5 w-full">
                               <button onClick={(e) => { e.stopPropagation(); setRegenImageIdx(null); }}
-                                className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                                className="flex-1 text-[8px] py-1 rounded-lg border border-[#333] text-[#888] hover:text-gray-900 transition">
                                 {labels.cancelEdit}
                               </button>
                               <button data-testid={`regen-image-confirm-${i}`} onClick={(e) => { e.stopPropagation(); regenerateImage(i); }} disabled={regenImageLoading}
@@ -1182,9 +1182,9 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           </div>
                         )}
                         {regenImageLoading && regenImageIdx === null && (
-                          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-10">
-                            <RefreshCw size={16} className="text-[#8B5CF6] animate-spin mb-1" />
-                            {regenCountdown > 0 && <span className="text-[10px] text-[#8B5CF6] font-bold">{regenCountdown}s</span>}
+                          <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center z-10">
+                            <RefreshCw size={16} className="text-orange-600 animate-spin mb-1" />
+                            {regenCountdown > 0 && <span className="text-[10px] text-orange-600 font-bold">{regenCountdown}s</span>}
                           </div>
                         )}
                       </div>
@@ -1194,12 +1194,12 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <button data-testid="share-media-video"
                         onClick={() => setShareIsVideo(true)}
                         className={`rounded-xl overflow-hidden border-2 transition-all relative ${shareIsVideo
-                          ? 'border-[#8B5CF6] shadow-[0_0_12px_rgba(201,168,76,0.25)] scale-[1.02]'
-                          : 'border-[#1A1A1A] opacity-70 hover:opacity-100 hover:border-[#333]'}`}>
+                          ? 'border-orange-500 shadow-[0_0_12px_rgba(201,168,76,0.25)] scale-[1.02]'
+                          : 'border-gray-200 opacity-70 hover:opacity-100 hover:border-[#333]'}`}>
                         <video src={videoUrl} className="w-full aspect-square object-cover" muted />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <div className="w-8 h-8 rounded-full bg-black/60 flex items-center justify-center">
-                            <Play size={14} className="text-white ml-0.5" fill="white" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/30">
+                          <div className="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center">
+                            <Play size={14} className="text-gray-900 ml-0.5" fill="white" />
                           </div>
                         </div>
                         {shareIsVideo && (
@@ -1207,8 +1207,8 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                             <Check size={10} className="text-black" />
                           </div>
                         )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-2 py-1">
-                          <span className="text-[8px] text-white font-bold flex items-center gap-1"><Film size={8} /> Video</span>
+                        <div className="absolute bottom-0 left-0 right-0 bg-white/70 px-2 py-1">
+                          <span className="text-[8px] text-gray-900 font-bold flex items-center gap-1"><Film size={8} /> Video</span>
                         </div>
                       </button>
                     )}
@@ -1218,17 +1218,17 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
               {/* Video Adjustments Section */}
               {pipelineId && videoUrl && (
-                <div data-testid="video-adjustments" className="rounded-xl bg-[#111] border border-[#1A1A1A] p-3 space-y-2">
+                <div data-testid="video-adjustments" className="rounded-xl bg-[#111] border border-gray-200 p-3 space-y-2">
                   <div className="flex items-center gap-1.5">
-                    <Film size={10} className="text-[#8B5CF6]" />
-                    <p className="text-[9px] font-bold text-white uppercase tracking-wider">{labels.videoAdjustments}</p>
+                    <Film size={10} className="text-orange-600" />
+                    <p className="text-[9px] font-bold text-gray-900 uppercase tracking-wider">{labels.videoAdjustments}</p>
                   </div>
                   <textarea
                     data-testid="video-adjustments-textarea"
                     value={videoAdjText}
                     onChange={e => setVideoAdjText(e.target.value)}
                     placeholder={labels.videoAdjustmentsPlaceholder}
-                    className="w-full text-[10px] text-[#ccc] bg-[#0A0A0A] border border-[#222] rounded-lg p-2 resize-none placeholder-[#666] focus:border-[#8B5CF6]/30 focus:outline-none"
+                    className="w-full text-[10px] text-[#ccc] bg-gray-50 border border-[#222] rounded-lg p-2 resize-none placeholder-[#666] focus:border-orange-500/30 focus:outline-none"
                     rows={2}
                   />
                   <div className="flex gap-2">
@@ -1236,7 +1236,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       data-testid="regenerate-video-btn"
                       onClick={regenerateVideo}
                       disabled={regenLoading}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[9px] text-[#8B5CF6] font-semibold hover:bg-[#8B5CF6]/20 transition disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5CF6]/10 border border-orange-500/30 text-[9px] text-orange-600 font-semibold hover:bg-[#8B5CF6]/20 transition disabled:opacity-50"
                     >
                       {regenLoading ? <RefreshCw size={10} className="animate-spin" /> : <Film size={10} />}
                       {regenLoading ? labels.regenerating : labels.regenerateVideo}
@@ -1257,7 +1257,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                           }
                         }}
                         disabled={regenVariantsLoading}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#111] border border-[#222] text-[9px] text-[#888] font-semibold hover:text-white hover:border-[#444] transition disabled:opacity-50"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#111] border border-[#222] text-[9px] text-[#888] font-semibold hover:text-gray-900 hover:border-[#444] transition disabled:opacity-50"
                       >
                         {regenVariantsLoading ? <RefreshCw size={10} className="animate-spin" /> : <Target size={10} />}
                         {labels.regenVariants}
@@ -1269,14 +1269,14 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
               {/* Generate New Image with Style */}
               {pipelineId && (
-                <div data-testid="image-style-gen" className="rounded-xl bg-[#111] border border-[#1A1A1A] p-3 space-y-2">
+                <div data-testid="image-style-gen" className="rounded-xl bg-[#111] border border-gray-200 p-3 space-y-2">
                   <button
                     data-testid="toggle-style-picker"
                     onClick={() => setShowStylePicker(!showStylePicker)}
                     className="flex items-center gap-1.5 w-full"
                   >
-                    <Sparkles size={10} className="text-[#8B5CF6]" />
-                    <p className="text-[9px] font-bold text-white uppercase tracking-wider flex-1 text-left">{labels.generateNewImage}</p>
+                    <Sparkles size={10} className="text-orange-600" />
+                    <p className="text-[9px] font-bold text-gray-900 uppercase tracking-wider flex-1 text-left">{labels.generateNewImage}</p>
                     <ChevronLeft size={10} className={`text-[#999] transition-transform ${showStylePicker ? '-rotate-90' : ''}`} />
                   </button>
                   {showStylePicker && (
@@ -1323,7 +1323,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                               setStyleRegenLoading(false);
                             }
                           }}
-                          className="px-2.5 py-1.5 rounded-lg border border-[#222] bg-[#0A0A0A] text-[9px] text-[#999] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition disabled:opacity-50"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#222] bg-gray-50 text-[9px] text-[#999] hover:text-orange-600 hover:border-orange-500/30 transition disabled:opacity-50"
                         >
                           {styleRegenLoading ? labels.generatingImage : s.label}
                         </button>
@@ -1340,7 +1340,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                   <div className="flex items-center gap-2">
                     {pipelineId && !editingCopy && (
                       <button data-testid="edit-copy-btn" onClick={startEditCopy}
-                        className="text-[8px] text-[#8B5CF6] hover:underline flex items-center gap-1">
+                        className="text-[8px] text-orange-600 hover:underline flex items-center gap-1">
                         <FileText size={9} /> {labels.editCopy}
                       </button>
                     )}
@@ -1351,24 +1351,24 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                         document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
                         toast.success(labels.copied);
                       });
-                    }} className="text-[8px] text-[#8B5CF6] hover:underline flex items-center gap-0.5">
+                    }} className="text-[8px] text-orange-600 hover:underline flex items-center gap-0.5">
                       <Copy size={8} /> {labels.copy}
                     </button>
                   </div>
                 </div>
                 {editingCopy ? (
-                  <div data-testid="copy-editor" className="rounded-lg bg-[#111] border border-[#8B5CF6]/30 p-3">
+                  <div data-testid="copy-editor" className="rounded-lg bg-[#111] border border-orange-500/30 p-3">
                     <div className="flex items-center gap-1.5 mb-2">
-                      <FileText size={10} className="text-[#8B5CF6]" />
-                      <span className="text-[9px] text-[#8B5CF6] font-bold">{labels.editing}</span>
+                      <FileText size={10} className="text-orange-600" />
+                      <span className="text-[9px] text-orange-600 font-bold">{labels.editing}</span>
                     </div>
                     <textarea data-testid="copy-editor-textarea"
                       value={editCopyText} onChange={e => setEditCopyText(e.target.value)}
-                      className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg p-3 text-[10px] text-[#ccc] font-sans leading-relaxed resize-none focus:border-[#8B5CF6]/50 focus:outline-none"
+                      className="w-full bg-gray-50 border border-[#1E1E1E] rounded-lg p-3 text-[10px] text-[#ccc] font-sans leading-relaxed resize-none focus:border-orange-500/50 focus:outline-none"
                       rows={12} />
                     <div className="flex gap-2 mt-2 justify-end">
                       <button data-testid="copy-cancel-btn" onClick={() => setEditingCopy(false)}
-                        className="px-3 py-1.5 rounded-lg border border-[#333] text-[9px] text-[#888] hover:text-white transition">
+                        className="px-3 py-1.5 rounded-lg border border-[#333] text-[9px] text-[#888] hover:text-gray-900 transition">
                         {labels.cancelEdit}
                       </button>
                       <button data-testid="copy-save-btn" onClick={saveCopy} disabled={savingCopy}
@@ -1379,7 +1379,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2.5">
+                  <div className="rounded-lg bg-[#111] border border-gray-200 p-2.5">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[8px] font-semibold text-[#888]">
                         {messages.find(m => m.channel === selectedChannel)?.channel === 'multi' ? labels.allNetworks : selectedChannel}
@@ -1395,10 +1395,10 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
               </div>
 
               {/* ── SHARE BUTTONS ── */}
-              <div data-testid="share-bar" className="rounded-xl border border-[#8B5CF6]/20 bg-[#0D0D0D] p-2.5 -mt-1">
+              <div data-testid="share-bar" className="rounded-xl border border-orange-500/20 bg-white p-2.5 -mt-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <Send size={10} className="text-[#8B5CF6]" />
-                  <p className="text-[9px] font-bold text-white">{labels.shareLabel}</p>
+                  <Send size={10} className="text-orange-600" />
+                  <p className="text-[9px] font-bold text-gray-900">{labels.shareLabel}</p>
                   <span className="text-[7px] text-[#999] ml-auto">
                     {shareIsVideo ? 'Video' : `Design ${shareImgIdx + 1}`}
                   </span>
@@ -1478,29 +1478,29 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
             {/* Results Summary */}
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+              <div className="rounded-lg bg-[#111] border border-gray-200 p-2">
                 <p className="text-[8px] text-[#999] uppercase">{labels.totalSent}</p>
-                <p className="text-base font-bold text-white">{stats.sent || 0}</p>
+                <p className="text-base font-bold text-gray-900">{stats.sent || 0}</p>
               </div>
-              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+              <div className="rounded-lg bg-[#111] border border-gray-200 p-2">
                 <p className="text-[8px] text-[#999] uppercase">{labels.delivered}</p>
-                <p className="text-base font-bold text-white">{stats.delivered || stats.sent || 0}</p>
+                <p className="text-base font-bold text-gray-900">{stats.delivered || stats.sent || 0}</p>
               </div>
-              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+              <div className="rounded-lg bg-[#111] border border-gray-200 p-2">
                 <p className="text-[8px] text-[#999] uppercase">{labels.openings}</p>
-                <p className="text-base font-bold text-[#8B5CF6]">{stats.opened || 0} <span className="text-[10px] text-[#999]">({openRate}%)</span></p>
+                <p className="text-base font-bold text-orange-600">{stats.opened || 0} <span className="text-[10px] text-[#999]">({openRate}%)</span></p>
               </div>
-              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+              <div className="rounded-lg bg-[#111] border border-gray-200 p-2">
                 <p className="text-[8px] text-[#999] uppercase">{labels.clicks}</p>
                 <p className="text-base font-bold text-blue-400">{stats.clicked || 0}</p>
               </div>
-              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+              <div className="rounded-lg bg-[#111] border border-gray-200 p-2">
                 <p className="text-[8px] text-[#999] uppercase">{labels.conversions}</p>
                 <p className="text-base font-bold text-green-400">{stats.converted || 0} <span className="text-[10px] text-[#999]">({convRate}%)</span></p>
               </div>
-              <div className="rounded-lg bg-[#111] border border-[#1A1A1A] p-2">
+              <div className="rounded-lg bg-[#111] border border-gray-200 p-2">
                 <p className="text-[8px] text-[#999] uppercase">{labels.avgCpl}</p>
-                <p className="text-base font-bold text-white">$ {stats.sent > 0 ? (Math.random() * 3 + 1).toFixed(2) : '0.00'}</p>
+                <p className="text-base font-bold text-gray-900">$ {stats.sent > 0 ? (Math.random() * 3 + 1).toFixed(2) : '0.00'}</p>
               </div>
             </div>
 
@@ -1508,23 +1508,23 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
             <div>
               <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1.5">{labels.performanceByChannel}</p>
               {(channels.length > 0 ? channels : ['whatsapp']).map(ch => (
-                <div key={ch} className="rounded-lg bg-[#111] border border-[#1A1A1A] p-3 mb-1.5">
+                <div key={ch} className="rounded-lg bg-[#111] border border-gray-200 p-3 mb-1.5">
                   <div className="flex items-center gap-1.5 mb-2">
                     <ChannelIcon channel={ch} active size={12} />
                     <span className="text-[10px] font-bold capitalize" style={{ color: CHANNEL_COLORS[ch] || '#888' }}>{ch}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-3">
-                    <div><p className="text-[8px] text-[#999]">{labels.sends}</p><p className="text-sm font-bold text-white">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
-                    <div><p className="text-[8px] text-[#999]">{labels.opens}</p><p className="text-sm font-bold text-white">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
-                    <div><p className="text-[8px] text-[#999]">{labels.clicks}</p><p className="text-sm font-bold text-white">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
-                    <div><p className="text-[8px] text-[#999]">CPL</p><p className="text-sm font-bold text-white">$ {stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</p></div>
+                    <div><p className="text-[8px] text-[#999]">{labels.sends}</p><p className="text-sm font-bold text-gray-900">{Math.round((stats.sent || 0) / Math.max(channels.length, 1))}</p></div>
+                    <div><p className="text-[8px] text-[#999]">{labels.opens}</p><p className="text-sm font-bold text-gray-900">{stats.sent > 0 ? Math.round(openRate * (0.8 + Math.random() * 0.4)) : 0}%</p></div>
+                    <div><p className="text-[8px] text-[#999]">{labels.clicks}</p><p className="text-sm font-bold text-gray-900">{Math.round((stats.clicked || 0) / Math.max(channels.length, 1))}</p></div>
+                    <div><p className="text-[8px] text-[#999]">CPL</p><p className="text-sm font-bold text-gray-900">$ {stats.sent > 0 ? (Math.random() * 4 + 0.5).toFixed(2) : '0.00'}</p></div>
                   </div>
                 </div>
               ))}
             </div>
 
             {stats.sent === 0 && (
-              <div className="text-center py-3 rounded-lg bg-[#111] border border-[#1A1A1A]">
+              <div className="text-center py-3 rounded-lg bg-[#111] border border-gray-200">
                 <p className="text-[10px] text-[#888]">{labels.notSent}</p>
               </div>
             )}
@@ -1533,7 +1533,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
             {schedule.schedule_text && (
               <div>
                 <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1">{labels.schedule}</p>
-                <pre className="text-[9px] text-[#999] whitespace-pre-wrap font-sans bg-[#111] rounded-lg p-2 border border-[#1A1A1A] max-h-[120px] overflow-y-auto">{schedule.schedule_text}</pre>
+                <pre className="text-[9px] text-[#999] whitespace-pre-wrap font-sans bg-[#111] rounded-lg p-2 border border-gray-200 max-h-[120px] overflow-y-auto">{schedule.schedule_text}</pre>
               </div>
             )}
 
@@ -1543,7 +1543,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 <p className="text-[8px] text-[#999] uppercase tracking-wider mb-1">{labels.messageFlow}</p>
                 <div className="space-y-1">
                   {messages.slice(0, 5).map((m, i) => (
-                    <div key={i} className="flex items-center gap-1.5 rounded-lg bg-[#111] border border-[#1A1A1A] px-2 py-1.5">
+                    <div key={i} className="flex items-center gap-1.5 rounded-lg bg-[#111] border border-gray-200 px-2 py-1.5">
                       <div className="flex h-5 w-5 items-center justify-center rounded shrink-0 text-[7px] font-bold text-black" style={{ backgroundColor: CHANNEL_COLORS[m.channel] || '#888' }}>{i + 1}</div>
                       <div className="flex-1 min-w-0">
                         <span className="text-[8px] font-medium capitalize" style={{ color: CHANNEL_COLORS[m.channel] || '#888' }}>{m.channel}</span>
@@ -1560,9 +1560,9 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
         {/* Lightbox */}
         {lightboxIdx !== null && (
-          <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
+          <div className="fixed inset-0 z-[60] bg-white/90 flex items-center justify-center p-4" onClick={() => setLightboxIdx(null)}>
             <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setLightboxIdx(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333]"><X size={14} className="text-white" /></button>
+              <button onClick={() => setLightboxIdx(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333]"><X size={14} className="text-gray-900" /></button>
               <img src={resolveImageUrl(images[lightboxIdx])} alt="" className="w-full rounded-xl" />
             </div>
           </div>
@@ -1570,30 +1570,30 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
 
         {/* Avatar Lightbox */}
         {showAvatarLightbox && avatarUrl && (
-          <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setShowAvatarLightbox(false)}>
+          <div className="fixed inset-0 z-[60] bg-white/90 flex items-center justify-center p-4" onClick={() => setShowAvatarLightbox(false)}>
             <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowAvatarLightbox(false)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10"><X size={14} className="text-white" /></button>
-              <div className="rounded-2xl overflow-hidden border border-[#8B5CF6]/30 bg-[#0A0A0A]">
+              <button onClick={() => setShowAvatarLightbox(false)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10"><X size={14} className="text-gray-900" /></button>
+              <div className="rounded-2xl overflow-hidden border border-orange-500/30 bg-gray-50">
                 <img src={resolveImageUrl(avatarUrl)} alt="Avatar" className="w-full" />
-                <div className="p-3 flex items-center justify-between bg-[#0D0D0D] border-t border-[#1A1A1A]">
+                <div className="p-3 flex items-center justify-between bg-white border-t border-gray-200">
                   <div className="flex items-center gap-2">
-                    <UserCircle2 size={14} className="text-[#8B5CF6]" />
+                    <UserCircle2 size={14} className="text-orange-600" />
                     <div>
-                      <p className="text-[11px] text-white font-semibold">{labels.avatar || 'Avatar'}</p>
+                      <p className="text-[11px] text-gray-900 font-semibold">{labels.avatar || 'Avatar'}</p>
                       <p className="text-[8px] text-[#999]">{campaign.name}</p>
                     </div>
                     {videoMode === 'presenter' && (
-                      <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#8B5CF6] font-bold uppercase ml-1">{labels.presenterMode || 'Apresentador'}</span>
+                      <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-orange-600 font-bold uppercase ml-1">{labels.presenterMode || 'Apresentador'}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => { navigator.clipboard.writeText(resolveImageUrl(avatarUrl)); toast.success(labels.copied || 'Copiado!'); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white transition">
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 border border-[#2A2A2A] text-[8px] text-[#888] hover:text-gray-900 transition">
                       <Copy size={9} /> {labels.copy || 'Copiar'}
                     </button>
                     <button onClick={() => downloadAsset(avatarUrl, 'avatar.png', 'avatar-lightbox')}
                       disabled={downloadingAsset === 'avatar-lightbox'}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[8px] text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition disabled:opacity-50">
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8B5CF6]/10 border border-orange-500/30 text-[8px] text-orange-600 hover:bg-[#8B5CF6]/20 transition disabled:opacity-50">
                       {downloadingAsset === 'avatar-lightbox' ? <RefreshCw size={9} className="animate-spin" /> : <Download size={9} />} {labels.download || 'Baixar'}
                     </button>
                   </div>
@@ -1605,7 +1605,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
       </div>
       {/* ── Edit Image Text Modal ── */}
       {editImageTextIdx !== null && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4" onClick={() => { setEditImageTextIdx(null); setSelectedOriginalText(''); }}>
+        <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-[60] p-4" onClick={() => { setEditImageTextIdx(null); setSelectedOriginalText(''); }}>
           <div className="bg-[#111] border border-[#222] rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Header with image preview */}
             <div className="p-4 border-b border-[#222] flex items-center gap-4">
@@ -1636,7 +1636,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                       <button key={ti}
                         data-testid={`detected-text-${ti}`}
                         onClick={() => setSelectedOriginalText(txt)}
-                        className="w-full text-left text-sm px-4 py-3 rounded-xl bg-[#1A1A1A] border border-[#333] text-white hover:border-[#60A5FA] hover:bg-[#1A1A2A] transition">
+                        className="w-full text-left text-sm px-4 py-3 rounded-xl bg-gray-100 border border-[#333] text-gray-900 hover:border-[#60A5FA] hover:bg-[#1A1A2A] transition">
                         {txt}
                       </button>
                     ))}
@@ -1649,14 +1649,14 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs text-[#888] block mb-1">Texto original:</label>
-                    <div className="text-sm px-4 py-3 rounded-xl bg-[#1A1A1A] border border-[#60A5FA]/30 text-[#60A5FA]">{selectedOriginalText}</div>
+                    <div className="text-sm px-4 py-3 rounded-xl bg-gray-100 border border-[#60A5FA]/30 text-[#60A5FA]">{selectedOriginalText}</div>
                   </div>
                   <div>
                     <label className="text-xs text-[#888] block mb-1">Novo texto:</label>
                     <textarea data-testid="edit-image-text-input"
                       value={editImageTextValue} onChange={e => setEditImageTextValue(e.target.value)}
                       placeholder={labels.imageTextPlaceholder}
-                      className="w-full text-sm bg-[#1A1A1A] border border-[#333] rounded-xl p-4 text-white placeholder-[#666] resize-none focus:border-[#60A5FA] focus:outline-none"
+                      className="w-full text-sm bg-gray-100 border border-[#333] rounded-xl p-4 text-gray-900 placeholder-[#666] resize-none focus:border-[#60A5FA] focus:outline-none"
                       rows={3} autoFocus />
                   </div>
                 </div>
@@ -1669,7 +1669,7 @@ function CampaignDetail({ campaign: initialCampaign, onClose, labels }) {
                 if (selectedOriginalText) { setSelectedOriginalText(''); setEditImageTextValue(''); }
                 else { setEditImageTextIdx(null); }
               }}
-                className="flex-1 text-sm py-2.5 rounded-xl border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition">
+                className="flex-1 text-sm py-2.5 rounded-xl border border-[#333] text-[#888] hover:text-gray-900 hover:border-[#555] transition">
                 {selectedOriginalText ? 'Voltar' : 'Cancelar'}
               </button>
               {selectedOriginalText && (
@@ -1729,7 +1729,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
   const isConfirming = confirmingDelete === campaign.id;
 
   return (
-    <div data-testid={`campaign-card-${campaign.id}`} className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3.5 hover:border-[#2A2A2A] transition group">
+    <div data-testid={`campaign-card-${campaign.id}`} className="rounded-xl border border-gray-200 bg-white p-3.5 hover:border-[#2A2A2A] transition group">
       <div className="flex items-start gap-3">
         {/* Thumbnail */}
         {images.length > 0 ? (
@@ -1745,7 +1745,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
         ) : avatarUrl ? (
           <div className="relative shrink-0">
             <img src={resolveImageUrl(avatarUrl)} alt=""
-              className="w-12 h-12 rounded-full object-cover border-2 border-[#8B5CF6]/30" />
+              className="w-12 h-12 rounded-full object-cover border-2 border-orange-500/30" />
           </div>
         ) : (
           <div className="w-12 h-12 rounded-lg bg-[#111] border border-[#1E1E1E] flex items-center justify-center shrink-0">
@@ -1759,14 +1759,14 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
             <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: type.color, backgroundColor: `${type.color}15` }}>{metaLabel(type, labels)}</span>
             <span className="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded" style={{ color: status.color, backgroundColor: `${status.color}15` }}>{metaLabel(status, labels)}</span>
           </div>
-          <h3 className="text-[13px] font-semibold text-white truncate">{campaign.name}</h3>
+          <h3 className="text-[13px] font-semibold text-gray-900 truncate">{campaign.name}</h3>
 
           {/* Stats Row */}
           <div className="flex items-center gap-3 mt-1">
             <span className="text-[9px] text-[#999] flex items-center gap-1"><Send size={9} />{stats.sent || 0} {labels.env}</span>
             <span className="text-[9px] text-[#999] flex items-center gap-1"><TrendingUp size={9} />{openRate}%</span>
             <span className="text-[9px] text-[#999] flex items-center gap-1"><Users size={9} />{convRate}% {labels.conv}</span>
-            {hasCpl && <span className="text-[9px] text-[#8B5CF6] flex items-center gap-0.5"><DollarSign size={8} />R$ {(Math.random() * 3 + 0.8).toFixed(2)}/lead</span>}
+            {hasCpl && <span className="text-[9px] text-orange-600 flex items-center gap-0.5"><DollarSign size={8} />R$ {(Math.random() * 3 + 0.8).toFixed(2)}/lead</span>}
           </div>
         </div>
 
@@ -1774,24 +1774,24 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
         <div className="flex items-center gap-0.5 shrink-0">
           {avatarUrl && (
             <button data-testid={`view-avatar-${campaign.id}`} onClick={() => onViewAvatar(campaign)}
-              className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-[#8B5CF6] transition" title={labels.viewAvatar || 'Ver Avatar'}>
+              className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-orange-600 transition" title={labels.viewAvatar || 'Ver Avatar'}>
               <UserCircle2 size={13} />
             </button>
           )}
           {images.length > 0 && (
             <button data-testid={`gallery-${campaign.id}`} onClick={() => onGallery(campaign)}
-              className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-[#8B5CF6] transition" title={labels.artGallery}>
+              className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-orange-600 transition" title={labels.artGallery}>
               <Image size={13} />
             </button>
           )}
           {images.length > 0 && (
             <button data-testid={`preview-${campaign.id}`} onClick={() => onPreview(campaign)}
-              className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-[#8B5CF6] transition" title="Preview">
+              className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-orange-600 transition" title="Preview">
               <Eye size={13} />
             </button>
           )}
           <button data-testid={`detail-${campaign.id}`} onClick={() => onDetail(campaign)}
-            className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-[#8B5CF6] transition" title="Detalhes">
+            className="p-1.5 rounded-lg hover:bg-[#8B5CF6]/10 text-[#999] hover:text-orange-600 transition" title="Detalhes">
             <ChevronRight size={13} />
           </button>
           {campaign.status === 'active' && (
@@ -1813,7 +1813,7 @@ function CampaignCard({ campaign, lang, onAction, onPreview, onGallery, onDetail
               </button>
               <button data-testid={`cancel-delete-${campaign.id}`}
                 onClick={() => setConfirmingDelete(null)}
-                className="p-1.5 rounded-lg hover:bg-[#1A1A1A] text-[#999] hover:text-white transition">
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-[#999] hover:text-gray-900 transition">
                 <X size={13} />
               </button>
             </div>
@@ -1915,8 +1915,8 @@ function GlobalArtGallery({ campaigns, labels }) {
           style={{ aspectRatio: ch.aspect || '1/1' }}>
           {(isVertical || isFeed) && (
             <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-3 py-1 bg-gradient-to-b from-black/60 to-transparent">
-              <span className="text-[6px] text-white/70">9:41</span>
-              <div className="w-12 h-3 bg-black rounded-full" />
+              <span className="text-[6px] text-gray-900/70">9:41</span>
+              <div className="w-12 h-3 bg-white rounded-full" />
               <div className="flex gap-0.5"><div className="w-2.5 h-1.5 bg-white/60 rounded-sm" /><div className="w-2.5 h-1.5 bg-white/60 rounded-sm" /></div>
             </div>
           )}
@@ -1929,20 +1929,20 @@ function GlobalArtGallery({ campaigns, labels }) {
             <div className="absolute bottom-0 inset-x-0 z-10 p-2 bg-gradient-to-t from-black/70 to-transparent">
               <div className="flex items-center gap-1.5">
                 <div className="w-5 h-5 rounded-full bg-[#8B5CF6]/30" />
-                <span className="text-[7px] text-white font-semibold">{asset.campaign}</span>
+                <span className="text-[7px] text-gray-900 font-semibold">{asset.campaign}</span>
               </div>
               {ch.id === 'tiktok' && (
                 <div className="absolute right-2 bottom-8 flex flex-col items-center gap-2">
-                  <Heart size={12} className="text-white" /><MessageCircle size={12} className="text-white" /><Share2 size={12} className="text-white" />
+                  <Heart size={12} className="text-gray-900" /><MessageCircle size={12} className="text-gray-900" /><Share2 size={12} className="text-gray-900" />
                 </div>
               )}
             </div>
           )}
           {isWide && (
             <div className="absolute bottom-0 inset-x-0 z-10 px-3 py-1.5 bg-gradient-to-t from-black/60 to-transparent flex items-center gap-2">
-              <Play size={10} className="text-white" />
+              <Play size={10} className="text-gray-900" />
               <div className="flex-1 h-0.5 bg-white/20 rounded"><div className="h-full w-1/3 bg-[#8B5CF6] rounded" /></div>
-              <span className="text-[7px] text-white/60">0:15</span>
+              <span className="text-[7px] text-gray-900/60">0:15</span>
             </div>
           )}
         </div>
@@ -1965,7 +1965,7 @@ function GlobalArtGallery({ campaigns, labels }) {
             ].map(f => (
               <button key={f.key} data-testid={`gallery-type-${f.key}`} onClick={() => setTypeFilter(f.key)}
                 className={`px-2 py-1 rounded-lg text-[9px] font-medium transition flex items-center gap-1 ${
-                  typeFilter === f.key ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20' : 'text-[#999] border border-[#1A1A1A] hover:text-white'}`}>
+                  typeFilter === f.key ? 'bg-[#8B5CF6]/10 text-orange-600 border border-orange-500/20' : 'text-[#999] border border-gray-200 hover:text-gray-900'}`}>
                 {f.key === 'image' && <Image size={9} />}
                 {f.key === 'video' && <Film size={9} />}
                 {f.key === 'avatar' && <UserCircle2 size={9} />}
@@ -1978,11 +1978,11 @@ function GlobalArtGallery({ campaigns, labels }) {
             <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#888]" />
             <input data-testid="gallery-search" value={searchText} onChange={e => setSearchText(e.target.value)}
               placeholder={labels.galleryFilterCampaign + '...'}
-              className="bg-[#111] border border-[#1A1A1A] rounded-lg text-[9px] text-[#888] pl-6 pr-2 py-1 w-36 outline-none focus:border-[#8B5CF6]/30 placeholder-[#666]" />
+              className="bg-[#111] border border-gray-200 rounded-lg text-[9px] text-[#888] pl-6 pr-2 py-1 w-36 outline-none focus:border-orange-500/30 placeholder-[#666]" />
           </div>
           <select data-testid="gallery-campaign-filter" value={campaignFilter}
             onChange={e => setCampaignFilter(e.target.value)}
-            className="bg-[#111] border border-[#1A1A1A] rounded-lg text-[9px] text-[#888] px-2 py-1 outline-none focus:border-[#8B5CF6]/30">
+            className="bg-[#111] border border-gray-200 rounded-lg text-[9px] text-[#888] px-2 py-1 outline-none focus:border-orange-500/30">
             <option value="all">{labels.galleryFilterCampaign}: {labels.galleryAll}</option>
             {campaignNames.map(name => {
               const cId = campaigns.find(c => c.name === name)?.id;
@@ -1995,14 +1995,14 @@ function GlobalArtGallery({ campaigns, labels }) {
 
       {/* ── Fixed Player Area ── */}
       {selectedAsset ? (
-        <div data-testid="gallery-player" className="shrink-0 mb-2.5 rounded-xl border border-[#8B5CF6]/20 bg-[#0A0A0A] overflow-hidden">
+        <div data-testid="gallery-player" className="shrink-0 mb-2.5 rounded-xl border border-orange-500/20 bg-gray-50 overflow-hidden">
           {/* Channel tabs + asset info */}
-          <div className="flex items-center gap-1 px-3 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b border-gray-200 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             <div className="flex items-center gap-1.5 mr-2 shrink-0">
-              {selectedAsset.type === 'video' ? <Film size={10} className="text-[#8B5CF6]" /> : selectedAsset.type === 'avatar' ? <UserCircle2 size={10} className="text-[#8B5CF6]" /> : <Image size={10} className="text-[#8B5CF6]" />}
-              <span className="text-[9px] text-white font-medium truncate max-w-[140px]">{selectedAsset.campaign}</span>
+              {selectedAsset.type === 'video' ? <Film size={10} className="text-orange-600" /> : selectedAsset.type === 'avatar' ? <UserCircle2 size={10} className="text-orange-600" /> : <Image size={10} className="text-orange-600" />}
+              <span className="text-[9px] text-gray-900 font-medium truncate max-w-[140px]">{selectedAsset.campaign}</span>
               {selectedAsset.type === 'avatar' && (
-                <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#8B5CF6] font-bold">AVATAR</span>
+                <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-orange-600 font-bold">AVATAR</span>
               )}
             </div>
             <div className="w-px h-3.5 bg-[#222] shrink-0" />
@@ -2011,7 +2011,7 @@ function GlobalArtGallery({ campaigns, labels }) {
               return (
                 <button key={ch.id} data-testid={`preview-ch-${ch.id}`} onClick={() => setPreviewChannel(ch.id)}
                   className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-medium transition ${
-                    previewChannel === ch.id ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20' : 'text-[#999] border border-transparent hover:text-white'}`}>
+                    previewChannel === ch.id ? 'bg-[#8B5CF6]/10 text-orange-600 border border-orange-500/20' : 'text-[#999] border border-transparent hover:text-gray-900'}`}>
                   <Icon size={9} /> {ch.label}
                 </button>
               );
@@ -2026,9 +2026,9 @@ function GlobalArtGallery({ campaigns, labels }) {
                   <div className="relative">
                     <img src={resolveImageUrl(selectedAsset.url)} alt="" className="w-full rounded-lg" style={{ maxHeight: '320px', objectFit: 'contain' }} />
                     {selectedAsset.type === 'avatar' && (
-                      <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm border border-[#8B5CF6]/30">
-                        <UserCircle2 size={11} className="text-[#8B5CF6]" />
-                        <span className="text-[9px] text-[#8B5CF6] font-semibold">{labels.avatar || 'Avatar'}</span>
+                      <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 backdrop-blur-sm border border-orange-500/30">
+                        <UserCircle2 size={11} className="text-orange-600" />
+                        <span className="text-[9px] text-orange-600 font-semibold">{labels.avatar || 'Avatar'}</span>
                       </div>
                     )}
                   </div>
@@ -2043,7 +2043,7 @@ function GlobalArtGallery({ campaigns, labels }) {
           </div>
 
           {/* Action bar */}
-          <div className="flex items-center justify-between px-3 py-1.5 bg-[#0D0D0D] border-t border-[#1A1A1A]">
+          <div className="flex items-center justify-between px-3 py-1.5 bg-white border-t border-gray-200">
             <span className="text-[8px] text-[#888]">
               {previewChannel !== 'original' ? CHANNEL_MOCKUPS.find(c => c.id === previewChannel)?.label : 'Original'}
               {previewChannel !== 'original' && ` · ${CHANNEL_MOCKUPS.find(c => c.id === previewChannel)?.aspect?.replace('/', ':') || ''}`}
@@ -2051,19 +2051,19 @@ function GlobalArtGallery({ campaigns, labels }) {
             <div className="flex items-center gap-1.5">
               <button onClick={() => downloadAsset(selectedAsset.url, `gallery_${selectedAsset.id || 'asset'}.png`, 'gallery')} data-testid="gallery-download"
                 disabled={downloadingAsset === 'gallery'}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white hover:border-[#8B5CF6]/30 transition disabled:opacity-50">
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 border border-[#2A2A2A] text-[8px] text-[#888] hover:text-gray-900 hover:border-orange-500/30 transition disabled:opacity-50">
                 {downloadingAsset === 'gallery' ? <RefreshCw size={9} className="animate-spin" /> : <Download size={9} />} {labels.download || 'Download'}
               </button>
               <button data-testid="gallery-share" onClick={() => { navigator.clipboard.writeText(resolveImageUrl(selectedAsset.url)); toast.success('Link copiado!'); }}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white hover:border-[#8B5CF6]/30 transition">
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 border border-[#2A2A2A] text-[8px] text-[#888] hover:text-gray-900 hover:border-orange-500/30 transition">
                 <Share2 size={9} /> {labels.share || 'Compartilhar'}
               </button>
               <button data-testid="gallery-use-in-campaign" onClick={() => toast.success(labels.assetCopied || 'Asset pronto para usar!')}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[8px] text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition">
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8B5CF6]/10 border border-orange-500/30 text-[8px] text-orange-600 hover:bg-[#8B5CF6]/20 transition">
                 <Plus size={9} /> {labels.useCampaign || 'Usar'}
               </button>
               <button data-testid="gallery-close-player" onClick={() => { setSelectedAsset(null); setPreviewChannel('original'); }}
-                className="flex items-center px-1.5 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[#888] hover:text-white transition">
+                className="flex items-center px-1.5 py-1 rounded-lg bg-gray-100 border border-[#2A2A2A] text-[#888] hover:text-gray-900 transition">
                 <X size={10} />
               </button>
             </div>
@@ -2071,7 +2071,7 @@ function GlobalArtGallery({ campaigns, labels }) {
         </div>
       ) : (
         /* Placeholder when no asset selected */
-        <div className="shrink-0 mb-2.5 rounded-xl border border-dashed border-[#1A1A1A] bg-[#080808] py-5 text-center">
+        <div className="shrink-0 mb-2.5 rounded-xl border border-dashed border-gray-200 bg-[#080808] py-5 text-center">
           <Play size={18} className="mx-auto mb-1 text-[#555]" />
           <p className="text-[9px] text-[#777]">{labels.gallerySelectHint || 'Selecione um asset para visualizar'}</p>
         </div>
@@ -2087,7 +2087,7 @@ function GlobalArtGallery({ campaigns, labels }) {
                 <button key={asset.key} data-testid={`gallery-asset-${i}`}
                   onClick={() => { setSelectedAsset(asset); setPreviewChannel('original'); }}
                   className={`rounded-xl overflow-hidden relative group text-left transition-all ${
-                    isSelected ? 'border-2 border-[#8B5CF6] ring-2 ring-[#8B5CF6]/20' : 'border border-[#1E1E1E] hover:border-[#8B5CF6]/30'} bg-[#0A0A0A]`}>
+                    isSelected ? 'border-2 border-orange-500 ring-2 ring-[#8B5CF6]/20' : 'border border-[#1E1E1E] hover:border-orange-500/30'} bg-gray-50`}>
                   {asset.type === 'image' || asset.type === 'avatar' ? (
                     <div className="w-full aspect-square relative">
                       <img src={resolveImageUrl(asset.url)} alt="" className="w-full h-full object-cover" />
@@ -2102,15 +2102,15 @@ function GlobalArtGallery({ campaigns, labels }) {
                     <div className="w-full aspect-square bg-[#111] relative">
                       <video src={resolveImageUrl(asset.url)} className="w-full h-full object-cover" muted preload="metadata" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="h-8 w-8 rounded-full bg-black/60 flex items-center justify-center"><Play size={12} className="text-[#8B5CF6] ml-0.5" /></div>
+                        <div className="h-8 w-8 rounded-full bg-white/60 flex items-center justify-center"><Play size={12} className="text-orange-600 ml-0.5" /></div>
                       </div>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition" />
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition" />
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-5">
                     <div className="flex items-center gap-1">
-                      {asset.type === 'video' ? <Film size={7} className="text-[#8B5CF6]" /> : asset.type === 'avatar' ? <UserCircle2 size={7} className="text-[#8B5CF6]" /> : <Image size={7} className="text-[#8B5CF6]" />}
-                      <span className="text-[7px] text-white/80 truncate">{asset.campaign}</span>
+                      {asset.type === 'video' ? <Film size={7} className="text-orange-600" /> : asset.type === 'avatar' ? <UserCircle2 size={7} className="text-orange-600" /> : <Image size={7} className="text-orange-600" />}
+                      <span className="text-[7px] text-gray-900/80 truncate">{asset.campaign}</span>
                     </div>
                   </div>
                   {isSelected && (
@@ -2123,7 +2123,7 @@ function GlobalArtGallery({ campaigns, labels }) {
             })}
           </div>
         ) : (
-          <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center">
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
             <GalleryHorizontalEnd size={28} className="mx-auto mb-2 text-[#555]" />
             <p className="text-[11px] text-[#999]">{labels.galleryNoAssets}</p>
           </div>
@@ -2218,20 +2218,20 @@ export default function Marketing() {
   const isEnterprise = plan === 'enterprise';
 
   if (loading) return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#8B5CF6] border-t-transparent" />
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
     </div>
   );
 
   return (
     <div className="min-h-screen pb-20">
       {/* Header */}
-      <div className="border-b border-[#1A1A1A] px-3 py-2.5">
+      <div className="border-b border-gray-200 px-3 py-2.5">
         <div className="flex items-center gap-2.5">
-          <button data-testid="marketing-back" onClick={() => navigate('/dashboard')} className="text-[#888] hover:text-white transition"><ArrowLeft size={18} /></button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/10 shrink-0"><Megaphone size={16} className="text-[#8B5CF6]" /></div>
+          <button data-testid="marketing-back" onClick={() => navigate('/dashboard')} className="text-[#888] hover:text-gray-900 transition"><ArrowLeft size={18} /></button>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#8B5CF6]/10 shrink-0"><Megaphone size={16} className="text-orange-600" /></div>
           <div className="flex-1 flex items-center gap-2">
-            <h1 className="text-sm font-semibold text-white">{labels.title}</h1>
+            <h1 className="text-sm font-semibold text-gray-900">{labels.title}</h1>
             <div className="flex items-center gap-1.5">
               {isEnterprise ? (
                 <>
@@ -2240,13 +2240,13 @@ export default function Marketing() {
                     <Sparkles size={11} /> {labels.createWithStudio}
                   </button>
                   <button data-testid="open-traffic-hub-btn" onClick={() => navigate('/traffic-hub')}
-                    className="flex items-center gap-1.5 rounded-md border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 px-3 py-1.5 text-[10px] font-semibold text-[#8B5CF6] transition hover:bg-[#8B5CF6]/15">
+                    className="flex items-center gap-1.5 rounded-md border border-orange-500/30 bg-[#8B5CF6]/5 px-3 py-1.5 text-[10px] font-semibold text-orange-600 transition hover:bg-[#8B5CF6]/15">
                     <Target size={11} /> Traffic Hub
                   </button>
                 </>
               ) : (
                 <button data-testid="new-campaign-btn" onClick={() => setShowNew(true)}
-                  className="flex items-center gap-1 rounded-md border border-[#8B5CF6]/30 px-2 py-1 text-[9px] text-[#8B5CF6] hover:bg-[#8B5CF6]/5 transition">
+                  className="flex items-center gap-1 rounded-md border border-orange-500/30 px-2 py-1 text-[9px] text-orange-600 hover:bg-[#8B5CF6]/5 transition">
                   <Plus size={10} /> {labels.newBtn}
                 </button>
               )}
@@ -2261,15 +2261,15 @@ export default function Marketing() {
         <div 
           onClick={() => navigate('/marketing/studio')}
           data-testid="studio-upsell" 
-          className="mb-3 rounded-xl border border-[#8B5CF6]/20 bg-gradient-to-r from-[#8B5CF6]/5 to-transparent p-4 cursor-pointer hover:border-[#8B5CF6]/40 transition group"
+          className="mb-3 rounded-xl border border-orange-500/20 bg-gradient-to-r from-[#8B5CF6]/5 to-transparent p-4 cursor-pointer hover:border-orange-500/40 transition group"
         >
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8B5CF6]/10 shrink-0">
-              <Sparkles size={18} className="text-[#8B5CF6]" />
+              <Sparkles size={18} className="text-orange-600" />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <h3 className="text-[12px] font-semibold text-white">Marketing AI Studio</h3>
+                <h3 className="text-[12px] font-semibold text-gray-900">Marketing AI Studio</h3>
               </div>
               <p className="text-[10px] text-[#888] mb-2">{labels.studioDesc}</p>
               <button 
@@ -2295,32 +2295,32 @@ export default function Marketing() {
           <div className="flex gap-1">
             {['all', 'active', 'draft', 'paused'].map(f => (
               <button key={f} data-testid={`filter-${f}`} onClick={() => { setFilter(f); setShowGallery(false); }}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition ${!showGallery && filter === f ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20' : 'text-[#999] hover:text-white border border-transparent'}`}>
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition ${!showGallery && filter === f ? 'bg-[#8B5CF6]/10 text-orange-600 border border-orange-500/20' : 'text-[#999] hover:text-gray-900 border border-transparent'}`}>
                 {f === 'all' ? labels.all : (labels[STATUS_META[f]?.label_key] || f)}
               </button>
             ))}
             <div className="w-px h-4 bg-[#222] mx-0.5 self-center" />
             <button data-testid="filter-gallery" onClick={() => setShowGallery(true)}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition flex items-center gap-1 ${showGallery ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20' : 'text-[#999] hover:text-white border border-transparent'}`}>
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition flex items-center gap-1 ${showGallery ? 'bg-[#8B5CF6]/10 text-orange-600 border border-orange-500/20' : 'text-[#999] hover:text-gray-900 border border-transparent'}`}>
               <GalleryHorizontalEnd size={11} /> {labels.artGallery}
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={loadTemplates} className="text-[9px] text-[#8B5CF6] hover:underline mr-2">{labels.templates}</button>
-            <button onClick={() => setView('grid')} className={`p-1 rounded ${view === 'grid' ? 'text-[#8B5CF6]' : 'text-[#888]'}`}><LayoutGrid size={13} /></button>
-            <button onClick={() => setView('list')} className={`p-1 rounded ${view === 'list' ? 'text-[#8B5CF6]' : 'text-[#888]'}`}><List size={13} /></button>
+            <button onClick={loadTemplates} className="text-[9px] text-orange-600 hover:underline mr-2">{labels.templates}</button>
+            <button onClick={() => setView('grid')} className={`p-1 rounded ${view === 'grid' ? 'text-orange-600' : 'text-[#888]'}`}><LayoutGrid size={13} /></button>
+            <button onClick={() => setView('list')} className={`p-1 rounded ${view === 'list' ? 'text-orange-600' : 'text-[#888]'}`}><List size={13} /></button>
           </div>
         </div>
 
         {/* New Campaign Form */}
         {showNew && (
-          <div data-testid="new-campaign-form" className="mb-3 rounded-xl border border-[#8B5CF6]/20 bg-[#0D0D0D] p-3 space-y-2">
+          <div data-testid="new-campaign-form" className="mb-3 rounded-xl border border-orange-500/20 bg-white p-3 space-y-2">
             <input data-testid="campaign-name-input" value={newName} onChange={e => setNewName(e.target.value)}
-              placeholder={labels.campaignName} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[12px] text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" autoFocus />
+              placeholder={labels.campaignName} className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-[12px] text-gray-900 placeholder-[#666] outline-none focus:border-orange-500/30" autoFocus />
             <div className="flex gap-1.5 flex-wrap">
               {Object.entries(TYPE_META).filter(([k]) => k !== 'ai_pipeline').map(([key, meta]) => (
                 <button key={key} onClick={() => setNewType(key)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition ${newType === key ? 'border-[#8B5CF6]/30 text-[#8B5CF6] bg-[#8B5CF6]/5' : 'border-[#1A1A1A] text-[#999]'}`}>
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition ${newType === key ? 'border-orange-500/30 text-orange-600 bg-[#8B5CF6]/5' : 'border-gray-200 text-[#999]'}`}>
                   {meta.label}
                 </button>
               ))}
@@ -2335,17 +2335,17 @@ export default function Marketing() {
 
         {/* Templates */}
         {showTemplates && (
-          <div className="mb-3 rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-3">
+          <div className="mb-3 rounded-xl border border-gray-200 bg-white p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[11px] font-semibold text-white">{labels.readyTemplates}</h3>
+              <h3 className="text-[11px] font-semibold text-gray-900">{labels.readyTemplates}</h3>
               <button onClick={() => setShowTemplates(false)} className="text-[#999] text-[10px]"><X size={12} /></button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {templates.map(tpl => (
                 <button key={tpl.id}
                   onClick={() => { createCampaign(tpl.name_pt || tpl.name, tpl.type, tpl.messages); setShowTemplates(false); }}
-                  className="rounded-lg border border-[#1A1A1A] p-2.5 text-left hover:border-[#8B5CF6]/20 transition">
-                  <p className="text-[10px] font-medium text-white mb-0.5">{tpl.name_pt || tpl.name}</p>
+                  className="rounded-lg border border-gray-200 p-2.5 text-left hover:border-orange-500/20 transition">
+                  <p className="text-[10px] font-medium text-gray-900 mb-0.5">{tpl.name_pt || tpl.name}</p>
                   <p className="text-[8px] text-[#999] line-clamp-2">{tpl.description_pt || tpl.description}</p>
                 </button>
               ))}
@@ -2368,14 +2368,14 @@ export default function Marketing() {
             </div>
 
             {filtered.length === 0 && !showNew && (
-              <div className="rounded-xl border border-[#1A1A1A] bg-[#0D0D0D] p-8 text-center mt-2">
+              <div className="rounded-xl border border-gray-200 bg-white p-8 text-center mt-2">
                 <Megaphone size={28} className="mx-auto mb-2 text-[#555]" />
                 <p className="text-[11px] text-[#888] mb-2">{labels.noCampaigns}</p>
                 <div className="flex gap-2 justify-center">
                   <button onClick={() => setShowNew(true)} className="btn-gold rounded-lg px-3 py-1.5 text-[10px]">
                     <Plus size={11} className="inline mr-1" />{labels.createCampaign}
                   </button>
-                  <button onClick={seedTest} className="rounded-lg border border-[#1E1E1E] px-3 py-1.5 text-[10px] text-[#888] hover:text-white transition">
+                  <button onClick={seedTest} className="rounded-lg border border-[#1E1E1E] px-3 py-1.5 text-[10px] text-[#888] hover:text-gray-900 transition">
                     <Zap size={11} className="inline mr-1" />{labels.testData}
                   </button>
                 </div>
@@ -2395,29 +2395,29 @@ export default function Marketing() {
         const avatarUrl = avatarCampaign.stats?.avatar_url;
         if (!avatarUrl) return null;
         return (
-          <div data-testid="avatar-modal" className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setAvatarCampaign(null)}>
+          <div data-testid="avatar-modal" className="fixed inset-0 z-50 bg-white/90 flex items-center justify-center p-4" onClick={() => setAvatarCampaign(null)}>
             <div className="relative max-w-md w-full" onClick={e => e.stopPropagation()}>
-              <button data-testid="close-avatar-modal" onClick={() => setAvatarCampaign(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10"><X size={14} className="text-white" /></button>
-              <div className="rounded-2xl overflow-hidden border border-[#8B5CF6]/30 bg-[#0A0A0A]">
+              <button data-testid="close-avatar-modal" onClick={() => setAvatarCampaign(null)} className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-[#222] border border-[#333] flex items-center justify-center hover:bg-[#333] z-10"><X size={14} className="text-gray-900" /></button>
+              <div className="rounded-2xl overflow-hidden border border-orange-500/30 bg-gray-50">
                 <img src={resolveImageUrl(avatarUrl)} alt="Avatar" className="w-full" />
-                <div className="p-3 flex items-center justify-between bg-[#0D0D0D] border-t border-[#1A1A1A]">
+                <div className="p-3 flex items-center justify-between bg-white border-t border-gray-200">
                   <div className="flex items-center gap-2">
-                    <UserCircle2 size={14} className="text-[#8B5CF6]" />
+                    <UserCircle2 size={14} className="text-orange-600" />
                     <div>
-                      <p className="text-[11px] text-white font-semibold">{labels.avatar || 'Avatar'} · {avatarCampaign.name}</p>
+                      <p className="text-[11px] text-gray-900 font-semibold">{labels.avatar || 'Avatar'} · {avatarCampaign.name}</p>
                       {avatarCampaign.stats?.video_mode === 'presenter' && (
-                        <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-[#8B5CF6] font-bold uppercase">{labels.presenterMode || 'Apresentador'}</span>
+                        <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#8B5CF6]/15 text-orange-600 font-bold uppercase">{labels.presenterMode || 'Apresentador'}</span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => { navigator.clipboard.writeText(resolveImageUrl(avatarUrl)); toast.success(labels.copied || 'Copiado!'); }}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-[8px] text-[#888] hover:text-white transition">
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 border border-[#2A2A2A] text-[8px] text-[#888] hover:text-gray-900 transition">
                       <Copy size={9} /> {labels.copy || 'Copiar'}
                     </button>
                     <button onClick={() => downloadAsset(avatarUrl, 'avatar.png', 'avatar-share')}
                       disabled={downloadingAsset === 'avatar-share'}
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[8px] text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition disabled:opacity-50">
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8B5CF6]/10 border border-orange-500/30 text-[8px] text-orange-600 hover:bg-[#8B5CF6]/20 transition disabled:opacity-50">
                       {downloadingAsset === 'avatar-share' ? <RefreshCw size={9} className="animate-spin" /> : <Download size={9} />} {labels.download || 'Baixar'}
                     </button>
                   </div>

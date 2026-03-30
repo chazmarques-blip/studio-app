@@ -9,8 +9,8 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #0A0A0A;
-    color: #FFFFFF;
+    background-color: #FFFFFF;
+    color: #111827;
 }
 
 code {
@@ -19,60 +19,130 @@ code {
 
 @layer base {
     :root {
-        --background: 0 0% 4%;
-        --foreground: 0 0% 100%;
-        --card: 0 0% 10%;
-        --card-foreground: 0 0% 100%;
-        --popover: 0 0% 8%;
-        --popover-foreground: 0 0% 100%;
-        --primary: 263 70% 58%;
+        /* ═══════════════════════════════════════════════════════
+           STUDIOX PREMIUM DESIGN SYSTEM - LIGHT THEME
+           Apple/Pixar Inspired - World-Class UX
+           ═══════════════════════════════════════════════════════ */
+        
+        /* Shadcn/UI Tokens (Light Theme) */
+        --background: 0 0% 100%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 24 95% 53%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 0 0% 12%;
-        --secondary-foreground: 0 0% 100%;
-        --muted: 0 0% 14%;
-        --muted-foreground: 0 0% 63%;
-        --accent: 263 70% 58%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 62% 50%;
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 210 40% 96%;
+        --accent-foreground: 222 47% 11%;
+        --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 16%;
-        --input: 0 0% 14%;
-        --ring: 263 70% 58%;
-        --chart-1: 263 70% 58%;
-        --chart-2: 142 52% 45%;
-        --chart-3: 187 94% 43%;
-        --chart-4: 328 73% 55%;
-        --chart-5: 25 95% 53%;
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 24 95% 53%;
+        --chart-1: 24 95% 53%;
+        --chart-2: 142 76% 36%;
+        --chart-3: 217 91% 60%;
+        --chart-4: 328 86% 70%;
+        --chart-5: 43 96% 56%;
         --radius: 0.75rem;
 
-        /* StudioX Brand Colors */
-        --brand: #8B5CF6;
-        --brand-light: #A78BFA;
-        --brand-dark: #7C3AED;
-        --brand-muted: rgba(139, 92, 246, 0.15);
-        --accent-cyan: #06B6D4;
-        --accent-pink: #EC4899;
-        --bg-primary: #0A0A0A;
-        --bg-secondary: #111111;
-        --bg-card: #1A1A1A;
-        --bg-card-hover: #222222;
-        --bg-input: #1E1E1E;
-        --border-default: #2A2A2A;
-        --border-brand: rgba(139, 92, 246, 0.3);
-        --text-primary: #FFFFFF;
-        --text-secondary: #A0A0A0;
-        --text-muted: #666666;
+        /* Premium Palette (Proprietary) */
+        --orange-50: #FFF7ED;
+        --orange-100: #FFEDD5;
+        --orange-200: #FED7AA;
+        --orange-300: #FDBA74;
+        --orange-400: #FB923C;
+        --orange-500: #F97316;
+        --orange-600: #EA580C;
+        --orange-700: #C2410C;
+        --orange-800: #9A3412;
+        --orange-900: #7C2D12;
+        
+        --blue-50: #EFF6FF;
+        --blue-100: #DBEAFE;
+        --blue-200: #BFDBFE;
+        --blue-300: #93C5FD;
+        --blue-400: #60A5FA;
+        --blue-500: #3B82F6;
+        --blue-600: #2563EB;
+        --blue-700: #1D4ED8;
+        --blue-800: #1E40AF;
+        --blue-900: #1E3A8A;
+        
+        --green-50: #ECFDF5;
+        --green-100: #D1FAE5;
+        --green-200: #A7F3D0;
+        --green-300: #6EE7B7;
+        --green-400: #34D399;
+        --green-500: #10B981;
+        --green-600: #059669;
+        --green-700: #047857;
+        --green-800: #065F46;
+        --green-900: #064E3B;
+
+        /* Neutrals (Light) */
+        --white: #FFFFFF;
+        --gray-50: #F9FAFB;
+        --gray-100: #F3F4F6;
+        --gray-200: #E5E7EB;
+        --gray-300: #D1D5DB;
+        --gray-400: #9CA3AF;
+        --gray-500: #6B7280;
+        --gray-600: #4B5563;
+        --gray-700: #374151;
+        --gray-800: #1F2937;
+        --gray-900: #111827;
+
+        /* Semantic Tokens */
+        --brand: #F97316;
+        --brand-light: #FB923C;
+        --brand-dark: #EA580C;
+        --brand-muted: rgba(249, 115, 22, 0.08);
+        --accent-blue: #3B82F6;
+        --accent-green: #10B981;
+        --bg-primary: #FFFFFF;
+        --bg-secondary: #F9FAFB;
+        --bg-card: #FFFFFF;
+        --bg-card-hover: #F9FAFB;
+        --bg-input: #F9FAFB;
+        --border-default: #E5E7EB;
+        --border-brand: rgba(249, 115, 22, 0.2);
+        --text-primary: #111827;
+        --text-secondary: #374151;
+        --text-muted: #6B7280;
+        
+        /* Social Colors (unchanged) */
         --whatsapp: #25D366;
         --instagram: #E4405F;
         --facebook: #1877F2;
         --telegram: #0088CC;
         
-        /* Legacy aliases for gradual migration */
-        --gold: #8B5CF6;
-        --gold-light: #A78BFA;
-        --gold-dark: #7C3AED;
-        --gold-muted: rgba(139, 92, 246, 0.15);
-        --border-gold: rgba(139, 92, 246, 0.3);
+        /* Gradients */
+        --gradient-hero: linear-gradient(135deg, #FFF7ED 0%, #DBEAFE 50%, #ECFDF5 100%);
+        --gradient-card-hover: linear-gradient(135deg, rgba(249,115,22,0.05) 0%, rgba(59,130,246,0.05) 100%);
+        --gradient-button: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+        
+        /* Shadows */
+        --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+        --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+        --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+        --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04);
+        --shadow-2xl: 0 25px 50px rgba(0,0,0,0.15);
+        --shadow-orange: 0 10px 30px rgba(249,115,22,0.3);
+        --shadow-blue: 0 10px 30px rgba(59,130,246,0.3);
+        
+        /* Legacy Compatibility (map old purple to new orange) */
+        --gold: #F97316;
+        --gold-light: #FB923C;
+        --gold-dark: #EA580C;
+        --gold-muted: rgba(249, 115, 22, 0.08);
+        --border-gold: rgba(249, 115, 22, 0.2);
     }
 }
 
@@ -100,58 +170,56 @@ code {
     background: #3A3A3A;
 }
 
-/* StudioX Brand button styles */
+/* StudioX Premium Button Styles (Light Theme) */
 .btn-gold, .btn-brand {
-    background: linear-gradient(170deg, #A78BFA 0%, #8B5CF6 30%, #7C3AED 60%, #6D28D9 100%);
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
     color: #FFFFFF;
     font-weight: 600;
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    box-shadow:
-        0 3px 10px rgba(0,0,0,0.5),
-        0 1px 3px rgba(0,0,0,0.3),
-        inset 0 1px 1px rgba(255,255,255,0.25),
-        inset 0 -1px 2px rgba(0,0,0,0.15);
-    transition: all 0.25s ease;
-    text-shadow: 0 1px 0 rgba(0,0,0,0.2);
+    border: none;
+    box-shadow: 0 10px 30px rgba(249, 115, 22, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-gold:hover, .btn-brand:hover {
-    background: linear-gradient(170deg, #C4B5FD 0%, #A78BFA 30%, #8B5CF6 60%, #7C3AED 100%);
-    transform: translateY(-1px);
-    box-shadow:
-        0 6px 20px rgba(139, 92, 246, 0.45),
-        0 2px 6px rgba(0,0,0,0.3),
-        inset 0 1px 2px rgba(255,255,255,0.3),
-        inset 0 -1px 2px rgba(0,0,0,0.12);
+    background: linear-gradient(135deg, #FB923C 0%, #F97316 100%);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 15px 40px rgba(249, 115, 22, 0.4);
+}
+.btn-gold:active, .btn-brand:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .btn-gold-outline, .btn-brand-outline {
     background: transparent;
-    border: 1px solid rgba(139, 92, 246, 0.5);
-    color: #8B5CF6;
+    border: 1.5px solid rgba(249, 115, 22, 0.3);
+    color: #F97316;
     font-weight: 500;
     transition: all 0.2s ease;
 }
 .btn-gold-outline:hover, .btn-brand-outline:hover {
-    border-color: #8B5CF6;
-    background: rgba(139, 92, 246, 0.1);
+    border-color: #F97316;
+    background: rgba(249, 115, 22, 0.05);
+    transform: translateY(-1px);
 }
 
-/* Glass card */
+/* Glass card (Light Theme) */
 .glass-card {
-    background: rgba(255, 255, 255, 0.015);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 16px;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .glass-card:hover {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(249, 115, 22, 0.2);
+    box-shadow: 0 10px 40px rgba(249, 115, 22, 0.1);
+    transform: translateY(-2px);
 }
 
-/* StudioX Brand glow */
+/* StudioX Brand glow (Orange) */
 .gold-glow, .brand-glow {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.2);
 }
 
 /* Animations */
@@ -167,7 +235,7 @@ code {
     animation: fadeInUp 0.5s ease forwards;
 }
 .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(139,92,246,0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(249,115,22,0.08), transparent);
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
 }

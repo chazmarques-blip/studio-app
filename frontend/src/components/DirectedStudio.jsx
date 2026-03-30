@@ -161,7 +161,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   ];
 
   const STATUS_LABELS = {
-    draft: { pt: 'Rascunho', en: 'Draft', color: 'text-[#888]' },
+    draft: { pt: 'Rascunho', en: 'Draft', color: 'text-gray-600' },
     scripting: { pt: 'Roteiro', en: 'Scripting', color: 'text-blue-400' },
     starting: { pt: 'Iniciando', en: 'Starting', color: 'text-yellow-400' },
     running_agents: { pt: 'Produzindo', en: 'Producing', color: 'text-orange-400' },
@@ -1295,16 +1295,16 @@ export const DirectedStudio = memo(function DirectedStudio({
       {step >= 1 && (
         <div className="flex items-center justify-between mb-1">
           <button onClick={() => { skipAutoResume.current = true; setStep(0); setProjectId(null); setViewingProject(null); loadProjects(); }}
-            className="text-xs text-[#8B5CF6] hover:underline flex items-center gap-1">
+            className="text-xs text-orange-600 hover:underline flex items-center gap-1">
             ← {lang === 'pt' ? 'Projectos' : 'Projects'}
           </button>
-          <p className="text-xs text-[#666] truncate max-w-[200px]">{projectName}</p>
+          <p className="text-xs text-gray-500 truncate max-w-[200px]">{projectName}</p>
         </div>
       )}
       {step >= 1 && (
         <div className="flex items-center justify-center gap-0 my-2 relative">
           {/* Timeline track */}
-          <div className="absolute top-1/2 left-8 right-8 h-px bg-[#1A1A1A] -translate-y-1/2 z-0" />
+          <div className="absolute top-1/2 left-8 right-8 h-px bg-gray-100 -translate-y-1/2 z-0" />
           {STEPS.map((s, i) => {
             const isActive = step === s.n && !viewingProject;
             const isDone = step > s.n;
@@ -1315,12 +1315,12 @@ export const DirectedStudio = memo(function DirectedStudio({
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isActive ? 'bg-[#8B5CF6] text-black shadow-[0_0_16px_rgba(201,168,76,0.3)]' :
                     isDone ? 'bg-white text-black' :
-                    'bg-[#111] text-[#555] border border-[#222] hover:border-[#444]'
+                    'bg-gray-50 text-[#555] border border-[#222] hover:border-[#444]'
                   }`}>
                   {isDone ? <Check size={12} strokeWidth={2.5} /> : <s.icon size={12} strokeWidth={1.5} />}
                 </button>
                 <span className={`mt-1 text-[11px] font-mono tracking-wider uppercase transition-colors ${
-                  isActive ? 'text-[#8B5CF6]' : isDone ? 'text-white/60' : 'text-[#333]'
+                  isActive ? 'text-orange-600' : isDone ? 'text-gray-900/60' : 'text-[#333]'
                 }`}>
                   {isActive ? s.label : <span className="hidden sm:inline">{s.label}</span>}
                 </span>
@@ -1336,13 +1336,13 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           {/* Analytics Panel */}
           {showAnalytics && analyticsData && (
-            <div className="glass-card border border-[#8B5CF6]/20 p-3 space-y-3" data-testid="studio-analytics-panel">
+            <div className="glass-card border border-orange-500/20 p-3 space-y-3" data-testid="studio-analytics-panel">
               <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                  <BarChart3 size={12} className="text-[#8B5CF6]" />
+                <h3 className="text-[11px] font-bold text-gray-900 flex items-center gap-1.5">
+                  <BarChart3 size={12} className="text-orange-600" />
                   {lang === 'pt' ? 'Relatório de Performance' : 'Performance Report'}
                 </h3>
-                <button onClick={() => setShowAnalytics(false)} className="text-[#666] hover:text-white">
+                <button onClick={() => setShowAnalytics(false)} className="text-gray-500 hover:text-gray-900">
                   <X size={12} />
                 </button>
               </div>
@@ -1352,18 +1352,18 @@ export const DirectedStudio = memo(function DirectedStudio({
                 {[
                   { label: lang === 'pt' ? 'Produções' : 'Productions', value: analyticsData.summary?.completed || 0, color: 'text-emerald-400' },
                   { label: lang === 'pt' ? 'Cenas' : 'Scenes', value: analyticsData.summary?.total_scenes_produced || 0, color: 'text-blue-400' },
-                  { label: lang === 'pt' ? 'Vídeos' : 'Videos', value: analyticsData.summary?.total_videos_generated || 0, color: 'text-[#8B5CF6]' },
+                  { label: lang === 'pt' ? 'Vídeos' : 'Videos', value: analyticsData.summary?.total_videos_generated || 0, color: 'text-orange-600' },
                   { label: lang === 'pt' ? 'Erros' : 'Errors', value: analyticsData.summary?.errored || 0, color: 'text-red-400' },
                 ].map((s, i) => (
-                  <div key={i} className="rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-2 text-center">
+                  <div key={i} className="rounded-lg bg-gray-50 border border-gray-200 p-2 text-center">
                     <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
-                    <p className="text-[10px] text-[#666]">{s.label}</p>
+                    <p className="text-[10px] text-gray-500">{s.label}</p>
                   </div>
                 ))}
               </div>
 
               {/* Timing */}
-              <div className="rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] p-2 space-y-1.5">
+              <div className="rounded-lg bg-gray-50 border border-gray-200 p-2 space-y-1.5">
                 <p className="text-[11px] font-semibold text-[#999]">{lang === 'pt' ? 'TEMPOS MÉDIOS' : 'AVG TIMING'}</p>
                 {[
                   { label: 'Agentes (Claude)', value: analyticsData.timing?.avg_agent_seconds, color: 'bg-purple-500' },
@@ -1373,11 +1373,11 @@ export const DirectedStudio = memo(function DirectedStudio({
                   <div key={i} className="flex items-center gap-2">
                     <div className={`h-1.5 w-1.5 rounded-full ${t.color}`} />
                     <span className="text-[11px] text-[#999] w-24">{t.label}</span>
-                    <div className="flex-1 bg-[#111] rounded-full h-1.5">
+                    <div className="flex-1 bg-gray-50 rounded-full h-1.5">
                       <div className={`h-1.5 rounded-full ${t.color} transition-all`}
                         style={{ width: `${Math.min((t.value || 0) / Math.max(analyticsData.timing?.avg_total_seconds || 1, 1) * 100, 100)}%` }} />
                     </div>
-                    <span className="text-[11px] font-mono text-white w-12 text-right">
+                    <span className="text-[11px] font-mono text-gray-900 w-12 text-right">
                       {t.value ? (t.value > 60 ? `${(t.value/60).toFixed(1)}m` : `${t.value}s`) : '—'}
                     </span>
                   </div>
@@ -1391,7 +1391,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   { label: 'v2 batch', count: analyticsData.pipeline_versions?.v2_batched || 0, color: 'border-orange-500/30 text-orange-400' },
                   { label: 'v3 parallel', count: analyticsData.pipeline_versions?.v3_parallel_teams || 0, color: 'border-emerald-500/30 text-emerald-400' },
                 ].map((v, i) => (
-                  <div key={i} className={`flex-1 rounded-lg border bg-[#0A0A0A] p-1.5 text-center ${v.color}`}>
+                  <div key={i} className={`flex-1 rounded-lg border bg-gray-50 p-1.5 text-center ${v.color}`}>
                     <p className="text-xs font-bold">{v.count}</p>
                     <p className="text-[10px]">{v.label}</p>
                   </div>
@@ -1427,15 +1427,15 @@ export const DirectedStudio = memo(function DirectedStudio({
                   <p className="text-[11px] font-semibold text-[#999]">{lang === 'pt' ? 'PRODUÇÕES (por velocidade)' : 'PRODUCTIONS (by speed)'}</p>
                   <div className="max-h-[120px] overflow-y-auto hide-scrollbar space-y-0.5">
                     {analyticsData.productions.map((p, i) => (
-                      <div key={i} className="flex items-center gap-2 rounded-md bg-[#0A0A0A] px-2 py-1 border border-[#1A1A1A]">
+                      <div key={i} className="flex items-center gap-2 rounded-md bg-gray-50 px-2 py-1 border border-gray-200">
                         <span className={`text-[10px] font-mono px-1 rounded ${
                           p.pipeline_version === 'v3' ? 'bg-emerald-500/20 text-emerald-400' :
                           p.pipeline_version === 'v2' ? 'bg-orange-500/20 text-orange-400' :
                           'bg-red-500/20 text-red-400'
                         }`}>{p.pipeline_version}</span>
-                        <span className="text-[11px] text-white flex-1 truncate">{p.name}</span>
-                        <span className="text-[10px] text-[#666]">{p.scenes}c</span>
-                        <span className="text-[11px] font-mono text-[#8B5CF6]">
+                        <span className="text-[11px] text-gray-900 flex-1 truncate">{p.name}</span>
+                        <span className="text-[10px] text-gray-500">{p.scenes}c</span>
+                        <span className="text-[11px] font-mono text-orange-600">
                           {p.total_seconds ? (p.total_seconds > 60 ? `${(p.total_seconds/60).toFixed(1)}m` : `${p.total_seconds}s`) : '—'}
                         </span>
                       </div>
@@ -1450,57 +1450,57 @@ export const DirectedStudio = memo(function DirectedStudio({
           {!showNewProject ? (
             <div className="flex gap-2">
               <button onClick={() => setShowNewProject(true)} data-testid="new-project-btn"
-                className="flex-1 glass-card p-3 flex items-center gap-3 hover:border-[#8B5CF6]/30 transition group border border-dashed border-[#333]">
+                className="flex-1 glass-card p-3 flex items-center gap-3 hover:border-orange-500/30 transition group border border-dashed border-[#333]">
                 <div className="h-10 w-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center group-hover:bg-[#8B5CF6]/20 transition">
-                  <Plus size={18} className="text-[#8B5CF6]" />
+                  <Plus size={18} className="text-orange-600" />
                 </div>
                 <div className="text-left">
-                  <p className="text-xs font-semibold text-white">{lang === 'pt' ? 'Novo Projecto' : 'New Project'}</p>
-                  <p className="text-[11px] text-[#666]">{lang === 'pt' ? 'Crie uma nova produção com IA' : 'Create a new AI production'}</p>
+                  <p className="text-xs font-semibold text-gray-900">{lang === 'pt' ? 'Novo Projecto' : 'New Project'}</p>
+                  <p className="text-[11px] text-gray-500">{lang === 'pt' ? 'Crie uma nova produção com IA' : 'Create a new AI production'}</p>
                 </div>
               </button>
               <button onClick={loadAnalytics} disabled={analyticsLoading} data-testid="analytics-btn"
-                className="glass-card p-3 flex flex-col items-center justify-center gap-1 hover:border-[#8B5CF6]/30 transition border border-[#333] w-16">
-                {analyticsLoading ? <RefreshCw size={14} className="text-[#8B5CF6] animate-spin" /> : <BarChart3 size={14} className="text-[#8B5CF6]" />}
-                <span className="text-[10px] text-[#666]">Analytics</span>
+                className="glass-card p-3 flex flex-col items-center justify-center gap-1 hover:border-orange-500/30 transition border border-[#333] w-16">
+                {analyticsLoading ? <RefreshCw size={14} className="text-orange-600 animate-spin" /> : <BarChart3 size={14} className="text-orange-600" />}
+                <span className="text-[10px] text-gray-500">Analytics</span>
               </button>
             </div>
           ) : (
-            <div className="glass-card p-3 space-y-2 border border-[#8B5CF6]/20" data-testid="new-project-form">
-              <h3 className="text-xs font-semibold text-white flex items-center gap-2">
-                <Clapperboard size={12} className="text-[#8B5CF6]" />
+            <div className="glass-card p-3 space-y-2 border border-orange-500/20" data-testid="new-project-form">
+              <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-2">
+                <Clapperboard size={12} className="text-orange-600" />
                 {lang === 'pt' ? 'Novo Projecto' : 'New Project'}
               </h3>
               <input value={projectName} onChange={e => setProjectName(e.target.value)}
                 placeholder={lang === 'pt' ? 'Nome do projecto (ex: A História de Abraão)' : 'Project name'}
                 data-testid="new-project-name"
-                className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-[11px] text-white outline-none focus:border-[#8B5CF6]/50 placeholder-[#555]" />
+                className="w-full bg-gray-50 border border-[#333] rounded-lg px-3 py-2 text-[11px] text-gray-900 outline-none focus:border-orange-500/50 placeholder-[#555]" />
               <textarea value={projectDesc} onChange={e => setProjectDesc(e.target.value)}
                 placeholder={lang === 'pt' ? 'Descreva brevemente o projecto...' : 'Brief description...'}
                 data-testid="new-project-desc"
                 rows={2}
-                className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50 placeholder-[#555] resize-none" />
+                className="w-full bg-gray-50 border border-[#333] rounded-lg px-3 py-2 text-[10px] text-gray-900 outline-none focus:border-orange-500/50 placeholder-[#555] resize-none" />
               {/* Language + Audio Mode */}
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-[11px] text-[#666] uppercase tracking-wider mb-1 block">
+                  <label className="text-[11px] text-gray-500 uppercase tracking-wider mb-1 block">
                     {lang === 'pt' ? 'Idioma' : 'Language'}
                   </label>
                   <select value={projectLang} onChange={e => setProjectLang(e.target.value)}
                     data-testid="project-language-select"
-                    className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50">
+                    className="w-full bg-gray-50 border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-gray-900 outline-none focus:border-orange-500/50">
                     <option value="pt">Portugu&ecirc;s</option>
                     <option value="en">English</option>
                     <option value="es">Espa&ntilde;ol</option>
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="text-[11px] text-[#666] uppercase tracking-wider mb-1 block">
+                  <label className="text-[11px] text-gray-500 uppercase tracking-wider mb-1 block">
                     {lang === 'pt' ? 'Tipo de Áudio' : 'Audio Type'}
                   </label>
                   <select value={audioMode} onChange={e => setAudioMode(e.target.value)}
                     data-testid="project-audio-mode-select"
-                    className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50">
+                    className="w-full bg-gray-50 border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-gray-900 outline-none focus:border-orange-500/50">
                     <option value="narrated">{lang === 'pt' ? 'Narrado (voz em off)' : 'Narrated (voice-over)'}</option>
                     <option value="dubbed">{lang === 'pt' ? 'Dublado (vozes por personagem)' : 'Dubbed (per-character voices)'}</option>
                   </select>
@@ -1508,7 +1508,7 @@ export const DirectedStudio = memo(function DirectedStudio({
               </div>
               {/* Animation Style */}
               <div>
-                <label className="text-[11px] text-[#666] uppercase tracking-wider mb-1 block">
+                <label className="text-[11px] text-gray-500 uppercase tracking-wider mb-1 block">
                   {lang === 'pt' ? 'Estilo de Animação' : 'Animation Style'}
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -1525,24 +1525,24 @@ export const DirectedStudio = memo(function DirectedStudio({
                       onClick={() => { setAnimationSub(s.id); setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); }}
                       className={`p-2 rounded-lg border text-left text-xs transition-all ${
                         animationSub === s.id
-                          ? 'border-[#8B5CF6]/50 bg-[#8B5CF6]/10'
-                          : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+                          ? 'border-orange-500/50 bg-[#8B5CF6]/10'
+                          : 'border-[#222] bg-gray-50 hover:border-[#444]'
                       }`}>
                       <span className="text-sm">{s.icon}</span>
-                      <div className={`font-medium mt-0.5 ${animationSub === s.id ? 'text-[#8B5CF6]' : 'text-white'}`}>{s.label}</div>
+                      <div className={`font-medium mt-0.5 ${animationSub === s.id ? 'text-orange-600' : 'text-gray-900'}`}>{s.label}</div>
                       <div className="text-[11px] text-[#555]">{s.desc}</div>
                     </button>
                   ))}
                 </div>
               </div>
               {/* Continuity Engine Toggle */}
-              <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#222] bg-[#0A0A0A]">
+              <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#222] bg-gray-50">
                 <div>
-                  <div className="text-[10px] font-medium text-white flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8B5CF6]"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                  <div className="text-[10px] font-medium text-gray-900 flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
                     {lang === 'pt' ? 'Motor de Continuidade' : 'Continuity Engine'}
                   </div>
-                  <div className="text-[11px] text-[#666] mt-0.5">
+                  <div className="text-[11px] text-gray-500 mt-0.5">
                     {lang === 'pt'
                       ? 'Renderização sequencial com âncora visual, DNA de estilo, validação IA e color grading'
                       : 'Sequential rendering with visual anchoring, style DNA, AI validation & color grading'}
@@ -1563,7 +1563,7 @@ export const DirectedStudio = memo(function DirectedStudio({
               </div>
               <div className="flex gap-2">
                 <button onClick={() => { setShowNewProject(false); setProjectName(''); setProjectDesc(''); }}
-                  className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
+                  className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-gray-900 transition">
                   {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                 </button>
                 <button onClick={createNewProject} disabled={!projectName.trim()} data-testid="create-project-btn"
@@ -1583,15 +1583,15 @@ export const DirectedStudio = memo(function DirectedStudio({
                   onChange={e => setProjectSearch(e.target.value)}
                   placeholder={lang === 'pt' ? 'Buscar projecto...' : 'Search project...'}
                   data-testid="project-search-input"
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg pl-3 pr-8 py-1.5 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50 placeholder-[#555]"
+                  className="w-full bg-gray-50 border border-[#333] rounded-lg pl-3 pr-8 py-1.5 text-[10px] text-gray-900 outline-none focus:border-orange-500/50 placeholder-[#555]"
                 />
                 {projectSearch && (
-                  <button onClick={() => setProjectSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
+                  <button onClick={() => setProjectSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#555] hover:text-gray-900">
                     <X size={10} />
                   </button>
                 )}
               </div>
-              <p className="text-xs text-[#666] uppercase tracking-wider font-medium">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">
                 {(() => {
                   const filtered = allProjects.filter(p => {
                     if (!projectSearch.trim()) return true;
@@ -1613,14 +1613,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                 const milestones = proj.milestones || [];
                 return (
                   <div key={proj.id} onClick={() => resumeProject(proj)} data-testid={`project-${proj.id}`}
-                    className="w-full glass-card p-2.5 hover:border-[#8B5CF6]/30 transition text-left group relative cursor-pointer">
+                    className="w-full glass-card p-2.5 hover:border-orange-500/30 transition text-left group relative cursor-pointer">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-14 w-12 rounded-lg bg-[#111] flex-shrink-0 overflow-hidden border border-[#222] relative">
+                      <div className="h-14 w-12 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden border border-[#222] relative">
                         {vid ? (
                           <>
                             <video src={vid.url} className="w-full h-full object-cover" muted />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <Play size={12} className="text-[#8B5CF6]" />
+                            <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
+                              <Play size={12} className="text-orange-600" />
                             </div>
                           </>
                         ) : (
@@ -1630,7 +1630,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-semibold text-white truncate group-hover:text-[#8B5CF6] transition">
+                        <p className="text-[11px] font-semibold text-gray-900 truncate group-hover:text-orange-600 transition">
                           {proj.name || proj.briefing?.slice(0, 40) || 'Sem nome'}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -1664,9 +1664,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                     </div>
                     {/* Milestones */}
                     {milestones.length > 0 && (
-                      <div className="mt-1.5 pt-1.5 border-t border-[#1A1A1A] flex flex-wrap gap-x-3 gap-y-0.5">
+                      <div className="mt-1.5 pt-1.5 border-t border-gray-200 flex flex-wrap gap-x-3 gap-y-0.5">
                         {milestones.map((ms, mi) => (
-                          <span key={mi} className="flex items-center gap-1 text-[10px] text-[#666]">
+                          <span key={mi} className="flex items-center gap-1 text-[10px] text-gray-500">
                             <Check size={7} className="text-emerald-500 flex-shrink-0" />
                             {ms.label?.split('—')[0]?.trim()}
                           </span>
@@ -1682,8 +1682,8 @@ export const DirectedStudio = memo(function DirectedStudio({
           {/* Loading state */}
           {projectsLoading && allProjects.length === 0 && (
             <div className="flex items-center justify-center gap-2 py-6">
-              <RefreshCw size={14} className="text-[#8B5CF6] animate-spin" />
-              <span className="text-[10px] text-[#666]">{lang === 'pt' ? 'Carregando projectos...' : 'Loading projects...'}</span>
+              <RefreshCw size={14} className="text-orange-600 animate-spin" />
+              <span className="text-[10px] text-gray-500">{lang === 'pt' ? 'Carregando projectos...' : 'Loading projects...'}</span>
             </div>
           )}
 
@@ -1691,7 +1691,7 @@ export const DirectedStudio = memo(function DirectedStudio({
           {!projectsLoading && allProjects.length === 0 && (
             <div className="text-center py-6">
               <Film size={24} className="text-[#333] mx-auto mb-2" />
-              <p className="text-[10px] text-[#666]">{lang === 'pt' ? 'Nenhum projecto ainda. Crie o primeiro!' : 'No projects yet. Create your first!'}</p>
+              <p className="text-[10px] text-gray-500">{lang === 'pt' ? 'Nenhum projecto ainda. Crie o primeiro!' : 'No projects yet. Create your first!'}</p>
             </div>
           )}
         </div>
@@ -1701,31 +1701,31 @@ export const DirectedStudio = memo(function DirectedStudio({
       {viewingProject && (
         <div className="glass-card p-3 space-y-2" data-testid="viewing-past-project">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
-              <Film size={12} className="text-[#8B5CF6]" />
+            <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-1.5">
+              <Film size={12} className="text-orange-600" />
               {viewingProject.name || viewingProject.briefing?.slice(0, 40)}
             </h3>
-            <button onClick={() => setViewingProject(null)} className="text-[#666] hover:text-white"><X size={12} /></button>
+            <button onClick={() => setViewingProject(null)} className="text-gray-500 hover:text-gray-900"><X size={12} /></button>
           </div>
           {viewingProject.outputs?.map((out, i) => (
             <div key={out.id || i} className="rounded-lg overflow-hidden border border-white/5">
               {out.type === 'video' && (
-                <div className="relative bg-black">
+                <div className="relative bg-white">
                   <video controls autoPlay={i === 0} className="w-full rounded-lg" src={out.url} />
-                  <span className="absolute top-1 left-1 bg-black/70 text-[10px] text-[#8B5CF6] font-bold px-1.5 py-0.5 rounded">
+                  <span className="absolute top-1 left-1 bg-white/70 text-[10px] text-orange-600 font-bold px-1.5 py-0.5 rounded">
                     {out.label === 'complete' ? 'FILME COMPLETO' : `CENA ${out.scene_number}`}
                   </span>
                 </div>
               )}
               <div className="p-1.5 flex items-center justify-between">
-                <span className="text-[11px] text-[#666]">{out.label === 'complete' ? `${out.duration}s total` : `Cena ${out.scene_number} • 12s`}</span>
+                <span className="text-[11px] text-gray-500">{out.label === 'complete' ? `${out.duration}s total` : `Cena ${out.scene_number} • 12s`}</span>
                 <a href={out.url} download className="btn-gold rounded px-2 py-1 text-[11px] font-semibold flex items-center gap-1">
                   <Download size={10} /> Download
                 </a>
               </div>
             </div>
           ))}
-          <button onClick={() => setViewingProject(null)} className="w-full rounded-lg border border-[#333] py-1.5 text-[10px] text-[#999] hover:text-white transition">
+          <button onClick={() => setViewingProject(null)} className="w-full rounded-lg border border-[#333] py-1.5 text-[10px] text-[#999] hover:text-gray-900 transition">
             ← {lang === 'pt' ? 'Voltar' : 'Back'}
           </button>
         </div>
@@ -1739,8 +1739,8 @@ export const DirectedStudio = memo(function DirectedStudio({
               <MessageSquare size={12} className="text-black" />
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-white">{lang === 'pt' ? 'Redator & Pesquisador' : 'Screenwriter'}</h3>
-              <p className="text-[11px] text-[#666]">{lang === 'pt' ? 'Descreva a história que quer criar' : 'Describe the story you want to create'}</p>
+              <h3 className="text-xs font-semibold text-gray-900">{lang === 'pt' ? 'Redator & Pesquisador' : 'Screenwriter'}</h3>
+              <p className="text-[11px] text-gray-500">{lang === 'pt' ? 'Descreva a história que quer criar' : 'Describe the story you want to create'}</p>
             </div>
           </div>
 
@@ -1759,8 +1759,8 @@ export const DirectedStudio = memo(function DirectedStudio({
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-lg px-3 py-2 text-[10px] leading-relaxed ${
                   m.role === 'user'
-                    ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/20'
-                    : 'bg-[#111] text-[#ccc] border border-[#222]'
+                    ? 'bg-[#8B5CF6]/15 text-orange-600 border border-orange-500/20'
+                    : 'bg-gray-50 text-[#ccc] border border-[#222]'
                 }`}>
                   <pre className="whitespace-pre-wrap font-sans">{m.text}</pre>
                 </div>
@@ -1768,9 +1768,9 @@ export const DirectedStudio = memo(function DirectedStudio({
             ))}
             {chatLoading && (
               <div className="flex justify-start">
-                <div className="bg-[#111] border border-[#222] rounded-lg px-3 py-2 flex items-center gap-2">
-                  <RefreshCw size={10} className="animate-spin text-[#8B5CF6]" />
-                  <span className="text-xs text-[#666]">{lang === 'pt' ? 'Pesquisando e escrevendo...' : 'Researching and writing...'}</span>
+                <div className="bg-gray-50 border border-[#222] rounded-lg px-3 py-2 flex items-center gap-2">
+                  <RefreshCw size={10} className="animate-spin text-orange-600" />
+                  <span className="text-xs text-gray-500">{lang === 'pt' ? 'Pesquisando e escrevendo...' : 'Researching and writing...'}</span>
                 </div>
               </div>
             )}
@@ -1781,7 +1781,7 @@ export const DirectedStudio = memo(function DirectedStudio({
             ) && (
               <div className="flex justify-center">
                 <button onClick={retryChat} data-testid="retry-chat-btn"
-                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[10px] font-medium bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition">
+                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-[10px] font-medium bg-[#8B5CF6]/10 border border-orange-500/30 text-orange-600 hover:bg-[#8B5CF6]/20 transition">
                   <RefreshCw size={10} />
                   {lang === 'pt' ? 'Tentar Novamente' : 'Try Again'}
                 </button>
@@ -1796,7 +1796,7 @@ export const DirectedStudio = memo(function DirectedStudio({
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()}
               placeholder={lang === 'pt' ? 'Descreva a história...' : 'Describe the story...'}
-              className="flex-1 bg-[#0A0A0A] border border-[#222] rounded-lg px-3 py-2 text-xs text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/40"
+              className="flex-1 bg-gray-50 border border-[#222] rounded-lg px-3 py-2 text-xs text-gray-900 placeholder-[#555] outline-none focus:border-orange-500/40"
               disabled={chatLoading}
             />
             <button onClick={sendChat} disabled={chatLoading || !chatInput.trim()} data-testid="send-chat-btn"
@@ -1821,19 +1821,19 @@ export const DirectedStudio = memo(function DirectedStudio({
                 </button>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-[#8B5CF6]">{scenes.length} {lang === 'pt' ? 'cenas planejadas' : 'scenes planned'} ({scenes.length * 12}s)</span>
+                <span className="text-[10px] font-semibold text-orange-600">{scenes.length} {lang === 'pt' ? 'cenas planejadas' : 'scenes planned'} ({scenes.length * 12}s)</span>
                 {screenplayApproved ? (
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] text-emerald-400 flex items-center gap-1">
                       <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
                       {lang === 'pt' ? 'Aprovado' : 'Approved'}
                     </span>
-                    <button onClick={unapproveScreenplay} className="text-[10px] text-[#555] hover:text-[#888] underline">
+                    <button onClick={unapproveScreenplay} className="text-[10px] text-[#555] hover:text-gray-600 underline">
                       {lang === 'pt' ? 'Reabrir' : 'Reopen'}
                     </button>
                   </div>
                 ) : (
-                  <span className="text-[11px] text-[#666]">{lang === 'pt' ? 'Revise e aprove para continuar' : 'Review and approve to continue'}</span>
+                  <span className="text-[11px] text-gray-500">{lang === 'pt' ? 'Revise e aprove para continuar' : 'Review and approve to continue'}</span>
                 )}
               </div>
               <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
@@ -1842,7 +1842,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   <div className="flex justify-center">
                     <button onClick={() => { setAddingSceneAt(1); setNewSceneForm({ title: '', description: '', dialogue: '', emotion: '', camera: '', characters_in_scene: [] }); setNewSceneMode('manual'); setAiSceneHint(''); }}
                       data-testid="add-scene-top"
-                      className="text-[10px] text-[#555] hover:text-[#8B5CF6] transition-colors flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#333] hover:border-[#8B5CF6]/40">
+                      className="text-[10px] text-[#555] hover:text-orange-600 transition-colors flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#333] hover:border-orange-500/40">
                       <Plus size={10} /> {lang === 'pt' ? 'Inserir cena aqui' : 'Insert scene here'}
                     </button>
                   </div>
@@ -1858,12 +1858,12 @@ export const DirectedStudio = memo(function DirectedStudio({
                     <Fragment>
                       {/* Add Scene Form (shown when addingSceneAt matches this position) */}
                       {addingSceneAt === s.scene_number && (
-                        <div className="rounded-lg border-2 border-dashed border-[#8B5CF6]/40 bg-[#0D0D0A] p-3 space-y-2" data-testid={`new-scene-form-${s.scene_number}`}>
+                        <div className="rounded-lg border-2 border-dashed border-orange-500/40 bg-[#0D0D0A] p-3 space-y-2" data-testid={`new-scene-form-${s.scene_number}`}>
                           <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-bold text-[#8B5CF6]">{lang === 'pt' ? 'Nova Cena' : 'New Scene'}</p>
+                            <p className="text-[11px] font-bold text-orange-600">{lang === 'pt' ? 'Nova Cena' : 'New Scene'}</p>
                             <div className="flex gap-1">
-                              <button onClick={() => setNewSceneMode('manual')} className={`text-[9px] px-2 py-0.5 rounded ${newSceneMode === 'manual' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'text-[#555] hover:text-[#888]'}`}>Manual</button>
-                              <button onClick={() => setNewSceneMode('ai')} className={`text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5 ${newSceneMode === 'ai' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'text-[#555] hover:text-[#888]'}`}><Sparkles size={8} /> IA</button>
+                              <button onClick={() => setNewSceneMode('manual')} className={`text-[9px] px-2 py-0.5 rounded ${newSceneMode === 'manual' ? 'bg-[#8B5CF6]/20 text-orange-600' : 'text-[#555] hover:text-gray-600'}`}>Manual</button>
+                              <button onClick={() => setNewSceneMode('ai')} className={`text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5 ${newSceneMode === 'ai' ? 'bg-[#8B5CF6]/20 text-orange-600' : 'text-[#555] hover:text-gray-600'}`}><Sparkles size={8} /> IA</button>
                               <button onClick={() => setAddingSceneAt(null)} className="text-[9px] text-[#555] hover:text-red-400 ml-1"><X size={12} /></button>
                             </div>
                           </div>
@@ -1871,7 +1871,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                           {newSceneMode === 'ai' && (
                             <div className="space-y-1.5">
                               <textarea value={aiSceneHint} onChange={e => setAiSceneHint(e.target.value)} placeholder={lang === 'pt' ? 'Descreva a ideia da cena (opcional)...' : 'Describe the scene idea (optional)...'} rows={2}
-                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" data-testid="ai-scene-hint" />
+                                className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" data-testid="ai-scene-hint" />
                               <button onClick={() => generateSceneAI(s.scene_number)} disabled={aiSceneLoading}
                                 data-testid="generate-scene-ai-btn"
                                 className="w-full btn-gold rounded py-1 text-[10px] font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
@@ -1881,36 +1881,36 @@ export const DirectedStudio = memo(function DirectedStudio({
                           )}
 
                           <div>
-                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
+                            <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
                             <input value={newSceneForm.title} onChange={e => setNewSceneForm(p => ({ ...p, title: e.target.value }))}
-                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" data-testid="new-scene-title" />
+                              className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" data-testid="new-scene-title" />
                           </div>
                           <div>
-                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição' : 'Description'}</label>
+                            <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Descrição' : 'Description'}</label>
                             <textarea value={newSceneForm.description} onChange={e => setNewSceneForm(p => ({ ...p, description: e.target.value }))} rows={2}
-                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" data-testid="new-scene-desc" />
+                              className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" data-testid="new-scene-desc" />
                           </div>
                           <div>
-                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Narração/Diálogo' : 'Narration/Dialogue'}</label>
+                            <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Narração/Diálogo' : 'Narration/Dialogue'}</label>
                             <textarea value={newSceneForm.dialogue} onChange={e => setNewSceneForm(p => ({ ...p, dialogue: e.target.value }))} rows={2}
-                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" data-testid="new-scene-dialogue" />
+                              className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" data-testid="new-scene-dialogue" />
                           </div>
                           <div className="grid grid-cols-2 gap-1.5">
                             <div>
-                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
+                              <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
                               <input value={newSceneForm.emotion} onChange={e => setNewSceneForm(p => ({ ...p, emotion: e.target.value }))}
-                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" data-testid="new-scene-emotion" />
+                                className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" data-testid="new-scene-emotion" />
                             </div>
                             <div>
-                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
+                              <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
                               <input value={newSceneForm.camera} onChange={e => setNewSceneForm(p => ({ ...p, camera: e.target.value }))}
-                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" data-testid="new-scene-camera" />
+                                className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" data-testid="new-scene-camera" />
                             </div>
                           </div>
                           {/* Characters selection for new scene */}
                           {characters.length > 0 && (
                             <div>
-                              <label className="text-[10px] text-[#666] block mb-1">{lang === 'pt' ? 'Personagens' : 'Characters'}</label>
+                              <label className="text-[10px] text-gray-500 block mb-1">{lang === 'pt' ? 'Personagens' : 'Characters'}</label>
                               <div className="flex flex-wrap gap-1">
                                 {characters.map((char) => {
                                   const sel = newSceneForm.characters_in_scene.includes(char.name);
@@ -1920,7 +1920,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                         ...p,
                                         characters_in_scene: sel ? p.characters_in_scene.filter(c => c !== char.name) : [...p.characters_in_scene, char.name]
                                       }))}
-                                      className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium border ${sel ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/40 text-[#8B5CF6]' : 'bg-[#111] border-[#333] text-[#555]'}`}>
+                                      className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium border ${sel ? 'bg-[#8B5CF6]/15 border-orange-500/40 text-orange-600' : 'bg-gray-50 border-[#333] text-[#555]'}`}>
                                       {sel ? <Check size={7} /> : <Plus size={7} />} {char.name}
                                     </button>
                                   );
@@ -1936,15 +1936,15 @@ export const DirectedStudio = memo(function DirectedStudio({
                         </div>
                       )}
 
-                    <div className={`rounded-lg border ${isDragging ? 'border-[#8B5CF6]/50 shadow-[0_0_12px_rgba(201,168,76,0.15)]' : 'border-[#1A1A1A]'} bg-[#0A0A0A] p-2 space-y-1`} data-testid={`scene-card-${s.scene_number}`}>
+                    <div className={`rounded-lg border ${isDragging ? 'border-orange-500/50 shadow-[0_0_12px_rgba(201,168,76,0.15)]' : 'border-gray-200'} bg-gray-50 p-2 space-y-1`} data-testid={`scene-card-${s.scene_number}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           {!screenplayApproved && (
-                            <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing text-[#444] hover:text-[#8B5CF6] p-0.5 transition-colors touch-none" data-testid={`drag-handle-${s.scene_number}`}>
+                            <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing text-[#444] hover:text-orange-600 p-0.5 transition-colors touch-none" data-testid={`drag-handle-${s.scene_number}`}>
                               <GripVertical size={14} />
                             </div>
                           )}
-                          <p className="text-[11px] font-bold text-[#8B5CF6]">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
+                          <p className="text-[11px] font-bold text-orange-600">CENA {s.scene_number} — {s.time_start}-{s.time_end}</p>
                         </div>
                         <div className="flex items-center gap-0.5">
                           {!screenplayApproved && (
@@ -1962,7 +1962,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                               if (isEditing) { setEditingScene(null); setEditSceneForm({}); }
                               else { setEditingScene(s.scene_number); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera, characters_in_scene: s.characters_in_scene || [] }); }
                             }}
-                            className="text-[11px] text-[#8B5CF6] hover:text-white transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-[#8B5CF6]/40"
+                            className="text-[11px] text-orange-600 hover:text-gray-900 transition-colors px-1.5 py-0.5 rounded border border-[#333] hover:border-orange-500/40"
                           >
                             {isEditing ? (lang === 'pt' ? 'Cancelar' : 'Cancel') : (lang === 'pt' ? 'Editar' : 'Edit')}
                           </button>
@@ -1972,35 +1972,35 @@ export const DirectedStudio = memo(function DirectedStudio({
                       {isEditing ? (
                         <div className="space-y-1.5">
                           <div>
-                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
+                            <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
                             <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
-                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" data-testid={`edit-title-${s.scene_number}`} />
+                              className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" data-testid={`edit-title-${s.scene_number}`} />
                           </div>
                           <div>
-                            <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição da Cena' : 'Scene Description'}</label>
+                            <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Descrição da Cena' : 'Scene Description'}</label>
                             <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
-                              rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" data-testid={`edit-desc-${s.scene_number}`} />
+                              rows={2} className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" data-testid={`edit-desc-${s.scene_number}`} />
                           </div>
                           <div>
-                            <label className="text-[10px] text-[#666] block mb-0.5">{audioMode === 'dubbed' ? (lang === 'pt' ? 'Diálogos dos Personagens' : 'Character Dialogues') : (lang === 'pt' ? 'Narração' : 'Narration')}</label>
+                            <label className="text-[10px] text-gray-500 block mb-0.5">{audioMode === 'dubbed' ? (lang === 'pt' ? 'Diálogos dos Personagens' : 'Character Dialogues') : (lang === 'pt' ? 'Narração' : 'Narration')}</label>
                             <textarea value={editSceneForm.dialogue || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, dialogue: e.target.value }))}
-                              rows={3} className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" data-testid={`edit-dialogue-${s.scene_number}`} />
+                              rows={3} className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" data-testid={`edit-dialogue-${s.scene_number}`} />
                           </div>
                           <div className="grid grid-cols-2 gap-1.5">
                             <div>
-                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
+                              <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
                               <input value={editSceneForm.emotion || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, emotion: e.target.value }))}
-                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" data-testid={`edit-emotion-${s.scene_number}`} />
+                                className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" data-testid={`edit-emotion-${s.scene_number}`} />
                             </div>
                             <div>
-                              <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
+                              <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
                               <input value={editSceneForm.camera || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, camera: e.target.value }))}
-                                className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" data-testid={`edit-camera-${s.scene_number}`} />
+                                className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" data-testid={`edit-camera-${s.scene_number}`} />
                             </div>
                           </div>
                           {/* Characters in scene selector */}
                           <div>
-                            <label className="text-[10px] text-[#666] block mb-1">{lang === 'pt' ? 'Personagens na Cena' : 'Characters in Scene'}</label>
+                            <label className="text-[10px] text-gray-500 block mb-1">{lang === 'pt' ? 'Personagens na Cena' : 'Characters in Scene'}</label>
                             <div className="flex flex-wrap gap-1.5">
                               {characters.map((char) => {
                                 const isSelected = (editSceneForm.characters_in_scene || []).includes(char.name);
@@ -2020,8 +2020,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                                     }}
                                     className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium transition-all border ${
                                       isSelected
-                                        ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/40 text-[#8B5CF6]'
-                                        : 'bg-[#111] border-[#333] text-[#666] hover:border-[#555] hover:text-[#999]'
+                                        ? 'bg-[#8B5CF6]/15 border-orange-500/40 text-orange-600'
+                                        : 'bg-gray-50 border-[#333] text-gray-500 hover:border-[#555] hover:text-[#999]'
                                     }`}>
                                     {isSelected ? <Check size={8} /> : <Plus size={8} />}
                                     {char.name}
@@ -2042,17 +2042,17 @@ export const DirectedStudio = memo(function DirectedStudio({
                         </div>
                       ) : (
                         <div className="space-y-0.5">
-                          <p className="text-xs text-white font-medium">{s.title}</p>
-                          <p className="text-[11px] text-[#888]">{s.description}</p>
+                          <p className="text-xs text-gray-900 font-medium">{s.title}</p>
+                          <p className="text-[11px] text-gray-600">{s.description}</p>
                           <p className="text-[11px] text-[#AAA] italic mt-0.5">{s.dialogue}</p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            {s.emotion && <span className="text-[10px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.emotion}</span>}
-                            {s.camera && <span className="text-[10px] text-[#555] bg-[#111] px-1.5 py-0.5 rounded">{s.camera}</span>}
+                            {s.emotion && <span className="text-[10px] text-[#555] bg-gray-50 px-1.5 py-0.5 rounded">{s.emotion}</span>}
+                            {s.camera && <span className="text-[10px] text-[#555] bg-gray-50 px-1.5 py-0.5 rounded">{s.camera}</span>}
                           </div>
                           {s.characters_in_scene?.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {s.characters_in_scene.map((charName) => (
-                                <span key={charName} className="inline-flex items-center gap-0.5 text-[10px] bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/20 rounded-full px-1.5 py-0.5">
+                                <span key={charName} className="inline-flex items-center gap-0.5 text-[10px] bg-[#8B5CF6]/10 text-orange-600 border border-orange-500/20 rounded-full px-1.5 py-0.5">
                                   <Users size={8} />
                                   {charName}
                                 </span>
@@ -2068,7 +2068,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <div className="flex justify-center py-0.5">
                         <button onClick={() => { setAddingSceneAt(s.scene_number + 1); setNewSceneForm({ title: '', description: '', dialogue: '', emotion: '', camera: '', characters_in_scene: [] }); setNewSceneMode('manual'); setAiSceneHint(''); }}
                           data-testid={`add-scene-after-${s.scene_number}`}
-                          className="text-[10px] text-[#555] hover:text-[#8B5CF6] transition-colors flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#333] hover:border-[#8B5CF6]/40">
+                          className="text-[10px] text-[#555] hover:text-orange-600 transition-colors flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#333] hover:border-orange-500/40">
                           <Plus size={10} /> {lang === 'pt' ? 'Inserir cena aqui' : 'Insert scene here'}
                         </button>
                       </div>
@@ -2083,19 +2083,19 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* Add scene form at the END of the list */}
                 {addingSceneAt === scenes.length + 1 && (
-                  <div className="rounded-lg border-2 border-dashed border-[#8B5CF6]/40 bg-[#0D0D0A] p-3 space-y-2" data-testid="new-scene-form-end">
+                  <div className="rounded-lg border-2 border-dashed border-orange-500/40 bg-[#0D0D0A] p-3 space-y-2" data-testid="new-scene-form-end">
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-bold text-[#8B5CF6]">{lang === 'pt' ? 'Nova Cena' : 'New Scene'}</p>
+                      <p className="text-[11px] font-bold text-orange-600">{lang === 'pt' ? 'Nova Cena' : 'New Scene'}</p>
                       <div className="flex gap-1">
-                        <button onClick={() => setNewSceneMode('manual')} className={`text-[9px] px-2 py-0.5 rounded ${newSceneMode === 'manual' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'text-[#555] hover:text-[#888]'}`}>Manual</button>
-                        <button onClick={() => setNewSceneMode('ai')} className={`text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5 ${newSceneMode === 'ai' ? 'bg-[#8B5CF6]/20 text-[#8B5CF6]' : 'text-[#555] hover:text-[#888]'}`}><Sparkles size={8} /> IA</button>
+                        <button onClick={() => setNewSceneMode('manual')} className={`text-[9px] px-2 py-0.5 rounded ${newSceneMode === 'manual' ? 'bg-[#8B5CF6]/20 text-orange-600' : 'text-[#555] hover:text-gray-600'}`}>Manual</button>
+                        <button onClick={() => setNewSceneMode('ai')} className={`text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5 ${newSceneMode === 'ai' ? 'bg-[#8B5CF6]/20 text-orange-600' : 'text-[#555] hover:text-gray-600'}`}><Sparkles size={8} /> IA</button>
                         <button onClick={() => setAddingSceneAt(null)} className="text-[9px] text-[#555] hover:text-red-400 ml-1"><X size={12} /></button>
                       </div>
                     </div>
                     {newSceneMode === 'ai' && (
                       <div className="space-y-1.5">
                         <textarea value={aiSceneHint} onChange={e => setAiSceneHint(e.target.value)} placeholder={lang === 'pt' ? 'Descreva a ideia da cena (opcional)...' : 'Describe the scene idea (optional)...'} rows={2}
-                          className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" />
+                          className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" />
                         <button onClick={() => generateSceneAI(scenes.length + 1)} disabled={aiSceneLoading}
                           className="w-full btn-gold rounded py-1 text-[10px] font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
                           {aiSceneLoading ? <><RefreshCw size={10} className="animate-spin" /> {lang === 'pt' ? 'Gerando...' : 'Generating...'}</> : <><Sparkles size={10} /> {lang === 'pt' ? 'Gerar com IA' : 'Generate with AI'}</>}
@@ -2103,35 +2103,35 @@ export const DirectedStudio = memo(function DirectedStudio({
                       </div>
                     )}
                     <div>
-                      <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
+                      <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Título' : 'Title'}</label>
                       <input value={newSceneForm.title} onChange={e => setNewSceneForm(p => ({ ...p, title: e.target.value }))}
-                        className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" />
+                        className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" />
                     </div>
                     <div>
-                      <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Descrição' : 'Description'}</label>
+                      <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Descrição' : 'Description'}</label>
                       <textarea value={newSceneForm.description} onChange={e => setNewSceneForm(p => ({ ...p, description: e.target.value }))} rows={2}
-                        className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" />
+                        className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" />
                     </div>
                     <div>
-                      <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Narração/Diálogo' : 'Narration/Dialogue'}</label>
+                      <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Narração/Diálogo' : 'Narration/Dialogue'}</label>
                       <textarea value={newSceneForm.dialogue} onChange={e => setNewSceneForm(p => ({ ...p, dialogue: e.target.value }))} rows={2}
-                        className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none resize-none" />
+                        className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none resize-none" />
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
                       <div>
-                        <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
+                        <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Emoção' : 'Emotion'}</label>
                         <input value={newSceneForm.emotion} onChange={e => setNewSceneForm(p => ({ ...p, emotion: e.target.value }))}
-                          className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" />
+                          className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" />
                       </div>
                       <div>
-                        <label className="text-[10px] text-[#666] block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
+                        <label className="text-[10px] text-gray-500 block mb-0.5">{lang === 'pt' ? 'Câmera' : 'Camera'}</label>
                         <input value={newSceneForm.camera} onChange={e => setNewSceneForm(p => ({ ...p, camera: e.target.value }))}
-                          className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-[#8B5CF6] outline-none" />
+                          className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-xs text-gray-900 focus:border-orange-500 outline-none" />
                       </div>
                     </div>
                     {characters.length > 0 && (
                       <div>
-                        <label className="text-[10px] text-[#666] block mb-1">{lang === 'pt' ? 'Personagens' : 'Characters'}</label>
+                        <label className="text-[10px] text-gray-500 block mb-1">{lang === 'pt' ? 'Personagens' : 'Characters'}</label>
                         <div className="flex flex-wrap gap-1">
                           {characters.map((char) => {
                             const sel = newSceneForm.characters_in_scene.includes(char.name);
@@ -2140,7 +2140,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                 onClick={() => setNewSceneForm(p => ({
                                   ...p, characters_in_scene: sel ? p.characters_in_scene.filter(c => c !== char.name) : [...p.characters_in_scene, char.name]
                                 }))}
-                                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium border ${sel ? 'bg-[#8B5CF6]/15 border-[#8B5CF6]/40 text-[#8B5CF6]' : 'bg-[#111] border-[#333] text-[#555]'}`}>
+                                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium border ${sel ? 'bg-[#8B5CF6]/15 border-orange-500/40 text-orange-600' : 'bg-gray-50 border-[#333] text-[#555]'}`}>
                                 {sel ? <Check size={7} /> : <Plus size={7} />} {char.name}
                               </button>
                             );
@@ -2179,24 +2179,24 @@ export const DirectedStudio = memo(function DirectedStudio({
       {/* ═══ STEP 2: Characters / Avatars ═══ */}
       {step === 2 && !viewingProject && (
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-characters">
-          <h3 className="text-xs font-semibold text-white flex items-center gap-2">
-            <Users size={12} className="text-[#8B5CF6]" />
+          <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-2">
+            <Users size={12} className="text-orange-600" />
             {lang === 'pt' ? 'Personagens' : 'Characters'}
           </h3>
-          <p className="text-xs text-[#666]">
+          <p className="text-xs text-gray-500">
             {lang === 'pt' ? 'Crie, edite ou importe personagens da biblioteca' : 'Create, edit or import characters from library'}
           </p>
 
           {/* Auto-generation progress overlay */}
           {autoGenCharacters && charGenProgress.status === 'starting' && (
-            <div className="rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 p-4 space-y-2" data-testid="char-gen-progress">
+            <div className="rounded-lg border border-orange-500/30 bg-[#8B5CF6]/10 p-4 space-y-2" data-testid="char-gen-progress">
               <div className="flex items-center justify-center gap-2">
-                <RefreshCw size={16} className="animate-spin text-[#8B5CF6]" />
-                <p className="text-sm font-bold text-[#8B5CF6]">
+                <RefreshCw size={16} className="animate-spin text-orange-600" />
+                <p className="text-sm font-bold text-orange-600">
                   {lang === 'pt' ? '✨ Gerando personagens automaticamente...' : '✨ Auto-generating characters...'}
                 </p>
               </div>
-              <p className="text-xs text-[#888] text-center">
+              <p className="text-xs text-gray-600 text-center">
                 {lang === 'pt'
                   ? 'Verificando acervo e criando imagens com IA...'
                   : 'Checking library and creating AI images...'}
@@ -2205,7 +2205,7 @@ export const DirectedStudio = memo(function DirectedStudio({
           )}
 
           <div className="space-y-2">{characters.map((char, ci) => (
-              <div key={char.name || ci} className="rounded-lg border border-[#222] bg-[#0A0A0A] p-2.5">
+              <div key={char.name || ci} className="rounded-lg border border-[#222] bg-gray-50 p-2.5">
                 {/* Character header */}
                 {editingChar === ci ? (
                   /* ── Inline Edit Mode ── */
@@ -2214,26 +2214,26 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
                         placeholder={lang === 'pt' ? 'Nome' : 'Name'}
                         data-testid={`edit-char-name-${ci}`}
-                        className="flex-1 bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50" />
+                        className="flex-1 bg-gray-50 border border-[#333] rounded px-2 py-1 text-[10px] text-gray-900 outline-none focus:border-orange-500/50" />
                       <input value={editForm.age} onChange={e => setEditForm(p => ({ ...p, age: e.target.value }))}
                         placeholder={lang === 'pt' ? 'Idade' : 'Age'}
-                        className="w-16 bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50" />
+                        className="w-16 bg-gray-50 border border-[#333] rounded px-2 py-1 text-[10px] text-gray-900 outline-none focus:border-orange-500/50" />
                       <input value={editForm.role} onChange={e => setEditForm(p => ({ ...p, role: e.target.value }))}
                         placeholder={lang === 'pt' ? 'Papel' : 'Role'}
-                        className="w-24 bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50" />
+                        className="w-24 bg-gray-50 border border-[#333] rounded px-2 py-1 text-[10px] text-gray-900 outline-none focus:border-orange-500/50" />
                     </div>
                     <textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
                       placeholder={lang === 'pt' ? 'Descrição visual do personagem...' : 'Visual description...'}
                       data-testid={`edit-char-desc-${ci}`}
                       rows={2}
-                      className="w-full bg-[#111] border border-[#333] rounded px-2 py-1.5 text-xs text-white outline-none focus:border-[#8B5CF6]/50 resize-none" />
+                      className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1.5 text-xs text-gray-900 outline-none focus:border-orange-500/50 resize-none" />
                     <div className="flex gap-1.5">
                       <button onClick={saveEditChar} data-testid={`save-char-${ci}`}
-                        className="flex items-center gap-1 bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] rounded px-2 py-1 text-[11px] font-medium hover:bg-[#8B5CF6]/25 transition">
+                        className="flex items-center gap-1 bg-[#8B5CF6]/15 border border-orange-500/30 text-orange-600 rounded px-2 py-1 text-[11px] font-medium hover:bg-[#8B5CF6]/25 transition">
                         <Save size={9} /> {lang === 'pt' ? 'Salvar' : 'Save'}
                       </button>
                       <button onClick={() => setEditingChar(null)}
-                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-2 py-1 text-[11px] hover:text-white transition">
+                        className="flex items-center gap-1 border border-[#333] text-gray-600 rounded px-2 py-1 text-[11px] hover:text-gray-900 transition">
                         <X size={9} /> {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                       </button>
                     </div>
@@ -2242,29 +2242,29 @@ export const DirectedStudio = memo(function DirectedStudio({
                   /* ── View Mode ── */
                   <div className="flex items-start gap-2 mb-2">
                     {characterAvatars[char.name] ? (
-                      <img src={resolveImageUrl(characterAvatars[char.name])} alt="" loading="lazy" decoding="async" className="h-12 w-10 rounded-lg object-cover border border-[#8B5CF6]/30 flex-shrink-0" />
+                      <img src={resolveImageUrl(characterAvatars[char.name])} alt="" loading="lazy" decoding="async" className="h-12 w-10 rounded-lg object-cover border border-orange-500/30 flex-shrink-0" />
                     ) : (
-                      <div className="h-12 w-10 rounded-lg bg-[#1A1A1A] flex items-center justify-center border border-dashed border-[#333] flex-shrink-0">
+                      <div className="h-12 w-10 rounded-lg bg-gray-100 flex items-center justify-center border border-dashed border-[#333] flex-shrink-0">
                         <Users size={14} className="text-[#444]" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-[11px] font-bold text-white">{char.name}</p>
+                        <p className="text-[11px] font-bold text-gray-900">{char.name}</p>
                         {!characterAvatars[char.name] && (
                           <span className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded px-1 py-0.5">
                             {lang === 'pt' ? 'Sem personagem' : 'No character'}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#888] leading-relaxed mt-0.5">{char.description}</p>
+                      <p className="text-[11px] text-gray-600 leading-relaxed mt-0.5">{char.description}</p>
                       <p className="text-[10px] text-[#555] mt-0.5">{char.age} • {char.role}</p>
                     </div>
                     {/* Action buttons */}
                     <div className="flex flex-col gap-1 flex-shrink-0">
                       <button onClick={() => copyPrompt(char)} data-testid={`copy-prompt-${ci}`}
                         title={lang === 'pt' ? 'Copiar prompt' : 'Copy prompt'}
-                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition">
+                        className="flex items-center gap-1 border border-[#333] text-gray-600 rounded px-1.5 py-1 text-[10px] hover:text-orange-600 hover:border-orange-500/30 transition">
                         <Copy size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Copiar' : 'Copy'}</span>
                       </button>
                       <button onClick={() => {
@@ -2278,7 +2278,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         }
                       }} data-testid={`edit-char-${ci}`}
                         title={lang === 'pt' ? 'Editar personagem' : 'Edit character'}
-                        className="flex items-center gap-1 border border-[#333] text-[#888] rounded px-1.5 py-1 text-[10px] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition">
+                        className="flex items-center gap-1 border border-[#333] text-gray-600 rounded px-1.5 py-1 text-[10px] hover:text-orange-600 hover:border-orange-500/30 transition">
                         <Edit3 size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Editar' : 'Edit'}</span>
                       </button>
                     </div>
@@ -2292,7 +2292,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                     const isEditing = aiEditAvatarId === av.id;
                     return (
                       <div key={av.id || ai} className={`relative rounded-lg overflow-hidden border-2 transition cursor-pointer group ${
-                        isLinked ? 'border-[#8B5CF6] shadow-[0_0_8px_rgba(201,168,76,0.25)]' : 'border-[#222] hover:border-[#444]'
+                        isLinked ? 'border-orange-500 shadow-[0_0_8px_rgba(201,168,76,0.25)]' : 'border-[#222] hover:border-[#444]'
                       }`} style={{ width: 52, height: 68 }}>
                         <img loading="lazy" decoding="async" src={resolveImageUrl(av.url)} alt={av.name}
                           className="w-full h-full object-cover"
@@ -2310,11 +2310,11 @@ export const DirectedStudio = memo(function DirectedStudio({
                           </button>
                           <div className="flex items-center gap-0.5">
                             <button onClick={e => { e.stopPropagation(); onPreviewAvatar(av.url); }}
-                              className="h-5 w-5 rounded flex items-center justify-center text-white/70 hover:text-white transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
+                              className="h-5 w-5 rounded flex items-center justify-center text-gray-900/70 hover:text-gray-900 transition" title={lang === 'pt' ? 'Ver zoom' : 'Preview'}>
                               <Eye size={9} />
                             </button>
                             <button onClick={e => { e.stopPropagation(); onEditAvatar(av); }}
-                              className="h-5 w-5 rounded flex items-center justify-center text-[#8B5CF6] hover:text-[#D4B85C] transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
+                              className="h-5 w-5 rounded flex items-center justify-center text-orange-600 hover:text-[#D4B85C] transition" title={lang === 'pt' ? 'Editar' : 'Edit'}>
                               <PenTool size={9} />
                             </button>
                           </div>
@@ -2325,18 +2325,18 @@ export const DirectedStudio = memo(function DirectedStudio({
                   {/* Create new avatar button */}
                   <button onClick={() => onAddAvatar(char.description || char.name || '')} data-testid={`add-avatar-${ci}`}
                     title={lang === 'pt' ? 'Criar novo personagem' : 'Create new character'}
-                    className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/5 transition group"
+                    className="rounded-lg border border-dashed border-[#444] flex flex-col items-center justify-center hover:border-orange-500/50 hover:bg-[#8B5CF6]/5 transition group"
                     style={{ width: 52, height: 68 }}>
-                    <Plus size={12} className="text-[#555] group-hover:text-[#8B5CF6]" />
-                    <span className="text-[8px] text-[#555] group-hover:text-[#8B5CF6] mt-0.5">{lang === 'pt' ? 'Criar' : 'New'}</span>
+                    <Plus size={12} className="text-[#555] group-hover:text-orange-600" />
+                    <span className="text-[8px] text-[#555] group-hover:text-orange-600 mt-0.5">{lang === 'pt' ? 'Criar' : 'New'}</span>
                   </button>
                   {/* Import from library button */}
                   <button onClick={() => setShowLibrary(true)} data-testid={`import-library-${ci}`}
                     title={lang === 'pt' ? 'Importar da Biblioteca' : 'Import from Library'}
-                    className="rounded-lg border border-dashed border-[#8B5CF6]/30 flex flex-col items-center justify-center hover:border-[#8B5CF6]/60 hover:bg-[#8B5CF6]/5 transition group"
+                    className="rounded-lg border border-dashed border-orange-500/30 flex flex-col items-center justify-center hover:border-orange-500/60 hover:bg-[#8B5CF6]/5 transition group"
                     style={{ width: 52, height: 68 }}>
-                    <BookOpen size={12} className="text-[#8B5CF6]/50 group-hover:text-[#8B5CF6]" />
-                    <span className="text-[8px] text-[#8B5CF6]/50 group-hover:text-[#8B5CF6] mt-0.5">{lang === 'pt' ? 'Acervo' : 'Library'}</span>
+                    <BookOpen size={12} className="text-orange-600/50 group-hover:text-orange-600" />
+                    <span className="text-[8px] text-orange-600/50 group-hover:text-orange-600 mt-0.5">{lang === 'pt' ? 'Acervo' : 'Library'}</span>
                   </button>
                 </div>
 
@@ -2355,7 +2355,7 @@ export const DirectedStudio = memo(function DirectedStudio({
             <button
               onClick={manualGenerateCharacters}
               data-testid="manual-gen-characters-btn"
-              className="w-full rounded-lg border-2 border-dashed border-[#8B5CF6]/40 bg-[#8B5CF6]/5 py-2.5 text-xs font-bold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/60 transition flex items-center justify-center gap-2"
+              className="w-full rounded-lg border-2 border-dashed border-orange-500/40 bg-[#8B5CF6]/5 py-2.5 text-xs font-bold text-orange-600 hover:bg-[#8B5CF6]/10 hover:border-orange-500/60 transition flex items-center justify-center gap-2"
             >
               <Sparkles size={14} />
               {lang === 'pt' ? '🎨 Gerar Todos os Personagens Faltantes' : '🎨 Generate All Missing Characters'}
@@ -2364,8 +2364,8 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           {/* ── Voice Narration (ElevenLabs) ── */}
           <div className="border-t border-[#222] pt-3 space-y-2" data-testid="studio-narration-section">
-            <h4 className="text-[10px] font-semibold text-white flex items-center gap-1.5">
-              <Volume2 size={11} className="text-[#8B5CF6]" />
+            <h4 className="text-[10px] font-semibold text-gray-900 flex items-center gap-1.5">
+              <Volume2 size={11} className="text-orange-600" />
               {lang === 'pt' ? 'Narração por Voz' : 'Voice Narration'}
               <span className="text-[10px] text-[#555] font-normal ml-1">ElevenLabs</span>
             </h4>
@@ -2374,20 +2374,20 @@ export const DirectedStudio = memo(function DirectedStudio({
             {characters.length > 0 && (
               <div className="space-y-2" data-testid="voice-map-section">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] text-[#666]">
+                  <p className="text-[10px] text-gray-500">
                     {lang === 'pt' ? 'Mapa de Vozes por Personagem' : 'Character Voice Map'}
                   </p>
                   <div className="flex gap-1">
                     <button onClick={autoAssignVoices} disabled={voiceMapLoading || characters.length === 0}
                       data-testid="auto-assign-voices-btn"
-                      className="text-[10px] px-2 py-1 rounded border border-[#333] bg-[#111] text-[#888] hover:text-white hover:border-[#555] transition disabled:opacity-30 flex items-center gap-1"
+                      className="text-[10px] px-2 py-1 rounded border border-[#333] bg-gray-50 text-gray-600 hover:text-gray-900 hover:border-[#555] transition disabled:opacity-30 flex items-center gap-1"
                       title={lang === 'pt' ? 'Atribuir vozes do catálogo' : 'Assign catalog voices'}>
                       {voiceMapLoading ? <RefreshCw size={9} className="animate-spin" /> : <Volume2 size={9} />}
                       {lang === 'pt' ? 'Catálogo' : 'Catalog'}
                     </button>
                     <button onClick={runSoundAgentAll} disabled={soundAgentRunning || characters.length === 0}
                       data-testid="sound-agent-all-btn"
-                      className="text-[10px] px-2 py-1 rounded border border-[#8B5CF6]/40 bg-[#8B5CF6]/5 text-[#8B5CF6] hover:bg-[#8B5CF6]/15 transition disabled:opacity-30 flex items-center gap-1">
+                      className="text-[10px] px-2 py-1 rounded border border-orange-500/40 bg-[#8B5CF6]/5 text-orange-600 hover:bg-[#8B5CF6]/15 transition disabled:opacity-30 flex items-center gap-1">
                       {soundAgentRunning ? <RefreshCw size={9} className="animate-spin" /> : <Sparkles size={9} />}
                       {soundAgentRunning
                         ? (lang === 'pt' ? 'Sonoplastia IA...' : 'Sound Agent...')
@@ -2398,14 +2398,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                 </div>
 
                 {soundAgentRunning && (
-                  <div className="text-center py-3 border border-[#8B5CF6]/20 rounded-lg bg-[#8B5CF6]/5">
-                    <RefreshCw size={14} className="animate-spin text-[#8B5CF6] mx-auto mb-1" />
-                    <p className="text-[10px] text-[#8B5CF6]">
+                  <div className="text-center py-3 border border-orange-500/20 rounded-lg bg-[#8B5CF6]/5">
+                    <RefreshCw size={14} className="animate-spin text-orange-600 mx-auto mb-1" />
+                    <p className="text-[10px] text-orange-600">
                       {lang === 'pt'
                         ? 'O Agente de Sonoplastia está analisando cada personagem e criando vozes únicas...'
                         : 'Sound Design Agent is analyzing each character and creating unique voices...'}
                     </p>
-                    <p className="text-[9px] text-[#666] mt-0.5">{lang === 'pt' ? 'Isto pode demorar 1-2 minutos' : 'This may take 1-2 minutes'}</p>
+                    <p className="text-[9px] text-gray-500 mt-0.5">{lang === 'pt' ? 'Isto pode demorar 1-2 minutos' : 'This may take 1-2 minutes'}</p>
                   </div>
                 )}
 
@@ -2416,25 +2416,25 @@ export const DirectedStudio = memo(function DirectedStudio({
                     const hasPreviews = agentResult?.previews?.length > 0;
 
                     return (
-                      <div key={c.name} className="rounded-lg border border-[#1A1A1A] bg-[#0A0A0A] p-2 space-y-1.5" data-testid={`voice-map-${c.name}`}>
+                      <div key={c.name} className="rounded-lg border border-gray-200 bg-gray-50 p-2 space-y-1.5" data-testid={`voice-map-${c.name}`}>
                         {/* Character header */}
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-white truncate flex-1" title={c.name}>{c.name}</span>
+                          <span className="text-[10px] font-bold text-gray-900 truncate flex-1" title={c.name}>{c.name}</span>
                           {detail && (
-                            <span className="text-[9px] text-[#8B5CF6] shrink-0">
+                            <span className="text-[9px] text-orange-600 shrink-0">
                               {detail.voice_name || detail.accent || 'Assigned'}
                             </span>
                           )}
                           <button onClick={() => runSoundAgentSingle(c.name)} disabled={soundAgentChar === c.name || soundAgentRunning}
                             data-testid={`design-voice-${c.name}`}
-                            className="text-[9px] px-1.5 py-0.5 rounded border border-[#333] text-[#666] hover:text-[#8B5CF6] hover:border-[#8B5CF6]/30 transition disabled:opacity-30 flex items-center gap-0.5 shrink-0">
+                            className="text-[9px] px-1.5 py-0.5 rounded border border-[#333] text-gray-500 hover:text-orange-600 hover:border-orange-500/30 transition disabled:opacity-30 flex items-center gap-0.5 shrink-0">
                             {soundAgentChar === c.name ? <RefreshCw size={8} className="animate-spin" /> : <Wand2 size={8} />}
                             {lang === 'pt' ? 'Design' : 'Design'}
                           </button>
                           {voiceMap[c.name] && (
                             <button onClick={() => setRemixResults(prev => ({ ...prev, [`${c.name}_showForm`]: !prev[`${c.name}_showForm`] }))}
                               data-testid={`remix-voice-${c.name}`}
-                              className="text-[9px] px-1.5 py-0.5 rounded border border-[#333] text-[#666] hover:text-purple-400 hover:border-purple-400/30 transition flex items-center gap-0.5 shrink-0">
+                              className="text-[9px] px-1.5 py-0.5 rounded border border-[#333] text-gray-500 hover:text-purple-400 hover:border-purple-400/30 transition flex items-center gap-0.5 shrink-0">
                               <Music size={8} /> Remix
                             </button>
                           )}
@@ -2445,7 +2445,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                           value={voiceMap[c.name] || ''}
                           onChange={e => updateCharVoice(c.name, e.target.value)}
                           data-testid={`voice-select-${c.name}`}
-                          className="w-full bg-[#111] border border-[#222] rounded px-1.5 py-1 text-[10px] text-[#ccc] outline-none focus:border-[#8B5CF6]/50"
+                          className="w-full bg-gray-50 border border-[#222] rounded px-1.5 py-1 text-[10px] text-[#ccc] outline-none focus:border-orange-500/50"
                         >
                           <option value="">{lang === 'pt' ? '— Seleccionar voz —' : '— Select voice —'}</option>
                           {voices.map(v => (
@@ -2473,7 +2473,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                               return (
                                 <div key={idx} className="flex-1 rounded border border-[#222] bg-[#080808] p-1.5 space-y-1" data-testid={`voice-preview-${c.name}-${idx}`}>
                                   <div className="flex items-center justify-between">
-                                    <span className="text-[9px] text-[#666]">
+                                    <span className="text-[9px] text-gray-500">
                                       {lang === 'pt' ? `Opção ${idx + 1}` : `Option ${idx + 1}`}
                                     </span>
                                     <span className="text-[8px] text-[#444]">{p.duration_secs?.toFixed(1)}s</span>
@@ -2482,7 +2482,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                     <button onClick={() => playPreviewAudio(c.name, idx, p.audio_base64, p.media_type)}
                                       data-testid={`play-preview-${c.name}-${idx}`}
                                       className={`flex-1 text-[9px] py-1 rounded flex items-center justify-center gap-0.5 transition ${
-                                        isPlaying ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'bg-[#111] text-[#999] hover:text-white border border-[#222]'
+                                        isPlaying ? 'bg-[#8B5CF6]/20 text-orange-600 border border-orange-500/30' : 'bg-gray-50 text-[#999] hover:text-gray-900 border border-[#222]'
                                       }`}>
                                       {isPlaying ? <Pause size={8} /> : <Play size={8} />}
                                       {isPlaying ? (lang === 'pt' ? 'Ouvir' : 'Playing') : (lang === 'pt' ? 'Ouvir' : 'Play')}
@@ -2490,7 +2490,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                     <button onClick={() => selectDesignedVoice(c.name, p.generated_voice_id)}
                                       disabled={isSelecting}
                                       data-testid={`select-preview-${c.name}-${idx}`}
-                                      className="flex-1 text-[9px] py-1 rounded bg-[#8B5CF6]/10 text-[#8B5CF6] border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/20 transition flex items-center justify-center gap-0.5 disabled:opacity-50">
+                                      className="flex-1 text-[9px] py-1 rounded bg-[#8B5CF6]/10 text-orange-600 border border-orange-500/30 hover:bg-[#8B5CF6]/20 transition flex items-center justify-center gap-0.5 disabled:opacity-50">
                                       {isSelecting ? <RefreshCw size={8} className="animate-spin" /> : <Check size={8} />}
                                       {lang === 'pt' ? 'Usar' : 'Use'}
                                     </button>
@@ -2513,7 +2513,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                               onChange={e => setRemixDesc(e.target.value)}
                               placeholder={lang === 'pt' ? 'Ex: mais grave, sotaque brasileiro, mais energético...' : 'E.g.: deeper, Brazilian accent, more energetic...'}
                               data-testid={`remix-desc-${c.name}`}
-                              className="w-full bg-[#111] border border-[#333] rounded px-2 py-1 text-[10px] text-white placeholder-[#444] outline-none focus:border-purple-400/50"
+                              className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1 text-[10px] text-gray-900 placeholder-[#444] outline-none focus:border-purple-400/50"
                             />
                             <div className="flex items-center gap-2">
                               <span className="text-[9px] text-[#555] shrink-0">{lang === 'pt' ? 'Intensidade:' : 'Strength:'}</span>
@@ -2546,7 +2546,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                   <div className="flex gap-1">
                                     <button onClick={() => playPreviewAudio(`remix-${c.name}`, idx, p.audio_base64, p.media_type)}
                                       className={`flex-1 text-[9px] py-1 rounded flex items-center justify-center gap-0.5 transition ${
-                                        isPlaying ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-[#111] text-[#999] hover:text-white border border-[#222]'
+                                        isPlaying ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-gray-50 text-[#999] hover:text-gray-900 border border-[#222]'
                                       }`}>
                                       {isPlaying ? <Pause size={8} /> : <Play size={8} />}
                                       {lang === 'pt' ? 'Ouvir' : 'Play'}
@@ -2581,10 +2581,10 @@ export const DirectedStudio = memo(function DirectedStudio({
             {/* Narrator voice selector (for narrated mode or as fallback) */}
             <div className="flex gap-2 items-end">
               <div className="flex-1">
-                <label className="text-[11px] text-[#666] mb-0.5 block">{lang === 'pt' ? (audioMode === 'dubbed' ? 'Voz do Narrador (fallback)' : 'Voz do Narrador') : 'Narrator Voice'}</label>
+                <label className="text-[11px] text-gray-500 mb-0.5 block">{lang === 'pt' ? (audioMode === 'dubbed' ? 'Voz do Narrador (fallback)' : 'Voz do Narrador') : 'Narrator Voice'}</label>
                   <select value={selectedVoice} onChange={e => setSelectedVoice(e.target.value)}
                     data-testid="voice-selector"
-                    className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#8B5CF6]/50">
+                    className="w-full bg-gray-50 border border-[#333] rounded-lg px-2 py-1.5 text-[10px] text-gray-900 outline-none focus:border-orange-500/50">
                     {voices.map(v => (
                       <option key={v.id} value={v.id}>{v.name} — {v.gender} • {v.accent} • {v.style}</option>
                     ))}
@@ -2619,9 +2619,9 @@ export const DirectedStudio = memo(function DirectedStudio({
               <div className="space-y-1 max-h-[150px] overflow-y-auto hide-scrollbar">
                 {narrations.map((n, i) => (
                   <div key={i} className={`rounded-md border px-2 py-1.5 flex items-center gap-2 ${
-                    n.audio_url ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[#222] bg-[#0A0A0A]'
+                    n.audio_url ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[#222] bg-gray-50'
                   }`}>
-                    <span className="text-[11px] font-bold text-[#8B5CF6] shrink-0">C{n.scene_number}</span>
+                    <span className="text-[11px] font-bold text-orange-600 shrink-0">C{n.scene_number}</span>
                     <p className="text-[11px] text-[#999] flex-1 truncate">{n.text || n.narration || '—'}</p>
                     {n.audio_url && (
                       <audio src={n.audio_url} controls className="h-6 w-24 shrink-0" style={{maxHeight: '24px'}} />
@@ -2666,12 +2666,12 @@ export const DirectedStudio = memo(function DirectedStudio({
               
               {/* Original buttons */}
               <div className="flex gap-2">
-                <button onClick={() => setStep(1)} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-white transition">
+                <button onClick={() => setStep(1)} className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-gray-900 transition">
                   ← {lang === 'pt' ? 'Roteiro' : 'Script'}
                 </button>
                 <button onClick={generatePreview} disabled={generating || previewLoading || scenes.length === 0}
                   data-testid="preview-production-btn"
-                  className="flex-1 rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 py-2 text-[10px] font-semibold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition disabled:opacity-30 flex items-center justify-center gap-1">
+                  className="flex-1 rounded-lg border border-orange-500/30 bg-[#8B5CF6]/5 py-2 text-[10px] font-semibold text-orange-600 hover:bg-[#8B5CF6]/10 transition disabled:opacity-30 flex items-center justify-center gap-1">
                   {previewLoading ? <RefreshCw size={10} className="animate-spin" /> : <Eye size={12} />}
                   {previewLoading
                     ? (lang === 'pt' ? 'Gerando preview...' : 'Generating preview...')
@@ -2734,8 +2734,8 @@ export const DirectedStudio = memo(function DirectedStudio({
       {/* ═══ STEP 6: Production Progress ═══ */}
       {step === 6 && !viewingProject && (
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-production">
-          <h3 className="text-xs font-semibold text-white flex items-center gap-2">
-            <Clapperboard size={12} className="text-[#8B5CF6]" />
+          <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-2">
+            <Clapperboard size={12} className="text-orange-600" />
             {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
           </h3>
 
@@ -2745,13 +2745,13 @@ export const DirectedStudio = memo(function DirectedStudio({
               <button
                 onClick={startProduction}
                 disabled={generating}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white font-bold text-sm shadow-lg shadow-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-gray-900 font-bold text-sm shadow-lg shadow-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="start-production-btn">
                 <Film size={16} />
                 {lang === 'pt' ? 'INICIAR PRODUÇÃO COMPLETA' : 'START FULL PRODUCTION'}
                 <Sparkles size={16} />
               </button>
-              <p className="text-xs text-[#666] mt-2">
+              <p className="text-xs text-gray-500 mt-2">
                 {lang === 'pt' 
                   ? `${scenes.length} cenas serão produzidas com direção profissional de fotografia, áudio e vídeo`
                   : `${scenes.length} scenes will be produced with professional photography, audio and video direction`
@@ -2777,7 +2777,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   {agentStatus.phase === 'starting' && `Iniciando produção...`}
                   {agentStatus.phase === 'starting_teams' && `Iniciando equipas de direção...`}
                 </span>
-                <span className="text-[#8B5CF6] font-semibold">
+                <span className="text-orange-600 font-semibold">
                   {agentStatus.videos_done !== undefined ? `${agentStatus.videos_done}/${agentStatus.total_scenes || scenes.length} vídeos` : ''}
                 </span>
               </div>
@@ -2792,7 +2792,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   const isCurrentScene = agentStatus.current_scene === (s.scene_number || i + 1);
                   const phase = agentStatus.phase || '';
 
-                  let segColor = 'bg-[#1A1A1A]'; // pending
+                  let segColor = 'bg-gray-100'; // pending
                   if (videoDone) segColor = 'bg-emerald-500';
                   else if (videoError) segColor = 'bg-red-500';
                   else if (agentsDone && phase.startsWith('generating_video')) segColor = 'bg-blue-500';
@@ -2809,10 +2809,10 @@ export const DirectedStudio = memo(function DirectedStudio({
               </div>
               {/* Legend */}
               <div className="flex items-center gap-3 mt-1.5">
-                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" /> {lang === 'pt' ? 'Vídeo pronto' : 'Video done'}</span>
-                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-blue-500" /> {lang === 'pt' ? 'Agentes prontos' : 'Agents done'}</span>
-                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-[#8B5CF6]" /> {lang === 'pt' ? 'Processando' : 'Processing'}</span>
-                <span className="flex items-center gap-1 text-xs text-[#666]"><span className="inline-block w-2 h-2 rounded-sm bg-red-500" /> {lang === 'pt' ? 'Erro' : 'Error'}</span>
+                <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" /> {lang === 'pt' ? 'Vídeo pronto' : 'Video done'}</span>
+                <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-blue-500" /> {lang === 'pt' ? 'Agentes prontos' : 'Agents done'}</span>
+                <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-[#8B5CF6]" /> {lang === 'pt' ? 'Processando' : 'Processing'}</span>
+                <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-red-500" /> {lang === 'pt' ? 'Erro' : 'Error'}</span>
               </div>
             </div>
           )}
@@ -2835,49 +2835,49 @@ export const DirectedStudio = memo(function DirectedStudio({
 
               // Progress per state
               const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 65 : isWaiting ? 40 : isDirecting ? 20 : 0;
-              const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isVideoGen ? 'bg-[#8B5CF6]' : isWaiting ? 'bg-blue-400' : isDirecting ? 'bg-purple-400' : 'bg-[#222]';
+              const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isVideoGen ? 'bg-[#8B5CF6]' : isWaiting ? 'bg-blue-400' : isDirecting ? 'bg-purple-400' : 'bg-gray-100';
 
               return (
                 <div key={i} className={`rounded-lg border px-2.5 py-1.5 transition-all ${
-                  isVideoGen ? 'border-[#8B5CF6]/30 bg-[#8B5CF6]/5' :
+                  isVideoGen ? 'border-orange-500/30 bg-[#8B5CF6]/5' :
                   isDirecting ? 'border-purple-500/20 bg-purple-500/5' :
                   isWaiting ? 'border-blue-500/20 bg-blue-500/5' :
                   videoDone ? 'border-emerald-500/20 bg-emerald-500/5' :
                   videoError ? 'border-red-500/20 bg-red-500/5' :
-                  'border-[#1A1A1A] bg-[#0A0A0A]'
+                  'border-gray-200 bg-gray-50'
                 }`}>
                   <div className="flex items-center gap-2">
                     <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
                       videoDone ? 'bg-emerald-500 text-black' :
-                      videoError ? 'bg-red-500 text-white' :
+                      videoError ? 'bg-red-500 text-gray-900' :
                       isVideoGen ? 'bg-[#8B5CF6] text-black' :
-                      isDirecting ? 'bg-purple-500 text-white' :
-                      isWaiting ? 'bg-blue-500 text-white' :
-                      'bg-[#222] text-[#666]'
+                      isDirecting ? 'bg-purple-500 text-gray-900' :
+                      isWaiting ? 'bg-blue-500 text-gray-900' :
+                      'bg-gray-100 text-gray-500'
                     }`}>
                       {videoDone ? <Check size={8} /> : videoError ? <X size={8} /> : isActive ? <RefreshCw size={8} className="animate-spin" /> : sceneNum}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-white truncate">{s.title || `Cena ${sceneNum}`}</p>
-                      <p className="text-[10px] text-[#666] truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
+                      <p className="text-[11px] font-semibold text-gray-900 truncate">{s.title || `Cena ${sceneNum}`}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
                     </div>
                     <div className="text-[10px] shrink-0">
                       {videoDone && <span className="text-emerald-400 font-medium">{lang === 'pt' ? 'Pronto' : 'Done'}</span>}
                       {videoError && <span className="text-red-400">Erro</span>}
-                      {isVideoGen && <span className="text-[#8B5CF6]">Sora 2...</span>}
+                      {isVideoGen && <span className="text-orange-600">Sora 2...</span>}
                       {isWaiting && <span className="text-blue-400">{lang === 'pt' ? 'Fila Sora' : 'Sora Queue'}</span>}
                       {isDirecting && <span className="text-purple-400">{lang === 'pt' ? 'Dirigindo' : 'Directing'}</span>}
                       {sceneState === 'queued' && <span className="text-[#444]">—</span>}
                     </div>
                   </div>
                   {/* Per-scene progress bar */}
-                  <div className="mt-1 w-full bg-[#111] rounded-full h-1">
+                  <div className="mt-1 w-full bg-gray-50 rounded-full h-1">
                     <div className={`h-1 rounded-full transition-all duration-700 ${barColor} ${isActive ? 'animate-pulse' : ''}`}
                       style={{ width: `${sceneProgress}%` }} />
                   </div>
                   {/* Real-time video preview when scene is done */}
                   {sceneVideo && (
-                    <div className="mt-1.5 rounded-lg overflow-hidden border border-emerald-500/20 bg-black">
+                    <div className="mt-1.5 rounded-lg overflow-hidden border border-emerald-500/20 bg-white">
                       <video src={sceneVideo.url} controls preload="metadata" data-testid={`scene-preview-${sceneNum}`}
                         className="w-full max-h-[120px] object-contain" />
                     </div>
@@ -2892,7 +2892,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition ${
                           videoError
                             ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
-                            : 'bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#8B5CF6]/30'
+                            : 'bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30'
                         } ${regenScene === sceneNum ? 'opacity-50' : ''}`}>
                         <RefreshCw size={8} className={regenScene === sceneNum ? 'animate-spin' : ''} />
                         {regenScene === sceneNum ? (lang === 'pt' ? 'Regenerando...' : 'Regenerating...') : (lang === 'pt' ? 'Regenerar' : 'Retry')}
@@ -2900,7 +2900,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <button
                         onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }}
                         data-testid={`edit-scene-${sceneNum}`}
-                        className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#8B5CF6]/30 transition">
+                        className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30 transition">
                         <Edit3 size={8} />
                         {lang === 'pt' ? 'Editar' : 'Edit'}
                       </button>
@@ -2908,23 +2908,23 @@ export const DirectedStudio = memo(function DirectedStudio({
                   )}
                   {/* Scene edit form (inline) */}
                   {editingScene === sceneNum && (
-                    <div className="mt-2 space-y-1.5 p-2 rounded-lg bg-[#0A0A0A] border border-[#8B5CF6]/20">
+                    <div className="mt-2 space-y-1.5 p-2 rounded-lg bg-gray-50 border border-orange-500/20">
                       <input value={editSceneForm.title || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, title: e.target.value }))}
-                        placeholder="Título da cena" className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none" />
+                        placeholder="Título da cena" className="w-full bg-gray-50 border border-[#222] rounded px-2 py-1 text-xs text-gray-900 outline-none" />
                       <textarea value={editSceneForm.description || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, description: e.target.value }))}
                         placeholder="Descrição visual da cena" rows={2}
-                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none resize-none" />
+                        className="w-full bg-gray-50 border border-[#222] rounded px-2 py-1 text-xs text-gray-900 outline-none resize-none" />
                       <textarea value={editSceneForm.dialogue || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, dialogue: e.target.value }))}
                         placeholder="Diálogo/Narração" rows={2}
-                        className="w-full bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none resize-none" />
+                        className="w-full bg-gray-50 border border-[#222] rounded px-2 py-1 text-xs text-gray-900 outline-none resize-none" />
                       <div className="flex gap-1">
                         <input value={editSceneForm.emotion || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, emotion: e.target.value }))}
-                          placeholder="Emoção" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none" />
+                          placeholder="Emoção" className="flex-1 bg-gray-50 border border-[#222] rounded px-2 py-1 text-xs text-gray-900 outline-none" />
                         <input value={editSceneForm.camera || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, camera: e.target.value }))}
-                          placeholder="Câmera" className="flex-1 bg-[#111] border border-[#222] rounded px-2 py-1 text-xs text-white outline-none" />
+                          placeholder="Câmera" className="flex-1 bg-gray-50 border border-[#222] rounded px-2 py-1 text-xs text-gray-900 outline-none" />
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[11px] text-[#999] hover:text-white">
+                        <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[11px] text-[#999] hover:text-gray-900">
                           {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                         </button>
                         <button onClick={() => saveSceneEdit(sceneNum)}
@@ -2932,7 +2932,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                           {lang === 'pt' ? 'Salvar' : 'Save'}
                         </button>
                         <button onClick={() => { saveSceneEdit(sceneNum); setTimeout(() => regenerateScene(sceneNum), 500); }}
-                          className="flex-1 rounded py-1 text-[11px] font-semibold bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/30">
+                          className="flex-1 rounded py-1 text-[11px] font-semibold bg-[#8B5CF6]/20 border border-orange-500/30 text-orange-600 hover:bg-[#8B5CF6]/30">
                           {lang === 'pt' ? 'Salvar & Regenerar' : 'Save & Regen'}
                         </button>
                       </div>
@@ -2945,11 +2945,11 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           {/* Phase indicator with time estimate */}
           {generating && agentStatus.phase?.startsWith('generating_video') && (
-            <div className="rounded-lg border border-[#8B5CF6]/20 bg-[#8B5CF6]/5 p-2 flex items-center gap-2">
-              <Film size={14} className="text-[#8B5CF6] animate-pulse" />
+            <div className="rounded-lg border border-orange-500/20 bg-[#8B5CF6]/5 p-2 flex items-center gap-2">
+              <Film size={14} className="text-orange-600 animate-pulse" />
               <div className="flex-1">
-                <p className="text-[10px] font-semibold text-[#8B5CF6]">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
-                <p className="text-[11px] text-[#666]">
+                <p className="text-[10px] font-semibold text-orange-600">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
+                <p className="text-[11px] text-gray-500">
                   {agentStatus.videos_done || 0}/{agentStatus.total_scenes || '?'} {lang === 'pt' ? 'prontos' : 'done'}.
                   {' '}{lang === 'pt' ? 'Pode navegar — avisaremos quando terminar.' : 'You can navigate away.'}
                 </p>
@@ -2974,13 +2974,13 @@ export const DirectedStudio = memo(function DirectedStudio({
 
       {/* ═══ MEDIA PREVIEW MODAL ═══ */}
       {previewModal && (
-        <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-sm flex items-center justify-center" data-testid="media-preview-modal"
+        <div className="fixed inset-0 z-[60] bg-white/95 backdrop-blur-sm flex items-center justify-center" data-testid="media-preview-modal"
           onClick={() => setPreviewModal(null)}>
           <div className="relative w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Close button */}
             <button onClick={() => setPreviewModal(null)} data-testid="close-preview-modal"
               className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
-              <X size={18} className="text-white" />
+              <X size={18} className="text-gray-900" />
             </button>
 
             {/* === VIDEO PREVIEW === */}
@@ -2989,7 +2989,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                 <div className="w-full max-w-3xl">
                   <video src={previewModal.data.url} controls autoPlay className="w-full rounded-xl shadow-2xl" data-testid="preview-video-player" />
                   <div className="flex items-center justify-between mt-3 px-1">
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-gray-900">
                       {lang === 'pt' ? 'Cena' : 'Scene'} {previewModal.data.scene_number}
                     </p>
                     <a href={previewModal.data.url} download data-testid="preview-video-download"
@@ -3009,7 +3009,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider transition ${
                           v.scene_number === previewModal.data.scene_number
                             ? 'bg-[#8B5CF6] text-black font-bold'
-                            : 'bg-white/5 text-white/60 hover:bg-white/10'
+                            : 'bg-white/5 text-gray-900/60 hover:bg-white/10'
                         }`}>
                         {lang === 'pt' ? 'Cena' : 'Scene'} {v.scene_number}
                       </button>
@@ -3036,23 +3036,23 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <button onClick={() => setPreviewModal(prev => ({
                         ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex - 1 }
                       }))}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center transition">
-                        <ChevronLeft size={20} className="text-white" />
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/50 hover:bg-white/80 flex items-center justify-center transition">
+                        <ChevronLeft size={20} className="text-gray-900" />
                       </button>
                     )}
                     {previewModal.data.currentIndex < previewModal.data.images.length - 1 && (
                       <button onClick={() => setPreviewModal(prev => ({
                         ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex + 1 }
                       }))}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 flex items-center justify-center transition">
-                        <ChevronRight size={20} className="text-white" />
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/50 hover:bg-white/80 flex items-center justify-center transition">
+                        <ChevronRight size={20} className="text-gray-900" />
                       </button>
                     )}
                   </div>
                   {/* Info bar */}
                   <div className="flex items-center justify-between mt-3 px-1">
                     <div>
-                      <p className="text-sm font-medium text-white">{previewModal.data.title || 'Storyboard'}</p>
+                      <p className="text-sm font-medium text-gray-900">{previewModal.data.title || 'Storyboard'}</p>
                       <p className="text-[10px] font-mono text-[#555]">
                         {previewModal.data.currentIndex + 1} / {previewModal.data.images.length}
                         {previewModal.data.images[previewModal.data.currentIndex]?.scene && (
@@ -3073,7 +3073,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         ...prev, data: { ...prev.data, currentIndex: i }
                       }))}
                         className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition ${
-                          i === previewModal.data.currentIndex ? 'border-[#8B5CF6] opacity-100' : 'border-transparent opacity-40 hover:opacity-70'
+                          i === previewModal.data.currentIndex ? 'border-orange-500 opacity-100' : 'border-transparent opacity-40 hover:opacity-70'
                         }`}>
                         <img src={img?.url || img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       </button>
@@ -3086,13 +3086,13 @@ export const DirectedStudio = memo(function DirectedStudio({
             {/* === BOOK PREVIEW (embedded) === */}
             {previewModal.type === 'book' && (
               <div className="flex-1 flex flex-col">
-                <div className="flex items-center justify-between px-4 py-2 bg-[#0A0A0A] border-b border-white/5">
+                <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-white/5">
                   <div className="flex items-center gap-2">
-                    <BookOpen size={16} className="text-[#8B5CF6]" />
-                    <span className="text-sm font-medium text-white">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</span>
+                    <BookOpen size={16} className="text-orange-600" />
+                    <span className="text-sm font-medium text-gray-900">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</span>
                   </div>
                   <a href={`/book/${projectId}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[10px] font-mono text-[#8B5CF6] hover:underline">
+                    className="flex items-center gap-1 text-[10px] font-mono text-orange-600 hover:underline">
                     <Maximize2 size={10} /> {lang === 'pt' ? 'Tela cheia' : 'Full screen'}
                   </a>
                 </div>
@@ -3108,7 +3108,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                 <div className="w-full max-w-4xl">
                   <div className="flex items-center gap-2 mb-4">
                     <FileText size={18} className="text-purple-400" />
-                    <h3 className="text-sm font-medium text-white">Storyboard PDF</h3>
+                    <h3 className="text-sm font-medium text-gray-900">Storyboard PDF</h3>
                     <span className="text-[10px] font-mono text-[#555]">{allPanelFrames.length} {lang === 'pt' ? 'ilustrações' : 'illustrations'}</span>
                   </div>
                   {/* Grid preview of all frames */}
@@ -3118,14 +3118,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                         type: 'gallery',
                         data: { images: allPanelFrames, currentIndex: i, title: `Storyboard — ${lang === 'pt' ? 'Cena' : 'Scene'} ${frame.scene}` }
                       })}
-                        className="relative rounded-lg overflow-hidden border border-white/5 hover:border-[#8B5CF6]/30 transition group aspect-[4/3]"
+                        className="relative rounded-lg overflow-hidden border border-white/5 hover:border-orange-500/30 transition group aspect-[4/3]"
                         data-testid={`pdf-preview-frame-${i}`}>
                         <img src={frame.url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition" />
-                        <span className="absolute bottom-1 left-1.5 text-[10px] font-mono text-white/80 opacity-0 group-hover:opacity-100 transition">
+                        <span className="absolute bottom-1 left-1.5 text-[10px] font-mono text-gray-900/80 opacity-0 group-hover:opacity-100 transition">
                           C{frame.scene} F{frame.frame}
                         </span>
-                        <Maximize2 size={10} className="absolute top-1 right-1 text-white/60 opacity-0 group-hover:opacity-100 transition" />
+                        <Maximize2 size={10} className="absolute top-1 right-1 text-gray-900/60 opacity-0 group-hover:opacity-100 transition" />
                       </button>
                     ))}
                   </div>
@@ -3155,10 +3155,10 @@ export const DirectedStudio = memo(function DirectedStudio({
         <div className="space-y-4" data-testid="studio-step-results">
           {/* Section Header */}
           <div className="text-center py-2">
-            <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-[#8B5CF6]/60 mb-1">
+            <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-orange-600/60 mb-1">
               {lang === 'pt' ? 'Entrega Final' : 'Final Delivery'}
             </p>
-            <h2 className="text-xl sm:text-2xl font-medium text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-medium text-gray-900 tracking-tight">
               {lang === 'pt' ? 'Seus Produtos' : 'Your Products'}
             </h2>
           </div>
@@ -3170,7 +3170,7 @@ export const DirectedStudio = memo(function DirectedStudio({
               <div className="text-center py-10 border border-[#111] rounded-xl">
                 <Film size={28} className="mx-auto text-[#222] mb-3" strokeWidth={1} />
                 <p className="text-sm text-[#444] font-sans">{lang === 'pt' ? 'Comece criando o roteiro e storyboard' : 'Start by creating the script and storyboard'}</p>
-                <button onClick={() => setStep(1)} className="mt-3 text-[10px] font-mono tracking-wider uppercase text-[#8B5CF6] hover:underline">
+                <button onClick={() => setStep(1)} className="mt-3 text-[10px] font-mono tracking-wider uppercase text-orange-600 hover:underline">
                   {lang === 'pt' ? 'Criar Roteiro' : 'Create Script'}
                 </button>
               </div>
@@ -3185,8 +3185,8 @@ export const DirectedStudio = memo(function DirectedStudio({
             const heroOut = finalVideo || heroVideo;
             if (!heroOut) return null;
             return (
-              <div className="relative rounded-xl overflow-hidden border border-[#8B5CF6]/20 group" data-testid="deliverable-filme-completo">
-                <div className="relative bg-black aspect-video cursor-pointer"
+              <div className="relative rounded-xl overflow-hidden border border-orange-500/20 group" data-testid="deliverable-filme-completo">
+                <div className="relative bg-white aspect-video cursor-pointer"
                   onClick={() => setPreviewModal({ type: 'video', data: { url: heroOut.url, scene_number: 0, allVideos: [] } })}>
                   <video className="w-full h-full object-contain" data-testid="result-video-complete" src={heroOut.url} poster="" preload="metadata" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
@@ -3195,26 +3195,26 @@ export const DirectedStudio = memo(function DirectedStudio({
                       {lang === 'pt' ? 'Filme Final' : 'Final Film'}
                     </span>
                     {heroOut.has_narration && (
-                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
+                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-gray-900/80 px-1.5 py-0.5 rounded-sm">
                         {lang === 'pt' ? 'Dublado' : 'Dubbed'}
                       </span>
                     )}
                     {heroOut.has_music && (
-                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-white/80 px-1.5 py-0.5 rounded-sm">
+                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-gray-900/80 px-1.5 py-0.5 rounded-sm">
                         {lang === 'pt' ? 'Trilha Sonora' : 'Soundtrack'}
                       </span>
                     )}
                   </div>
                   {/* Play overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-sm border border-[#8B5CF6]/40 flex items-center justify-center">
-                      <Play size={24} className="text-[#8B5CF6] ml-1" fill="#8B5CF6" />
+                    <div className="w-16 h-16 rounded-full bg-white/60 backdrop-blur-sm border border-orange-500/40 flex items-center justify-center">
+                      <Play size={24} className="text-orange-600 ml-1" fill="#8B5CF6" />
                     </div>
                   </div>
                 </div>
-                <div className="p-3 flex items-center justify-between bg-[#0A0A0A]">
+                <div className="p-3 flex items-center justify-between bg-gray-50">
                   <div>
-                    <p className="text-xs font-medium text-white">{projectName}</p>
+                    <p className="text-xs font-medium text-gray-900">{projectName}</p>
                     <p className="text-xs font-mono text-[#555]">
                       {scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'}
                       {heroOut.duration ? ` \u2022 ${Math.round(heroOut.duration)}s` : ''}
@@ -3244,7 +3244,7 @@ export const DirectedStudio = memo(function DirectedStudio({
               <button
                 onClick={() => setPreviewModal({ type: 'book' })}
                 data-testid="deliverable-livro-interativo"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#8B5CF6]/20 transition-all duration-500"
+                className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500"
               >
                 {/* Thumbnail background */}
                 {thumbs[0] && (
@@ -3255,8 +3255,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <Check size={10} className="text-emerald-400" />
                     </div>
                     <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
-                      <BookOpen size={14} className="text-[#8B5CF6]" strokeWidth={1.5} />
-                      <span className="text-xs font-medium text-white drop-shadow-lg">
+                      <BookOpen size={14} className="text-orange-600" strokeWidth={1.5} />
+                      <span className="text-xs font-medium text-gray-900 drop-shadow-lg">
                         {lang === 'pt' ? 'Livro Animado' : 'Animated Book'}
                       </span>
                     </div>
@@ -3265,14 +3265,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                 <div className="p-2.5">
                   {!thumbs[0] && (
                     <>
-                      <BookOpen size={18} className="text-[#8B5CF6] mb-1.5" strokeWidth={1.2} />
-                      <p className="text-xs font-medium text-white mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
+                      <BookOpen size={18} className="text-orange-600 mb-1.5" strokeWidth={1.2} />
+                      <p className="text-xs font-medium text-gray-900 mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
                     </>
                   )}
                   <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
                     {sceneCount} {lang === 'pt' ? 'paginas' : 'pages'} • {lang === 'pt' ? 'interativo' : 'interactive'}
                   </p>
-                  <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-[#8B5CF6] group-hover:underline">
+                  <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-orange-600 group-hover:underline">
                     <Eye size={8} className="inline mr-1" />{lang === 'pt' ? 'Visualizar' : 'Preview'}
                   </span>
                 </div>
@@ -3296,7 +3296,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   }
                 }}
                 data-testid="deliverable-storyboard-pdf"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#8B5CF6]/20 transition-all duration-500"
+                className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500"
               >
                 {/* Collage of 4 thumbnails */}
                 {thumbs.length >= 2 && (
@@ -3312,7 +3312,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                     </div>
                     <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                       <Download size={14} className="text-purple-400" strokeWidth={1.5} />
-                      <span className="text-xs font-medium text-white drop-shadow-lg">Storyboard PDF</span>
+                      <span className="text-xs font-medium text-gray-900 drop-shadow-lg">Storyboard PDF</span>
                     </div>
                   </div>
                 )}
@@ -3320,7 +3320,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   {thumbs.length < 2 && (
                     <>
                       <Download size={18} className="text-purple-400 mb-1.5" strokeWidth={1.2} />
-                      <p className="text-xs font-medium text-white mb-0.5">Storyboard PDF</p>
+                      <p className="text-xs font-medium text-gray-900 mb-0.5">Storyboard PDF</p>
                     </>
                   )}
                   <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
@@ -3344,7 +3344,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                     }
                   }}
                   data-testid="deliverable-cenas-card"
-                  className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#8B5CF6]/20 transition-all duration-500"
+                  className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500"
                 >
                   {/* Film strip preview */}
                   <div className="relative h-24 overflow-hidden">
@@ -3358,11 +3358,11 @@ export const DirectedStudio = memo(function DirectedStudio({
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
                     <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                       <Film size={14} className="text-emerald-400" strokeWidth={1.5} />
-                      <span className="text-xs font-medium text-white drop-shadow-lg">
+                      <span className="text-xs font-medium text-gray-900 drop-shadow-lg">
                         {lang === 'pt' ? 'Videos por Cena' : 'Scene Videos'}
                       </span>
                     </div>
-                    <div className="absolute top-2 right-2 bg-black/60 rounded-sm px-1.5 py-0.5">
+                    <div className="absolute top-2 right-2 bg-white/60 rounded-sm px-1.5 py-0.5">
                       <span className="text-[11px] font-mono text-emerald-400">{sceneVideos.length}</span>
                     </div>
                   </div>
@@ -3384,8 +3384,8 @@ export const DirectedStudio = memo(function DirectedStudio({
               <button
                 onClick={() => setShowPostProd(true)}
                 data-testid="deliverable-pos-producao"
-                className={`relative bg-[#0A0A0A] border rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 transition-all duration-500 ${
-                  hasFinal ? 'border-green-500/20 hover:border-green-500/40' : 'border-white/5 hover:border-[#8B5CF6]/20'
+                className={`relative bg-gray-50 border rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 transition-all duration-500 ${
+                  hasFinal ? 'border-green-500/20 hover:border-green-500/40' : 'border-white/5 hover:border-orange-500/20'
                 }`}
               >
                 <div className="relative h-24 overflow-hidden bg-gradient-to-br from-blue-900/20 to-[#0A0A0A]">
@@ -3409,7 +3409,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   )}
                   <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
                     <Clapperboard size={14} className="text-blue-400" strokeWidth={1.5} />
-                    <span className="text-xs font-medium text-white drop-shadow-lg">
+                    <span className="text-xs font-medium text-gray-900 drop-shadow-lg">
                       {lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}
                     </span>
                   </div>
@@ -3436,14 +3436,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                 onClick={loadAnalytics}
                 disabled={analyticsLoading}
                 data-testid="deliverable-analytics"
-                className="relative bg-[#0A0A0A] border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-[#8B5CF6]/20 transition-all duration-500 col-span-2"
+                className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500 col-span-2"
               >
                 <div className="p-3 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                     <BarChart3 size={20} className="text-amber-400" strokeWidth={1.2} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white">{lang === 'pt' ? 'Analytics do Projeto' : 'Project Analytics'}</p>
+                    <p className="text-xs font-medium text-gray-900">{lang === 'pt' ? 'Analytics do Projeto' : 'Project Analytics'}</p>
                     <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
                       {sceneCount} {lang === 'pt' ? 'cenas' : 'scenes'} • {frameCount} frames • {sceneVideos.length} {lang === 'pt' ? 'videos' : 'videos'}
                     </p>
@@ -3474,31 +3474,31 @@ export const DirectedStudio = memo(function DirectedStudio({
                   const isRegenerating = regenScene === out.scene_number;
                   const allSceneVids = sceneVideos; // Usar a lista já filtrada
                   return (
-                    <div key={out.id || i} className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden border border-white/5 bg-[#0A0A0A] group hover:border-[#8B5CF6]/20 transition-all duration-300 cursor-pointer"
+                    <div key={out.id || i} className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden border border-white/5 bg-gray-50 group hover:border-orange-500/20 transition-all duration-300 cursor-pointer"
                       data-testid={`deliverable-cena-${out.scene_number}`}
                       onClick={() => setPreviewModal({ type: 'video', data: { ...out, allVideos: allSceneVids } })}>
-                      <div className="relative aspect-video bg-black">
+                      <div className="relative aspect-video bg-white">
                         <video src={out.url} preload="metadata" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           data-testid={`result-video-${i}`}
                           onMouseEnter={e => { e.target.play().catch(() => {}); }} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                        <span className="absolute bottom-1.5 left-1.5 text-[11px] font-mono text-white/80 tracking-wider">
+                        <span className="absolute bottom-1.5 left-1.5 text-[11px] font-mono text-gray-900/80 tracking-wider">
                           {lang === 'pt' ? 'CENA' : 'SCENE'} {out.scene_number}
                         </span>
                         {/* Play overlay */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                            <Play size={12} className="text-white ml-0.5" fill="white" />
+                          <div className="w-8 h-8 rounded-full bg-white/60 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                            <Play size={12} className="text-gray-900 ml-0.5" fill="white" />
                           </div>
                         </div>
                       </div>
                       <div className="p-2 flex items-center gap-1.5">
-                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[11px] font-mono tracking-wider uppercase text-[#888] hover:text-[#8B5CF6] transition py-1">
+                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[11px] font-mono tracking-wider uppercase text-gray-600 hover:text-orange-600 transition py-1">
                           <Download size={10} className="inline mr-1" />Download
                         </a>
                         <button onClick={e => { e.stopPropagation(); regenerateScene(out.scene_number); }} disabled={isRegenerating}
                           data-testid={`result-regen-${out.scene_number}`}
-                          className="text-[11px] text-[#555] hover:text-[#8B5CF6] transition p-1 disabled:opacity-40">
+                          className="text-[11px] text-[#555] hover:text-orange-600 transition p-1 disabled:opacity-40">
                           <RefreshCw size={10} className={isRegenerating ? 'animate-spin' : ''} />
                         </button>
                       </div>
@@ -3532,11 +3532,11 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           {/* Post-Production Sheet (Drawer) */}
           {showPostProd && outputs.length > 0 && (
-            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setShowPostProd(false)}>
-              <div className="w-full sm:max-w-lg max-h-[85vh] bg-[#0A0A0A] border border-white/5 rounded-t-2xl sm:rounded-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <div className="sticky top-0 bg-[#0A0A0A] border-b border-white/5 p-3 flex items-center justify-between z-10">
-                  <h3 className="text-sm font-medium text-white">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</h3>
-                  <button onClick={() => setShowPostProd(false)} data-testid="close-post-production" className="text-[#555] hover:text-white transition">
+            <div className="fixed inset-0 z-50 bg-white/60 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setShowPostProd(false)}>
+              <div className="w-full sm:max-w-lg max-h-[85vh] bg-gray-50 border border-white/5 rounded-t-2xl sm:rounded-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-gray-50 border-b border-white/5 p-3 flex items-center justify-between z-10">
+                  <h3 className="text-sm font-medium text-gray-900">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</h3>
+                  <button onClick={() => setShowPostProd(false)} data-testid="close-post-production" className="text-[#555] hover:text-gray-900 transition">
                     <X size={16} />
                   </button>
                 </div>
@@ -3572,11 +3572,11 @@ export const DirectedStudio = memo(function DirectedStudio({
               setCharacters([]); setOutputs([]); setAgentStatus({});
               loadProjects();
             }} data-testid="back-to-projects"
-              className="flex-1 rounded-sm border border-[#222] py-2.5 text-[10px] font-mono tracking-wider uppercase text-[#666] hover:text-white hover:border-[#444] transition">
+              className="flex-1 rounded-sm border border-[#222] py-2.5 text-[10px] font-mono tracking-wider uppercase text-gray-500 hover:text-gray-900 hover:border-[#444] transition">
               {lang === 'pt' ? 'Projectos' : 'Projects'}
             </button>
             <button onClick={() => setStep(4)} data-testid="go-to-storyboard"
-              className="flex-1 rounded-sm border border-[#8B5CF6]/20 bg-[#8B5CF6]/5 py-2.5 text-[10px] font-mono tracking-wider uppercase text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition flex items-center justify-center gap-1.5">
+              className="flex-1 rounded-sm border border-orange-500/20 bg-[#8B5CF6]/5 py-2.5 text-[10px] font-mono tracking-wider uppercase text-orange-600 hover:bg-[#8B5CF6]/10 transition flex items-center justify-center gap-1.5">
               <Camera size={10} /> Storyboard
             </button>
             <button onClick={() => setStep(6)} data-testid="go-to-config-btn"
@@ -3602,7 +3602,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
       {/* ═══ Autonomous Workflow Overlay ═══ */}
       {showAutonomousFlow && (
-        <div className="fixed inset-0 z-[100] bg-black/95">
+        <div className="fixed inset-0 z-[100] bg-white/95">
           <AutonomousWorkflow
             projectId={projectId}
             characters={characters}
