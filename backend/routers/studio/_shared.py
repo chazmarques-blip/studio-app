@@ -792,10 +792,18 @@ CRITICAL RULES:
         result = generate_image_gemini_sync(prompt_text, input_image_bytes)
 
         if result:
+            # Resize to match Sora 2 expected dimensions (1280x720)
+            from PIL import Image
+            import io
+            
+            img = Image.open(io.BytesIO(result))
+            # Resize to 1280x720 (Sora 2 default size)
+            img_resized = img.resize((1280, 720), Image.Resampling.LANCZOS)
+            
             keyframe_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
-            with open(keyframe_path, 'wb') as f:
-                f.write(result)
-            logger.info(f"Studio [{project_id}]: Keyframe generated for scene {scene_num} ({len(result)//1024}KB)")
+            img_resized.save(keyframe_path, 'PNG')
+            
+            logger.info(f"Studio [{project_id}]: Keyframe generated and resized for scene {scene_num} (1280x720)")
             return keyframe_path
     except Exception as e:
         logger.warning(f"Studio [{project_id}]: Keyframe gen failed for scene {scene_num}: {e}")
