@@ -478,14 +478,14 @@ CRITICAL REQUIREMENTS:
         
         voice_result = await auto_assign_voices_with_sound_designer(
             project_id=project_id,
-            tenant_id=tenant_id,
+            tenant_id=tenant["id"],  # FIX: tenant["id"] instead of undefined tenant_id
             available_voices=ELEVENLABS_VOICES
         )
         
         # Save voice assignments to project
         voice_map = voice_result["voice_map"]
         project["voice_map"] = voice_map
-        _save_project(tenant_id, settings, projects)
+        _save_project(tenant["id"], settings, projects)  # FIX: tenant["id"]
         
         logger.info(f"CharacterGen [{project_id}]: Voice assignment complete - {len(voice_map)} characters")
         
