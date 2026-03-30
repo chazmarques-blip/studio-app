@@ -2,6 +2,11 @@
 
 Uses Gemini Nano Banana (via emergentintegrations) for panel illustration generation
 and Claude (via litellm) for the AI Facilitator chat.
+
+COST OPTIMIZATION:
+- Default: 6 frames per scene (high quality)
+- Economy: 3 frames per scene (50% cost reduction)
+- Preview: 1 frame per scene (80% cost reduction, good for prototyping)
 """
 import os
 import base64
@@ -16,6 +21,26 @@ logger = logging.getLogger(__name__)
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+
+# COST OPTIMIZATION PRESETS
+QUALITY_PRESETS = {
+    "preview": {
+        "frames": [3],  # Only KEY ACTION frame
+        "description": "Geração rápida - 1 frame/cena (~$8 para 24 cenas)",
+    },
+    "economy": {
+        "frames": [1, 3, 6],  # Opening, Key Action, Closing
+        "description": "Economia - 3 frames/cena (~$15 para 24 cenas)",
+    },
+    "standard": {
+        "frames": [1, 2, 3, 4, 5, 6],  # All 6 frames
+        "description": "Qualidade padrão - 6 frames/cena (~$25 para 24 cenas)",
+    },
+    "custom": {
+        "frames": None,  # User can specify which frames
+        "description": "Personalizado - escolha quais frames gerar",
+    },
+}
 
 FRAME_TYPES = [
     {
@@ -498,6 +523,7 @@ def generate_all_panels(
     lang: str = "pt",
     upload_fn=None,
     update_fn=None,
+    frames_to_generate: list = None,  # NEW: [1,2,3,4,5,6] or [1,3,6] for economy
 ) -> list:
     """Generate storyboard panels for all scenes using the Continuity Director pipeline.
 
@@ -510,10 +536,18 @@ def generate_all_panels(
         identity_cards: Dict of character identity cards from _analyze_avatars_with_vision()
         upload_fn: callable(bytes, filename, content_type) -> url
         update_fn: callable(tenant_id, project_id, updates_dict)
+        frames_to_generate: List of frame indices to generate (1-6). Default: all 6
 
     Returns list of panel dicts.
     """
+    if frames_to_generate is None:
+        frames_to_generate = [1, 2, 3, 4, 5, 6]  # Default: all frames
+    
     total = len(scenes)
+    frames_per_scene = len(frames_to_generate)
+    total_frames = total * frames_per_scene
+    
+    logger.info(f"Storyboard [{project_id}]: Generating {total_frames} frames ({frames_per_scene} frames/scene) for {total} scenes - Quality: {len(frames_to_generate)}/6 frames")
     character_bible = production_design.get("character_bible", {}) if production_design else {}
     if not identity_cards:
         identity_cards = {}

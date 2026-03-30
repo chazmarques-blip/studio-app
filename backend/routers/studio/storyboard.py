@@ -4,7 +4,8 @@ from ._shared import *
 # ══ STORYBOARD ENDPOINTS ══
 
 class StoryboardGenerateRequest(BaseModel):
-    pass
+    quality: str = "economy"  # preview | economy | standard | custom
+    custom_frames: list = None  # For custom mode: [1, 3, 6] etc
 
 class StoryboardRegeneratePanelRequest(BaseModel):
     panel_number: int
@@ -19,14 +20,59 @@ class StoryboardEditPanelRequest(BaseModel):
 class StoryboardChatRequest(BaseModel):
     message: str
 
-class StoryboardApproveRequest(BaseModel):
-    approved: bool = True
+@router.get("/storyboard/cost-estimate")
+async def get_storyboard_cost_estimate():
+    """Get cost estimates for different quality presets."""
+    from core.storyboard import QUALITY_PRESETS
+    
+    # Base costs (approximate)
+    COST_PER_FRAME = 0.35  # Gemini Nano Banana per frame
+    COST_IDENTITY_CARDS = 2.5  # Claude Vision for identity cards (one-time)
+    COST_PER_SCENE_PLANNING = 0.15  # Claude for shot briefs
+    
+    estimates = {}
+    for preset_name, preset_data in QUALITY_PRESETS.items():
+        if preset_name == "custom":
+            continue
+            
+        frames = preset_data["frames"]
+        num_frames = len(frames) if frames else 6
+        
+        # For 24 scenes
+        cost_24 = (
+            COST_IDENTITY_CARDS +  # One-time
+            (COST_PER_SCENE_PLANNING * 24) +  # Shot planning per scene
+            (COST_PER_FRAME * num_frames * 24)  # Frames
+        )
+        
+        estimates[preset_name] = {
+            "description": preset_data["description"],
+            "frames_per_scene": num_frames,
+            "cost_24_scenes": round(cost_24, 2),
+            "cost_per_scene": round(cost_24 / 24, 2),
+        }
+    
+    return {
+        "presets": estimates,
+        "recommendations": {
+            "prototyping": "Use 'preview' para testar rapidamente (~$8)",
+            "production": "Use 'economy' para equilibrar custo e qualidade (~$15)",
+            "premium": "Use 'standard' para cobertura completa (~$25)",
+        }
+    }
 
 
 @router.post("/projects/{project_id}/generate-storyboard")
-async def generate_storyboard(project_id: str, tenant=Depends(get_current_tenant)):
-    """Generate storyboard panels for all scenes using Gemini Nano Banana."""
-    from core.storyboard import generate_all_panels
+async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = None, tenant=Depends(get_current_tenant)):
+    """Generate storyboard panels for scenes using Gemini Nano Banana.
+    
+    Quality presets:
+    - preview: 1 frame/scene (~$8 for 24 scenes) - apenas momento-chave
+    - economy: 3 frames/scene (~$15 for 24 scenes) - abertura, ação, fechamento  
+    - standard: 6 frames/scene (~$25 for 24 scenes) - cobertura completa
+    - custom: frames personalizados (especificar em custom_frames)
+    """
+    from core.storyboard import generate_all_panels, QUALITY_PRESETS
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -34,6 +80,21 @@ async def generate_storyboard(project_id: str, tenant=Depends(get_current_tenant
     scenes = project.get("scenes", [])
     if not scenes:
         raise HTTPException(status_code=400, detail="No scenes to generate storyboard from")
+    
+    # Get quality settings
+    if req is None:
+        req = StoryboardGenerateRequest()
+    
+    quality = req.quality if req.quality in QUALITY_PRESETS else "economy"
+    frames_to_generate = QUALITY_PRESETS[quality]["frames"]
+    
+    if quality == "custom" and req.custom_frames:
+        frames_to_generate = req.custom_frames
+    
+    # Store quality choice in project
+    project["storyboard_quality"] = quality
+    if quality == "custom":
+        project["storyboard_custom_frames"] = req.custom_frames
 
     # Mark as generating
     project["storyboard_status"] = {"phase": "starting", "current": 0, "total": len(scenes), "panels_done": 0}
@@ -101,6 +162,7 @@ async def generate_storyboard(project_id: str, tenant=Depends(get_current_tenant
                 lang=_project.get("language", "pt"),
                 upload_fn=_upload_to_storage,
                 update_fn=_update_project_field,
+                frames_to_generate=frames_to_generate,  # NEW: selective frame generation
             )
             done_count = len([p for p in panels if p.get("image_url")])
             _update_project_field(tenant["id"], project_id, {
