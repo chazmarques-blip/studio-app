@@ -194,69 +194,6 @@ async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest,
     }
 
 
-# Old endpoint (kept for backward compatibility)
-async def master_generate_dialogues_old(project_id: str, req: MasterDialogueRequest, tenant=Depends(get_current_tenant)):
-    """Legacy endpoint - will be deprecated"""
-    settings, projects, project = _get_project(tenant["id"], project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    # Apply dialogues to scenes
-        dialogue_key = f"{req.mode}_text" if req.mode != "dubbed" else "dubbed_text"
-        applied_count = 0
-        
-        for idx, d in enumerate(dialogues):
-            # Ensure d is a dict
-            if not isinstance(d, dict):
-                logger.warning(f"Item {idx} is not a dict: {type(d)} = {str(d)[:100]}")
-                continue
-            
-            # Try to get scene_number (might be 'scene_number' or 'scene')
-            sn = d.get("scene_number") or d.get("scene") or d.get("scene_num")
-            text = d.get("dialogue") or d.get("text") or d.get("content") or d.get("script")
-            
-            if not sn:
-                logger.warning(f"Item {idx} missing scene_number: {d.keys()}")
-                continue
-            
-            if not text:
-                logger.warning(f"Item {idx} (scene {sn}) missing dialogue text")
-                continue
-            
-            # Find matching scene
-            scene = next((s for s in scenes if s.get("scene_number") == sn), None)
-            if not scene:
-                logger.warning(f"Scene {sn} not found in project")
-                continue
-            
-            # Apply dialogue
-            scene[dialogue_key] = text
-            scene["dialogue"] = text
-            if req.mode == "narrated":
-                scene["narration"] = text
-            
-            applied_count += 1
-        
-        logger.info(f"Applied {applied_count}/{len(dialogues)} dialogues to scenes")
-
-        project["scenes"] = scenes
-        project["dialogues_generated"] = True
-        project["dialogue_mode"] = req.mode
-        project["updated_at"] = datetime.now(timezone.utc).isoformat()
-        _save_project(tenant["id"], settings, projects)
-
-        return {
-            "status": "ok",
-            "dialogues": dialogues,
-            "mode": req.mode,
-            "scenes_updated": len(dialogues)
-        }
-
-    except Exception as e:
-        logger.error(f"Master dialogue generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/projects/{project_id}/dialogues/generate")
 async def generate_dialogues(project_id: str, req: DialogueGenerateRequest, tenant=Depends(get_current_tenant)):
     """Generate dialogue/narration/book text for scenes using AI."""
