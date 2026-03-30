@@ -535,7 +535,8 @@ SCENES:
 Create production design. VISUAL CONSISTENCY is the #1 priority."""
 
     try:
-        result = _call_claude_sync(system, user_prompt, max_tokens=5000)
+        # Production Designer needs longer timeout for large projects (24+ scenes)
+        result = _call_claude_sync(system, user_prompt, max_tokens=5000, timeout_per_attempt=240)
         parsed = _parse_json(result)
         if parsed:
             logger.info(f"Studio [{project_id}]: Production Design — {len(parsed.get('character_bible', {}))} chars, {len(parsed.get('location_bible', {}))} locations")
