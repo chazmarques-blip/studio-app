@@ -146,52 +146,49 @@ async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest,
 
     logger.info(f"MasterDialogue [{project_id}]: Starting PARALLEL generation for {len(scenes)} scenes")
 
-    # Launch parallel dialogue generation in background
-    import threading
+    # Execute parallel dialogue generation SYNCHRONOUSLY (wait for completion)
     from .parallel_agents import generate_dialogues_parallel
     
-    def _parallel_dialogue_task():
-        try:
-            dialogues = generate_dialogues_parallel(
-                tenant_id=tenant["id"],
-                project_id=project_id,
-                scenes=scenes,
-                characters=characters,
-                audio_mode=req.mode,
-                lang=lang,
-                max_workers=5  # 5 agents in parallel
-            )
-            
-            # Apply dialogues to scenes
-            settings, projects, project = _get_project(tenant["id"], project_id)
-            if not project:
-                return
-            
-            scenes_updated = project.get("scenes", [])
-            dialogue_map = {d["scene_number"]: d["dialogue"] for d in dialogues if "dialogue" in d}
-            
-            for scene in scenes_updated:
-                scene_num = scene.get("scene_number")
-                if scene_num in dialogue_map:
-                    scene["dialogue"] = dialogue_map[scene_num]
-            
-            project["scenes"] = scenes_updated
-            project["updated_at"] = datetime.now(timezone.utc).isoformat()
-            _save_project(tenant["id"], settings, projects)
-            
-            logger.info(f"MasterDialogue [{project_id}]: Applied {len(dialogue_map)}/{len(scenes)} dialogues to scenes")
-            
-        except Exception as e:
-            logger.error(f"MasterDialogue parallel error: {e}")
-    
-    thread = threading.Thread(target=_parallel_dialogue_task, daemon=True)
-    thread.start()
-    
-    return {
-        "status": "generating",
-        "message": f"Generating dialogues for {len(scenes)} scenes using parallel agents...",
-        "scenes_total": len(scenes)
-    }
+    try:
+        dialogues = generate_dialogues_parallel(
+            tenant_id=tenant["id"],
+            project_id=project_id,
+            scenes=scenes,
+            characters=characters,
+            audio_mode=req.mode,
+            lang=lang,
+            max_workers=5  # 5 agents in parallel
+        )
+        
+        # Apply dialogues to scenes
+        settings, projects, project = _get_project(tenant["id"], project_id)
+        if not project:
+            raise HTTPException(status_code=500, detail="Project not found after generation")
+        
+        scenes_updated = project.get("scenes", [])
+        dialogue_map = {d["scene_number"]: d["dialogue"] for d in dialogues if "dialogue" in d}
+        
+        for scene in scenes_updated:
+            scene_num = scene.get("scene_number")
+            if scene_num in dialogue_map:
+                scene["dialogue"] = dialogue_map[scene_num]
+        
+        project["scenes"] = scenes_updated
+        project["updated_at"] = datetime.now(timezone.utc).isoformat()
+        _save_project(tenant["id"], settings, projects)
+        
+        logger.info(f"MasterDialogue [{project_id}]: Applied {len(dialogue_map)}/{len(scenes)} dialogues to scenes")
+        
+        return {
+            "status": "ok",
+            "dialogues": dialogues,
+            "message": f"{len(dialogues)} dialogues generated successfully",
+            "scenes_total": len(scenes)
+        }
+        
+    except Exception as e:
+        logger.error(f"MasterDialogue parallel error: {e}")
+        raise HTTPException(status_code=500, detail=f"Dialogue generation failed: {str(e)}")
 
 
 @router.post("/projects/{project_id}/dialogues/generate")
