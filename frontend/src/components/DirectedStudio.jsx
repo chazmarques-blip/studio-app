@@ -17,7 +17,6 @@ import { DialogueEditor } from './DialogueEditor';
 import { AvatarLibraryModal } from './pipeline/AvatarLibraryModal';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
-import SceneReorderModal from './SceneReorderModal'; // NEW
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -120,7 +119,6 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [playingPreview, setPlayingPreview] = useState(null); // "charName-idx"
   const [selectingVoice, setSelectingVoice] = useState(null); // "charName-voiceId"
   const [showAutonomousFlow, setShowAutonomousFlow] = useState(false); // Autonomous workflow overlay
-  const [showSceneReorderModal, setShowSceneReorderModal] = useState(false); // NEW: Scene reorder modal
 
   const skipAutoResume = useRef(false);
   const chatEndRef = useRef(null);
@@ -3641,30 +3639,6 @@ export const DirectedStudio = memo(function DirectedStudio({
         onImported={handleLibraryImport}
         lang={lang}
       />
-      {/* Scene Reorder Modal */}
-      {showSceneReorderModal && (
-        <SceneReorderModal
-          projectId={projectId}
-          scenes={scenes}
-          onClose={() => setShowSceneReorderModal(false)}
-          onReordered={(result) => {
-            toast.success('Ordem das cenas atualizada!');
-            // Reload project
-            if (projectId) {
-              axios.get(`${API}/studio/projects/${projectId}`)
-                .then(res => {
-                  setScenes(res.data.scenes || []);
-                  setCharacters(res.data.characters || []);
-                  toast.info('Projeto recarregado com nova ordem');
-                })
-                .catch(err => {
-                  console.error('Erro ao recarregar projeto:', err);
-                });
-            }
-            setShowSceneReorderModal(false);
-          }}
-        />
-      )}
     </div>
   );
 });
