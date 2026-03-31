@@ -20,6 +20,33 @@ const FilmSpinner = ({ size = 10, className = '' }) => (
   <Film size={size} className={`animate-spin ${className}`} style={{ animationDuration: '1.5s' }} />
 );
 
+/* ══════════════════════════════════════════════════════════════
+   SORTABLE PANEL WRAPPER - iPhone-style drag and drop
+   ══════════════════════════════════════════════════════════════ */
+function SortablePanel({ panel, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: panel.scene_number });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+}
+
 export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack }) {
   const [panels, setPanels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -88,6 +115,69 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   };
   const selectFrame = (panelNum, frameIdx) => {
     setSelectedFrames(prev => ({ ...prev, [panelNum]: frameIdx }));
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // DRAG AND DROP - iPhone style (long press to activate)
+  // ══════════════════════════════════════════════════════════════
+  const [reordering, setReordering] = useState(false);
+  
+  // Configure sensors with delay to require "click and hold" (250ms)
+  // This prevents conflicts with normal clicks/taps
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
+  );
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+    
+    const oldIndex = panels.findIndex(p => p.scene_number === active.id);
+    const newIndex = panels.findIndex(p => p.scene_number === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    // Update local state immediately for instant feedback
+    const newPanels = [...panels];
+    const [movedPanel] = newPanels.splice(oldIndex, 1);
+    newPanels.splice(newIndex, 0, movedPanel);
+    
+    setPanels(newPanels);
+    
+    // Send new order to backend
+    setReordering(true);
+    try {
+      const newOrder = newPanels.map(p => p.scene_number);
+      await axios.post(`${API}/studio/projects/${projectId}/scenes/reorder`, {
+        scene_order: newOrder
+      });
+      
+      toast.success(lang === 'pt' 
+        ? `Cena ${active.id} movida para posição ${newIndex + 1}`
+        : `Scene ${active.id} moved to position ${newIndex + 1}`
+      );
+      
+      // Reload to get updated scene_numbers from backend
+      await loadStoryboard();
+    } catch (err) {
+      toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar' : 'Reorder failed'));
+      // Revert on error
+      setPanels(panels);
+    } finally {
+      setReordering(false);
+    }
   };
 
   // Load existing storyboard on mount
@@ -677,8 +767,30 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {panels.map((panel) => {
+
+          {/* Drag instruction hint */}
+          {panels.length > 1 && !reordering && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
+              <GripVertical size={14} className="text-[#8B5CF6]" />
+              <span className="text-[10px] text-[#888]">
+                {lang === 'pt' 
+                  ? 'Pressione e segure uma cena para arrastar e reordenar'
+                  : 'Press and hold a scene to drag and reorder'}
+              </span>
+            </div>
+          )}
+
+          <DndContext 
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={panels.map(p => p.scene_number)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-2 gap-2">
+                {panels.map((panel) => {
               const isEditing = editingPanel === panel.scene_number;
               const isGenerating = generatingPanel === panel.scene_number;
               const isExpanded = expandedPanels.has(panel.scene_number) || isEditing || isGenerating;
@@ -686,60 +798,69 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               // ── COLLAPSED STATE: Lightweight card ──
               if (!isExpanded) {
                 return (
-                  <button key={panel.scene_number}
-                    onClick={() => togglePanel(panel.scene_number)}
-                    data-testid={`storyboard-panel-${panel.scene_number}`}
-                    className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group">
-                    <div className="flex items-center gap-2 p-2">
-                      {/* Mini thumbnail */}
-                      <div className="relative w-16 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#111]">
-                        {panel.image_url ? (
-                          <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
-                            loading="lazy" decoding="async"
-                            className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Image size={12} className="text-[#333]" />
-                          </div>
-                        )}
-                        <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#8B5CF6] font-bold px-1 rounded">
-                          {panel.scene_number}
-                        </span>
+                  <SortablePanel key={panel.scene_number} panel={panel}>
+                    <button
+                      onClick={() => togglePanel(panel.scene_number)}
+                      data-testid={`storyboard-panel-${panel.scene_number}`}
+                      className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group w-full">
+                      <div className="flex items-center gap-2 p-2">
+                        {/* Drag handle indicator */}
+                        <GripVertical size={12} className="text-[#333] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
+                        {/* Mini thumbnail */}
+                        <div className="relative w-16 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#111]">
+                          {panel.image_url ? (
+                            <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
+                              loading="lazy" decoding="async"
+                              className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Image size={12} className="text-[#333]" />
+                            </div>
+                          )}
+                          <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#8B5CF6] font-bold px-1 rounded">
+                            {panel.scene_number}
+                          </span>
+                        </div>
+                        {/* Title + info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium text-white truncate">{panel.title}</p>
+                          <p className="text-[9px] text-[#555] truncate">{panel.dialogue || panel.description || ''}</p>
+                          {panel.frames?.length > 1 && (
+                            <span className="text-[8px] text-[#8B5CF6]/60">{panel.frames.length} frames</span>
+                          )}
+                        </div>
+                        {/* Expand icon */}
+                        <ChevronDown size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
                       </div>
-                      {/* Title + info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium text-white truncate">{panel.title}</p>
-                        <p className="text-[9px] text-[#555] truncate">{panel.dialogue || panel.description || ''}</p>
-                        {panel.frames?.length > 1 && (
-                          <span className="text-[8px] text-[#8B5CF6]/60">{panel.frames.length} frames</span>
-                        )}
-                      </div>
-                      {/* Expand icon */}
-                      <ChevronDown size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
-                    </div>
-                  </button>
+                    </button>
+                  </SortablePanel>
                 );
               }
 
               // ── EXPANDED STATE: Full panel content ──
 
               return (
-                <div key={panel.scene_number}
-                  data-testid={`storyboard-panel-${panel.scene_number}`}
-                  className={`rounded-xl border overflow-hidden transition-all ${
-                    panel.status === 'error'
-                      ? 'border-red-500/30 bg-red-500/5'
-                      : panel.image_url
-                        ? 'border-[#8B5CF6]/30 bg-[#0A0A0A]'
-                        : 'border-[#1A1A1A] bg-[#0A0A0A]'
-                  }`}>
-                  {/* Collapse header */}
-                  <button onClick={() => togglePanel(panel.scene_number)}
-                    data-testid={`collapse-panel-${panel.scene_number}`}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A] hover:bg-[#111] transition">
-                    <span className="text-[10px] text-[#8B5CF6] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
-                    <ChevronUp size={12} className="text-[#666]" />
-                  </button>
+                <SortablePanel key={panel.scene_number} panel={panel}>
+                  <div
+                    data-testid={`storyboard-panel-${panel.scene_number}`}
+                    className={`rounded-xl border overflow-hidden transition-all ${
+                      panel.status === 'error'
+                        ? 'border-red-500/30 bg-red-500/5'
+                        : panel.image_url
+                          ? 'border-[#8B5CF6]/30 bg-[#0A0A0A]'
+                          : 'border-[#1A1A1A] bg-[#0A0A0A]'
+                    }`}>
+                    {/* Collapse header with drag handle */}
+                    <div className="w-full flex items-center gap-2 px-2.5 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A]">
+                      <GripVertical size={12} className="text-[#333] hover:text-[#8B5CF6] transition flex-shrink-0" />
+                      <button 
+                        onClick={() => togglePanel(panel.scene_number)}
+                        data-testid={`collapse-panel-${panel.scene_number}`}
+                        className="flex-1 flex items-center justify-between hover:bg-[#111] transition rounded px-1">
+                        <span className="text-[10px] text-[#8B5CF6] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
+                        <ChevronUp size={12} className="text-[#666]" />
+                      </button>
+                    </div>
                   {/* Image area — Gallery view with filmstrip */}
                   <div className="relative bg-[#0A0A0A] overflow-hidden">
                     {/* Main display image */}
@@ -1016,9 +1137,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     )}
                   </div>
                 </div>
+              </SortablePanel>
               );
             })}
           </div>
+        </SortableContext>
+      </DndContext>
         </div>
       )}
 
