@@ -208,13 +208,29 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       
       console.log('✅ API Response:', response.data);
       
-      toast.success(lang === 'pt' 
-        ? `Cena ${movedItem.scene_number} movida! Storyboard reordenado.`
-        : `Scene ${movedItem.scene_number} moved! Storyboard reordered.`
-      );
+      // Backend renumerou os scene_numbers - atualizar localmente
+      const renumberedPanels = reorderedPanels.map((panel, idx) => ({
+        ...panel,
+        scene_number: idx + 1
+      }));
+      setPanels(renumberedPanels);
       
-      // NÃO recarregar - manter estado local
-      console.log('✅ Reorder complete - preservando estado local');
+      // Mostrar aviso detalhado do que foi atualizado
+      const data = response.data;
+      const updates = [];
+      
+      if (data.scenes_updated) updates.push(`${data.scenes_updated} cenas`);
+      if (data.panels_updated) updates.push('storyboard');
+      if (data.camera_plan_updated) updates.push('plano de câmera');
+      if (data.screenplay_updated !== false) updates.push('roteiro');
+      
+      const message = lang === 'pt'
+        ? `✅ Cenas renumeradas!\n\n📝 Atualizado em: ${updates.join(', ')}`
+        : `✅ Scenes renumbered!\n\n📝 Updated in: ${updates.join(', ')}`;
+      
+      toast.success(message, { duration: 5000 });
+      
+      console.log('✅ Reorder complete - cenas renumeradas:', renumberedPanels.map(p => p.scene_number));
     } catch (err) {
       console.error('❌ Reorder failed:', err);
       toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar cenas' : 'Failed to reorder scenes'));
@@ -825,6 +841,18 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 {lang === 'pt' 
                   ? '💡 Pressione e segure o ícone ⋮⋮ por 250ms para arrastar e reordenar as cenas'
                   : '💡 Press and hold the ⋮⋮ icon for 250ms to drag and reorder scenes'}
+              </span>
+            </div>
+          )}
+
+          {/* Loading indicator during reordering */}
+          {reordering && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 mb-2">
+              <RefreshCw size={14} className="text-orange-500 animate-spin" />
+              <span className="text-[10px] text-orange-500 font-medium">
+                {lang === 'pt' 
+                  ? 'Renumerando cenas e atualizando roteiro, storyboard, câmera...'
+                  : 'Renumbering scenes and updating screenplay, storyboard, camera...'}
               </span>
             </div>
           )}
