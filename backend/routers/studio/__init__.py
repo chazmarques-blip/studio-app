@@ -21,5 +21,6 @@ from . import dialogue_timeline  # NEW
 from . import cinematography  # NEW
 from . import migration  # NEW
 from . import scene_reorder  # NEW
+from . import scene_regenerate  # NEW - Scene regeneration
 
 __all__ = ["router", "_cleanup_stale_storyboards"]

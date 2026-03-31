@@ -282,17 +282,23 @@ def _build_identity_prompt(
     dubbed_text = scene.get("dubbed_text", "").strip()
     narrated_text = scene.get("narrated_text", "").strip()
     dialogue = scene.get("dialogue", "").strip()
+    
+    lang_name = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, "Portuguese")
 
     # Use the richest dialogue source available
     context_text = dubbed_text or dialogue or narrated_text
     if context_text:
-        dialogue_block = "═══ DIALOGUE & EMOTIONAL CONTEXT FOR THIS SCENE ═══\n"
-        dialogue_block += "Use this dialogue to inform character EXPRESSIONS, GESTURES, and BODY LANGUAGE:\n\n"
-        dialogue_block += f"{context_text}\n\n"
-        dialogue_block += "IMPORTANT: Characters should visually REFLECT what they are saying/feeling.\n"
-        dialogue_block += "- Speaking characters: mouth slightly open, expressive gestures\n"
-        dialogue_block += "- Listening characters: attentive posture, emotional reaction\n"
-        dialogue_block += "- Emotional moments: exaggerate facial expressions for readability\n\n"
+        dialogue_block = f"═══ LANGUAGE & DIALOGUE CONTEXT FOR THIS SCENE ═══\n"
+        dialogue_block += f"🌐 CRITICAL LANGUAGE REQUIREMENT: This scene is in {lang_name.upper()} language ({lang}).\n"
+        dialogue_block += f"⚠️ ALL text, signs, speech bubbles, captions, labels, and written elements MUST be in {lang_name}.\n"
+        dialogue_block += f"⚠️ NO English text unless scene explicitly specifies it.\n\n"
+        dialogue_block += f"📢 EXACT DIALOGUE/NARRATION:\n\"{context_text}\"\n\n"
+        dialogue_block += "VISUAL REQUIREMENTS based on this dialogue:\n"
+        dialogue_block += "- Character EXPRESSIONS must match the emotion and tone of what they're saying\n"
+        dialogue_block += "- Speaking characters: mouth slightly open, expressive gestures matching their words\n"
+        dialogue_block += "- Listening characters: attentive posture, emotional reaction to what's being said\n"
+        dialogue_block += "- Emotional moments: exaggerate facial expressions for readability\n"
+        dialogue_block += f"- If showing any text/captions: use the EXACT words above in {lang_name}\n\n"
 
     # ── BLOCK 3: SCENE INSTRUCTION (can vary per frame) ──
     if shot_brief:
