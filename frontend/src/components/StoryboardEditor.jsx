@@ -60,7 +60,7 @@ function SortablePanel({ id, children }) {
   );
 }
 
-export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack }) {
+export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack, onScenesReordered }) {
   const [panels, setPanels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generatingPanel, setGeneratingPanel] = useState(null);
@@ -208,12 +208,14 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       
       console.log('✅ API Response:', response.data);
       
-      // Backend renumerou os scene_numbers - atualizar localmente
-      const renumberedPanels = reorderedPanels.map((panel, idx) => ({
-        ...panel,
-        scene_number: idx + 1
-      }));
-      setPanels(renumberedPanels);
+      // Recarregar panels do backend para obter os scene_numbers renumerados
+      console.log('🔄 Recarregando panels do backend...');
+      await loadStoryboard();
+      
+      // Notificar o componente pai para sincronizar com screenplay
+      if (onScenesReordered) {
+        await onScenesReordered();
+      }
       
       // Mostrar aviso detalhado do que foi atualizado
       const data = response.data;
@@ -230,7 +232,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       
       toast.success(message, { duration: 5000 });
       
-      console.log('✅ Reorder complete - cenas renumeradas:', renumberedPanels.map(p => p.scene_number));
+      console.log('✅ Reorder complete - tudo sincronizado (storyboard + roteiro)');
     } catch (err) {
       console.error('❌ Reorder failed:', err);
       toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar cenas' : 'Failed to reorder scenes'));

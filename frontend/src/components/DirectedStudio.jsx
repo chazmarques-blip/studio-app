@@ -2750,6 +2750,17 @@ export const DirectedStudio = memo(function DirectedStudio({
               setStep(6);
             }}
             onBack={() => setStep(4)}
+            onScenesReordered={async () => {
+              // Reload scenes from backend to sync with screenplay
+              console.log('🔄 Reloading scenes after reorder to sync with screenplay...');
+              try {
+                const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
+                setScenes(status.data.scenes || []);
+                console.log('✅ Scenes reloaded and synced with screenplay');
+              } catch (err) {
+                console.error('Error reloading scenes:', err);
+              }
+            }}
           />
         </div>
       )}
