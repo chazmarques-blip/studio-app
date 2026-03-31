@@ -1038,16 +1038,29 @@ export const DirectedStudio = memo(function DirectedStudio({
     const oldIdx = scenes.findIndex(s => `scene-${s.scene_number}` === active.id);
     const newIdx = scenes.findIndex(s => `scene-${s.scene_number}` === over.id);
     if (oldIdx < 0 || newIdx < 0) return;
+    
+    console.log('🎯 handleDragEnd:', { oldIdx, newIdx, activeId: active.id, overId: over.id });
+    
     // Optimistic UI update
     const reordered = arrayMove(scenes, oldIdx, newIdx);
     setScenes(reordered);
+    
     // Build new order array and persist
     const order = reordered.map(s => s.scene_number);
+    
+    console.log('🚀 Sending reorder to API:', order);
+    
     try {
       await axios.post(`${API}/studio/projects/${projectId}/reorder-scenes`, { order });
-      const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
-      setScenes(status.data.scenes || []);
+      toast.success(lang === 'pt' ? 'Cenas reordenadas com sucesso!' : 'Scenes reordered successfully!');
+      
+      // ❌ REMOVIDO: NÃO recarregar do servidor - manter o estado local
+      // const status = await axios.get(`${API}/studio/projects/${projectId}/status`);
+      // setScenes(status.data.scenes || []);
+      
+      console.log('✅ Reorder complete - local state preserved');
     } catch (err) {
+      console.error('❌ Reorder failed:', err);
       toast.error(getErrorMsg(err, 'Erro ao reordenar'));
       // Revert on error
       const status = await axios.get(`${API}/studio/projects/${projectId}/status`).catch(() => null);
