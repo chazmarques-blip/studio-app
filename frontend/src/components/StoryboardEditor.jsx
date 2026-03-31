@@ -155,27 +155,45 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     
-    if (!over || active.id === over.id) return;
+    console.log('🎯 DragEnd triggered:', { active: active?.id, over: over?.id });
+    
+    if (!over || active.id === over.id) {
+      console.log('⚠️ No drop target or same position');
+      return;
+    }
     
     const oldIndex = panels.findIndex(p => p.scene_number === active.id);
     const newIndex = panels.findIndex(p => p.scene_number === over.id);
     
-    if (oldIndex === -1 || newIndex === -1) return;
+    console.log('📊 Indexes:', { oldIndex, newIndex, activeId: active.id, overId: over.id });
     
-    // Update local state immediately for instant feedback
-    const newPanels = [...panels];
-    const [movedPanel] = newPanels.splice(oldIndex, 1);
-    newPanels.splice(newIndex, 0, movedPanel);
+    if (oldIndex === -1 || newIndex === -1) {
+      console.log('❌ Invalid indexes');
+      return;
+    }
     
-    setPanels(newPanels);
+    // Create new array with reordered items
+    const reorderedPanels = [...panels];
+    const [movedItem] = reorderedPanels.splice(oldIndex, 1);
+    reorderedPanels.splice(newIndex, 0, movedItem);
+    
+    console.log('📦 New order (scene_numbers):', reorderedPanels.map(p => p.scene_number));
+    
+    // Update UI immediately for instant feedback
+    setPanels(reorderedPanels);
     
     // Send new order to backend
     setReordering(true);
     try {
-      const newOrder = newPanels.map(p => p.scene_number);
-      await axios.post(`${API}/studio/projects/${projectId}/scenes/reorder`, {
+      const newOrder = reorderedPanels.map(p => p.scene_number);
+      
+      console.log('🚀 Calling API with order:', newOrder);
+      
+      const response = await axios.post(`${API}/studio/projects/${projectId}/scenes/reorder`, {
         scene_order: newOrder
       });
+      
+      console.log('✅ API Response:', response.data);
       
       toast.success(lang === 'pt' 
         ? `Cena ${active.id} movida para posição ${newIndex + 1}`
@@ -184,7 +202,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       
       // Reload to get updated scene_numbers from backend
       await loadStoryboard();
+      
+      console.log('🔄 Storyboard reloaded');
     } catch (err) {
+      console.error('❌ Reorder failed:', err);
       toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar' : 'Reorder failed'));
       // Revert on error
       setPanels(panels);
