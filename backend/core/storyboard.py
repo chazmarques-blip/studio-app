@@ -498,8 +498,12 @@ def _generate_all_frames_for_scene(
                         style_dna=style_dna, shot_brief=brief, lang=lang,
                     )
 
-                # Use validation gate if enabled and characters exist
-                if enable_validation and chars_in_scene and char_avatars:
+                # Continuity Director DISABLED - using QC Team for continuity checks
+                # Validation gate removed to improve speed and reduce costs
+                # Quality Control team validates continuity at scene level instead
+                enable_validation = False  # Force disabled
+                
+                if False:  # Disabled block - keeping for reference
                     try:
                         from core.continuity_director import validate_and_retry
                         img = validate_and_retry(

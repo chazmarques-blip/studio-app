@@ -79,7 +79,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [projectLang, setProjectLang] = useState('pt');
   const [audioMode, setAudioMode] = useState('narrated');
   const [animationSub, setAnimationSub] = useState('pixar_3d');
-  const [continuityMode, setContinuityMode] = useState(true);
+  // Continuity Mode removed - now using QC Team for continuity checks
   const [regenScene, setRegenScene] = useState(null);
   const [editingScene, setEditingScene] = useState(null);
   const [editSceneForm, setEditSceneForm] = useState({});
@@ -229,7 +229,7 @@ export const DirectedStudio = memo(function DirectedStudio({
         setAudioMode(p.audio_mode || 'narrated');
         setVisualStyle(p.visual_style || 'animation');
         setAnimationSub(p.animation_sub || 'pixar_3d');
-        setContinuityMode(p.continuity_mode !== false);
+        // continuityMode removed - using QC Team for continuity
         setProjectLang(p.language || 'pt');
         setProjectAvatars(p.project_avatars || []);
         setChatMessages(p.chat_messages || []);
@@ -1556,32 +1556,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   ))}
                 </div>
               </div>
-              {/* Continuity Engine Toggle */}
-              <div className="flex items-center justify-between p-2.5 rounded-lg border border-[#222] bg-gray-50">
-                <div>
-                  <div className="text-[10px] font-medium text-gray-900 flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                    {lang === 'pt' ? 'Motor de Continuidade' : 'Continuity Engine'}
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">
-                    {lang === 'pt'
-                      ? 'Renderização sequencial com âncora visual, DNA de estilo, validação IA e color grading'
-                      : 'Sequential rendering with visual anchoring, style DNA, AI validation & color grading'}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  data-testid="continuity-mode-toggle"
-                  onClick={() => setContinuityMode(!continuityMode)}
-                  className={`w-10 h-5 rounded-full transition-all relative ${
-                    continuityMode ? 'bg-[#8B5CF6]' : 'bg-[#333]'
-                  }`}
-                >
-                  <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${
-                    continuityMode ? 'right-0.5' : 'left-0.5'
-                  }`} />
-                </button>
-              </div>
+              {/* Continuity Engine section removed - now using QC Team instead */}
               <div className="flex gap-2">
                 <button onClick={() => { setShowNewProject(false); setProjectName(''); setProjectDesc(''); }}
                   className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-gray-900 transition">
