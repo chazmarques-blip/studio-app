@@ -17,5 +17,8 @@ from . import project_bible
 from . import autonomous_loop
 from . import agents_registry
 from . import cost_estimator
+from . import dialogue_timeline  # NEW
+from . import cinematography  # NEW
+from . import migration  # NEW
 
 __all__ = ["router", "_cleanup_stale_storyboards"]
