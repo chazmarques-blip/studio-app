@@ -53,6 +53,8 @@ function SortablePanel({ id, children }) {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  console.log('🔧 SortablePanel render:', { id, hasListeners: !!listeners, isDragging });
+
   return (
     <div ref={setNodeRef} style={style}>
       {children({ dragHandleProps: { ...attributes, ...listeners } })}
@@ -61,6 +63,8 @@ function SortablePanel({ id, children }) {
 }
 
 export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack }) {
+  console.log('🎬 StoryboardEditor render - projectId:', projectId, 'scenes:', scenes?.length);
+  
   const [panels, setPanels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generatingPanel, setGeneratingPanel] = useState(null);
@@ -71,6 +75,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   
   // Flag to prevent reloading during drag operation
   const isDraggingRef = useRef(false);
+  
+  console.log('📦 Current panels count:', panels.length);
 
   // AI Facilitator
   const [chatOpen, setChatOpen] = useState(false);
@@ -820,11 +826,16 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               <GripVertical size={14} className="text-[#8B5CF6]" />
               <span className="text-[10px] text-[#888]">
                 {lang === 'pt' 
-                  ? 'Pressione e segure uma cena para arrastar e reordenar'
-                  : 'Press and hold a scene to drag and reorder'}
+                  ? 'Pressione e segure o ícone ⋮⋮ por 250ms para arrastar'
+                  : 'Press and hold the ⋮⋮ icon for 250ms to drag'}
               </span>
             </div>
           )}
+
+          {/* Debug info */}
+          <div className="text-[9px] text-[#444] px-2 py-1 bg-[#0A0A0A] rounded">
+            Debug: {panels.length} painéis | DnD IDs: {panels.map((_, i) => `panel-${i}`).join(', ').substring(0, 50)}...
+          </div>
 
           <DndContext 
             sensors={sensors}
@@ -846,7 +857,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               if (!isExpanded) {
                 return (
                   <SortablePanel key={`panel-${panelIndex}`} id={`panel-${panelIndex}`}>
-                    {({ dragHandleProps }) => (
+                    {({ dragHandleProps }) => {
+                      console.log(`🎯 Panel ${panelIndex} dragHandleProps:`, dragHandleProps ? 'PRESENT' : 'MISSING');
+                      return (
                       <div className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group w-full">
                         <div className="flex items-center gap-2 p-2">
                           {/* Drag handle - PRESSIONE E SEGURE AQUI */}
@@ -854,6 +867,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             {...dragHandleProps}
                             className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 -m-1"
                             title={lang === 'pt' ? 'Pressione e segure para arrastar' : 'Press and hold to drag'}
+                            onClick={() => console.log('🖱️ Grip clicked - panel', panelIndex)}
                           >
                             <GripVertical size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition" />
                           </div>
@@ -891,7 +905,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           </button>
                         </div>
                       </div>
-                    )}
+                      );
+                    }}
                   </SortablePanel>
                 );
               }
