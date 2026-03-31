@@ -63,6 +63,13 @@ function SortablePanel({ id, children }) {
 }
 
 export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack }) {
+  // ALERT PARA CONFIRMAR QUE O COMPONENTE ESTÁ RENDERIZANDO
+  useEffect(() => {
+    console.log('🚨🚨🚨 STORYBOARD EDITOR MONTADO! 🚨🚨🚨');
+    console.log('Panels:', panels.length);
+    alert('StoryboardEditor foi carregado! Se você vê este alert, o componente está funcionando.');
+  }, []);
+  
   console.log('🎬 StoryboardEditor render - projectId:', projectId, 'scenes:', scenes?.length);
   
   const [panels, setPanels] = useState([]);
