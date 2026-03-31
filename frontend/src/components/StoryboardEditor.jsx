@@ -5,13 +5,27 @@ import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
   Sparkles, ChevronRight, ChevronDown, ChevronUp, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
-  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool
+  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, GripVertical
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { getErrorMsg } from '../utils/getErrorMsg';
 import { StoryboardPreview } from './StoryboardPreview';
 import { VoiceInput } from './VoiceInput';
 import { preloadImages, useImagePreloader } from '../hooks/useProjectCache';
+import {
+  DndContext,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -37,12 +51,11 @@ function SortablePanel({ panel, children }) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
+    <div ref={setNodeRef} style={style}>
+      {children({ dragHandleProps: { ...attributes, ...listeners } })}
     </div>
   );
 }
@@ -799,40 +812,52 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               if (!isExpanded) {
                 return (
                   <SortablePanel key={panel.scene_number} panel={panel}>
-                    <button
-                      onClick={() => togglePanel(panel.scene_number)}
-                      data-testid={`storyboard-panel-${panel.scene_number}`}
-                      className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group w-full">
-                      <div className="flex items-center gap-2 p-2">
-                        {/* Drag handle indicator */}
-                        <GripVertical size={12} className="text-[#333] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
-                        {/* Mini thumbnail */}
-                        <div className="relative w-16 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#111]">
-                          {panel.image_url ? (
-                            <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
-                              loading="lazy" decoding="async"
-                              className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Image size={12} className="text-[#333]" />
+                    {({ dragHandleProps }) => (
+                      <div className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group w-full">
+                        <div className="flex items-center gap-2 p-2">
+                          {/* Drag handle - PRESSIONE E SEGURE AQUI */}
+                          <div 
+                            {...dragHandleProps}
+                            className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 -m-1"
+                            title={lang === 'pt' ? 'Pressione e segure para arrastar' : 'Press and hold to drag'}
+                          >
+                            <GripVertical size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition" />
+                          </div>
+                          {/* Rest of content - clickable to expand */}
+                          <button
+                            onClick={() => togglePanel(panel.scene_number)}
+                            data-testid={`storyboard-panel-${panel.scene_number}`}
+                            className="flex items-center gap-2 flex-1 min-w-0"
+                          >
+                            {/* Mini thumbnail */}
+                            <div className="relative w-16 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#111]">
+                              {panel.image_url ? (
+                                <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
+                                  loading="lazy" decoding="async"
+                                  className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Image size={12} className="text-[#333]" />
+                                </div>
+                              )}
+                              <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#8B5CF6] font-bold px-1 rounded">
+                                {panel.scene_number}
+                              </span>
                             </div>
-                          )}
-                          <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#8B5CF6] font-bold px-1 rounded">
-                            {panel.scene_number}
-                          </span>
+                            {/* Title + info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-medium text-white truncate">{panel.title}</p>
+                              <p className="text-[9px] text-[#555] truncate">{panel.dialogue || panel.description || ''}</p>
+                              {panel.frames?.length > 1 && (
+                                <span className="text-[8px] text-[#8B5CF6]/60">{panel.frames.length} frames</span>
+                              )}
+                            </div>
+                            {/* Expand icon */}
+                            <ChevronDown size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
+                          </button>
                         </div>
-                        {/* Title + info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-medium text-white truncate">{panel.title}</p>
-                          <p className="text-[9px] text-[#555] truncate">{panel.dialogue || panel.description || ''}</p>
-                          {panel.frames?.length > 1 && (
-                            <span className="text-[8px] text-[#8B5CF6]/60">{panel.frames.length} frames</span>
-                          )}
-                        </div>
-                        {/* Expand icon */}
-                        <ChevronDown size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
                       </div>
-                    </button>
+                    )}
                   </SortablePanel>
                 );
               }
@@ -841,26 +866,33 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
               return (
                 <SortablePanel key={panel.scene_number} panel={panel}>
-                  <div
-                    data-testid={`storyboard-panel-${panel.scene_number}`}
-                    className={`rounded-xl border overflow-hidden transition-all ${
-                      panel.status === 'error'
-                        ? 'border-red-500/30 bg-red-500/5'
-                        : panel.image_url
-                          ? 'border-[#8B5CF6]/30 bg-[#0A0A0A]'
-                          : 'border-[#1A1A1A] bg-[#0A0A0A]'
-                    }`}>
-                    {/* Collapse header with drag handle */}
-                    <div className="w-full flex items-center gap-2 px-2.5 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A]">
-                      <GripVertical size={12} className="text-[#333] hover:text-[#8B5CF6] transition flex-shrink-0" />
-                      <button 
-                        onClick={() => togglePanel(panel.scene_number)}
-                        data-testid={`collapse-panel-${panel.scene_number}`}
-                        className="flex-1 flex items-center justify-between hover:bg-[#111] transition rounded px-1">
-                        <span className="text-[10px] text-[#8B5CF6] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
-                        <ChevronUp size={12} className="text-[#666]" />
-                      </button>
-                    </div>
+                  {({ dragHandleProps }) => (
+                    <div
+                      data-testid={`storyboard-panel-${panel.scene_number}`}
+                      className={`rounded-xl border overflow-hidden transition-all ${
+                        panel.status === 'error'
+                          ? 'border-red-500/30 bg-red-500/5'
+                          : panel.image_url
+                            ? 'border-[#8B5CF6]/30 bg-[#0A0A0A]'
+                            : 'border-[#1A1A1A] bg-[#0A0A0A]'
+                      }`}>
+                      {/* Collapse header with drag handle */}
+                      <div className="w-full flex items-center gap-2 px-2.5 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A]">
+                        <div 
+                          {...dragHandleProps}
+                          className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 -m-1"
+                          title={lang === 'pt' ? 'Pressione e segure para arrastar' : 'Press and hold to drag'}
+                        >
+                          <GripVertical size={14} className="text-[#555] hover:text-[#8B5CF6] transition" />
+                        </div>
+                        <button 
+                          onClick={() => togglePanel(panel.scene_number)}
+                          data-testid={`collapse-panel-${panel.scene_number}`}
+                          className="flex-1 flex items-center justify-between hover:bg-[#111] transition rounded px-1">
+                          <span className="text-[10px] text-[#8B5CF6] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
+                          <ChevronUp size={12} className="text-[#666]" />
+                        </button>
+                      </div>
                   {/* Image area — Gallery view with filmstrip */}
                   <div className="relative bg-[#0A0A0A] overflow-hidden">
                     {/* Main display image */}
@@ -1137,6 +1169,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     )}
                   </div>
                 </div>
+                  )}
               </SortablePanel>
               );
             })}
