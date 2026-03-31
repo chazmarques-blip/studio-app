@@ -196,17 +196,17 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       console.log('✅ API Response:', response.data);
       
       toast.success(lang === 'pt' 
-        ? `Cena ${active.id} movida para posição ${newIndex + 1}`
-        : `Scene ${active.id} moved to position ${newIndex + 1}`
+        ? `Cena ${active.id} movida! ${response.data.scenes_updated} cenas e ${response.data.panels_updated} painéis atualizados.`
+        : `Scene ${active.id} moved! ${response.data.scenes_updated} scenes and ${response.data.panels_updated} panels updated.`
       );
       
-      // Reload to get updated scene_numbers from backend
-      await loadStoryboard();
+      // NÃO recarregar - manter o estado local já atualizado
+      // O backend já processou a mudança, não precisamos buscar de novo
       
-      console.log('🔄 Storyboard reloaded');
+      console.log('✅ Reorder complete - local state preserved');
     } catch (err) {
       console.error('❌ Reorder failed:', err);
-      toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar' : 'Reorder failed'));
+      toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar cenas' : 'Failed to reorder scenes'));
       // Revert on error
       setPanels(panels);
     } finally {
