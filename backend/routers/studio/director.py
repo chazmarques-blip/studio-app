@@ -142,7 +142,7 @@ RESPOND IN {LANG_MAP.get(lang, 'Portuguese')} with this JSON structure:
             ],
             api_key=api_key,
             max_tokens=8000,
-            timeout=180,  # Increased timeout for large projects
+            timeout=360,  # Increased timeout for large projects (6 minutes = 360s)
         )
         
         result = response.choices[0].message.content.strip()

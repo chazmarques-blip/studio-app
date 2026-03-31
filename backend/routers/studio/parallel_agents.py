@@ -71,7 +71,7 @@ Create the screenplay structure with the first {batch_size} scenes. Set "total_s
 """
     
     try:
-        result = _call_claude_sync(system, initial_prompt, max_tokens=8000, timeout_per_attempt=180)
+        result = _call_claude_sync(system, initial_prompt, max_tokens=8000, timeout_per_attempt=360)
         foundation = _parse_json(result)
         
         if not foundation:
@@ -174,7 +174,7 @@ Return ONLY JSON:
 }}
 """
             
-            result_text = _call_claude_sync(system, batch_prompt, max_tokens=8000, timeout_per_attempt=180)
+            result_text = _call_claude_sync(system, batch_prompt, max_tokens=8000, timeout_per_attempt=360)
             batch_data = _parse_json(result_text)
             
             if not batch_data:
