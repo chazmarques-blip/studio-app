@@ -289,6 +289,27 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production_done",
                              "scene_status": {str(i+1): "queued" for i in range(total)}}
         })
+        
+        # ── DIALOGUE TIMELINE: Ensure all scenes have timing sync ──
+        scenes_without_timeline = [s for s in scenes if not s.get("dialogue_timeline")]
+        if scenes_without_timeline:
+            logger.info(f"Studio [{project_id}]: {len(scenes_without_timeline)} scenes missing dialogue timeline, generating now...")
+            from core.dialogue_timeline import enrich_scene_with_timeline
+            
+            for i, scene in enumerate(scenes):
+                if not scene.get("dialogue_timeline"):
+                    try:
+                        enriched = enrich_scene_with_timeline(scene, project_id=project_id)
+                        scenes[i] = enriched
+                        beats = len(enriched.get("dialogue_timeline", []))
+                        logger.info(f"Studio [{project_id}]: Scene {scene.get('scene_number')} timeline generated ({beats} beats)")
+                    except Exception as e:
+                        logger.warning(f"Studio [{project_id}]: Scene {scene.get('scene_number')} timeline failed: {e}")
+            
+            # Update project with enriched scenes
+            project["scenes"] = scenes
+            _save_project(tenant_id, settings, projects)
+            logger.info(f"Studio [{project_id}]: Dialogue timelines generated for production sync")
 
         # ── Rate limiter for Sora 2 ──
         sora_semaphore = threading.Semaphore(5)
@@ -325,11 +346,11 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             cam_flow = scene_dir.get("camera_flow", scene.get("camera", ""))
             trans_note = scene_dir.get("transition_note", "")
 
-            director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation. Convert scene descriptions into detailed visual prompts.
+            director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation. Convert scene descriptions into detailed visual prompts WITH PRECISE TIMING.
 
 MANDATORY STYLE (include VERBATIM at the start of your prompt): {pd_style}
 
-Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 300 words"}}
+Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 400 words"}}
 
 CRITICAL RULES:
 - START your prompt with the exact mandatory style text above — copy it word for word
@@ -343,12 +364,38 @@ CRITICAL RULES:
 - If a scene says "child" or "young", the character must be visibly SMALL and childlike — NOT adult-sized
 - Include: specific environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
 - Each scene must look like it belongs to the SAME FILM — same art technique, same 3D rendering quality, same color grading
+
+🆕 TIMING BREAKDOWN (NEW):
+- If DIALOGUE TIMELINE is provided, structure your prompt as a TIMING BREAKDOWN
+- Format: "TIMING: 0-2s: [action]. 2-4s: [character speaking, mouth moving]. 4-6s: [reaction]. 6-8s: [movement]. 8-10s: [transition]. 10-12s: [final pose]."
+- Match visual actions PRECISELY to dialogue timing — if Jonas speaks at 4.2-7.5s, show him SPEAKING during 4-6s and 6-8s frames
+- Characters who are speaking must be shown ON CAMERA with MOUTH MOVING and appropriate gestures
+- Characters who are NOT speaking should be shown LISTENING or REACTING
+- If no dialogue timeline, write a standard continuous description
+
 - The sora_prompt MUST be in ENGLISH"""
 
+            # Build dialogue timeline context if available
+            dialogue_timeline = scene.get("dialogue_timeline", [])
+            dialogue_ctx = ""
+            if dialogue_timeline and len(dialogue_timeline) > 0:
+                dialogue_ctx = "\n\n═══ DIALOGUE TIMELINE (PRECISE TIMING FOR 12-SECOND SCENE) ═══\n"
+                dialogue_ctx += "Use this to create a TIMING BREAKDOWN in your Sora prompt:\n\n"
+                for beat in dialogue_timeline:
+                    dialogue_ctx += f"[{beat['start_time']:.1f}s - {beat['end_time']:.1f}s] {beat['speaker']}: \"{beat['text']}\"\n"
+                    dialogue_ctx += f"  └─ Tone: {beat.get('tone', 'neutral')}\n"
+                    dialogue_ctx += f"  └─ Suggested action: {beat.get('action_note', 'N/A')}\n\n"
+                dialogue_ctx += """CRITICAL: Structure your Sora prompt as a TIMING BREAKDOWN.
+Example format:
+"TIMING: 0-2s: Wide shot of beach, character standing alone. 2-4s: Camera dolly in, character looks up suddenly. 4-6s: Character speaking with mouth moving, hand on chest gesturing. 6-8s: Character continues speaking, pointing upward to sky. 8-10s: Character finishes speaking, expression shifts to determination. 10-12s: Camera dolly out revealing environment."
+
+Match every 2-second interval to the dialogue timeline above."""
+            
             director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')}
+{dialogue_ctx}
 
 CHARACTER IDENTITY SHEET (from avatar image analysis — ABSOLUTE SOURCE OF TRUTH, DO NOT DEVIATE):
 {char_descs}
