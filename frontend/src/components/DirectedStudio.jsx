@@ -520,18 +520,23 @@ export const DirectedStudio = memo(function DirectedStudio({
         if (d.status === 'complete') {
           setOutputs(d.outputs || []);
           setGenerating(false);
-          setStep(7);
-          toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
+          // Don't auto-advance - let user review in Step 6
+          toast.success(lang === 'pt' 
+            ? '🎉 Produção concluída! Revise as cenas e clique em "Ver Resultados"' 
+            : '🎉 Production complete! Review scenes and click "View Results"'
+          );
           loadProjects();
           return;
         }
         if (d.status === 'error') {
           setGenerating(false);
-          // If outputs exist despite error, go to results (partial/recovered success)
+          // If outputs exist despite error, show them but don't auto-advance
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(7);
-            toast.success(lang === 'pt' ? `Produção finalizada — ${d.outputs.length} vídeos prontos` : `Production finished — ${d.outputs.length} videos ready`);
+            toast.info(lang === 'pt' 
+              ? `Produção parcial — ${d.outputs.length} vídeos prontos. Revise no Step 6.` 
+              : `Partial production — ${d.outputs.length} videos ready. Review in Step 6.`
+            );
           } else {
             toast.error(d.error || 'Production error');
           }
@@ -542,7 +547,7 @@ export const DirectedStudio = memo(function DirectedStudio({
           setGenerating(false);
           if (d.outputs?.length > 0) {
             setOutputs(d.outputs);
-            setStep(7);
+            // Don't auto-advance
           }
           return;
         }
