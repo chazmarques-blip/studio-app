@@ -273,6 +273,9 @@ async def sync_storyboard_panels(project_id: str, tenant=Depends(get_current_ten
                 scene_idx = next((i for i, s in enumerate(scenes_list) if s.get("scene_number") == scene_num), 0)
                 prev_scene = scenes_list[scene_idx - 1] if scene_idx > 0 else None
                 next_scene = scenes_list[scene_idx + 1] if scene_idx < len(scenes_list) - 1 else None
+                
+                # Get dialogue timeline for this scene
+                dialogue_timeline = _scene.get("dialogue_timeline", [])
 
                 shot_briefs = None
                 if identity_cards:
@@ -281,6 +284,7 @@ async def sync_storyboard_panels(project_id: str, tenant=Depends(get_current_ten
                         identity_cards=identity_cards, style_dna=style_dna,
                         prev_scene=prev_scene, next_scene=next_scene,
                         lang=_project.get("language", "pt"), project_id=project_id,
+                        dialogue_timeline=dialogue_timeline,
                     )
 
                 frame_results = _generate_all_frames_for_scene(
@@ -403,6 +407,9 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
             scene_idx = next((i for i, s in enumerate(scenes_list) if s.get("scene_number") == req.panel_number), 0)
             prev_scene = scenes_list[scene_idx - 1] if scene_idx > 0 else None
             next_scene = scenes_list[scene_idx + 1] if scene_idx < len(scenes_list) - 1 else None
+            
+            # Get dialogue timeline for this scene
+            dialogue_timeline = scene.get("dialogue_timeline", [])
 
             shot_briefs = None
             if identity_cards:
@@ -411,6 +418,7 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
                     identity_cards=identity_cards, style_dna=style_dna,
                     prev_scene=prev_scene, next_scene=next_scene,
                     lang=project.get("language", "pt"), project_id=project_id,
+                    dialogue_timeline=dialogue_timeline,
                 )
 
             frame_results = _generate_all_frames_for_scene(

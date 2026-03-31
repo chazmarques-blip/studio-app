@@ -87,9 +87,11 @@ def _generate_shot_briefs(
     next_scene: dict = None,
     lang: str = "pt",
     project_id: str = "",
+    dialogue_timeline: list = None,
 ) -> list:
     """Use Claude to pre-plan 6 detailed shot briefs for a scene with continuity.
     Each brief includes per-character positioning, actions, and prohibitions.
+    NOW SYNCED with dialogue_timeline for precise timing of actions and speech.
     Returns list of 6 dicts or falls back to FRAME_TYPES if Claude fails.
     """
     import litellm as _litellm
@@ -122,10 +124,21 @@ def _generate_shot_briefs(
     next_ctx = ""
     if next_scene:
         next_ctx = f"\nNEXT SCENE (for bridging): Scene {next_scene.get('scene_number', '?')}: {next_scene.get('title', '')} — {next_scene.get('description', '')[:150]}"
+    
+    # Build dialogue timeline context
+    dialogue_ctx = ""
+    if dialogue_timeline and len(dialogue_timeline) > 0:
+        dialogue_ctx = "\n\n═══ DIALOGUE TIMELINE (PRECISE TIMING) ═══\n"
+        dialogue_ctx += "Each dialogue line has EXACT timing. Use this to synchronize visual actions:\n\n"
+        for beat in dialogue_timeline:
+            dialogue_ctx += f"[{beat['start_time']:.1f}s - {beat['end_time']:.1f}s] {beat['speaker']}: \"{beat['text']}\"\n"
+            dialogue_ctx += f"  └─ Tone: {beat.get('tone', 'neutral')}\n"
+            dialogue_ctx += f"  └─ Action: {beat.get('action_note', 'N/A')}\n\n"
+        dialogue_ctx += "CRITICAL: Match visual actions to these precise timings. If a character speaks at 4-7s, they must be SPEAKING ON CAMERA during that time.\n"
 
     system = """You are a SHOT DIRECTOR for an animated storybook. You plan the exact visual composition of each page/frame.
 
-You receive a scene description, character identity cards, and adjacent scene context.
+You receive a scene description, character identity cards, adjacent scene context, and DIALOGUE TIMELINE with precise timing.
 Your job is to produce 6 DETAILED SHOT BRIEFS — one for each page of the storybook scene (each page covers ~2 seconds of screen time in a 12-second scene).
 
 CRITICAL RULES:
@@ -134,6 +147,13 @@ CRITICAL RULES:
 - If a character is QUADRUPED_ANIMAL, they MUST be on FOUR LEGS in every frame — never bipedal
 - Characters' positions must flow logically: if a character is on the LEFT in Frame 1, they can't teleport to the RIGHT in Frame 2 without movement
 - Frame 6 must visually bridge to the NEXT scene
+
+🆕 DIALOGUE TIMING SYNC (NEW):
+- If dialogue_timeline is provided, you MUST synchronize visual actions with speech timing
+- Example: If Jonas speaks at 4.0-7.0s, Frame 3 (4-6s) must show him SPEAKING with mouth open, gestures
+- If Narrator speaks at 0-2s, Frame 1 should show establishing shot with NO character speaking on camera
+- Characters who are NOT speaking should be shown LISTENING or REACTING
+- Match character expressions and actions to the tone of their dialogue (excited = animated gestures, calm = subtle movements)
 
 Return ONLY valid JSON — a list of 6 objects:
 [
@@ -161,13 +181,15 @@ Return ONLY valid JSON — a list of 6 objects:
 DESCRIPTION: {scene.get('description', '')}
 EMOTION: {scene.get('emotion', '')}
 DIALOGUE: {scene.get('dialogue', '')}
+{dialogue_ctx}
 {prev_ctx}
 {next_ctx}
 
 CHARACTER IDENTITY CARDS (IMMUTABLE — these are the VISUAL TRUTH):
 {identity_block}
 
-Generate 6 shot briefs. Remember: each character's body type is FIXED. If bipedal in the identity card, ALWAYS bipedal. Plan smooth spatial continuity between frames."""
+Generate 6 shot briefs. Remember: each character's body type is FIXED. If bipedal in the identity card, ALWAYS bipedal. Plan smooth spatial continuity between frames.
+{'IMPORTANT: Synchronize visual actions with the dialogue timeline above. Match character actions to their speech timing.' if dialogue_timeline else ''}"""
 
     try:
         api_key = ANTHROPIC_API_KEY
@@ -528,9 +550,10 @@ def generate_all_panels(
     """Generate storyboard panels for all scenes using the Continuity Director pipeline.
 
     Pipeline:
-    1. Load avatar references + Identity Cards
-    2. Generate Shot Briefs (Claude, parallel per scene) for continuity
-    3. Generate frames (Gemini, parallel) using identity-anchored prompts
+    1. Generate dialogue timelines for all scenes (NEW!)
+    2. Load avatar references + Identity Cards
+    3. Generate Shot Briefs (Claude, parallel per scene) for continuity WITH dialogue sync
+    4. Generate frames (Gemini, parallel) using identity-anchored prompts
 
     Args:
         identity_cards: Dict of character identity cards from _analyze_avatars_with_vision()
@@ -540,6 +563,8 @@ def generate_all_panels(
 
     Returns list of panel dicts.
     """
+    from core.dialogue_timeline import enrich_scene_with_timeline
+    
     if frames_to_generate is None:
         frames_to_generate = [1, 2, 3, 4, 5, 6]  # Default: all frames
     
@@ -556,8 +581,29 @@ def generate_all_panels(
     style_anchors = production_design.get("style_anchors", "") if production_design else ""
     if style_anchors:
         style_dna = f"{style_dna} {style_anchors}"
+    
+    # ── Phase 0A: Generate dialogue timelines for all scenes (NEW!) ──
+    logger.info(f"Storyboard [{project_id}]: Phase 0A — Generating dialogue timelines for sync")
+    if update_fn:
+        update_fn(tenant_id, project_id, {
+            "storyboard_status": {"phase": "dialogue_timing", "current": 0, "total": total, "detail": "Analyzing dialogue timing..."}
+        })
+    
+    enriched_scenes = []
+    for i, scene in enumerate(scenes):
+        try:
+            enriched = enrich_scene_with_timeline(scene, project_id=project_id)
+            enriched_scenes.append(enriched)
+            timeline_beats = len(enriched.get("dialogue_timeline", []))
+            logger.info(f"Storyboard [{project_id}]: Scene {i+1} dialogue timeline - {timeline_beats} beats")
+        except Exception as e:
+            logger.warning(f"Storyboard [{project_id}]: Scene {i+1} dialogue timeline failed: {e}")
+            enriched_scenes.append(scene)  # Use original scene without timeline
+    
+    scenes = enriched_scenes  # Use enriched scenes from now on
 
-    # ── Phase 0: Download and cache all avatar images ──
+    # ── Phase 0B: Download and cache all avatar images ──
+    logger.info(f"Storyboard [{project_id}]: Phase 0B — Caching avatar images")
     avatar_cache = {}
     for name, url in char_avatars.items():
         if url and url not in avatar_cache:
@@ -586,11 +632,13 @@ def generate_all_panels(
             try:
                 prev_scene = scenes[idx - 1] if idx > 0 else None
                 next_scene = scenes[idx + 1] if idx < total - 1 else None
+                dialogue_timeline = scene.get("dialogue_timeline", [])  # NEW: Get timeline
                 briefs = _generate_shot_briefs(
                     scene=scene, scene_num=scene_num,
                     identity_cards=identity_cards, style_dna=style_dna,
                     prev_scene=prev_scene, next_scene=next_scene,
                     lang=lang, project_id=project_id,
+                    dialogue_timeline=dialogue_timeline,  # NEW: Pass timeline
                 )
                 all_shot_briefs[idx] = briefs
             except Exception as e:
