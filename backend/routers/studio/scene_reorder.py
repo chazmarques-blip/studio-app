@@ -130,10 +130,14 @@ async def reorder_scenes(
         # Add milestone
         _add_milestone(project, "scenes_reordered", f"Cenas reordenadas: {req.scene_order[:5]}...")
         
-        # Save project
-        _save_project(tenant["id"], settings, projects)
+        # Update timestamp
+        project["updated_at"] = datetime.now(timezone.utc).isoformat()
         
-        logger.info(f"SceneReorder [{project_id}]: Complete - {len(new_scenes)} scenes reordered")
+        # Save project to database
+        _save_project(tenant["id"], settings, projects, flush_now=True)
+        
+        logger.info(f"SceneReorder [{project_id}]: Complete - {len(new_scenes)} scenes reordered and SAVED to database")
+        logger.info(f"SceneReorder [{project_id}]: New scene order: {[s.get('scene_number') for s in new_scenes]}")
         
         return {
             "status": "success",
