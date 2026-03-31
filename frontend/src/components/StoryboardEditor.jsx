@@ -37,7 +37,7 @@ const FilmSpinner = ({ size = 10, className = '' }) => (
 /* ══════════════════════════════════════════════════════════════
    SORTABLE PANEL WRAPPER - iPhone-style drag and drop
    ══════════════════════════════════════════════════════════════ */
-function SortablePanel({ panel, children }) {
+function SortablePanel({ id, children }) {
   const {
     attributes,
     listeners,
@@ -45,7 +45,7 @@ function SortablePanel({ panel, children }) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: panel.scene_number });
+  } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -68,6 +68,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [editingPanel, setEditingPanel] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [approved, setApproved] = useState(false);
+  
+  // Flag to prevent reloading during drag operation
+  const isDraggingRef = useRef(false);
 
   // AI Facilitator
   const [chatOpen, setChatOpen] = useState(false);
@@ -152,6 +155,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     })
   );
 
+  const handleDragStart = () => {
+    isDraggingRef.current = true;
+    console.log('🎬 Drag started');
+  };
+
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     
@@ -159,16 +167,19 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     
     if (!over || active.id === over.id) {
       console.log('⚠️ No drop target or same position');
+      isDraggingRef.current = false;
       return;
     }
     
-    const oldIndex = panels.findIndex(p => p.scene_number === active.id);
-    const newIndex = panels.findIndex(p => p.scene_number === over.id);
+    // Find by ID (which is the unique key, not scene_number)
+    const oldIndex = panels.findIndex((_, idx) => `panel-${idx}` === active.id);
+    const newIndex = panels.findIndex((_, idx) => `panel-${idx}` === over.id);
     
     console.log('📊 Indexes:', { oldIndex, newIndex, activeId: active.id, overId: over.id });
     
     if (oldIndex === -1 || newIndex === -1) {
       console.log('❌ Invalid indexes');
+      isDraggingRef.current = false;
       return;
     }
     
@@ -196,12 +207,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       console.log('✅ API Response:', response.data);
       
       toast.success(lang === 'pt' 
-        ? `Cena ${active.id} movida! ${response.data.scenes_updated} cenas e ${response.data.panels_updated} painéis atualizados.`
-        : `Scene ${active.id} moved! ${response.data.scenes_updated} scenes and ${response.data.panels_updated} panels updated.`
+        ? `Cena movida! ${response.data.scenes_updated} cenas atualizadas.`
+        : `Scene moved! ${response.data.scenes_updated} scenes updated.`
       );
-      
-      // NÃO recarregar - manter o estado local já atualizado
-      // O backend já processou a mudança, não precisamos buscar de novo
       
       console.log('✅ Reorder complete - local state preserved');
     } catch (err) {
@@ -211,12 +219,16 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       setPanels(panels);
     } finally {
       setReordering(false);
+      isDraggingRef.current = false;
     }
   };
 
   // Load existing storyboard on mount
   useEffect(() => {
-    if (projectId) loadStoryboard();
+    if (projectId && !isDraggingRef.current) {
+      console.log('📥 Loading storyboard for project:', projectId);
+      loadStoryboard();
+    }
   }, [projectId]);
 
   useEffect(() => {
@@ -817,14 +829,15 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           <DndContext 
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
             <SortableContext 
-              items={panels.map(p => p.scene_number)}
+              items={panels.map((_, idx) => `panel-${idx}`)}
               strategy={rectSortingStrategy}
             >
               <div className="grid grid-cols-2 gap-2">
-                {panels.map((panel) => {
+                {panels.map((panel, panelIndex) => {
               const isEditing = editingPanel === panel.scene_number;
               const isGenerating = generatingPanel === panel.scene_number;
               const isExpanded = expandedPanels.has(panel.scene_number) || isEditing || isGenerating;
@@ -832,7 +845,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               // ── COLLAPSED STATE: Lightweight card ──
               if (!isExpanded) {
                 return (
-                  <SortablePanel key={panel.scene_number} panel={panel}>
+                  <SortablePanel key={`panel-${panelIndex}`} id={`panel-${panelIndex}`}>
                     {({ dragHandleProps }) => (
                       <div className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group w-full">
                         <div className="flex items-center gap-2 p-2">
@@ -886,7 +899,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               // ── EXPANDED STATE: Full panel content ──
 
               return (
-                <SortablePanel key={panel.scene_number} panel={panel}>
+                <SortablePanel key={`panel-${panelIndex}`} id={`panel-${panelIndex}`}>
                   {({ dragHandleProps }) => (
                     <div
                       data-testid={`storyboard-panel-${panel.scene_number}`}
