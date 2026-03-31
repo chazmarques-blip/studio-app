@@ -177,7 +177,7 @@ Generate 6 shot briefs. Remember: each character's body type is FIXED. If bipeda
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            max_tokens=3000, timeout=60, api_key=api_key,
+            max_tokens=3000, timeout=120, api_key=api_key,
         )
         result = response.choices[0].message.content
         # Parse JSON from response
@@ -773,7 +773,7 @@ If the user wants to change multiple panels, include multiple actions in the arr
             messages=messages,
             api_key=ANTHROPIC_API_KEY,
             max_tokens=2000,
-            timeout=60,
+            timeout=120,
         )
         reply = response.choices[0].message.content
 
