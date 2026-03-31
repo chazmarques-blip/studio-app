@@ -53,8 +53,6 @@ function SortablePanel({ id, children }) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  console.log('🔧 SortablePanel render:', { id, hasListeners: !!listeners, isDragging });
-
   return (
     <div ref={setNodeRef} style={style}>
       {children({ dragHandleProps: { ...attributes, ...listeners } })}
@@ -63,15 +61,6 @@ function SortablePanel({ id, children }) {
 }
 
 export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack }) {
-  // ALERT PARA CONFIRMAR QUE O COMPONENTE ESTÁ RENDERIZANDO
-  useEffect(() => {
-    console.log('🚨🚨🚨 STORYBOARD EDITOR MONTADO! 🚨🚨🚨');
-    console.log('Panels:', panels.length);
-    alert('StoryboardEditor foi carregado! Se você vê este alert, o componente está funcionando.');
-  }, []);
-  
-  console.log('🎬 StoryboardEditor render - projectId:', projectId, 'scenes:', scenes?.length);
-  
   const [panels, setPanels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generatingPanel, setGeneratingPanel] = useState(null);
@@ -83,7 +72,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   // Flag to prevent reloading during drag operation
   const isDraggingRef = useRef(false);
   
-  console.log('📦 Current panels count:', panels.length);
+  console.log('📦 StoryboardEditor - panels:', panels.length, 'projectId:', projectId);
 
   // AI Facilitator
   const [chatOpen, setChatOpen] = useState(false);
@@ -170,13 +159,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   const handleDragStart = () => {
     isDraggingRef.current = true;
-    console.log('🎬 Drag started');
+    console.log('🎬 Drag started no Storyboard');
   };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     
-    console.log('🎯 DragEnd triggered:', { active: active?.id, over: over?.id });
+    console.log('🎯 DragEnd no Storyboard:', { active: active?.id, over: over?.id });
     
     if (!over || active.id === over.id) {
       console.log('⚠️ No drop target or same position');
@@ -184,11 +173,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       return;
     }
     
-    // Find by ID (which is the unique key, not scene_number)
+    // Find by ID (which is panel-0, panel-1, etc)
     const oldIndex = panels.findIndex((_, idx) => `panel-${idx}` === active.id);
     const newIndex = panels.findIndex((_, idx) => `panel-${idx}` === over.id);
     
-    console.log('📊 Indexes:', { oldIndex, newIndex, activeId: active.id, overId: over.id });
+    console.log('📊 Indexes:', { oldIndex, newIndex, totalPanels: panels.length });
     
     if (oldIndex === -1 || newIndex === -1) {
       console.log('❌ Invalid indexes');
@@ -203,7 +192,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     
     console.log('📦 New order (scene_numbers):', reorderedPanels.map(p => p.scene_number));
     
-    // Update UI immediately for instant feedback
+    // Update UI immediately
     setPanels(reorderedPanels);
     
     // Send new order to backend
@@ -211,7 +200,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     try {
       const newOrder = reorderedPanels.map(p => p.scene_number);
       
-      console.log('🚀 Calling API with order:', newOrder);
+      console.log('🚀 Calling API /scenes/reorder with:', newOrder);
       
       const response = await axios.post(`${API}/studio/projects/${projectId}/scenes/reorder`, {
         scene_order: newOrder
@@ -220,11 +209,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       console.log('✅ API Response:', response.data);
       
       toast.success(lang === 'pt' 
-        ? `Cena movida! ${response.data.scenes_updated} cenas atualizadas.`
-        : `Scene moved! ${response.data.scenes_updated} scenes updated.`
+        ? `Cena ${movedItem.scene_number} movida! Storyboard reordenado.`
+        : `Scene ${movedItem.scene_number} moved! Storyboard reordered.`
       );
       
-      console.log('✅ Reorder complete - local state preserved');
+      // NÃO recarregar - manter estado local
+      console.log('✅ Reorder complete - preservando estado local');
     } catch (err) {
       console.error('❌ Reorder failed:', err);
       toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar cenas' : 'Failed to reorder scenes'));
@@ -829,20 +819,15 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
           {/* Drag instruction hint */}
           {panels.length > 1 && !reordering && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 mb-2">
               <GripVertical size={14} className="text-[#8B5CF6]" />
               <span className="text-[10px] text-[#888]">
                 {lang === 'pt' 
-                  ? 'Pressione e segure o ícone ⋮⋮ por 250ms para arrastar'
-                  : 'Press and hold the ⋮⋮ icon for 250ms to drag'}
+                  ? '💡 Pressione e segure o ícone ⋮⋮ por 250ms para arrastar e reordenar as cenas'
+                  : '💡 Press and hold the ⋮⋮ icon for 250ms to drag and reorder scenes'}
               </span>
             </div>
           )}
-
-          {/* Debug info */}
-          <div className="text-[9px] text-[#444] px-2 py-1 bg-[#0A0A0A] rounded">
-            Debug: {panels.length} painéis | DnD IDs: {panels.map((_, i) => `panel-${i}`).join(', ').substring(0, 50)}...
-          </div>
 
           <DndContext 
             sensors={sensors}
@@ -864,9 +849,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               if (!isExpanded) {
                 return (
                   <SortablePanel key={`panel-${panelIndex}`} id={`panel-${panelIndex}`}>
-                    {({ dragHandleProps }) => {
-                      console.log(`🎯 Panel ${panelIndex} dragHandleProps:`, dragHandleProps ? 'PRESENT' : 'MISSING');
-                      return (
+                    {({ dragHandleProps }) => (
                       <div className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group w-full">
                         <div className="flex items-center gap-2 p-2">
                           {/* Drag handle - PRESSIONE E SEGURE AQUI */}
@@ -874,7 +857,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                             {...dragHandleProps}
                             className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 -m-1"
                             title={lang === 'pt' ? 'Pressione e segure para arrastar' : 'Press and hold to drag'}
-                            onClick={() => console.log('🖱️ Grip clicked - panel', panelIndex)}
                           >
                             <GripVertical size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition" />
                           </div>
@@ -912,8 +894,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           </button>
                         </div>
                       </div>
-                      );
-                    }}
+                    )}
                   </SortablePanel>
                 );
               }
