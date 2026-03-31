@@ -268,7 +268,20 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-gray-50 shadow-xl py-1.5 min-w-[140px]">
+              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-gray-50 shadow-xl py-1.5 min-w-[160px]">
+                {!project.v2_migrated && (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setShowMenu(false);
+                      // Will be handled in parent
+                      if (window.onUpgradeToV2) window.onUpgradeToV2(project);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-[#8B5CF6] hover:bg-[#8B5CF6]/10 flex items-center gap-2 border-b border-[#2A2A2A] mb-1"
+                  >
+                    <Sparkles size={14} /> Upgrade to V2
+                  </button>
+                )}
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleStartEdit(e); setShowMenu(false); }}
                   className="w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-white/5 flex items-center gap-2"
@@ -603,6 +616,35 @@ export default function StudioPage() {
       toast.error('Erro ao excluir projeto: ' + (err.response?.data?.detail || err.message));
     }
   };
+
+  // Upgrade project to V2
+  const handleUpgradeToV2 = async (project) => {
+    if (!window.confirm(`Atualizar "${project.name}" para V2?\n\nIsso vai adicionar:\n✅ Dialogue Timeline (sincronização)\n✅ Camera Plan (DoP)\n✅ Multi-formato\n\nNão vai regenerar vídeos existentes.`)) {
+      return;
+    }
+    
+    try {
+      toast.loading('Atualizando projeto...', { id: 'upgrade' });
+      
+      await axios.post(`${API}/studio/projects/${project.id}/migrate-to-v2`, {});
+      
+      toast.success('Projeto atualizado para V2! Dialogue timeline e camera plan em progresso.', { id: 'upgrade' });
+      
+      // Reload after 2 seconds
+      setTimeout(() => fetchProjects(), 2000);
+    } catch (error) {
+      console.error('Erro ao atualizar projeto:', error);
+      toast.error('Erro ao atualizar projeto', { id: 'upgrade' });
+    }
+  };
+  
+  // Set global handler for ProjectRow
+  useEffect(() => {
+    window.onUpgradeToV2 = handleUpgradeToV2;
+    return () => {
+      window.onUpgradeToV2 = null;
+    };
+  }, [handleUpgradeToV2]);
 
   // Rename project
   const handleRenameProject = async (project, newName) => {

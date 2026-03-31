@@ -17,6 +17,8 @@ export function NewProjectModal({
   const [animationSub, setAnimationSub] = useState('');
   const [visualStyle, setVisualStyle] = useState('animation');
   const [continuityMode, setContinuityMode] = useState(true);
+  const [formatStrategy, setFormatStrategy] = useState('safe_zone'); // NEW
+  const [formatsRequested, setFormatsRequested] = useState(['16:9']); // NEW
 
   const handleCreate = () => {
     if (!projectName.trim() || !animationSub) return;
@@ -29,6 +31,8 @@ export function NewProjectModal({
       audio_mode: audioMode,
       animation_sub: animationSub,
       continuity_mode: continuityMode,
+      format_strategy: formatStrategy, // NEW
+      formats_requested: formatsRequested, // NEW
     });
   };
 
@@ -134,6 +138,133 @@ export function NewProjectModal({
             rows={3}
             className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6]/50 rounded-xl px-5 py-3 text-sm text-white outline-none placeholder-[#555] resize-none transition" 
           />
+        </div>
+
+        {/* Step 4: Multi-Format Strategy (NEW!) */}
+        <div className="space-y-3 p-4 rounded-2xl bg-gradient-to-br from-[#8B5CF6]/5 to-purple-500/5 border border-[#8B5CF6]/20">
+          <label className="text-base font-bold text-white flex items-center gap-2">
+            <span className="w-7 h-7 rounded-full bg-[#8B5CF6] flex items-center justify-center text-sm">4</span>
+            📱 {lang === 'pt' ? 'Formatos de Vídeo' : 'Video Formats'}
+            <span className="text-xs bg-[#8B5CF6] text-white px-2 py-0.5 rounded-full font-bold">NOVO</span>
+          </label>
+          <p className="text-sm text-[#888] leading-relaxed">
+            {lang === 'pt' 
+              ? 'Escolha como gerar vídeos para YouTube, TikTok e Instagram.' 
+              : 'Choose how to generate videos for YouTube, TikTok and Instagram.'}
+          </p>
+
+          <div className="grid grid-cols-1 gap-3 mt-3">
+            {/* Safe Zone */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormatStrategy('safe_zone');
+                setFormatsRequested(['16:9']);
+              }}
+              className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                formatStrategy === 'safe_zone'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                  : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+              }`}>
+              {formatStrategy === 'safe_zone' && (
+                <div className="absolute top-3 right-3 w-6 h-6 bg-[#8B5CF6] rounded-full flex items-center justify-center">
+                  <Check size={14} strokeWidth={3} className="text-black" />
+                </div>
+              )}
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">⚡</div>
+                <div className="flex-1">
+                  <div className="font-bold text-white mb-1">
+                    Safe Zone <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full ml-2">Recomendado</span>
+                  </div>
+                  <div className="text-xs text-[#888] mb-2">
+                    {lang === 'pt' 
+                      ? 'Gera 1 vídeo horizontal cropável para vertical. Economia de 73%.' 
+                      : 'Generates 1 horizontal video that crops well to vertical. 73% savings.'}
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">16:9 YouTube</span>
+                    <span className="bg-[#222] text-[#888] px-2 py-1 rounded">→ Crop 9:16 TikTok</span>
+                    <span className="bg-[#222] text-[#888] px-2 py-1 rounded">→ Crop 4:5 IG</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Dual Generation */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormatStrategy('dual_generation');
+                setFormatsRequested(['16:9', '9:16']);
+              }}
+              className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                formatStrategy === 'dual_generation'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                  : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+              }`}>
+              {formatStrategy === 'dual_generation' && (
+                <div className="absolute top-3 right-3 w-6 h-6 bg-[#8B5CF6] rounded-full flex items-center justify-center">
+                  <Check size={14} strokeWidth={3} className="text-black" />
+                </div>
+              )}
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🎬</div>
+                <div className="flex-1">
+                  <div className="font-bold text-white mb-1">
+                    Dual Generation <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full ml-2">Premium</span>
+                  </div>
+                  <div className="text-xs text-[#888] mb-2">
+                    {lang === 'pt' 
+                      ? 'Gera 2 versões nativas: horizontal e vertical. Qualidade máxima.' 
+                      : 'Generates 2 native versions: horizontal and vertical. Maximum quality.'}
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">16:9 YouTube</span>
+                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">9:16 TikTok</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Multi-Format */}
+            <button
+              type="button"
+              onClick={() => {
+                setFormatStrategy('multi_format');
+                setFormatsRequested(['16:9', '9:16', '4:5', '1:1']);
+              }}
+              className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                formatStrategy === 'multi_format'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                  : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+              }`}>
+              {formatStrategy === 'multi_format' && (
+                <div className="absolute top-3 right-3 w-6 h-6 bg-[#8B5CF6] rounded-full flex items-center justify-center">
+                  <Check size={14} strokeWidth={3} className="text-black" />
+                </div>
+              )}
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">🌟</div>
+                <div className="flex-1">
+                  <div className="font-bold text-white mb-1">
+                    Multi-Format Complete
+                  </div>
+                  <div className="text-xs text-[#888] mb-2">
+                    {lang === 'pt' 
+                      ? 'Versão nativa para cada formato. Máxima qualidade em todos.' 
+                      : 'Native version for each format. Maximum quality everywhere.'}
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">16:9</span>
+                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">9:16</span>
+                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">4:5</span>
+                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">1:1</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Advanced Settings - Collapsible */}
