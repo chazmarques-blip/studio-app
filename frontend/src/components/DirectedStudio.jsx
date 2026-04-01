@@ -1042,7 +1042,7 @@ export const DirectedStudio = memo(function DirectedStudio({
     console.log('🚀 Sending reorder to API:', order);
     
     try {
-      await axios.post(`${API}/studio/projects/${projectId}/reorder-scenes`, { order });
+      await axios.post(`${API}/studio/projects/${projectId}/scenes/reorder`, { scene_order: order });
       toast.success(lang === 'pt' ? 'Cenas reordenadas com sucesso!' : 'Scenes reordered successfully!');
       
       // ❌ REMOVIDO: NÃO recarregar do servidor - manter o estado local
@@ -2735,10 +2735,20 @@ export const DirectedStudio = memo(function DirectedStudio({
       {/* ═══ STEP 6: Production Progress ═══ */}
       {step === 6 && !viewingProject && (
         <div className="glass-card p-3 space-y-3" data-testid="studio-step-production">
-          <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-2">
-            <Clapperboard size={12} className="text-orange-600" />
-            {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-semibold text-gray-900 flex items-center gap-2">
+              <Clapperboard size={12} className="text-orange-600" />
+              {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
+            </h3>
+            {!generating && scenes.length > 0 && (
+              <button
+                onClick={() => setStep(7)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-gray-900 font-semibold text-[11px] hover:shadow-lg transition-all">
+                <Film size={12} />
+                {lang === 'pt' ? 'Ver Resultados Finais' : 'View Final Results'}
+              </button>
+            )}
+          </div>
 
           {/* Start Production Button - Only show if not generating */}
           {!generating && !agentStatus.phase && scenes.length > 0 && (
@@ -2818,59 +2828,70 @@ export const DirectedStudio = memo(function DirectedStudio({
             </div>
           )}
 
-          {/* Scene-by-scene detail */}
-          <div className="space-y-1">
-            {scenes.map((s, i) => {
-              const sceneNum = s.scene_number || i + 1;
-              const ss = agentStatus.scene_status || {};
-              const sceneState = ss[String(sceneNum)] || 'queued';
-              const videoDone = sceneState === 'done';
-              const videoError = sceneState === 'error';
-              const isDirecting = sceneState === 'directing';
-              const isWaiting = sceneState === 'waiting_sora';
-              const isVideoGen = sceneState === 'generating_video';
-              const isActive = isDirecting || isWaiting || isVideoGen;
+          {/* Scene-by-scene detail with drag-and-drop */}
+          <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={scenes.map(s => `scene-${s.scene_number}`)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1">
+                {scenes.map((s, i) => {
+                  const sceneNum = s.scene_number || i + 1;
+                  const ss = agentStatus.scene_status || {};
+                  const sceneState = ss[String(sceneNum)] || 'queued';
+                  const videoDone = sceneState === 'done';
+                  const videoError = sceneState === 'error';
+                  const isDirecting = sceneState === 'directing';
+                  const isWaiting = sceneState === 'waiting_sora';
+                  const isVideoGen = sceneState === 'generating_video';
+                  const isActive = isDirecting || isWaiting || isVideoGen;
 
-              // Find the video output for this scene
-              const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
+                  // Find the video output for this scene
+                  const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
 
-              // Progress per state
-              const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 65 : isWaiting ? 40 : isDirecting ? 20 : 0;
-              const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isVideoGen ? 'bg-[#8B5CF6]' : isWaiting ? 'bg-blue-400' : isDirecting ? 'bg-purple-400' : 'bg-gray-100';
+                  // Progress per state
+                  const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 65 : isWaiting ? 40 : isDirecting ? 20 : 0;
+                  const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isVideoGen ? 'bg-[#8B5CF6]' : isWaiting ? 'bg-blue-400' : isDirecting ? 'bg-purple-400' : 'bg-gray-100';
 
-              return (
-                <div key={i} className={`rounded-lg border px-2.5 py-1.5 transition-all ${
-                  isVideoGen ? 'border-orange-500/30 bg-[#8B5CF6]/5' :
-                  isDirecting ? 'border-purple-500/20 bg-purple-500/5' :
-                  isWaiting ? 'border-blue-500/20 bg-blue-500/5' :
-                  videoDone ? 'border-emerald-500/20 bg-emerald-500/5' :
-                  videoError ? 'border-red-500/20 bg-red-500/5' :
-                  'border-gray-200 bg-gray-50'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                      videoDone ? 'bg-emerald-500 text-black' :
-                      videoError ? 'bg-red-500 text-gray-900' :
-                      isVideoGen ? 'bg-[#8B5CF6] text-black' :
-                      isDirecting ? 'bg-purple-500 text-gray-900' :
-                      isWaiting ? 'bg-blue-500 text-gray-900' :
-                      'bg-gray-100 text-gray-500'
-                    }`}>
-                      {videoDone ? <Check size={8} /> : videoError ? <X size={8} /> : isActive ? <RefreshCw size={8} className="animate-spin" /> : sceneNum}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-gray-900 truncate">{s.title || `Cena ${sceneNum}`}</p>
-                      <p className="text-[10px] text-gray-500 truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
-                    </div>
-                    <div className="text-[10px] shrink-0">
-                      {videoDone && <span className="text-emerald-400 font-medium">{lang === 'pt' ? 'Pronto' : 'Done'}</span>}
-                      {videoError && <span className="text-red-400">Erro</span>}
-                      {isVideoGen && <span className="text-orange-600">Sora 2...</span>}
-                      {isWaiting && <span className="text-blue-400">{lang === 'pt' ? 'Fila Sora' : 'Sora Queue'}</span>}
-                      {isDirecting && <span className="text-purple-400">{lang === 'pt' ? 'Dirigindo' : 'Directing'}</span>}
-                      {sceneState === 'queued' && <span className="text-[#444]">—</span>}
-                    </div>
-                  </div>
+                  return (
+                    <SortableSceneWrapper key={sceneNum} id={`scene-${sceneNum}`} disabled={generating}>
+                      {({ dragHandleProps, isDragging }) => (
+                        <div className={`rounded-lg border px-2.5 py-1.5 transition-all ${
+                          isDragging ? 'opacity-50 border-orange-500/50' :
+                          isVideoGen ? 'border-orange-500/30 bg-[#8B5CF6]/5' :
+                          isDirecting ? 'border-purple-500/20 bg-purple-500/5' :
+                          isWaiting ? 'border-blue-500/20 bg-blue-500/5' :
+                          videoDone ? 'border-emerald-500/20 bg-emerald-500/5' :
+                          videoError ? 'border-red-500/20 bg-red-500/5' :
+                          'border-gray-200 bg-gray-50'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            {/* Drag handle */}
+                            {!generating && (
+                              <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-orange-600 transition-colors touch-none" title={lang === 'pt' ? 'Arrastar para reordenar' : 'Drag to reorder'}>
+                                <GripVertical size={14} />
+                              </div>
+                            )}
+                            <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                              videoDone ? 'bg-emerald-500 text-black' :
+                              videoError ? 'bg-red-500 text-gray-900' :
+                              isVideoGen ? 'bg-[#8B5CF6] text-black' :
+                              isDirecting ? 'bg-purple-500 text-gray-900' :
+                              isWaiting ? 'bg-blue-500 text-gray-900' :
+                              'bg-gray-100 text-gray-500'
+                            }`}>
+                              {videoDone ? <Check size={8} /> : videoError ? <X size={8} /> : isActive ? <RefreshCw size={8} className="animate-spin" /> : sceneNum}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-semibold text-gray-900 truncate">{s.title || `Cena ${sceneNum}`}</p>
+                              <p className="text-[10px] text-gray-500 truncate">{s.time_start}-{s.time_end} • {s.emotion}</p>
+                            </div>
+                            <div className="text-[10px] shrink-0">
+                              {videoDone && <span className="text-emerald-400 font-medium">{lang === 'pt' ? 'Pronto' : 'Done'}</span>}
+                              {videoError && <span className="text-red-400">Erro</span>}
+                              {isVideoGen && <span className="text-orange-600">Sora 2...</span>}
+                              {isWaiting && <span className="text-blue-400">{lang === 'pt' ? 'Fila Sora' : 'Sora Queue'}</span>}
+                              {isDirecting && <span className="text-purple-400">{lang === 'pt' ? 'Dirigindo' : 'Directing'}</span>}
+                              {sceneState === 'queued' && <span className="text-[#444]">—</span>}
+                            </div>
+                          </div>
                   {/* Per-scene progress bar */}
                   <div className="mt-1 w-full bg-gray-50 rounded-full h-1">
                     <div className={`h-1 rounded-full transition-all duration-700 ${barColor} ${isActive ? 'animate-pulse' : ''}`}
@@ -2939,10 +2960,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                       </div>
                     </div>
                   )}
-                </div>
-              );
-            })}
-          </div>
+                        </div>
+                      )}
+                    </SortableSceneWrapper>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
 
           {/* Phase indicator with time estimate */}
           {generating && agentStatus.phase?.startsWith('generating_video') && (
