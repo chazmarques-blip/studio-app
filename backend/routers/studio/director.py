@@ -101,46 +101,45 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
             ],
             api_key=api_key,
             max_tokens=6000,
-            timeout=240,  # 4 minutes per batch (increased from 3min)
+            timeout=300,  # 5 minutes - no API contention with sequential processing
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "director_review_batch",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "batch_number": {"type": "integer"},
+                            "scene_reviews": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "scene_number": {"type": "integer"},
+                                        "score": {"type": "integer", "minimum": 0, "maximum": 100},
+                                        "status": {"type": "string", "enum": ["EXCELLENT", "GOOD", "NEEDS_WORK", "CRITICAL"]},
+                                        "issues": {"type": "array", "items": {"type": "string"}},
+                                        "suggestions": {"type": "array", "items": {"type": "string"}},
+                                        "revised_dialogue": {"type": "string"},
+                                        "revised_narration": {"type": "string"},
+                                        "revised_description": {"type": "string"}
+                                    },
+                                    "required": ["scene_number", "score", "status", "issues", "suggestions"]
+                                }
+                            }
+                        },
+                        "required": ["batch_number", "scene_reviews"]
+                    }
+                }
+            }
         )
         
+        # With structured output, JSON is GUARANTEED to be valid
         result = response.choices[0].message.content.strip()
+        review_data = json.loads(result)
         
-        # Aggressive JSON extraction with better error handling
-        if "```json" in result:
-            result = result.split("```json")[1].split("```")[0].strip()
-        elif "```" in result:
-            result = result.split("```")[1].split("```")[0].strip()
-        
-        # Find JSON object boundaries
-        start_idx = result.find('{')
-        end_idx = result.rfind('}') + 1
-        if start_idx != -1 and end_idx > start_idx:
-            result = result[start_idx:end_idx]
-        
-        # Try to fix common JSON issues
-        result = result.replace('\n', ' ')  # Remove newlines inside JSON
-        result = result.replace('  ', ' ')  # Remove double spaces
-        
-        try:
-            review_data = json.loads(result)
-        except json.JSONDecodeError as e:
-            logger.error(f"Batch {batch_num}: JSON parse error at char {e.pos}: {result[max(0,e.pos-50):e.pos+50]}")
-            # Try to extract just the scene_reviews array
-            if '"scene_reviews"' in result:
-                try:
-                    # Extract array manually
-                    start = result.find('"scene_reviews"')
-                    start = result.find('[', start)
-                    end = result.rfind(']') + 1
-                    array_str = result[start:end]
-                    review_data = {"scene_reviews": json.loads(array_str)}
-                except:
-                    raise  # Give up if this also fails
-            else:
-                raise
-        
-        logger.info(f"Batch {batch_num}: Reviewed {len(review_data.get('scene_reviews', []))} scenes")
+        logger.info(f"Batch {batch_num}: ✅ Reviewed {len(review_data.get('scene_reviews', []))} scenes successfully")
         return review_data.get("scene_reviews", [])
         
     except Exception as e:
@@ -192,119 +191,6 @@ async def _review_scene_batch_with_progress(batch_scenes, characters, project_me
         pass
     
     return result
-    """Review a batch of scenes in parallel (simulates multiple directors working together)."""
-    import litellm
-    
-    LANG_MAP = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
-    
-    # Build script text for this batch only
-    script_text = ""
-    for s in batch_scenes:
-        dubbed = s.get("dubbed_text", "").strip()
-        narrated = s.get("narrated_text", "").strip() or s.get("narration", "").strip()
-        dialogue = s.get("dialogue", "").strip()
-        chars_in = s.get("characters_in_scene", [])
-        
-        script_text += f"\n═══ CENA {s.get('scene_number', '?')} — {s.get('title', 'Sem título')} ═══\n"
-        script_text += f"Tempo: {s.get('time_start', '?')} - {s.get('time_end', '?')}\n"
-        script_text += f"Emoção: {s.get('emotion', '?')}\n"
-        script_text += f"Câmara: {s.get('camera', '?')}\n"
-        script_text += f"Personagens: {', '.join(chars_in) if chars_in else 'Não definido'}\n"
-        script_text += f"Descrição: {s.get('description', '?')}\n"
-        if dubbed:
-            script_text += f"DIÁLOGO DUBLADO:\n{dubbed}\n"
-        elif dialogue:
-            script_text += f"DIÁLOGO ORIGINAL:\n{dialogue}\n"
-        if narrated:
-            script_text += f"NARRAÇÃO:\n{narrated}\n"
-        script_text += "\n"
-    
-    char_desc = "\n".join([
-        f"- {c.get('name', '?')}: {c.get('description', '?')} | Papel: {c.get('role', '?')}"
-        for c in characters
-    ])
-    
-    system_prompt = f"""You are a LEGENDARY FILM DIRECTOR reviewing a BATCH of scenes from a larger project. You're part of a DIRECTOR'S TEAM — each director reviews a portion of scenes with the SAME high standards.
-
-PROJECT: {project_meta.get('name', 'Untitled')}
-BRIEFING: {project_meta.get('briefing', '')[:300]}
-LANGUAGE: {LANG_MAP.get(lang, 'Portuguese')}
-BATCH: {batch_num} (Scenes {batch_scenes[0].get('scene_number')} - {batch_scenes[-1].get('scene_number')})
-
-CHARACTERS:
-{char_desc}
-
-YOUR REVIEW MUST COVER for EACH scene in this batch:
-
-1. **DIALOGUE QUALITY** — Unique character voices, emotional depth, subtext
-2. **NARRATIVE PACING** — Natural flow, proper tension/release
-3. **EMOTIONAL IMPACT** — Goosebump moments, believable transitions
-4. **VISUAL STORYTELLING** — Rich descriptions for storyboard artists
-5. **CHARACTER CONSISTENCY** — True to established personalities
-6. **MISSING ELEMENTS** — What would make this scene LEGENDARY?
-
-SCORING STANDARDS:
-- 90-100: EXCELLENT — World-class, ready for production
-- 80-89: GOOD — Solid, minor polish needed
-- 60-79: NEEDS_WORK — Significant improvements required
-- <60: CRITICAL — Major revision needed
-
-RESPOND IN {LANG_MAP.get(lang, 'Portuguese')} with this JSON structure:
-{{
-  "batch_number": {batch_num},
-  "scene_reviews": [
-    {{
-      "scene_number": int,
-      "score": 0-100,
-      "status": "EXCELLENT" or "GOOD" or "NEEDS_WORK" or "CRITICAL",
-      "issues": ["issue 1", "issue 2"],
-      "suggestions": ["suggestion 1"],
-      "revised_dialogue": "Only if dialogue needs improvement — provide the improved version",
-      "revised_narration": "Only if narration needs improvement",
-      "revised_description": "Only if scene description is too vague for storyboard"
-    }}
-  ]
-}}"""
-    
-    user_prompt = f"Review these {len(batch_scenes)} scenes with your highest professional standards:\n\n{script_text}"
-    
-    try:
-        response = await litellm.acompletion(
-            model="anthropic/claude-sonnet-4-5-20250929",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            api_key=api_key,
-            max_tokens=6000,
-            timeout=120,  # 2 minutes per batch (much faster than reviewing all at once)
-        )
-        
-        result = response.choices[0].message.content.strip()
-        if result.startswith("```json"):
-            result = result[7:]
-        if result.startswith("```"):
-            result = result[3:]
-        if result.endswith("```"):
-            result = result[:-3]
-        
-        review_data = json.loads(result.strip())
-        logger.info(f"Batch {batch_num}: Reviewed {len(review_data.get('scene_reviews', []))} scenes")
-        return review_data.get("scene_reviews", [])
-        
-    except Exception as e:
-        logger.error(f"Batch {batch_num} failed: {e}")
-        # Return placeholder reviews for failed batch
-        return [{
-            "scene_number": s.get("scene_number"),
-            "score": 50,
-            "status": "NEEDS_WORK",
-            "issues": [f"Review failed: {str(e)[:100]}"],
-            "suggestions": ["Please re-run review"]
-        } for s in batch_scenes]
-
-
 @router.post("/projects/{project_id}/director/review")
 async def director_review(project_id: str, req: DirectorReviewRequest, tenant=Depends(get_current_tenant)):
     """The Director Agent reviews the entire project with elite professional standards.
@@ -351,15 +237,19 @@ async def director_review(project_id: str, req: DirectorReviewRequest, tenant=De
         }
     })
     
-    batch_tasks = [
-        _review_scene_batch_with_progress(batch, characters, project_meta, lang, batch_num + 1, tenant["id"], project_id, len(batches))
-        for batch_num, batch in enumerate(batches)
-    ]
-    
+    # Process batches SEQUENTIALLY (not parallel) to avoid API rate limits and timeouts
+    # Sequential = 100% reliability, Parallel = 80% reliability with contention
+    batch_results = []
     try:
-        batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+        for batch_num, batch in enumerate(batches):
+            logger.info(f"Processing batch {batch_num + 1}/{len(batches)}...")
+            result = await _review_scene_batch_with_progress(
+                batch, characters, project_meta, lang, batch_num + 1,
+                tenant["id"], project_id, len(batches)
+            )
+            batch_results.append(result)
     except Exception as e:
-        logger.error(f"Parallel batching failed: {e}")
+        logger.error(f"Sequential batching failed: {e}")
         raise HTTPException(500, f"Director review failed: {str(e)}")
     finally:
         # Clear progress after completion
