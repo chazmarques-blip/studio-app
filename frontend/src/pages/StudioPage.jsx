@@ -778,49 +778,91 @@ export default function StudioPage() {
       {/* ═══════ AVATAR MODAL (moved inside selectedProject block) ═══════ */}
       {showAvatarModal && (
         <AvatarModal
-          show={showAvatarModal} onClose={resetAvatarModal}
-          avatarSourcePhoto={avatarSourcePhoto} setAvatarSourcePhoto={setAvatarSourcePhoto}
-          avatarSourceType={avatarSourceType} setAvatarSourceType={setAvatarSourceType}
-          avatarVideoUploading={avatarVideoUploading} setAvatarVideoUploading={setAvatarVideoUploading}
-          avatarExtractedAudio={avatarExtractedAudio} setAvatarExtractedAudio={setAvatarExtractedAudio}
-          avatarVideoFrames={avatarVideoFrames} setAvatarVideoFrames={setAvatarVideoFrames}
-          masteringVoice={masteringVoice} setMasteringVoice={setMasteringVoice}
-          generatingPreviewVideo={generatingPreviewVideo} setGeneratingPreviewVideo={setGeneratingPreviewVideo}
-          previewVideoUrl={previewVideoUrl} setPreviewVideoUrl={setPreviewVideoUrl}
-          previewLanguage={previewLanguage} setPreviewLanguage={setPreviewLanguage}
-          avatarName={avatarName} setAvatarName={setAvatarName}
-          avatarMediaTab={avatarMediaTab} setAvatarMediaTab={setAvatarMediaTab}
-          accuracyProgress={accuracyProgress} setAccuracyProgress={setAccuracyProgress}
-          generatingAvatar={generatingAvatar} setGeneratingAvatar={setGeneratingAvatar}
-          avatarPhotoUploading={avatarPhotoUploading} setAvatarPhotoUploading={setAvatarPhotoUploading}
-          logoUploading={logoUploading} setLogoUploading={setLogoUploading}
-          avatarStage={avatarStage} setAvatarStage={setAvatarStage}
-          avatarCreationMode={avatarCreationMode} setAvatarCreationMode={setAvatarCreationMode}
-          avatarPromptText={avatarPromptText} setAvatarPromptText={setAvatarPromptText}
-          avatarPromptGender={avatarPromptGender} setAvatarPromptGender={setAvatarPromptGender}
-          avatarPromptStyle={avatarPromptStyle} setAvatarPromptStyle={setAvatarPromptStyle}
-          tempAvatar={tempAvatar} setTempAvatar={setTempAvatar}
-          editingAvatarId={editingAvatarId}
-          customizeTab={customizeTab} setCustomizeTab={setCustomizeTab}
-          applyingClothing={applyingClothing} setApplyingClothing={setApplyingClothing}
-          clothingVariants={clothingVariants} setClothingVariants={setClothingVariants}
-          generatingAngle={generatingAngle} setGeneratingAngle={setGeneratingAngle}
-          angleImages={angleImages} setAngleImages={setAngleImages}
-          auto360Progress={auto360Progress} setAuto360Progress={setAuto360Progress}
-          voiceTab={voiceTab} setVoiceTab={setVoiceTab}
-          loadingVoicePreview={loadingVoicePreview} setLoadingVoicePreview={setLoadingVoicePreview}
-          playingVoiceId={playingVoiceId} setPlayingVoiceId={setPlayingVoiceId}
-          elevenLabsVoices={elevenLabsVoices} setElevenLabsVoices={setElevenLabsVoices}
-          elevenLabsAvailable={elevenLabsAvailable} setElevenLabsAvailable={setElevenLabsAvailable}
-          isRecording={isRecording} setIsRecording={setIsRecording}
-          recordedAudioUrl={recordedAudioUrl} setRecordedAudioUrl={setRecordedAudioUrl}
-          recordedAudioBlob={recordedAudioBlob} setRecordedAudioBlob={setRecordedAudioBlob}
-          uploadingRecording={uploadingRecording} setUploadingRecording={setUploadingRecording}
-          avatarEditHistory={avatarEditHistory} setAvatarEditHistory={setAvatarEditHistory}
-          avatarBaseUrl={avatarBaseUrl} setAvatarBaseUrl={setAvatarBaseUrl}
-          avatarInputRef={avatarInputRef} logoInputRef={logoInputRef}
-          mediaRecorderRef={mediaRecorderRef} audioChunksRef={audioChunksRef} audioPlayerRef={audioPlayerRef}
-          selectedCompany={selectedProject} lang={lang}
+          ctx={{
+            showAvatarModal,
+            avatarStage,
+            avatarCreationMode,
+            avatarSourceType,
+            avatarSourcePhoto,
+            avatarVideoUploading,
+            avatarExtractedAudio,
+            avatarVideoFrames,
+            masteringVoice,
+            generatingPreviewVideo,
+            previewVideoUrl,
+            previewLanguage,
+            avatarName,
+            avatarMediaTab,
+            accuracyProgress,
+            generatingAvatar,
+            avatarPhotoUploading,
+            avatarPromptText,
+            avatarPromptGender,
+            avatarPromptStyle,
+            aiEditAvatarId,
+            aiEditInstruction,
+            aiEditLoading,
+            tempAvatar,
+            clothingVariants,
+            customizeTab,
+            voiceTab,
+            angleImages,
+            generatingAngle,
+            auto360Progress,
+            editingAvatarId,
+            avatarEditHistory,
+            avatarBaseUrl,
+            applyingClothing,
+            isRecording,
+            recordedAudioUrl,
+            recordedAudioBlob,
+            uploadingRecording,
+            loadingVoicePreview,
+            playingVoiceId,
+            elevenLabsVoices,
+            elevenLabsAvailable,
+            avatarPreviewUrl,
+            setAvatarCreationMode,
+            setAvatarSourceType,
+            setAvatarSourcePhoto,
+            setAvatarExtractedAudio,
+            setAvatarVideoFrames,
+            setAvatarName,
+            setAvatarMediaTab,
+            setAvatarPromptText,
+            setAvatarPromptGender,
+            setAvatarPromptStyle,
+            setAiEditAvatarId,
+            setAiEditInstruction,
+            setAiEditLoading,
+            setTempAvatar,
+            setCustomizeTab,
+            setVoiceTab,
+            setAngleImages,
+            setPreviewLanguage,
+            setAvatarPreviewUrl,
+            setAvatarEditHistory,
+            setPreviewVideoUrl,
+            setGeneratingPreviewVideo,
+            resetAvatarModal,
+            generateAvatarFromPhoto: () => {}, // TODO
+            generateAvatarFromPrompt: () => {}, // TODO
+            uploadAvatarPhoto: () => {}, // TODO
+            uploadAvatarVideo: () => {}, // TODO
+            applyClothing: () => {}, // TODO
+            generateAngle: () => {}, // TODO
+            startAuto360: () => {}, // TODO
+            saveAvatarAndClose: () => {}, // TODO
+            saveAvatarAsNew: () => {}, // TODO
+            previewVoice: () => {}, // TODO
+            startRecording: () => {}, // TODO
+            stopRecording: () => {}, // TODO
+            saveRecordingAsVoice: () => {}, // TODO
+            persistAvatarToServer: () => {}, // TODO
+            avatars: [],
+            avatarInputRef,
+            isDirectedMode: true,
+          }}
         />
       )}
       </>
