@@ -248,183 +248,119 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
         </div>
       )}
 
-      {/* Review Results */}
-      {review && !reviewing && (
-        <>
-          {/* Score + Verdict */}
-          <div className={`rounded-xl border p-4 ${isApproved ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}
-            data-testid="director-verdict">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className={`text-3xl font-black ${scoreColor}`} data-testid="director-score">{score}</div>
-                <div>
-                  <p className={`text-xs font-bold ${isApproved ? 'text-emerald-400' : 'text-amber-400'}`} data-testid="director-verdict-text">
-                    {isApproved
-                      ? (lang === 'pt' ? 'APROVADO PELO DIRECTOR' : 'DIRECTOR APPROVED')
-                      : (lang === 'pt' ? 'REVISÃO NECESSÁRIA' : 'REVISION NEEDED')
-                    }
-                  </p>
-                  <p className="text-[10px] text-gray-600">
-                    {needsWork > 0 && (lang === 'pt' ? `${needsWork} cena(s) precisam de ajustes` : `${needsWork} scene(s) need adjustments`)}
-                    {needsWork === 0 && (lang === 'pt' ? 'Todas as cenas estão prontas' : 'All scenes are ready')}
-                  </p>
-                </div>
-              </div>
-              {hasRevisions && (
-                <div className="flex flex-col gap-2">
-                  <button onClick={applyFixes} disabled={applying}
-                    data-testid="apply-director-fixes-btn"
-                    className="text-xs px-3 py-2 rounded-lg bg-orange-500 text-black font-bold hover:bg-[#EA580C] transition disabled:opacity-50 flex items-center justify-center gap-1.5">
-                    {applying ? <RefreshCw size={11} className="animate-spin" /> : <Zap size={11} />}
-                    {applying
-                      ? (lang === 'pt' ? 'Aplicando e re-avaliando...' : 'Applying & re-evaluating...')
-                      : (lang === 'pt' ? 'Aplicar Correções + Re-avaliar' : 'Apply Fixes + Re-evaluate')
-                    }
-                  </button>
-                  {score < 90 && (
-                    <p className="text-[9px] text-amber-500 text-center">
-                      {lang === 'pt' 
-                        ? '⚡ Workflow automático: Aplica → Re-avalia → Aprovação >= 90%'
-                        : '⚡ Auto workflow: Apply → Re-evaluate → Approval >= 90%'}
-                    </p>
+      {/* Compact Review Summary */}
+      {review && !reviewing && !applying && (
+        <div className="border-l-4 border-orange-500 bg-orange-500/5 px-3 py-2 rounded-r-md flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className={`text-xl font-bold ${scoreColor}`}>{score}</span>
+            <div className="text-[10px]">
+              <p className={`font-bold ${isApproved ? 'text-emerald-500' : 'text-amber-500'}`}>
+                {isApproved ? (lang === 'pt' ? 'APROVADO' : 'APPROVED') : (lang === 'pt' ? 'REVISÃO NECESSÁRIA' : 'NEEDS REVISION')}
+              </p>
+              <p className="text-gray-600">
+                {needsWork > 0 ? `${needsWork} ${lang === 'pt' ? 'cenas < 80%' : 'scenes < 80%'}` : (lang === 'pt' ? 'Tudo pronto!' : 'All ready!')}
+              </p>
+            </div>
+          </div>
+          
+          {hasRevisions && (
+            <button onClick={applyFixes} disabled={applying}
+              className="text-[10px] px-2.5 py-1.5 rounded-md bg-orange-500 text-black font-bold hover:bg-[#EA580C] transition disabled:opacity-50 flex items-center gap-1">
+              <Zap size={9} />
+              {lang === 'pt' ? 'Aplicar Correções' : 'Apply Fixes'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Scene-by-Scene Review with Progress */}
+      {review && sceneReviews.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+            <Film size={10} className="text-orange-600" />
+            {lang === 'pt' ? 'Cenas' : 'Scenes'} ({sceneReviews.length})
+          </p>
+          <div className="space-y-1 max-h-[400px] overflow-y-auto hide-scrollbar">
+            {sceneReviews.map(sr => {
+              const isExpanded = expandedScene === sr.scene_number;
+              const statusClass = STATUS_COLORS[sr.status] || STATUS_COLORS.GOOD;
+              
+              // Check if this scene is being processed (from progress)
+              const isProcessing = applying && progress?.status?.includes(`scene_${sr.scene_number}`);
+              const wasJustFixed = applying && sr.revised_dialogue || sr.revised_narration || sr.revised_description;
+
+              return (
+                <div key={sr.scene_number} className={`rounded-md border text-[10px] overflow-hidden transition-all ${statusClass.border} ${statusClass.bg}`}>
+                  <div className="p-2 flex items-center justify-between cursor-pointer hover:bg-black/5 transition"
+                    onClick={() => setExpandedScene(isExpanded ? null : sr.scene_number)}>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className={`font-bold ${statusClass.text} shrink-0`}>{sr.score}</span>
+                      <p className="font-medium text-gray-900 truncate">
+                        Cena {sr.scene_number}: {sceneReviews.find(s => s.scene_number === sr.scene_number)?.title || 'Sem título'}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Real-time processing indicator */}
+                      {isProcessing && (
+                        <div className="flex items-center gap-1 text-orange-600">
+                          <RefreshCw size={9} className="animate-spin" />
+                          <span className="text-[9px] font-medium">
+                            {lang === 'pt' ? 'Corrigindo...' : 'Fixing...'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Just fixed indicator */}
+                      {wasJustFixed && !isProcessing && (
+                        <div className="flex items-center gap-1 text-emerald-600">
+                          <Check size={9} />
+                          <span className="text-[9px] font-medium">
+                            {lang === 'pt' ? 'Corrigido' : 'Fixed'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <span className={`text-[9px] font-medium ${statusClass.text}`}>
+                        {STATUS_LABELS[sr.status]?.[lang] || sr.status}
+                      </span>
+                      <ChevronDown size={12} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t border-gray-200 p-2 space-y-1.5 bg-white/50">
+                      {sr.issues?.length > 0 && (
+                        <div>
+                          <p className="text-[9px] font-semibold text-red-600 mb-0.5">
+                            {lang === 'pt' ? 'Problemas:' : 'Issues:'}
+                          </p>
+                          <ul className="space-y-0.5 pl-2">
+                            {sr.issues.map((issue, i) => (
+                              <li key={i} className="text-[9px] text-gray-600">• {issue}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {sr.suggestions?.length > 0 && (
+                        <div>
+                          <p className="text-[9px] font-semibold text-blue-600 mb-0.5">
+                            {lang === 'pt' ? 'Sugestões:' : 'Suggestions:'}
+                          </p>
+                          <ul className="space-y-0.5 pl-2">
+                            {sr.suggestions.map((sug, i) => (
+                              <li key={i} className="text-[9px] text-gray-600">• {sug}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* Director Notes */}
-            {review.director_notes && (
-              <div className="border-t border-[#222] pt-3">
-                <p className="text-[10px] text-[#888] leading-relaxed whitespace-pre-line">{review.director_notes}</p>
-              </div>
-            )}
+              );
+            })}
           </div>
-
-          {/* Strengths & Improvements */}
-          <div className="grid grid-cols-2 gap-2">
-            {review.top_3_strengths?.length > 0 && (
-              <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/5 p-2.5">
-                <p className="text-[10px] font-bold text-emerald-400 mb-1.5 flex items-center gap-1">
-                  <Star size={9} /> {lang === 'pt' ? 'Pontos Fortes' : 'Strengths'}
-                </p>
-                {review.top_3_strengths.map((s, i) => (
-                  <p key={i} className="text-[9px] text-[#888] leading-relaxed">+ {s}</p>
-                ))}
-              </div>
-            )}
-            {review.top_3_improvements?.length > 0 && (
-              <div className="rounded-lg border border-amber-500/15 bg-amber-500/5 p-2.5">
-                <p className="text-[10px] font-bold text-amber-400 mb-1.5 flex items-center gap-1">
-                  <AlertTriangle size={9} /> {lang === 'pt' ? 'Melhorias' : 'Improvements'}
-                </p>
-                {review.top_3_improvements.map((s, i) => (
-                  <p key={i} className="text-[9px] text-[#888] leading-relaxed">- {s}</p>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Pacing & Emotional Arc */}
-          {(review.pacing_notes || review.emotional_arc) && (
-            <div className="grid grid-cols-2 gap-2">
-              {review.pacing_notes && (
-                <div className="rounded-lg border border-gray-200 bg-white p-2.5">
-                  <p className="text-[10px] font-bold text-orange-600 mb-1 flex items-center gap-1">
-                    <BookOpen size={9} /> {lang === 'pt' ? 'Ritmo Narrativo' : 'Pacing'}
-                  </p>
-                  <p className="text-[9px] text-[#777] leading-relaxed">{review.pacing_notes}</p>
-                </div>
-              )}
-              {review.emotional_arc && (
-                <div className="rounded-lg border border-gray-200 bg-white p-2.5">
-                  <p className="text-[10px] font-bold text-orange-600 mb-1 flex items-center gap-1">
-                    <Sparkles size={9} /> {lang === 'pt' ? 'Arco Emocional' : 'Emotional Arc'}
-                  </p>
-                  <p className="text-[9px] text-[#777] leading-relaxed">{review.emotional_arc}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Scene-by-Scene Review */}
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold text-gray-900 mb-1.5 flex items-center gap-1">
-              <Film size={10} className="text-orange-600" />
-              {lang === 'pt' ? 'Revisão Cena a Cena' : 'Scene-by-Scene Review'}
-              <span className="text-gray-500 font-normal ml-1">({sceneReviews.length} cenas)</span>
-            </p>
-            <div className="space-y-1 max-h-[300px] overflow-y-auto hide-scrollbar">
-              {sceneReviews.map(sr => {
-                const isExpanded = expandedScene === sr.scene_number;
-                const statusClass = STATUS_COLORS[sr.status] || STATUS_COLORS.GOOD;
-                const scene = scenes.find(s => s.scene_number === sr.scene_number);
-
-                return (
-                  <div key={sr.scene_number}
-                    className={`rounded-lg border ${statusClass} cursor-pointer transition-all`}
-                    data-testid={`director-scene-${sr.scene_number}`}
-                    onClick={() => setExpandedScene(isExpanded ? null : sr.scene_number)}>
-
-                    {/* Scene header */}
-                    <div className="flex items-center gap-2 px-2.5 py-1.5">
-                      {STATUS_ICONS[sr.status]}
-                      <span className="text-[10px] font-bold text-gray-900">
-                        {lang === 'pt' ? 'Cena' : 'Scene'} {sr.scene_number}
-                      </span>
-                      <span className="text-[9px] text-gray-600 flex-1 truncate">{scene?.title || ''}</span>
-                      <span className={`text-[9px] font-bold ${
-                        sr.score >= 80 ? 'text-emerald-400' : sr.score >= 60 ? 'text-amber-400' : 'text-red-400'
-                      }`}>{sr.score}/100</span>
-                      <span className={`text-[8px] px-1.5 py-0.5 rounded ${statusClass}`}>
-                        {sr.status}
-                      </span>
-                    </div>
-
-                    {/* Expanded details */}
-                    {isExpanded && (
-                      <div className="px-2.5 pb-2.5 space-y-1.5 border-t border-gray-200 pt-1.5">
-                        {sr.issues?.length > 0 && (
-                          <div>
-                            <p className="text-[9px] text-red-300 font-medium mb-0.5">{lang === 'pt' ? 'Problemas:' : 'Issues:'}</p>
-                            {sr.issues.map((issue, i) => (
-                              <p key={i} className="text-[9px] text-[#888] pl-2 leading-relaxed">- {issue}</p>
-                            ))}
-                          </div>
-                        )}
-                        {sr.suggestions?.length > 0 && (
-                          <div>
-                            <p className="text-[9px] text-orange-600 font-medium mb-0.5">{lang === 'pt' ? 'Sugestões:' : 'Suggestions:'}</p>
-                            {sr.suggestions.map((sug, i) => (
-                              <p key={i} className="text-[9px] text-[#888] pl-2 leading-relaxed">+ {sug}</p>
-                            ))}
-                          </div>
-                        )}
-                        {sr.revised_dialogue && (
-                          <div className="border border-emerald-500/20 rounded p-1.5 bg-emerald-500/5">
-                            <p className="text-[9px] text-emerald-300 font-medium mb-0.5">{lang === 'pt' ? 'Diálogo Revisto:' : 'Revised Dialogue:'}</p>
-                            <p className="text-[9px] text-[#ccc] whitespace-pre-line leading-relaxed">{sr.revised_dialogue}</p>
-                          </div>
-                        )}
-                        {sr.revised_narration && (
-                          <div className="border border-sky-500/20 rounded p-1.5 bg-sky-500/5">
-                            <p className="text-[9px] text-sky-300 font-medium mb-0.5">{lang === 'pt' ? 'Narração Revista:' : 'Revised Narration:'}</p>
-                            <p className="text-[9px] text-[#ccc] whitespace-pre-line leading-relaxed">{sr.revised_narration}</p>
-                          </div>
-                        )}
-                        {sr.revised_description && (
-                          <div className="border border-purple-500/20 rounded p-1.5 bg-purple-500/5">
-                            <p className="text-[9px] text-purple-300 font-medium mb-0.5">{lang === 'pt' ? 'Descrição Enriquecida:' : 'Enriched Description:'}</p>
-                            <p className="text-[9px] text-[#ccc] whitespace-pre-line leading-relaxed">{sr.revised_description}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       {/* Navigation */}
