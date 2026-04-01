@@ -55,22 +55,43 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const applyFixes = async () => {
     setApplying(true);
     try {
-      const res = await axios.post(`${API}/studio/projects/${projectId}/director/apply-fixes`);
-      toast.success(lang === 'pt'
-        ? `${res.data.applied} cena(s) corrigida(s) pelo Director!`
-        : `${res.data.applied} scene(s) fixed by Director!`);
+      const res = await axios.post(`${API}/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true });
+      const applied = res.data.applied;
       
-      // Notify parent component that scenes were updated (for real-time UI update)
-      if (onApprove && typeof onApprove === 'function') {
-        // Trigger parent to reload project data
+      toast.success(lang === 'pt'
+        ? `${applied} cena(s) corrigida(s) pelo Director!`
+        : `${applied} scene(s) fixed by Director!`);
+      
+      // If re-evaluation was performed, update the review
+      if (res.data.re_evaluated && res.data.new_review) {
+        const newReview = res.data.new_review;
+        setReview(newReview);
+        
+        const newScore = newReview.overall_score || 0;
+        const needsWork = (newReview.scene_reviews || []).filter(s => s.score < 80).length;
+        
+        if (newScore >= 90 && needsWork === 0) {
+          toast.success(lang === 'pt' 
+            ? `🎉 EXCELENTE! Score: ${newScore}% - Aprovado para produção!`
+            : `🎉 EXCELLENT! Score: ${newScore}% - Approved for production!`, { duration: 5000 });
+        } else if (newScore >= 80 && needsWork === 0) {
+          toast.success(lang === 'pt'
+            ? `✅ BOM! Score: ${newScore}% - Pode prosseguir (pequenos ajustes recomendados)`
+            : `✅ GOOD! Score: ${newScore}% - Can proceed (minor polishing recommended)`, { duration: 5000 });
+        } else {
+          toast.warning(lang === 'pt'
+            ? `⚠️ Score: ${newScore}% - ${needsWork} cena(s) ainda abaixo de 80%. Clique "Aplicar Correções" novamente.`
+            : `⚠️ Score: ${newScore}% - ${needsWork} scene(s) still below 80%. Click "Apply Fixes" again.`, { duration: 7000 });
+        }
+      } else {
+        // Fallback if no re-evaluation
         setTimeout(() => {
           toast.info(lang === 'pt' 
-            ? 'Correções aplicadas! Volte aos Diálogos para ver as mudanças.' 
-            : 'Fixes applied! Go back to Dialogues to see changes.');
+            ? 'Correções aplicadas! Volte aos Diálogos para ver as mudanças ou clique "Re-analisar" para verificar o novo score.' 
+            : 'Fixes applied! Go back to Dialogues to see changes or click "Re-analyze" to check new score.');
         }, 1000);
       }
       
-      // Don't re-run full review (too slow), user can manually re-analyze if needed
     } catch (err) {
       toast.error(getErrorMsg(err, 'Apply fixes failed'));
     } finally {
@@ -168,15 +189,24 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
                 </div>
               </div>
               {hasRevisions && (
-                <button onClick={applyFixes} disabled={applying}
-                  data-testid="apply-director-fixes-btn"
-                  className="text-xs px-3 py-2 rounded-lg bg-orange-500 text-black font-bold hover:bg-[#EA580C] transition disabled:opacity-50 flex items-center gap-1.5">
-                  {applying ? <RefreshCw size={11} className="animate-spin" /> : <Zap size={11} />}
-                  {applying
-                    ? (lang === 'pt' ? 'Aplicando...' : 'Applying...')
-                    : (lang === 'pt' ? 'Aplicar Correções do Director' : 'Apply Director Fixes')
-                  }
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button onClick={applyFixes} disabled={applying}
+                    data-testid="apply-director-fixes-btn"
+                    className="text-xs px-3 py-2 rounded-lg bg-orange-500 text-black font-bold hover:bg-[#EA580C] transition disabled:opacity-50 flex items-center justify-center gap-1.5">
+                    {applying ? <RefreshCw size={11} className="animate-spin" /> : <Zap size={11} />}
+                    {applying
+                      ? (lang === 'pt' ? 'Aplicando e re-avaliando...' : 'Applying & re-evaluating...')
+                      : (lang === 'pt' ? 'Aplicar Correções + Re-avaliar' : 'Apply Fixes + Re-evaluate')
+                    }
+                  </button>
+                  {score < 90 && (
+                    <p className="text-[9px] text-amber-500 text-center">
+                      {lang === 'pt' 
+                        ? '⚡ Workflow automático: Aplica → Re-avalia → Aprovação >= 90%'
+                        : '⚡ Auto workflow: Apply → Re-evaluate → Approval >= 90%'}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
