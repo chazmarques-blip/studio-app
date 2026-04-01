@@ -39,7 +39,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get(`/api/studio/projects/${projectId}/director/review`);
+        const res = await api.get(`/studio/projects/${projectId}/director/review`);
         if (res.data.has_review) setReview(res.data.review);
       } catch { /* no review yet */ }
       setLoading(false);
@@ -75,7 +75,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
     
     const pollInterval = setInterval(async () => {
       try {
-        const res = await api.get(`/api/studio/projects/${projectId}/director/progress`);
+        const res = await api.get(`/studio/projects/${projectId}/director/progress`);
         
         if (res.data.in_progress) {
           const currentProgress = res.data.progress;
@@ -106,7 +106,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             
             // Call resume endpoint
             try {
-              const resumeRes = await api.post(`/api/studio/projects/${projectId}/director/resume`);
+              const resumeRes = await api.post(`/studio/projects/${projectId}/director/resume`);
               if (resumeRes.data.scene_reviews || resumeRes.data.verdict) {
                 // Resume completed successfully!
                 setReview(resumeRes.data);
@@ -128,7 +128,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
           
           // Check if review completed
           try {
-            const reviewRes = await api.get(`/api/studio/projects/${projectId}/director/review`);
+            const reviewRes = await api.get(`/studio/projects/${projectId}/director/review`);
             if (reviewRes.data.has_review && reviewing) {
               setReview(reviewRes.data.review);
               setReviewing(false);
@@ -154,7 +154,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const runReview = async () => {
     setReviewing(true);
     try {
-      const res = await api.post(`/api/studio/projects/${projectId}/director/review`, { focus: 'full' }, { timeout: 300000 }); // 5 minutes (was 120s - too short!)
+      const res = await api.post(`/studio/projects/${projectId}/director/review`, { focus: 'full' }, { timeout: 300000 }); // 5 minutes (was 120s - too short!)
       setReview(res.data);
       toast.success(lang === 'pt' ? 'Revisão do Director concluída!' : 'Director review complete!');
     } catch (err) {
@@ -168,7 +168,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
     setReviewing(true);
     toast.info(lang === 'pt' ? '🔄 Retomando revisão travada...' : '🔄 Resuming stuck review...');
     try {
-      const res = await api.post(`/api/studio/projects/${projectId}/director/resume`);
+      const res = await api.post(`/studio/projects/${projectId}/director/resume`);
       setReview(res.data);
       toast.success(lang === 'pt' ? '✅ Revisão retomada e concluída!' : '✅ Review resumed and completed!');
     } catch (err) {
@@ -181,7 +181,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const applyFixes = async () => {
     setApplying(true);
     try {
-      const res = await api.post(`/api/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true }, { timeout: 300000 }); // 5 minutes
+      const res = await api.post(`/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true }, { timeout: 300000 }); // 5 minutes
       const applied = res.data.applied;
       
       toast.success(lang === 'pt'
