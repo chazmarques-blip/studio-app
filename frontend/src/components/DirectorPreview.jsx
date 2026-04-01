@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Eye, RefreshCw, ChevronLeft, ChevronRight, Check, X, AlertTriangle, Star, Sparkles, Film, BookOpen, Zap } from 'lucide-react';
+import { Eye, RefreshCw, ChevronLeft, ChevronRight, Check, X, AlertTriangle, Star, Sparkles, Film, BookOpen, Zap, ChevronDown } from 'lucide-react';
 import { getErrorMsg } from '../utils/getErrorMsg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const STATUS_COLORS = {
-  EXCELLENT: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5',
-  GOOD: 'text-sky-400 border-sky-500/20 bg-sky-500/5',
-  NEEDS_WORK: 'text-amber-400 border-amber-500/20 bg-amber-500/5',
-  CRITICAL: 'text-red-400 border-red-500/20 bg-red-500/5',
+  EXCELLENT: { text: 'text-emerald-500', border: 'border-emerald-500/20', bg: 'bg-emerald-500/5' },
+  GOOD: { text: 'text-blue-500', border: 'border-blue-500/20', bg: 'bg-blue-500/5' },
+  NEEDS_WORK: { text: 'text-amber-500', border: 'border-amber-500/20', bg: 'bg-amber-500/5' },
+  CRITICAL: { text: 'text-red-500', border: 'border-red-500/20', bg: 'bg-red-500/5' },
+};
+
+const STATUS_LABELS = {
+  EXCELLENT: { pt: 'EXCELENTE', en: 'EXCELLENT' },
+  GOOD: { pt: 'BOM', en: 'GOOD' },
+  NEEDS_WORK: { pt: 'PRECISA MELHORAR', en: 'NEEDS WORK' },
+  CRITICAL: { pt: 'CRÍTICO', en: 'CRITICAL' },
 };
 
 const STATUS_ICONS = {
@@ -296,7 +303,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className={`font-bold ${statusClass.text} shrink-0`}>{sr.score}</span>
                       <p className="font-medium text-gray-900 truncate">
-                        Cena {sr.scene_number}: {sceneReviews.find(s => s.scene_number === sr.scene_number)?.title || 'Sem título'}
+                        Cena {sr.scene_number}: {scenes?.find(s => s.scene_number === sr.scene_number)?.title || 'Sem título'}
                       </p>
                     </div>
                     
