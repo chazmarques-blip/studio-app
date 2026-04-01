@@ -4,6 +4,7 @@ Reviews the entire script + dialogues with the standards of world-class director
 (Spielberg, Miyazaki, Pixar) before sending to storyboard production.
 """
 from ._shared import *
+import json
 
 # Use the shared router from _shared.py (do NOT create a new router)
 
@@ -13,6 +14,156 @@ class DirectorReviewRequest(BaseModel):
 
 
 async def _review_scene_batch(batch_scenes, characters, project_meta, lang, batch_num):
+    """Review a batch of scenes in parallel (simulates multiple directors working together)."""
+    import litellm
+    
+    LANG_MAP = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
+    
+    # Build script text for this batch only
+    script_text = ""
+    for s in batch_scenes:
+        dubbed = s.get("dubbed_text", "").strip()
+        narrated = s.get("narrated_text", "").strip() or s.get("narration", "").strip()
+        dialogue = s.get("dialogue", "").strip()
+        chars_in = s.get("characters_in_scene", [])
+        
+        script_text += f"\n═══ CENA {s.get('scene_number', '?')} — {s.get('title', 'Sem título')} ═══\n"
+        script_text += f"Tempo: {s.get('time_start', '?')} - {s.get('time_end', '?')}\n"
+        script_text += f"Emoção: {s.get('emotion', '?')}\n"
+        script_text += f"Câmara: {s.get('camera', '?')}\n"
+        script_text += f"Personagens: {', '.join(chars_in) if chars_in else 'Não definido'}\n"
+        script_text += f"Descrição: {s.get('description', '?')}\n"
+        if dubbed:
+            script_text += f"DIÁLOGO DUBLADO:\n{dubbed}\n"
+        elif dialogue:
+            script_text += f"DIÁLOGO ORIGINAL:\n{dialogue}\n"
+        if narrated:
+            script_text += f"NARRAÇÃO:\n{narrated}\n"
+        script_text += "\n"
+    
+    char_desc = "\n".join([
+        f"- {c.get('name', '?')}: {c.get('description', '?')} | Papel: {c.get('role', '?')}"
+        for c in characters
+    ])
+    
+    system_prompt = f"""You are a LEGENDARY FILM DIRECTOR reviewing a BATCH of scenes from a larger project. You're part of a DIRECTOR'S TEAM — each director reviews a portion of scenes with the SAME high standards.
+
+PROJECT: {project_meta.get('name', 'Untitled')}
+BRIEFING: {project_meta.get('briefing', '')[:300]}
+LANGUAGE: {LANG_MAP.get(lang, 'Portuguese')}
+BATCH: {batch_num} (Scenes {batch_scenes[0].get('scene_number')} - {batch_scenes[-1].get('scene_number')})
+
+CHARACTERS:
+{char_desc}
+
+YOUR REVIEW MUST COVER for EACH scene in this batch:
+
+1. **DIALOGUE QUALITY** — Unique character voices, emotional depth, subtext
+2. **NARRATIVE PACING** — Natural flow, proper tension/release
+3. **EMOTIONAL IMPACT** — Goosebump moments, believable transitions
+4. **VISUAL STORYTELLING** — Rich descriptions for storyboard artists
+5. **CHARACTER CONSISTENCY** — True to established personalities
+6. **MISSING ELEMENTS** — What would make this scene LEGENDARY?
+
+SCORING STANDARDS:
+- 90-100: EXCELLENT — World-class, ready for production
+- 80-89: GOOD — Solid, minor polish needed
+- 60-79: NEEDS_WORK — Significant improvements required
+- <60: CRITICAL — Major revision needed
+
+RESPOND IN {LANG_MAP.get(lang, 'Portuguese')} with this JSON structure:
+{{
+  "batch_number": {batch_num},
+  "scene_reviews": [
+    {{
+      "scene_number": int,
+      "score": 0-100,
+      "status": "EXCELLENT" or "GOOD" or "NEEDS_WORK" or "CRITICAL",
+      "issues": ["issue 1", "issue 2"],
+      "suggestions": ["suggestion 1"],
+      "revised_dialogue": "Only if dialogue needs improvement — provide the improved version",
+      "revised_narration": "Only if narration needs improvement",
+      "revised_description": "Only if scene description is too vague for storyboard"
+    }}
+  ]
+}}"""
+    
+    user_prompt = f"Review these {len(batch_scenes)} scenes with your highest professional standards:\n\n{script_text}"
+    
+    try:
+        response = await litellm.acompletion(
+            model="anthropic/claude-sonnet-4-5-20250929",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            api_key=api_key,
+            max_tokens=6000,
+            timeout=120,  # 2 minutes per batch (much faster than reviewing all at once)
+        )
+        
+        result = response.choices[0].message.content.strip()
+        if result.startswith("```json"):
+            result = result[7:]
+        if result.startswith("```"):
+            result = result[3:]
+        if result.endswith("```"):
+            result = result[:-3]
+        
+        review_data = json.loads(result.strip())
+        logger.info(f"Batch {batch_num}: Reviewed {len(review_data.get('scene_reviews', []))} scenes")
+        return review_data.get("scene_reviews", [])
+        
+    except Exception as e:
+        logger.error(f"Batch {batch_num} failed: {e}")
+        # Return placeholder reviews for failed batch
+        return [{
+            "scene_number": s.get("scene_number"),
+            "score": 50,
+            "status": "NEEDS_WORK",
+            "issues": [f"Review failed: {str(e)[:100]}"],
+            "suggestions": ["Please re-run review"]
+        } for s in batch_scenes]
+
+
+async def _review_scene_batch_with_progress(batch_scenes, characters, project_meta, lang, batch_num, tenant_id, project_id, total_batches):
+    """Same as _review_scene_batch but updates progress in real-time."""
+    
+    # Update progress: batch starting
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project and project.get("director_progress"):
+            progress = project["director_progress"]
+            progress["current_batch"] = batch_num
+            progress["status"] = f"reviewing_batch_{batch_num}"
+            _update_project_field(tenant_id, project_id, {"director_progress": progress})
+    except:
+        pass  # Don't fail if progress update fails
+    
+    # Do the actual review
+    result = await _review_scene_batch(batch_scenes, characters, project_meta, lang, batch_num)
+    
+    # Update progress: batch complete
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project and project.get("director_progress"):
+            progress = project["director_progress"]
+            
+            # Calculate average score of this batch
+            batch_avg = sum(sr.get("score", 0) for sr in result) / len(result) if result else 0
+            progress["batch_scores"].append({"batch": batch_num, "score": batch_avg})
+            progress["scenes_processed"] += len(batch_scenes)
+            
+            # Calculate overall score so far
+            all_scores = [bs["score"] for bs in progress["batch_scores"]]
+            progress["current_score"] = sum(all_scores) / len(all_scores) if all_scores else 0
+            
+            _update_project_field(tenant_id, project_id, {"director_progress": progress})
+    except:
+        pass
+    
+    return result
     """Review a batch of scenes in parallel (simulates multiple directors working together)."""
     import litellm
     
@@ -159,8 +310,21 @@ async def director_review(project_id: str, req: DirectorReviewRequest, tenant=De
         "briefing": project.get("briefing", "")
     }
     
+    # Initialize progress tracking
+    _update_project_field(tenant["id"], project_id, {
+        "director_progress": {
+            "status": "reviewing",
+            "current_batch": 0,
+            "total_batches": len(batches),
+            "current_score": 0,
+            "scenes_processed": 0,
+            "total_scenes": len(scenes),
+            "batch_scores": []
+        }
+    })
+    
     batch_tasks = [
-        _review_scene_batch(batch, characters, project_meta, lang, batch_num + 1)
+        _review_scene_batch_with_progress(batch, characters, project_meta, lang, batch_num + 1, tenant["id"], project_id, len(batches))
         for batch_num, batch in enumerate(batches)
     ]
     
@@ -169,6 +333,9 @@ async def director_review(project_id: str, req: DirectorReviewRequest, tenant=De
     except Exception as e:
         logger.error(f"Parallel batching failed: {e}")
         raise HTTPException(500, f"Director review failed: {str(e)}")
+    finally:
+        # Clear progress after completion
+        _update_project_field(tenant["id"], project_id, {"director_progress": None})
     
     # Merge all scene reviews from batches
     all_scene_reviews = []
@@ -245,7 +412,7 @@ PADRÃO DE QUALIDADE:
 
 
 @router.post("/projects/{project_id}/director/apply-fixes")
-async def director_apply_fixes(project_id: str, payload: dict = None, tenant=Depends(get_current_tenant)):
+async def director_apply_fixes(project_id: str, payload: dict = Body(None), tenant=Depends(get_current_tenant)):
     """Apply the director's suggested revisions to scenes (dialogue, narration, description).
     OPTIONAL: Set {"re_evaluate": true} to automatically re-run director review after applying fixes."""
     settings, projects, project = _get_project(tenant["id"], project_id)
@@ -293,6 +460,19 @@ async def director_apply_fixes(project_id: str, payload: dict = None, tenant=Dep
     
     if re_evaluate and applied > 0:
         logger.info(f"Studio [{project_id}]: Re-evaluating after fixes...")
+        
+        # Save progress state for real-time updates
+        _update_project_field(tenant["id"], project_id, {
+            "director_progress": {
+                "status": "re_evaluating",
+                "current_batch": 0,
+                "total_batches": 0,
+                "current_score": 0,
+                "scenes_processed": 0,
+                "total_scenes": len(scenes)
+            }
+        })
+        
         try:
             # Call the director review endpoint internally
             from fastapi import Request
@@ -303,6 +483,11 @@ async def director_apply_fixes(project_id: str, payload: dict = None, tenant=Dep
             logger.error(f"Re-evaluation failed: {e}")
             # Don't fail the whole request if re-eval fails
             new_review = {"error": str(e)}
+        finally:
+            # Clear progress state
+            _update_project_field(tenant["id"], project_id, {
+                "director_progress": None
+            })
 
     return {
         "applied": applied,
@@ -327,4 +512,22 @@ async def get_director_review(project_id: str, tenant=Depends(get_current_tenant
         "has_review": True,
         "review": review,
         "reviewed_at": project.get("director_review_at"),
+    }
+
+
+
+@router.get("/projects/{project_id}/director/progress")
+async def get_director_progress(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get real-time progress of director review or re-evaluation."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    progress = project.get("director_progress")
+    if not progress:
+        return {"in_progress": False}
+    
+    return {
+        "in_progress": True,
+        "progress": progress
     }

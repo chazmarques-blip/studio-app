@@ -26,6 +26,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const [reviewing, setReviewing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [expandedScene, setExpandedScene] = useState(null);
+  const [progress, setProgress] = useState(null);
 
   // Load existing review
   useEffect(() => {
@@ -38,6 +39,29 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
     };
     load();
   }, [projectId]);
+  
+  // Poll progress during review/re-evaluation
+  useEffect(() => {
+    if (!applying && !reviewing) {
+      setProgress(null);
+      return;
+    }
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await axios.get(`${API}/studio/projects/${projectId}/director/progress`);
+        if (res.data.in_progress) {
+          setProgress(res.data.progress);
+        } else {
+          setProgress(null);
+        }
+      } catch (err) {
+        console.error('Poll progress failed:', err);
+      }
+    }, 2000); // Poll every 2 seconds
+    
+    return () => clearInterval(pollInterval);
+  }, [applying, reviewing, projectId]);
 
   const runReview = async () => {
     setReviewing(true);
@@ -136,8 +160,66 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
         </button>
       </div>
 
-      {/* Reviewing state */}
-      {reviewing && (
+      {/* Reviewing state with real-time progress */}
+      {(reviewing || applying) && progress && (
+        <div className="border border-orange-500/20 rounded-xl bg-orange-500/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <RefreshCw size={16} className="animate-spin text-orange-600" />
+              <p className="text-xs text-orange-600 font-bold">
+                {lang === 'pt' 
+                  ? (applying ? 'Re-avaliando Qualidade...' : 'Director Analisando...')
+                  : (applying ? 'Re-evaluating Quality...' : 'Director Analyzing...')}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-orange-600">{Math.round(progress.current_score || 0)}%</p>
+              <p className="text-[9px] text-gray-500">score médio</p>
+            </div>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] text-gray-600">
+              <span>
+                {lang === 'pt' ? 'Progresso' : 'Progress'}: Batch {progress.current_batch}/{progress.total_batches}
+              </span>
+              <span>{progress.scenes_processed}/{progress.total_scenes} cenas</span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-500"
+                style={{ width: `${(progress.scenes_processed / progress.total_scenes) * 100}%` }}
+              />
+            </div>
+          </div>
+          
+          {/* Batch scores */}
+          {progress.batch_scores && progress.batch_scores.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {progress.batch_scores.map((bs, i) => (
+                <div key={i} className={`px-2 py-0.5 rounded text-[9px] font-medium ${
+                  bs.score >= 90 ? 'bg-emerald-500/20 text-emerald-600' :
+                  bs.score >= 80 ? 'bg-blue-500/20 text-blue-600' :
+                  bs.score >= 60 ? 'bg-amber-500/20 text-amber-600' :
+                  'bg-red-500/20 text-red-600'
+                }`}>
+                  Batch {bs.batch}: {Math.round(bs.score)}%
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <p className="text-[10px] text-gray-500 text-center">
+            {lang === 'pt' 
+              ? 'Equipe de diretores trabalhando em paralelo...'
+              : 'Team of directors working in parallel...'}
+          </p>
+        </div>
+      )}
+      
+      {/* Reviewing state (fallback when no progress) */}
+      {(reviewing || applying) && !progress && (
         <div className="text-center py-8 border border-orange-500/20 rounded-xl bg-orange-500/5">
           <RefreshCw size={20} className="animate-spin text-orange-600 mx-auto mb-2" />
           <p className="text-xs text-orange-600 font-medium">
