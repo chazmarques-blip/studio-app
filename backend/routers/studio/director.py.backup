@@ -177,8 +177,6 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
 
 
 async def _review_scene_batch_with_progress(batch_scenes, characters, project_meta, lang, batch_num, tenant_id, project_id, total_batches):
-    """Same as _review_scene_batch but updates progress in real-time with WATCHDOG timestamps."""
-    from datetime import datetime, timezone
     
     # Update progress: batch starting
     try:
