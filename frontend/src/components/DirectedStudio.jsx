@@ -2752,16 +2752,43 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           {/* Start Production Button - Only show if not generating */}
           {!generating && !agentStatus.phase && scenes.length > 0 && (
-            <div className="mb-4 text-center">
-              <button
-                onClick={startProduction}
-                disabled={generating}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-gray-900 font-bold text-sm shadow-lg shadow-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                data-testid="start-production-btn">
-                <Film size={16} />
-                {lang === 'pt' ? 'INICIAR PRODUÇÃO COMPLETA' : 'START FULL PRODUCTION'}
-                <Sparkles size={16} />
-              </button>
+            <div className="mb-4 text-center space-y-2">
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={startProduction}
+                  disabled={generating}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-gray-900 font-bold text-sm shadow-lg shadow-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="start-production-btn">
+                  <Film size={16} />
+                  {lang === 'pt' ? 'INICIAR PRODUÇÃO COMPLETA' : 'START FULL PRODUCTION'}
+                  <Sparkles size={16} />
+                </button>
+                
+                {/* Button to produce only missing scenes */}
+                {outputs.length > 0 && outputs.length < scenes.length && (
+                  <button
+                    onClick={() => {
+                      const missingScenes = scenes.filter(s => {
+                        const sceneNum = s.scene_number || scenes.indexOf(s) + 1;
+                        return !outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
+                      });
+                      if (missingScenes.length === 0) {
+                        toast.info(lang === 'pt' ? 'Todas as cenas já foram geradas!' : 'All scenes already generated!');
+                        return;
+                      }
+                      if (window.confirm(lang === 'pt' 
+                        ? `Produzir ${missingScenes.length} cena(s) faltante(s)?`
+                        : `Produce ${missingScenes.length} missing scene(s)?`
+                      )) {
+                        startProduction();
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-orange-500/10 border-2 border-orange-500/30 text-orange-600 font-bold text-sm hover:bg-orange-500/20 transition-all transform hover:scale-105">
+                    <Plus size={16} />
+                    {lang === 'pt' ? `Produzir ${scenes.length - outputs.filter(o => o.type === 'video' && o.url).length} Faltantes` : `Produce ${scenes.length - outputs.filter(o => o.type === 'video' && o.url).length} Missing`}
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-gray-500 mt-2">
                 {lang === 'pt' 
                   ? `${scenes.length} cenas serão produzidas com direção profissional de fotografia, áudio e vídeo`
@@ -2904,28 +2931,45 @@ export const DirectedStudio = memo(function DirectedStudio({
                         className="w-full max-h-[120px] object-contain" />
                     </div>
                   )}
-                  {/* Per-scene action buttons: Retry + Edit */}
-                  {(videoError || videoDone) && !generating && (
+                  {/* Per-scene action buttons: Generate (for queued) / Retry + Edit (for done/error) */}
+                  {!generating && (
                     <div className="mt-1.5 flex gap-1">
-                      <button
-                        onClick={() => regenerateScene(sceneNum)}
-                        disabled={regenScene === sceneNum}
-                        data-testid={`regen-scene-${sceneNum}`}
-                        className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition ${
-                          videoError
-                            ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
-                            : 'bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30'
-                        } ${regenScene === sceneNum ? 'opacity-50' : ''}`}>
-                        <RefreshCw size={8} className={regenScene === sceneNum ? 'animate-spin' : ''} />
-                        {regenScene === sceneNum ? (lang === 'pt' ? 'Regenerando...' : 'Regenerating...') : (lang === 'pt' ? 'Regenerar' : 'Retry')}
-                      </button>
-                      <button
-                        onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }}
-                        data-testid={`edit-scene-${sceneNum}`}
-                        className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30 transition">
-                        <Edit3 size={8} />
-                        {lang === 'pt' ? 'Editar' : 'Edit'}
-                      </button>
+                      {/* Generate button for scenes never produced */}
+                      {!videoDone && !videoError && sceneState === 'queued' && (
+                        <button
+                          onClick={() => regenerateScene(sceneNum)}
+                          disabled={regenScene === sceneNum}
+                          data-testid={`generate-scene-${sceneNum}`}
+                          className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition bg-orange-500/10 border border-orange-500/30 text-orange-600 hover:bg-orange-500/20 ${regenScene === sceneNum ? 'opacity-50' : ''}`}>
+                          <Play size={8} className={regenScene === sceneNum ? 'animate-spin' : ''} />
+                          {regenScene === sceneNum ? (lang === 'pt' ? 'Gerando...' : 'Generating...') : (lang === 'pt' ? 'Gerar Vídeo' : 'Generate Video')}
+                        </button>
+                      )}
+                      
+                      {/* Regenerate button for scenes already produced */}
+                      {(videoError || videoDone) && (
+                        <>
+                          <button
+                            onClick={() => regenerateScene(sceneNum)}
+                            disabled={regenScene === sceneNum}
+                            data-testid={`regen-scene-${sceneNum}`}
+                            className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition ${
+                              videoError
+                                ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
+                                : 'bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30'
+                            } ${regenScene === sceneNum ? 'opacity-50' : ''}`}>
+                            <RefreshCw size={8} className={regenScene === sceneNum ? 'animate-spin' : ''} />
+                            {regenScene === sceneNum ? (lang === 'pt' ? 'Regenerando...' : 'Regenerating...') : (lang === 'pt' ? 'Regenerar' : 'Retry')}
+                          </button>
+                          <button
+                            onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }}
+                            data-testid={`edit-scene-${sceneNum}`}
+                            className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30 transition">
+                            <Edit3 size={8} />
+                            {lang === 'pt' ? 'Editar' : 'Edit'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                   {/* Scene edit form (inline) */}
