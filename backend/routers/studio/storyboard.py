@@ -169,14 +169,35 @@ async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = 
                 frames_to_generate=frames_to_generate,  # NEW: selective frame generation
             )
             done_count = len([p for p in panels if p.get("image_url")])
+            
+            # CRITICAL FIX: Save to BOTH storyboard_panels AND outputs (for frontend compatibility)
+            outputs = _project.get("outputs", [])
+            
+            # Remove old storyboard outputs
+            outputs = [o for o in outputs if o.get("type") != "storyboard"]
+            
+            # Add new storyboard outputs
+            for panel in panels:
+                if panel.get("image_url"):  # Only add successful panels
+                    outputs.append({
+                        "type": "storyboard",
+                        "scene_number": panel["scene_number"],
+                        "url": panel["image_url"],
+                        "status": panel.get("status", "done"),
+                        "title": panel.get("title", ""),
+                        "frames": panel.get("frames", []),
+                        "created_at": panel.get("generated_at", datetime.now(timezone.utc).isoformat()),
+                    })
+            
             _update_project_field(tenant["id"], project_id, {
                 "storyboard_panels": panels,
+                "outputs": outputs,  # CRITICAL: Save to outputs too!
                 "storyboard_status": {"phase": "complete", "current": len(panels), "total": len(panels), "panels_done": done_count},
                 "storyboard_approved": False,
             })
             _add_milestone(_project, "storyboard_generated", f"Storyboard — {done_count}/{len(panels)} painéis")
             _save_project(tenant["id"], _settings, _projects)
-            logger.info(f"Storyboard [{project_id}]: Complete — {done_count}/{len(panels)} panels")
+            logger.info(f"Storyboard [{project_id}]: Complete — {done_count}/{len(panels)} panels | {len(outputs)} outputs saved")
         except Exception as e:
             logger.error(f"Storyboard [{project_id}]: Generation failed: {e}")
             _update_project_field(tenant["id"], project_id, {
