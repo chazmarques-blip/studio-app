@@ -138,7 +138,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const runReview = async () => {
     setReviewing(true);
     try {
-      const res = await axios.post(`${API}/studio/projects/${projectId}/director/review`, { focus: 'full' }, { timeout: 120000 });
+      const res = await axios.post(`${API}/studio/projects/${projectId}/director/review`, { focus: 'full' }, { timeout: 300000 }); // 5 minutes (was 120s - too short!)
       setReview(res.data);
       toast.success(lang === 'pt' ? 'Revisão do Director concluída!' : 'Director review complete!');
     } catch (err) {
@@ -278,6 +278,11 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             <div className="flex justify-between text-[10px] text-gray-600">
               <span>
                 {lang === 'pt' ? 'Progresso' : 'Progress'}: Batch {progress.current_batch}/{progress.total_batches}
+                {progress.current_batch === progress.total_batches && (
+                  <span className="ml-2 text-amber-600 animate-pulse">
+                    ({lang === 'pt' ? 'Último batch, pode demorar até 90s...' : 'Last batch, may take up to 90s...'})
+                  </span>
+                )}
               </span>
               <span>{progress.scenes_processed}/{progress.total_scenes} cenas</span>
             </div>
