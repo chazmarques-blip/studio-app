@@ -165,7 +165,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const applyFixes = async () => {
     setApplying(true);
     try {
-      const res = await axios.post(`${API}/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true });
+      const res = await axios.post(`${API}/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true }, { timeout: 300000 }); // 5 minutes
       const applied = res.data.applied;
       
       toast.success(lang === 'pt'
@@ -176,6 +176,8 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
       if (res.data.re_evaluated && res.data.new_review) {
         const newReview = res.data.new_review;
         setReview(newReview);
+        setReviewing(false); // CRITICAL: Stop reviewing state
+        setApplying(false);  // CRITICAL: Stop applying state
         
         const newScore = newReview.overall_score || 0;
         const needsWork = (newReview.scene_reviews || []).filter(s => s.score < 80).length;
@@ -195,6 +197,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
         }
       } else {
         // Fallback if no re-evaluation
+        setApplying(false); // CRITICAL: Stop applying state even if no re-eval
         setTimeout(() => {
           toast.info(lang === 'pt' 
             ? 'Correções aplicadas! Volte aos Diálogos para ver as mudanças ou clique "Re-analisar" para verificar o novo score.' 
@@ -205,7 +208,9 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
     } catch (err) {
       toast.error(getErrorMsg(err, 'Apply fixes failed'));
     } finally {
+      // CRITICAL: Always stop applying state, even on error
       setApplying(false);
+      setReviewing(false);
     }
   };
 
