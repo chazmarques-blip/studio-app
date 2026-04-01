@@ -390,89 +390,97 @@ PADRÃO DE QUALIDADE:
 
 
 @router.post("/projects/{project_id}/director/apply-fixes")
-async def director_apply_fixes(project_id: str, payload: dict = Body(None), tenant=Depends(get_current_tenant)):
+async def director_apply_fixes(project_id: str, payload: dict = Body(default=None), tenant=Depends(get_current_tenant)):
     """Apply the director's suggested revisions to scenes (dialogue, narration, description).
     OPTIONAL: Set {"re_evaluate": true} to automatically re-run director review after applying fixes."""
-    settings, projects, project = _get_project(tenant["id"], project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    try:
+        settings, projects, project = _get_project(tenant["id"], project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
 
-    review = project.get("director_review", {})
-    scene_reviews = review.get("scene_reviews", [])
-    if not scene_reviews:
-        raise HTTPException(status_code=400, detail="No director review found. Run review first.")
+        review = project.get("director_review", {})
+        scene_reviews = review.get("scene_reviews", [])
+        if not scene_reviews:
+            raise HTTPException(status_code=400, detail="No director review found. Run review first.")
 
-    scenes = project.get("scenes", [])
-    applied = 0
+        scenes = project.get("scenes", [])
+        applied = 0
 
-    for sr in scene_reviews:
-        snum = sr.get("scene_number")
-        if not snum:
-            continue
-        scene_idx = next((i for i, s in enumerate(scenes) if s.get("scene_number") == snum), None)
-        if scene_idx is None:
-            continue
+        for sr in scene_reviews:
+            snum = sr.get("scene_number")
+            if not snum:
+                continue
+            scene_idx = next((i for i, s in enumerate(scenes) if s.get("scene_number") == snum), None)
+            if scene_idx is None:
+                continue
 
-        updated = False
-        if sr.get("revised_dialogue") and sr["revised_dialogue"].strip():
-            scenes[scene_idx]["dubbed_text"] = sr["revised_dialogue"]
-            updated = True
-        if sr.get("revised_narration") and sr["revised_narration"].strip():
-            scenes[scene_idx]["narrated_text"] = sr["revised_narration"]
-            updated = True
-        if sr.get("revised_description") and sr["revised_description"].strip():
-            scenes[scene_idx]["description"] = sr["revised_description"]
-            updated = True
+            updated = False
+            if sr.get("revised_dialogue") and sr["revised_dialogue"].strip():
+                scenes[scene_idx]["dubbed_text"] = sr["revised_dialogue"]
+                updated = True
+            if sr.get("revised_narration") and sr["revised_narration"].strip():
+                scenes[scene_idx]["narrated_text"] = sr["revised_narration"]
+                updated = True
+            if sr.get("revised_description") and sr["revised_description"].strip():
+                scenes[scene_idx]["description"] = sr["revised_description"]
+                updated = True
 
-        if updated:
-            applied += 1
+            if updated:
+                applied += 1
 
-    if applied > 0:
-        _update_project_field(tenant["id"], project_id, {"scenes": scenes})
+        if applied > 0:
+            _update_project_field(tenant["id"], project_id, {"scenes": scenes})
 
-    logger.info(f"Studio [{project_id}]: Director fixes applied to {applied}/{len(scene_reviews)} scenes")
+        logger.info(f"Studio [{project_id}]: Director fixes applied to {applied}/{len(scene_reviews)} scenes")
 
-    # Optional: Re-evaluate after applying fixes
-    re_evaluate = payload.get("re_evaluate", False) if payload else False
-    new_review = None
-    
-    if re_evaluate and applied > 0:
-        logger.info(f"Studio [{project_id}]: Re-evaluating after fixes...")
+        # Optional: Re-evaluate after applying fixes
+        re_evaluate = False
+        if payload:
+            re_evaluate = payload.get("re_evaluate", False)
         
-        # Save progress state for real-time updates
-        _update_project_field(tenant["id"], project_id, {
-            "director_progress": {
-                "status": "re_evaluating",
-                "current_batch": 0,
-                "total_batches": 0,
-                "current_score": 0,
-                "scenes_processed": 0,
-                "total_scenes": len(scenes)
-            }
-        })
+        new_review = None
         
-        try:
-            # Call the director review endpoint internally
-            from fastapi import Request
-            req_obj = DirectorReviewRequest(focus="full")
-            new_review = await director_review(project_id, req_obj, tenant)
-            logger.info(f"Studio [{project_id}]: Re-evaluation complete, new score: {new_review.get('overall_score')}")
-        except Exception as e:
-            logger.error(f"Re-evaluation failed: {e}")
-            # Don't fail the whole request if re-eval fails
-            new_review = {"error": str(e)}
-        finally:
-            # Clear progress state
+        if re_evaluate and applied > 0:
+            logger.info(f"Studio [{project_id}]: Re-evaluating after fixes...")
+            
+            # Save progress state for real-time updates
             _update_project_field(tenant["id"], project_id, {
-                "director_progress": None
+                "director_progress": {
+                    "status": "re_evaluating",
+                    "current_batch": 0,
+                    "total_batches": 0,
+                    "current_score": 0,
+                    "scenes_processed": 0,
+                    "total_scenes": len(scenes)
+                }
             })
+            
+            try:
+                # Call the director review endpoint internally
+                req_obj = DirectorReviewRequest(focus="full")
+                new_review = await director_review(project_id, req_obj, tenant)
+                logger.info(f"Studio [{project_id}]: Re-evaluation complete, new score: {new_review.get('overall_score')}")
+            except Exception as e:
+                logger.error(f"Re-evaluation failed: {e}")
+                # Don't fail the whole request if re-eval fails
+                new_review = {"error": str(e)}
+            finally:
+                # Clear progress state
+                _update_project_field(tenant["id"], project_id, {
+                    "director_progress": None
+                })
 
-    return {
-        "applied": applied,
-        "total_reviewed": len(scene_reviews),
-        "re_evaluated": re_evaluate,
-        "new_review": new_review if re_evaluate else None
-    }
+        return {
+            "applied": applied,
+            "total_reviewed": len(scene_reviews),
+            "re_evaluated": re_evaluate,
+            "new_review": new_review if re_evaluate else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Apply fixes failed: {e}")
+        raise HTTPException(500, f"Failed to apply fixes: {str(e)}")
 
 
 @router.get("/projects/{project_id}/director/review")
