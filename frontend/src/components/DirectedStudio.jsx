@@ -1145,12 +1145,65 @@ export const DirectedStudio = memo(function DirectedStudio({
       
       toast.success(msg);
       setCharGenProgress({ current: data.total, total: data.total, status: 'complete' });
+      
+      // Reload project to sync state
+      await loadProject(projectId);
     } catch (err) {
       console.error('Auto-gen characters error:', err);
       toast.error(lang === 'pt' ? 'Erro ao gerar personagens automaticamente' : 'Failed to auto-generate characters');
       setCharGenProgress({ current: 0, total: 0, status: 'error' });
     } finally {
       setTimeout(() => setAutoGenCharacters(false), 2000);
+    }
+  };
+
+  // Generate individual character avatar
+  const generateSingleCharacterAvatar = async (character) => {
+    if (!projectId || !character) return;
+
+    const charName = character.name;
+    setCharGenProgress({ current: 0, total: 1, status: 'starting', character: charName });
+
+    try {
+      const { data } = await axios.post(`${API}/studio/projects/${projectId}/characters/${encodeURIComponent(charName)}/generate`);
+      
+      if (data.status === 'generated' || data.status === 'reused') {
+        const newCharAvatars = { ...characterAvatars };
+        const newProjectAvatars = [...projectAvatars];
+        
+        newCharAvatars[charName] = data.avatar_url;
+        if (data.avatar_id) {
+          const avatarRecord = {
+            id: data.avatar_id,
+            name: charName,
+            url: data.avatar_url,
+          };
+          if (!newProjectAvatars.find(a => a.id === data.avatar_id)) {
+            newProjectAvatars.push(avatarRecord);
+          }
+        }
+        
+        setCharacterAvatars(newCharAvatars);
+        setProjectAvatars(newProjectAvatars);
+        
+        const msg = data.status === 'reused'
+          ? (lang === 'pt' ? `✨ ${charName} reutilizado do acervo!` : `✨ ${charName} reused from library!`)
+          : (lang === 'pt' ? `✨ ${charName} gerado com sucesso!` : `✨ ${charName} generated!`);
+        
+        toast.success(msg);
+        
+        // Reload project to sync state
+        await loadProject(projectId);
+      } else if (data.status === 'skipped') {
+        toast.info(lang === 'pt' ? `${charName} já tem avatar` : `${charName} already has avatar`);
+      }
+      
+      setCharGenProgress({ current: 1, total: 1, status: 'complete' });
+    } catch (err) {
+      console.error('Single char generation error:', err);
+      const errorMsg = err.response?.data?.detail || err.message;
+      toast.error(lang === 'pt' ? `Erro ao gerar ${charName}: ${errorMsg}` : `Failed to generate ${charName}: ${errorMsg}`);
+      setCharGenProgress({ current: 0, total: 0, status: 'error' });
     }
   };
 
@@ -2249,6 +2302,21 @@ export const DirectedStudio = memo(function DirectedStudio({
                     </div>
                     {/* Action buttons */}
                     <div className="flex flex-col gap-1 flex-shrink-0">
+                      {/* Generate individual character button */}
+                      {!characterAvatars[char.name] && (
+                        <button 
+                          onClick={() => generateSingleCharacterAvatar(char)} 
+                          data-testid={`gen-single-char-${ci}`}
+                          disabled={charGenProgress.status === 'starting' && charGenProgress.character === char.name}
+                          title={lang === 'pt' ? 'Gerar avatar deste personagem' : 'Generate this character avatar'}
+                          className="flex items-center gap-1 border border-orange-500/40 bg-[#8B5CF6]/5 text-orange-600 rounded px-1.5 py-1 text-[10px] hover:bg-[#8B5CF6]/15 transition disabled:opacity-50">
+                          {charGenProgress.status === 'starting' && charGenProgress.character === char.name ? (
+                            <><RefreshCw size={9} className="animate-spin" /> <span className="hidden sm:inline">{lang === 'pt' ? 'Gerando...' : 'Generating...'}</span></>
+                          ) : (
+                            <><Wand2 size={9} /> <span className="hidden sm:inline">{lang === 'pt' ? 'Gerar' : 'Generate'}</span></>
+                          )}
+                        </button>
+                      )}
                       <button onClick={() => copyPrompt(char)} data-testid={`copy-prompt-${ci}`}
                         title={lang === 'pt' ? 'Copiar prompt' : 'Copy prompt'}
                         className="flex items-center gap-1 border border-[#333] text-gray-600 rounded px-1.5 py-1 text-[10px] hover:text-orange-600 hover:border-orange-500/30 transition">
@@ -2340,15 +2408,19 @@ export const DirectedStudio = memo(function DirectedStudio({
             ))}
           </div>
 
-          {/* Fallback: Manual generation button (if auto-gen failed or was skipped) */}
-          {!autoGenCharacters && characters.some(c => !characterAvatars[c.name]) && (
+          {/* Generate All button - ALWAYS visible when there are missing avatars */}
+          {characters.some(c => !characterAvatars[c.name]) && (
             <button
               onClick={manualGenerateCharacters}
               data-testid="manual-gen-characters-btn"
-              className="w-full rounded-lg border-2 border-dashed border-orange-500/40 bg-[#8B5CF6]/5 py-2.5 text-xs font-bold text-orange-600 hover:bg-[#8B5CF6]/10 hover:border-orange-500/60 transition flex items-center justify-center gap-2"
+              disabled={autoGenCharacters}
+              className="w-full rounded-lg border-2 border-dashed border-orange-500/40 bg-[#8B5CF6]/5 py-2.5 text-xs font-bold text-orange-600 hover:bg-[#8B5CF6]/10 hover:border-orange-500/60 transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Sparkles size={14} />
-              {lang === 'pt' ? '🎨 Gerar Todos os Personagens Faltantes' : '🎨 Generate All Missing Characters'}
+              {autoGenCharacters ? (
+                <><RefreshCw size={14} className="animate-spin" /> {lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
+              ) : (
+                <><Sparkles size={14} /> {lang === 'pt' ? '🎨 Gerar Todos os Personagens Faltantes' : '🎨 Generate All Missing Characters'}</>
+              )}
             </button>
           )}
 

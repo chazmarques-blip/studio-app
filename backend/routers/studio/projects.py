@@ -542,3 +542,167 @@ CRITICAL REQUIREMENTS:
         results["voice_assignments"] = {"assigned": 0, "error": str(voice_err)}
 
     return results
+
+
+@router.post("/projects/{project_id}/characters/{character_name}/generate")
+async def generate_single_character_image(
+    project_id: str,
+    character_name: str,
+    tenant=Depends(get_current_tenant)
+):
+    """
+    Generate image for a single specific character.
+    Checks global library first, generates if not found.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    characters = project.get("characters", [])
+    character = next((c for c in characters if c.get("name") == character_name), None)
+    
+    if not character:
+        raise HTTPException(status_code=404, detail=f"Character '{character_name}' not found")
+
+    character_avatars = project.get("character_avatars", {})
+    visual_style = project.get("animation_sub", "pixar_3d")
+    global_avatars = settings.get("studio_avatars", [])
+    project_avatars = project.get("project_avatars", [])
+
+    # Check if already has avatar
+    if character_avatars.get(character_name):
+        return {
+            "status": "skipped",
+            "message": f"'{character_name}' already has an avatar",
+            "avatar_url": character_avatars[character_name]
+        }
+
+    STYLE_MAP = {
+        "pixar_3d": "Pixar 3D animation style, high quality CGI render",
+        "cartoon_3d": "Stylized 3D cartoon with cel-shading",
+        "cartoon_2d": "Classic 2D hand-drawn animation style",
+        "anime_2d": "Japanese anime art style (Makoto Shinkai quality)",
+        "realistic": "Photorealistic rendering",
+    }
+    style_hint = STYLE_MAP.get(visual_style, "High quality animation style")
+
+    try:
+        import base64
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
+        if not api_key:
+            raise Exception("EMERGENT_LLM_KEY not found in environment")
+    except Exception as e:
+        logger.error(f"Failed to initialize Gemini: {e}")
+        raise HTTPException(status_code=500, detail=f"Image generation unavailable: {str(e)}")
+
+    char_name = character.get("name", "")
+    char_desc = character.get("description", "")
+
+    # 1. Check global library for reuse
+    existing_global = next((a for a in global_avatars if a.get("name", "").lower() == char_name.lower()), None)
+    
+    if existing_global:
+        avatar_copy = {**existing_global, "added_at": datetime.now(timezone.utc).isoformat()}
+        avatar_copy["id"] = uuid.uuid4().hex[:12]
+        project_avatars.append(avatar_copy)
+        character_avatars[char_name] = avatar_copy["url"]
+        
+        project["project_avatars"] = project_avatars
+        project["character_avatars"] = character_avatars
+        project["updated_at"] = datetime.now(timezone.utc).isoformat()
+        _save_project(tenant["id"], settings, projects)
+        
+        logger.info(f"Reused avatar for '{char_name}' from global library")
+        return {
+            "status": "reused",
+            "character_name": char_name,
+            "avatar_url": avatar_copy["url"],
+            "avatar_id": avatar_copy["id"]
+        }
+
+    # 2. Generate new image
+    try:
+        prompt = f"""{char_desc}
+
+{style_hint}
+
+CRITICAL REQUIREMENTS:
+- Character facing FRONT (looking directly at camera)
+- TRANSPARENT background (no background elements)
+- Full body portrait visible
+- Character reference sheet quality
+- Sharp details, well-lit, neutral standing pose"""
+
+        logger.info(f"Generating image for character '{char_name}'")
+        
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"char-gen-{uuid.uuid4().hex[:8]}",
+            system_message="You are an expert AI image generator for animation character design."
+        )
+        chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+        
+        msg = UserMessage(text=prompt)
+        text_response, images = await chat.send_message_multimodal_response(msg)
+
+        if not images or len(images) == 0:
+            raise Exception("No image generated")
+
+        # Decode base64 image
+        image_data = images[0]['data']
+        image_bytes = base64.b64decode(image_data)
+
+        # Upload to Supabase
+        file_name = f"character_{uuid.uuid4().hex[:12]}.png"
+        
+        try:
+            upload_res = supabase.storage.from_("pipeline-assets").upload(
+                path=file_name,
+                file=image_bytes,
+                file_options={"content-type": "image/png"}
+            )
+            public_url = supabase.storage.from_("pipeline-assets").get_public_url(file_name)
+        except Exception as upload_err:
+            logger.error(f"Supabase upload failed for {char_name}: {upload_err}")
+            raise Exception(f"Upload failed: {str(upload_err)}")
+
+        # Create avatar record
+        new_avatar = {
+            "id": uuid.uuid4().hex[:12],
+            "name": char_name,
+            "url": public_url,
+            "prompt": prompt,
+            "description": char_desc,
+            "visual_style": visual_style,
+            "added_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        # Add to project and global library
+        project_avatars.append(new_avatar)
+        character_avatars[char_name] = public_url
+        global_avatars.append({k: v for k, v in new_avatar.items() if k != "added_at"})
+
+        project["project_avatars"] = project_avatars
+        project["character_avatars"] = character_avatars
+        project["updated_at"] = datetime.now(timezone.utc).isoformat()
+        settings["studio_avatars"] = global_avatars
+        
+        _save_project(tenant["id"], settings, projects)
+        _save_settings(tenant["id"], settings)
+        
+        logger.info(f"Successfully generated avatar for '{char_name}'")
+        
+        return {
+            "status": "generated",
+            "character_name": char_name,
+            "avatar_url": public_url,
+            "avatar_id": new_avatar["id"]
+        }
+
+    except Exception as gen_err:
+        logger.error(f"Failed to generate avatar for '{char_name}': {gen_err}")
+        raise HTTPException(status_code=500, detail=f"Generation failed: {str(gen_err)}")
+
