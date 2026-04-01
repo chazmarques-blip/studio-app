@@ -957,6 +957,50 @@ export const DirectedStudio = memo(function DirectedStudio({
     }
   };
 
+  // Regenerate only audio/narration for a scene (keeps video intact)
+  const regenerateSceneAudio = async (sceneNum, narrationText, audioLanguage) => {
+    setRegenScene(sceneNum);
+    setEditingScene(null);
+    setEditSceneForm({});
+    try {
+      await axios.post(`${API}/studio/projects/${projectId}/scenes/${sceneNum}/regenerate-audio`, {
+        narration: narrationText,
+        language: audioLanguage || projectLang,
+      });
+      toast.success(lang === 'pt' 
+        ? `Regenerando áudio da cena ${sceneNum}...` 
+        : `Regenerating audio for scene ${sceneNum}...`);
+      
+      // Poll for completion
+      const pollInterval = setInterval(async () => {
+        try {
+          const res = await axios.get(`${API}/studio/projects/${projectId}/status`);
+          const sceneOutput = res.data.outputs?.find(o => o.scene_number === sceneNum && o.type === 'video');
+          if (sceneOutput) {
+            setOutputs(res.data.outputs || []);
+            toast.success(lang === 'pt' 
+              ? `Áudio da cena ${sceneNum} regenerado!` 
+              : `Audio for scene ${sceneNum} regenerated!`);
+            clearInterval(pollInterval);
+            setRegenScene(null);
+          }
+        } catch (err) {
+          clearInterval(pollInterval);
+          setRegenScene(null);
+        }
+      }, 3000);
+      
+      // Auto-stop polling after 2 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setRegenScene(null);
+      }, 120000);
+    } catch (err) {
+      toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao regenerar áudio' : 'Audio regeneration failed'));
+      setRegenScene(null);
+    }
+  };
+
   // ── Scene Management: Add, Delete, Reorder ──
   const addScene = async (position) => {
     setAddingSceneLoading(true);
@@ -2962,12 +3006,43 @@ export const DirectedStudio = memo(function DirectedStudio({
                             {regenScene === sceneNum ? (lang === 'pt' ? 'Regenerando...' : 'Regenerating...') : (lang === 'pt' ? 'Regenerar' : 'Retry')}
                           </button>
                           <button
-                            onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }}
+                            onClick={() => { 
+                              setEditingScene(sceneNum); 
+                              setEditSceneForm({ 
+                                title: s.title, 
+                                description: s.description, 
+                                dialogue: s.dialogue, 
+                                emotion: s.emotion, 
+                                camera: s.camera,
+                                audioOnly: false // Flag for full regeneration
+                              }); 
+                            }}
                             data-testid={`edit-scene-${sceneNum}`}
                             className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30 transition">
                             <Edit3 size={8} />
                             {lang === 'pt' ? 'Editar' : 'Edit'}
                           </button>
+                          {/* Regenerate Audio Only button */}
+                          {videoDone && (
+                            <button
+                              onClick={() => { 
+                                setEditingScene(sceneNum); 
+                                setEditSceneForm({ 
+                                  title: s.title, 
+                                  description: s.description, 
+                                  dialogue: s.dialogue, 
+                                  emotion: s.emotion, 
+                                  camera: s.camera,
+                                  audioOnly: true // Flag for audio-only regeneration
+                                }); 
+                              }}
+                              data-testid={`regen-audio-${sceneNum}`}
+                              title={lang === 'pt' ? 'Regenerar apenas o áudio/narração' : 'Regenerate audio/narration only'}
+                              className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-blue-500/10 border border-blue-500/30 text-blue-600 hover:bg-blue-500/20 transition">
+                              <Volume2 size={8} />
+                              {lang === 'pt' ? 'Áudio' : 'Audio'}
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -2983,6 +3058,28 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <textarea value={editSceneForm.dialogue || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, dialogue: e.target.value }))}
                         placeholder="Diálogo/Narração" rows={2}
                         className="w-full bg-gray-50 border border-[#222] rounded px-2 py-1 text-xs text-gray-900 outline-none resize-none" />
+                      
+                      {/* Language selector for audio */}
+                      {editSceneForm.audioOnly && (
+                        <div className="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/20">
+                          <Globe size={12} className="text-blue-600" />
+                          <span className="text-[11px] text-blue-600 font-medium">{lang === 'pt' ? 'Idioma do Áudio:' : 'Audio Language:'}</span>
+                          <select 
+                            value={editSceneForm.audioLanguage || projectLang}
+                            onChange={e => setEditSceneForm(prev => ({ ...prev, audioLanguage: e.target.value }))}
+                            className="flex-1 bg-white border border-blue-500/30 rounded px-2 py-1 text-xs text-gray-900 outline-none">
+                            <option value="pt">Português</option>
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="it">Italiano</option>
+                            <option value="ja">日本語</option>
+                            <option value="zh">中文</option>
+                          </select>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-1">
                         <input value={editSceneForm.emotion || ''} onChange={e => setEditSceneForm(prev => ({ ...prev, emotion: e.target.value }))}
                           placeholder="Emoção" className="flex-1 bg-gray-50 border border-[#222] rounded px-2 py-1 text-xs text-gray-900 outline-none" />
@@ -2993,14 +3090,27 @@ export const DirectedStudio = memo(function DirectedStudio({
                         <button onClick={() => setEditingScene(null)} className="flex-1 rounded border border-[#333] py-1 text-[11px] text-[#999] hover:text-gray-900">
                           {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                         </button>
-                        <button onClick={() => saveSceneEdit(sceneNum)}
-                          className="flex-1 btn-gold rounded py-1 text-[11px] font-semibold">
-                          {lang === 'pt' ? 'Salvar' : 'Save'}
-                        </button>
-                        <button onClick={() => { saveSceneEdit(sceneNum); setTimeout(() => regenerateScene(sceneNum), 500); }}
-                          className="flex-1 rounded py-1 text-[11px] font-semibold bg-[#8B5CF6]/20 border border-orange-500/30 text-orange-600 hover:bg-[#8B5CF6]/30">
-                          {lang === 'pt' ? 'Salvar & Regenerar' : 'Save & Regen'}
-                        </button>
+                        
+                        {/* Audio-only regeneration */}
+                        {editSceneForm.audioOnly ? (
+                          <button 
+                            onClick={() => regenerateSceneAudio(sceneNum, editSceneForm.dialogue, editSceneForm.audioLanguage || projectLang)}
+                            className="flex-1 rounded py-1 text-[11px] font-semibold bg-blue-500/20 border border-blue-500/30 text-blue-600 hover:bg-blue-500/30 flex items-center justify-center gap-1">
+                            <Volume2 size={10} />
+                            {lang === 'pt' ? 'Regenerar Áudio' : 'Regenerate Audio'}
+                          </button>
+                        ) : (
+                          <>
+                            <button onClick={() => saveSceneEdit(sceneNum)}
+                              className="flex-1 btn-gold rounded py-1 text-[11px] font-semibold">
+                              {lang === 'pt' ? 'Salvar' : 'Save'}
+                            </button>
+                            <button onClick={() => { saveSceneEdit(sceneNum); setTimeout(() => regenerateScene(sceneNum), 500); }}
+                              className="flex-1 rounded py-1 text-[11px] font-semibold bg-[#8B5CF6]/20 border border-orange-500/30 text-orange-600 hover:bg-[#8B5CF6]/30">
+                              {lang === 'pt' ? 'Salvar & Regenerar' : 'Save & Regen'}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}

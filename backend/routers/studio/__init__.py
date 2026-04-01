@@ -22,5 +22,6 @@ from . import cinematography  # NEW
 from . import migration  # NEW
 from . import scene_reorder  # NEW
 from . import scene_regenerate  # NEW - Scene regeneration
+from . import scene_audio_regenerate  # NEW - Audio-only regeneration
 
 __all__ = ["router", "_cleanup_stale_storyboards"]
