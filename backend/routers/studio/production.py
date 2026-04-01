@@ -208,6 +208,24 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
 
         # ── Shared context ──
         briefing = project.get("briefing", "")
+        
+        # ── Language enforcement for text in videos ──
+        project_lang = project.get("language", "pt")
+        LANGUAGE_MARKERS = {
+            "pt": "PORTUGUESE TEXT",
+            "en": "ENGLISH TEXT", 
+            "es": "SPANISH TEXT",
+            "fr": "FRENCH TEXT",
+            "de": "GERMAN TEXT",
+            "it": "ITALIAN TEXT",
+            "ja": "JAPANESE TEXT",
+            "zh": "CHINESE TEXT",
+            "ar": "ARABIC TEXT",
+            "ru": "RUSSIAN TEXT",
+            "hi": "HINDI TEXT"
+        }
+        language_marker = LANGUAGE_MARKERS.get(project_lang, f"{project_lang.upper()} TEXT")
+        logger.info(f"Studio [{project_id}]: Language enforcement: {language_marker}")
 
         # ── Pre-download avatars ONCE ──
         avatar_cache = {}
@@ -373,6 +391,10 @@ CRITICAL RULES:
 - Characters who are NOT speaking should be shown LISTENING or REACTING
 - If no dialogue timeline, write a standard continuous description
 
+🌐 LANGUAGE MARKER:
+- At the END of your sora_prompt, add: "Any visible text in {language_marker}."
+- This ensures Sora 2 generates text elements in the correct language
+
 - The sora_prompt MUST be in ENGLISH"""
 
             # Build dialogue timeline context if available
@@ -391,11 +413,14 @@ Example format:
 
 Match every 2-second interval to the dialogue timeline above."""
             
+            # Add language marker to enforce text language in generated videos
+            lang_instruction = f"\n\n🌐 LANGUAGE ENFORCEMENT:\n- If ANY text appears in this scene (signs, letters, captions, written words), it MUST be in {language_marker}\n- Example: If a sign shows 'WARNING', it should show the {language_marker} equivalent\n- This applies to ALL visible text elements in the frame"
+            
             director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')}
-{dialogue_ctx}
+{dialogue_ctx}{lang_instruction}
 
 CHARACTER IDENTITY SHEET (from avatar image analysis — ABSOLUTE SOURCE OF TRUTH, DO NOT DEVIATE):
 {char_descs}
@@ -951,6 +976,23 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         style_hint = pd_style or STYLE_PROMPTS.get(visual_style, STYLE_PROMPTS["animation"])
 
         briefing = project.get("briefing", "")
+        
+        # ── Language enforcement for text in videos ──
+        project_lang = project.get("language", "pt")
+        LANGUAGE_MARKERS = {
+            "pt": "PORTUGUESE TEXT",
+            "en": "ENGLISH TEXT", 
+            "es": "SPANISH TEXT",
+            "fr": "FRENCH TEXT",
+            "de": "GERMAN TEXT",
+            "it": "ITALIAN TEXT",
+            "ja": "JAPANESE TEXT",
+            "zh": "CHINESE TEXT",
+            "ar": "ARABIC TEXT",
+            "ru": "RUSSIAN TEXT",
+            "hi": "HINDI TEXT"
+        }
+        language_marker = LANGUAGE_MARKERS.get(project_lang, f"{project_lang.upper()} TEXT")
 
         # Use custom prompt or generate via Claude with Production Design
         if custom_prompt:
@@ -972,6 +1014,10 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
 
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation.
 MANDATORY STYLE (include VERBATIM): {style_hint}
+
+🌐 LANGUAGE MARKER:
+- At the END of your sora_prompt, add: "Any visible text in {language_marker}."
+
 Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
 RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera."""
 
@@ -987,6 +1033,10 @@ CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}"""
                 # Fallback: no production design available
                 scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2. {style_hint}
+
+🌐 LANGUAGE MARKER:
+- At the END of your sora_prompt, add: "Any visible text in {language_marker}."
+
 Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words."}}"""
                 director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
