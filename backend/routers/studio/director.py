@@ -101,12 +101,12 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
             ],
             api_key=api_key,
             max_tokens=6000,
-            timeout=180,  # 3 minutes per batch
+            timeout=240,  # 4 minutes per batch (increased from 3min)
         )
         
         result = response.choices[0].message.content.strip()
         
-        # Aggressive JSON extraction
+        # Aggressive JSON extraction with better error handling
         if "```json" in result:
             result = result.split("```json")[1].split("```")[0].strip()
         elif "```" in result:
@@ -118,7 +118,28 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
         if start_idx != -1 and end_idx > start_idx:
             result = result[start_idx:end_idx]
         
-        review_data = json.loads(result)
+        # Try to fix common JSON issues
+        result = result.replace('\n', ' ')  # Remove newlines inside JSON
+        result = result.replace('  ', ' ')  # Remove double spaces
+        
+        try:
+            review_data = json.loads(result)
+        except json.JSONDecodeError as e:
+            logger.error(f"Batch {batch_num}: JSON parse error at char {e.pos}: {result[max(0,e.pos-50):e.pos+50]}")
+            # Try to extract just the scene_reviews array
+            if '"scene_reviews"' in result:
+                try:
+                    # Extract array manually
+                    start = result.find('"scene_reviews"')
+                    start = result.find('[', start)
+                    end = result.rfind(']') + 1
+                    array_str = result[start:end]
+                    review_data = {"scene_reviews": json.loads(array_str)}
+                except:
+                    raise  # Give up if this also fails
+            else:
+                raise
+        
         logger.info(f"Batch {batch_num}: Reviewed {len(review_data.get('scene_reviews', []))} scenes")
         return review_data.get("scene_reviews", [])
         
