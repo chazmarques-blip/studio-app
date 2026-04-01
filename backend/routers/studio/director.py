@@ -144,6 +144,58 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
         
     except Exception as e:
         logger.error(f"Batch {batch_num} failed: {e}")
+        # RETRY once on connection errors (timeout, network issues)
+        if "timeout" in str(e).lower() or "connection" in str(e).lower() or "read" in str(e).lower():
+            logger.info(f"Batch {batch_num}: Retrying due to connection issue...")
+            try:
+                response = await litellm.acompletion(
+                    model="anthropic/claude-sonnet-4-5-20250929",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    api_key=api_key,
+                    max_tokens=6000,
+                    timeout=300,
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "director_review_batch",
+                            "strict": True,
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "batch_number": {"type": "integer"},
+                                    "scene_reviews": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "scene_number": {"type": "integer"},
+                                                "score": {"type": "integer", "minimum": 0, "maximum": 100},
+                                                "status": {"type": "string", "enum": ["EXCELLENT", "GOOD", "NEEDS_WORK", "CRITICAL"]},
+                                                "issues": {"type": "array", "items": {"type": "string"}},
+                                                "suggestions": {"type": "array", "items": {"type": "string"}},
+                                                "revised_dialogue": {"type": "string"},
+                                                "revised_narration": {"type": "string"},
+                                                "revised_description": {"type": "string"}
+                                            },
+                                            "required": ["scene_number", "score", "status", "issues", "suggestions"]
+                                        }
+                                    }
+                                },
+                                "required": ["batch_number", "scene_reviews"]
+                            }
+                        }
+                    }
+                )
+                result = response.choices[0].message.content.strip()
+                review_data = json.loads(result)
+                logger.info(f"Batch {batch_num}: ✅ RETRY SUCCESSFUL - Reviewed {len(review_data.get('scene_reviews', []))} scenes")
+                return review_data.get("scene_reviews", [])
+            except Exception as retry_error:
+                logger.error(f"Batch {batch_num}: Retry also failed: {retry_error}")
+        
         # Return placeholder reviews for failed batch
         return [{
             "scene_number": s.get("scene_number"),
