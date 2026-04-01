@@ -47,6 +47,22 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
     load();
   }, [projectId]);
   
+  // Listen for auto-start event from autonomous pipeline
+  useEffect(() => {
+    const handleAutoStart = (event) => {
+      if (event.detail?.projectId === projectId && !reviewing && !review) {
+        console.log('🎬 Auto-starting Director review from autonomous pipeline...');
+        toast.info(lang === 'pt' ? '🎬 Iniciando revisão automática...' : '🎬 Starting automatic review...');
+        setTimeout(() => {
+          runReview();
+        }, 500);
+      }
+    };
+
+    window.addEventListener('auto-start-director-review', handleAutoStart);
+    return () => window.removeEventListener('auto-start-director-review', handleAutoStart);
+  }, [projectId, reviewing, review, lang]);
+  
   // Poll progress during review/re-evaluation WITH WATCHDOG
   useEffect(() => {
     if (!applying && !reviewing) {

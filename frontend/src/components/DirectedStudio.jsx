@@ -2770,7 +2770,23 @@ export const DirectedStudio = memo(function DirectedStudio({
           projectId={projectId}
           lang={lang}
           scenes={scenes}
-          onApprove={() => setStep(5)}
+          onApprove={async () => {
+            // AUTONOMOUS PIPELINE: Auto-navigate to Director Preview and start review
+            toast.info(lang === 'pt' ? '🎬 Iniciando revisão automática do Director...' : '🎬 Starting automatic Director review...');
+            setStep(5); // Go to Director Preview step
+            
+            // Wait for UI to update, then trigger automatic review
+            setTimeout(async () => {
+              try {
+                // Trigger director review automatically via DirectorPreview component
+                // The DirectorPreview will handle the review via useEffect
+                const event = new CustomEvent('auto-start-director-review', { detail: { projectId } });
+                window.dispatchEvent(event);
+              } catch (err) {
+                console.error('Auto-review trigger failed:', err);
+              }
+            }, 1000);
+          }}
           onBack={() => setStep(3)}
         />
       )}
