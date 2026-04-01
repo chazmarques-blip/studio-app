@@ -278,7 +278,8 @@ export const DirectedStudio = memo(function DirectedStudio({
       setAgentStatus(ap.agentStatus || {});
       setNarrations(ap.narrations || []);
       if (ap.status === 'complete') {
-        setStep(7); setGenerating(false);
+        // Don't auto-redirect to Step 7 - user may want to review/regenerate scenes in Step 6
+        setGenerating(false);
       } else if (['running_agents', 'starting'].includes(ap.status)) {
         setStep(6); setGenerating(true); startPolling(ap.projectId);
       }
@@ -395,7 +396,8 @@ export const DirectedStudio = memo(function DirectedStudio({
       if (['starting', 'running_agents', 'generating_video'].includes(status)) {
         setStep(6); setGenerating(true); startPolling(proj.id);
       } else if (status === 'complete' && outs.length > 0) {
-        setStep(7); setOutputs(outs);
+        // Don't auto-redirect to Step 7 - user may want to review/regenerate scenes in Step 6
+        setOutputs(outs);
       } else {
         setGenerating(false);
         setAgentStatus({});
@@ -431,7 +433,8 @@ export const DirectedStudio = memo(function DirectedStudio({
       if (['starting', 'running_agents', 'generating_video'].includes(proj.status)) {
         setStep(6); setGenerating(true); startPolling(proj.id);
       } else if (proj.status === 'complete' && proj.outputs?.length > 0) {
-        setStep(7);
+        // Don't auto-redirect to Step 7 - user may want to review/regenerate scenes in Step 6
+        // User can manually navigate to Step 7 using navigation tabs
       } else {
         setStep(1);
       }
@@ -479,25 +482,8 @@ export const DirectedStudio = memo(function DirectedStudio({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Auto-recover: if stuck on step 3 with generating=false, check if outputs exist
-  useEffect(() => {
-    if (step === 6 && !generating && projectId) {
-      const check = setTimeout(() => {
-        axios.get(`${API}/studio/projects/${projectId}/status`).then(res => {
-          const d = res.data;
-          if (d.status === 'complete' && d.outputs?.length > 0) {
-            setOutputs(d.outputs);
-            setStep(7);
-            toast.success(lang === 'pt' ? 'Produção concluída!' : 'Production complete!');
-          } else if (d.outputs?.length > 0) {
-            setOutputs(d.outputs);
-            setStep(7);
-          }
-        }).catch(() => {});
-      }, 2000);
-      return () => clearTimeout(check);
-    }
-  }, [step, generating, projectId]);
+  // REMOVED: Auto-recover useEffect that was forcing redirect to Step 7
+  // User should be able to stay in Step 6 to review/regenerate scenes even when complete
 
   // Polling for production status
   const startPolling = (pid) => {
