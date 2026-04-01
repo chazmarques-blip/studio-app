@@ -47,28 +47,93 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
     load();
   }, [projectId]);
   
-  // Poll progress during review/re-evaluation
+  // Poll progress during review/re-evaluation WITH WATCHDOG
   useEffect(() => {
     if (!applying && !reviewing) {
       setProgress(null);
       return;
     }
     
+    let lastProgressUpdate = Date.now();
+    let watchdogTriggered = false;
+    
     const pollInterval = setInterval(async () => {
       try {
         const res = await axios.get(`${API}/studio/projects/${projectId}/director/progress`);
+        
         if (res.data.in_progress) {
-          setProgress(res.data.progress);
+          const currentProgress = res.data.progress;
+          setProgress(currentProgress);
+          
+          // Update watchdog timestamp if progress changed
+          const currentBatch = currentProgress?.current_batch || 0;
+          const scenesProcessed = currentProgress?.scenes_processed || 0;
+          
+          // Check if progress actually moved
+          if (currentBatch !== (window.lastBatch || 0) || scenesProcessed !== (window.lastScenes || 0)) {
+            lastProgressUpdate = Date.now();
+            window.lastBatch = currentBatch;
+            window.lastScenes = scenesProcessed;
+            watchdogTriggered = false;
+          }
+          
+          // WATCHDOG: If no progress for 90 seconds, auto-resume
+          const timeSinceUpdate = (Date.now() - lastProgressUpdate) / 1000;
+          if (timeSinceUpdate > 90 && !watchdogTriggered) {
+            watchdogTriggered = true;
+            console.warn('🐕 WATCHDOG: Progress stuck for 90s, auto-resuming...');
+            toast.warning(
+              lang === 'pt' 
+                ? '⚠️ Revisão travada detectada. Retomando automaticamente...' 
+                : '⚠️ Stuck review detected. Auto-resuming...'
+            );
+            
+            // Call resume endpoint
+            try {
+              const resumeRes = await axios.post(`${API}/studio/projects/${projectId}/director/resume`);
+              if (resumeRes.data.scene_reviews || resumeRes.data.verdict) {
+                // Resume completed successfully!
+                setReview(resumeRes.data);
+                setReviewing(false);
+                setApplying(false);
+                toast.success(
+                  lang === 'pt' 
+                    ? '✅ Revisão retomada e concluída!' 
+                    : '✅ Review resumed and completed!'
+                );
+              }
+            } catch (resumeErr) {
+              console.error('Resume failed:', resumeErr);
+              // Will retry on next watchdog cycle
+            }
+          }
         } else {
           setProgress(null);
+          
+          // Check if review completed
+          try {
+            const reviewRes = await axios.get(`${API}/studio/projects/${projectId}/director/review`);
+            if (reviewRes.data.has_review && reviewing) {
+              setReview(reviewRes.data.review);
+              setReviewing(false);
+              setApplying(false);
+              toast.success(lang === 'pt' ? 'Revisão do Director concluída!' : 'Director review complete!');
+            }
+          } catch {
+            // No review yet
+          }
         }
       } catch (err) {
         console.error('Poll progress failed:', err);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 5000); // Poll every 5 seconds (increased from 2s to reduce server load)
     
-    return () => clearInterval(pollInterval);
-  }, [applying, reviewing, projectId]);
+    return () => {
+      clearInterval(pollInterval);
+      window.lastBatch = undefined;
+      window.lastScenes = undefined;
+    };
+  }, [applying, reviewing, projectId, lang]);
 
   const runReview = async () => {
     setReviewing(true);
@@ -78,6 +143,20 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
       toast.success(lang === 'pt' ? 'Revisão do Director concluída!' : 'Director review complete!');
     } catch (err) {
       toast.error(getErrorMsg(err, 'Review failed'));
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  const resumeReview = async () => {
+    setReviewing(true);
+    toast.info(lang === 'pt' ? '🔄 Retomando revisão travada...' : '🔄 Resuming stuck review...');
+    try {
+      const res = await axios.post(`${API}/studio/projects/${projectId}/director/resume`);
+      setReview(res.data);
+      toast.success(lang === 'pt' ? '✅ Revisão retomada e concluída!' : '✅ Review resumed and completed!');
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Resume failed'));
     } finally {
       setReviewing(false);
     }
@@ -156,15 +235,24 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             {lang === 'pt' ? 'Revisão profissional antes do Storyboard' : 'Professional review before Storyboard'}
           </span>
         </div>
-        <button onClick={runReview} disabled={reviewing}
-          data-testid="run-director-review-btn"
-          className="text-xs px-3 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-orange-600 hover:bg-orange-500/15 transition disabled:opacity-30 flex items-center gap-1.5">
-          {reviewing ? <RefreshCw size={11} className="animate-spin" /> : <Eye size={11} />}
-          {reviewing
-            ? (lang === 'pt' ? 'Director analisando...' : 'Director analyzing...')
-            : (lang === 'pt' ? (review ? 'Re-analisar' : 'Iniciar Revisão') : (review ? 'Re-analyze' : 'Start Review'))
-          }
-        </button>
+        <div className="flex gap-2">
+          {progress && progress.status && progress.status !== 'complete' && !reviewing && (
+            <button onClick={resumeReview}
+              className="text-xs px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/5 text-amber-600 hover:bg-amber-500/15 transition flex items-center gap-1.5">
+              <RefreshCw size={11} />
+              {lang === 'pt' ? 'Retomar' : 'Resume'}
+            </button>
+          )}
+          <button onClick={runReview} disabled={reviewing}
+            data-testid="run-director-review-btn"
+            className="text-xs px-3 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-orange-600 hover:bg-orange-500/15 transition disabled:opacity-30 flex items-center gap-1.5">
+            {reviewing ? <RefreshCw size={11} className="animate-spin" /> : <Eye size={11} />}
+            {reviewing
+              ? (lang === 'pt' ? 'Director analisando...' : 'Director analyzing...')
+              : (lang === 'pt' ? (review ? 'Re-analisar' : 'Iniciar Revisão') : (review ? 'Re-analyze' : 'Start Review'))
+            }
+          </button>
+        </div>
       </div>
 
       {/* Reviewing state with real-time progress */}

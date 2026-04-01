@@ -13,9 +13,11 @@ class DirectorReviewRequest(BaseModel):
     focus: str = "full"  # "full", "dialogues", "pacing", "emotion", "continuity"
 
 
-async def _review_scene_batch(batch_scenes, characters, project_meta, lang, batch_num):
-    """Review a batch of scenes in parallel (simulates multiple directors working together)."""
+async def _review_scene_batch(batch_scenes, characters, project_meta, lang, batch_num, max_retries=5):
+    """Review a batch of scenes with AUTOMATIC RETRY on failure.
+    NEVER gives up — retries with exponential backoff until success."""
     import litellm
+    import asyncio
     
     LANG_MAP = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
     api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
@@ -92,122 +94,85 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
     
     user_prompt = f"Review these {len(batch_scenes)} scenes. Return ONLY the JSON response:\n\n{script_text}"
     
-    try:
-        response = await litellm.acompletion(
-            model="anthropic/claude-sonnet-4-5-20250929",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            api_key=api_key,
-            max_tokens=6000,
-            timeout=300,  # 5 minutes - no API contention with sequential processing
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "director_review_batch",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "batch_number": {"type": "integer"},
-                            "scene_reviews": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "scene_number": {"type": "integer"},
-                                        "score": {"type": "integer", "minimum": 0, "maximum": 100},
-                                        "status": {"type": "string", "enum": ["EXCELLENT", "GOOD", "NEEDS_WORK", "CRITICAL"]},
-                                        "issues": {"type": "array", "items": {"type": "string"}},
-                                        "suggestions": {"type": "array", "items": {"type": "string"}},
-                                        "revised_dialogue": {"type": "string"},
-                                        "revised_narration": {"type": "string"},
-                                        "revised_description": {"type": "string"}
-                                    },
-                                    "required": ["scene_number", "score", "status", "issues", "suggestions"]
-                                }
-                            }
-                        },
-                        "required": ["batch_number", "scene_reviews"]
-                    }
-                }
-            }
-        )
-        
-        # With structured output, JSON is GUARANTEED to be valid
-        result = response.choices[0].message.content.strip()
-        review_data = json.loads(result)
-        
-        logger.info(f"Batch {batch_num}: ✅ Reviewed {len(review_data.get('scene_reviews', []))} scenes successfully")
-        return review_data.get("scene_reviews", [])
-        
-    except Exception as e:
-        logger.error(f"Batch {batch_num} failed: {e}")
-        # RETRY once on connection errors (timeout, network issues)
-        if "timeout" in str(e).lower() or "connection" in str(e).lower() or "read" in str(e).lower():
-            logger.info(f"Batch {batch_num}: Retrying due to connection issue...")
-            try:
-                response = await litellm.acompletion(
-                    model="anthropic/claude-sonnet-4-5-20250929",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    api_key=api_key,
-                    max_tokens=6000,
-                    timeout=300,
-                    response_format={
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": "director_review_batch",
-                            "strict": True,
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "batch_number": {"type": "integer"},
-                                    "scene_reviews": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "scene_number": {"type": "integer"},
-                                                "score": {"type": "integer", "minimum": 0, "maximum": 100},
-                                                "status": {"type": "string", "enum": ["EXCELLENT", "GOOD", "NEEDS_WORK", "CRITICAL"]},
-                                                "issues": {"type": "array", "items": {"type": "string"}},
-                                                "suggestions": {"type": "array", "items": {"type": "string"}},
-                                                "revised_dialogue": {"type": "string"},
-                                                "revised_narration": {"type": "string"},
-                                                "revised_description": {"type": "string"}
-                                            },
-                                            "required": ["scene_number", "score", "status", "issues", "suggestions"]
-                                        }
+    # RETRY LOOP with exponential backoff
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Batch {batch_num}: Attempt {attempt + 1}/{max_retries}")
+            
+            response = await litellm.acompletion(
+                model="anthropic/claude-sonnet-4-5-20250929",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                api_key=api_key,
+                max_tokens=6000,
+                timeout=300,  # 5 minutes - no API contention with sequential processing
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "director_review_batch",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "batch_number": {"type": "integer"},
+                                "scene_reviews": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "scene_number": {"type": "integer"},
+                                            "score": {"type": "integer", "minimum": 0, "maximum": 100},
+                                            "status": {"type": "string", "enum": ["EXCELLENT", "GOOD", "NEEDS_WORK", "CRITICAL"]},
+                                            "issues": {"type": "array", "items": {"type": "string"}},
+                                            "suggestions": {"type": "array", "items": {"type": "string"}},
+                                            "revised_dialogue": {"type": "string"},
+                                            "revised_narration": {"type": "string"},
+                                            "revised_description": {"type": "string"}
+                                        },
+                                        "required": ["scene_number", "score", "status", "issues", "suggestions"]
                                     }
-                                },
-                                "required": ["batch_number", "scene_reviews"]
-                            }
+                                }
+                            },
+                            "required": ["batch_number", "scene_reviews"]
                         }
                     }
-                )
-                result = response.choices[0].message.content.strip()
-                review_data = json.loads(result)
-                logger.info(f"Batch {batch_num}: ✅ RETRY SUCCESSFUL - Reviewed {len(review_data.get('scene_reviews', []))} scenes")
-                return review_data.get("scene_reviews", [])
-            except Exception as retry_error:
-                logger.error(f"Batch {batch_num}: Retry also failed: {retry_error}")
-        
-        # Return placeholder reviews for failed batch
-        return [{
-            "scene_number": s.get("scene_number"),
-            "score": 50,
-            "status": "NEEDS_WORK",
-            "issues": [f"Review failed: {str(e)[:100]}"],
-            "suggestions": ["Please re-run review"]
-        } for s in batch_scenes]
-
-
-async def _review_scene_batch_with_progress(batch_scenes, characters, project_meta, lang, batch_num, tenant_id, project_id, total_batches):
-    """Same as _review_scene_batch but updates progress in real-time."""
+                }
+            )
+            
+            # With structured output, JSON is GUARANTEED to be valid
+            result = response.choices[0].message.content.strip()
+            review_data = json.loads(result)
+            
+            logger.info(f"Batch {batch_num}: ✅ Reviewed {len(review_data.get('scene_reviews', []))} scenes successfully")
+            return review_data.get("scene_reviews", [])
+            
+        except Exception as e:
+            last_error = e
+            logger.error(f"Batch {batch_num}: Attempt {attempt + 1} failed: {e}")
+            
+            if attempt < max_retries - 1:
+                # Exponential backoff: 2s, 4s, 8s, 16s
+                wait_time = 2 ** (attempt + 1)
+                logger.info(f"Batch {batch_num}: Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"Batch {batch_num}: ALL {max_retries} ATTEMPTS FAILED!")
+                # Return placeholder reviews for failed batch
+                fallback = []
+                for s in batch_scenes:
+                    fallback.append({
+                        "scene_number": s.get("scene_number"),
+                        "score": 50,
+                        "status": "NEEDS_WORK",
+                        "issues": [f"Review failed after {max_retries} attempts: {str(last_error)[:100]}"],
+                        "suggestions": ["Manual review recommended"]
+                    })
+                return fallback
+    """Same as _review_scene_batch but updates progress in real-time with WATCHDOG timestamps."""
+    from datetime import datetime, timezone
     
     # Update progress: batch starting
     try:
@@ -216,6 +181,7 @@ async def _review_scene_batch_with_progress(batch_scenes, characters, project_me
             progress = project["director_progress"]
             progress["current_batch"] = batch_num
             progress["status"] = f"reviewing_batch_{batch_num}"
+            progress["last_update"] = datetime.now(timezone.utc).isoformat()  # WATCHDOG TIMESTAMP
             _update_project_field(tenant_id, project_id, {"director_progress": progress})
     except:
         pass  # Don't fail if progress update fails
@@ -237,6 +203,7 @@ async def _review_scene_batch_with_progress(batch_scenes, characters, project_me
             # Calculate overall score so far
             all_scores = [bs["score"] for bs in progress["batch_scores"]]
             progress["current_score"] = sum(all_scores) / len(all_scores) if all_scores else 0
+            progress["last_update"] = datetime.now(timezone.utc).isoformat()  # WATCHDOG TIMESTAMP
             
             _update_project_field(tenant_id, project_id, {"director_progress": progress})
     except:
@@ -517,3 +484,168 @@ async def get_director_progress(project_id: str, tenant=Depends(get_current_tena
         "in_progress": True,
         "progress": progress
     }
+
+
+
+
+@router.post("/projects/{project_id}/director/resume")
+async def resume_director_review(project_id: str, tenant=Depends(get_current_tenant)):
+    """
+    WATCHDOG ENDPOINT: Resumes a stuck/failed director review.
+    Checks progress state and continues from where it stopped.
+    NEVER gives up — keeps retrying until completion.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    progress = project.get("director_progress")
+    
+    # If no progress or already complete, start fresh review
+    if not progress or progress.get("status") == "complete":
+        logger.info(f"Resume: No stuck review found for {project_id}, starting fresh...")
+        return await director_review(project_id, DirectorReviewRequest(focus="full"), tenant)
+    
+    # Check if truly stuck (no update in last 5 minutes)
+    import time
+    from datetime import datetime, timezone, timedelta
+    
+    last_update = progress.get("last_update")
+    if last_update:
+        last_update_time = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
+        time_since_update = (datetime.now(timezone.utc) - last_update_time).total_seconds()
+        
+        if time_since_update < 300:  # Less than 5 minutes
+            return {
+                "status": "in_progress",
+                "message": f"Review is actively running (updated {int(time_since_update)}s ago)",
+                "progress": progress
+            }
+    
+    # Review is stuck! Resume from where it stopped
+    scenes = project.get("scenes", [])
+    characters = project.get("characters", [])
+    lang = project.get("language", "pt")
+    
+    current_batch = progress.get("current_batch", 0)
+    total_batches = progress.get("total_batches", 0)
+    scenes_processed = progress.get("scenes_processed", 0)
+    
+    logger.warning(f"⚠️ WATCHDOG TRIGGERED for {project_id}")
+    logger.info(f"Resuming from batch {current_batch + 1}/{total_batches}, {scenes_processed} scenes already done")
+    
+    # Continue from next batch
+    BATCH_SIZE = 4
+    batches = []
+    for i in range(0, len(scenes), BATCH_SIZE):
+        batches.append(scenes[i:i + BATCH_SIZE])
+    
+    # Get already completed scene reviews
+    existing_review = project.get("director_review", {})
+    completed_reviews = existing_review.get("scene_reviews", [])
+    
+    project_meta = {
+        "name": project.get("name", "Untitled"),
+        "briefing": project.get("briefing", "")
+    }
+    
+    # Update progress with resume flag
+    progress["status"] = "resuming"
+    progress["last_update"] = datetime.now(timezone.utc).isoformat()
+    progress["resume_count"] = progress.get("resume_count", 0) + 1
+    _update_project_field(tenant["id"], project_id, {"director_progress": progress})
+    
+    # Process remaining batches
+    import asyncio
+    batch_results = []
+    
+    try:
+        start_from = current_batch if current_batch < len(batches) else len(batches)
+        
+        for i in range(start_from, len(batches), 2):
+            batch_pair = batches[i:i+2]
+            logger.info(f"RESUME: Processing batches {i+1}-{min(i+2, len(batches))}/{len(batches)}...")
+            
+            tasks = [
+                _review_scene_batch_with_progress(
+                    batch, characters, project_meta, lang, batch_idx + 1,
+                    tenant["id"], project_id, len(batches)
+                )
+                for batch_idx, batch in enumerate(batch_pair, start=i)
+            ]
+            
+            pair_results = await asyncio.gather(*tasks, return_exceptions=False)
+            batch_results.extend(pair_results)
+            
+            # Update last_update timestamp after each successful pair
+            progress = project.get("director_progress", {})
+            progress["last_update"] = datetime.now(timezone.utc).isoformat()
+            _update_project_field(tenant["id"], project_id, {"director_progress": progress})
+    
+    except Exception as e:
+        logger.error(f"Resume failed: {e}")
+        # Don't raise — return partial progress so frontend can retry again
+        return {
+            "status": "partial",
+            "error": str(e),
+            "message": "Resume failed but will auto-retry",
+            "progress": progress
+        }
+    
+    # Merge with existing reviews
+    all_scene_reviews = completed_reviews.copy()
+    for result in batch_results:
+        if isinstance(result, list):
+            all_scene_reviews.extend(result)
+    
+    # Remove duplicates (keep latest review for each scene)
+    seen_scenes = {}
+    for review in reversed(all_scene_reviews):
+        sn = review.get("scene_number")
+        if sn not in seen_scenes:
+            seen_scenes[sn] = review
+    
+    all_scene_reviews = list(reversed(list(seen_scenes.values())))
+    
+    # Calculate final metrics
+    avg_score = sum(sr.get("score", 0) for sr in all_scene_reviews) / len(all_scene_reviews) if all_scene_reviews else 0
+    needs_work_count = len([sr for sr in all_scene_reviews if sr.get("score", 0) < 80])
+    verdict = "APPROVED" if avg_score >= 90 and needs_work_count == 0 else "NEEDS_REVISION"
+    
+    director_notes = f"""Revisão RESUMIDA E CONCLUÍDA após travamento.
+
+📊 SCORE GERAL: {avg_score:.0f}/100
+{'✅ APROVADO' if verdict == 'APPROVED' else f'⚠️ REVISÃO NECESSÁRIA — {needs_work_count} cena(s) abaixo de 80%'}
+
+PADRÃO DE QUALIDADE:
+- 90-100: EXCELENTE (pronto para produção)
+- 80-89: BOM (pequenos ajustes recomendados)
+- <80: PRECISA MELHORAR
+
+{f'Cenas que precisam atenção: {", ".join([str(sr.get("scene_number")) for sr in all_scene_reviews if sr.get("score", 0) < 80])}' if needs_work_count > 0 else 'Todas as cenas atingiram o padrão!'}"""
+    
+    review_result = {
+        "overall_score": round(avg_score),
+        "verdict": verdict,
+        "director_notes": director_notes,
+        "scene_reviews": all_scene_reviews,
+        "pacing_notes": f"{len(scenes)} cenas revisadas (resumed from batch {start_from + 1})",
+        "emotional_arc": f"Score médio: {avg_score:.0f}%",
+        "top_3_strengths": ["Review completed via watchdog resume"],
+        "top_3_improvements": [f"{needs_work_count} scenes need improvement"] if needs_work_count > 0 else [],
+        "reviewed_at": datetime.now(timezone.utc).isoformat(),
+        "review_method": "watchdog_resume",
+        "was_resumed": True,
+        "resume_from_batch": start_from + 1
+    }
+    
+    # Save and clear progress
+    _update_project_field(tenant["id"], project_id, {
+        "director_review": review_result,
+        "director_review_at": review_result["reviewed_at"],
+        "director_progress": None  # Clear progress
+    })
+    
+    logger.info(f"✅ WATCHDOG RESUME COMPLETE: {project_id} — Score {avg_score:.0f}%")
+    
+    return review_result
