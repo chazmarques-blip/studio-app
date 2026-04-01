@@ -29,8 +29,11 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
     """
     import time
     import os
+    from PIL import Image
+    import tempfile
     
     img_file_handle = None
+    resized_image_path = None
     try:
         # Prepare generation parameters
         gen_params = {
@@ -43,12 +46,32 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         # Use input_reference if image path provided (Project Bible keyframe or character reference)
         if image_path and os.path.exists(image_path):
             try:
-                # OpenAI SDK expects a file handle, not base64 string
-                img_file_handle = open(image_path, "rb")
+                # CRITICAL FIX: Resize reference image to match video dimensions
+                # Sora 2 requires: "Inpaint image must match the requested width and height"
+                target_width, target_height = map(int, size.split('x'))
+                
+                # Open and resize image
+                img = Image.open(image_path)
+                if img.size != (target_width, target_height):
+                    logger.info(f"Sora 2: Resizing reference image from {img.size} to {target_width}x{target_height}")
+                    img_resized = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                    
+                    # Save resized image to temp file
+                    temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    resized_image_path = temp_file.name
+                    img_resized.save(resized_image_path, "PNG")
+                    temp_file.close()
+                    
+                    # Use resized image
+                    img_file_handle = open(resized_image_path, "rb")
+                else:
+                    # Image already correct size
+                    img_file_handle = open(image_path, "rb")
+                
                 gen_params["input_reference"] = img_file_handle
-                logger.info(f"Sora 2: Using input_reference from {image_path[:50]}...")
+                logger.info(f"Sora 2: Using input_reference from {image_path[:50]}... (resized: {img.size != (target_width, target_height)})")
             except Exception as e:
-                logger.warning(f"Sora 2: Failed to load input_reference: {e}")
+                logger.warning(f"Sora 2: Failed to load/resize input_reference: {e}")
         
         # Create video generation request
         start = time.time()
@@ -91,6 +114,12 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         if img_file_handle:
             try:
                 img_file_handle.close()
+            except:
+                pass
+        # Clean up resized temp file
+        if resized_image_path and os.path.exists(resized_image_path):
+            try:
+                os.unlink(resized_image_path)
             except:
                 pass
 
