@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Regenerar Storyboard</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #ff6b35;
+            margin-top: 0;
+        }
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #ff8555;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        #log {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        .progress { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Regenerar Storyboard</h1>
+        <p>Projeto: <strong>CHAMADA COMERCIAL PARA HISTÓRIA DE JONAS</strong></p>
+        <p>ID: <code>e35a290f5b39</code></p>
+        <p>Total de cenas: <strong>10</strong></p>
+        <p>Quality: <strong>Economy</strong> (3 frames por cena)</p>
+        
+        <button id="startBtn" onclick="startRegeneration()">
+            🚀 Iniciar Regeneração
+        </button>
+        
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+        const PROJECT_ID = 'e35a290f5b39';
+        let polling = null;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            const className = type;
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        async function startRegeneration() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Gerando...';
+            
+            try {
+                log('🎬 Iniciando regeneração de storyboard...', 'info');
+                
+                const response = await fetch(`${API}/api/studio/projects/${PROJECT_ID}/generate-storyboard`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ quality: 'economy' }),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ Geração iniciada! Total: ${data.total_scenes} cenas`, 'success');
+                log('📊 Monitorando progresso...', 'info');
+                
+                // Start polling for progress
+                pollProgress();
+                
+            } catch (error) {
+                log(`❌ Erro: ${error.message}`, 'error');
+                btn.disabled = false;
+                btn.textContent = '🔄 Tentar Novamente';
+            }
+        }
+        
+        async function pollProgress() {
+            if (polling) return;
+            
+            polling = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API}/api/studio/projects/${PROJECT_ID}/storyboard`, {
+                        credentials: 'include'
+                    });
+                    
+                    if (!response.ok) return;
+                    
+                    const data = await response.json();
+                    const status = data.storyboard_status || {};
+                    const panels = data.panels || [];
+                    
+                    if (status.phase === 'generating' || status.phase === 'starting') {
+                        const current = status.current || 0;
+                        const total = status.total || 10;
+                        const panels_done = status.panels_done || 0;
+                        log(`⏳ Progresso: ${current}/${total} cenas | ${panels_done} painéis prontos`, 'progress');
+                    } else if (status.phase === 'complete') {
+                        clearInterval(polling);
+                        polling = null;
+                        const done = panels.filter(p => p.image_url).length;
+                        log(`🎉 COMPLETO! ${done}/${panels.length} painéis gerados com sucesso!`, 'success');
+                        log('✅ Storyboards salvos no banco de dados!', 'success');
+                        log('🔄 Recarregue a página do projeto para ver os resultados', 'info');
+                        
+                        const btn = document.getElementById('startBtn');
+                        btn.disabled = false;
+                        btn.textContent = '✅ Concluído - Recarregar Página';
+                        btn.onclick = () => window.close();
+                    } else if (status.phase === 'error') {
+                        clearInterval(polling);
+                        polling = null;
+                        log(`❌ Erro na geração: ${status.error || 'Desconhecido'}`, 'error');
+                        
+                        const btn = document.getElementById('startBtn');
+                        btn.disabled = false;
+                        btn.textContent = '🔄 Tentar Novamente';
+                    }
+                } catch (error) {
+                    // Silently continue polling
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+    </script>
+</body>
+</html>
