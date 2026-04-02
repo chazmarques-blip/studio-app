@@ -396,100 +396,142 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
     _save_project(tenant["id"], settings, projects)
 
     def _bg_regen():
-        try:
-            import tempfile
-            from core.storyboard import _generate_all_frames_for_scene, _generate_shot_briefs, FRAME_TYPES
-            char_avatars = project.get("character_avatars", {})
-            production_design = project.get("agents_output", {}).get("production_design", {})
-            character_bible = production_design.get("character_bible", {})
-            identity_cards = production_design.get("identity_cards", {})
+        MAX_RETRIES = 3
+        last_error = None
+        
+        for attempt in range(MAX_RETRIES):
+            try:
+                import tempfile
+                import time
+                from core.storyboard import _generate_all_frames_for_scene, _generate_shot_briefs, FRAME_TYPES
+                
+                if attempt > 0:
+                    wait_time = 2 ** attempt  # 2s, 4s, 8s
+                    logger.info(f"Panel {req.panel_number}: Retry attempt {attempt + 1}/{MAX_RETRIES} after {wait_time}s wait...")
+                    time.sleep(wait_time)
+                
+                char_avatars = project.get("character_avatars", {})
+                production_design = project.get("agents_output", {}).get("production_design", {})
+                character_bible = production_design.get("character_bible", {})
+                identity_cards = production_design.get("identity_cards", {})
 
-            avatar_cache = {}
-            chars_in_scene = scene.get("characters_in_scene", [])
-            for cname in chars_in_scene:
-                url = char_avatars.get(cname)
-                if url and url not in avatar_cache:
-                    try:
-                        supabase_url = os.environ.get('SUPABASE_URL', '')
-                        full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
-                        ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                        urllib.request.urlretrieve(full_url, ref_file.name)
-                        avatar_cache[url] = ref_file.name
-                    except Exception:
-                        avatar_cache[url] = None
+                avatar_cache = {}
+                chars_in_scene = scene.get("characters_in_scene", [])
+                for cname in chars_in_scene:
+                    url = char_avatars.get(cname)
+                    if url and url not in avatar_cache:
+                        try:
+                            supabase_url = os.environ.get('SUPABASE_URL', '')
+                            full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
+                            ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                            urllib.request.urlretrieve(full_url, ref_file.name)
+                            avatar_cache[url] = ref_file.name
+                        except Exception:
+                            avatar_cache[url] = None
 
-            style_dna = "ART STYLE: Premium 3D CGI animation (Pixar/DreamWorks quality). Volumetric lighting."
-            style_anchors = production_design.get("style_anchors", "")
-            if style_anchors:
-                style_dna = f"{style_dna} {style_anchors}"
+                style_dna = "ART STYLE: Premium 3D CGI animation (Pixar/DreamWorks quality). Volumetric lighting."
+                style_anchors = production_design.get("style_anchors", "")
+                if style_anchors:
+                    style_dna = f"{style_dna} {style_anchors}"
 
-            # Generate shot briefs for this single scene with continuity
-            scenes_list = project.get("scenes", [])
-            scene_idx = next((i for i, s in enumerate(scenes_list) if s.get("scene_number") == req.panel_number), 0)
-            prev_scene = scenes_list[scene_idx - 1] if scene_idx > 0 else None
-            next_scene = scenes_list[scene_idx + 1] if scene_idx < len(scenes_list) - 1 else None
-            
-            # Get dialogue timeline for this scene
-            dialogue_timeline = scene.get("dialogue_timeline", [])
+                # Generate shot briefs for this single scene with continuity
+                scenes_list = project.get("scenes", [])
+                scene_idx = next((i for i, s in enumerate(scenes_list) if s.get("scene_number") == req.panel_number), 0)
+                prev_scene = scenes_list[scene_idx - 1] if scene_idx > 0 else None
+                next_scene = scenes_list[scene_idx + 1] if scene_idx < len(scenes_list) - 1 else None
+                
+                # Get dialogue timeline for this scene
+                dialogue_timeline = scene.get("dialogue_timeline", [])
 
-            shot_briefs = None
-            if identity_cards:
-                shot_briefs = _generate_shot_briefs(
-                    scene=scene, scene_num=req.panel_number,
-                    identity_cards=identity_cards, style_dna=style_dna,
-                    prev_scene=prev_scene, next_scene=next_scene,
-                    lang=project.get("language", "pt"), project_id=project_id,
-                    dialogue_timeline=dialogue_timeline,
+                shot_briefs = None
+                if identity_cards:
+                    shot_briefs = _generate_shot_briefs(
+                        scene=scene, scene_num=req.panel_number,
+                        identity_cards=identity_cards, style_dna=style_dna,
+                        prev_scene=prev_scene, next_scene=next_scene,
+                        lang=project.get("language", "pt"), project_id=project_id,
+                        dialogue_timeline=dialogue_timeline,
+                    )
+
+                logger.info(f"Panel {req.panel_number}: Generating frames (attempt {attempt + 1}/{MAX_RETRIES})...")
+                frame_results = _generate_all_frames_for_scene(
+                    scene=scene, scene_num=req.panel_number, project_id=project_id,
+                    char_avatars=char_avatars, avatar_cache=avatar_cache,
+                    character_bible=character_bible, identity_cards=identity_cards,
+                    style_dna=style_dna, shot_briefs=shot_briefs,
+                    lang=project.get("language", "pt"),
                 )
 
-            frame_results = _generate_all_frames_for_scene(
-                scene=scene, scene_num=req.panel_number, project_id=project_id,
-                char_avatars=char_avatars, avatar_cache=avatar_cache,
-                character_bible=character_bible, identity_cards=identity_cards,
-                style_dna=style_dna, shot_briefs=shot_briefs,
-                lang=project.get("language", "pt"),
-            )
+                image_url = None
+                frames = []
+                for fi, (ft, img_bytes) in enumerate(frame_results):
+                    if img_bytes:
+                        frame_fname = f"storyboard/{project_id}/panel_{req.panel_number}_frame_{fi+1}.png"
+                        frame_url = _upload_to_storage(img_bytes, frame_fname, "image/png")
+                        frames.append({
+                            "frame_number": fi + 1,
+                            "image_url": frame_url,
+                            "label": ft["label"],
+                        })
+                        if image_url is None:
+                            image_url = frame_url
 
-            image_url = None
-            frames = []
-            for fi, (ft, img_bytes) in enumerate(frame_results):
-                if img_bytes:
-                    frame_fname = f"storyboard/{project_id}/panel_{req.panel_number}_frame_{fi+1}.png"
-                    frame_url = _upload_to_storage(img_bytes, frame_fname, "image/png")
-                    frames.append({
-                        "frame_number": fi + 1,
-                        "image_url": frame_url,
-                        "label": ft["label"],
-                    })
-                    if image_url is None:
-                        image_url = frame_url
+                if image_url:
+                    _s, _p, _proj = _get_project(tenant["id"], project_id)
+                    if _proj:
+                        for p in _proj.get("storyboard_panels", []):
+                            if p.get("scene_number") == req.panel_number:
+                                p["image_url"] = image_url
+                                p["frames"] = frames
+                                p["status"] = "done"
+                                p["generated_at"] = datetime.now(timezone.utc).isoformat()
+                        
+                        # CRITICAL: Update outputs too!
+                        outputs = _proj.get("outputs", [])
+                        outputs = [o for o in outputs if not (o.get("type") == "storyboard" and o.get("scene_number") == req.panel_number)]
+                        outputs.append({
+                            "type": "storyboard",
+                            "scene_number": req.panel_number,
+                            "url": image_url,
+                            "status": "done",
+                            "frames": frames,
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        })
+                        _proj["outputs"] = outputs
+                        
+                        _save_project(tenant["id"], _s, _p)
+                        logger.info(f"✅ Panel {req.panel_number}: SUCCESS on attempt {attempt + 1}! ({len(frames)} frames)")
+                else:
+                    raise Exception("No frames generated")
 
-            if image_url:
-                _s, _p, _proj = _get_project(tenant["id"], project_id)
-                if _proj:
-                    for p in _proj.get("storyboard_panels", []):
-                        if p.get("scene_number") == req.panel_number:
-                            p["image_url"] = image_url
-                            p["frames"] = frames
-                            p["status"] = "done"
-                            p["generated_at"] = datetime.now(timezone.utc).isoformat()
-                    _save_project(tenant["id"], _s, _p)
-            else:
-                _s, _p, _proj = _get_project(tenant["id"], project_id)
-                if _proj:
-                    for p in _proj.get("storyboard_panels", []):
-                        if p.get("scene_number") == req.panel_number:
-                            p["status"] = "error"
-                    _save_project(tenant["id"], _s, _p)
-
-            for path in avatar_cache.values():
-                if path and os.path.exists(path):
-                    try:
-                        os.unlink(path)
-                    except Exception:
-                        pass
-        except Exception as e:
-            logger.error(f"Storyboard [{project_id}]: Panel {req.panel_number} regen failed: {e}")
+                # Cleanup
+                for path in avatar_cache.values():
+                    if path and os.path.exists(path):
+                        try:
+                            os.unlink(path)
+                        except Exception:
+                            pass
+                
+                # SUCCESS - break retry loop
+                return
+                
+            except Exception as e:
+                last_error = e
+                logger.error(f"Panel {req.panel_number}: Attempt {attempt + 1}/{MAX_RETRIES} failed: {e}")
+                
+                if attempt < MAX_RETRIES - 1:
+                    # Will retry
+                    continue
+                else:
+                    # All retries exhausted
+                    logger.error(f"❌ Panel {req.panel_number}: ALL {MAX_RETRIES} ATTEMPTS FAILED! Last error: {last_error}")
+                    _s, _p, _proj = _get_project(tenant["id"], project_id)
+                    if _proj:
+                        for p in _proj.get("storyboard_panels", []):
+                            if p.get("scene_number") == req.panel_number:
+                                p["status"] = "error"
+                                p["error"] = str(last_error)[:200]
+                        _save_project(tenant["id"], _s, _p)
 
     thread = threading.Thread(target=_bg_regen, daemon=True)
     thread.start()
