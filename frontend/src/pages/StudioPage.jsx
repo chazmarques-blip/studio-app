@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { v4 as uuidv4 } from 'uuid';
 import { 
   Film, Plus, Trash2, Clock, Layers, Users, Play, Folder, 
   ChevronRight, MoreHorizontal, Search, ArrowLeft, Eye,
@@ -866,8 +867,60 @@ export default function StudioPage() {
             applyClothing: () => {}, // TODO
             generateAngle: () => {}, // TODO
             startAuto360: () => {}, // TODO
-            saveAvatarAndClose: () => {}, // TODO
-            saveAvatarAsNew: () => {}, // TODO
+            saveAvatarAndClose: () => {
+              console.log('⚠️ saveAvatarAndClose: Not implemented in Directed Studio mode');
+              toast.info('Use o botão "Salvar" no projeto para persistir mudanças');
+              resetAvatarModal();
+            },
+            saveAvatarAsNew: () => {
+              console.log('💾 saveAvatarAsNew called');
+              
+              if (!tempAvatar) {
+                console.warn('⚠️ No tempAvatar to save');
+                toast.error('Nenhum personagem para salvar');
+                return;
+              }
+              
+              const name = avatarName.trim() || `Personagem ${projectAvatars.length + 1}`;
+              
+              const newAvatar = {
+                id: uuidv4(),
+                url: tempAvatar.url,
+                name,
+                source_photo_url: tempAvatar.source_photo_url,
+                clothing: tempAvatar.clothing,
+                voice: tempAvatar.voice,
+                angles: angleImages || { front: tempAvatar.url },
+                video_url: previewVideoUrl || null,
+                language: previewLanguage || 'pt',
+                creation_mode: tempAvatar.creation_mode || 'photo',
+                avatar_style: tempAvatar.avatar_style || 'realistic',
+                edit_history: avatarEditHistory || [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              
+              console.log('✅ New avatar created:', newAvatar);
+              
+              // Add to project avatars list
+              const updatedAvatars = [...projectAvatars, newAvatar];
+              setProjectAvatars(updatedAvatars);
+              
+              // Persist to backend (if project exists)
+              if (selectedProject?.id) {
+                axios.post(`${API}/studio/projects/${selectedProject.id}/project-avatars`, {
+                  avatar: newAvatar
+                }).then(() => {
+                  console.log('✅ Avatar persisted to backend');
+                  toast.success(`Personagem "${name}" salvo com sucesso!`);
+                }).catch(err => {
+                  console.error('❌ Failed to persist avatar:', err);
+                  toast.error('Erro ao salvar personagem no servidor');
+                });
+              }
+              
+              resetAvatarModal();
+            },
             previewVoice: () => {}, // TODO
             startRecording: () => {}, // TODO
             stopRecording: () => {}, // TODO
