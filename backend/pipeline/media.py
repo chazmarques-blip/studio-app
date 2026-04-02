@@ -116,7 +116,7 @@ async def _generate_voice_alternatives(narration_text, pipeline_id, primary_voic
                 alt_config = {"type": "elevenlabs", "voice_id": v["id"], "stability": 0.40, "similarity": 0.80, "style_val": 0.45, "_skip_dylan_override": True}
                 preview_path = await _generate_narration(
                     narration_text, f"{pipeline_id}_alt_{v['id'][:6]}",
-                    max_duration=25.0, voice_config=alt_config
+                    max_duration=25.0, voice_config=alt_config, language_code=language
                 )
                 if preview_path and os.path.exists(preview_path):
                     with open(preview_path, "rb") as f:
@@ -885,9 +885,17 @@ def _extract_dylan_voice_settings(pipeline_id):
         return {}
 
 
-async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config=None):
+async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config=None, language_code="pt"):
     """Generate cinema-quality narration. Uses ElevenLabs (primary) or OpenAI TTS HD (fallback).
-    Ensures narration fits within max_duration by speeding up if needed."""
+    Ensures narration fits within max_duration by speeding up if needed.
+    
+    Args:
+        text: Text to narrate
+        pipeline_id: Pipeline ID for temp files
+        max_duration: Maximum duration in seconds
+        voice_config: Voice configuration dict
+        language_code: Language code (pt, en, es, etc.) - CRITICAL for correct pronunciation
+    """
     raw_path = f"/tmp/{pipeline_id}_narration_raw.mp3"
     final_path = f"/tmp/{pipeline_id}_narration.mp3"
 
@@ -960,7 +968,7 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
                         stability = 0.25
                         style = 0.60
 
-            logger.info(f"ElevenLabs cinema settings: voice={el_voice_id}, stability={stability}, similarity={similarity}, style={style}")
+            logger.info(f"ElevenLabs cinema settings: voice={el_voice_id}, stability={stability}, similarity={similarity}, style={style}, language={language_code}")
 
             voice_settings = VoiceSettings(
                 stability=stability,
@@ -969,11 +977,13 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
                 use_speaker_boost=True
             )
 
+            # 🌐 CRITICAL FIX: Specify language_code for correct pronunciation
             audio_gen = el_client.text_to_speech.convert(
                 text=text,
                 voice_id=el_voice_id,
                 model_id="eleven_multilingual_v2",
-                voice_settings=voice_settings
+                voice_settings=voice_settings,
+                language_code=language_code  # ← FIX: Ensure Portuguese/Spanish pronunciation
             )
             audio_bytes = b""
             for chunk in audio_gen:
@@ -1030,9 +1040,16 @@ async def _generate_narration(text, pipeline_id, max_duration=20.0, voice_config
     return None
 
 
-async def _generate_audio_preview(marcos_output, pipeline_id, voice_config=None):
+async def _generate_audio_preview(marcos_output, pipeline_id, voice_config=None, language_code="pt"):
     """Generate a quick TTS audio preview from marcos_video script for pre-approval.
-    Returns (narration_text, audio_preview_url) or (narration_text, None) on failure."""
+    Returns (narration_text, audio_preview_url) or (narration_text, None) on failure.
+    
+    Args:
+        marcos_output: Script output from Marcos
+        pipeline_id: Pipeline ID
+        voice_config: Voice configuration
+        language_code: Language code (pt, en, es, etc.)
+    """
     # Extract narration text
     narration_text = ""
     clean_tts_match = re.search(r'===CLEAN TTS TEXT===([\s\S]*?)===', marcos_output, re.IGNORECASE)
@@ -1049,7 +1066,7 @@ async def _generate_audio_preview(marcos_output, pipeline_id, voice_config=None)
         return "", None
 
     try:
-        preview_path = await _generate_narration(narration_text, f"{pipeline_id}_preview", max_duration=25.0, voice_config=voice_config)
+        preview_path = await _generate_narration(narration_text, f"{pipeline_id}_preview", max_duration=25.0, voice_config=voice_config, language_code=language_code)
         if preview_path and os.path.exists(preview_path):
             with open(preview_path, "rb") as f:
                 audio_bytes = f.read()

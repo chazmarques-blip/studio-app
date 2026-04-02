@@ -21,12 +21,29 @@ class ElevenLabsProvider(VoiceProvider):
         client = ELClient(api_key=self.api_key)
         stability = kwargs.get("stability", 0.5)
         similarity = kwargs.get("similarity_boost", 0.8)
+        
+        # 🌐 CRITICAL: Get language from kwargs to ensure correct pronunciation
+        language_code = kwargs.get("language_code", "pt")  # Default to Portuguese
+        
+        # Map language codes to ElevenLabs language codes
+        elevenlabs_lang_map = {
+            "pt": "pt",  # Portuguese
+            "en": "en",  # English
+            "es": "es",  # Spanish
+            "fr": "fr",  # French
+            "de": "de",  # German
+        }
+        elevenlabs_lang = elevenlabs_lang_map.get(language_code, "pt")
+        
+        logger.info(f"ElevenLabs TTS: Generating audio in '{elevenlabs_lang}' language")
+        logger.info(f"Text preview: {text[:100]}...")
 
         audio_gen = client.text_to_speech.convert(
             voice_id=voice_id,
             text=text,
             model_id="eleven_multilingual_v2",
             voice_settings=VoiceSettings(stability=stability, similarity_boost=similarity),
+            language_code=elevenlabs_lang,  # ← CRITICAL FIX: Specify language
         )
         chunks = []
         for chunk in audio_gen:
