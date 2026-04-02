@@ -881,7 +881,7 @@ export default function StudioPage() {
                 return;
               }
               
-              const name = avatarName.trim() || `Personagem ${projectAvatars.length + 1}`;
+              const name = avatarName.trim() || `Personagem ${avatars.length + 1}`;
               
               const newAvatar = {
                 id: uuidv4(),
@@ -902,9 +902,9 @@ export default function StudioPage() {
               
               console.log('✅ New avatar created:', newAvatar);
               
-              // Add to project avatars list
-              const updatedAvatars = [...projectAvatars, newAvatar];
-              setProjectAvatars(updatedAvatars);
+              // Add to avatars list (local state)
+              const updatedAvatars = [...avatars, newAvatar];
+              setAvatars(updatedAvatars);
               
               // Persist to backend (if project exists)
               if (selectedProject?.id) {
@@ -917,6 +917,8 @@ export default function StudioPage() {
                   console.error('❌ Failed to persist avatar:', err);
                   toast.error('Erro ao salvar personagem no servidor');
                 });
+              } else {
+                toast.success(`Personagem "${name}" salvo localmente!`);
               }
               
               resetAvatarModal();
