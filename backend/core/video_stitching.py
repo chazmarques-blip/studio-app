@@ -208,24 +208,38 @@ class AudioSynchronizer:
         """
         Extract audio segment for a specific clip from the full audio.
         
-        Uses FFmpeg to extract without re-encoding (fast & lossless).
+        ⚠️ CRITICAL: Uses FFmpeg copy codec to preserve 100% quality.
+        NO re-encoding = NO quality loss.
+        
+        Args:
+            full_audio_path: Path to master audio file (high quality)
+            start_time: Start timestamp in seconds
+            end_time: End timestamp in seconds
+            output_path: Output path for audio segment
+            
+        Returns:
+            Path to extracted audio clip (LOSSLESS)
         """
         import subprocess
         
         duration = end_time - start_time
         
+        # 🔒 LOSSLESS EXTRACTION:
+        # -c:a copy = Copy audio stream without re-encoding
+        # Result: 100% original quality preserved
         cmd = [
             'ffmpeg', '-y',
             '-i', full_audio_path,
-            '-ss', str(start_time),
-            '-t', str(duration),
-            '-c:a', 'copy',  # Copy without re-encoding
+            '-ss', str(start_time),  # Seek to start time
+            '-t', str(duration),      # Duration to extract
+            '-c:a', 'copy',          # ← CRITICAL: No re-encoding!
+            '-avoid_negative_ts', 'make_zero',  # Fix timestamp issues
             output_path
         ]
         
         try:
             subprocess.run(cmd, check=True, capture_output=True)
-            logger.info(f"Extracted audio clip: {start_time:.1f}s - {end_time:.1f}s")
+            logger.info(f"✅ Extracted audio clip LOSSLESS: {start_time:.1f}s - {end_time:.1f}s")
             return output_path
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to extract audio clip: {e.stderr.decode()}")
@@ -272,46 +286,75 @@ class FrameStitcher:
         """
         Merge multiple video clips with their corresponding audio clips.
         
-        Creates a seamless final video with synchronized audio.
+        ⚠️ CRITICAL: Preserves 100% quality using copy codecs.
+        - Video: NO re-encoding (Sora 2 quality preserved)
+        - Audio: NO re-encoding (ElevenLabs quality preserved)
+        - Only multiplexing (combining streams)
+        
+        Args:
+            video_clips: List of video file paths (Sora 2 outputs)
+            audio_clips: List of audio file paths (corresponding segments)
+            output_path: Final output video path
+            
+        Returns:
+            Path to merged video (LOSSLESS)
         """
         import subprocess
         import tempfile
         
-        # Create concat file for FFmpeg
+        logger.info(f"🎬 Starting LOSSLESS merge of {len(video_clips)} clips...")
+        
+        # Step 1: Mux each video with its audio (NO re-encoding)
+        intermediate_files = []
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
             for i, (video, audio) in enumerate(zip(video_clips, audio_clips)):
-                # First, create intermediate files with matching audio
-                intermediate = f"/tmp/clip_{i}_with_audio.mp4"
-                subprocess.run([
+                intermediate = f"/tmp/clip_{i}_muxed.mp4"
+                
+                # 🔒 LOSSLESS MUX:
+                # -c:v copy = Copy video without re-encoding (100% Sora 2 quality)
+                # -c:a copy = Copy audio without re-encoding (100% ElevenLabs quality)
+                mux_cmd = [
                     'ffmpeg', '-y',
                     '-i', video,
                     '-i', audio,
-                    '-c:v', 'copy',
-                    '-c:a', 'aac',
-                    '-shortest',
+                    '-c:v', 'copy',  # ← CRITICAL: No video re-encoding!
+                    '-c:a', 'copy',  # ← CRITICAL: No audio re-encoding!
+                    '-shortest',     # Match shortest stream duration
+                    '-map', '0:v:0', # Map video from first input
+                    '-map', '1:a:0', # Map audio from second input
                     intermediate
-                ], check=True, capture_output=True)
+                ]
                 
-                f.write(f"file '{intermediate}'\n")
+                try:
+                    subprocess.run(mux_cmd, check=True, capture_output=True)
+                    logger.info(f"  ✅ Clip {i+1}: Muxed LOSSLESS")
+                    intermediate_files.append(intermediate)
+                    f.write(f"file '{intermediate}'\n")
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Failed to mux clip {i}: {e.stderr.decode()}")
+                    raise
             
             concat_file = f.name
         
-        # Concatenate all clips
-        cmd = [
+        # Step 2: Concatenate all muxed clips (NO re-encoding)
+        # 🔒 LOSSLESS CONCAT:
+        # -c copy = Copy all streams without re-encoding
+        concat_cmd = [
             'ffmpeg', '-y',
             '-f', 'concat',
             '-safe', '0',
             '-i', concat_file,
-            '-c', 'copy',
+            '-c', 'copy',  # ← CRITICAL: No re-encoding during concat!
             output_path
         ]
         
         try:
-            subprocess.run(cmd, check=True, capture_output=True)
-            logger.info(f"Merged {len(video_clips)} clips into {output_path}")
+            subprocess.run(concat_cmd, check=True, capture_output=True)
+            logger.info(f"✅ Merged {len(video_clips)} clips LOSSLESS → {output_path}")
+            logger.info(f"📊 Quality preservation: Video 100% | Audio 100%")
             return output_path
         except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to merge clips: {e.stderr.decode()}")
+            logger.error(f"Failed to concatenate clips: {e.stderr.decode()}")
             raise
 
 
