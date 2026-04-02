@@ -14,7 +14,7 @@ import { PreviewBoard } from './PreviewBoard';
 import { PostProduction } from './PostProduction';
 import { StoryboardEditor } from './StoryboardEditor';
 import { DialogueEditor } from './DialogueEditor';
-import { AvatarLibraryModal } from './pipeline/AvatarLibraryModal';
+import { AvatarLibraryModalV2 } from './pipeline/AvatarLibraryModalV2';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
 
@@ -3777,13 +3777,18 @@ export const DirectedStudio = memo(function DirectedStudio({
         </div>
       )}
 
-      {/* Avatar Library Modal */}
-      <AvatarLibraryModal
+      {/* Avatar Library Modal V2 - Enhanced */}
+      <AvatarLibraryModalV2
         open={showLibrary}
         onClose={() => setShowLibrary(false)}
         projectId={projectId}
         projectAvatarIds={new Set(projectAvatars.map(a => a.id))}
         onImported={handleLibraryImport}
+        onEditAvatar={(avatar) => {
+          // Open edit modal with the selected avatar
+          safeOnEditAvatar(avatar);
+          setShowLibrary(false);
+        }}
         lang={lang}
       />
     </div>
