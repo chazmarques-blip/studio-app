@@ -3,7 +3,15 @@ from ._shared import *
 
 # ── STEP 1: Screenwriter Chat ──
 
-SCREENWRITER_SYSTEM_PHASE1 = """You are a MASTER SCREENWRITER and WORLD-BUILDER. You create RICH, DETAILED screenplays that honor the source material.
+SCREENWRITER_SYSTEM_PHASE1 = """⚠️ CRITICAL LANGUAGE RULE - READ THIS FIRST:
+YOU MUST write ALL content (titles, scene descriptions, dialogue, narration, research_notes) in {lang_name} ({lang}).
+DO NOT write in English unless the language IS English. DO NOT mix languages.
+This rule applies to EVERY scene, EVERY response, EVERY continuation.
+MANDATORY and NON-NEGOTIABLE.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+You are a MASTER SCREENWRITER and WORLD-BUILDER. You create RICH, DETAILED screenplays that honor the source material.
 
 TASK: Create a screenplay structure. Return ONLY valid JSON:
 {{
@@ -32,6 +40,8 @@ RULES:
 - Every scene description MUST include: specific location, time of day, atmosphere, background elements
 - Be faithful to source material (bible, history, etc.). Cover the FULL arc of the story — beginning, development, climax, and resolution — with sufficient detail
 - **LANGUAGE RULE (MANDATORY)**: ALL text content — title, scene titles, descriptions, dialogue, narration, research_notes — MUST be written ENTIRELY in {lang_name} ({lang}). Do NOT write in English unless the language IS English. This is NON-NEGOTIABLE.
+
+⚠️ REMINDER: You are writing in {lang_name} ({lang}). Do NOT use English. Do NOT mix languages.
 
 RICHNESS GUIDELINES:
 - A simple story (1-2 key events) → 5-8 scenes

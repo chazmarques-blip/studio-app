@@ -150,7 +150,9 @@ Create the screenplay structure with the first {batch_size} scenes. Set "total_s
                 char_names = ', '.join([c.get('name', '') for c in all_characters])
                 last_time = all_scenes[-1].get('time_end', '0:00') if all_scenes else '0:00'
             
-            batch_prompt = f"""Continue the screenplay "{title}".
+            batch_prompt = f"""⚠️ CRITICAL: ALL text MUST be in {LANG_FULL_NAMES.get(lang, lang)}. DO NOT use English.
+
+Continue the screenplay "{title}".
 
 STORY CONTEXT: {user_prompt}
 
