@@ -1,5 +1,6 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
+from .screenwriter import LANG_FULL_NAMES  # Import language names mapping
 
 # ── Voice & Music Library ──
 

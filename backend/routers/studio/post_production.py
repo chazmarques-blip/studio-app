@@ -1,6 +1,9 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
 
+# Import language names mapping
+from .screenwriter import LANG_FULL_NAMES
+
 # ── PHASE A: Post-Production (Audio Engineer) ──
 # ═══════════════════════════════════════════════════════════
 
