@@ -69,6 +69,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [editForm, setEditForm] = useState({});
   const [approved, setApproved] = useState(false);
   
+  // NOVO: Multi-select regeneration states
+  const [selectedPanels, setSelectedPanels] = useState(new Set());
+  const [regeneratingPanels, setRegeneratingPanels] = useState(new Map()); // panelNum -> {status, progress}
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  
   // Flag to prevent reloading during drag operation
   const isDraggingRef = useRef(false);
   
@@ -339,6 +344,111 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     setTimeout(poll, 3000);
   };
 
+  // ══════════════════════════════════════════════════════════════
+  // MULTI-SELECT REGENERATION
+  // ══════════════════════════════════════════════════════════════
+  
+  const togglePanelSelection = (panelNum) => {
+    setSelectedPanels(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(panelNum)) {
+        newSet.delete(panelNum);
+      } else {
+        newSet.add(panelNum);
+      }
+      // Auto-enable multi-select mode when selecting
+      if (newSet.size > 0) setIsMultiSelectMode(true);
+      if (newSet.size === 0) setIsMultiSelectMode(false);
+      return newSet;
+    });
+  };
+  
+  const selectAllPanels = () => {
+    const allPanelNums = panels.map(p => p.scene_number);
+    setSelectedPanels(new Set(allPanelNums));
+    setIsMultiSelectMode(true);
+  };
+  
+  const deselectAllPanels = () => {
+    setSelectedPanels(new Set());
+    setIsMultiSelectMode(false);
+  };
+  
+  const regenerateSelectedPanels = async () => {
+    if (selectedPanels.size === 0) {
+      toast.error(lang === 'pt' ? 'Selecione ao menos um painel' : 'Select at least one panel');
+      return;
+    }
+    
+    const panelsToRegen = Array.from(selectedPanels);
+    toast.info(lang === 'pt' 
+      ? `Regenerando ${panelsToRegen.length} painéis...`
+      : `Regenerating ${panelsToRegen.length} panels...`
+    );
+    
+    // Initialize progress tracking for each panel
+    const newRegenerating = new Map();
+    panelsToRegen.forEach(num => {
+      newRegenerating.set(num, { status: 'queued', progress: 0 });
+    });
+    setRegeneratingPanels(newRegenerating);
+    
+    // Process panels sequentially to avoid overload (2 at a time)
+    const BATCH_SIZE = 2;
+    for (let i = 0; i < panelsToRegen.length; i += BATCH_SIZE) {
+      const batch = panelsToRegen.slice(i, i + BATCH_SIZE);
+      
+      await Promise.all(
+        batch.map(async (panelNum) => {
+          try {
+            // Update status: generating
+            setRegeneratingPanels(prev => {
+              const updated = new Map(prev);
+              updated.set(panelNum, { status: 'generating', progress: 50 });
+              return updated;
+            });
+            
+            const panel = panels.find(p => p.scene_number === panelNum);
+            await axios.post(`${API}/studio/projects/${projectId}/storyboard/regenerate-panel`, {
+              panel_number: panelNum,
+              description: panel?.description || '',
+            });
+            
+            // Update status: success
+            setRegeneratingPanels(prev => {
+              const updated = new Map(prev);
+              updated.set(panelNum, { status: 'success', progress: 100 });
+              return updated;
+            });
+            
+            toast.success(lang === 'pt' ? `Painel ${panelNum} regenerado!` : `Panel ${panelNum} regenerated!`);
+            
+          } catch (error) {
+            console.error(`Panel ${panelNum} regeneration failed:`, error);
+            setRegeneratingPanels(prev => {
+              const updated = new Map(prev);
+              updated.set(panelNum, { status: 'error', progress: 0, error: getErrorMsg(error) });
+              return updated;
+            });
+            toast.error(lang === 'pt' ? `Painel ${panelNum} falhou` : `Panel ${panelNum} failed`);
+          }
+        })
+      );
+    }
+    
+    // Reload panels after all done
+    setTimeout(() => {
+      loadStoryboard();
+      setRegeneratingPanels(new Map());
+      setSelectedPanels(new Set());
+      setIsMultiSelectMode(false);
+    }, 2000);
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // ORIGINAL REGENERATE PANEL (Single)
+  // ══════════════════════════════════════════════════════════════
+  
   const regeneratePanel = async (panelNum) => {
     setGeneratingPanel(panelNum);
     try {
@@ -731,18 +841,104 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             </p>
           </div>
         </div>
-        {panels.length > 0 && (
-          <button onClick={() => setChatOpen(!chatOpen)} data-testid="toggle-facilitator-chat"
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-              chatOpen
-                ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
-                : 'bg-[#111] border border-[#333] text-[#888] hover:text-purple-300 hover:border-purple-500/30'
-            }`}>
-            <Wand2 size={10} />
-            {lang === 'pt' ? 'Facilitador IA' : 'AI Facilitator'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Multi-select toggle */}
+          {panels.length > 0 && (
+            <button
+              onClick={() => {
+                if (isMultiSelectMode) {
+                  deselectAllPanels();
+                } else {
+                  setIsMultiSelectMode(true);
+                }
+              }}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                isMultiSelectMode
+                  ? 'bg-orange-500/20 border border-orange-500/40 text-orange-300'
+                  : 'bg-[#111] border border-[#333] text-[#888] hover:text-orange-300 hover:border-orange-500/30'
+              }`}>
+              <CheckCircle size={10} />
+              {lang === 'pt' ? 'Seleção Múltipla' : 'Multi-Select'}
+            </button>
+          )}
+          {panels.length > 0 && (
+            <button onClick={() => setChatOpen(!chatOpen)} data-testid="toggle-facilitator-chat"
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                chatOpen
+                  ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
+                  : 'bg-[#111] border border-[#333] text-[#888] hover:text-purple-300 hover:border-purple-500/30'
+              }`}>
+              <Wand2 size={10} />
+              {lang === 'pt' ? 'Facilitador IA' : 'AI Facilitator'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Multi-select toolbar */}
+      {isMultiSelectMode && panels.length > 0 && (
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-orange-300">
+              {selectedPanels.size} {lang === 'pt' ? 'selecionado(s)' : 'selected'}
+            </span>
+            <div className="h-4 w-px bg-orange-500/30" />
+            <button
+              onClick={selectAllPanels}
+              className="text-xs text-orange-400 hover:text-orange-300 transition">
+              {lang === 'pt' ? 'Selecionar Todos' : 'Select All'}
+            </button>
+            <button
+              onClick={deselectAllPanels}
+              className="text-xs text-orange-400 hover:text-orange-300 transition">
+              {lang === 'pt' ? 'Limpar' : 'Clear'}
+            </button>
+          </div>
+          <button
+            onClick={regenerateSelectedPanels}
+            disabled={selectedPanels.size === 0 || regeneratingPanels.size > 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-medium hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <RefreshCw size={12} className={regeneratingPanels.size > 0 ? 'animate-spin' : ''} />
+            {lang === 'pt' ? `Regenerar ${selectedPanels.size || ''}` : `Regenerate ${selectedPanels.size || ''}`}
+          </button>
+        </div>
+      )}
+      
+      {/* Regeneration Progress Timelines */}
+      {regeneratingPanels.size > 0 && (
+        <div className="space-y-2 rounded-xl border border-blue-500/30 bg-blue-500/5 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <RefreshCw size={12} className="text-blue-400 animate-spin" />
+            <span className="text-xs font-semibold text-blue-300">
+              {lang === 'pt' ? 'Regenerando Painéis' : 'Regenerating Panels'}
+            </span>
+          </div>
+          {Array.from(regeneratingPanels.entries()).map(([panelNum, info]) => (
+            <div key={panelNum} className="flex items-center gap-3">
+              <span className="text-[10px] font-medium text-gray-400 w-16">
+                {lang === 'pt' ? 'Painel' : 'Panel'} {panelNum}
+              </span>
+              <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    info.status === 'success' ? 'bg-green-500' :
+                    info.status === 'error' ? 'bg-red-500' :
+                    'bg-blue-500 animate-pulse'
+                  }`}
+                  style={{ width: `${info.progress}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-medium w-20 text-right">
+                {info.status === 'queued' && (lang === 'pt' ? 'Na fila' : 'Queued')}
+                {info.status === 'generating' && (lang === 'pt' ? 'Gerando...' : 'Generating...')}
+                {info.status === 'success' && '✓ Pronto'}
+                {info.status === 'error' && '✗ Erro'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
 
       {/* Generate button — show when no panels exist */}
       {panels.length === 0 && !loading && (
