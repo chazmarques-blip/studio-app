@@ -260,8 +260,12 @@ async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: i
             raise
 
 
-def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000, timeout_per_attempt: int = 120) -> str:
-    """Call Claude via Anthropic API directly (sync). 3 retries, no proxy."""
+def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000, timeout_per_attempt: int = 300) -> str:
+    """Call Claude via Anthropic API directly (sync). 3 retries, no proxy.
+    
+    CRITICAL FIX: Increased default timeout from 120s → 300s to prevent timeouts
+    when processing multiple characters or complex prompts.
+    """
     import time as _time
 
     for attempt in range(3):

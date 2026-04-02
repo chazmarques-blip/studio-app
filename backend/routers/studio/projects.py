@@ -554,6 +554,10 @@ async def generate_single_character_image(
     Generate image for a single specific character.
     Checks global library first, generates if not found.
     """
+    # CRITICAL FIX: Decode URL-encoded characters (spaces, accents like ã, ó, etc.)
+    from urllib.parse import unquote
+    character_name = unquote(character_name)
+    
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

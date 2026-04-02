@@ -770,6 +770,15 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
 
 def _clean_narration_for_tts(raw_text):
     """Thoroughly clean narration text for TTS — removes ALL non-spoken content.
+    
+    CRITICAL FIX (2026-04-02): Preserve exact approved dialogue text.
+    This function MUST NOT remove essential dialogue content that was approved in the script.
+    Only remove:
+    - Stage directions in brackets [...]
+    - Timing marks [0-4s]:
+    - Framework tags (ANTES:, DEPOIS:, etc.)
+    - Technical markers (<emotion>, emojis, metadata)
+    
     This is the SINGLE source of truth for narration cleaning across all video modes."""
     text = raw_text
 
@@ -777,7 +786,8 @@ def _clean_narration_for_tts(raw_text):
     text = re.sub(r'\[\d+\s*-\s*\d+s?\]\s*:?\s*', '', text)
 
     # 2. Remove section headers: [HOOK 0-4s], [BUILD 4-10s], [CLIMAX 10-16s], [SILENCE ...]
-    text = re.sub(r'\[\s*(?:HOOK|BUILD|CLIMAX|SILENCE|INTRO|OUTRO|CTA|PEAK|TRANSITION|CLOSE)\s*[^]]*\]', '', text, flags=re.IGNORECASE)
+    # CRITICAL: Only remove if the ENTIRE content is a section header, not if it contains dialogue
+    text = re.sub(r'\[\s*(?:HOOK|BUILD|CLIMAX|SILENCE|INTRO|OUTRO|CTA|PEAK|TRANSITION|CLOSE)\s*\d*\s*-?\s*\d*s?\s*\]', '', text, flags=re.IGNORECASE)
 
     # 3. Remove angle-bracket markers: <emotion, pace, volume>
     text = re.sub(r'<[^>]{2,60}>', '', text)
@@ -786,19 +796,19 @@ def _clean_narration_for_tts(raw_text):
     text = re.sub(r'\[Direction:[^\]]*\]', '', text, flags=re.IGNORECASE)
     text = re.sub(r'\[Dir(?:eção|eccion):[^\]]*\]', '', text, flags=re.IGNORECASE)
 
-    # 5. Remove ALL bracketed stage directions (SILENCE, music, logo, fade, etc.)
-    text = re.sub(r'\[.*?(?:SILENCE|QUIET|PAUSE|NO NARRATION|NO SPOKEN|MUSIC ONLY).*?\]', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\[.*?(?:fade|black|screen|visual|music|logo|brand|overlay|transition|cut to).*?\]', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\[.*?logo\s+on\s+screen.*?\]', '', text, flags=re.IGNORECASE)
+    # 5. Remove ONLY bracketed stage directions that are clearly NOT dialogue
+    # CRITICAL FIX: Use more specific patterns to avoid removing dialogue in brackets
+    text = re.sub(r'\[\s*(?:SILENCE|QUIET|PAUSE|NO NARRATION|NO SPOKEN|MUSIC ONLY)\s*\]', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\[\s*(?:fade|black screen|music|logo|brand|overlay|cut to|visual)\s*[^\]]*\]', '', text, flags=re.IGNORECASE)
 
     # 6. Remove <<<...>>> patterns (triple angle bracket directions)
     text = re.sub(r'<{2,}[^<]*>{2,}', '', text, flags=re.IGNORECASE)
     text = re.sub(r'>{2,}', '', text)  # clean any remaining orphan brackets
 
-    # 7. Remove copywriting framework tags (PT/EN/ES) — the core fix
-    # Matches "ANTES:", "DEPOIS:", "A PONTE:", etc. even when preceded by quotes
+    # 7. Remove copywriting framework tags (PT/EN/ES) — ONLY at start of lines
+    # CRITICAL FIX: Only remove framework tags, preserve dialogue that follows
     framework_tags = (
-        r'(?:^|\n)\s*"?\s*(?:'
+        r'(?:^|\n)\s*(?:'
         r'ANTES|DEPOIS|A PONTE|PROBLEMA|SOLU[ÇC][ÃA]O|TRANSFORMA[ÇC][ÃA]O|'
         r'BEFORE|AFTER|THE BRIDGE|PROBLEM|SOLUTION|TRANSFORMATION|'
         r'GANCHO|REVELA[ÇC][ÃA]O|CHAMADA|'

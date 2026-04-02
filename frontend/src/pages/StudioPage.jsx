@@ -594,13 +594,22 @@ export default function StudioPage() {
 
   // Delete project
   const handleDeleteProject = async (project) => {
-    const confirmDelete = window.confirm(l.deleteConfirm);
-    if (!confirmDelete) return;
+    console.log('🗑️ handleDeleteProject called with:', project);
+    
+    const confirmDelete = window.confirm(l.deleteConfirm || `Tem certeza que deseja excluir "${project.name}"?`);
+    if (!confirmDelete) {
+      console.log('⚠️ Delete cancelled by user');
+      return;
+    }
     
     try {
       console.log('🗑️ Deletando projeto:', project.id, project.name);
-      await axios.delete(`${API}/studio/projects/${project.id}`);
-      toast.success(l.deleted);
+      console.log('📡 DELETE request to:', `${API}/studio/projects/${project.id}`);
+      
+      const response = await axios.delete(`${API}/studio/projects/${project.id}`);
+      console.log('✅ DELETE response:', response.data);
+      
+      toast.success(l.deleted || 'Projeto excluído com sucesso!');
       
       // Se o projeto deletado está selecionado, voltar para lista
       if (selectedProject?.id === project.id) {
@@ -610,9 +619,14 @@ export default function StudioPage() {
       
       // Recarregar lista
       await fetchProjects();
-      console.log('✅ Projeto deletado com sucesso');
+      console.log('✅ Projeto deletado e lista recarregada');
     } catch (err) {
       console.error('❌ Erro ao excluir projeto:', err);
+      console.error('❌ Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message
+      });
       toast.error('Erro ao excluir projeto: ' + (err.response?.data?.detail || err.message));
     }
   };
