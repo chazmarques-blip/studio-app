@@ -34,13 +34,6 @@ export function AvatarLibraryModalV2({
   const [downloading, setDownloading] = useState(new Set());
   const [importing, setImporting] = useState(false);
   
-  // ═══ CREATION MODE ═══
-  const [creationMode, setCreationMode] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [avatarName, setAvatarName] = useState('');
-  const [saving, setSaving] = useState(false);
-  
   // Expansion & preview
   const [expandedAvatar, setExpandedAvatar] = useState(null);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -334,92 +327,6 @@ export function AvatarLibraryModalV2({
       setPreviewIndex(previewIndex - 1);
     }
   };
-  
-  // ═══ CREATION FUNCTIONS ═══
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-      toast.error('Selecione uma imagem válida');
-      return;
-    }
-    
-    setUploadedFile(file);
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setPhotoPreview(event.target.result);
-    };
-    reader.readAsDataURL(file);
-  };
-  
-  const saveCharacter = async (createAnother = false) => {
-    if (!uploadedFile || !avatarName.trim()) {
-      toast.error('Adicione uma foto e um nome');
-      return;
-    }
-    
-    setSaving(true);
-    
-    try {
-      // 1. Generate avatar from photo
-      const formData = new FormData();
-      formData.append('file', uploadedFile);
-      
-      const genResponse = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-photo`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
-      const avatarUrl = genResponse.data.avatar_url || genResponse.data.avatar?.url;
-      
-      if (!avatarUrl) {
-        throw new Error('URL do avatar não retornada');
-      }
-      
-      // 2. Save to database
-      const savePayload = {
-        name: avatarName,
-        image_url: avatarUrl,
-        url: avatarUrl,
-        style: 'custom',
-        gender: 'neutral',
-        company_id: null,
-        angles: { front: avatarUrl },
-        voice_id: null,
-        language: 'pt'
-      };
-      
-      await axios.post(`${API}/data/avatars`, savePayload);
-      
-      toast.success(`✅ ${avatarName} salvo na galeria!`);
-      
-      // 3. Refresh library
-      const res = await axios.get(`${API}/data/avatars`);
-      setLibrary(res.data || []);
-      localStorage.setItem('studiox_avatar_library_v2', JSON.stringify({ 
-        data: res.data || [], 
-        ts: Date.now() 
-      }));
-      
-      // 4. Reset form
-      setUploadedFile(null);
-      setPhotoPreview(null);
-      setAvatarName('');
-      
-      if (createAnother) {
-        toast.info('📸 Pronto para criar outro!');
-      } else {
-        setCreationMode(false);
-      }
-      
-    } catch (err) {
-      console.error('❌ Error saving character:', err);
-      toast.error('Erro ao salvar: ' + (err.response?.data?.detail || err.message));
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (!open) return null;
 
@@ -442,14 +349,17 @@ export function AvatarLibraryModalV2({
                 {selected.size} {L.selected}
               </span>
             )}
-            {onCreateNew && !creationMode && (
+            {onCreateNew && (
               <button 
-                onClick={() => setCreationMode(true)}
+                onClick={() => {
+                  onClose();
+                  onCreateNew();
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#6366F1]/20 to-[#4F46E5]/20 border border-[#6366F1]/40 text-xs font-semibold text-[#A78BFA] hover:from-[#6366F1]/30 hover:to-[#4F46E5]/30 transition-all hover:scale-105"
-                title="Criar Novo Personagem"
+                title={L.createNew}
               >
                 <Plus size={14} />
-                <span>+ Criar Personagem</span>
+                <span>{L.createNew}</span>
               </button>
             )}
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] transition">
@@ -457,108 +367,8 @@ export function AvatarLibraryModalV2({
             </button>
           </div>
 
-          {/* ═══════ CREATION MODE ═══════ */}
-          {creationMode ? (
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="max-w-lg mx-auto space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-white mb-2">✨ Criar Novo Personagem</h2>
-                  <p className="text-sm text-[#888]">Faça upload de uma foto e escolha um nome</p>
-                </div>
-                
-                {/* Photo Upload */}
-                <div className="space-y-3">
-                  <label className="block">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <div className={`cursor-pointer border-2 border-dashed rounded-xl p-12 text-center transition ${photoPreview ? 'border-[#8B5CF6] bg-[#8B5CF6]/5' : 'border-[#333] bg-[#111] hover:border-[#8B5CF6]/50'}`}>
-                      {photoPreview ? (
-                        <div className="space-y-4">
-                          <img 
-                            src={photoPreview} 
-                            alt="Preview" 
-                            className="w-48 h-48 mx-auto rounded-xl object-cover border-2 border-[#8B5CF6]"
-                          />
-                          <p className="text-sm text-[#8B5CF6] font-medium">✓ Foto carregada</p>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setUploadedFile(null);
-                              setPhotoPreview(null);
-                            }}
-                            className="text-xs text-red-400 hover:text-red-300 underline"
-                          >
-                            Trocar foto
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="text-6xl">📸</div>
-                          <p className="text-base text-[#AAA] font-medium">Clique para selecionar uma foto</p>
-                          <p className="text-xs text-[#666]">ou arraste e solte aqui</p>
-                        </div>
-                      )}
-                    </div>
-                  </label>
-                </div>
-                
-                {/* Name Input */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-[#AAA]">Nome do Personagem</label>
-                  <input
-                    type="text"
-                    value={avatarName}
-                    onChange={(e) => setAvatarName(e.target.value)}
-                    placeholder="Ex: João Silva"
-                    className="w-full px-4 py-3 rounded-xl bg-[#111] border border-[#2A2A2A] text-white text-base placeholder-[#555] outline-none focus:border-[#8B5CF6] transition"
-                  />
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="grid grid-cols-3 gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setCreationMode(false);
-                      setUploadedFile(null);
-                      setPhotoPreview(null);
-                      setAvatarName('');
-                    }}
-                    className="px-4 py-3 rounded-xl bg-[#1A1A1A] border border-[#333] text-white text-sm font-semibold hover:bg-[#222] transition"
-                    disabled={saving}
-                  >
-                    Cancelar
-                  </button>
-                  
-                  <button
-                    onClick={() => saveCharacter(false)}
-                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white text-sm font-semibold hover:from-[#9333EA] hover:to-[#7C3AED] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    disabled={!uploadedFile || !avatarName.trim() || saving}
-                  >
-                    {saving ? '⏳ Salvando...' : '💾 Salvar'}
-                  </button>
-                  
-                  <button
-                    onClick={() => saveCharacter(true)}
-                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#6366F1] to-[#4F46E5] text-white text-sm font-semibold hover:from-[#5B5FE5] hover:to-[#4338CA] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    disabled={!uploadedFile || !avatarName.trim() || saving}
-                    title="Salvar e Criar Outro"
-                  >
-                    {saving ? '⏳' : '💾+ Criar Outro'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* ═══════ GALLERY MODE ═══════ */
-            <>
-              {/* Search & Actions */}
-              <div className="px-5 py-3 border-b border-[#111] shrink-0 space-y-3">
+          {/* Search & Actions */}
+          <div className="px-5 py-3 border-b border-[#111] shrink-0 space-y-3">
             {/* Search bar */}
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]" />
@@ -833,8 +643,6 @@ export function AvatarLibraryModalV2({
           </div>
         </div>
       </div>
-      </>
-      )}
 
       {/* Expanded Preview Modal (4x size) */}
       {expandedAvatar && (
