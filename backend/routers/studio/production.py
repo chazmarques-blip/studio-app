@@ -1126,47 +1126,129 @@ Story: {briefing[:300]}"""
                             from .narration import _generate_narration_audio
                             from pipeline.media import _clean_narration_for_tts
                             
-                            # Get voice configuration from project
-                            voice_config = project.get("voice_config", {})
-                            # CRITICAL FIX (2026-04-03): Use default voice if character voice not found
-                            voice_id = voice_config.get("voice_id")
-                            
-                            # Try to get character-specific voice
-                            characters_in_scene = scene.get("characters_in_scene", [])
-                            if characters_in_scene:
-                                char_voices = project.get("character_voices", {})
-                                first_char = characters_in_scene[0]
-                                char_voice_id = char_voices.get(first_char, {}).get("voice_id")
-                                if char_voice_id:
-                                    voice_id = char_voice_id
-                            
-                            # Fallback to safe default voice if not set
-                            if not voice_id:
-                                voice_id = "21m00Tcm4TlvDq8ikWAM"  # ElevenLabs default "Rachel" voice
-                                logger.info(f"Studio [{project_id}]: No voice configured, using default Rachel voice")
-                            
-                            stability = voice_config.get("stability", 0.5)
-                            similarity = voice_config.get("similarity", 0.75)
-                            style_val = voice_config.get("style_val", 0.0)
+                            # Get audio mode and voice configuration
+                            audio_mode = project.get("audio_mode", "narrated")
+                            voice_map = project.get("voice_map", {})
                             lang = project.get("language", "pt")
                             
-                            # Clean dialogue text for TTS
-                            cleaned_text = _clean_narration_for_tts(dialogue_text)
+                            logger.info(f"Studio [{project_id}]: Audio mode={audio_mode}, voice_map={len(voice_map)} voices, lang={lang}")
                             
-                            # Generate audio via ElevenLabs
-                            audio_bytes = _generate_narration_audio(
-                                text=cleaned_text,
-                                voice_id=voice_id,
-                                stability=stability,
-                                similarity=similarity,
-                                style_val=style_val,
-                                language_code=lang
-                            )
+                            if audio_mode == "dubbed" and voice_map:
+                                # DUBBED MODE: Multiple character voices
+                                # Parse dialogue: "Narrador: '...' / Farofa: '...'"
+                                parts = [p.strip() for p in dialogue_text.split(" / ")]
+                                audio_clips = []
+                                
+                                import tempfile as tf
+                                tmpdir = tf.mkdtemp()
+                                
+                                try:
+                                    for pi, part in enumerate(parts):
+                                        if ":" in part:
+                                            char_name_raw = part.split(":")[0].strip()
+                                            text = ":".join(part.split(":")[1:]).strip().strip("'\"")
+                                        else:
+                                            char_name_raw = "Narrador"
+                                            text = part.strip().strip("'\"")
+                                        
+                                        if not text:
+                                            continue
+                                        
+                                        # Clean text for TTS
+                                        cleaned_text = _clean_narration_for_tts(text)
+                                        if not cleaned_text.strip():
+                                            cleaned_text = text
+                                        
+                                        # Find matching voice from voice_map
+                                        matched_voice = None
+                                        for cname, vid in voice_map.items():
+                                            if char_name_raw.lower() in cname.lower() or cname.lower() in char_name_raw.lower():
+                                                matched_voice = vid
+                                                break
+                                        
+                                        if not matched_voice:
+                                            logger.warning(f"Studio [{project_id}]: No voice found for '{char_name_raw}', skipping")
+                                            continue
+                                        
+                                        # Generate audio for this character line
+                                        logger.info(f"Studio [{project_id}]: Generating '{char_name_raw}' voice ({matched_voice[:8]}...): {cleaned_text[:50]}...")
+                                        audio_bytes = _generate_narration_audio(
+                                            text=cleaned_text,
+                                            voice_id=matched_voice,
+                                            stability=0.5,
+                                            similarity=0.75,
+                                            style_val=0.0,
+                                            language_code=lang
+                                        )
+                                        
+                                        # Save clip
+                                        clip_path = f"{tmpdir}/clip_{pi}.mp3"
+                                        with open(clip_path, "wb") as f:
+                                            f.write(audio_bytes)
+                                        audio_clips.append(clip_path)
+                                        
+                                        # Add 0.3s silence between characters
+                                        if pi < len(parts) - 1:
+                                            silence_path = f"{tmpdir}/silence_{pi}.mp3"
+                                            subprocess.run([
+                                                "ffmpeg", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+                                                "-t", "0.3", "-q:a", "9", "-acodec", "libmp3lame", silence_path
+                                            ], capture_output=True, timeout=5)
+                                            audio_clips.append(silence_path)
+                                    
+                                    if audio_clips:
+                                        # Concatenate all clips
+                                        concat_list = f"{tmpdir}/concat_list.txt"
+                                        with open(concat_list, "w") as f:
+                                            for clip in audio_clips:
+                                                f.write(f"file '{clip}'\n")
+                                        
+                                        final_audio = f"{tmpdir}/final.mp3"
+                                        result = subprocess.run([
+                                            "ffmpeg", "-f", "concat", "-safe", "0", "-i", concat_list,
+                                            "-c", "copy", final_audio
+                                        ], capture_output=True, timeout=30)
+                                        
+                                        if result.returncode == 0 and os.path.exists(final_audio):
+                                            with open(final_audio, "rb") as f:
+                                                audio_bytes = f.read()
+                                            audio_filename = f"studio/{project_id}_scene_{scene_num}_audio.mp3"
+                                            narration_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+                                            logger.info(f"Studio [{project_id}]: Regen scene {scene_num} DUBBED audio DONE ({len(audio_bytes)//1024}KB)")
+                                        else:
+                                            logger.error(f"Studio [{project_id}]: FFmpeg concat failed: {result.stderr[:200]}")
+                                finally:
+                                    # Cleanup
+                                    import shutil
+                                    try:
+                                        shutil.rmtree(tmpdir)
+                                    except:
+                                        pass
                             
-                            # Upload audio
-                            audio_filename = f"studio/{project_id}_scene_{scene_num}_audio.mp3"
-                            narration_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
-                            logger.info(f"Studio [{project_id}]: Regen scene {scene_num} audio DONE ({len(audio_bytes)//1024}KB)")
+                            else:
+                                # NARRATED MODE: Single narrator voice
+                                voice_config = project.get("voice_config", {})
+                                narrator_voice = voice_config.get("voice_id")
+                                
+                                if not narrator_voice and voice_map:
+                                    # Try to get narrator from voice_map
+                                    narrator_voice = voice_map.get("Narrador") or voice_map.get("Narrator")
+                                
+                                if not narrator_voice:
+                                    logger.error(f"Studio [{project_id}]: No narrator voice configured, skipping audio")
+                                else:
+                                    cleaned_text = _clean_narration_for_tts(dialogue_text)
+                                    audio_bytes = _generate_narration_audio(
+                                        text=cleaned_text,
+                                        voice_id=narrator_voice,
+                                        stability=0.5,
+                                        similarity=0.75,
+                                        style_val=0.0,
+                                        language_code=lang
+                                    )
+                                    audio_filename = f"studio/{project_id}_scene_{scene_num}_audio.mp3"
+                                    narration_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+                                    logger.info(f"Studio [{project_id}]: Regen scene {scene_num} NARRATED audio DONE ({len(audio_bytes)//1024}KB)")
                             
                             # Merge audio + video using FFmpeg
                             import subprocess
