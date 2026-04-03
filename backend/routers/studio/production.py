@@ -41,14 +41,31 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         }
         
         # Use input_reference if image path provided (Project Bible keyframe or character reference)
+        # CRITICAL FIX (2026-04-03): Resize image to match video dimensions to avoid 400 error
         if image_path and os.path.exists(image_path):
             try:
+                from PIL import Image
+                # Parse target dimensions from size string (e.g., "1280x720")
+                target_width, target_height = map(int, size.split('x'))
+                
+                # Resize image to match video dimensions
+                img = Image.open(image_path)
+                if img.size != (target_width, target_height):
+                    logger.info(f"Sora 2: Resizing input_reference from {img.size} to {target_width}x{target_height}")
+                    img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                    
+                    # Save resized image to temp file
+                    import tempfile
+                    resized_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
+                    img.save(resized_path, format="PNG")
+                    image_path = resized_path
+                
                 # OpenAI SDK expects a file handle, not base64 string
                 img_file_handle = open(image_path, "rb")
                 gen_params["input_reference"] = img_file_handle
-                logger.info(f"Sora 2: Using input_reference from {image_path[:50]}...")
+                logger.info(f"Sora 2: Using input_reference from {image_path[:50]}... ({target_width}x{target_height})")
             except Exception as e:
-                logger.warning(f"Sora 2: Failed to load input_reference: {e}")
+                logger.warning(f"Sora 2: Failed to load/resize input_reference: {e}")
         
         # Create video generation request
         start = time.time()
