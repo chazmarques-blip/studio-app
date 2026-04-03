@@ -49,6 +49,8 @@ export function AvatarModal({ ctx }) {
     // Refs
     avatarInputRef,
     isDirectedMode,
+    // Z-index override for stacking above gallery
+    zIndexOverride,
   } = ctx;
 
   const setAiEditLoading = _setAiEditLoading || (() => {});
@@ -62,7 +64,7 @@ export function AvatarModal({ ctx }) {
   if (!showAvatarModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
+    <div className={`fixed inset-0 ${zIndexOverride || 'z-50'} bg-black/80 flex items-center justify-center p-4`} onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
       <div data-testid="avatar-modal" className="w-full max-w-lg rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">

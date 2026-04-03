@@ -1657,17 +1657,25 @@ export default function StudioPage() {
                   language: previewLanguage || 'pt'
                 };
                 
+                console.log('📡 Salvando personagem global:', payload);
                 await axios.post(`${API}/data/avatars`, payload);
-                toast.success('Personagem salvo com sucesso!');
+                
+                toast.success('✅ Personagem salvo na galeria!');
+                
+                // Fecha modal de criação
                 resetAvatarModal();
                 
+                // Força reload da galeria para mostrar o novo personagem
                 if (showGlobalLibrary) {
-                  setShowGlobalLibrary(false);
-                  setTimeout(() => setShowGlobalLibrary(true), 100);
+                  // Pequeno delay para garantir que o backend salvou
+                  setTimeout(() => {
+                    setShowGlobalLibrary(false);
+                    setTimeout(() => setShowGlobalLibrary(true), 100);
+                  }, 500);
                 }
               } catch (err) {
                 console.error('❌ Error saving avatar:', err);
-                toast.error('Erro ao salvar personagem');
+                toast.error('Erro ao salvar personagem: ' + (err.response?.data?.detail || err.message));
               }
             },
             saveAvatarAsNew: async () => {
@@ -1690,17 +1698,24 @@ export default function StudioPage() {
                   language: previewLanguage || 'pt'
                 };
                 
+                console.log('📡 Salvando novo personagem:', payload);
                 await axios.post(`${API}/data/avatars`, payload);
-                toast.success('Personagem salvo!');
+                
+                toast.success('✅ Personagem criado e salvo na galeria!');
+                
+                // Fecha modal de criação
                 resetAvatarModal();
                 
+                // Força reload da galeria
                 if (showGlobalLibrary) {
-                  setShowGlobalLibrary(false);
-                  setTimeout(() => setShowGlobalLibrary(true), 100);
+                  setTimeout(() => {
+                    setShowGlobalLibrary(false);
+                    setTimeout(() => setShowGlobalLibrary(true), 100);
+                  }, 500);
                 }
               } catch (err) {
                 console.error('❌ Error saving avatar:', err);
-                toast.error('Erro ao salvar personagem');
+                toast.error('Erro ao salvar: ' + (err.response?.data?.detail || err.message));
               }
             },
             previewVoice: async (voiceId, voiceType = 'elevenlabs') => {
@@ -1777,10 +1792,11 @@ export default function StudioPage() {
             avatarInputRef,
             logoInputRef,
             isDirectedMode: true,
+            // FORÇA z-index maior para aparecer por cima da galeria
+            zIndexOverride: 'z-[70]',
           }}
         />
       )}
-      
       {/* Global Character Library Modal */}
       <AvatarLibraryModalV2
         open={showGlobalLibrary}
@@ -1800,6 +1816,8 @@ export default function StudioPage() {
           console.log('🎨 Creating new character from gallery');
           setEditingAvatarId(null);
           setTempAvatar(null);
+          setAvatarStage('upload');
+          // NÃO fecha a galeria - abre modal por cima
           setShowAvatarModal(true);
         }}
         lang={lang}
