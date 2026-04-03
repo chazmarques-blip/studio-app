@@ -1067,11 +1067,14 @@ export default function StudioPage() {
               toast.info('Use o botão "Salvar" no projeto para persistir mudanças');
               resetAvatarModal();
             },
-            saveAvatarAsNew: () => {
+            saveAvatarAsNew: async () => {
               console.log('💾 saveAvatarAsNew called');
+              console.log('tempAvatar:', tempAvatar);
+              console.log('avatarName:', avatarName);
+              console.log('selectedProject:', selectedProject);
               
-              if (!tempAvatar) {
-                console.warn('⚠️ No tempAvatar to save');
+              if (!tempAvatar || !tempAvatar.url) {
+                console.warn('⚠️ No tempAvatar or tempAvatar.url to save');
                 toast.error('Nenhum personagem para salvar');
                 return;
               }
@@ -1082,14 +1085,14 @@ export default function StudioPage() {
                 id: uuidv4(),
                 url: tempAvatar.url,
                 name,
-                source_photo_url: tempAvatar.source_photo_url,
-                clothing: tempAvatar.clothing,
-                voice: tempAvatar.voice,
+                source_photo_url: tempAvatar.source_photo_url || '',
+                clothing: tempAvatar.clothing || 'keep_original',
+                voice: tempAvatar.voice || null,
                 angles: angleImages || { front: tempAvatar.url },
                 video_url: previewVideoUrl || null,
                 language: previewLanguage || 'pt',
-                creation_mode: tempAvatar.creation_mode || 'photo',
-                avatar_style: tempAvatar.avatar_style || 'realistic',
+                creation_mode: tempAvatar.creation_mode || 'prompt',
+                avatar_style: tempAvatar.avatar_style || 'custom',
                 edit_history: avatarEditHistory || [],
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -1103,16 +1106,18 @@ export default function StudioPage() {
               
               // Persist to backend (if project exists)
               if (selectedProject?.id) {
-                axios.post(`${API}/studio/projects/${selectedProject.id}/project-avatars`, {
-                  avatar: newAvatar
-                }).then(() => {
-                  console.log('✅ Avatar persisted to backend');
+                try {
+                  const response = await axios.post(`${API}/studio/projects/${selectedProject.id}/project-avatars`, {
+                    avatar: newAvatar
+                  });
+                  console.log('✅ Avatar persisted to backend:', response.data);
                   toast.success(`Personagem "${name}" salvo com sucesso!`);
-                }).catch(err => {
+                } catch (err) {
                   console.error('❌ Failed to persist avatar:', err);
-                  toast.error('Erro ao salvar personagem no servidor');
-                });
+                  toast.error('Erro ao salvar personagem no servidor: ' + (err.response?.data?.detail || err.message));
+                }
               } else {
+                console.log('⚠️ No selectedProject, saving locally only');
                 toast.success(`Personagem "${name}" salvo localmente!`);
               }
               
