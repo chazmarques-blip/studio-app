@@ -1087,6 +1087,12 @@ Story: {briefing[:300]}"""
                 # CRITICAL FIX (2026-04-03): Force dialogue inclusion for lip-sync
                 # Claude sometimes ignores the instruction, so we manually append dialogue
                 dialogue_text = scene.get("dialogue", "").strip()
+                
+                # DEBUG: Log conditions
+                logger.info(f"Studio [{project_id}]: DEBUG - dialogue_text length: {len(dialogue_text) if dialogue_text else 0}")
+                logger.info(f"Studio [{project_id}]: DEBUG - 'says:' in prompt: {'says:' in sora_prompt_base.lower()}")
+                logger.info(f"Studio [{project_id}]: DEBUG - dialogue_text sample: {dialogue_text[:100] if dialogue_text else 'EMPTY'}")
+                
                 if dialogue_text and "says:" not in sora_prompt_base.lower():
                     # Extract character speaking (e.g., "Farofa: '...'")
                     if ":" in dialogue_text:
@@ -1098,12 +1104,14 @@ Story: {briefing[:300]}"""
                     
                     # Append lip-sync instruction
                     sora_prompt = f"{sora_prompt_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word, clear articulation."
-                    logger.info(f"Studio [{project_id}]: FORCED dialogue into Sora prompt: '{speech[:80]}...'")
+                    logger.info(f"Studio [{project_id}]: ✅ FORCED dialogue into Sora prompt: '{speech[:80]}...'")
                 else:
                     sora_prompt = sora_prompt_base
+                    logger.info(f"Studio [{project_id}]: ⚠️ Did NOT force dialogue (already present or empty)")
                 
-                # Log the final prompt
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} FINAL Sora prompt (first 400 chars): {sora_prompt[:400]}")
+                # Log the final prompt  
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} FINAL Sora prompt (COMPLETE): {sora_prompt}")
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} prompt LENGTH: {len(sora_prompt)} chars")
                 
             except Exception as e:
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} regen director error: {e}")
@@ -1176,7 +1184,8 @@ Story: {briefing[:300]}"""
                     scene["video_url"] = video_url
                     scene["regenerated_at"] = datetime.now(timezone.utc).isoformat()
                     
-                    _update_project(tenant_id, project_id, {"settings.studio_projects": [p if p.get("id") != project_id else project for p in all_projects]})
+                    # Update project with new output
+                    _save_project(tenant_id, settings, projects)
                     _update_scene_status(tenant_id, project_id, scene_num, "done", total)
                     
                     logger.info(f"Studio [{project_id}]: Scene {scene_num} regenerated WITH Sora 2 native audio and lip-sync")
