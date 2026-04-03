@@ -860,8 +860,83 @@ export default function StudioPage() {
             setPreviewVideoUrl,
             setGeneratingPreviewVideo,
             resetAvatarModal,
-            generateAvatarFromPhoto: () => {}, // TODO
-            generateAvatarFromPrompt: () => {}, // TODO
+            generateAvatarFromPhoto: () => {
+              console.log('⚠️ generateAvatarFromPhoto: Not implemented yet');
+              toast.info('Função em desenvolvimento');
+            },
+            generateAvatarFromPrompt: async () => {
+              console.log('🎨 generateAvatarFromPrompt called');
+              
+              if (!avatarPromptText.trim()) {
+                toast.error('Descreva o personagem');
+                return;
+              }
+              
+              setGeneratingAvatar(true);
+              setAccuracyProgress({ progress: 'Gerando personagem...' });
+              
+              try {
+                const style = avatarPromptStyle;
+                const payload = {
+                  prompt: avatarPromptText,
+                  gender: avatarPromptGender,
+                  style,
+                  company_name: '',
+                  logo_url: '',
+                };
+                
+                // Para modo 3D, incluir foto de referência se disponível
+                if (avatarCreationMode === '3d' && avatarSourcePhoto?.url) {
+                  payload.reference_photo_url = avatarSourcePhoto.url;
+                }
+                
+                console.log('📡 Sending request to generate avatar:', payload);
+                
+                const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-prompt`, payload);
+                
+                if (data.avatar_url) {
+                  console.log('✅ Avatar generated:', data.avatar_url);
+                  
+                  setTempAvatar({
+                    url: data.avatar_url,
+                    source_photo_url: '',
+                    clothing: 'company_uniform',
+                    voice: null,
+                    creation_mode: avatarCreationMode,
+                    avatar_style: style,
+                  });
+                  
+                  setAvatarStage('customize');
+                  setAngleImages({});
+                  setClothingVariants({});
+                  setAccuracyProgress(null);
+                  setGeneratingAvatar(false);
+                  
+                  // Inicializar histórico de edição
+                  setAvatarBaseUrl(data.avatar_url);
+                  setAvatarEditHistory([{
+                    url: data.avatar_url,
+                    instruction: 'Base original',
+                    timestamp: new Date().toISOString(),
+                    isBase: true
+                  }]);
+                  
+                  toast.success('Personagem gerado com sucesso!');
+                  
+                  // Auto-gerar 360° (se função existir)
+                  if (typeof startAuto360 === 'function') {
+                    startAuto360(data.avatar_url, 'company_uniform', style);
+                  }
+                } else {
+                  throw new Error('Avatar URL not returned');
+                }
+              } catch (e) {
+                console.error('❌ Error generating avatar:', e);
+                toast.error(e.response?.data?.detail || 'Erro ao gerar personagem');
+                setAccuracyProgress(null);
+                setGeneratingAvatar(false);
+              }
+            },
             uploadAvatarPhoto: () => {}, // TODO
             uploadAvatarVideo: () => {}, // TODO
             applyClothing: () => {}, // TODO
