@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "🔍 TEST - Avatar Edit Buttons in Step 2 (PERSONAGENS) - Testar os botões de edição de avatar no Step 2 (PERSONAGENS) do projeto 'Jonas e o Peixe Grande'. Verificar se botões Editar (laranja, PenTool) e Zoom (branco, Eye) aparecem no rodapé dos avatares, se console logs funcionam, e se modais abrem corretamente."
+user_problem_statement: "🔧 FIX P0 - Single Scene Regeneration Audio Bug: Regenerate Scene feature was generating videos WITHOUT audio/dialogue. Characters were not speaking. Root cause: Python scoping bug with local subprocess import causing 'cannot access local variable subprocess' error. Fix applied: removed local imports, using global imports from _shared.py. Testing needed: Verify single scene regeneration now generates video WITH character audio (ElevenLabs TTS + FFmpeg merge)."
 
 frontend:
   - task: "React setState Error in LandingV2"
@@ -211,6 +211,24 @@ frontend:
           comment: "⚠️ TESTING INCOMPLETE - NO AVATARS IN PROJECT: Applied fix to move modals inside selectedProject block by wrapping JSX in React Fragment (lines 647 and 784 of StudioPage.jsx). Fixed JSX syntax error that was preventing app from loading. Frontend now compiles successfully. HOWEVER, cannot verify if modals work because project 'JONAS E O PEIXE GRANDE' has NO generated avatars. Testing showed: (1) ✅ App loads without errors, (2) ✅ Can navigate to project and Step 2 (PERSONAGENS), (3) ✅ Code structure is correct - modals are now inside selectedProject block, (4) ❌ Project has 11 characters but 0 avatars (previous test reported 132 avatars - data may have changed), (5) ⚠️ Edit/Zoom buttons only appear on generated avatar thumbnails, so cannot test modal functionality. RECOMMENDATION: Either (a) generate avatars for this project first, or (b) test with a different project that has avatars (e.g., 'A criacao' which has avatars based on previous tests)."
 
 backend:
+  - task: "Single Scene Regeneration - Audio/TTS Generation"
+    implemented: true
+    working: true
+    file: "/app/backend/routers/studio/production.py (_regenerate_single_scene function)"
+    stuck_count: 2
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "❌ USER REPORT: After clicking 'Regenerar' button on Scene 2, video is generated but Farofa character does NOT speak. No audio/dialogue in regenerated scenes. Backend logs show: 'Regen scene 2 audio generation failed: cannot access local variable subprocess where it is not associated with a value' followed by 'Scene 2 regenerated (video only, no dialogue)'."
+        - working: false
+          agent: "main"
+          comment: "❌ ROOT CAUSE IDENTIFIED by troubleshoot_agent: Python UnboundLocalError due to improper variable scoping. The function _regenerate_single_scene had local 'import subprocess' at line 1269 and 'import tempfile as tf' at line 1270. When Python sees local imports, it treats those variables as LOCAL for entire function scope. However, DUBBED audio code (lines 1195, 1209) uses subprocess.run() BEFORE the local import, causing UnboundLocalError. subprocess is already available via 'from ._shared import *' global import, but was being shadowed by local import."
+        - working: true
+          agent: "main"
+          comment: "✅ FIX APPLIED: (1) Removed local 'import subprocess' at line 1269 in production.py. (2) Removed local 'import tempfile as tf' at line 1270. (3) Added tempfile to global imports in _shared.py (line 32 and __all__ export line 7). (4) Updated code to use global tempfile directly instead of 'tf' alias. Backend restarted successfully. MANUAL TEST CONFIRMED: Logs show 'Studio [f28f6d348f6d]: Regen scene 2 DUBBED audio DONE (251KB)' followed by 'Regen scene 2 audio+video merged (7913KB)' and 'Scene 2 regenerated WITH audio'. Fix is working!"
+
   - task: "Director's Preview API for Project 'A criacao'"
     implemented: true
     working: true
@@ -251,19 +269,21 @@ backend:
           comment: "❌ CRITICAL: The async/await fixes mentioned in review request are IMPLEMENTED but NOT WORKING. Found: (1) _run_async_in_thread() helper function exists in storyboard.py lines 6-13, (2) Used in production.py line 1359 for _analyze_avatars_with_vision, (3) Used in storyboard.py lines 84-86 for identity cards generation. However, backend logs still show the exact same errors: 'Object of type coroutine is not JSON serializable', 'coroutine _analyze_avatars_with_vision was never awaited', and 'object of type coroutine has no len()'. The fixes are present but ineffective - deeper investigation needed."
 
 metadata:
-  created_by: "testing_agent"
-  version: "1.6"
-  test_sequence: 7
-  run_ui: true
+  created_by: "main_agent"
+  version: "1.7"
+  test_sequence: 8
+  run_ui: false
 
 test_plan:
   current_focus:
-    - "Avatar Edit Buttons in Step 2 (PERSONAGENS)"
+    - "Single Scene Regeneration - Audio/TTS Generation"
   stuck_tasks: []
   test_all: false
   test_priority: "critical_first"
 
 agent_communication:
+    - agent: "main"
+      message: "✅ CRITICAL BUG FIXED - Single Scene Regeneration Audio: Fixed Python scoping bug that was preventing audio generation in regenerated scenes. ROOT CAUSE: Local subprocess import at line 1269 was shadowing global import, causing UnboundLocalError when DUBBED audio code tried to use subprocess.run() before local import. FIX: Removed local imports (subprocess and tempfile), added tempfile to global imports in _shared.py. MANUAL TEST PASSED: Scene regeneration now successfully generates DUBBED audio (251KB) and merges with video (7913KB). Logs confirm 'Scene 2 regenerated WITH audio'. TESTING AGENT: Please run comprehensive backend tests for scene regeneration API including: (1) POST /api/studio/projects/{project_id}/regenerate-scene with scene_number=2, (2) Verify audio generation completes, (3) Verify audio+video merge completes, (4) Verify final video URL is returned, (5) Test with both DUBBED and NARRATED audio modes if possible."
     - agent: "testing"
       message: "🚨 CRITICAL TESTING COMPLETE - ASYNC/AWAIT FIXES NOT WORKING: Tested Director's Preview and Storyboard Generation as requested. Found ALL the exact errors mentioned in review request still occurring: (1) 'Object of type coroutine is not JSON serializable' in cache flush, (2) 'coroutine _analyze_avatars_with_vision was never awaited' as RuntimeWarning, (3) 'object of type coroutine has no len()' in storyboard generation. The fixes ARE IMPLEMENTED (_run_async_in_thread helper exists and is used) but are INEFFECTIVE. Director's Preview times out with 502 error, Storyboard Generation gets stuck in 'starting' phase. Both features are completely broken. The async/await violations persist despite the applied fixes."
     - agent: "testing"

@@ -4,7 +4,7 @@ __all__ = [
     "router", "APIRouter", "Depends", "HTTPException", "Body", "UploadFile", "File",
     "BaseModel", "Optional", "List",
     # Stdlib
-    "uuid", "base64", "os", "asyncio", "threading", "subprocess", "shutil",
+    "uuid", "base64", "os", "asyncio", "threading", "subprocess", "shutil", "tempfile",
     "datetime", "timezone", "urllib", "litellm", "load_dotenv",
     # Core deps
     "supabase", "get_current_user", "get_current_tenant", "logger",
@@ -30,6 +30,7 @@ import uuid
 import base64
 import os
 import asyncio
+import tempfile
 import urllib.request
 import litellm
 import threading

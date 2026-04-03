@@ -1,0 +1,72 @@
+{
+  "summary": "Iteration 131: CRITICAL P0 BUG FIX VERIFIED - Single Scene Regeneration with Audio/TTS. The Python scoping bug with local subprocess/tempfile imports has been fixed. Backend logs confirm: 'Regen scene 2 DUBBED audio DONE (225KB)' and 'Scene 2 regenerated WITH audio'. All 9 backend tests passed (100%).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration131_scene_regen_audio.py",
+    "/app/test_reports/pytest/pytest_results_iteration131.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FIX VERIFIED: Removed local 'import subprocess' and 'import tempfile' from _regenerate_single_scene function",
+    "Global imports in _shared.py (lines 33, 37) are now used via 'from ._shared import *'",
+    "Comments added at lines 1144, 1269 documenting the fix: 'Note: subprocess and tempfile already imported globally via _shared.py'"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration131_scene_regen_audio.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend only test)"
+  },
+  "test_credentials": {
+    "email": "test@studiox.com",
+    "password": "studiox123",
+    "test_project_id": "f28f6d348f6d",
+    "test_scene_number": 2
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "P0 bug fix verified. Scene regeneration now generates audio correctly. Backend logs show full pipeline: video generation → ElevenLabs TTS (DUBBED mode) → FFmpeg audio+video merge → success. No UnboundLocalError errors in logs.",
+  "verified_features": {
+    "scene_regeneration_with_audio": {
+      "endpoint": "POST /api/studio/projects/{id}/regenerate-scene",
+      "audio_mode": "dubbed",
+      "voice_map_used": true,
+      "elevenlabs_tts": "lang=pt, voice=iP95p4xo",
+      "ffmpeg_merge": "audio+video merged successfully",
+      "success_log": "Scene 2 regenerated WITH audio"
+    },
+    "fix_details": {
+      "root_cause": "Python scoping bug - local 'import subprocess' after using subprocess caused UnboundLocalError",
+      "fix_applied": "Removed local imports, using global imports from _shared.py",
+      "files_modified": [
+        "/app/backend/routers/studio/production.py (lines 1144, 1268-1269)",
+        "/app/backend/routers/studio/_shared.py (line 7, 33, 37)"
+      ]
+    },
+    "backend_logs_evidence": [
+      "Studio [f28f6d348f6d]: Regen scene 2 video DONE (6878KB)",
+      "Studio [f28f6d348f6d]: Generating audio for regen scene 2",
+      "ElevenLabs TTS: lang=pt, voice=iP95p4xo, text_len=194",
+      "Studio [f28f6d348f6d]: Regen scene 2 DUBBED audio DONE (225KB)",
+      "Studio [f28f6d348f6d]: Regen scene 2 audio+video merged (6879KB)",
+      "Studio [f28f6d348f6d]: Scene 2 regenerated WITH audio"
+    ]
+  },
+  "rca_of_the_issue": {
+    "bug_description": "Single scene regeneration was generating videos WITHOUT audio/TTS - characters were not speaking",
+    "user_report": "O Farofa não está falando, não tem nenhum áudio (after regenerating Scene 2)",
+    "root_cause": "Python scoping bug: local 'import subprocess' and 'import tempfile' statements inside _regenerate_single_scene function caused UnboundLocalError when the code tried to use subprocess.run() before the import statement was reached",
+    "fix_applied": "Removed local imports at lines 1144 and 1268-1269. Added comments documenting that subprocess and tempfile are already imported globally via _shared.py",
+    "verification": "Backend logs confirm successful audio generation: 'Regen scene 2 DUBBED audio DONE (225KB)' and 'Scene 2 regenerated WITH audio'"
+  }
+}

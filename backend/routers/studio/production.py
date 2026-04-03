@@ -1141,8 +1141,8 @@ Story: {briefing[:300]}"""
                                 parts = [p.strip() for p in dialogue_text.split(" / ")]
                                 audio_clips = []
                                 
-                                import tempfile as tf
-                                tmpdir = tf.mkdtemp()
+                                # Note: tempfile already imported globally via _shared.py
+                                tmpdir = tempfile.mkdtemp()
                                 
                                 try:
                                     for pi, part in enumerate(parts):
@@ -1266,13 +1266,12 @@ Story: {briefing[:300]}"""
                                 logger.info(f"Studio [{project_id}]: Regen scene {scene_num} NARRATED audio DONE ({len(audio_bytes)//1024}KB)")
                             
                             # Merge audio + video using FFmpeg
-                            import subprocess
-                            import tempfile as tf
+                            # Note: subprocess and tempfile already imported globally via _shared.py
                             
                             # Download video and audio to temp files
-                            video_temp = tf.NamedTemporaryFile(suffix=".mp4", delete=False).name
-                            audio_temp = tf.NamedTemporaryFile(suffix=".mp3", delete=False).name
-                            merged_temp = tf.NamedTemporaryFile(suffix=".mp4", delete=False).name
+                            video_temp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False).name
+                            audio_temp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False).name
+                            merged_temp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False).name
                             
                             urllib.request.urlretrieve(video_url, video_temp)
                             urllib.request.urlretrieve(narration_url, audio_temp)
