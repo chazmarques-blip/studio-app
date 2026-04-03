@@ -1229,28 +1229,41 @@ Story: {briefing[:300]}"""
                             
                             else:
                                 # NARRATED MODE: Single narrator voice
+                                # CRITICAL FIX (2026-04-03): Try multiple sources for narrator voice
+                                narrator_voice = None
+                                
+                                # 1. Try voice_config (primary)
                                 voice_config = project.get("voice_config", {})
                                 narrator_voice = voice_config.get("voice_id")
                                 
+                                # 2. Try voice_map for "Narrador" or "Narrator"
                                 if not narrator_voice and voice_map:
-                                    # Try to get narrator from voice_map
-                                    narrator_voice = voice_map.get("Narrador") or voice_map.get("Narrator")
+                                    narrator_voice = voice_map.get("Narrador") or voice_map.get("Narrator") or voice_map.get("narrador")
                                 
+                                # 3. Use first voice from voice_map as fallback
+                                if not narrator_voice and voice_map:
+                                    narrator_voice = list(voice_map.values())[0]
+                                    logger.warning(f"Studio [{project_id}]: Using first voice from voice_map as narrator fallback")
+                                
+                                # 4. Final fallback: use ElevenLabs default voice
                                 if not narrator_voice:
-                                    logger.error(f"Studio [{project_id}]: No narrator voice configured, skipping audio")
-                                else:
-                                    cleaned_text = _clean_narration_for_tts(dialogue_text)
-                                    audio_bytes = _generate_narration_audio(
-                                        text=cleaned_text,
-                                        voice_id=narrator_voice,
-                                        stability=0.5,
-                                        similarity=0.75,
-                                        style_val=0.0,
-                                        language_code=lang
-                                    )
-                                    audio_filename = f"studio/{project_id}_scene_{scene_num}_audio.mp3"
-                                    narration_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
-                                    logger.info(f"Studio [{project_id}]: Regen scene {scene_num} NARRATED audio DONE ({len(audio_bytes)//1024}KB)")
+                                    narrator_voice = "21m00Tcm4TlvDq8ikWAM"  # Rachel (always available)
+                                    logger.warning(f"Studio [{project_id}]: No narrator configured, using ElevenLabs default voice")
+                                
+                                cleaned_text = _clean_narration_for_tts(dialogue_text)
+                                logger.info(f"Studio [{project_id}]: NARRATED mode - voice={narrator_voice[:8]}..., text_len={len(cleaned_text)}")
+                                
+                                audio_bytes = _generate_narration_audio(
+                                    text=cleaned_text,
+                                    voice_id=narrator_voice,
+                                    stability=0.5,
+                                    similarity=0.75,
+                                    style_val=0.0,
+                                    language_code=lang
+                                )
+                                audio_filename = f"studio/{project_id}_scene_{scene_num}_audio.mp3"
+                                narration_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+                                logger.info(f"Studio [{project_id}]: Regen scene {scene_num} NARRATED audio DONE ({len(audio_bytes)//1024}KB)")
                             
                             # Merge audio + video using FFmpeg
                             import subprocess
