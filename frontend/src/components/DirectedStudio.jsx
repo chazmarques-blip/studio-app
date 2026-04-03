@@ -3672,13 +3672,35 @@ export const DirectedStudio = memo(function DirectedStudio({
                           </div>
                         </div>
                       </div>
-                      <div className="p-2 flex items-center gap-1.5">
-                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[11px] font-mono tracking-wider uppercase text-gray-600 hover:text-orange-600 transition py-1">
-                          <Download size={10} className="inline mr-1" />Download
+                      <div className="p-2 flex items-center gap-1">
+                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[10px] font-mono tracking-wider uppercase text-gray-600 hover:text-orange-600 transition py-1">
+                          <Download size={10} className="inline mr-1" />DL
                         </a>
+                        <button onClick={e => { 
+                          e.stopPropagation(); 
+                          const scene = scenes.find(s => s.scene_number === out.scene_number);
+                          if (scene) {
+                            setEditingScene(out.scene_number); 
+                            setEditSceneForm({ 
+                              title: scene.title, 
+                              description: scene.description, 
+                              dialogue: scene.dialogue, 
+                              emotion: scene.emotion, 
+                              camera: scene.camera,
+                              characters_in_scene: scene.characters_in_scene || []
+                            });
+                            setActiveTab(5); // Switch to Production tab
+                          }
+                        }}
+                          data-testid={`result-edit-${out.scene_number}`}
+                          className="text-[10px] text-[#555] hover:text-blue-600 transition p-1"
+                          title={lang === 'pt' ? 'Editar cena' : 'Edit scene'}>
+                          <Edit3 size={10} />
+                        </button>
                         <button onClick={e => { e.stopPropagation(); regenerateScene(out.scene_number); }} disabled={isRegenerating}
                           data-testid={`result-regen-${out.scene_number}`}
-                          className="text-[11px] text-[#555] hover:text-orange-600 transition p-1 disabled:opacity-40">
+                          className="text-[10px] text-[#555] hover:text-orange-600 transition p-1 disabled:opacity-40"
+                          title={lang === 'pt' ? 'Regenerar vídeo' : 'Regenerate video'}>
                           <RefreshCw size={10} className={isRegenerating ? 'animate-spin' : ''} />
                         </button>
                       </div>
@@ -3699,11 +3721,29 @@ export const DirectedStudio = memo(function DirectedStudio({
               {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).map(s => (
                 <div key={s.scene_number} className="flex items-center gap-2">
                   <span className="text-xs text-red-300/70 flex-1 font-sans">Cena {s.scene_number}: {s.title}</span>
+                  <button onClick={e => { 
+                    e.stopPropagation(); 
+                    setEditingScene(s.scene_number); 
+                    setEditSceneForm({ 
+                      title: s.title, 
+                      description: s.description, 
+                      dialogue: s.dialogue, 
+                      emotion: s.emotion, 
+                      camera: s.camera,
+                      characters_in_scene: s.characters_in_scene || []
+                    });
+                    setActiveTab(5); // Switch to Production tab
+                  }}
+                    data-testid={`failed-edit-${s.scene_number}`}
+                    className="rounded-sm px-2 py-1 text-[11px] font-mono tracking-wider uppercase bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 flex items-center gap-1 transition">
+                    <Edit3 size={8} />
+                    {lang === 'pt' ? 'Editar' : 'Edit'}
+                  </button>
                   <button onClick={() => regenerateScene(s.scene_number)} disabled={regenScene === s.scene_number}
                     data-testid={`failed-regen-${s.scene_number}`}
-                    className="rounded-sm px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50 transition">
+                    className="rounded-sm px-2 py-1 text-[11px] font-mono tracking-wider uppercase bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50 transition">
                     <RefreshCw size={8} className={regenScene === s.scene_number ? 'animate-spin' : ''} />
-                    Retry
+                    {lang === 'pt' ? 'Tentar' : 'Retry'}
                   </button>
                 </div>
               ))}
