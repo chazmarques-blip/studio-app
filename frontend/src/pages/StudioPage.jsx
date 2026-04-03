@@ -1434,13 +1434,30 @@ export default function StudioPage() {
             setPreviewVideoUrl,
             setGeneratingPreviewVideo,
             resetAvatarModal,
-            generateAvatarFromPhoto: async (blob, filename, company) => {
-              console.log('🎨 Global generateAvatarFromPhoto:', filename);
+            generateAvatarFromPhoto: async () => {
+              console.log('🎨 Global generateAvatarFromPhoto');
+              
+              if (!avatarSourcePhoto) {
+                toast.error('Faça upload de uma foto primeiro');
+                return;
+              }
+              
               setAvatarPhotoUploading(true);
+              setGeneratingAvatar(true);
+              
               try {
                 const formData = new FormData();
-                formData.append('file', blob, filename);
+                
+                // Se avatarSourcePhoto é um blob/file
+                if (avatarSourcePhoto instanceof Blob || avatarSourcePhoto instanceof File) {
+                  formData.append('file', avatarSourcePhoto, 'avatar.jpg');
+                } else if (avatarSourcePhoto.url) {
+                  // Se é um objeto com URL
+                  formData.append('image_url', avatarSourcePhoto.url);
+                }
+                
                 formData.append('company_id', selectedCompany?.id || '');
+                formData.append('style', avatarPromptStyle || 'custom');
                 
                 const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-photo`, formData, {
                   headers: { 'Content-Type': 'multipart/form-data' }
@@ -1456,27 +1473,40 @@ export default function StudioPage() {
                 toast.error('Erro ao gerar avatar: ' + (err.response?.data?.detail || err.message));
               } finally {
                 setAvatarPhotoUploading(false);
+                setGeneratingAvatar(false);
               }
             },
-            generateAvatarFromPrompt: async (prompt, gender, style, company) => {
-              console.log('🎨 Global generateAvatarFromPrompt:', prompt);
+            generateAvatarFromPrompt: async () => {
+              console.log('🎨 Global generateAvatarFromPrompt');
+              
+              if (!avatarPromptText.trim()) {
+                toast.error('Descreva o personagem');
+                return;
+              }
+              
               setGeneratingAvatar(true);
+              setAccuracyProgress({ progress: 'Gerando personagem...' });
+              
               try {
-                const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-prompt`, {
-                  prompt,
-                  gender,
-                  style,
+                const payload = {
+                  prompt: avatarPromptText,
+                  gender: avatarPromptGender,
+                  style: avatarPromptStyle,
                   company_id: selectedCompany?.id || ''
-                });
+                };
                 
-                const avatar = response.data.avatar;
+                const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-prompt`, payload);
+                
+                const avatar = response.data.avatar || { url: response.data.avatar_url };
                 setTempAvatar(avatar);
                 setAvatarName(avatar.name || '');
                 setAvatarStage('customize');
+                setAccuracyProgress(null);
                 toast.success('Avatar gerado com sucesso!');
               } catch (err) {
                 console.error('❌ Error generating avatar:', err);
                 toast.error('Erro ao gerar avatar: ' + (err.response?.data?.detail || err.message));
+                setAccuracyProgress(null);
               } finally {
                 setGeneratingAvatar(false);
               }
