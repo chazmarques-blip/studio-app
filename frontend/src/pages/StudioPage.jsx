@@ -937,11 +937,127 @@ export default function StudioPage() {
                 setGeneratingAvatar(false);
               }
             },
-            uploadAvatarPhoto: () => {}, // TODO
-            uploadAvatarVideo: () => {}, // TODO
-            applyClothing: () => {}, // TODO
-            generateAngle: () => {}, // TODO
-            startAuto360: () => {}, // TODO
+            uploadAvatarPhoto: () => {
+              console.log('⚠️ uploadAvatarPhoto: Not implemented yet');
+              toast.info('Função em desenvolvimento');
+            },
+            uploadAvatarVideo: () => {
+              console.log('⚠️ uploadAvatarVideo: Not implemented yet');
+              toast.info('Função em desenvolvimento');
+            },
+            applyClothing: () => {
+              console.log('⚠️ applyClothing: Not implemented yet');
+              toast.info('Função em desenvolvimento');
+            },
+            generateAngle: async (angle, forceRegenerate = false) => {
+              console.log('🔄 generateAngle called:', angle, 'force:', forceRegenerate);
+              
+              if (!tempAvatar || (angleImages[angle] && !forceRegenerate)) {
+                console.log('⏭️ Skipping (no tempAvatar or angle exists)');
+                return;
+              }
+              
+              setGeneratingAngle(angle);
+              
+              const is3d = tempAvatar?.avatar_style && tempAvatar.avatar_style !== 'realistic';
+              const sourceUrl = is3d ? tempAvatar.url : (tempAvatar.source_photo_url || tempAvatar.url);
+              const clothing = 'keep_original';
+              
+              try {
+                console.log('📡 Generating angle:', { angle, sourceUrl, style: tempAvatar.avatar_style });
+                
+                const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
+                  source_image_url: sourceUrl,
+                  clothing,
+                  angle,
+                  company_name: '',
+                  logo_url: '',
+                  avatar_style: tempAvatar?.avatar_style || 'realistic',
+                });
+                
+                if (data.avatar_url) {
+                  console.log(`✅ Angle ${angle} generated:`, data.avatar_url);
+                  setAngleImages(prev => ({ ...prev, [angle]: data.avatar_url }));
+                  toast.success(`Ângulo "${angle}" gerado!`);
+                } else {
+                  throw new Error('No avatar_url returned');
+                }
+              } catch (e) {
+                console.error(`❌ Error generating angle ${angle}:`, e);
+                toast.error(`Erro ao gerar ângulo "${angle}"`);
+              } finally {
+                setGeneratingAngle(null);
+              }
+            },
+            startAuto360: async (sourceUrl, clothing = 'company_uniform', style = 'realistic') => {
+              console.log('🔄 startAuto360 called:', { sourceUrl, clothing, style });
+              
+              setAuto360Progress({ completed: 0, total: 4 });
+              
+              try {
+                console.log('📡 Starting 360° generation job...');
+                
+                const { data } = await axios.post(`${API}/campaigns/pipeline/generate-avatar-360`, {
+                  source_image_url: sourceUrl,
+                  clothing: 'keep_original',
+                  logo_url: '',
+                  avatar_style: style,
+                });
+                
+                if (data.job_id) {
+                  console.log('✅ 360° job started:', data.job_id);
+                  toast.info('Gerando visão 360°... Aguarde ~30s');
+                  
+                  // Poll for progress
+                  const pollInterval = setInterval(async () => {
+                    try {
+                      const { data: status } = await axios.get(`${API}/campaigns/pipeline/generate-avatar-360/${data.job_id}`);
+                      
+                      const completed = status.completed || Object.values(status.results || {}).filter(Boolean).length;
+                      setAuto360Progress({ completed, total: 4 });
+                      
+                      console.log(`🔄 360° progress: ${completed}/4`, status.status);
+                      
+                      if (status.results) {
+                        setAngleImages(prev => ({
+                          ...prev,
+                          ...Object.fromEntries(Object.entries(status.results).filter(([,v]) => v))
+                        }));
+                      }
+                      
+                      if (status.status === 'completed' || status.status === 'failed') {
+                        clearInterval(pollInterval);
+                        setAuto360Progress(null);
+                        
+                        if (status.status === 'completed') {
+                          console.log('✅ 360° generation completed!');
+                          toast.success('Visão 360° gerada com sucesso!');
+                        } else {
+                          console.error('❌ 360° generation failed');
+                          toast.error('Erro ao gerar 360°');
+                        }
+                      }
+                    } catch (pollErr) {
+                      console.warn('⚠️ Poll error (will retry):', pollErr.message);
+                      // Continue polling even on error
+                    }
+                  }, 6000); // Poll every 6 seconds
+                  
+                  // Auto-stop polling after 3 minutes (safety)
+                  setTimeout(() => {
+                    clearInterval(pollInterval);
+                    setAuto360Progress(null);
+                  }, 180000);
+                  
+                } else {
+                  throw new Error('No job_id returned');
+                }
+              } catch (e) {
+                console.error('❌ Error starting 360° generation:', e);
+                setAuto360Progress(null);
+                toast.error('Erro ao iniciar geração 360°');
+              }
+            },
             saveAvatarAndClose: () => {
               console.log('⚠️ saveAvatarAndClose: Not implemented in Directed Studio mode');
               toast.info('Use o botão "Salvar" no projeto para persistir mudanças');
