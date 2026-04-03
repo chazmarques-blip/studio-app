@@ -1128,7 +1128,23 @@ Story: {briefing[:300]}"""
                             
                             # Get voice configuration from project
                             voice_config = project.get("voice_config", {})
-                            voice_id = voice_config.get("voice_id", "VR6AewLTigvnBZLfJordq")  # Default Chris
+                            # CRITICAL FIX (2026-04-03): Use default voice if character voice not found
+                            voice_id = voice_config.get("voice_id")
+                            
+                            # Try to get character-specific voice
+                            characters_in_scene = scene.get("characters_in_scene", [])
+                            if characters_in_scene:
+                                char_voices = project.get("character_voices", {})
+                                first_char = characters_in_scene[0]
+                                char_voice_id = char_voices.get(first_char, {}).get("voice_id")
+                                if char_voice_id:
+                                    voice_id = char_voice_id
+                            
+                            # Fallback to safe default voice if not set
+                            if not voice_id:
+                                voice_id = "21m00Tcm4TlvDq8ikWAM"  # ElevenLabs default "Rachel" voice
+                                logger.info(f"Studio [{project_id}]: No voice configured, using default Rachel voice")
+                            
                             stability = voice_config.get("stability", 0.5)
                             similarity = voice_config.get("similarity", 0.75)
                             style_val = voice_config.get("style_val", 0.0)
