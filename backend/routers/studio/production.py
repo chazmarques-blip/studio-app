@@ -1207,8 +1207,15 @@ Story: {briefing[:300]}"""
                             "created_at": datetime.now(timezone.utc).isoformat(),
                         })
                         project["outputs"] = outputs
+                        
+                        # CRITICAL FIX (2026-04-03): Update scene status to "done" after successful regeneration
+                        if narration_url:
+                            logger.info(f"Studio [{project_id}]: Scene {scene_num} regenerated WITH audio")
+                        else:
+                            logger.info(f"Studio [{project_id}]: Scene {scene_num} regenerated (video only, no dialogue)")
+                        
                         _update_scene_status(tenant_id, project_id, scene_num, "done", total)
-                        _add_milestone(project, f"regen_scene_{scene_num}", f"Cena {scene_num} regenerada")
+                        _add_milestone(project, f"regen_scene_{scene_num}", f"Cena {scene_num} regenerada com sucesso")
                         _save_project(tenant_id, settings, projects)
 
                     # Cleanup temp files
