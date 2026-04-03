@@ -11,6 +11,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { DirectedStudio } from '../components/DirectedStudio';
 import { AvatarModal } from '../components/pipeline/AvatarModal';
+import { AvatarLibraryModalV2 } from '../components/pipeline/AvatarLibraryModalV2';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 
