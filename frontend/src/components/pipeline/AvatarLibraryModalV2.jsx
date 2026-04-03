@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { X, Search, Check, Download, BookOpen, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Search, Check, Download, BookOpen, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
@@ -24,6 +24,7 @@ export function AvatarLibraryModalV2({
   projectAvatarIds = new Set(), 
   onImported, 
   onEditAvatar,
+  onCreateNew,
   lang = 'pt' 
 }) {
   const [library, setLibrary] = useState([]);
@@ -63,7 +64,8 @@ export function AvatarLibraryModalV2({
       selected: 'selecionado(s)',
       downloading: 'Baixando...',
       next: 'Próximo',
-      prev: 'Anterior'
+      prev: 'Anterior',
+      createNew: '+ Criar Personagem'
     },
     en: { 
       title: 'Character Library', 
@@ -81,7 +83,8 @@ export function AvatarLibraryModalV2({
       selected: 'selected',
       downloading: 'Downloading...',
       next: 'Next',
-      prev: 'Previous'
+      prev: 'Previous',
+      createNew: '+ Create Character'
     },
     es: { 
       title: 'Biblioteca de Personajes', 
@@ -99,7 +102,8 @@ export function AvatarLibraryModalV2({
       selected: 'seleccionado(s)',
       downloading: 'Descargando...',
       next: 'Siguiente',
-      prev: 'Anterior'
+      prev: 'Anterior',
+      createNew: '+ Crear Personaje'
     },
   };
   const L = labels[lang] || labels.en;
@@ -344,6 +348,19 @@ export function AvatarLibraryModalV2({
               <span className="text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-2 py-1 rounded font-semibold">
                 {selected.size} {L.selected}
               </span>
+            )}
+            {onCreateNew && (
+              <button 
+                onClick={() => {
+                  onClose();
+                  onCreateNew();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#6366F1]/20 to-[#4F46E5]/20 border border-[#6366F1]/40 text-xs font-semibold text-[#A78BFA] hover:from-[#6366F1]/30 hover:to-[#4F46E5]/30 transition-all hover:scale-105"
+                title={L.createNew}
+              >
+                <Plus size={14} />
+                <span>{L.createNew}</span>
+              </button>
             )}
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] transition">
               <X size={18} className="text-[#999]" />

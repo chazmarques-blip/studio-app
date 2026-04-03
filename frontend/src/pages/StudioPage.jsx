@@ -1201,19 +1201,6 @@ export default function StudioPage() {
                 <span>Galeria</span>
               </button>
               
-              {/* Create Character Button */}
-              <button
-                onClick={() => {
-                  setGlobalEditingAvatar(null);
-                  setShowGlobalAvatarModal(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#6366F1]/10 to-[#4F46E5]/10 border border-[#6366F1]/30 text-xs font-semibold text-[#6366F1] hover:from-[#6366F1]/20 hover:to-[#4F46E5]/20 transition-all hover:scale-105 whitespace-nowrap"
-                title="Criar Novo Personagem"
-              >
-                <Users size={14} className="shrink-0" />
-                <span>+ Criar</span>
-              </button>
-              
               <button 
                 onClick={openNewProjectModal}
                 disabled={creating}
@@ -1483,6 +1470,12 @@ export default function StudioPage() {
           console.log('✅ Editing avatar from global library:', avatar.name);
           // TODO: Implement global avatar editing
           toast.info('Edição de personagens globais em desenvolvimento');
+        }}
+        onCreateNew={() => {
+          console.log('🎨 Creating new character from gallery');
+          setEditingAvatarId(null);
+          setTempAvatar(null);
+          setShowAvatarModal(true);
         }}
         lang={lang}
       />
