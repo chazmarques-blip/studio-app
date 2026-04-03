@@ -771,7 +771,7 @@ def _generate_video_clip_sync(prompt_text, pipeline_id, clip_name, size="1280x72
 def _clean_narration_for_tts(raw_text):
     """Thoroughly clean narration text for TTS — removes ALL non-spoken content.
     
-    CRITICAL FIX (2026-04-02): Preserve exact approved dialogue text.
+    CRITICAL FIX (2026-04-03): Preserve exact approved dialogue text.
     This function MUST NOT remove essential dialogue content that was approved in the script.
     Only remove:
     - Stage directions in brackets [...]
@@ -780,6 +780,9 @@ def _clean_narration_for_tts(raw_text):
     - Technical markers (<emotion>, emojis, metadata)
     
     This is the SINGLE source of truth for narration cleaning across all video modes."""
+    if not raw_text:
+        return ""
+    
     text = raw_text
 
     # 1. Remove timing marks: [0-4s]:, [16-24s]:, etc.
@@ -839,6 +842,19 @@ def _clean_narration_for_tts(raw_text):
     # 13. Remove empty quoted lines and orphan punctuation
     text = re.sub(r'^\s*"?\s*"?\s*$', '', text, flags=re.MULTILINE)
     text = re.sub(r'\n{2,}', '\n', text).strip()
+
+    # 14. CRITICAL FIX (2026-04-03): If cleaning removed EVERYTHING, return original
+    # This prevents losing dialogue when it's all in brackets or has unusual formatting
+    if not text or len(text) < 5:
+        # Try one more time with minimal cleaning (keep quotes and basic punctuation)
+        text = raw_text
+        text = re.sub(r'\[\d+\s*-\s*\d+s?\]\s*:?\s*', '', text)  # Remove only timing
+        text = re.sub(r'<[^>]+>', '', text)  # Remove angle brackets
+        text = text.strip()
+        
+        if not text or len(text) < 5:
+            # Still empty? Return original raw text (let ElevenLabs handle it)
+            return raw_text.strip()
 
     return text
 

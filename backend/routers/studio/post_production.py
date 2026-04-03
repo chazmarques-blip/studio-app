@@ -106,30 +106,23 @@ def _run_post_production(tenant_id: str, project_id: str, req: PostProduceReques
                 "post_production_status": {"phase": "narration", "done": 0, "total": len(scenes), "message": "Gerando narrações..."}
             })
 
-            narration_system = f"""You are a NARRATOR for cinematic storytelling. Write compelling narration for EACH scene.
-Rules:
-- Each narration MAX 25 words (12 seconds)
-- Dramatic, evocative, emotional
-- **MANDATORY**: Write ALL narration text in {LANG_FULL_NAMES.get(lang, lang)}. NEVER write in English unless the language IS English.
-- Output ONLY valid JSON array: [{{"scene_number": 1, "narration": "text..."}}]"""
-
-            scene_summaries = "\n".join([
-                f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} — {s.get('description','')} — Dialogue: {s.get('dialogue','')}"
-                for i, s in enumerate(scenes)
-            ])
-
-            try:
-                script_result = _call_claude_sync(narration_system, f"Scenes:\n{scene_summaries}")
-                import json as json_mod
-                narrations = []
-                if '[' in script_result:
-                    start = script_result.index('[')
-                    end = script_result.rindex(']') + 1
-                    narrations = json_mod.loads(script_result[start:end])
-            except Exception as e:
-                logger.warning(f"Studio [{project_id}]: Narration script failed: {e}")
-                narrations = [{"scene_number": i+1, "narration": s.get("dialogue", s.get("description", ""))[:80]}
-                              for i, s in enumerate(scenes)]
+            # CRITICAL FIX (2026-04-03): Use EXACT dialogue text from scenes instead of rewriting
+            logger.info(f"Studio [{project_id}]: Post-production narration — using EXACT dialogue (no AI rewriting)")
+            
+            narrations = []
+            for i, scene in enumerate(scenes):
+                scene_num = scene.get("scene_number", i + 1)
+                # Use EXACT dialogue from scene
+                text = scene.get("dialogue", "")
+                if not text.strip():
+                    text = scene.get("narrated_text", "")
+                if not text.strip():
+                    text = scene.get("description", "")[:120]
+                
+                narrations.append({
+                    "scene_number": scene_num,
+                    "narration": text
+                })
 
             for i, narr in enumerate(narrations):
                 scene_num = narr.get("scene_number", i + 1)
@@ -141,11 +134,16 @@ Rules:
                     narr["audio_url"] = None
                     continue
                 try:
-                    audio_bytes = _generate_narration_audio(text, req.voice_id, req.stability, req.similarity, req.style_val, lang)
+                    # Clean text for TTS
+                    from pipeline.media import _clean_narration_for_tts
+                    cleaned_text = _clean_narration_for_tts(text)
+                    
+                    # Generate with EXPLICIT language code
+                    audio_bytes = _generate_narration_audio(cleaned_text, req.voice_id, req.stability, req.similarity, req.style_val, lang)
                     filename = f"studio/{project_id}_narration_{scene_num}.mp3"
                     audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
                     narr["audio_url"] = audio_url
-                    logger.info(f"Studio [{project_id}]: Narration {scene_num} done ({len(audio_bytes)//1024}KB)")
+                    logger.info(f"Studio [{project_id}]: Narration {scene_num} done ({len(audio_bytes)//1024}KB, lang={lang})")
                 except Exception as e:
                     logger.warning(f"Studio [{project_id}]: Narration {scene_num} failed: {e}")
                     narr["audio_url"] = None

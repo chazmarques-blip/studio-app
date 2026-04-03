@@ -613,7 +613,10 @@ Design the PERFECT voice for each character. Make each voice UNIQUE and INSTANTL
 # ── Narration Generation (ElevenLabs) ──
 
 def _generate_narration_audio(text: str, voice_id: str, stability: float, similarity: float, style_val: float, language_code: str = "") -> bytes:
-    """Generate narration audio using ElevenLabs TTS. Returns mp3 bytes."""
+    """Generate narration audio using ElevenLabs TTS. Returns mp3 bytes.
+    
+    CRITICAL FIX (2026-04-03): Always pass language_code to ensure consistent language output.
+    """
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY", "")
     if not elevenlabs_key:
         raise RuntimeError("ELEVENLABS_API_KEY not configured")
@@ -633,16 +636,18 @@ def _generate_narration_audio(text: str, voice_id: str, stability: float, simila
         "pt": "pt", "en": "en", "es": "es",
         "fr": "fr", "de": "de", "it": "it",
     }
-    lang_hint = LANG_HINTS.get(language_code, "")
+    # CRITICAL: Always use language hint, default to "pt" if not provided
+    lang_hint = LANG_HINTS.get(language_code, "pt")
 
     kwargs = {
         "text": text,
         "voice_id": voice_id,
         "model_id": "eleven_multilingual_v2",
         "voice_settings": voice_settings,
+        "language_code": lang_hint,  # ALWAYS pass language_code (never optional)
     }
-    if lang_hint:
-        kwargs["language_code"] = lang_hint
+
+    logger.info(f"ElevenLabs TTS: lang={lang_hint}, voice={voice_id[:8]}, text_len={len(text)}")
 
     audio_gen = client.text_to_speech.convert(**kwargs)
     audio_bytes = b""
@@ -727,16 +732,26 @@ def _run_narration_background(tenant_id: str, project_id: str, voice_id: str, st
 
                             if not text:
                                 continue
+                            
+                            # CRITICAL FIX (2026-04-03): Clean text before TTS
+                            from pipeline.media import _clean_narration_for_tts
+                            cleaned_text = _clean_narration_for_tts(text)
+                            if not cleaned_text.strip():
+                                logger.warning(f"Studio [{project_id}]: Scene {scene_num} part {pi} cleaned to empty, using original")
+                                cleaned_text = text
 
                             # Find matching voice from voice_map
                             matched_voice = voice_id  # default narrator
+                            matched_char_name = "Narrador"
                             for cname, vid in voice_map.items():
                                 if char_name_raw.lower() in cname.lower() or cname.lower() in char_name_raw.lower():
                                     matched_voice = vid
+                                    matched_char_name = cname
                                     break
 
-                            # Generate audio for this character line
-                            audio_bytes = _generate_narration_audio(text, matched_voice, stability, similarity, style_val, lang)
+                            # Generate audio for this character line with EXPLICIT language
+                            logger.debug(f"Studio [{project_id}]: Scene {scene_num} - {matched_char_name}: '{cleaned_text[:50]}...' (lang={lang})")
+                            audio_bytes = _generate_narration_audio(cleaned_text, matched_voice, stability, similarity, style_val, lang)
                             clip_path = f"{tmpdir}/part_{pi:03d}.mp3"
                             with open(clip_path, 'wb') as f:
                                 f.write(audio_bytes)
@@ -781,57 +796,58 @@ def _run_narration_background(tenant_id: str, project_id: str, voice_id: str, st
 
         else:
             # ── NARRATED MODE: Single narrator voice ──
-            narration_system = f"""You are a NARRATOR for cinematic storytelling. Given scenes, write compelling narration text for EACH scene.
-Rules:
-- Each scene narration is MAX 25 words (fits 12 seconds)
-- Be dramatic, evocative, emotional
-- Use the scene dialogue and description as basis
-- **MANDATORY**: Write ALL narration text in {LANG_FULL_NAMES.get(lang, lang)}. NEVER write in English unless the language IS English.
-- Output ONLY valid JSON array: [{{"scene_number": 1, "narration": "text..."}}]"""
-
-            scene_summaries = "\n".join([
-                f"Scene {s.get('scene_number', i+1)}: {s.get('title','')} — {s.get('description','')} — Dialogue: {s.get('dialogue','')}"
-                for i, s in enumerate(scenes)
-            ])
-
-            script_result = _call_claude_sync(narration_system, f"Scenes:\n{scene_summaries}")
-
-            import json as json_mod
-            narrations = []
-            if '[' in script_result:
-                try:
-                    start = script_result.index('[')
-                    end = script_result.rindex(']') + 1
-                    narrations = json_mod.loads(script_result[start:end])
-                except Exception:
-                    pass
-
-            if not narrations:
-                narrations = [{"scene_number": i+1, "narration": s.get("dialogue", s.get("description", ""))[:80]} for i, s in enumerate(scenes)]
+            # CRITICAL FIX (2026-04-03): Use EXACT dialogue text from scenes instead of rewriting
+            # This preserves the approved script and ensures audio matches what's written
+            logger.info(f"Studio [{project_id}]: NARRATED mode — using EXACT dialogue text (no rewriting)")
 
             _update_project_field(tenant_id, project_id, {
-                "narration_status": {"phase": "generating_audio", "done": 0, "total": len(narrations)},
+                "narration_status": {"phase": "generating_audio", "done": 0, "total": len(scenes)},
             })
 
             narration_outputs = []
-            for i, narr in enumerate(narrations):
-                scene_num = narr.get("scene_number", i + 1)
-                text = narr.get("narration", "")
+            for i, scene in enumerate(scenes):
+                scene_num = scene.get("scene_number", i + 1)
+                # Use EXACT dialogue from scene (already approved)
+                text = scene.get("dialogue", "")
+                
+                # Fallback: if no dialogue, use narrated_text or description
+                if not text.strip():
+                    text = scene.get("narrated_text", "")
+                if not text.strip():
+                    text = scene.get("description", "")[:120]  # Max 120 chars from description
+                
                 if not text.strip():
                     narration_outputs.append({"scene_number": scene_num, "text": "", "audio_url": None})
+                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} has no dialogue/narration text")
                     continue
+                
+                # Clean text for TTS (remove stage directions, keep dialogue)
+                from pipeline.media import _clean_narration_for_tts
+                cleaned_text = _clean_narration_for_tts(text)
+                
+                # Log comparison for debugging
+                if cleaned_text != text:
+                    logger.info(f"Studio [{project_id}]: Scene {scene_num} text cleaned: {len(text)} → {len(cleaned_text)} chars")
+                    logger.debug(f"Original: {text[:100]}...")
+                    logger.debug(f"Cleaned: {cleaned_text[:100]}...")
+                
                 try:
-                    audio_bytes = _generate_narration_audio(text, voice_id, stability, similarity, style_val, lang)
+                    audio_bytes = _generate_narration_audio(cleaned_text, voice_id, stability, similarity, style_val, lang)
                     filename = f"studio/{project_id}_narration_{scene_num}.mp3"
                     audio_url = _upload_to_storage(audio_bytes, filename, "audio/mpeg")
-                    narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": audio_url})
-                    logger.info(f"Studio [{project_id}]: Narration scene {scene_num} done ({len(audio_bytes)//1024}KB)")
+                    narration_outputs.append({
+                        "scene_number": scene_num, 
+                        "text": cleaned_text,  # Store cleaned text that was actually spoken
+                        "original_text": text,  # Store original for reference
+                        "audio_url": audio_url
+                    })
+                    logger.info(f"Studio [{project_id}]: Narration scene {scene_num} done ({len(audio_bytes)//1024}KB, {len(cleaned_text)} chars, lang={lang})")
                 except Exception as e:
                     logger.warning(f"Studio [{project_id}]: Narration scene {scene_num} failed: {e}")
-                    narration_outputs.append({"scene_number": scene_num, "text": text, "audio_url": None, "error": str(e)[:100]})
+                    narration_outputs.append({"scene_number": scene_num, "text": cleaned_text, "audio_url": None, "error": str(e)[:100]})
 
                 _update_project_field(tenant_id, project_id, {
-                    "narration_status": {"phase": "generating_audio", "done": i + 1, "total": len(narrations)},
+                    "narration_status": {"phase": "generating_audio", "done": i + 1, "total": len(scenes)},
                 })
 
         # Save all narrations to project
