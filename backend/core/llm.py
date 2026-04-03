@@ -138,10 +138,21 @@ async def generate_image_gemini(prompt: str, input_image_bytes: bytes = None) ->
         config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
     )
 
-    for part in response.candidates[0].content.parts:
+    # Safety check: validate response structure
+    if not response or not response.candidates or len(response.candidates) == 0:
+        logger.error("Gemini returned empty response (no candidates)")
+        return None
+    
+    candidate = response.candidates[0]
+    if not candidate or not candidate.content or not candidate.content.parts:
+        logger.error("Gemini response missing content or parts")
+        return None
+
+    for part in candidate.content.parts:
         if part.inline_data:
             return part.inline_data.data
 
+    logger.warning("No inline_data found in Gemini response parts")
     return None
 
 
