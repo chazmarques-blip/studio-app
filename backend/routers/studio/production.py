@@ -971,6 +971,7 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         characters = project.get("characters", [])
         char_avatars = project.get("character_avatars", {})
         visual_style = project.get("visual_style", "animation")
+        outputs = project.get("outputs", [])  # CRITICAL FIX: Get outputs from project
         total = len(scenes)
 
         scene = next((s for s in scenes if s.get("scene_number") == scene_num), None)
@@ -1082,6 +1083,10 @@ Story: {briefing[:300]}"""
                 result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
                 data = _parse_json(result_text) or {}
                 sora_prompt = data.get("sora_prompt", scene.get("description", ""))
+                
+                # CRITICAL DEBUG: Log the sora_prompt to verify lip-sync instruction is included
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora prompt (first 300 chars): {sora_prompt[:300]}")
+                
             except Exception as e:
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} regen director error: {e}")
                 sora_prompt = f"{style_hint} {scene.get('description', '')}"
