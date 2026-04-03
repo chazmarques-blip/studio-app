@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   Film, Plus, Trash2, Clock, Layers, Users, Play, Folder, 
   ChevronRight, MoreHorizontal, Search, ArrowLeft, Eye,
-  FileText, Palette, Video, CheckCircle2, Circle, Sparkles, Pencil, Check, X
+  FileText, Palette, Video, CheckCircle2, Circle, Sparkles, Pencil, Check, X, BookOpen
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -321,6 +321,9 @@ export default function StudioPage() {
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  
+  // Global Character Library
+  const [showGlobalLibrary, setShowGlobalLibrary] = useState(false);
   
   // Company selection (duplicated from Marketing for Videos context)
   const [companies, setCompanies] = useState([]);
@@ -1176,15 +1179,24 @@ export default function StudioPage() {
             </div>
 
             {/* Right: Project Count + Actions */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-900/70 bg-gray-100 px-3 py-1.5 rounded-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-900/70 bg-gray-100 px-3 py-1.5 rounded-lg font-medium">
                 {projects.length} {l.projects.toLowerCase()}
               </span>
+              
+              {/* Global Character Library Button */}
+              <button
+                onClick={() => setShowGlobalLibrary(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6]/10 to-[#7C3AED]/10 border border-[#8B5CF6]/30 text-sm font-semibold text-[#8B5CF6] hover:from-[#8B5CF6]/20 hover:to-[#7C3AED]/20 transition-all hover:scale-105"
+              >
+                <BookOpen size={16} />
+                <span className="hidden sm:inline">Galeria de Personagens</span>
+              </button>
               
               <button 
                 onClick={openNewProjectModal}
                 disabled={creating}
-                className="btn-gold flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition hover:scale-105"
+                className="btn-gold flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition-all hover:scale-105 shadow-lg shadow-[#F59E0B]/20"
               >
                 <Plus size={16} />
                 <span className="hidden sm:inline">{l.newProject}</span>
@@ -1434,6 +1446,24 @@ export default function StudioPage() {
           lang={lang}
         />
       )}
+      
+      {/* Global Character Library Modal */}
+      <AvatarLibraryModalV2
+        open={showGlobalLibrary}
+        onClose={() => setShowGlobalLibrary(false)}
+        projectId={null}
+        projectAvatarIds={new Set()}
+        onImported={(importedAvatars) => {
+          console.log('✅ Avatars viewed in global library:', importedAvatars.length);
+          toast.success(`Visualizando ${importedAvatars.length} personagens!`);
+        }}
+        onEditAvatar={(avatar) => {
+          console.log('✅ Editing avatar from global library:', avatar.name);
+          // TODO: Implement global avatar editing
+          toast.info('Edição de personagens globais em desenvolvimento');
+        }}
+        lang={lang}
+      />
     </div>
   );
 }
