@@ -3056,9 +3056,16 @@ export const DirectedStudio = memo(function DirectedStudio({
                         </button>
                       )}
                       
-                      {/* Regenerate button for scenes already produced */}
+                      {/* Regenerate + Edit buttons for scenes already produced */}
                       {(videoError || videoDone) && (
                         <>
+                          <button
+                            onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera, characters_in_scene: s.characters_in_scene || [] }); }}
+                            data-testid={`edit-scene-${sceneNum}`}
+                            className="flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium bg-blue-500/10 border border-blue-500/30 text-blue-600 hover:bg-blue-500/20 transition">
+                            <Edit3 size={8} />
+                            {lang === 'pt' ? 'Editar' : 'Edit'}
+                          </button>
                           <button
                             onClick={() => regenerateScene(sceneNum)}
                             disabled={regenScene === sceneNum}
@@ -3066,17 +3073,10 @@ export const DirectedStudio = memo(function DirectedStudio({
                             className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition ${
                               videoError
                                 ? 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20'
-                                : 'bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30'
+                                : 'bg-orange-500/10 border border-orange-500/30 text-orange-600 hover:bg-orange-500/20'
                             } ${regenScene === sceneNum ? 'opacity-50' : ''}`}>
                             <RefreshCw size={8} className={regenScene === sceneNum ? 'animate-spin' : ''} />
                             {regenScene === sceneNum ? (lang === 'pt' ? 'Regenerando...' : 'Regenerating...') : (lang === 'pt' ? 'Regenerar' : 'Retry')}
-                          </button>
-                          <button
-                            onClick={() => { setEditingScene(sceneNum); setEditSceneForm({ title: s.title, description: s.description, dialogue: s.dialogue, emotion: s.emotion, camera: s.camera }); }}
-                            data-testid={`edit-scene-${sceneNum}`}
-                            className="flex items-center gap-1 rounded-md py-1 px-2 text-[11px] bg-gray-50 border border-[#333] text-gray-600 hover:text-gray-900 hover:border-orange-500/30 transition">
-                            <Edit3 size={8} />
-                            {lang === 'pt' ? 'Editar' : 'Edit'}
                           </button>
                         </>
                       )}
