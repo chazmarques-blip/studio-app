@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { X, Search, Check, Download, BookOpen, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { X, Search, Check, Download, Users, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
