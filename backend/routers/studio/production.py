@@ -1038,11 +1038,16 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation.
 MANDATORY STYLE (include VERBATIM): {style_hint}
 
+🎬 CRITICAL LIP-SYNC INSTRUCTION:
+- If the scene has DIALOGUE, you MUST include the EXACT dialogue text in the sora_prompt
+- Format: "The [character description] says: '[exact dialogue text]' - speaking with perfectly synchronized lip movements, mouth moving naturally with each word"
+- This ensures Sora 2 generates video WITH audio AND lip-sync matching the spoken text
+
 🌐 LANGUAGE MARKER:
 - At the END of your sora_prompt, add: "Any visible text in {language_marker}."
 
 Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
-RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera."""
+RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera. ALWAYS include exact dialogue with lip-sync instruction."""
 
                 director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
@@ -1057,10 +1062,15 @@ CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}"""
                 scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2. {style_hint}
 
+🎬 CRITICAL LIP-SYNC INSTRUCTION:
+- If the scene has DIALOGUE, you MUST include the EXACT dialogue text in the sora_prompt
+- Format: "The [character description] says: '[exact dialogue text]' - speaking with perfectly synchronized lip movements, mouth moving naturally with each word"
+- This ensures Sora 2 generates video WITH audio AND lip-sync matching the spoken text
+
 🌐 LANGUAGE MARKER:
 - At the END of your sora_prompt, add: "Any visible text in {language_marker}."
 
-Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words."}}"""
+Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words. ALWAYS include exact dialogue with lip-sync instruction."}}"""
                 director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
@@ -1110,15 +1120,44 @@ Story: {briefing[:300]}"""
                     max_wait=600
                 )
                 if video_bytes and len(video_bytes) > 1000:
-                    # CRITICAL FIX (2026-04-03): Update status to "generating_video" (audio phase)
-                    _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total=1)
-                    
-                    filename = f"studio/{project_id}_scene_{scene_num}.mp4"
+                    # Video generated successfully - Sora 2 includes audio with lip-sync!
+                    filename = f"studio/{project_id}_scene_{scene_num}_final.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-                    logger.info(f"Studio [{project_id}]: Regen scene {scene_num} video DONE ({len(video_bytes)//1024}KB)")
+                    logger.info(f"Studio [{project_id}]: Regen scene {scene_num} video WITH audio and lip-sync DONE ({len(video_bytes)//1024}KB)")
 
-                    # CRITICAL FIX (2026-04-03): Generate narration/dialogue audio for the regenerated scene
-                    narration_url = None
+                    # CRITICAL CHANGE (2026-04-03): Sora 2 now generates audio WITH lip-sync natively
+                    # No need for separate ElevenLabs audio generation + FFmpeg merge
+                    # The director prompt now includes exact dialogue text, so Sora 2 generates:
+                    # - Video with character mouth movements
+                    # - Synchronized audio of character speaking the exact text
+                    # - Perfect lip-sync automatically
+                    
+                    # Update output in project data
+                    existing_out = next((o for o in outputs if o.get("scene_number") == scene_num and o.get("type") == "video"), None)
+                    if existing_out:
+                        existing_out["url"] = video_url
+                        existing_out["timestamp"] = datetime.now(timezone.utc).isoformat()
+                    else:
+                        outputs.append({
+                            "scene_number": scene_num,
+                            "type": "video",
+                            "url": video_url,
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+                    
+                    # CRITICAL CHANGE (2026-04-03): Sora 2 generates complete video with audio and lip-sync
+                    # Skip separate ElevenLabs audio generation and FFmpeg merge
+                    # The Claude director now instructs to include exact dialogue in Sora prompt
+                    
+                    # Save scene data and mark as complete
+                    scene["video_url"] = video_url
+                    scene["regenerated_at"] = datetime.now(timezone.utc).isoformat()
+                    
+                    _update_project(tenant_id, project_id, {"settings.studio_projects": [p if p.get("id") != project_id else project for p in all_projects]})
+                    _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                    
+                    logger.info(f"Studio [{project_id}]: Scene {scene_num} regenerated WITH Sora 2 native audio and lip-sync")
+                    return video_url
                     dialogue_text = scene.get("dialogue", "")
                     if dialogue_text and dialogue_text.strip():
                         try:
