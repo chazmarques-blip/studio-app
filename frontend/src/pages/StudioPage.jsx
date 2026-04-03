@@ -795,7 +795,7 @@ export default function StudioPage() {
       )}
 
       {/* ═══════ AVATAR MODAL (moved inside selectedProject block) ═══════ */}
-      {showAvatarModal && (
+      {showAvatarModal && selectedProject && (
         <AvatarModal
           ctx={{
             showAvatarModal,
@@ -1364,95 +1364,160 @@ export default function StudioPage() {
         </div>
       )}
 
-      {/* ═══════ AVATAR MODAL (Full Featured) ═══════ */}
-      {showAvatarModal && (
+      {/* ═══════ AVATAR MODAL (Global - Outside Project Context) ═══════ */}
+      {showAvatarModal && !selectedProject && (
         <AvatarModal
-          show={showAvatarModal}
-          onClose={resetAvatarModal}
-          avatarSourcePhoto={avatarSourcePhoto}
-          setAvatarSourcePhoto={setAvatarSourcePhoto}
-          avatarSourceType={avatarSourceType}
-          setAvatarSourceType={setAvatarSourceType}
-          avatarVideoUploading={avatarVideoUploading}
-          setAvatarVideoUploading={setAvatarVideoUploading}
-          avatarExtractedAudio={avatarExtractedAudio}
-          setAvatarExtractedAudio={setAvatarExtractedAudio}
-          avatarVideoFrames={avatarVideoFrames}
-          setAvatarVideoFrames={setAvatarVideoFrames}
-          masteringVoice={masteringVoice}
-          setMasteringVoice={setMasteringVoice}
-          generatingPreviewVideo={generatingPreviewVideo}
-          setGeneratingPreviewVideo={setGeneratingPreviewVideo}
-          previewVideoUrl={previewVideoUrl}
-          setPreviewVideoUrl={setPreviewVideoUrl}
-          previewLanguage={previewLanguage}
-          setPreviewLanguage={setPreviewLanguage}
-          avatarName={avatarName}
-          setAvatarName={setAvatarName}
-          avatarMediaTab={avatarMediaTab}
-          setAvatarMediaTab={setAvatarMediaTab}
-          accuracyProgress={accuracyProgress}
-          setAccuracyProgress={setAccuracyProgress}
-          generatingAvatar={generatingAvatar}
-          setGeneratingAvatar={setGeneratingAvatar}
-          avatarPhotoUploading={avatarPhotoUploading}
-          setAvatarPhotoUploading={setAvatarPhotoUploading}
-          logoUploading={logoUploading}
-          setLogoUploading={setLogoUploading}
-          avatarStage={avatarStage}
-          setAvatarStage={setAvatarStage}
-          avatarCreationMode={avatarCreationMode}
-          setAvatarCreationMode={setAvatarCreationMode}
-          avatarPromptText={avatarPromptText}
-          setAvatarPromptText={setAvatarPromptText}
-          avatarPromptGender={avatarPromptGender}
-          setAvatarPromptGender={setAvatarPromptGender}
-          avatarPromptStyle={avatarPromptStyle}
-          setAvatarPromptStyle={setAvatarPromptStyle}
-          tempAvatar={tempAvatar}
-          setTempAvatar={setTempAvatar}
-          editingAvatarId={editingAvatarId}
-          customizeTab={customizeTab}
-          setCustomizeTab={setCustomizeTab}
-          applyingClothing={applyingClothing}
-          setApplyingClothing={setApplyingClothing}
-          clothingVariants={clothingVariants}
-          setClothingVariants={setClothingVariants}
-          generatingAngle={generatingAngle}
-          setGeneratingAngle={setGeneratingAngle}
-          angleImages={angleImages}
-          setAngleImages={setAngleImages}
-          auto360Progress={auto360Progress}
-          setAuto360Progress={setAuto360Progress}
-          voiceTab={voiceTab}
-          setVoiceTab={setVoiceTab}
-          loadingVoicePreview={loadingVoicePreview}
-          setLoadingVoicePreview={setLoadingVoicePreview}
-          playingVoiceId={playingVoiceId}
-          setPlayingVoiceId={setPlayingVoiceId}
-          elevenLabsVoices={elevenLabsVoices}
-          setElevenLabsVoices={setElevenLabsVoices}
-          elevenLabsAvailable={elevenLabsAvailable}
-          setElevenLabsAvailable={setElevenLabsAvailable}
-          isRecording={isRecording}
-          setIsRecording={setIsRecording}
-          recordedAudioUrl={recordedAudioUrl}
-          setRecordedAudioUrl={setRecordedAudioUrl}
-          recordedAudioBlob={recordedAudioBlob}
-          setRecordedAudioBlob={setRecordedAudioBlob}
-          uploadingRecording={uploadingRecording}
-          setUploadingRecording={setUploadingRecording}
-          avatarEditHistory={avatarEditHistory}
-          setAvatarEditHistory={setAvatarEditHistory}
-          avatarBaseUrl={avatarBaseUrl}
-          setAvatarBaseUrl={setAvatarBaseUrl}
-          avatarInputRef={avatarInputRef}
-          logoInputRef={logoInputRef}
-          mediaRecorderRef={mediaRecorderRef}
-          audioChunksRef={audioChunksRef}
-          audioPlayerRef={audioPlayerRef}
-          selectedCompany={selectedCompany}
-          lang={lang}
+          ctx={{
+            showAvatarModal,
+            avatarStage,
+            avatarCreationMode,
+            avatarSourceType,
+            avatarSourcePhoto,
+            avatarVideoUploading,
+            avatarExtractedAudio,
+            avatarVideoFrames,
+            masteringVoice,
+            generatingPreviewVideo,
+            previewVideoUrl,
+            previewLanguage,
+            avatarName,
+            avatarMediaTab,
+            accuracyProgress,
+            generatingAvatar,
+            avatarPhotoUploading,
+            avatarPromptText,
+            avatarPromptGender,
+            avatarPromptStyle,
+            aiEditAvatarId,
+            aiEditInstruction,
+            aiEditLoading,
+            tempAvatar,
+            clothingVariants,
+            customizeTab,
+            voiceTab,
+            angleImages,
+            generatingAngle,
+            auto360Progress,
+            editingAvatarId,
+            avatarEditHistory,
+            avatarBaseUrl,
+            applyingClothing,
+            isRecording,
+            recordedAudioUrl,
+            recordedAudioBlob,
+            uploadingRecording,
+            loadingVoicePreview,
+            playingVoiceId,
+            elevenLabsVoices,
+            elevenLabsAvailable,
+            avatarPreviewUrl,
+            setAvatarCreationMode,
+            setAvatarSourceType,
+            setAvatarSourcePhoto,
+            setAvatarExtractedAudio,
+            setAvatarVideoFrames,
+            setAvatarName,
+            setAvatarMediaTab,
+            setAvatarPromptText,
+            setAvatarPromptGender,
+            setAvatarPromptStyle,
+            setAiEditAvatarId,
+            setAiEditInstruction,
+            setAiEditLoading,
+            setTempAvatar,
+            setCustomizeTab,
+            setVoiceTab,
+            setAngleImages,
+            setPreviewLanguage,
+            setAvatarPreviewUrl,
+            setAvatarEditHistory,
+            setPreviewVideoUrl,
+            setGeneratingPreviewVideo,
+            resetAvatarModal,
+            generateAvatarFromPhoto: async (blob, filename, company) => {
+              console.log('🎨 Global generateAvatarFromPhoto:', filename);
+              setAvatarPhotoUploading(true);
+              try {
+                const formData = new FormData();
+                formData.append('file', blob, filename);
+                formData.append('company_id', selectedCompany?.id || '');
+                
+                const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-photo`, formData, {
+                  headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                
+                const avatar = response.data.avatar;
+                setTempAvatar(avatar);
+                setAvatarName(avatar.name || '');
+                setAvatarStage('customize');
+                toast.success('Avatar criado com sucesso!');
+              } catch (err) {
+                console.error('❌ Error generating avatar:', err);
+                toast.error('Erro ao gerar avatar: ' + (err.response?.data?.detail || err.message));
+              } finally {
+                setAvatarPhotoUploading(false);
+              }
+            },
+            generateAvatarFromPrompt: async (prompt, gender, style, company) => {
+              console.log('🎨 Global generateAvatarFromPrompt:', prompt);
+              setGeneratingAvatar(true);
+              try {
+                const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-from-prompt`, {
+                  prompt,
+                  gender,
+                  style,
+                  company_id: selectedCompany?.id || ''
+                });
+                
+                const avatar = response.data.avatar;
+                setTempAvatar(avatar);
+                setAvatarName(avatar.name || '');
+                setAvatarStage('customize');
+                toast.success('Avatar gerado com sucesso!');
+              } catch (err) {
+                console.error('❌ Error generating avatar:', err);
+                toast.error('Erro ao gerar avatar: ' + (err.response?.data?.detail || err.message));
+              } finally {
+                setGeneratingAvatar(false);
+              }
+            },
+            saveAvatarAsNew: async () => {
+              console.log('💾 Global saveAvatarAsNew');
+              if (!tempAvatar?.image_url) {
+                toast.error('Nenhum avatar para salvar');
+                return;
+              }
+              
+              try {
+                const payload = {
+                  name: avatarName || tempAvatar.name || 'Novo Personagem',
+                  image_url: tempAvatar.image_url,
+                  style: tempAvatar.style,
+                  gender: tempAvatar.gender,
+                  company_id: selectedCompany?.id,
+                  angles: angleImages,
+                  voice_id: tempAvatar.voice_id
+                };
+                
+                await axios.post(`${API}/campaigns/pipeline/avatars`, payload);
+                toast.success('Personagem salvo com sucesso!');
+                resetAvatarModal();
+                
+                // Refresh library if open
+                if (showGlobalLibrary) {
+                  setShowGlobalLibrary(false);
+                  setTimeout(() => setShowGlobalLibrary(true), 100);
+                }
+              } catch (err) {
+                console.error('❌ Error saving avatar:', err);
+                toast.error('Erro ao salvar personagem');
+              }
+            },
+            avatars,
+            avatarInputRef,
+            logoInputRef,
+            isDirectedMode: true,
+          }}
         />
       )}
       
