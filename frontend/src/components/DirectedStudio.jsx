@@ -2975,10 +2975,13 @@ export const DirectedStudio = memo(function DirectedStudio({
                   // Find the video output for this scene
                   const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
                   
-                  // CRITICAL FIX (2026-04-03): Trust scene_status from backend, not just video existence
-                  // During regeneration: directing → generating_video (video+audio+merge) → done
-                  // Don't mark as done until backend confirms (prevents progress bar jumping to 100%)
-                  const videoDone = sceneState === 'done';
+                  // CRITICAL FIX (2026-04-03): Smart videoDone logic
+                  // DURING GENERATION: Trust only backend scene_status (prevents progress bar jumping to 100%)
+                  // WHEN IDLE: Check if video exists (show Edit/Regenerate buttons for completed scenes)
+                  const videoDone = generating 
+                    ? sceneState === 'done'  // During generation: strict backend check
+                    : (sceneState === 'done' || !!sceneVideo);  // When idle: video existence is valid proof
+                  
                   const videoError = sceneState === 'error';
                   const isDirecting = sceneState === 'directing';
                   const isWaiting = sceneState === 'waiting_sora';
