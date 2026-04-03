@@ -150,6 +150,12 @@ export function AvatarLibraryModalV2({
   const filtered = useMemo(() => {
     let result = [...library];
     
+    // CRITICAL FIX: Filter out avatars with empty/missing URLs (prevents black cards)
+    result = result.filter(a => {
+      const url = a.url || '';
+      return url.trim() !== '';
+    });
+    
     // 1. Text search
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -352,7 +358,7 @@ export function AvatarLibraryModalV2({
             {onCreateNew && (
               <button 
                 onClick={() => {
-                  onClose();
+                  // CRITICAL FIX: Don't close library, open modal INSIDE
                   onCreateNew();
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#6366F1]/20 to-[#4F46E5]/20 border border-[#6366F1]/40 text-xs font-semibold text-[#A78BFA] hover:from-[#6366F1]/30 hover:to-[#4F46E5]/30 transition-all hover:scale-105"
