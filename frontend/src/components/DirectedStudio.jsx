@@ -2971,15 +2971,17 @@ export const DirectedStudio = memo(function DirectedStudio({
                   const sceneNum = s.scene_number || i + 1;
                   const ss = agentStatus.scene_status || {};
                   const sceneState = ss[String(sceneNum)] || 'queued';
-                  const videoDone = sceneState === 'done';
+                  
+                  // Find the video output for this scene
+                  const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
+                  
+                  // CRITICAL FIX: If video exists, consider it done (even if scene_status is wrong)
+                  const videoDone = sceneState === 'done' || !!sceneVideo;
                   const videoError = sceneState === 'error';
                   const isDirecting = sceneState === 'directing';
                   const isWaiting = sceneState === 'waiting_sora';
                   const isVideoGen = sceneState === 'generating_video';
                   const isActive = isDirecting || isWaiting || isVideoGen;
-
-                  // Find the video output for this scene
-                  const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
 
                   // Progress per state
                   const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 65 : isWaiting ? 40 : isDirecting ? 20 : 0;
