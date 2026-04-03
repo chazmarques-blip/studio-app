@@ -1511,35 +1511,265 @@ export default function StudioPage() {
                 setGeneratingAvatar(false);
               }
             },
-            saveAvatarAsNew: async () => {
-              console.log('💾 Global saveAvatarAsNew');
-              if (!tempAvatar?.image_url) {
+            uploadAvatarPhoto: () => avatarInputRef.current?.click(),
+            uploadAvatarVideo: () => {
+              console.log('⚠️ uploadAvatarVideo: Not implemented in global mode');
+              toast.info('Upload de vídeo disponível apenas em projetos');
+            },
+            applyClothing: async (clothing) => {
+              console.log('🎨 Global applyClothing:', clothing);
+              
+              if (!tempAvatar?.url) {
+                toast.error('Nenhum avatar para aplicar fundo');
+                return;
+              }
+              
+              setApplyingClothing(true);
+              
+              try {
+                const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
+                  source_image_url: tempAvatar.url,
+                  clothing,
+                  angle: 'front',
+                  company_name: selectedCompany?.name || '',
+                  logo_url: selectedCompany?.logo_url || '',
+                  avatar_style: tempAvatar.style || 'custom'
+                });
+                
+                if (response.data.avatar_url) {
+                  setTempAvatar(prev => ({ ...prev, url: response.data.avatar_url }));
+                  toast.success('Fundo aplicado com sucesso!');
+                }
+              } catch (err) {
+                console.error('❌ Error applying background:', err);
+                toast.error('Erro ao aplicar fundo');
+              } finally {
+                setApplyingClothing(false);
+              }
+            },
+            generateAngle: async (angle, forceRegenerate = false) => {
+              console.log('🔄 Global generateAngle:', angle);
+              
+              if (!tempAvatar?.url) return;
+              if (angleImages[angle] && !forceRegenerate) return;
+              
+              setGeneratingAngle(angle);
+              
+              try {
+                const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-variant`, {
+                  source_image_url: tempAvatar.url,
+                  clothing: 'keep_original',
+                  angle,
+                  company_name: '',
+                  logo_url: '',
+                  avatar_style: tempAvatar.style || 'custom'
+                });
+                
+                if (response.data.avatar_url) {
+                  setAngleImages(prev => ({ ...prev, [angle]: response.data.avatar_url }));
+                  toast.success(`Ângulo "${angle}" gerado!`);
+                }
+              } catch (err) {
+                console.error(`❌ Error generating angle ${angle}:`, err);
+                toast.error(`Erro ao gerar ângulo "${angle}"`);
+              } finally {
+                setGeneratingAngle(null);
+              }
+            },
+            startAuto360: async () => {
+              console.log('🔄 Global startAuto360');
+              
+              if (!tempAvatar?.url) {
+                toast.error('Nenhum avatar para gerar 360°');
+                return;
+              }
+              
+              setAuto360Progress({ completed: 0, total: 4 });
+              
+              try {
+                const response = await axios.post(`${API}/campaigns/pipeline/generate-avatar-360`, {
+                  source_image_url: tempAvatar.url,
+                  clothing: 'keep_original',
+                  logo_url: '',
+                  avatar_style: tempAvatar.style || 'custom'
+                });
+                
+                if (response.data.job_id) {
+                  toast.info('Gerando visão 360°... Aguarde ~30s');
+                  
+                  const pollInterval = setInterval(async () => {
+                    try {
+                      const { data: status } = await axios.get(`${API}/campaigns/pipeline/generate-avatar-360/${response.data.job_id}`);
+                      
+                      const completed = Object.values(status.results || {}).filter(Boolean).length;
+                      setAuto360Progress({ completed, total: 4 });
+                      
+                      if (status.results) {
+                        setAngleImages(prev => ({
+                          ...prev,
+                          ...Object.fromEntries(Object.entries(status.results).filter(([,v]) => v))
+                        }));
+                      }
+                      
+                      if (status.status === 'completed' || status.status === 'failed') {
+                        clearInterval(pollInterval);
+                        setAuto360Progress(null);
+                        
+                        if (status.status === 'completed') {
+                          toast.success('Visão 360° gerada!');
+                        } else {
+                          toast.error('Erro ao gerar 360°');
+                        }
+                      }
+                    } catch (pollErr) {
+                      console.warn('⚠️ Poll error:', pollErr.message);
+                    }
+                  }, 6000);
+                  
+                  setTimeout(() => {
+                    clearInterval(pollInterval);
+                    setAuto360Progress(null);
+                  }, 180000);
+                }
+              } catch (err) {
+                console.error('❌ Error starting 360°:', err);
+                setAuto360Progress(null);
+                toast.error('Erro ao iniciar geração 360°');
+              }
+            },
+            saveAvatarAndClose: async () => {
+              console.log('💾 Global saveAvatarAndClose');
+              
+              if (!tempAvatar?.url) {
                 toast.error('Nenhum avatar para salvar');
                 return;
               }
               
               try {
                 const payload = {
-                  name: avatarName || tempAvatar.name || 'Novo Personagem',
-                  image_url: tempAvatar.image_url,
-                  style: tempAvatar.style,
-                  gender: tempAvatar.gender,
-                  company_id: selectedCompany?.id,
-                  angles: angleImages,
-                  voice_id: tempAvatar.voice_id
+                  name: avatarName || 'Novo Personagem',
+                  image_url: tempAvatar.url,
+                  style: tempAvatar.style || 'custom',
+                  gender: tempAvatar.gender || 'male',
+                  company_id: selectedCompany?.id || null,
+                  angles: angleImages || {},
+                  voice_id: tempAvatar.voice_id || null,
+                  language: previewLanguage || 'pt'
                 };
                 
-                await axios.post(`${API}/campaigns/pipeline/avatars`, payload);
+                await axios.post(`${API}/data/avatars`, payload);
                 toast.success('Personagem salvo com sucesso!');
                 resetAvatarModal();
                 
-                // Refresh library if open
                 if (showGlobalLibrary) {
                   setShowGlobalLibrary(false);
                   setTimeout(() => setShowGlobalLibrary(true), 100);
                 }
               } catch (err) {
                 console.error('❌ Error saving avatar:', err);
+                toast.error('Erro ao salvar personagem');
+              }
+            },
+            saveAvatarAsNew: async () => {
+              console.log('💾 Global saveAvatarAsNew (same as saveAvatarAndClose)');
+              
+              if (!tempAvatar?.url) {
+                toast.error('Nenhum avatar para salvar');
+                return;
+              }
+              
+              try {
+                const payload = {
+                  name: avatarName || 'Novo Personagem',
+                  image_url: tempAvatar.url,
+                  style: tempAvatar.style || 'custom',
+                  gender: tempAvatar.gender || 'male',
+                  company_id: selectedCompany?.id || null,
+                  angles: angleImages || {},
+                  voice_id: tempAvatar.voice_id || null,
+                  language: previewLanguage || 'pt'
+                };
+                
+                await axios.post(`${API}/data/avatars`, payload);
+                toast.success('Personagem salvo!');
+                resetAvatarModal();
+                
+                if (showGlobalLibrary) {
+                  setShowGlobalLibrary(false);
+                  setTimeout(() => setShowGlobalLibrary(true), 100);
+                }
+              } catch (err) {
+                console.error('❌ Error saving avatar:', err);
+                toast.error('Erro ao salvar personagem');
+              }
+            },
+            previewVoice: async (voiceId, voiceType = 'elevenlabs') => {
+              console.log('🔊 Global previewVoice:', voiceId);
+              
+              setLoadingVoicePreview(voiceId);
+              setPlayingVoiceId(null);
+              
+              try {
+                const sampleText = previewLanguage === 'pt' 
+                  ? 'Olá! Esta é uma prévia da minha voz.'
+                  : previewLanguage === 'es'
+                  ? '¡Hola! Esta es una vista previa de mi voz.'
+                  : 'Hello! This is a preview of my voice.';
+                
+                const response = await axios.post(`${API}/campaigns/pipeline/generate-voice-preview`, {
+                  voice_id: voiceId,
+                  text: sampleText,
+                  language: previewLanguage || 'pt'
+                });
+                
+                if (response.data.audio_url) {
+                  const audio = new Audio(response.data.audio_url);
+                  audio.onended = () => setPlayingVoiceId(null);
+                  audio.play();
+                  setPlayingVoiceId(voiceId);
+                }
+              } catch (err) {
+                console.error('❌ Error previewing voice:', err);
+                toast.error('Erro ao reproduzir voz');
+              } finally {
+                setLoadingVoicePreview(null);
+              }
+            },
+            startRecording: () => {
+              console.log('🎤 Global startRecording');
+              toast.info('Gravação de voz disponível apenas em projetos');
+            },
+            stopRecording: () => {
+              console.log('🛑 Global stopRecording');
+            },
+            saveRecordingAsVoice: () => {
+              console.log('💾 Global saveRecordingAsVoice');
+              toast.info('Gravação de voz disponível apenas em projetos');
+            },
+            persistAvatarToServer: async () => {
+              console.log('💾 Global persistAvatarToServer (same as saveAvatarAndClose)');
+              
+              if (!tempAvatar?.url) {
+                toast.error('Nenhum avatar para salvar');
+                return;
+              }
+              
+              try {
+                const payload = {
+                  name: avatarName || 'Novo Personagem',
+                  image_url: tempAvatar.url,
+                  style: tempAvatar.style || 'custom',
+                  gender: tempAvatar.gender || 'male',
+                  company_id: selectedCompany?.id || null,
+                  angles: angleImages || {},
+                  voice_id: tempAvatar.voice_id || null,
+                  language: previewLanguage || 'pt'
+                };
+                
+                await axios.post(`${API}/data/avatars`, payload);
+                toast.success('Personagem salvo!');
+              } catch (err) {
+                console.error('❌ Error persisting avatar:', err);
                 toast.error('Erro ao salvar personagem');
               }
             },
