@@ -967,6 +967,10 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         if current_status in ["directing", "waiting_sora", "generating_video"]:
             logger.warning(f"Studio [{project_id}]: Scene {scene_num} is already regenerating (status: {current_status}). Skipping concurrent request.")
             return
+        
+        # CRITICAL FIX (2026-04-03): Update scene status to "directing" at START
+        _update_scene_status(tenant_id, project_id, scene_num, "directing", total=1)
+        logger.info(f"Studio [{project_id}]: Scene {scene_num} regeneration started - status set to 'directing'")
 
         scenes = project.get("scenes", [])
         characters = project.get("characters", [])
@@ -1111,6 +1115,9 @@ Story: {briefing[:300]}"""
                     max_wait=600
                 )
                 if video_bytes and len(video_bytes) > 1000:
+                    # CRITICAL FIX (2026-04-03): Update status to "generating_video" (audio phase)
+                    _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total=1)
+                    
                     filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
                     logger.info(f"Studio [{project_id}]: Regen scene {scene_num} video DONE ({len(video_bytes)//1024}KB)")
