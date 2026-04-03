@@ -304,6 +304,8 @@ export default function PipelineView({ context }) {
   const persistAvatarToServer = async (avatar) => {
     try {
       const { data } = await axios.post(`${API}/data/avatars`, avatar);
+      // CRITICAL FIX: Invalidate library cache so new avatar appears in gallery
+      localStorage.removeItem('studiox_avatar_library_v2');
       return data;
     } catch {
       return null;
@@ -675,7 +677,11 @@ export default function PipelineView({ context }) {
       if (data.url) {
         const updated = avatars.map(a => a.id === avatarId ? { ...a, url: data.url } : a);
         saveAvatars(updated);
-        try { await axios.post(`${API}/data/avatars`, { ...av, url: data.url }); } catch {}
+        try { 
+          await axios.post(`${API}/data/avatars`, { ...av, url: data.url }); 
+          // CRITICAL FIX: Invalidate library cache so new avatar appears in gallery
+          localStorage.removeItem('studiox_avatar_library_v2');
+        } catch {}
         setLastCreatedAvatar({ ...av, url: data.url, _ts: Date.now() });
         toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
       }
