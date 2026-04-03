@@ -961,6 +961,13 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         if not project:
             return
 
+        # CRITICAL: Check if scene is already being regenerated (concurrency protection)
+        scene_status = project.get("agent_status", {}).get("scene_status", {})
+        current_status = scene_status.get(str(scene_num), "")
+        if current_status in ["directing", "waiting_sora", "generating_video"]:
+            logger.warning(f"Studio [{project_id}]: Scene {scene_num} is already regenerating (status: {current_status}). Skipping concurrent request.")
+            return
+
         scenes = project.get("scenes", [])
         characters = project.get("characters", [])
         char_avatars = project.get("character_avatars", {})
