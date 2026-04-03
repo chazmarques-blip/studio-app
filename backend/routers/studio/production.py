@@ -1106,7 +1106,87 @@ Story: {briefing[:300]}"""
                 if video_bytes and len(video_bytes) > 1000:
                     filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                     video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-                    logger.info(f"Studio [{project_id}]: Regen scene {scene_num} DONE ({len(video_bytes)//1024}KB)")
+                    logger.info(f"Studio [{project_id}]: Regen scene {scene_num} video DONE ({len(video_bytes)//1024}KB)")
+
+                    # CRITICAL FIX (2026-04-03): Generate narration/dialogue audio for the regenerated scene
+                    narration_url = None
+                    dialogue_text = scene.get("dialogue", "")
+                    if dialogue_text and dialogue_text.strip():
+                        try:
+                            logger.info(f"Studio [{project_id}]: Generating audio for regen scene {scene_num}")
+                            
+                            # Import narration generation function
+                            from .narration import _generate_narration_audio
+                            from pipeline.media import _clean_narration_for_tts
+                            
+                            # Get voice configuration from project
+                            voice_config = project.get("voice_config", {})
+                            voice_id = voice_config.get("voice_id", "VR6AewLTigvnBZLfJordq")  # Default Chris
+                            stability = voice_config.get("stability", 0.5)
+                            similarity = voice_config.get("similarity", 0.75)
+                            style_val = voice_config.get("style_val", 0.0)
+                            lang = project.get("language", "pt")
+                            
+                            # Clean dialogue text for TTS
+                            cleaned_text = _clean_narration_for_tts(dialogue_text)
+                            
+                            # Generate audio via ElevenLabs
+                            audio_bytes = _generate_narration_audio(
+                                text=cleaned_text,
+                                voice_id=voice_id,
+                                stability=stability,
+                                similarity=similarity,
+                                style_val=style_val,
+                                language_code=lang
+                            )
+                            
+                            # Upload audio
+                            audio_filename = f"studio/{project_id}_scene_{scene_num}_audio.mp3"
+                            narration_url = _upload_to_storage(audio_bytes, audio_filename, "audio/mpeg")
+                            logger.info(f"Studio [{project_id}]: Regen scene {scene_num} audio DONE ({len(audio_bytes)//1024}KB)")
+                            
+                            # Merge audio + video using FFmpeg
+                            import subprocess
+                            import tempfile as tf
+                            
+                            # Download video and audio to temp files
+                            video_temp = tf.NamedTemporaryFile(suffix=".mp4", delete=False).name
+                            audio_temp = tf.NamedTemporaryFile(suffix=".mp3", delete=False).name
+                            merged_temp = tf.NamedTemporaryFile(suffix=".mp4", delete=False).name
+                            
+                            urllib.request.urlretrieve(video_url, video_temp)
+                            urllib.request.urlretrieve(narration_url, audio_temp)
+                            
+                            # Merge with FFmpeg (overlay audio on existing video audio track)
+                            cmd = [
+                                "ffmpeg", "-i", video_temp, "-i", audio_temp,
+                                "-filter_complex", "[0:a]volume=0.3[bg];[1:a]volume=1.0[voice];[bg][voice]amix=inputs=2:duration=first[a]",
+                                "-map", "0:v", "-map", "[a]",
+                                "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                                "-y", merged_temp
+                            ]
+                            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                            
+                            if result.returncode == 0 and os.path.exists(merged_temp) and os.path.getsize(merged_temp) > 1000:
+                                # Upload merged video
+                                with open(merged_temp, "rb") as f:
+                                    merged_bytes = f.read()
+                                merged_filename = f"studio/{project_id}_scene_{scene_num}_final.mp4"
+                                video_url = _upload_to_storage(merged_bytes, merged_filename, "video/mp4")
+                                logger.info(f"Studio [{project_id}]: Regen scene {scene_num} audio+video merged ({len(merged_bytes)//1024}KB)")
+                            else:
+                                logger.warning(f"Studio [{project_id}]: Regen scene {scene_num} FFmpeg merge failed: {result.stderr[:200]}")
+                            
+                            # Cleanup temp files
+                            for tmp in [video_temp, audio_temp, merged_temp]:
+                                try:
+                                    os.unlink(tmp)
+                                except:
+                                    pass
+                                    
+                        except Exception as audio_err:
+                            logger.error(f"Studio [{project_id}]: Regen scene {scene_num} audio generation failed: {audio_err}")
+                            # Continue with video-only if audio fails
 
                     # Update project outputs
                     settings, projects, project = _get_project(tenant_id, project_id)
