@@ -1082,10 +1082,28 @@ Story: {briefing[:300]}"""
             try:
                 result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
                 data = _parse_json(result_text) or {}
-                sora_prompt = data.get("sora_prompt", scene.get("description", ""))
+                sora_prompt_base = data.get("sora_prompt", scene.get("description", ""))
                 
-                # CRITICAL DEBUG: Log the sora_prompt to verify lip-sync instruction is included
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora prompt (first 300 chars): {sora_prompt[:300]}")
+                # CRITICAL FIX (2026-04-03): Force dialogue inclusion for lip-sync
+                # Claude sometimes ignores the instruction, so we manually append dialogue
+                dialogue_text = scene.get("dialogue", "").strip()
+                if dialogue_text and "says:" not in sora_prompt_base.lower():
+                    # Extract character speaking (e.g., "Farofa: '...'")
+                    if ":" in dialogue_text:
+                        char_name = dialogue_text.split(":")[0].strip()
+                        speech = dialogue_text.split(":", 1)[1].strip().strip("'\"")
+                    else:
+                        char_name = "Character"
+                        speech = dialogue_text.strip("'\"")
+                    
+                    # Append lip-sync instruction
+                    sora_prompt = f"{sora_prompt_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word, clear articulation."
+                    logger.info(f"Studio [{project_id}]: FORCED dialogue into Sora prompt: '{speech[:80]}...'")
+                else:
+                    sora_prompt = sora_prompt_base
+                
+                # Log the final prompt
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} FINAL Sora prompt (first 400 chars): {sora_prompt[:400]}")
                 
             except Exception as e:
                 logger.warning(f"Studio [{project_id}]: Scene {scene_num} regen director error: {e}")
