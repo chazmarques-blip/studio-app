@@ -2926,7 +2926,25 @@ export const DirectedStudio = memo(function DirectedStudio({
                   else if (isCurrentScene) segColor = 'bg-[#8B5CF6] animate-pulse';
 
                   return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`Cena ${sn}: ${s.title || ''}`}>
+                    <div 
+                      key={i} 
+                      className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity" 
+                      title={`Cena ${sn}: ${s.title || ''} - Clique para expandir`}
+                      onClick={() => {
+                        // Scroll to scene card
+                        const sceneCard = document.querySelector(`[data-scene-number="${sn}"]`);
+                        if (sceneCard) {
+                          sceneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          // Flash highlight
+                          sceneCard.style.outline = '3px solid #8B5CF6';
+                          sceneCard.style.outlineOffset = '2px';
+                          setTimeout(() => {
+                            sceneCard.style.outline = '';
+                            sceneCard.style.outlineOffset = '';
+                          }, 2000);
+                        }
+                      }}
+                    >
                       <div className={`w-full h-2 rounded-sm transition-all duration-500 ${segColor}`} />
                       <span className="text-xs text-[#555]">{sn}</span>
                     </div>
@@ -2968,7 +2986,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                   return (
                     <SortableSceneWrapper key={sceneNum} id={`scene-${sceneNum}`} disabled={generating}>
                       {({ dragHandleProps, isDragging }) => (
-                        <div className={`rounded-lg border px-2.5 py-1.5 transition-all ${
+                        <div 
+                          data-scene-number={sceneNum}
+                          className={`rounded-lg border px-2.5 py-1.5 transition-all ${
                           isDragging ? 'opacity-50 border-orange-500/50' :
                           isVideoGen ? 'border-orange-500/30 bg-[#8B5CF6]/5' :
                           isDirecting ? 'border-purple-500/20 bg-purple-500/5' :
