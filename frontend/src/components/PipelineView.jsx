@@ -266,7 +266,24 @@ export default function PipelineView({ context }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEditAvatarDirected = useCallback((av) => {
-    openAvatarForEdit(av);
+    console.log('🔧 handleEditAvatarDirected called with avatar:', av);
+    // CRITICAL FIX: Ensure avatar from library has required fields
+    const avatarToEdit = {
+      id: av.id,
+      url: av.url,
+      name: av.name || 'Personagem sem nome',
+      source_photo_url: av.source_photo_url || '',
+      clothing: av.clothing || 'company_uniform',
+      voice: av.voice || null,
+      angles: av.angles || {},
+      video_url: av.video_url || null,
+      language: av.language || 'pt',
+      creation_mode: av.creation_mode || 'photo',
+      avatar_style: av.avatar_style || 'realistic',
+      edit_history: av.edit_history || [],
+    };
+    console.log('📝 Opening avatar for edit:', avatarToEdit);
+    openAvatarForEdit(avatarToEdit);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRemoveAvatarDirected = useCallback((av) => {
@@ -577,6 +594,9 @@ export default function PipelineView({ context }) {
   };
 
   const openAvatarForEdit = (av) => {
+    console.log('🎨 openAvatarForEdit - Starting edit for:', av.name, av.id);
+    console.log('🎨 Avatar data:', av);
+    
     setEditingAvatarId(av.id);
     // Infer avatar_style from creation_mode for avatars saved before the fix
     let inferredStyle = av.avatar_style || 'realistic';
@@ -622,6 +642,7 @@ export default function PipelineView({ context }) {
     setAvatarStage('customize');
     setCustomizeTab('clothing');
     setShowAvatarModal(true);
+    console.log('✅ Avatar modal OPENED for editing:', av.name);
     // Load saved edit history or initialize with current avatar as base
     const savedHistory = av.edit_history && av.edit_history.length > 0 ? av.edit_history : [];
     if (savedHistory.length > 0) {
