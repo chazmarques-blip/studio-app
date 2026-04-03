@@ -3044,7 +3044,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                     </div>
                   )}
                   {/* Per-scene action buttons: Generate (for queued) / Retry + Edit (for done/error) */}
-                  {!generating && (
+                  {/* CRITICAL FIX (2026-04-03): Show buttons even during generation if video exists */}
+                  {(!generating || sceneVideo) && (
                     <div className="mt-1.5 flex gap-1">
                       {/* Generate button for scenes never produced */}
                       {!videoDone && !videoError && sceneState === 'queued' && (
