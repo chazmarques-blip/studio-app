@@ -49,13 +49,13 @@ export function AvatarLibraryModalV2({
   
   const labels = {
     pt: { 
-      title: 'Biblioteca de Personagens', 
+      title: 'Galeria de Personagens', 
       search: 'Buscar por nome...', 
       import: 'Importar', 
       download: 'Baixar',
       edit: 'Editar',
       expand: 'Expandir',
-      empty: 'Nenhum personagem na biblioteca', 
+      empty: 'Nenhum personagem na galeria', 
       alreadyIn: 'Já no projeto', 
       selectAll: 'Selecionar Todos', 
       deselectAll: 'Desmarcar Todos',
@@ -68,13 +68,13 @@ export function AvatarLibraryModalV2({
       createNew: '+ Criar Personagem'
     },
     en: { 
-      title: 'Character Library', 
+      title: 'Character Gallery', 
       search: 'Search by name...', 
       import: 'Import', 
       download: 'Download',
       edit: 'Edit',
       expand: 'Expand',
-      empty: 'No characters in library', 
+      empty: 'No characters in gallery', 
       alreadyIn: 'Already in project', 
       selectAll: 'Select All', 
       deselectAll: 'Deselect All',
@@ -87,13 +87,13 @@ export function AvatarLibraryModalV2({
       createNew: '+ Create Character'
     },
     es: { 
-      title: 'Biblioteca de Personajes', 
+      title: 'Galería de Personajes', 
       search: 'Buscar por nombre...', 
       import: 'Importar', 
       download: 'Descargar',
       edit: 'Editar',
       expand: 'Expandir',
-      empty: 'Sin personajes en la biblioteca', 
+      empty: 'Sin personajes en la galería', 
       alreadyIn: 'Ya en el proyecto', 
       selectAll: 'Seleccionar Todos', 
       deselectAll: 'Deseleccionar Todos',
@@ -347,7 +347,7 @@ export function AvatarLibraryModalV2({
         >
           {/* Header */}
           <div className="px-5 py-3 border-b border-[#151515] flex items-center gap-3 shrink-0 bg-gradient-to-r from-[#0D0D0D] to-[#1A1A1A]">
-            <BookOpen size={18} className="text-[#8B5CF6]" />
+            <Users size={18} className="text-[#8B5CF6]" />
             <h3 className="text-base font-bold text-white flex-1">{L.title}</h3>
             <span className="text-xs text-[#888] bg-[#1A1A1A] px-2 py-1 rounded">{library.length} total</span>
             {selected.size > 0 && (
@@ -504,7 +504,7 @@ export function AvatarLibraryModalV2({
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-20">
-                <BookOpen size={48} className="mx-auto text-[#333] mb-4" />
+                <Users size={48} className="mx-auto text-[#333] mb-4" />
                 <p className="text-sm text-[#888]">{library.length === 0 ? L.empty : L.noResults}</p>
               </div>
             ) : (
