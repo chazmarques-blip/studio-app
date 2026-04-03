@@ -2975,16 +2975,21 @@ export const DirectedStudio = memo(function DirectedStudio({
                   // Find the video output for this scene
                   const sceneVideo = outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
                   
-                  // CRITICAL FIX: If video exists, consider it done (even if scene_status is wrong)
-                  const videoDone = sceneState === 'done' || !!sceneVideo;
+                  // CRITICAL FIX (2026-04-03): Trust scene_status from backend, not just video existence
+                  // During regeneration: directing → generating_video (video+audio+merge) → done
+                  // Don't mark as done until backend confirms (prevents progress bar jumping to 100%)
+                  const videoDone = sceneState === 'done';
                   const videoError = sceneState === 'error';
                   const isDirecting = sceneState === 'directing';
                   const isWaiting = sceneState === 'waiting_sora';
                   const isVideoGen = sceneState === 'generating_video';
                   const isActive = isDirecting || isWaiting || isVideoGen;
 
-                  // Progress per state
-                  const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 65 : isWaiting ? 40 : isDirecting ? 20 : 0;
+                  // Progress per state (matches actual backend pipeline stages)
+                  // directing: 15% (Claude prompt generation)
+                  // generating_video: 70% (Sora 2 video + ElevenLabs audio + FFmpeg merge = 3-5 min)
+                  // done: 100% (everything complete)
+                  const sceneProgress = videoDone ? 100 : videoError ? 100 : isVideoGen ? 70 : isWaiting ? 40 : isDirecting ? 15 : 0;
                   const barColor = videoDone ? 'bg-emerald-500' : videoError ? 'bg-red-500' : isVideoGen ? 'bg-[#8B5CF6]' : isWaiting ? 'bg-blue-400' : isDirecting ? 'bg-purple-400' : 'bg-gray-100';
 
                   return (

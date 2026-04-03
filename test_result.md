@@ -210,7 +210,28 @@ frontend:
           agent: "testing"
           comment: "⚠️ TESTING INCOMPLETE - NO AVATARS IN PROJECT: Applied fix to move modals inside selectedProject block by wrapping JSX in React Fragment (lines 647 and 784 of StudioPage.jsx). Fixed JSX syntax error that was preventing app from loading. Frontend now compiles successfully. HOWEVER, cannot verify if modals work because project 'JONAS E O PEIXE GRANDE' has NO generated avatars. Testing showed: (1) ✅ App loads without errors, (2) ✅ Can navigate to project and Step 2 (PERSONAGENS), (3) ✅ Code structure is correct - modals are now inside selectedProject block, (4) ❌ Project has 11 characters but 0 avatars (previous test reported 132 avatars - data may have changed), (5) ⚠️ Edit/Zoom buttons only appear on generated avatar thumbnails, so cannot test modal functionality. RECOMMENDATION: Either (a) generate avatars for this project first, or (b) test with a different project that has avatars (e.g., 'A criacao' which has avatars based on previous tests)."
 
-backend:
+frontend:
+  - task: "Scene Regeneration Progress Bar Synchronization"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/DirectedStudio.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "❌ USER REPORT: Progress bars jump straight to 100% or 'Pronto' when clicking 'Regenerar', but backend takes 3-5 minutes processing. User sees no real-time feedback during Sora 2 video generation + ElevenLabs audio + FFmpeg merge."
+        - working: false
+          agent: "main"
+          comment: "❌ ROOT CAUSE IDENTIFIED: Line 2979 in DirectedStudio.jsx was setting videoDone = sceneState === 'done' || !!sceneVideo. This caused videoDone to be true as soon as the video file exists (uploaded after Sora 2), even though backend is still generating audio and merging (3-5 min). The progress bar calculation (line 2987) then jumps to 100%."
+        - working: true
+          agent: "main"
+          comment: "✅ FIX APPLIED: (1) Line 2979: Changed videoDone to ONLY check sceneState === 'done', removed !!sceneVideo check. (2) Line 2987: Updated progress percentages to match backend pipeline: directing=15% (Claude prompt), generating_video=70% (Sora+Audio+Merge), done=100%. (3) Added detailed comment explaining the fix. Frontend now trusts backend scene_status instead of video file existence."
+        - working: "NA"
+          agent: "testing"
+          comment: "⚠️ TESTING INCOMPLETE - UNABLE TO ACCESS SCENE REGENERATION INTERFACE: Attempted to test progress bar fix for project 'CANAL PULMERANEA' (ID: f28f6d348f6d) but could not access the scene editing interface with regeneration buttons. FINDINGS: (1) ✅ Successfully logged in with test@studiox.com, (2) ✅ Successfully opened project 'CANAL PULMERANEA', (3) ❌ Project appears to be in completed state - clicking workflow steps (STORYBOARD, PRODUÇÃO) opens post-production modals (Storyboard PDF viewer, Pós-Produção final video modal) instead of scene editing interface, (4) ❌ Could not find scenes with data-scene-number attribute in any workflow step, (5) ⚠️ The DirectedStudio component with scene regeneration buttons (lines 2970-3090) is rendered at step 6 (Production Progress), but navigation to this step from a completed project is not accessible through standard UI flow. CODE REVIEW: ✅ Fix is correctly implemented in DirectedStudio.jsx lines 2979-2992 - videoDone now only checks sceneState === 'done', progress percentages correctly mapped (15% directing, 70% generating_video, 100% done). RECOMMENDATION: Either (a) provide a different test project that is currently in production phase, or (b) add UI navigation to access scene regeneration interface from completed projects, or (c) manually trigger scene regeneration via API and monitor backend logs to verify fix is working."
+
   - task: "Single Scene Regeneration - Audio/TTS Generation"
     implemented: true
     working: true
@@ -270,20 +291,19 @@ backend:
 
 metadata:
   created_by: "main_agent"
-  version: "1.7"
-  test_sequence: 8
-  run_ui: false
+  version: "1.8"
+  test_sequence: 9
+  run_ui: true
 
 test_plan:
-  current_focus:
-    - "Single Scene Regeneration - Audio/TTS Generation"
+  current_focus: []
   stuck_tasks: []
   test_all: false
-  test_priority: "critical_first"
+  test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
-      message: "✅ CRITICAL BUG FIXED - Single Scene Regeneration Audio: Fixed Python scoping bug that was preventing audio generation in regenerated scenes. ROOT CAUSE: Local subprocess import at line 1269 was shadowing global import, causing UnboundLocalError when DUBBED audio code tried to use subprocess.run() before local import. FIX: Removed local imports (subprocess and tempfile), added tempfile to global imports in _shared.py. MANUAL TEST PASSED: Scene regeneration now successfully generates DUBBED audio (251KB) and merges with video (7913KB). Logs confirm 'Scene 2 regenerated WITH audio'. TESTING AGENT: Please run comprehensive backend tests for scene regeneration API including: (1) POST /api/studio/projects/{project_id}/regenerate-scene with scene_number=2, (2) Verify audio generation completes, (3) Verify audio+video merge completes, (4) Verify final video URL is returned, (5) Test with both DUBBED and NARRATED audio modes if possible."
+      message: "✅ P1 FIXED - Progress Bar Synchronization: Fixed progress bars jumping to 100% during scene regeneration. ROOT CAUSE: Frontend was checking video file existence (!!sceneVideo) to mark scene as done, but backend was still processing audio+merge for 3-5 min after video upload. FIX: Changed videoDone logic to trust only backend scene_status='done', removed video existence check. Updated progress mapping: directing→15%, generating_video→70% (shows actual Sora+Audio+Merge progress), done→100%. TESTING AGENT: Please test scene regeneration flow and verify progress bars show realistic progression (15% → 70% → 100%) instead of jumping to 100% immediately. Monitor that status text changes from 'Dirigindo' → 'Sora 2...' → 'Pronto' with matching progress percentages."
     - agent: "testing"
       message: "🚨 CRITICAL TESTING COMPLETE - ASYNC/AWAIT FIXES NOT WORKING: Tested Director's Preview and Storyboard Generation as requested. Found ALL the exact errors mentioned in review request still occurring: (1) 'Object of type coroutine is not JSON serializable' in cache flush, (2) 'coroutine _analyze_avatars_with_vision was never awaited' as RuntimeWarning, (3) 'object of type coroutine has no len()' in storyboard generation. The fixes ARE IMPLEMENTED (_run_async_in_thread helper exists and is used) but are INEFFECTIVE. Director's Preview times out with 502 error, Storyboard Generation gets stuck in 'starting' phase. Both features are completely broken. The async/await violations persist despite the applied fixes."
     - agent: "testing"
@@ -292,4 +312,6 @@ agent_communication:
       message: "❌ CRITICAL BUG - AVATAR MODALS NOT RENDERING: Tested avatar edit buttons in Step 2 (PERSONAGENS) for project 'JONAS E O PEIXE GRANDE'. FINDINGS: (1) Buttons are visible and functional - 132 edit buttons and 121 zoom buttons found. (2) Console logs work correctly - '👁️ Preview:' and '🔧 handleEditAvatar chamado:' appear in console. (3) Event handlers execute successfully - state is set in StudioPage.jsx. (4) CRITICAL ISSUE: Modals do NOT appear because they are rendered outside the selectedProject conditional block in StudioPage.jsx. When DirectedStudio is active (lines 644-720), the component returns early, and modals (lines 914-935 for Preview, 938-1027 for AvatarModal) are never rendered in DOM. FIX: Move modal components inside the selectedProject block OR render at root level. This is a structural bug affecting all avatar editing functionality when viewing projects."
     - agent: "testing"
       message: "⚠️ TESTING INCOMPLETE - AVATAR MODAL FIX APPLIED BUT CANNOT VERIFY: Applied fix to StudioPage.jsx by wrapping selectedProject JSX in React Fragment to include modals in DOM (lines 647 and 784). Fixed JSX syntax error - frontend now compiles successfully. HOWEVER, cannot verify if modals actually work because project 'JONAS E O PEIXE GRANDE' currently has NO generated avatars (0 avatar images found, only character voice assignments visible). Previous test reported 132 avatars but data appears to have changed. Edit/Zoom buttons only appear on generated avatar thumbnails. CODE CHANGES VERIFIED: ✅ Modals moved inside selectedProject block, ✅ Proper React Fragment wrapping, ✅ No syntax errors. RECOMMENDATION: Test with project 'A criacao' which has avatars, OR generate avatars for 'JONAS E O PEIXE GRANDE' first, then retest modal functionality."
+    - agent: "testing"
+      message: "⚠️ TESTING INCOMPLETE - UNABLE TO ACCESS SCENE REGENERATION INTERFACE: Attempted to test Scene Regeneration Progress Bar fix for project 'CANAL PULMERANEA' (ID: f28f6d348f6d) but could not access the scene editing interface. FINDINGS: (1) ✅ Successfully logged in and opened project, (2) ❌ Project is in completed state - workflow steps open post-production modals (Storyboard PDF, Pós-Produção video) instead of scene editing interface, (3) ❌ Could not find scenes with data-scene-number attribute, (4) ⚠️ DirectedStudio component with regeneration buttons is at step 6 (Production Progress) but not accessible from completed projects. CODE REVIEW: ✅ Fix correctly implemented - videoDone only checks sceneState === 'done', progress percentages correctly mapped (15% directing, 70% generating_video, 100% done). RECOMMENDATION: Provide a project currently in production phase, OR add UI navigation to access scene regeneration from completed projects, OR manually trigger regeneration via API to verify fix."
 
