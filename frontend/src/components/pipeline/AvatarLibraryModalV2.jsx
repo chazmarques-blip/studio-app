@@ -37,6 +37,12 @@ export function AvatarLibraryModalV2({
   const [expandedAvatar, setExpandedAvatar] = useState(null);
   const [previewIndex, setPreviewIndex] = useState(0);
   
+  // Filters
+  const [styleFilter, setStyleFilter] = useState('all');
+  const [has360Filter, setHas360Filter] = useState(false);
+  const [hasVoiceFilter, setHasVoiceFilter] = useState(false);
+  const [sortBy, setSortBy] = useState('recent');
+  
   // Image cache for faster loading
   const imageCache = useRef(new Map());
   
@@ -136,12 +142,58 @@ export function AvatarLibraryModalV2({
     }).catch(() => {}).finally(() => setLoading(false));
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filtered + memoized
+  // Filtered + sorted + memoized
   const filtered = useMemo(() => {
-    if (!search.trim()) return library;
-    const q = search.toLowerCase();
-    return library.filter(a => (a.name || '').toLowerCase().includes(q));
-  }, [library, search]);
+    let result = [...library];
+    
+    // 1. Text search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(a => (a.name || '').toLowerCase().includes(q));
+    }
+    
+    // 2. Style filter
+    if (styleFilter !== 'all') {
+      result = result.filter(a => {
+        const style = a.visual_style || a.avatar_style || '';
+        return style === styleFilter;
+      });
+    }
+    
+    // 3. Has 360° filter
+    if (has360Filter) {
+      result = result.filter(a => {
+        const angles = a.angles || {};
+        return angles.front && angles.left && angles.right && angles.back;
+      });
+    }
+    
+    // 4. Has voice filter
+    if (hasVoiceFilter) {
+      result = result.filter(a => a.voice && a.voice.url);
+    }
+    
+    // 5. Sort
+    if (sortBy === 'recent') {
+      result.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.added_at || 0);
+        const dateB = new Date(b.created_at || b.added_at || 0);
+        return dateB - dateA; // Newest first
+      });
+    } else if (sortBy === 'oldest') {
+      result.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.added_at || 0);
+        const dateB = new Date(b.created_at || b.added_at || 0);
+        return dateA - dateB; // Oldest first
+      });
+    } else if (sortBy === 'az') {
+      result.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    } else if (sortBy === 'za') {
+      result.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+    }
+    
+    return result;
+  }, [library, search, styleFilter, has360Filter, hasVoiceFilter, sortBy]);
 
   // Lazy image loading with IntersectionObserver
   const observerRef = useRef(null);
@@ -299,7 +351,8 @@ export function AvatarLibraryModalV2({
           </div>
 
           {/* Search & Actions */}
-          <div className="px-5 py-3 border-b border-[#111] shrink-0 space-y-2">
+          <div className="px-5 py-3 border-b border-[#111] shrink-0 space-y-3">
+            {/* Search bar */}
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]" />
               <input 
@@ -309,6 +362,71 @@ export function AvatarLibraryModalV2({
                 placeholder={L.search}
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#111] border border-[#1E1E1E] text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/40 transition" 
               />
+            </div>
+            
+            {/* Filters Row */}
+            <div className="flex gap-2 flex-wrap items-center">
+              {/* Style filter */}
+              <select
+                value={styleFilter}
+                onChange={e => setStyleFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer"
+              >
+                <option value="all">🎨 Todos os Estilos</option>
+                <option value="pixar_3d">Pixar 3D</option>
+                <option value="cartoon_3d">Cartoon 3D</option>
+                <option value="cartoon_2d">Cartoon 2D</option>
+                <option value="anime_2d">Anime 2D</option>
+                <option value="realistic">Realista</option>
+              </select>
+              
+              {/* Sort filter */}
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                className="px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer"
+              >
+                <option value="recent">📅 Mais Recentes</option>
+                <option value="oldest">📅 Mais Antigos</option>
+                <option value="az">🔤 A → Z</option>
+                <option value="za">🔤 Z → A</option>
+              </select>
+              
+              {/* Checkboxes */}
+              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+                <input
+                  type="checkbox"
+                  checked={has360Filter}
+                  onChange={e => setHas360Filter(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-[#8B5CF6]"
+                />
+                <span>🔄 Apenas com 360°</span>
+              </label>
+              
+              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+                <input
+                  type="checkbox"
+                  checked={hasVoiceFilter}
+                  onChange={e => setHasVoiceFilter(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-[#8B5CF6]"
+                />
+                <span>🔊 Apenas com Voz</span>
+              </label>
+              
+              {/* Clear filters */}
+              {(styleFilter !== 'all' || has360Filter || hasVoiceFilter || sortBy !== 'recent') && (
+                <button
+                  onClick={() => {
+                    setStyleFilter('all');
+                    setHas360Filter(false);
+                    setHasVoiceFilter(false);
+                    setSortBy('recent');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition"
+                >
+                  ✕ Limpar Filtros
+                </button>
+              )}
             </div>
             
             {/* Quick actions */}
