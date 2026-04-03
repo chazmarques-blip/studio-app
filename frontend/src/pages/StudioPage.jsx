@@ -1139,68 +1139,71 @@ export default function StudioPage() {
       {/* ═══ NAVBAR ═══ */}
       <nav className="sticky top-0 z-50 bg-gray-50/95 backdrop-blur-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 gap-3 flex-wrap">
             {/* Left: Logo + Back */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={() => navigate('/')}
                 className="flex items-center gap-2 text-gray-900/70 hover:text-gray-900 transition group"
+                title="Voltar ao Dashboard"
               >
-                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition" />
-                <span className="text-sm font-medium hidden sm:inline">Dashboard</span>
+                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition" />
+                <span className="text-sm font-medium">Dashboard</span>
               </button>
               
               <div className="h-8 w-px bg-gray-100" />
               
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20">
-                  <Film size={18} className="text-gray-900" />
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20 shrink-0">
+                  <Film size={16} className="text-white" />
                 </div>
                 <div>
-                  <h1 className="text-base font-bold text-gray-900">{l.title}</h1>
-                  <p className="text-xs text-gray-900/50">{l.subtitle}</p>
+                  <h1 className="text-sm font-bold text-gray-900 whitespace-nowrap">Estúdio</h1>
+                  <p className="text-[10px] text-gray-600 whitespace-nowrap">Seus projetos</p>
                 </div>
               </div>
             </div>
 
             {/* Center: Mode Switcher */}
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg p-1 shrink-0">
               <button
                 onClick={() => navigate('/studio')}
-                className="px-4 py-1.5 text-xs font-medium rounded-md transition bg-[#8B5CF6] text-gray-900"
+                className="px-3 py-1.5 text-xs font-medium rounded-md transition bg-[#8B5CF6] text-white whitespace-nowrap"
               >
-                {l.studioMode || 'Estúdio de Vídeos'}
+                Vídeos
               </button>
               <button
                 onClick={() => navigate('/traffic-hub')}
-                className="px-4 py-1.5 text-xs font-medium rounded-md transition text-gray-900/70 hover:text-gray-900 hover:bg-[#2A2A2A]"
+                className="px-3 py-1.5 text-xs font-medium rounded-md transition text-gray-600 hover:text-gray-900 hover:bg-gray-200 whitespace-nowrap"
               >
-                {l.marketingMode || 'Campanhas de Marketing'}
+                Marketing
               </button>
             </div>
 
             {/* Right: Project Count + Actions */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-900/70 bg-gray-100 px-3 py-1.5 rounded-lg font-medium">
-                {projects.length} {l.projects.toLowerCase()}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg font-medium whitespace-nowrap">
+                {projects.length} {projects.length === 1 ? 'projeto' : 'projetos'}
               </span>
               
               {/* Global Character Library Button */}
               <button
                 onClick={() => setShowGlobalLibrary(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6]/10 to-[#7C3AED]/10 border border-[#8B5CF6]/30 text-sm font-semibold text-[#8B5CF6] hover:from-[#8B5CF6]/20 hover:to-[#7C3AED]/20 transition-all hover:scale-105"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6]/10 to-[#7C3AED]/10 border border-[#8B5CF6]/30 text-xs font-semibold text-[#8B5CF6] hover:from-[#8B5CF6]/20 hover:to-[#7C3AED]/20 transition-all hover:scale-105 whitespace-nowrap"
+                title="Galeria de Personagens"
               >
-                <BookOpen size={16} />
-                <span className="hidden sm:inline">Galeria de Personagens</span>
+                <BookOpen size={14} className="shrink-0" />
+                <span>Galeria</span>
               </button>
               
               <button 
                 onClick={openNewProjectModal}
                 disabled={creating}
-                className="btn-gold flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition-all hover:scale-105 shadow-lg shadow-[#F59E0B]/20"
+                className="btn-gold flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-all hover:scale-105 shadow-lg shadow-[#F59E0B]/20 whitespace-nowrap"
+                title="Criar Novo Projeto"
               >
-                <Plus size={16} />
-                <span className="hidden sm:inline">{l.newProject}</span>
+                <Plus size={14} className="shrink-0" />
+                <span>Novo</span>
               </button>
             </div>
           </div>
