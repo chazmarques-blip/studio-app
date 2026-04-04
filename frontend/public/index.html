@@ -35,6 +35,19 @@
         }
         </style>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
+        <script>
+        // Suppress rrweb SecurityError spam
+        window.addEventListener('error', function(e) {
+          if (e.message && e.message.includes('removeEventListener') && e.message.includes('rrweb')) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            return false;
+          }
+        }, true);
+        // Block rrweb completely
+        Object.defineProperty(window, 'rrweb', { value: undefined, writable: false, configurable: false });
+        Object.defineProperty(window, 'posthog', { value: undefined, writable: false, configurable: false });
+        </script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>
     <body>
