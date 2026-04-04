@@ -40,6 +40,8 @@ class AvatarIn(BaseModel):
     video_url: Optional[str] = None
     language: str = "pt"
     edit_history: Optional[list] = None
+    avatar_style: str = "realistic"
+    creation_mode: str = "photo"
 
 
 def _get_settings(tenant_id: str) -> dict:
@@ -150,6 +152,8 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
         "video_url": data.video_url,
         "language": data.language,
         "edit_history": data.edit_history or [],
+        "avatar_style": data.avatar_style,
+        "creation_mode": data.creation_mode,
         "updated_at": now,
     }
 
