@@ -26,6 +26,8 @@ export function AvatarLibraryModalV2({
   onEditAvatar,
   onDeleteAvatar,
   onCreateNew,
+  avatarsCache = null,
+  avatarsCacheLoaded = false,
   lang = 'pt' 
 }) {
   const [library, setLibrary] = useState([]);
@@ -109,12 +111,29 @@ export function AvatarLibraryModalV2({
   };
   const L = labels[lang] || labels.en;
 
-  // Smart cache with TTL
+  // Smart cache with TTL + external cache support
   useEffect(() => {
     if (!open) return;
     setSelected(new Set());
     setSearch('');
     setExpandedAvatar(null);
+
+    // If external cache is provided, use it (central cache from StudioPage)
+    if (avatarsCache && avatarsCacheLoaded) {
+      setLibrary(avatarsCache);
+      setLoading(false);
+      console.log('✅ Using central avatars cache:', avatarsCache.length, 'avatars');
+      
+      // Preload first 20 images
+      avatarsCache.slice(0, 20).forEach(av => {
+        if (!imageCache.current.has(av.id)) {
+          const img = new Image();
+          img.src = resolveImageUrl(av.url);
+          imageCache.current.set(av.id, img);
+        }
+      });
+      return; // Skip local cache logic
+    }
 
     const CACHE_KEY = 'studiox_avatar_library_v2';
     const CACHE_TTL = 5 * 60 * 1000; // 5 min
@@ -145,7 +164,7 @@ export function AvatarLibraryModalV2({
       setLibrary(fresh);
       localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fresh, ts: Date.now() }));
     }).catch(() => {}).finally(() => setLoading(false));
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, avatarsCache, avatarsCacheLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filtered + sorted + memoized
   const filtered = useMemo(() => {

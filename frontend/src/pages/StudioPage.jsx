@@ -333,6 +333,73 @@ export default function StudioPage() {
   
   // ═══════ AVATAR MODAL - COMPLETE STATES (copied from PipelineView) ═══════
   const [avatars, setAvatars] = useState([]);
+  const [avatarsLoaded, setAvatarsLoaded] = useState(false);
+
+  // Load avatars ONCE on mount (central cache)
+  useEffect(() => {
+    const loadAvatars = async () => {
+      try {
+        // Try cache first
+        const cached = localStorage.getItem('studiox_avatars_cache');
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          // Use cache if < 10 min old
+          if (Date.now() - ts < 10 * 60 * 1000) {
+            setAvatars(data);
+            setAvatarsLoaded(true);
+            console.log('✅ Loaded', data.length, 'avatars from cache');
+            return;
+          }
+        }
+
+        // Fetch from API
+        console.log('🔄 Fetching avatars from API...');
+        const { data } = await axios.get(`${API}/data/avatars`);
+        setAvatars(data || []);
+        setAvatarsLoaded(true);
+        
+        // Update cache
+        localStorage.setItem('studiox_avatars_cache', JSON.stringify({ data: data || [], ts: Date.now() }));
+        console.log('✅ Loaded', data?.length || 0, 'avatars from API');
+      } catch (err) {
+        console.error('Error loading avatars:', err);
+        setAvatarsLoaded(true);
+      }
+    };
+
+    loadAvatars();
+  }, []);
+
+  // Smart cache updaters (update ONLY the changed avatar)
+  const updateAvatarInCache = useCallback((updatedAvatar) => {
+    setAvatars(prev => {
+      const idx = prev.findIndex(a => a.id === updatedAvatar.id);
+      let updated;
+      if (idx >= 0) {
+        // Update existing
+        updated = [...prev];
+        updated[idx] = updatedAvatar;
+        console.log('✅ Updated avatar in cache:', updatedAvatar.name);
+      } else {
+        // Add new
+        updated = [...prev, updatedAvatar];
+        console.log('✅ Added new avatar to cache:', updatedAvatar.name);
+      }
+      // Persist to localStorage
+      localStorage.setItem('studiox_avatars_cache', JSON.stringify({ data: updated, ts: Date.now() }));
+      return updated;
+    });
+  }, []);
+
+  const removeAvatarFromCache = useCallback((avatarId) => {
+    setAvatars(prev => {
+      const updated = prev.filter(a => a.id !== avatarId);
+      console.log('✅ Removed avatar from cache:', avatarId);
+      // Persist to localStorage
+      localStorage.setItem('studiox_avatars_cache', JSON.stringify({ data: updated, ts: Date.now() }));
+      return updated;
+    });
+  }, []);
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarSourcePhoto, setAvatarSourcePhoto] = useState(null);
@@ -1665,15 +1732,12 @@ export default function StudioPage() {
                 
                 toast.success('✅ Personagem salvo na galeria!');
                 
+                // Update cache with new/edited avatar
+                updateAvatarInCache(response.data);
+                
                 // Fecha modal de criação
                 resetAvatarModal();
                 setShowAvatarModal(false);
-                
-                // Força reload da galeria recarregando a lista
-                if (showGlobalLibrary) {
-                  setShowGlobalLibrary(false);
-                  setTimeout(() => setShowGlobalLibrary(true), 200);
-                }
               } catch (err) {
                 console.error('❌ Error saving avatar:', err);
                 console.error('❌ Error response:', err.response?.data);
@@ -1708,15 +1772,12 @@ export default function StudioPage() {
                 
                 toast.success('✅ Personagem criado e salvo na galeria!');
                 
+                // Update cache with new avatar
+                updateAvatarInCache(response.data);
+                
                 // Fecha modal de criação
                 resetAvatarModal();
                 setShowAvatarModal(false);
-                
-                // Força reload da galeria
-                if (showGlobalLibrary) {
-                  setShowGlobalLibrary(false);
-                  setTimeout(() => setShowGlobalLibrary(true), 200);
-                }
               } catch (err) {
                 console.error('❌ Error saving new avatar:', err);
                 console.error('❌ Error response:', err.response?.data);
@@ -1808,6 +1869,8 @@ export default function StudioPage() {
         onClose={() => setShowGlobalLibrary(false)}
         projectId={null}
         projectAvatarIds={new Set()}
+        avatarsCache={avatars}
+        avatarsCacheLoaded={avatarsLoaded}
         onImported={(importedAvatars) => {
           console.log('✅ Avatars viewed in global library:', importedAvatars.length);
           toast.success(`Visualizando ${importedAvatars.length} personagens!`);
@@ -1891,9 +1954,9 @@ export default function StudioPage() {
             }
             await axios.delete(`${API}/data/avatars/${avatar.id}`);
             toast.success(`"${avatar.name}" excluído com sucesso!`);
-            // Force gallery reload by closing and reopening
-            setShowGlobalLibrary(false);
-            setTimeout(() => setShowGlobalLibrary(true), 100);
+            
+            // Update cache (remove from list) - no need to reload entire gallery
+            removeAvatarFromCache(avatar.id);
           } catch (err) {
             console.error('Erro ao excluir avatar:', err);
             toast.error('Erro ao excluir personagem');
