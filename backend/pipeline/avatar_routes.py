@@ -798,7 +798,7 @@ async def generate_avatar_variant(req: AvatarVariantRequest, user=Depends(get_cu
         "right_profile": "body and face turned to THEIR RIGHT, showing the RIGHT side of the face and body in profile view, camera positioned to their left capturing the right cheek",
         "back": "turned completely away from camera showing their back, we see the back of their head and body, looking slightly over their right shoulder",
     }
-    clothing_desc = CLOTHING_MAP.get(req.clothing, CLOTHING_MAP["company_uniform"])
+    clothing_desc = "" if req.clothing == "keep_original" or req.clothing not in CLOTHING_MAP else CLOTHING_MAP.get(req.clothing, "")
     angle_desc = ANGLE_MAP.get(req.angle, ANGLE_MAP["front"])
     is_3d = req.avatar_style in ("3d_cartoon", "3d_pixar")
     try:
@@ -922,8 +922,10 @@ def _run_batch_360(job_id: str, source_url: str, clothing: str, logo_url: str = 
         "right_profile": "body and face turned to THEIR RIGHT, showing the RIGHT side profile view",
         "back": "turned completely away from camera showing their back, looking slightly over shoulder",
     }
-    keep_original = clothing == "keep_original"
-    clothing_desc = "" if keep_original else CLOTHING_MAP.get(clothing, CLOTHING_MAP["company_uniform"])
+    # CRITICAL FIX: For Studio characters, ALWAYS keep original clothing
+    # Only use CLOTHING_MAP for campaign avatars
+    keep_original = clothing == "keep_original" or clothing not in CLOTHING_MAP
+    clothing_desc = "" if keep_original else CLOTHING_MAP.get(clothing, "")
     is_3d = avatar_style in ("3d_cartoon", "3d_pixar")
     logger.info(f"[360] clothing={clothing}, keep_original={keep_original}, style={avatar_style}")
 
