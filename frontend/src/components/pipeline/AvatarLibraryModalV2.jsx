@@ -751,30 +751,25 @@ export function AvatarLibraryModalV2({
                     </button>
                   )}
                   
-                  {/* Download button */}
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        const response = await fetch(resolveImageUrl(expandedAvatar.url));
-                        const blob = await response.blob();
-                        const blobUrl = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = blobUrl;
-                        a.download = `${expandedAvatar.name || 'avatar'}_${Date.now()}.png`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(blobUrl);
-                      } catch (err) {
-                        console.error('Download error:', err);
-                      }
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition"
-                  >
-                    <Download size={16} />
-                    Download
-                  </button>
+                  {/* Delete button - BIG RED BUTTON */}
+                  {onDeleteAvatar && (
+                    <button
+                      data-testid="expanded-delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('🗑️ [EXPANDED MODAL] Delete button clicked!', expandedAvatar.name, expandedAvatar.id);
+                        
+                        if (window.confirm(`Tem certeza que deseja excluir "${expandedAvatar.name}"?`)) {
+                          onDeleteAvatar(expandedAvatar);
+                          setExpandedAvatar(null); // Close modal after delete
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition"
+                    >
+                      <Trash2 size={16} />
+                      Deletar
+                    </button>
+                  )}
                 </div>
               </div>
               
