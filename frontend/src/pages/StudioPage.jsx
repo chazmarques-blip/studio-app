@@ -1812,12 +1812,77 @@ export default function StudioPage() {
           console.log('✅ Avatars viewed in global library:', importedAvatars.length);
           toast.success(`Visualizando ${importedAvatars.length} personagens!`);
         }}
-        onEditAvatar={async (avatar) => {
+        onEditAvatar={(avatar) => {
           console.log('✅ Editing avatar from global library:', avatar.name);
           setEditingAvatarId(avatar.id);
-          setTempAvatar(avatar);
-          setAvatarStage('edit');
+          
+          // Infer avatar_style from creation_mode for avatars saved before the fix
+          let inferredStyle = avatar.avatar_style || 'realistic';
+          if (!avatar.avatar_style && avatar.creation_mode === '3d') {
+            inferredStyle = '3d_pixar';
+          }
+          const is3dAvatar = inferredStyle !== 'realistic';
+          
+          setTempAvatar({
+            url: avatar.url,
+            source_photo_url: avatar.source_photo_url || '',
+            clothing: avatar.clothing || 'company_uniform',
+            voice: avatar.voice || null,
+            avatar_style: inferredStyle,
+            creation_mode: avatar.creation_mode || 'photo',
+          });
+          
+          setAvatarName(avatar.name || '');
+          setPreviewVideoUrl(avatar.video_url || null);
+          setAvatarMediaTab(avatar.video_url ? 'photo' : 'photo');
+          
+          // For 3D avatars, only load angles that were generated with 3D style
+          const savedAngles = avatar.angles || {};
+          if (is3dAvatar && savedAngles.front && savedAngles.front !== avatar.url) {
+            setAngleImages({ front: avatar.url });
+          } else {
+            setAngleImages(savedAngles.front ? savedAngles : { front: avatar.url });
+          }
+          
+          // Load saved language
+          setPreviewLanguage(avatar.language || 'pt');
+          
+          // Restore audio from saved voice
+          if (avatar.voice?.url) {
+            setRecordedAudioUrl(avatar.voice.url);
+            setVoiceTab('record');
+          } else if (avatar.voice?.type === 'elevenlabs' && avatar.voice?.voice_id) {
+            setVoiceTab('premium');
+          } else if (avatar.voice?.voice_id) {
+            setVoiceTab('bank');
+          }
+          
+          // Rebuild clothing variants from angles if available
+          const variants = {};
+          if (avatar.clothing && avatar.url) variants[avatar.clothing] = avatar.url;
+          setClothingVariants(variants);
+          
+          setAvatarStage('customize');
+          setCustomizeTab('clothing');
           setShowAvatarModal(true);
+          
+          console.log('✅ Avatar modal OPENED for editing:', avatar.name);
+          
+          // Load saved edit history or initialize with current avatar as base
+          const savedHistory = avatar.edit_history && avatar.edit_history.length > 0 ? avatar.edit_history : [];
+          if (savedHistory.length > 0) {
+            setAvatarEditHistory(savedHistory);
+            const baseEntry = savedHistory.find(e => e.isBase);
+            setAvatarBaseUrl(baseEntry ? baseEntry.url : avatar.url);
+          } else {
+            setAvatarBaseUrl(avatar.url);
+            setAvatarEditHistory([{ 
+              url: avatar.url, 
+              instruction: 'Base original', 
+              timestamp: new Date().toISOString(), 
+              isBase: true 
+            }]);
+          }
         }}
         onDeleteAvatar={async (avatar) => {
           try {
