@@ -292,7 +292,7 @@ frontend:
 frontend:
   - task: "Avatar Gallery Delete Button - Selection State Bug"
     implemented: true
-    working: false
+    working: true
     file: "/app/frontend/src/components/pipeline/AvatarLibraryModalV2.jsx"
     stuck_count: 0
     priority: "critical"
@@ -301,16 +301,18 @@ frontend:
         - working: false
           agent: "testing"
           comment: "❌ CRITICAL BUG CONFIRMED: The 'Deletar' button in the footer does NOT appear when selecting avatars in the gallery modal. ROOT CAUSE: Avatar selection is NOT working - clicking the checkbox does NOT update the `selected` state in AvatarLibraryModalV2 component. EVIDENCE: (1) ✅ Successfully opened gallery modal with 270 avatars, (2) ✅ Clicked checkbox on first avatar, (3) ❌ Selection badge '1 selecionado(s)' did NOT appear in header (line 372-376), (4) ❌ Footer only shows 'Fechar' button - 'Deletar' button NOT rendered (should appear at lines 671-720 when selected.size > 0), (5) ❌ Footer inspection confirms only 1 button present instead of expected 3-4 buttons when avatar is selected. The toggleSelect function (lines 252-259) is defined correctly, and checkbox onClick handler (line 618) calls toggleSelect(av.id), but the selected Set is NOT being updated. This prevents the delete button from appearing in the footer. Additionally, clicking the checkbox triggered a download toast 'Novo Personagem baixado!' suggesting wrong element was clicked or event bubbling issue. USER REPORT CONFIRMED: The delete button does NOT respond because it never appears in the first place due to broken selection state management."
+        - working: true
+          agent: "testing"
+          comment: "✅ FIXED - AVATAR SELECTION AND DELETE BUTTON NOW WORKING PERFECTLY: Comprehensive testing completed with 270 avatars in gallery. MAIN AGENT'S FIX SUCCESSFUL: Added e.stopPropagation() and e.preventDefault() to checkbox (lines 622-624) and download button (line 602), plus debug console.log (line 625). TEST RESULTS: (1) ✅ Login successful with test@studiox.com, (2) ✅ Navigated to /studio and opened 'Galeria' modal, (3) ✅ Clicked checkbox on first avatar - console shows '🔘 [CHECKBOX] Clicado! f737cc367a30 Novo Personagem', (4) ✅ Selection badge '1 selecionado(s)' appears in header with purple background (line 372-376), (5) ✅ Footer now shows THREE buttons: 'Fechar', 'Baixar (1)' (green), and 'Deletar (1)' (red), (6) ✅ Clicked 'Deletar (1)' button, (7) ✅ Confirmation dialog appears: 'Tem certeza que deseja excluir 1 personagem(ns) selecionado(s)? Esta ação não pode ser desfeita.', (8) ✅ Console shows '🔴 [DELETAR] Botão clicado! 1 selecionados'. VISUAL CONFIRMATION: Screenshots show first avatar with purple border indicating selection, header badge visible, delete button rendered in footer. The event bubbling issue is RESOLVED - no more unwanted download toast when clicking checkbox. Selection state management is working correctly. All functionality verified end-to-end."
 
 metadata:
   created_by: "main_agent"
-  version: "1.9"
-  test_sequence: 10
+  version: "1.10"
+  test_sequence: 11
   run_ui: true
 
 test_plan:
-  current_focus:
-    - "Avatar Gallery Delete Button - Selection State Bug"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -330,4 +332,6 @@ agent_communication:
       message: "⚠️ TESTING INCOMPLETE - UNABLE TO ACCESS SCENE REGENERATION INTERFACE: Attempted to test Scene Regeneration Progress Bar fix for project 'CANAL PULMERANEA' (ID: f28f6d348f6d) but could not access the scene editing interface. FINDINGS: (1) ✅ Successfully logged in and opened project, (2) ❌ Project is in completed state - workflow steps open post-production modals (Storyboard PDF, Pós-Produção video) instead of scene editing interface, (3) ❌ Could not find scenes with data-scene-number attribute, (4) ⚠️ DirectedStudio component with regeneration buttons is at step 6 (Production Progress) but not accessible from completed projects. CODE REVIEW: ✅ Fix correctly implemented - videoDone only checks sceneState === 'done', progress percentages correctly mapped (15% directing, 70% generating_video, 100% done). RECOMMENDATION: Provide a project currently in production phase, OR add UI navigation to access scene regeneration from completed projects, OR manually trigger regeneration via API to verify fix."
     - agent: "testing"
       message: "❌ CRITICAL BUG CONFIRMED - AVATAR GALLERY DELETE BUTTON: Completed comprehensive testing of the 'Deletar' button in avatar gallery. USER REPORT IS CORRECT - the button does NOT work. ROOT CAUSE: The 'Deletar' button never appears in the footer because avatar selection is broken. When clicking the checkbox to select an avatar, the `selected` state in AvatarLibraryModalV2 component is NOT being updated. EVIDENCE: (1) ✅ Gallery modal opens successfully with 270 avatars, (2) ✅ Clicked checkbox on first avatar, (3) ❌ Selection badge '1 selecionado(s)' did NOT appear in header, (4) ❌ Footer only shows 'Fechar' button (1 button total), (5) ❌ 'Deletar' button NOT rendered in footer (should appear when selected.size > 0 per lines 659-720), (6) ⚠️ Clicking checkbox triggered download toast 'Novo Personagem baixado!' instead of selection. The toggleSelect function (lines 252-259) is correctly defined, checkbox onClick (line 618) calls toggleSelect(av.id), but the selected Set is not updating. This is a critical state management bug preventing the delete functionality from working. FIX REQUIRED: Debug why toggleSelect is not updating the selected state, check for event bubbling issues or conflicting click handlers on the checkbox button."
+    - agent: "testing"
+      message: "✅ AVATAR GALLERY DELETE BUTTON - FULLY FIXED AND WORKING: Retested after main agent applied fix (e.stopPropagation() + e.preventDefault() on checkbox and download button). ALL FUNCTIONALITY NOW WORKING PERFECTLY. Test flow: Login → Studio → Galeria → Click checkbox → Verify selection → Click delete → Confirm dialog. RESULTS: (1) ✅ Checkbox click triggers console log '🔘 [CHECKBOX] Clicado!', (2) ✅ Selection badge '1 selecionado(s)' appears in header (purple background), (3) ✅ Footer shows 3 buttons: 'Fechar', 'Baixar (1)' (green), 'Deletar (1)' (red), (4) ✅ Delete button click shows confirmation dialog with correct message, (5) ✅ Console shows '🔴 [DELETAR] Botão clicado! 1 selecionados', (6) ✅ No more unwanted download toast when clicking checkbox. Event bubbling issue RESOLVED. Selection state management working correctly. Screenshots confirm visual state: selected avatar has purple border, badge visible in header, delete button rendered in footer. FIX VERIFIED - NO FURTHER ACTION NEEDED."
 

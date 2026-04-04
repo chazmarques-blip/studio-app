@@ -598,7 +598,11 @@ export function AvatarLibraryModalV2({
                           
                           {/* Download button */}
                           <button
-                            onClick={() => downloadAvatar(av)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              downloadAvatar(av);
+                            }}
                             disabled={isDownloading}
                             className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition disabled:opacity-50"
                             title={L.download}
@@ -615,7 +619,12 @@ export function AvatarLibraryModalV2({
                       {/* Selection checkbox */}
                       {!inProject && (
                         <button
-                          onClick={() => toggleSelect(av.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            console.log('🔘 [CHECKBOX] Clicado!', av.id, av.name);
+                            toggleSelect(av.id);
+                          }}
                           className="absolute top-2 right-2 z-10"
                         >
                           <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${
