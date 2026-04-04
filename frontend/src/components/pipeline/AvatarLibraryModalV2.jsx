@@ -359,7 +359,7 @@ export function AvatarLibraryModalV2({
   return (
     <>
       {/* Main Library Modal */}
-      <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center p-4">
         <div 
           data-testid="avatar-library-modal" 
           className="w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl"
