@@ -584,7 +584,12 @@ export function AvatarLibraryModalV2({
                           {/* Delete button */}
                           {onDeleteAvatar && (
                             <button
-                              onClick={() => onDeleteAvatar(av)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('🗑️ [CARD HOVER] Delete button clicked!', av.name, av.id);
+                                onDeleteAvatar(av);
+                              }}
                               className="p-2 rounded-full bg-red-500 hover:bg-red-400 transition"
                               title="Excluir"
                             >
