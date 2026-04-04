@@ -734,9 +734,10 @@ export function AvatarLibraryModalV2({
                   
                   {onEditAvatar && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         onEditAvatar(expandedAvatar);
-                        closeExpanded();
+                        setExpandedAvatar(null);
                       }}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition"
                     >
@@ -745,18 +746,30 @@ export function AvatarLibraryModalV2({
                     </button>
                   )}
                   
-                  {onDeleteAvatar && (
-                    <button
-                      onClick={() => {
-                        onDeleteAvatar(expandedAvatar);
-                        closeExpanded();
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition"
-                    >
-                      <Trash2 size={16} />
-                      Excluir
-                    </button>
-                  )}
+                  {/* Download button */}
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        const response = await fetch(resolveImageUrl(expandedAvatar.url));
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = `${expandedAvatar.name || 'avatar'}_${Date.now()}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (err) {
+                        console.error('Download error:', err);
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition"
+                  >
+                    <Download size={16} />
+                    Download
+                  </button>
                 </div>
               </div>
               
