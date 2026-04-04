@@ -1901,10 +1901,37 @@ export default function StudioPage() {
         }}
         onCreateNew={() => {
           console.log('🎨 Creating new character from gallery');
+          
+          // EXACT COPY from PipelineView.jsx resetAvatarModal (lines 709-730)
           setEditingAvatarId(null);
-          setTempAvatar(null);
+          setShowAvatarModal(false);
+          setAvatarSourcePhoto(null);
+          setAvatarSourceType('video');
+          setAvatarVideoUploading(false);
+          setAvatarExtractedAudio(null);
+          setAvatarVideoFrames([]);
           setAvatarStage('upload');
-          // NÃO fecha a galeria - abre modal por cima
+          setAvatarCreationMode('photo');
+          setAvatarPromptText('');
+          setAvatarPromptGender('female');
+          setAvatarPromptStyle('custom');
+          setTempAvatar(null);
+          setCustomizeTab('clothing');
+          setAvatarEditHistory([]);
+          setAvatarBaseUrl(null);
+          setAngleImages({});
+          setClothingVariants({});
+          setAuto360Progress(null);
+          setRecordedAudioUrl(null);
+          setRecordedAudioBlob(null);
+          setAvatarName('');
+          setPreviewVideoUrl(null);
+          setAvatarPreviewUrl(null);
+          setPreviewLanguage('pt');
+          setVoiceTab('bank');
+          setAvatarMediaTab('photo');
+          
+          // Now open modal
           setShowAvatarModal(true);
         }}
         lang={lang}
