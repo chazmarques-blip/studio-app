@@ -119,7 +119,7 @@ async def speech_to_text(file_path: str, language: str = None, response_format: 
     return result
 
 
-async def generate_image_gemini(prompt: str, input_image_bytes: bytes = None) -> bytes:
+async def generate_image_gemini(prompt: str, input_image_bytes: bytes = None, max_retries: int = 2) -> bytes:
     """Generate/edit image using Gemini direct API. Returns image bytes."""
     from google import genai
     from google.genai import types
@@ -131,28 +131,44 @@ async def generate_image_gemini(prompt: str, input_image_bytes: bytes = None) ->
         contents.append(types.Part.from_bytes(data=input_image_bytes, mime_type="image/png"))
     contents.append(prompt)
 
-    response = await asyncio.to_thread(
-        client.models.generate_content,
-        model="gemini-2.5-flash-image",
-        contents=contents,
-        config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
-    )
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model="gemini-2.5-flash-image",
+                contents=contents,
+                config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+            )
 
-    # Safety check: validate response structure
-    if not response or not response.candidates or len(response.candidates) == 0:
-        logger.error("Gemini returned empty response (no candidates)")
-        return None
-    
-    candidate = response.candidates[0]
-    if not candidate or not candidate.content or not candidate.content.parts:
-        logger.error("Gemini response missing content or parts")
-        return None
+            # Safety check: validate response structure
+            if not response or not hasattr(response, 'candidates') or not response.candidates or len(response.candidates) == 0:
+                logger.warning(f"Gemini returned empty response (no candidates) — attempt {attempt + 1}/{max_retries}")
+                last_error = "Empty response from Gemini API"
+                await asyncio.sleep(1)
+                continue
+            
+            candidate = response.candidates[0]
+            if not candidate or not hasattr(candidate, 'content') or not candidate.content or not hasattr(candidate.content, 'parts') or not candidate.content.parts:
+                logger.warning(f"Gemini response missing content or parts — attempt {attempt + 1}/{max_retries}")
+                last_error = "Invalid response structure from Gemini API"
+                await asyncio.sleep(1)
+                continue
 
-    for part in candidate.content.parts:
-        if part.inline_data:
-            return part.inline_data.data
+            for part in candidate.content.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    logger.info(f"Gemini image generation successful on attempt {attempt + 1}")
+                    return part.inline_data.data
 
-    logger.warning("No inline_data found in Gemini response parts")
+            logger.warning(f"No inline_data found in Gemini response parts — attempt {attempt + 1}/{max_retries}")
+            last_error = "No image data in response"
+            await asyncio.sleep(1)
+        except Exception as e:
+            logger.warning(f"Gemini API error on attempt {attempt + 1}/{max_retries}: {e}")
+            last_error = str(e)
+            await asyncio.sleep(1)
+
+    logger.error(f"Gemini image generation failed after {max_retries} attempts. Last error: {last_error}")
     return None
 
 

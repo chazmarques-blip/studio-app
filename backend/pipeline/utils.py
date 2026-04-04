@@ -367,7 +367,7 @@ async def _describe_person_from_video(frames: list) -> str:
 
 
 
-async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: str = "image/png") -> list:
+async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: str = "image/png", max_retries: int = 2) -> list:
     """Send text+image to Gemini for image editing using direct Google GenAI SDK.
     Returns list of image dicts [{mime_type, data}]."""
     from google import genai
@@ -382,19 +382,50 @@ async def _gemini_edit_image(system_msg: str, prompt: str, img_b64: str, mime: s
         full_prompt,
     ]
 
-    response = await asyncio.to_thread(
-        client.models.generate_content,
-        model="gemini-2.5-flash-image",
-        contents=contents,
-        config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
-    )
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model="gemini-2.5-flash-image",
+                contents=contents,
+                config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+            )
 
-    images = []
-    for part in response.candidates[0].content.parts:
-        if part.inline_data:
-            img_b64_out = base64.b64encode(part.inline_data.data).decode()
-            images.append({"mime_type": part.inline_data.mime_type or "image/png", "data": img_b64_out})
-    return images
+            # Validate response structure
+            if not response or not hasattr(response, 'candidates') or not response.candidates or len(response.candidates) == 0:
+                logger.warning(f"[_gemini_edit_image] Empty response — attempt {attempt + 1}/{max_retries}")
+                last_error = "Empty candidates"
+                await asyncio.sleep(1)
+                continue
+            
+            candidate = response.candidates[0]
+            if not candidate or not hasattr(candidate, 'content') or not candidate.content or not hasattr(candidate.content, 'parts') or not candidate.content.parts:
+                logger.warning(f"[_gemini_edit_image] Missing content/parts — attempt {attempt + 1}/{max_retries}")
+                last_error = "Invalid structure"
+                await asyncio.sleep(1)
+                continue
+
+            images = []
+            for part in candidate.content.parts:
+                if hasattr(part, 'inline_data') and part.inline_data:
+                    img_b64_out = base64.b64encode(part.inline_data.data).decode()
+                    images.append({"mime_type": part.inline_data.mime_type or "image/png", "data": img_b64_out})
+            
+            if images:
+                logger.info(f"[_gemini_edit_image] Success on attempt {attempt + 1}")
+                return images
+            
+            logger.warning(f"[_gemini_edit_image] No image data in parts — attempt {attempt + 1}/{max_retries}")
+            last_error = "No inline_data"
+            await asyncio.sleep(1)
+        except Exception as e:
+            logger.warning(f"[_gemini_edit_image] Error on attempt {attempt + 1}/{max_retries}: {e}")
+            last_error = str(e)
+            await asyncio.sleep(1)
+
+    logger.error(f"[_gemini_edit_image] Failed after {max_retries} attempts. Last error: {last_error}")
+    return []
 
 
 
