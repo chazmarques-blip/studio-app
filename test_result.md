@@ -289,14 +289,28 @@ frontend:
           agent: "testing"
           comment: "❌ CRITICAL: The async/await fixes mentioned in review request are IMPLEMENTED but NOT WORKING. Found: (1) _run_async_in_thread() helper function exists in storyboard.py lines 6-13, (2) Used in production.py line 1359 for _analyze_avatars_with_vision, (3) Used in storyboard.py lines 84-86 for identity cards generation. However, backend logs still show the exact same errors: 'Object of type coroutine is not JSON serializable', 'coroutine _analyze_avatars_with_vision was never awaited', and 'object of type coroutine has no len()'. The fixes are present but ineffective - deeper investigation needed."
 
+frontend:
+  - task: "Avatar Gallery Delete Button - Selection State Bug"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/pipeline/AvatarLibraryModalV2.jsx"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL BUG CONFIRMED: The 'Deletar' button in the footer does NOT appear when selecting avatars in the gallery modal. ROOT CAUSE: Avatar selection is NOT working - clicking the checkbox does NOT update the `selected` state in AvatarLibraryModalV2 component. EVIDENCE: (1) ✅ Successfully opened gallery modal with 270 avatars, (2) ✅ Clicked checkbox on first avatar, (3) ❌ Selection badge '1 selecionado(s)' did NOT appear in header (line 372-376), (4) ❌ Footer only shows 'Fechar' button - 'Deletar' button NOT rendered (should appear at lines 671-720 when selected.size > 0), (5) ❌ Footer inspection confirms only 1 button present instead of expected 3-4 buttons when avatar is selected. The toggleSelect function (lines 252-259) is defined correctly, and checkbox onClick handler (line 618) calls toggleSelect(av.id), but the selected Set is NOT being updated. This prevents the delete button from appearing in the footer. Additionally, clicking the checkbox triggered a download toast 'Novo Personagem baixado!' suggesting wrong element was clicked or event bubbling issue. USER REPORT CONFIRMED: The delete button does NOT respond because it never appears in the first place due to broken selection state management."
+
 metadata:
   created_by: "main_agent"
-  version: "1.8"
-  test_sequence: 9
+  version: "1.9"
+  test_sequence: 10
   run_ui: true
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Avatar Gallery Delete Button - Selection State Bug"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -314,4 +328,6 @@ agent_communication:
       message: "⚠️ TESTING INCOMPLETE - AVATAR MODAL FIX APPLIED BUT CANNOT VERIFY: Applied fix to StudioPage.jsx by wrapping selectedProject JSX in React Fragment to include modals in DOM (lines 647 and 784). Fixed JSX syntax error - frontend now compiles successfully. HOWEVER, cannot verify if modals actually work because project 'JONAS E O PEIXE GRANDE' currently has NO generated avatars (0 avatar images found, only character voice assignments visible). Previous test reported 132 avatars but data appears to have changed. Edit/Zoom buttons only appear on generated avatar thumbnails. CODE CHANGES VERIFIED: ✅ Modals moved inside selectedProject block, ✅ Proper React Fragment wrapping, ✅ No syntax errors. RECOMMENDATION: Test with project 'A criacao' which has avatars, OR generate avatars for 'JONAS E O PEIXE GRANDE' first, then retest modal functionality."
     - agent: "testing"
       message: "⚠️ TESTING INCOMPLETE - UNABLE TO ACCESS SCENE REGENERATION INTERFACE: Attempted to test Scene Regeneration Progress Bar fix for project 'CANAL PULMERANEA' (ID: f28f6d348f6d) but could not access the scene editing interface. FINDINGS: (1) ✅ Successfully logged in and opened project, (2) ❌ Project is in completed state - workflow steps open post-production modals (Storyboard PDF, Pós-Produção video) instead of scene editing interface, (3) ❌ Could not find scenes with data-scene-number attribute, (4) ⚠️ DirectedStudio component with regeneration buttons is at step 6 (Production Progress) but not accessible from completed projects. CODE REVIEW: ✅ Fix correctly implemented - videoDone only checks sceneState === 'done', progress percentages correctly mapped (15% directing, 70% generating_video, 100% done). RECOMMENDATION: Provide a project currently in production phase, OR add UI navigation to access scene regeneration from completed projects, OR manually trigger regeneration via API to verify fix."
+    - agent: "testing"
+      message: "❌ CRITICAL BUG CONFIRMED - AVATAR GALLERY DELETE BUTTON: Completed comprehensive testing of the 'Deletar' button in avatar gallery. USER REPORT IS CORRECT - the button does NOT work. ROOT CAUSE: The 'Deletar' button never appears in the footer because avatar selection is broken. When clicking the checkbox to select an avatar, the `selected` state in AvatarLibraryModalV2 component is NOT being updated. EVIDENCE: (1) ✅ Gallery modal opens successfully with 270 avatars, (2) ✅ Clicked checkbox on first avatar, (3) ❌ Selection badge '1 selecionado(s)' did NOT appear in header, (4) ❌ Footer only shows 'Fechar' button (1 button total), (5) ❌ 'Deletar' button NOT rendered in footer (should appear when selected.size > 0 per lines 659-720), (6) ⚠️ Clicking checkbox triggered download toast 'Novo Personagem baixado!' instead of selection. The toggleSelect function (lines 252-259) is correctly defined, checkbox onClick (line 618) calls toggleSelect(av.id), but the selected Set is not updating. This is a critical state management bug preventing the delete functionality from working. FIX REQUIRED: Debug why toggleSelect is not updating the selected state, check for event bubbling issues or conflicting click handlers on the checkbox button."
 
