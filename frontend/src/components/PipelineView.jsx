@@ -319,12 +319,26 @@ export default function PipelineView({ context }) {
   };
 
   const persistAvatarToServer = async (avatar) => {
+    console.log('🟡 [PERSIST] Iniciando persistAvatarToServer...');
+    console.log('🟡 [PERSIST] Avatar a ser salvo:', avatar);
+    console.log('🟡 [PERSIST] API URL:', `${API}/data/avatars`);
+    
     try {
+      console.log('🟡 [PERSIST] Fazendo POST...');
       const { data } = await axios.post(`${API}/data/avatars`, avatar);
+      console.log('✅ [PERSIST] POST bem-sucedido! Resposta:', data);
+      
       // CRITICAL FIX: Invalidate library cache so new avatar appears in gallery
+      console.log('🟡 [PERSIST] Invalidando cache da galeria...');
       localStorage.removeItem('studiox_avatar_library_v2');
+      console.log('✅ [PERSIST] Cache invalidado!');
+      
+      console.log('✅ [PERSIST] persistAvatarToServer COMPLETO');
       return data;
-    } catch {
+    } catch (err) {
+      console.log('🔴 [PERSIST] ERRO no POST:', err);
+      console.log('🔴 [PERSIST] Erro response:', err.response);
+      console.log('🔴 [PERSIST] Erro message:', err.message);
       return null;
     }
   };
