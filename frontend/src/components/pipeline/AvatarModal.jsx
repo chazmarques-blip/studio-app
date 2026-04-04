@@ -1122,17 +1122,20 @@ export function AvatarModal({ ctx }) {
                   {editingAvatarId ? (
                     <>
                       <button data-testid="save-avatar-as-new-btn" onClick={saveAvatarAsNew}
-                        className="flex-1 rounded-lg border border-[#8B5CF6]/40 py-2.5 text-xs font-bold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition flex items-center justify-center gap-2">
+                        disabled={!tempAvatar?.url || !tempAvatar.url.trim()}
+                        className="flex-1 rounded-lg border border-[#8B5CF6]/40 py-2.5 text-xs font-bold text-[#8B5CF6] hover:bg-[#8B5CF6]/10 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                         <Plus size={14} /> {t('studio.save_as_new')}
                       </button>
                       <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
-                        className="flex-1 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
+                        disabled={!tempAvatar?.url || !tempAvatar.url.trim()}
+                        className="flex-1 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                         <Check size={14} /> {t('studio.update_avatar')}
                       </button>
                     </>
                   ) : (
                     <button data-testid="save-avatar-final-btn" onClick={saveAvatarAndClose}
-                      className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2">
+                      disabled={!tempAvatar?.url || !tempAvatar.url.trim()}
+                      className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-2.5 text-xs font-bold text-black hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                       <Check size={14} /> {isDirectedMode ? 'Salvar Personagem' : t('studio.save_avatar')}
                     </button>
                   )}

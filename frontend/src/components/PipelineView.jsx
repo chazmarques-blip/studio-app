@@ -527,6 +527,13 @@ export default function PipelineView({ context }) {
 
   const saveAvatarAndClose = () => {
     if (!tempAvatar) return;
+    
+    // CRITICAL FIX: Don't save if avatar has no URL (still generating)
+    if (!tempAvatar.url || !tempAvatar.url.trim()) {
+      toast.error('Aguarde a geração do personagem finalizar antes de salvar!');
+      return;
+    }
+    
     const name = avatarName.trim() || `Avatar ${avatars.length + 1}`;
     if (editingAvatarId) {
       const editedAvatar = {
