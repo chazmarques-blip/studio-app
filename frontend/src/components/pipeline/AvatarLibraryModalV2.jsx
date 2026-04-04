@@ -652,7 +652,10 @@ export function AvatarLibraryModalV2({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-5 py-3 border-t border-[#151515] shrink-0 flex items-center gap-2 bg-[#0A0A0A]">
+          <div 
+            className="px-5 py-3 border-t border-[#151515] shrink-0 flex items-center gap-2 bg-[#0A0A0A]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button 
               onClick={onClose} 
               className="px-4 py-2 rounded-lg border border-[#333] text-sm text-[#999] hover:text-white hover:border-[#555] transition"
@@ -676,12 +679,19 @@ export function AvatarLibraryModalV2({
                   <button 
                     data-testid="library-delete-selected-btn"
                     type="button"
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      alert('🔴 MOUSE DOWN! Selecionados: ' + selected.size);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       alert('🔴 BOTÃO CLICOU! Selecionados: ' + selected.size);
                       console.log('🔴 [DELETAR] Botão clicado!', selected.size, 'selecionados');
                     }}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition cursor-pointer"
-                    style={{ zIndex: 9999, position: 'relative' }}
+                    style={{ zIndex: 9999, position: 'relative', pointerEvents: 'auto' }}
                   >
                     <Trash2 size={14} />
                     Deletar ({selected.size})
