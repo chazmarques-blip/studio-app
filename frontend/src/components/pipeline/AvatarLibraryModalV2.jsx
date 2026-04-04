@@ -683,17 +683,10 @@ export function AvatarLibraryModalV2({
                     type="button"
                     onClick={async (e) => {
                       e.stopPropagation();
-                      console.log('🔴 [DELETAR] Botão clicado!', selected.size, 'selecionados');
-                      
                       const count = selected.size;
                       const selectedAvatars = library.filter(a => selected.has(a.id));
                       
-                      if (!window.confirm(`Tem certeza que deseja excluir ${count} personagem(ns) selecionado(s)?\n\nEsta ação não pode ser desfeita.`)) {
-                        console.log('🔴 [DELETAR] Cancelado pelo usuário');
-                        return;
-                      }
-                      
-                      console.log('🗑️ [BATCH DELETE] Deletando', count, 'personagens...');
+                      console.log('🗑️ [BATCH DELETE] Iniciando deleção de', count, 'personagens...');
                       
                       let successCount = 0;
                       let errorCount = 0;
@@ -818,11 +811,8 @@ export function AvatarLibraryModalV2({
                       onClick={(e) => {
                         e.stopPropagation();
                         console.log('🗑️ [EXPANDED MODAL] Delete button clicked!', expandedAvatar.name, expandedAvatar.id);
-                        
-                        if (window.confirm(`Tem certeza que deseja excluir "${expandedAvatar.name}"?`)) {
-                          onDeleteAvatar(expandedAvatar);
-                          setExpandedAvatar(null); // Close modal after delete
-                        }
+                        onDeleteAvatar(expandedAvatar);
+                        setExpandedAvatar(null); // Close modal after delete
                       }}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition"
                     >

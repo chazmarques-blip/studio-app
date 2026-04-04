@@ -1953,13 +1953,6 @@ export default function StudioPage() {
         onDeleteAvatar={async (avatar, skipConfirm = false) => {
           console.log('🗑️ [DELETE] Callback chamado para:', avatar.name, avatar.id);
           try {
-            // Only show confirm if not skipped (batch delete already confirms)
-            if (!skipConfirm) {
-              if (!window.confirm(`Excluir "${avatar.name}"? Esta ação não pode ser desfeita.`)) {
-                console.log('🗑️ [DELETE] Usuário cancelou');
-                return;
-              }
-            }
             console.log('🗑️ [DELETE] Enviando DELETE para API...');
             await axios.delete(`${API}/data/avatars/${avatar.id}`);
             console.log('✅ [DELETE] Resposta 200 OK');
