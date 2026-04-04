@@ -1647,39 +1647,41 @@ export default function StudioPage() {
               
               try {
                 const payload = {
+                  url: tempAvatar.url,
                   name: avatarName || 'Novo Personagem',
-                  image_url: tempAvatar.url,
-                  style: tempAvatar.style || 'custom',
-                  gender: tempAvatar.gender || 'male',
-                  company_id: selectedCompany?.id || null,
+                  avatar_style: tempAvatar.style || avatarPromptStyle || 'realistic',
+                  creation_mode: avatarCreationMode || 'prompt',
+                  source_photo_url: avatarSourcePhoto || '',
+                  clothing: 'keep_original',
+                  voice: tempAvatar.voice || null,
                   angles: angleImages || {},
-                  voice_id: tempAvatar.voice_id || null,
+                  video_url: previewVideoUrl || null,
                   language: previewLanguage || 'pt'
                 };
                 
                 console.log('📡 Salvando personagem global:', payload);
-                await axios.post(`${API}/data/avatars`, payload);
+                const response = await axios.post(`${API}/data/avatars`, payload);
+                console.log('✅ Resposta do backend:', response.data);
                 
                 toast.success('✅ Personagem salvo na galeria!');
                 
                 // Fecha modal de criação
                 resetAvatarModal();
+                setShowAvatarModal(false);
                 
-                // Força reload da galeria para mostrar o novo personagem
+                // Força reload da galeria recarregando a lista
                 if (showGlobalLibrary) {
-                  // Pequeno delay para garantir que o backend salvou
-                  setTimeout(() => {
-                    setShowGlobalLibrary(false);
-                    setTimeout(() => setShowGlobalLibrary(true), 100);
-                  }, 500);
+                  setShowGlobalLibrary(false);
+                  setTimeout(() => setShowGlobalLibrary(true), 200);
                 }
               } catch (err) {
                 console.error('❌ Error saving avatar:', err);
+                console.error('❌ Error response:', err.response?.data);
                 toast.error('Erro ao salvar personagem: ' + (err.response?.data?.detail || err.message));
               }
             },
             saveAvatarAsNew: async () => {
-              console.log('💾 Global saveAvatarAsNew (same as saveAvatarAndClose)');
+              console.log('💾 Global saveAvatarAsNew');
               
               if (!tempAvatar?.url) {
                 toast.error('Nenhum avatar para salvar');
@@ -1688,34 +1690,37 @@ export default function StudioPage() {
               
               try {
                 const payload = {
+                  url: tempAvatar.url,
                   name: avatarName || 'Novo Personagem',
-                  image_url: tempAvatar.url,
-                  style: tempAvatar.style || 'custom',
-                  gender: tempAvatar.gender || 'male',
-                  company_id: selectedCompany?.id || null,
+                  avatar_style: tempAvatar.style || avatarPromptStyle || 'realistic',
+                  creation_mode: avatarCreationMode || 'prompt',
+                  source_photo_url: avatarSourcePhoto || '',
+                  clothing: 'keep_original',
+                  voice: tempAvatar.voice || null,
                   angles: angleImages || {},
-                  voice_id: tempAvatar.voice_id || null,
+                  video_url: previewVideoUrl || null,
                   language: previewLanguage || 'pt'
                 };
                 
                 console.log('📡 Salvando novo personagem:', payload);
-                await axios.post(`${API}/data/avatars`, payload);
+                const response = await axios.post(`${API}/data/avatars`, payload);
+                console.log('✅ Resposta do backend:', response.data);
                 
                 toast.success('✅ Personagem criado e salvo na galeria!');
                 
                 // Fecha modal de criação
                 resetAvatarModal();
+                setShowAvatarModal(false);
                 
                 // Força reload da galeria
                 if (showGlobalLibrary) {
-                  setTimeout(() => {
-                    setShowGlobalLibrary(false);
-                    setTimeout(() => setShowGlobalLibrary(true), 100);
-                  }, 500);
+                  setShowGlobalLibrary(false);
+                  setTimeout(() => setShowGlobalLibrary(true), 200);
                 }
               } catch (err) {
-                console.error('❌ Error saving avatar:', err);
-                toast.error('Erro ao salvar: ' + (err.response?.data?.detail || err.message));
+                console.error('❌ Error saving new avatar:', err);
+                console.error('❌ Error response:', err.response?.data);
+                toast.error('Erro ao salvar personagem: ' + (err.response?.data?.detail || err.message));
               }
             },
             previewVoice: async (voiceId, voiceType = 'elevenlabs') => {
