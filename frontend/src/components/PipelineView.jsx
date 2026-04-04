@@ -332,11 +332,14 @@ export default function PipelineView({ context }) {
       console.log('🟡 [PERSIST] Recarregando avatars do servidor...');
       const { data: updatedAvatars } = await axios.get(`${API}/data/avatars`);
       setAvatars(updatedAvatars || []);
-      localStorage.setItem('studiox_avatars', JSON.stringify(updatedAvatars || []));
-      console.log('✅ [PERSIST] Lista de avatars atualizada:', updatedAvatars?.length || 0, 'avatars');
       
-      // Invalidate library cache so new avatar appears in gallery
-      localStorage.removeItem('studiox_avatar_library_v2');
+      // CRITICAL FIX: Update BOTH caches (PipelineView + AvatarLibraryModalV2)
+      localStorage.setItem('studiox_avatars', JSON.stringify(updatedAvatars || []));
+      localStorage.setItem('studiox_avatar_library_v2', JSON.stringify({ 
+        data: updatedAvatars || [], 
+        ts: Date.now() 
+      }));
+      console.log('✅ [PERSIST] Ambos os caches atualizados! Total:', updatedAvatars?.length || 0, 'avatars');
       console.log('✅ [PERSIST] persistAvatarToServer COMPLETO');
       return data;
     } catch (err) {
