@@ -525,7 +525,7 @@ export default function PipelineView({ context }) {
     }
   };
 
-  const saveAvatarAndClose = () => {
+  const saveAvatarAndClose = async () => {
     if (!tempAvatar) return;
     
     // CRITICAL FIX: Don't save if avatar has no URL (still generating)
@@ -548,7 +548,9 @@ export default function PipelineView({ context }) {
       };
       const updated = avatars.map(a => a.id === editingAvatarId ? { ...a, ...editedAvatar } : a);
       saveAvatars(updated);
-      persistAvatarToServer(editedAvatar);
+      
+      // CRITICAL FIX: AWAIT server save before closing modal
+      await persistAvatarToServer(editedAvatar);
       setLastCreatedAvatar({ ...editedAvatar, _ts: Date.now() });
     } else {
       const newAv = {
@@ -568,36 +570,57 @@ export default function PipelineView({ context }) {
       const updated = [...avatars, newAv];
       saveAvatars(updated);
       setSelectedAvatarId(newAv.id);
-      persistAvatarToServer(newAv);
+      
+      // CRITICAL FIX: AWAIT server save before closing modal
+      await persistAvatarToServer(newAv);
       setLastCreatedAvatar({ ...newAv, _ts: Date.now() });
     }
     resetAvatarModal();
   };
 
-  const saveAvatarAsNew = () => {
+  const saveAvatarAsNew = async () => {
     if (!tempAvatar) return;
+    
+    // CRITICAL FIX: Don't save if avatar has no URL (still generating)
+    if (!tempAvatar.url || !tempAvatar.url.trim()) {
+      toast.error('Aguarde a geração do personagem finalizar antes de salvar!');
+      return;
+    }
+    
     const name = avatarName.trim() || `Avatar ${avatars.length + 1}`;
-    const newAv = {
-      id: Date.now().toString(),
-      url: tempAvatar.url,
-      name,
-      source_photo_url: tempAvatar.source_photo_url,
-      clothing: tempAvatar.clothing,
-      voice: tempAvatar.voice,
-      angles: angleImages,
-      video_url: previewVideoUrl || null,
-      language: previewLanguage,
-      creation_mode: tempAvatar.creation_mode || 'photo',
-      avatar_style: tempAvatar.avatar_style || 'realistic',
-      edit_history: avatarEditHistory,
-    };
-    const updated = [...avatars, newAv];
-    saveAvatars(updated);
-    setSelectedAvatarId(newAv.id);
-    persistAvatarToServer(newAv);
-    setLastCreatedAvatar({ ...newAv, _ts: Date.now() });
-    resetAvatarModal();
-    toast.success('Avatar saved as new!');
+    
+    // Show loading toast
+    const loadingToast = toast.loading('Salvando como novo...');
+    
+    try {
+      const newAv = {
+        id: Date.now().toString(),
+        url: tempAvatar.url,
+        name,
+        source_photo_url: tempAvatar.source_photo_url,
+        clothing: tempAvatar.clothing,
+        voice: tempAvatar.voice,
+        angles: angleImages,
+        video_url: previewVideoUrl || null,
+        language: previewLanguage,
+        creation_mode: tempAvatar.creation_mode || 'photo',
+        avatar_style: tempAvatar.avatar_style || 'realistic',
+        edit_history: avatarEditHistory,
+      };
+      const updated = [...avatars, newAv];
+      saveAvatars(updated);
+      setSelectedAvatarId(newAv.id);
+      
+      // CRITICAL FIX: AWAIT server save before closing modal
+      await persistAvatarToServer(newAv);
+      setLastCreatedAvatar({ ...newAv, _ts: Date.now() });
+      
+      toast.success('✅ Personagem salvo na galeria!', { id: loadingToast });
+      resetAvatarModal();
+    } catch (error) {
+      toast.error('❌ Erro ao salvar. Tente novamente.', { id: loadingToast });
+      console.error('Save avatar error:', error);
+    }
   };
 
   const openAvatarForEdit = (av) => {
