@@ -1260,7 +1260,10 @@ export default function StudioPage() {
               
               {/* Global Character Library Button */}
               <button
-                onClick={() => setShowGlobalLibrary(true)}
+                onClick={() => {
+                  setAvatarPreviewUrl(null);
+                  setShowGlobalLibrary(true);
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6]/10 to-[#7C3AED]/10 border border-[#8B5CF6]/30 text-xs font-semibold text-[#8B5CF6] hover:from-[#8B5CF6]/20 hover:to-[#7C3AED]/20 transition-all hover:scale-105 whitespace-nowrap"
                 title="Galeria de Personagens"
               >
