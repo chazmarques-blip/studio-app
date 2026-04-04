@@ -328,11 +328,15 @@ export default function PipelineView({ context }) {
       const { data } = await axios.post(`${API}/data/avatars`, avatar);
       console.log('✅ [PERSIST] POST bem-sucedido! Resposta:', data);
       
-      // CRITICAL FIX: Invalidate library cache so new avatar appears in gallery
-      console.log('🟡 [PERSIST] Invalidando cache da galeria...');
-      localStorage.removeItem('studiox_avatar_library_v2');
-      console.log('✅ [PERSIST] Cache invalidado!');
+      // CRITICAL FIX: Reload avatars from server to ensure gallery is in sync
+      console.log('🟡 [PERSIST] Recarregando avatars do servidor...');
+      const { data: updatedAvatars } = await axios.get(`${API}/data/avatars`);
+      setAvatars(updatedAvatars || []);
+      localStorage.setItem('studiox_avatars', JSON.stringify(updatedAvatars || []));
+      console.log('✅ [PERSIST] Lista de avatars atualizada:', updatedAvatars?.length || 0, 'avatars');
       
+      // Invalidate library cache so new avatar appears in gallery
+      localStorage.removeItem('studiox_avatar_library_v2');
       console.log('✅ [PERSIST] persistAvatarToServer COMPLETO');
       return data;
     } catch (err) {
