@@ -1947,17 +1947,24 @@ export default function StudioPage() {
             }]);
           }
         }}
-        onDeleteAvatar={async (avatar) => {
+        onDeleteAvatar={async (avatar, skipConfirm = false) => {
           console.log('🗑️ [DELETE] Callback chamado para:', avatar.name, avatar.id);
           try {
-            if (!window.confirm(`Excluir "${avatar.name}"? Esta ação não pode ser desfeita.`)) {
-              console.log('🗑️ [DELETE] Usuário cancelou');
-              return;
+            // Only show confirm if not skipped (batch delete already confirms)
+            if (!skipConfirm) {
+              if (!window.confirm(`Excluir "${avatar.name}"? Esta ação não pode ser desfeita.`)) {
+                console.log('🗑️ [DELETE] Usuário cancelou');
+                return;
+              }
             }
             console.log('🗑️ [DELETE] Enviando DELETE para API...');
             await axios.delete(`${API}/data/avatars/${avatar.id}`);
             console.log('✅ [DELETE] Resposta 200 OK');
-            toast.success(`"${avatar.name}" excluído com sucesso!`);
+            
+            // Only show individual toast if not batch (batch shows summary)
+            if (!skipConfirm) {
+              toast.success(`"${avatar.name}" excluído com sucesso!`);
+            }
             
             // Update cache (remove from list) - no need to reload entire gallery
             console.log('🗑️ [DELETE] Removendo do cache...');
@@ -1966,7 +1973,10 @@ export default function StudioPage() {
           } catch (err) {
             console.error('❌ [DELETE] Erro:', err);
             console.error('❌ [DELETE] Response:', err.response);
+            
+            // Always show error toast
             toast.error('Erro ao excluir personagem: ' + (err.response?.data?.detail || err.message));
+            throw err; // Re-throw for batch delete error counting
           }
         }}
         onCreateNew={() => {

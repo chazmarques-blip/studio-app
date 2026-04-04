@@ -668,6 +668,53 @@ export function AvatarLibraryModalV2({
                   {L.download} ({selected.size})
                 </button>
                 
+                {/* Delete selected - BIG RED BUTTON */}
+                {onDeleteAvatar && (
+                  <button 
+                    data-testid="library-delete-selected-btn" 
+                    onClick={async () => {
+                      const count = selected.size;
+                      const selectedAvatars = library.filter(a => selected.has(a.id));
+                      
+                      if (!window.confirm(`Tem certeza que deseja excluir ${count} personagem(ns) selecionado(s)?\n\nEsta ação não pode ser desfeita.`)) {
+                        return;
+                      }
+                      
+                      console.log('🗑️ [BATCH DELETE] Deletando', count, 'personagens...');
+                      
+                      let successCount = 0;
+                      let errorCount = 0;
+                      
+                      for (const avatar of selectedAvatars) {
+                        try {
+                          console.log('🗑️ Deletando:', avatar.name);
+                          await onDeleteAvatar(avatar, true); // skipConfirm = true
+                          successCount++;
+                        } catch (err) {
+                          console.error('❌ Erro ao deletar', avatar.name, err);
+                          errorCount++;
+                        }
+                      }
+                      
+                      // Clear selection
+                      setSelected(new Set());
+                      
+                      // Show summary toast
+                      if (errorCount === 0) {
+                        toast.success(`✅ ${successCount} personagem(ns) excluído(s) com sucesso!`);
+                      } else {
+                        toast.warning(`⚠️ ${successCount} excluído(s), ${errorCount} com erro`);
+                      }
+                      
+                      console.log('✅ [BATCH DELETE] Completo:', successCount, 'sucesso,', errorCount, 'erros');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition"
+                  >
+                    <Trash2 size={14} />
+                    Deletar ({selected.size})
+                  </button>
+                )}
+                
                 {/* Import selected */}
                 {projectId && (
                   <button 
