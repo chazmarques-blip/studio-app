@@ -656,6 +656,22 @@ export function AvatarLibraryModalV2({
             className="px-5 py-3 border-t border-[#151515] shrink-0 flex items-center gap-2 bg-[#0A0A0A]"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* BOTÃO DE TESTE - SEMPRE VISÍVEL */}
+            <button
+              onClick={() => alert('🧪 TESTE: Este botão funciona!')}
+              className="px-4 py-2 rounded-lg bg-yellow-600 text-black text-sm font-semibold"
+            >
+              🧪 TESTE
+            </button>
+            
+            {/* BOTÃO DELETAR - TESTE SEMPRE VISÍVEL */}
+            <button
+              onClick={() => alert('🔴 DELETAR FUNCIONA! Selecionados: ' + selected.size)}
+              className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold"
+            >
+              🔴 DELETAR TESTE
+            </button>
+            
             <button 
               onClick={onClose} 
               className="px-4 py-2 rounded-lg border border-[#333] text-sm text-[#999] hover:text-white hover:border-[#555] transition"
