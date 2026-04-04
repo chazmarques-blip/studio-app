@@ -170,14 +170,6 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
     return doc
 
 
-@router.delete("/avatars/{avatar_id}")
-async def delete_avatar(avatar_id: str, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
-    settings = _get_settings(tenant["id"])
-    avatars = settings.get("studio_avatars", [])
-    avatars = [a for a in avatars if a.get("id") != avatar_id]
-    settings["studio_avatars"] = avatars
-    _save_settings(tenant["id"], settings)
-    return {"status": "ok"}
 
 
 @router.delete("/avatars/{avatar_id}/history/{entry_index}")
@@ -196,6 +188,22 @@ async def delete_avatar_history_entry(avatar_id: str, entry_index: int, user=Dep
     settings["studio_avatars"] = avatars
     _save_settings(tenant["id"], settings)
     return {"status": "ok", "edit_history": history}
+
+
+@router.delete("/avatars/{avatar_id}")
+async def delete_avatar(avatar_id: str, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    """Delete a specific avatar by ID"""
+    settings = _get_settings(tenant["id"])
+    avatars = settings.get("studio_avatars", [])
+    
+    existing_idx = next((i for i, a in enumerate(avatars) if a.get("id") == avatar_id), None)
+    if existing_idx is None:
+        raise HTTPException(status_code=404, detail=f"Avatar {avatar_id} not found")
+    
+    deleted = avatars.pop(existing_idx)
+    settings["studio_avatars"] = avatars
+    _save_settings(tenant["id"], settings)
+    return {"status": "ok", "deleted": deleted["name"], "id": avatar_id}
 
 
 @router.delete("/avatars")

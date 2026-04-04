@@ -1807,10 +1807,27 @@ export default function StudioPage() {
           console.log('✅ Avatars viewed in global library:', importedAvatars.length);
           toast.success(`Visualizando ${importedAvatars.length} personagens!`);
         }}
-        onEditAvatar={(avatar) => {
+        onEditAvatar={async (avatar) => {
           console.log('✅ Editing avatar from global library:', avatar.name);
-          // TODO: Implement global avatar editing
-          toast.info('Edição de personagens globais em desenvolvimento');
+          setEditingAvatarId(avatar.id);
+          setTempAvatar(avatar);
+          setAvatarStage('edit');
+          setShowAvatarModal(true);
+        }}
+        onDeleteAvatar={async (avatar) => {
+          try {
+            if (!window.confirm(`Excluir "${avatar.name}"? Esta ação não pode ser desfeita.`)) {
+              return;
+            }
+            await axios.delete(`${API}/data/avatars/${avatar.id}`);
+            toast.success(`"${avatar.name}" excluído com sucesso!`);
+            // Force gallery reload by closing and reopening
+            setShowGlobalLibrary(false);
+            setTimeout(() => setShowGlobalLibrary(true), 100);
+          } catch (err) {
+            console.error('Erro ao excluir avatar:', err);
+            toast.error('Erro ao excluir personagem');
+          }
         }}
         onCreateNew={() => {
           console.log('🎨 Creating new character from gallery');

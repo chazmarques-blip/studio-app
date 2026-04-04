@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { X, Search, Check, Download, Users, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { X, Search, Check, Download, Users, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
@@ -24,6 +24,7 @@ export function AvatarLibraryModalV2({
   projectAvatarIds = new Set(), 
   onImported, 
   onEditAvatar,
+  onDeleteAvatar,
   onCreateNew,
   lang = 'pt' 
 }) {
@@ -561,6 +562,17 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
+                          {/* Delete button */}
+                          {onDeleteAvatar && (
+                            <button
+                              onClick={() => onDeleteAvatar(av)}
+                              className="p-2 rounded-full bg-red-500 hover:bg-red-400 transition"
+                              title="Excluir"
+                            >
+                              <Trash2 size={14} className="text-white" />
+                            </button>
+                          )}
+                          
                           {/* Download button */}
                           <button
                             onClick={() => downloadAvatar(av)}
@@ -711,6 +723,19 @@ export function AvatarLibraryModalV2({
                     >
                       <Edit3 size={16} />
                       {L.edit}
+                    </button>
+                  )}
+                  
+                  {onDeleteAvatar && (
+                    <button
+                      onClick={() => {
+                        onDeleteAvatar(expandedAvatar);
+                        closeExpanded();
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition"
+                    >
+                      <Trash2 size={16} />
+                      Excluir
                     </button>
                   )}
                 </div>
