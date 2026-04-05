@@ -811,8 +811,10 @@ export function AvatarLibraryModalV2({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEditAvatar(expandedAvatar);
-                        setExpandedAvatar(null);
+                        console.log('✏️ [EXPANDED] Edit button clicked!', expandedAvatar.name);
+                        const avatarToEdit = expandedAvatar; // Save before closing
+                        setExpandedAvatar(null); // Close expanded modal first
+                        onEditAvatar(avatarToEdit); // Then open edit modal
                       }}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition"
                     >
