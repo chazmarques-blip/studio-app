@@ -961,6 +961,14 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         if not project:
             return
 
+        # Get scenes FIRST before using it
+        scenes = project.get("scenes", [])
+        characters = project.get("characters", [])
+        char_avatars = project.get("character_avatars", {})
+        visual_style = project.get("visual_style", "animation")
+        outputs = project.get("outputs", [])  # CRITICAL FIX: Get outputs from project
+        total = len(scenes)
+
         # REMOVED: Concurrency check (now in endpoint before thread creation)
         
         # CRITICAL FIX (2026-04-04): Use TOTAL scenes in project, not just 1
@@ -974,13 +982,6 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         })
         
         logger.info(f"Studio [{project_id}]: Scene {scene_num} regeneration started - status set to 'directing' ({scene_num}/{total_scenes})")
-
-        scenes = project.get("scenes", [])
-        characters = project.get("characters", [])
-        char_avatars = project.get("character_avatars", {})
-        visual_style = project.get("visual_style", "animation")
-        outputs = project.get("outputs", [])  # CRITICAL FIX: Get outputs from project
-        total = len(scenes)
 
         scene = next((s for s in scenes if s.get("scene_number") == scene_num), None)
         if not scene:
