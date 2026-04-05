@@ -54,6 +54,11 @@ export function AvatarLibraryModalV2({
   const [newFolderParent, setNewFolderParent] = useState(null);
   const [moveToFolderMenuOpen, setMoveToFolderMenuOpen] = useState(false);
   
+  // Debug: log when modal state changes
+  useEffect(() => {
+    console.log('📂 [FOLDER MODAL STATE]', folderModalOpen ? 'ABERTO' : 'FECHADO');
+  }, [folderModalOpen]);
+  
   // Filters
   const [styleFilter, setStyleFilter] = useState('all');
   const [has360Filter, setHas360Filter] = useState(false);
@@ -604,15 +609,15 @@ export function AvatarLibraryModalV2({
               </button>
             )}
             <button 
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                console.log('🎯 [NOVA PASTA] Botão clicado!');
-                setEditingFolder(null);
-                setNewFolderName('');
-                setNewFolderColor('#8B5CF6');
-                setNewFolderParent(null);
-                setFolderModalOpen(true);
-                console.log('🎯 [NOVA PASTA] Modal deveria abrir agora');
+              onClick={() => {
+                console.log('🎯 [NOVA PASTA] Abrindo modal...');
+                setTimeout(() => {
+                  setFolderModalOpen(true);
+                  setEditingFolder(null);
+                  setNewFolderName('');
+                  setNewFolderColor('#8B5CF6');
+                  setNewFolderParent(null);
+                }, 0);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6]/20 to-[#7C3AED]/20 border border-[#8B5CF6]/40 text-xs font-semibold text-[#A78BFA] hover:from-[#8B5CF6]/30 hover:to-[#7C3AED]/30 transition-all hover:scale-105"
               title="Nova Pasta"
@@ -1223,15 +1228,27 @@ export function AvatarLibraryModalV2({
       
       {/* Folder Create/Edit Modal */}
       {folderModalOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setFolderModalOpen(false)}>
-          <div className="bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4" 
+          onClick={() => {
+            console.log('🎯 [MODAL] Clicou no overlay - fechando');
+            setFolderModalOpen(false);
+          }}
+        >
+          <div className="bg-[#0D0D0D] rounded-2xl border-2 border-[#8B5CF6] overflow-hidden max-w-md w-full shadow-2xl" onClick={e => {
+            e.stopPropagation();
+            console.log('🎯 [MODAL] Clicou dentro do modal');
+          }}>
             {/* Header */}
             <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
               <h3 className="text-white font-bold text-sm flex items-center gap-2">
                 <Plus size={16} />
                 {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
               </h3>
-              <button onClick={() => setFolderModalOpen(false)} className="text-white/80 hover:text-white transition">
+              <button onClick={() => {
+                console.log('🎯 [MODAL] Clicou no X - fechando');
+                setFolderModalOpen(false);
+              }} className="text-white/80 hover:text-white transition">
                 <X size={18} />
               </button>
             </div>
