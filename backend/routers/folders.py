@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from uuid import uuid4
 from datetime import datetime, timezone
-from core.deps import get_current_user
+from core.deps import supabase, get_current_user
 
 router = APIRouter(prefix="/api/folders", tags=["folders"])
 
@@ -28,23 +28,18 @@ class AssignAvatarsToFolder(BaseModel):
 @router.get("")
 async def get_folders(user = Depends(get_current_user)):
     """Get all folders for current user"""
-    from core.db import get_db
-    db = await get_db()
+    # Get user's tenant from supabase
+    result = supabase.table('tenants').select('settings').eq('owner_id', user['id']).single().execute()
     
-    # Get user's tenant
-    tenant = await db.tenants.find_one({"owner_id": user['id']}, {"_id": 0})
-    if not tenant:
+    if not result.data:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    folders = tenant.get("settings", {}).get("avatar_folders", [])
+    folders = result.data.get('settings', {}).get('avatar_folders', [])
     return {"folders": folders}
 
 @router.post("")
 async def create_folder(data: FolderCreate, user = Depends(get_current_user)):
     """Create a new folder"""
-    from core.db import get_db
-    db = await get_db()
-    
     folder = {
         "id": str(uuid4()),
         "name": data.name,
@@ -54,89 +49,59 @@ async def create_folder(data: FolderCreate, user = Depends(get_current_user)):
         "avatar_ids": []
     }
     
-    # Update tenant settings
-    result = await db.tenants.update_one(
-        {"owner_id": user['id']},
-        {"$push": {"settings.avatar_folders": folder}}
-    )
-    
-    if result.matched_count == 0:
+    # Get current folders
+    result = supabase.table('tenants').select('settings').eq('owner_id', user['id']).single().execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
+    settings = result.data.get('settings', {})
+    folders = settings.get('avatar_folders', [])
+    folders.append(folder)
+    settings['avatar_folders'] = folders
+    
+    # Update tenant
+    supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
+    
     return folder
-
-@router.put("/{folder_id}")
-async def update_folder(folder_id: str, data: FolderUpdate, user = Depends(get_current_user)):
-    """Update folder name, parent, or color"""
-    from core.db import get_db
-    db = await get_db()
-    
-    update_fields = {}
-    if data.name is not None:
-        update_fields["settings.avatar_folders.$.name"] = data.name
-    if data.parent_id is not None:
-        update_fields["settings.avatar_folders.$.parent_id"] = data.parent_id
-    if data.color is not None:
-        update_fields["settings.avatar_folders.$.color"] = data.color
-    
-    if not update_fields:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    
-    result = await db.tenants.update_one(
-        {"owner_id": user['id'], "settings.avatar_folders.id": folder_id},
-        {"$set": update_fields}
-    )
-    
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Folder not found")
-    
-    return {"success": True}
 
 @router.delete("/{folder_id}")
 async def delete_folder(folder_id: str, user = Depends(get_current_user)):
     """Delete a folder"""
-    from core.db import get_db
-    db = await get_db()
-    
-    result = await db.tenants.update_one(
-        {"owner_id": user['id']},
-        {"$pull": {"settings.avatar_folders": {"id": folder_id}}}
-    )
-    
-    if result.matched_count == 0:
+    # Get current folders
+    result = supabase.table('tenants').select('settings').eq('owner_id', user['id']).single().execute()
+    if not result.data:
         raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    settings = result.data.get('settings', {})
+    folders = settings.get('avatar_folders', [])
+    folders = [f for f in folders if f['id'] != folder_id]
+    settings['avatar_folders'] = folders
+    
+    # Update tenant
+    supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
     
     return {"success": True}
 
 @router.post("/assign-avatars")
 async def assign_avatars_to_folder(data: AssignAvatarsToFolder, user = Depends(get_current_user)):
     """Assign multiple avatars to a folder"""
-    from core.db import get_db
-    db = await get_db()
+    # Get current folders
+    result = supabase.table('tenants').select('settings').eq('owner_id', user['id']).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Tenant not found")
     
-    # Add avatar IDs to folder's avatar_ids array (avoiding duplicates)
-    result = await db.tenants.update_one(
-        {"owner_id": user['id'], "settings.avatar_folders.id": data.folder_id},
-        {"$addToSet": {"settings.avatar_folders.$.avatar_ids": {"$each": data.avatar_ids}}}
-    )
+    settings = result.data.get('settings', {})
+    folders = settings.get('avatar_folders', [])
     
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Folder not found")
+    # Find and update folder
+    for folder in folders:
+        if folder['id'] == data.folder_id:
+            current_ids = set(folder.get('avatar_ids', []))
+            current_ids.update(data.avatar_ids)
+            folder['avatar_ids'] = list(current_ids)
+            break
+    
+    settings['avatar_folders'] = folders
+    supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
     
     return {"success": True, "assigned_count": len(data.avatar_ids)}
-
-@router.post("/remove-avatars")
-async def remove_avatars_from_folder(data: AssignAvatarsToFolder, user = Depends(get_current_user)):
-    """Remove avatars from a folder"""
-    from core.db import get_db
-    db = await get_db()
-    
-    result = await db.tenants.update_one(
-        {"owner_id": user['id'], "settings.avatar_folders.id": data.folder_id},
-        {"$pullAll": {"settings.avatar_folders.$.avatar_ids": data.avatar_ids}}
-    )
-    
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Folder not found")
-    
-    return {"success": True}
