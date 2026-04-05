@@ -682,10 +682,10 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
-                          {/* Download button - Exact same method as video download */}
+                          {/* Download button - With save dialog picker */}
                           <button
                             onClick={async (e) => {
-                              console.log('🎯 [DOWNLOAD BUTTON] CLICADO! Início da função');
+                              console.log('🎯 [DOWNLOAD BUTTON] CLICADO!');
                               e.stopPropagation();
                               e.preventDefault();
                               
@@ -698,26 +698,54 @@ export function AvatarLibraryModalV2({
                               try {
                                 console.log('🔄 [DOWNLOAD] Iniciando fetch...');
                                 const resp = await fetch(imageUrl);
-                                console.log('✅ [DOWNLOAD] Fetch OK, criando blob...');
                                 const blob = await resp.blob();
                                 console.log('✅ [DOWNLOAD] Blob criado, tamanho:', blob.size);
+                                
+                                // Method 1: Try modern File System Access API (allows user to choose location)
+                                if (window.showSaveFilePicker) {
+                                  try {
+                                    console.log('💾 [DOWNLOAD] Abrindo diálogo de salvar...');
+                                    const handle = await window.showSaveFilePicker({
+                                      suggestedName: filename,
+                                      types: [{
+                                        description: 'PNG Image',
+                                        accept: { 'image/png': ['.png'] }
+                                      }]
+                                    });
+                                    const writable = await handle.createWritable();
+                                    await writable.write(blob);
+                                    await writable.close();
+                                    console.log('✅ [DOWNLOAD] Arquivo salvo com sucesso!');
+                                    toast.success(`✅ ${av.name} salvo!`);
+                                    return;
+                                  } catch (pickerErr) {
+                                    if (pickerErr.name === 'AbortError') {
+                                      console.log('ℹ️ [DOWNLOAD] Usuário cancelou');
+                                      return;
+                                    }
+                                    console.warn('⚠️ [DOWNLOAD] Picker falhou, tentando método alternativo:', pickerErr);
+                                  }
+                                }
+                                
+                                // Method 2: Traditional download (fallback)
+                                console.log('🔄 [DOWNLOAD] Usando método tradicional...');
                                 const blobUrl = URL.createObjectURL(blob);
-                                console.log('✅ [DOWNLOAD] Blob URL criada:', blobUrl);
                                 const a = document.createElement('a');
                                 a.href = blobUrl;
                                 a.download = filename;
                                 document.body.appendChild(a);
                                 console.log('🖱️ [DOWNLOAD] Disparando click...');
                                 a.click();
-                                console.log('🧹 [DOWNLOAD] Limpando...');
                                 document.body.removeChild(a);
                                 URL.revokeObjectURL(blobUrl);
                                 console.log('✅ [DOWNLOAD] CONCLUÍDO!');
                                 toast.success(`✅ ${av.name} baixado!`);
+                                
                               } catch (err) {
                                 console.error('❌ [DOWNLOAD] ERRO:', err);
                                 console.log('🔀 [DOWNLOAD] Abrindo em nova aba (fallback)');
                                 window.open(imageUrl, '_blank');
+                                toast.error('Abriu em nova aba. Clique direito > Salvar imagem');
                               }
                             }}
                             disabled={isDownloading}
