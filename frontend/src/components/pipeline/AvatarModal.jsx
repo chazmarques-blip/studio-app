@@ -65,7 +65,7 @@ export function AvatarModal({ ctx }) {
 
   return (
     <div className={`fixed inset-0 ${zIndexOverride || 'z-50'} bg-black/80 flex items-center justify-center p-4`} onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
-      <div data-testid="avatar-modal" className="w-full max-w-md rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[75vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div data-testid="avatar-modal" className="w-full max-w-4xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
@@ -480,7 +480,7 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
 
-                      {/* Media Display + History (left) + AI Edit Side Panel (right) */}
+                      {/* Media Display + History (left) + Main Image + AI Edit (right) */}
                       <div className="flex gap-3 items-start">
                       {/* Edit History Panel (Left, vertical scroll) */}
                       {avatarEditHistory.length > 1 && (
@@ -502,8 +502,8 @@ export function AvatarModal({ ctx }) {
                                   <img loading="lazy" decoding="async" src={resolveImageUrl(entry.url)} alt={`v${idx + 1}`}
                                     className="w-full aspect-[3/4] object-cover" />
                                   {entry.isBase && (
-                                    <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1.5 py-0.5">
-                                      <span className="text-xs text-black font-bold uppercase">BASE</span>
+                                    <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1 py-0.5">
+                                      <span className="text-[9px] text-black font-bold uppercase tracking-tight">BASE</span>
                                     </div>
                                   )}
                                   <div className="absolute top-1 right-1 bg-black/70 rounded px-1.5 py-0.5">
