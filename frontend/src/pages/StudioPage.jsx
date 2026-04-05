@@ -930,6 +930,7 @@ export default function StudioPage() {
             setAvatarEditHistory,
             setPreviewVideoUrl,
             setGeneratingPreviewVideo,
+            setApplyingClothing,
             resetAvatarModal,
             generateAvatarFromPhoto: () => {
               console.log('⚠️ generateAvatarFromPhoto: Not implemented yet');
@@ -1659,6 +1660,7 @@ export default function StudioPage() {
             setAvatarEditHistory,
             setPreviewVideoUrl,
             setGeneratingPreviewVideo,
+            setApplyingClothing,
             resetAvatarModal,
             generateAvatarFromPhoto: async () => {
               console.log('🎨 Global generateAvatarFromPhoto');

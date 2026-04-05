@@ -39,7 +39,7 @@ export function AvatarModal({ ctx }) {
     setAvatarPromptStyle, setAiEditAvatarId, setAiEditInstruction, setAiEditLoading: _setAiEditLoading,
     setTempAvatar, setCustomizeTab, setVoiceTab, setAngleImages,
     setPreviewLanguage, setAvatarPreviewUrl, setAvatarEditHistory,
-    setPreviewVideoUrl, setGeneratingPreviewVideo,
+    setPreviewVideoUrl, setGeneratingPreviewVideo, setApplyingClothing,
     // Handlers
     resetAvatarModal, generateAvatarFromPhoto, generateAvatarFromPrompt,
     uploadAvatarPhoto, uploadAvatarVideo, applyClothing, generateAngle,
