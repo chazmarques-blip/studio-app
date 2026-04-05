@@ -494,22 +494,24 @@ export function AvatarModal({ ctx }) {
                                 <video src={previewVideoUrl} controls autoPlay loop playsInline
                                   className="w-full h-full object-cover" />
                               ) : (
-                                <div className="relative cursor-pointer group h-full">
+                                <div className="relative h-full">
                                   <img src={resolveImageUrl(tempAvatar?.url)} alt="Current"
-                                    className="w-full h-full object-cover" 
-                                    onClick={() => setTempAvatar(p => ({ ...p, url: tempAvatar?.url }))} />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                    className="w-full h-full object-cover rounded-lg" />
+                                  <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group">
                                     <button 
-                                      onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        setAvatarPreviewUrl(tempAvatar?.url); 
+                                      data-testid="expand-atual-btn"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        console.log('🔍 Expandindo imagem atual:', tempAvatar?.url);
+                                        setAvatarPreviewUrl(tempAvatar?.url);
                                       }}
-                                      className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
-                                      <Maximize2 size={14} className="text-white" />
+                                      className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer">
+                                      <Maximize2 size={16} className="text-white" />
                                     </button>
                                   </div>
                                   {applyingClothing && (
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg">
                                       <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
                                     </div>
                                   )}
@@ -537,23 +539,25 @@ export function AvatarModal({ ctx }) {
                                       <p className="text-[9px] text-[#8B5CF6]">Gerando...</p>
                                     </div>
                                   ) : avatarEditHistory.length > 1 && avatarEditHistory[avatarEditHistory.length - 2] ? (
-                                    <div className="relative cursor-pointer group h-full" onClick={() => {
-                                      const prevVersion = avatarEditHistory[avatarEditHistory.length - 2];
-                                      setTempAvatar(p => ({ ...p, url: prevVersion.url }));
-                                    }}>
+                                    <div className="relative h-full">
                                       <img src={resolveImageUrl(avatarEditHistory[avatarEditHistory.length - 2].url)} alt="Previous"
-                                        className="w-full h-full object-cover" />
-                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                        <div className="flex gap-2">
-                                          <button 
-                                            onClick={(e) => { 
-                                              e.stopPropagation(); 
-                                              setAvatarPreviewUrl(avatarEditHistory[avatarEditHistory.length - 2].url); 
-                                            }}
-                                            className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
-                                            <Maximize2 size={14} className="text-white" />
-                                          </button>
-                                        </div>
+                                        className="w-full h-full object-cover rounded-lg cursor-pointer"
+                                        onClick={() => {
+                                          const prevVersion = avatarEditHistory[avatarEditHistory.length - 2];
+                                          setTempAvatar(p => ({ ...p, url: prevVersion.url }));
+                                        }} />
+                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group">
+                                        <button 
+                                          data-testid="expand-preview-btn"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('🔍 Expandindo Preview');
+                                            setAvatarPreviewUrl(avatarEditHistory[avatarEditHistory.length - 2].url);
+                                          }}
+                                          className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer">
+                                          <Maximize2 size={16} className="text-white" />
+                                        </button>
                                       </div>
                                     </div>
                                   ) : (
@@ -572,21 +576,23 @@ export function AvatarModal({ ctx }) {
                                 const versionNumber = avatarEditHistory.length - 3 - idx;
                                 return (
                                   <div key={idx} className="relative flex-shrink-0 w-full">
-                                    <div 
-                                      onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}
-                                      className={`aspect-[3/4] rounded-lg overflow-hidden border-2 cursor-pointer transition ${
+                                    <div className={`aspect-[3/4] rounded-lg overflow-hidden border-2 transition ${
                                         isActive ? 'border-[#8B5CF6] shadow-[0_0_8px_rgba(139,92,246,0.5)]' : 'border-[#333] hover:border-[#8B5CF6]/40'
-                                      } bg-[#0A0A0A] relative group`}>
+                                      } bg-[#0A0A0A] relative`}>
                                       <img src={resolveImageUrl(entry.url)} alt={`v${versionNumber}`}
-                                        className="w-full h-full object-cover" />
-                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                        className="w-full h-full object-cover cursor-pointer"
+                                        onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))} />
+                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group">
                                         <button 
-                                          onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            setAvatarPreviewUrl(entry.url); 
+                                          data-testid={`expand-v${versionNumber}-btn`}
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log(`🔍 Expandindo v${versionNumber}`);
+                                            setAvatarPreviewUrl(entry.url);
                                           }}
-                                          className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
-                                          <Maximize2 size={14} className="text-white" />
+                                          className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer">
+                                          <Maximize2 size={16} className="text-white" />
                                         </button>
                                       </div>
                                       {entry.isBase ? (
