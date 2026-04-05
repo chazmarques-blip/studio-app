@@ -65,7 +65,7 @@ export function AvatarModal({ ctx }) {
 
   return (
     <div className={`fixed inset-0 ${zIndexOverride || 'z-50'} bg-black/80 flex items-center justify-center p-4`} onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
-      <div data-testid="avatar-modal" className="w-full max-w-3xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div data-testid="avatar-modal" className="w-full max-w-xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
@@ -480,60 +480,43 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
 
-                      {/* COMPACT LAYOUT: Versions (left) | Character + AI Edit (right) */}
-                      <div className={avatarEditHistory.length > 1 ? "grid grid-cols-[140px_1fr] gap-4" : "flex justify-center"}>
+                      {/* ULTRA COMPACT LAYOUT: Versions (left) | Character + AI Edit (right) */}
+                      <div className={avatarEditHistory.length > 1 ? "grid grid-cols-[120px_1fr] gap-3" : "flex justify-center"}>
                       
                       {/* LEFT COLUMN: Edit History + 360° */}
                       {avatarEditHistory.length > 1 && (
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2">
                           {/* History Section */}
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <History size={10} className="text-[#999]" />
-                              <span className="text-[10px] text-[#999] uppercase tracking-wider font-bold">Versões</span>
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-1">
+                              <History size={9} className="text-[#999]" />
+                              <span className="text-[9px] text-[#999] uppercase tracking-wider font-bold">Versões</span>
                             </div>
-                            <div className="flex flex-col gap-2 overflow-y-auto pr-1 scroll-smooth" style={{maxHeight: '280px'}}
+                            <div className="flex flex-col gap-1.5 overflow-y-auto pr-0.5 scroll-smooth" style={{maxHeight: '200px'}}
                               ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
                               {avatarEditHistory.map((entry, idx) => {
                                 const isActive = tempAvatar?.url === entry.url;
                                 return (
                                   <div key={idx} onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}
-                                    className={`group relative cursor-pointer rounded-lg overflow-hidden border-2 transition ${
-                                      isActive ? 'border-[#8B5CF6] shadow-[0_0_6px_rgba(139,92,246,0.4)]' : 'border-[#1E1E1E] hover:border-[#8B5CF6]/40'
+                                    className={`group relative cursor-pointer rounded-md overflow-hidden border-2 transition ${
+                                      isActive ? 'border-[#8B5CF6] shadow-[0_0_4px_rgba(139,92,246,0.5)]' : 'border-[#1E1E1E] hover:border-[#8B5CF6]/40'
                                     }`}>
                                     <img loading="lazy" src={resolveImageUrl(entry.url)} alt={`v${idx}`}
                                       className="w-full aspect-[3/4] object-cover" />
                                     {entry.isBase ? (
-                                      <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1.5 py-0.5">
-                                        <span className="text-[8px] text-black font-bold uppercase">BASE</span>
+                                      <div className="absolute top-0.5 left-0.5 bg-[#8B5CF6] rounded px-1 py-0.5">
+                                        <span className="text-[7px] text-black font-bold uppercase">BASE</span>
                                       </div>
                                     ) : (
-                                      <div className="absolute top-1 right-1 bg-black/80 rounded px-1.5 py-0.5">
-                                        <span className="text-[9px] text-white font-bold">v{idx}</span>
+                                      <div className="absolute top-0.5 right-0.5 bg-black/80 rounded px-1 py-0.5">
+                                        <span className="text-[8px] text-white font-bold">v{idx}</span>
                                       </div>
                                     )}
                                     {isActive && (
-                                      <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#8B5CF6] flex items-center justify-center">
-                                        <Check size={10} className="text-black" />
+                                      <div className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+                                        <Check size={8} className="text-black" />
                                       </div>
                                     )}
-                                    {/* Compact hover actions */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end justify-center pb-1.5">
-                                      <div className="flex gap-1">
-                                        <button onClick={(e) => { e.stopPropagation(); window.open(entry.url, '_blank'); }}
-                                          className="h-5 w-5 rounded bg-[#8B5CF6]/80 hover:bg-[#8B5CF6] flex items-center justify-center transition"
-                                          title="Download">
-                                          <Download size={9} className="text-white" />
-                                        </button>
-                                        {!entry.isBase && (
-                                          <button onClick={(e) => { e.stopPropagation(); setAvatarEditHistory(prev => prev.filter((_, i) => i !== idx)); }}
-                                            className="h-5 w-5 rounded bg-red-500/80 hover:bg-red-500 flex items-center justify-center transition"
-                                            title="Remover">
-                                            <Trash2 size={9} className="text-white" />
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
                                   </div>
                                 );
                               })}
@@ -542,21 +525,21 @@ export function AvatarModal({ ctx }) {
                           
                           {/* 360° Quick Access */}
                           <button onClick={() => setCustomizeTab('view360')}
-                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border transition text-xs font-medium ${
+                            className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-md border transition text-[10px] font-bold ${
                               customizeTab === 'view360' 
                                 ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]' 
                                 : 'border-[#333] text-[#999] hover:border-[#666] hover:text-white'
                             }`}>
-                            <RotateCw size={12} />
-                            <span>Visão 360°</span>
+                            <RotateCw size={10} />
+                            <span>360°</span>
                           </button>
                         </div>
                       )}
                       
-                      {/* RIGHT COLUMN: Character + AI Edit + Apply BG (compact, aligned right) */}
-                      <div className="flex flex-col gap-2.5">
-                        {/* Main Character Image */}
-                        <div className="relative">
+                      {/* RIGHT COLUMN: Character (70% width) + AI Edit + Apply BG */}
+                      <div className="flex flex-col gap-2">
+                        {/* Main Character Image - 70% width for side-by-side comparison */}
+                        <div className="relative w-[70%]">
                           <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8B5CF6]/20 bg-[#0A0A0A]">
                             {avatarMediaTab === 'video' && previewVideoUrl ? (
                               <video src={previewVideoUrl} controls autoPlay loop playsInline
@@ -638,8 +621,8 @@ export function AvatarModal({ ctx }) {
                                   setAiEditInstruction('');
                                 }
                               }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                className="flex-1 text-xs py-1.5 px-2 rounded bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-1">
-                                {aiEditLoading ? <><RefreshCw size={11} className="animate-spin" /> Processando</> : <><Sparkles size={11} /> Aplicar</>}
+                                className="flex-1 text-[10px] py-1 px-2 rounded bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-0.5">
+                                {aiEditLoading ? <><RefreshCw size={10} className="animate-spin" /> Processando</> : <><Sparkles size={10} /> Aplicar</>}
                               </button>
                             </div>
                           </div>
@@ -664,8 +647,8 @@ export function AvatarModal({ ctx }) {
                             } finally { setApplyingClothing(false); }
                           }}
                             disabled={applyingClothing}
-                            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-xs font-medium hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
-                            {applyingClothing ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                            className="w-full flex items-center justify-center gap-1 py-1.5 rounded-md border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-[10px] font-bold hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
+                            {applyingClothing ? <Loader2 size={11} className="animate-spin" /> : <ImageIcon size={11} />}
                             Aplicar Fundo Transparente
                           </button>
                         )}
