@@ -600,66 +600,63 @@ export function AvatarModal({ ctx }) {
                           </div>
                         </div>
                         
-                        {/* AI Edit Panel (full width below frames) */}
-                        {aiEditAvatarId === 'temp' && (
-                          <div className="w-full bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center gap-1 mb-1">
-                              <Sparkles size={9} className="text-[#8B5CF6]" />
-                              <span className="text-[9px] text-white font-bold">Editar com IA</span>
-                            </div>
-                            <textarea data-testid="ai-edit-modal-input"
-                              value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                              placeholder="Ex: óculos, roupa azul, fundo praia..."
-                              className="w-full text-[10px] bg-[#0A0A0A] border border-[#333] rounded-md p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] transition"
-                              rows={3} />
-                            <div className="flex gap-1 mt-1">
-                              <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                                className="flex-1 text-[9px] py-0.5 px-1.5 rounded border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition">
-                                Cancelar
-                              </button>
-                              <button data-testid="ai-edit-modal-confirm" onClick={async () => {
-                                if (!aiEditInstruction.trim() || aiEditLoading) return;
-                                setAiEditLoading(true);
-                                try {
-                                  const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
-                                    avatar_url: tempAvatar.url,
-                                    instruction: aiEditInstruction,
-                                    base_url: isDirectedMode ? "" : (avatarBaseUrl || tempAvatar.url),
-                                  });
-                                  if (data.url) {
-                                    setTempAvatar(p => ({ ...p, url: data.url }));
-                                    const newEntry = {
-                                      url: data.url,
-                                      instruction: aiEditInstruction,
-                                      timestamp: new Date().toISOString(),
-                                      isBase: false,
-                                    };
-                                    setAvatarEditHistory(prev => {
-                                      const updated = [...prev, newEntry];
-                                      if (editingAvatarId) {
-                                        const av = avatars.find(a => a.id === editingAvatarId);
-                                        if (av) {
-                                          persistAvatarToServer({ ...av, url: data.url, edit_history: updated });
-                                        }
-                                      }
-                                      return updated;
-                                    });
-                                    toast.success('Avatar editado!');
-                                  }
-                                } catch (err) {
-                                  toast.error('Erro ao editar');
-                                } finally {
-                                  setAiEditLoading(false);
-                                  setAiEditAvatarId(null);
-                                  setAiEditInstruction('');
-                                }
-                              }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                className="flex-1 text-[9px] py-0.5 px-1.5 rounded bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-0.5">
-                                {aiEditLoading ? <><RefreshCw size={9} className="animate-spin" /> Processando</> : <><Sparkles size={9} /> Aplicar</>}
-                              </button>
-                            </div>
+                        {/* AI Edit Panel (full width below frames) - Always visible */}
+                        <div className="w-full bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Sparkles size={9} className="text-[#8B5CF6]" />
+                            <span className="text-[9px] text-white font-bold">Editar com IA</span>
                           </div>
-                        )}
+                          <textarea data-testid="ai-edit-modal-input"
+                            value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
+                            placeholder="Ex: óculos, roupa azul, fundo praia..."
+                            className="w-full text-[10px] bg-[#0A0A0A] border border-[#333] rounded-md p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] transition"
+                            rows={3} />
+                          <div className="flex gap-1 mt-1">
+                            <button onClick={() => { setAiEditInstruction(''); }}
+                              className="flex-1 text-[9px] py-0.5 px-1.5 rounded border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition">
+                              Cancelar
+                            </button>
+                            <button data-testid="ai-edit-modal-confirm" onClick={async () => {
+                              if (!aiEditInstruction.trim() || aiEditLoading) return;
+                              setAiEditLoading(true);
+                              try {
+                                const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
+                                  avatar_url: tempAvatar.url,
+                                  instruction: aiEditInstruction,
+                                  base_url: isDirectedMode ? "" : (avatarBaseUrl || tempAvatar.url),
+                                });
+                                if (data.url) {
+                                  setTempAvatar(p => ({ ...p, url: data.url }));
+                                  const newEntry = {
+                                    url: data.url,
+                                    instruction: aiEditInstruction,
+                                    timestamp: new Date().toISOString(),
+                                    isBase: false,
+                                  };
+                                  setAvatarEditHistory(prev => {
+                                    const updated = [...prev, newEntry];
+                                    if (editingAvatarId) {
+                                      const av = avatars.find(a => a.id === editingAvatarId);
+                                      if (av) {
+                                        persistAvatarToServer({ ...av, url: data.url, edit_history: updated });
+                                      }
+                                    }
+                                    return updated;
+                                  });
+                                  toast.success('Avatar editado!');
+                                }
+                              } catch (err) {
+                                toast.error('Erro ao editar');
+                              } finally {
+                                setAiEditLoading(false);
+                                setAiEditInstruction('');
+                              }
+                            }} disabled={aiEditLoading || !aiEditInstruction.trim()}
+                              className="flex-1 text-[9px] py-0.5 px-1.5 rounded bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-0.5">
+                              {aiEditLoading ? <><RefreshCw size={9} className="animate-spin" /> Processando</> : <><Sparkles size={9} /> Aplicar</>}
+                            </button>
+                          </div>
+                        </div>
                         
                         {/* Apply Transparent Background button (full width) */}
                         {avatarMediaTab !== 'video' && (
