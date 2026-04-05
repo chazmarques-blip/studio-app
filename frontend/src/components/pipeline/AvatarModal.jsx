@@ -536,52 +536,71 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
                       
-                      {/* RIGHT COLUMN: Character (60% width, aligned right) + AI Edit + Apply BG */}
+                      {/* RIGHT COLUMN: 2 Fixed Comparison Frames + AI Edit + Apply BG */}
                       <div className="flex flex-col gap-2 items-end">
-                        {/* Main Character Image - 60% width, aligned right */}
-                        <div className="relative w-[60%]">
-                          <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8B5CF6]/20 bg-[#0A0A0A]">
-                            {avatarMediaTab === 'video' && previewVideoUrl ? (
-                              <video src={previewVideoUrl} controls autoPlay loop playsInline
-                                className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="relative cursor-pointer group h-full" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
-                                <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
+                        {/* TWO FIXED COMPARISON FRAMES (side by side) */}
+                        <div className="w-full grid grid-cols-2 gap-2">
+                          {/* Frame 1: Current Avatar */}
+                          <div className="relative">
+                            <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8B5CF6]/20 bg-[#0A0A0A]">
+                              {avatarMediaTab === 'video' && previewVideoUrl ? (
+                                <video src={previewVideoUrl} controls autoPlay loop playsInline
                                   className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                  <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
-                                </div>
-                                {applyingClothing && (
-                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                    <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
+                              ) : (
+                                <div className="relative cursor-pointer group h-full" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
+                                  <img src={resolveImageUrl(tempAvatar?.url)} alt="Current"
+                                    className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                    <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
                                   </div>
-                                )}
-                              </div>
-                            )}
-                            {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
-                              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-1.5">
-                                <Loader2 size={18} className="animate-spin text-[#8B5CF6]" />
-                                <p className="text-[10px] text-[#8B5CF6]">Gerando preview...</p>
-                              </div>
-                            )}
+                                  {applyingClothing && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                      <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
+                                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-1.5">
+                                  <Loader2 size={18} className="animate-spin text-[#8B5CF6]" />
+                                  <p className="text-[10px] text-[#8B5CF6]">Gerando preview...</p>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-[8px] text-center text-[#999] mt-1">Atual</p>
+                          </div>
+                          
+                          {/* Frame 2: New/Preview Avatar (placeholder when empty) */}
+                          <div className="relative">
+                            <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-dashed border-[#8B5CF6]/20 bg-[#0A0A0A] flex items-center justify-center">
+                              {aiEditLoading ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
+                                  <p className="text-[9px] text-[#8B5CF6]">Gerando...</p>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1 text-[#666]">
+                                  <Sparkles size={16} />
+                                  <p className="text-[8px] text-center px-2">Nova versão<br/>aparecerá aqui</p>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-[8px] text-center text-[#999] mt-1">Preview</p>
                           </div>
                         </div>
                         
-                        {/* AI Edit Panel (optimized - single line title, larger textarea) */}
+                        {/* AI Edit Panel (full width below frames) */}
                         {aiEditAvatarId === 'temp' && (
-                          <div className="w-[60%] bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
-                            {/* Header: "Editar com IA" (single line, compact) */}
+                          <div className="w-full bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center gap-1 mb-1">
                               <Sparkles size={9} className="text-[#8B5CF6]" />
                               <span className="text-[9px] text-white font-bold">Editar com IA</span>
                             </div>
-                            {/* Textarea (5 lines - more space from saved header line) */}
                             <textarea data-testid="ai-edit-modal-input"
                               value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
                               placeholder="Ex: óculos, roupa azul, fundo praia..."
                               className="w-full text-[10px] bg-[#0A0A0A] border border-[#333] rounded-md p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] transition"
-                              rows={5} />
-                            {/* Buttons (smaller) */}
+                              rows={3} />
                             <div className="flex gap-1 mt-1">
                               <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
                                 className="flex-1 text-[9px] py-0.5 px-1.5 rounded border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition">
@@ -631,7 +650,7 @@ export function AvatarModal({ ctx }) {
                           </div>
                         )}
                         
-                        {/* Apply Transparent Background button (ultra compact, 60% width, aligned right) */}
+                        {/* Apply Transparent Background button (full width) */}
                         {avatarMediaTab !== 'video' && (
                           <button data-testid="apply-bg-btn" onClick={async () => {
                             if (!tempAvatar?.url || applyingClothing) return;
@@ -650,7 +669,7 @@ export function AvatarModal({ ctx }) {
                             } finally { setApplyingClothing(false); }
                           }}
                             disabled={applyingClothing}
-                            className="w-[60%] flex items-center justify-center gap-1 py-1.5 rounded-md border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-[10px] font-bold hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
+                            className="w-full flex items-center justify-center gap-1 py-1.5 rounded-md border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-[10px] font-bold hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
                             {applyingClothing ? <Loader2 size={11} className="animate-spin" /> : <ImageIcon size={11} />}
                             Aplicar Fundo Transparente
                           </button>
