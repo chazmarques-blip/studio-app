@@ -6,7 +6,7 @@ import {
   X, Loader2, Camera, PenTool, Sparkles, Upload, Check, Film, Volume2,
   ShieldCheck, ScanEye, Bot, Maximize2, Shirt, RotateCw, Sun, Layers,
   Briefcase, Palette, History, Download, Trash2, Plus, Play, Crown,
-  Mic, MicOff, Square, RefreshCw, Lock, Image as ImageIcon,
+  Mic, MicOff, Square, RefreshCw, Lock, Image as ImageIcon, Copy,
 } from 'lucide-react';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
 import { getErrorMsg } from '../../utils/getErrorMsg';
@@ -450,7 +450,7 @@ export function AvatarModal({ ctx }) {
                 ) : (
                   /* CUSTOMIZE STAGE */
                   <>
-                    {/* Avatar Name */}
+                    {/* Avatar Name + Copy Prompt Button */}
                     <div className="flex items-center gap-2">
                       <input
                         data-testid="avatar-name-input"
@@ -460,6 +460,20 @@ export function AvatarModal({ ctx }) {
                         placeholder={isDirectedMode ? 'Nome do personagem...' : (t('studio.avatar_name_placeholder') || 'Name your avatar...')}
                         className="flex-1 bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-[#888] focus:border-[#8B5CF6]/50 focus:outline-none"
                       />
+                      {tempAvatar?.prompt && (
+                        <button
+                          data-testid="copy-prompt-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(tempAvatar.prompt);
+                            toast.success('Prompt copiado!');
+                          }}
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition group"
+                          title={tempAvatar.prompt}
+                        >
+                          <Copy size={12} />
+                          <span className="text-[10px] font-semibold">Copiar Prompt</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Avatar Preview - Photo/Video selector */}
