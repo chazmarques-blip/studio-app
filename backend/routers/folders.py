@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from uuid import uuid4
 from datetime import datetime, timezone
-from core.auth import get_current_user_id
+from core.deps import get_current_user
 
 router = APIRouter(prefix="/api/folders", tags=["folders"])
 
@@ -26,13 +26,13 @@ class AssignAvatarsToFolder(BaseModel):
     folder_id: str
 
 @router.get("")
-async def get_folders(user_id: str = Depends(get_current_user_id)):
+async def get_folders(user = Depends(get_current_user)):
     """Get all folders for current user"""
     from core.db import get_db
     db = await get_db()
     
     # Get user's tenant
-    tenant = await db.tenants.find_one({"owner_id": user_id}, {"_id": 0})
+    tenant = await db.tenants.find_one({"owner_id": user['id']}, {"_id": 0})
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
@@ -40,7 +40,7 @@ async def get_folders(user_id: str = Depends(get_current_user_id)):
     return {"folders": folders}
 
 @router.post("")
-async def create_folder(data: FolderCreate, user_id: str = Depends(get_current_user_id)):
+async def create_folder(data: FolderCreate, user = Depends(get_current_user)):
     """Create a new folder"""
     from core.db import get_db
     db = await get_db()
@@ -56,7 +56,7 @@ async def create_folder(data: FolderCreate, user_id: str = Depends(get_current_u
     
     # Update tenant settings
     result = await db.tenants.update_one(
-        {"owner_id": user_id},
+        {"owner_id": user['id']},
         {"$push": {"settings.avatar_folders": folder}}
     )
     
@@ -66,7 +66,7 @@ async def create_folder(data: FolderCreate, user_id: str = Depends(get_current_u
     return folder
 
 @router.put("/{folder_id}")
-async def update_folder(folder_id: str, data: FolderUpdate, user_id: str = Depends(get_current_user_id)):
+async def update_folder(folder_id: str, data: FolderUpdate, user = Depends(get_current_user)):
     """Update folder name, parent, or color"""
     from core.db import get_db
     db = await get_db()
@@ -83,7 +83,7 @@ async def update_folder(folder_id: str, data: FolderUpdate, user_id: str = Depen
         raise HTTPException(status_code=400, detail="No fields to update")
     
     result = await db.tenants.update_one(
-        {"owner_id": user_id, "settings.avatar_folders.id": folder_id},
+        {"owner_id": user['id'], "settings.avatar_folders.id": folder_id},
         {"$set": update_fields}
     )
     
@@ -93,13 +93,13 @@ async def update_folder(folder_id: str, data: FolderUpdate, user_id: str = Depen
     return {"success": True}
 
 @router.delete("/{folder_id}")
-async def delete_folder(folder_id: str, user_id: str = Depends(get_current_user_id)):
+async def delete_folder(folder_id: str, user = Depends(get_current_user)):
     """Delete a folder"""
     from core.db import get_db
     db = await get_db()
     
     result = await db.tenants.update_one(
-        {"owner_id": user_id},
+        {"owner_id": user['id']},
         {"$pull": {"settings.avatar_folders": {"id": folder_id}}}
     )
     
@@ -109,14 +109,14 @@ async def delete_folder(folder_id: str, user_id: str = Depends(get_current_user_
     return {"success": True}
 
 @router.post("/assign-avatars")
-async def assign_avatars_to_folder(data: AssignAvatarsToFolder, user_id: str = Depends(get_current_user_id)):
+async def assign_avatars_to_folder(data: AssignAvatarsToFolder, user = Depends(get_current_user)):
     """Assign multiple avatars to a folder"""
     from core.db import get_db
     db = await get_db()
     
     # Add avatar IDs to folder's avatar_ids array (avoiding duplicates)
     result = await db.tenants.update_one(
-        {"owner_id": user_id, "settings.avatar_folders.id": data.folder_id},
+        {"owner_id": user['id'], "settings.avatar_folders.id": data.folder_id},
         {"$addToSet": {"settings.avatar_folders.$.avatar_ids": {"$each": data.avatar_ids}}}
     )
     
@@ -126,13 +126,13 @@ async def assign_avatars_to_folder(data: AssignAvatarsToFolder, user_id: str = D
     return {"success": True, "assigned_count": len(data.avatar_ids)}
 
 @router.post("/remove-avatars")
-async def remove_avatars_from_folder(data: AssignAvatarsToFolder, user_id: str = Depends(get_current_user_id)):
+async def remove_avatars_from_folder(data: AssignAvatarsToFolder, user = Depends(get_current_user)):
     """Remove avatars from a folder"""
     from core.db import get_db
     db = await get_db()
     
     result = await db.tenants.update_one(
-        {"owner_id": user_id, "settings.avatar_folders.id": data.folder_id},
+        {"owner_id": user['id'], "settings.avatar_folders.id": data.folder_id},
         {"$pullAll": {"settings.avatar_folders.$.avatar_ids": data.avatar_ids}}
     )
     
