@@ -482,14 +482,14 @@ export function AvatarModal({ ctx }) {
 
                       {/* Media Display + History (left) + AI Edit Side Panel (right) */}
                       <div className="flex gap-3 items-start">
-                      {/* Edit History Panel (Left, vertical scroll, last 2 visible) */}
+                      {/* Edit History Panel (Left, vertical scroll) */}
                       {avatarEditHistory.length > 1 && (
                         <div className="w-32 shrink-0 flex flex-col gap-1.5" data-testid="avatar-edit-history">
                           <div className="flex items-center gap-1">
                             <History size={10} className="text-[#999]" />
                             <span className="text-[11px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Historico'}</span>
                           </div>
-                          <div className="flex flex-col gap-2 overflow-y-auto pr-1 scroll-smooth" style={{maxHeight: '356px'}}
+                          <div className="flex flex-col gap-2 overflow-y-auto pr-1 scroll-smooth" style={{maxHeight: '500px'}}
                             ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
                             {avatarEditHistory.map((entry, idx) => {
                               const isCurrent = tempAvatar?.url === entry.url;
@@ -577,124 +577,131 @@ export function AvatarModal({ ctx }) {
                           </div>
                         </div>
                       )}
-                      <div className="w-48 shrink-0">
-                      <div className="relative aspect-[3/5]">
-                        {avatarMediaTab === 'video' && previewVideoUrl ? (
-                          <video
-                            data-testid="avatar-preview-video"
-                            src={previewVideoUrl}
-                            controls autoPlay loop playsInline
-                            className="w-full h-full rounded-2xl object-cover border-2 border-[#8B5CF6]/30 shadow-lg bg-black"
-                          />
-                        ) : (
-                          <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
-                            <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                              className="w-full h-full rounded-2xl object-contain border-2 border-[#8B5CF6]/30 shadow-lg bg-[#0A0A0A]" />
-                            <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
-                              <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
-                            </div>
-                            {applyingClothing && (
-                              <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
-                                <Loader2 size={24} className="animate-spin text-[#8B5CF6]" />
+                      
+                      {/* RIGHT SIDE: Main Image + Apply BG + AI Edit (vertical stack) */}
+                      <div className="flex-1 flex flex-col gap-2">
+                        {/* Main Avatar Image */}
+                        <div className="w-full max-w-sm">
+                          <div className="relative aspect-[3/5]">
+                            {avatarMediaTab === 'video' && previewVideoUrl ? (
+                              <video
+                                data-testid="avatar-preview-video"
+                                src={previewVideoUrl}
+                                controls autoPlay loop playsInline
+                                className="w-full h-full rounded-2xl object-cover border-2 border-[#8B5CF6]/30 shadow-lg bg-black"
+                              />
+                            ) : (
+                              <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
+                                <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
+                                  className="w-full h-full rounded-2xl object-contain border-2 border-[#8B5CF6]/30 shadow-lg bg-[#0A0A0A]" />
+                                <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
+                                  <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                </div>
+                                {applyingClothing && (
+                                  <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
+                                    <Loader2 size={24} className="animate-spin text-[#8B5CF6]" />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {/* Generating video overlay */}
+                            {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
+                              <div className="absolute inset-0 rounded-2xl bg-black/80 border-2 border-[#8B5CF6]/30 flex flex-col items-center justify-center gap-2">
+                                <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
+                                <p className="text-[11px] text-[#8B5CF6]">{t('studio.generating_preview')}</p>
                               </div>
                             )}
                           </div>
-                        )}
-                        {/* Generating video overlay */}
-                        {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
-                          <div className="absolute inset-0 rounded-2xl bg-black/80 border-2 border-[#8B5CF6]/30 flex flex-col items-center justify-center gap-2">
-                            <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
-                            <p className="text-[11px] text-[#8B5CF6]">{t('studio.generating_preview')}</p>
-                          </div>
-                        )}
-                      </div>
-                      {/* APENAS o botão "Aplicar Fundo Invisível" logo abaixo da imagem */}
-                      {avatarMediaTab !== 'video' && (
-                        <button data-testid="apply-bg-btn" onClick={async () => {
-                          if (!tempAvatar?.url || applyingClothing) return;
-                          setApplyingClothing(true);
-                          try {
-                            const { data } = await axios.post(`${API}/pipeline/avatar/apply-background`, {
-                              avatar_url: tempAvatar.url,
-                            });
-                            if (data.url) {
-                              setTempAvatar(p => ({ ...p, url: data.url }));
-                              setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo transparente aplicado', timestamp: new Date().toISOString() }]);
-                              toast.success(isDirectedMode ? 'Fundo transparente aplicado!' : 'Transparent background applied!');
-                            }
-                          } catch (e) {
-                            toast.error(getErrorMsg(e, 'Erro ao aplicar fundo'));
-                          } finally { setApplyingClothing(false); }
-                        }}
-                          disabled={applyingClothing}
-                          className="mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
-                          {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
-                          {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
-                        </button>
-                      )}
-                      </div>
-                      {/* AI Edit Side Panel */}
-                      {aiEditAvatarId === 'temp' && (
-                        <div className="flex-1 min-w-[140px] bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-1.5">
-                            <Sparkles size={12} className="text-purple-400" />
-                            <span className="text-xs text-purple-300 font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
-                          </div>
-                          <textarea data-testid="ai-edit-modal-input"
-                            value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                            placeholder="Ex: mudar roupa para tunica bege, adicionar oculos, mudar fundo para praia..."
-                            className="w-full text-xs bg-[#0A0A0A] border border-[#222] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
-                            rows={4} />
-                          <div className="flex gap-1.5">
-                            <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                              className="flex-1 text-[11px] py-1.5 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
-                              {t('studio.cancel') || 'Cancelar'}
-                            </button>
-                            <button data-testid="ai-edit-modal-confirm" onClick={async () => {
-                              if (!aiEditInstruction.trim() || aiEditLoading) return;
-                              setAiEditLoading(true);
+                          
+                          {/* "Aplicar Fundo Invisível" button directly below image */}
+                          {avatarMediaTab !== 'video' && (
+                            <button data-testid="apply-bg-btn" onClick={async () => {
+                              if (!tempAvatar?.url || applyingClothing) return;
+                              setApplyingClothing(true);
                               try {
-                                const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
+                                const { data } = await axios.post(`${API}/pipeline/avatar/apply-background`, {
                                   avatar_url: tempAvatar.url,
-                                  instruction: aiEditInstruction,
-                                  base_url: isDirectedMode ? "" : (avatarBaseUrl || tempAvatar.url),
                                 });
                                 if (data.url) {
                                   setTempAvatar(p => ({ ...p, url: data.url }));
-                                  const newEntry = {
-                                    url: data.url,
-                                    instruction: aiEditInstruction,
-                                    timestamp: new Date().toISOString(),
-                                    isBase: false,
-                                  };
-                                  setAvatarEditHistory(prev => {
-                                    const updated = [...prev, newEntry];
-                                    // Auto-save history to server
-                                    if (editingAvatarId) {
-                                      const av = avatars.find(a => a.id === editingAvatarId);
-                                      if (av) {
-                                        persistAvatarToServer({ ...av, url: data.url, edit_history: updated });
-                                      }
-                                    }
-                                    return updated;
-                                  });
-                                  toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
+                                  setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo transparente aplicado', timestamp: new Date().toISOString() }]);
+                                  toast.success(isDirectedMode ? 'Fundo transparente aplicado!' : 'Transparent background applied!');
                                 }
-                              } catch (err) {
-                                toast.error(getErrorMsg(err, 'Erro ao editar avatar'));
-                              } finally {
-                                setAiEditLoading(false);
-                                setAiEditAvatarId(null);
-                                setAiEditInstruction('');
-                              }
-                            }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                              className="flex-1 text-[11px] py-1.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
-                              {aiEditLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                              {aiEditLoading ? (t('studio.editing') || 'Editando...') : (t('studio.apply') || 'Aplicar')}
+                              } catch (e) {
+                                toast.error(getErrorMsg(e, 'Erro ao aplicar fundo'));
+                              } finally { setApplyingClothing(false); }
+                            }}
+                              disabled={applyingClothing}
+                              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
+                              {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
+                              {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
                             </button>
-                          </div>
+                          )}
                         </div>
-                      )}
+                        
+                        {/* AI Edit Panel (always visible) */}
+                        {aiEditAvatarId === 'temp' && (
+                          <div className="w-full max-w-sm bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles size={12} className="text-purple-400" />
+                              <span className="text-xs text-purple-300 font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
+                            </div>
+                            <textarea data-testid="ai-edit-modal-input"
+                              value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
+                              placeholder="Ex: mudar roupa para tunica bege, adicionar oculos, mudar fundo para praia..."
+                              className="w-full text-xs bg-[#0A0A0A] border border-[#222] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
+                              rows={4} />
+                            <div className="flex gap-1.5">
+                              <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
+                                className="flex-1 text-[11px] py-1.5 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                                {t('studio.cancel') || 'Cancelar'}
+                              </button>
+                              <button data-testid="ai-edit-modal-confirm" onClick={async () => {
+                                if (!aiEditInstruction.trim() || aiEditLoading) return;
+                                setAiEditLoading(true);
+                                try {
+                                  const { data } = await axios.post(`${API}/campaigns/pipeline/edit-avatar`, {
+                                    avatar_url: tempAvatar.url,
+                                    instruction: aiEditInstruction,
+                                    base_url: isDirectedMode ? "" : (avatarBaseUrl || tempAvatar.url),
+                                  });
+                                  if (data.url) {
+                                    setTempAvatar(p => ({ ...p, url: data.url }));
+                                    const newEntry = {
+                                      url: data.url,
+                                      instruction: aiEditInstruction,
+                                      timestamp: new Date().toISOString(),
+                                      isBase: false,
+                                    };
+                                    setAvatarEditHistory(prev => {
+                                      const updated = [...prev, newEntry];
+                                      // Auto-save history to server
+                                      if (editingAvatarId) {
+                                        const av = avatars.find(a => a.id === editingAvatarId);
+                                        if (av) {
+                                          persistAvatarToServer({ ...av, url: data.url, edit_history: updated });
+                                        }
+                                      }
+                                      return updated;
+                                    });
+                                    toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
+                                  }
+                                } catch (err) {
+                                  toast.error(getErrorMsg(err, 'Erro ao editar avatar'));
+                                } finally {
+                                  setAiEditLoading(false);
+                                  setAiEditAvatarId(null);
+                                  setAiEditInstruction('');
+                                }
+                              }} disabled={aiEditLoading || !aiEditInstruction.trim()}
+                                className="flex-1 text-[11px] py-1.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
+                                {aiEditLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                {aiEditLoading ? (t('studio.editing') || 'Editando...') : (t('studio.apply') || 'Aplicar')}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       </div>
                     </div>
 
