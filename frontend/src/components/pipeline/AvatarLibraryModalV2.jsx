@@ -592,12 +592,15 @@ export function AvatarLibraryModalV2({
               </button>
             )}
             <button 
-              onClick={() => {
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                console.log('🎯 [NOVA PASTA] Botão clicado!');
                 setEditingFolder(null);
                 setNewFolderName('');
                 setNewFolderColor('#8B5CF6');
                 setNewFolderParent(null);
                 setFolderModalOpen(true);
+                console.log('🎯 [NOVA PASTA] Modal deveria abrir agora');
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6]/20 to-[#7C3AED]/20 border border-[#8B5CF6]/40 text-xs font-semibold text-[#A78BFA] hover:from-[#8B5CF6]/30 hover:to-[#7C3AED]/30 transition-all hover:scale-105"
               title="Nova Pasta"
