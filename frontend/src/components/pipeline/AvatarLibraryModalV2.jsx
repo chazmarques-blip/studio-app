@@ -1139,101 +1139,99 @@ export function AvatarLibraryModalV2({
       {/* Expanded Preview Modal (4x size) */}
       {expandedAvatar && (
         <div 
-          className="fixed inset-0 z-[10002] bg-black/95 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[10002] bg-white flex items-center justify-center p-8"
           onClick={closeExpanded}
         >
           <div 
-            className="relative max-w-4xl w-full"
+            className="relative flex flex-col items-center"
             onClick={e => e.stopPropagation()}
           >
             {/* Navigation arrows */}
             {previewIndex > 0 && (
               <button
                 onClick={prevAvatar}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 p-3 rounded-full bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/40 transition"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition"
                 title={L.prev}
               >
-                <ChevronLeft size={24} className="text-white" />
+                <ChevronLeft size={20} className="text-gray-700" />
               </button>
             )}
             
             {previewIndex < filtered.length - 1 && (
               <button
                 onClick={nextAvatar}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 p-3 rounded-full bg-[#8B5CF6]/20 hover:bg-[#8B5CF6]/40 transition"
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition"
                 title={L.next}
               >
-                <ChevronRight size={24} className="text-white" />
+                <ChevronRight size={20} className="text-gray-700" />
               </button>
             )}
             
-            {/* Image */}
-            <div className="relative rounded-2xl overflow-hidden border-2 border-[#8B5CF6]/50 shadow-2xl bg-[#0A0A0A]">
+            {/* Image - Exact size, no overlay */}
+            <div className="relative bg-white rounded-lg shadow-2xl">
               <img 
                 src={resolveImageUrl(expandedAvatar.url)} 
                 alt={expandedAvatar.name}
-                className="w-full h-auto max-h-[80vh] object-contain"
+                className="max-h-[85vh] w-auto object-contain rounded-lg"
               />
-              
-              {/* Info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent px-6 py-4">
-                <h3 className="text-2xl font-bold text-white mb-2">{expandedAvatar.name}</h3>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => downloadAvatar(expandedAvatar)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition"
-                  >
-                    <Download size={16} />
-                    {L.download}
-                  </button>
-                  
-                  {onEditAvatar && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('✏️ [EXPANDED] Edit button clicked!', expandedAvatar.name);
-                        const avatarToEdit = expandedAvatar; // Save before closing
-                        setExpandedAvatar(null); // Close expanded modal first
-                        onEditAvatar(avatarToEdit); // Then open edit modal
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition"
-                    >
-                      <Edit3 size={16} />
-                      {L.edit}
-                    </button>
-                  )}
-                  
-                  {/* Delete button - BIG RED BUTTON */}
-                  {onDeleteAvatar && (
-                    <button
-                      data-testid="expanded-delete-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('🗑️ [EXPANDED MODAL] Delete button clicked!', expandedAvatar.name, expandedAvatar.id);
-                        onDeleteAvatar(expandedAvatar);
-                        setExpandedAvatar(null); // Close modal after delete
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition"
-                    >
-                      <Trash2 size={16} />
-                      Deletar
-                    </button>
-                  )}
-                </div>
-              </div>
               
               {/* Close button */}
               <button
                 onClick={closeExpanded}
-                className="absolute top-4 right-4 p-2 rounded-full bg-black/60 hover:bg-black/80 transition"
+                className="absolute top-3 right-3 p-1.5 rounded-full bg-gray-200 hover:bg-gray-300 transition"
               >
-                <X size={20} className="text-white" />
+                <X size={16} className="text-gray-700" />
               </button>
             </div>
             
-            {/* Counter */}
-            <div className="text-center mt-4">
-              <span className="text-sm text-[#888]">
+            {/* Info and buttons below image - DISCRETE */}
+            <div className="mt-3 flex flex-col items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-800">{expandedAvatar.name}</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => downloadAvatar(expandedAvatar)}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-xs font-medium transition"
+                  title="Baixar"
+                >
+                  <Download size={12} />
+                  Baixar
+                </button>
+                
+                {onEditAvatar && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const avatarToEdit = expandedAvatar;
+                      setExpandedAvatar(null);
+                      onEditAvatar(avatarToEdit);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 rounded bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition"
+                    title="Editar"
+                  >
+                    <Edit3 size={12} />
+                    Editar
+                  </button>
+                )}
+                
+                {onDeleteAvatar && (
+                  <button
+                    data-testid="expanded-delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteAvatar(expandedAvatar);
+                      setExpandedAvatar(null);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs font-medium transition"
+                    title="Deletar"
+                  >
+                    <Trash2 size={12} />
+                    Deletar
+                  </button>
+                )}
+              </div>
+              
+              {/* Counter */}
+              <span className="text-xs text-gray-500 mt-1">
                 {previewIndex + 1} / {filtered.length}
               </span>
             </div>
