@@ -1269,13 +1269,19 @@ export function AvatarLibraryModalV2({
             {/* Actions */}
             <div className="px-4 pb-4 flex gap-2">
               <button
-                onClick={() => setFolderModalOpen(false)}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setFolderModalOpen(false);
+                }}
                 className="flex-1 py-2.5 rounded-lg border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition text-sm font-medium"
               >
                 Cancelar
               </button>
               <button
-                onClick={createFolder}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  createFolder();
+                }}
                 className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition text-sm flex items-center justify-center gap-2"
               >
                 <Plus size={16} />
