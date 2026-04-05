@@ -480,64 +480,11 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
 
-                      {/* ULTRA COMPACT LAYOUT: Versions (left) | Character + AI Edit (right) */}
-                      <div className={avatarEditHistory.length > 1 ? "grid grid-cols-[120px_1fr] gap-3" : "flex justify-center"}>
+                      {/* FIXED LAYOUT: 2 Frames + AI Edit + Apply BG (always centered) */}
+                      <div className="flex justify-center">
                       
-                      {/* LEFT COLUMN: Edit History + 360° */}
-                      {avatarEditHistory.length > 1 && (
-                        <div className="flex flex-col gap-2">
-                          {/* History Section */}
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-1">
-                              <History size={9} className="text-[#999]" />
-                              <span className="text-[9px] text-[#999] uppercase tracking-wider font-bold">Versões</span>
-                            </div>
-                            <div className="flex flex-col gap-1.5 overflow-y-auto pr-0.5 scroll-smooth" style={{maxHeight: '200px'}}
-                              ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
-                              {avatarEditHistory.map((entry, idx) => {
-                                const isActive = tempAvatar?.url === entry.url;
-                                return (
-                                  <div key={idx} onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}
-                                    className={`group relative cursor-pointer rounded-md overflow-hidden border-2 transition ${
-                                      isActive ? 'border-[#8B5CF6] shadow-[0_0_4px_rgba(139,92,246,0.5)]' : 'border-[#1E1E1E] hover:border-[#8B5CF6]/40'
-                                    }`}>
-                                    <img loading="lazy" src={resolveImageUrl(entry.url)} alt={`v${idx}`}
-                                      className="w-full aspect-[3/4] object-cover" />
-                                    {entry.isBase ? (
-                                      <div className="absolute top-0.5 left-0.5 bg-[#8B5CF6] rounded px-1 py-0.5">
-                                        <span className="text-[7px] text-black font-bold uppercase">BASE</span>
-                                      </div>
-                                    ) : (
-                                      <div className="absolute top-0.5 right-0.5 bg-black/80 rounded px-1 py-0.5">
-                                        <span className="text-[8px] text-white font-bold">v{idx}</span>
-                                      </div>
-                                    )}
-                                    {isActive && (
-                                      <div className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#8B5CF6] flex items-center justify-center">
-                                        <Check size={8} className="text-black" />
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          
-                          {/* 360° Quick Access */}
-                          <button onClick={() => setCustomizeTab('view360')}
-                            className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded-md border transition text-[10px] font-bold ${
-                              customizeTab === 'view360' 
-                                ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]' 
-                                : 'border-[#333] text-[#999] hover:border-[#666] hover:text-white'
-                            }`}>
-                            <RotateCw size={10} />
-                            <span>360°</span>
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* RIGHT COLUMN: 2 Fixed Comparison Frames + AI Edit + Apply BG */}
-                      <div className="flex flex-col gap-2 items-end">
+                      {/* MAIN COLUMN: 2 Fixed Comparison Frames + AI Edit + Apply BG */}
+                      <div className="flex flex-col gap-2 items-center w-full">
                         {/* TWO FIXED COMPARISON FRAMES (side by side) */}
                         <div className="w-full grid grid-cols-2 gap-2">
                           {/* Frame 1: Current Avatar */}
