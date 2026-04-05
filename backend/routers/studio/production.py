@@ -1084,30 +1084,51 @@ Story: {briefing[:300]}"""
                 data = _parse_json(result_text) or {}
                 sora_prompt_base = data.get("sora_prompt", scene.get("description", ""))
                 
-                # CRITICAL FIX (2026-04-03): Force dialogue inclusion for lip-sync
-                # Claude sometimes ignores the instruction, so we manually append dialogue
-                dialogue_text = scene.get("dialogue", "").strip()
+                # CRITICAL FIX (2026-04-04): Use dialogue_timeline instead of dialogue field
+                # The dialogue field can have narration mixed in, multiple characters, wrong format
+                # dialogue_timeline has proper structure with timing, speaker, text separated
+                dialogue_timeline = scene.get("dialogue_timeline", [])
                 
-                # DEBUG: Log conditions
-                logger.info(f"Studio [{project_id}]: DEBUG - dialogue_text length: {len(dialogue_text) if dialogue_text else 0}")
-                logger.info(f"Studio [{project_id}]: DEBUG - 'says:' in prompt: {'says:' in sora_prompt_base.lower()}")
-                logger.info(f"Studio [{project_id}]: DEBUG - dialogue_text sample: {dialogue_text[:100] if dialogue_text else 'EMPTY'}")
+                logger.info(f"Studio [{project_id}]: DEBUG - dialogue_timeline beats: {len(dialogue_timeline)}")
                 
-                if dialogue_text and "says:" not in sora_prompt_base.lower():
-                    # Extract character speaking (e.g., "Farofa: '...'")
-                    if ":" in dialogue_text:
-                        char_name = dialogue_text.split(":")[0].strip()
-                        speech = dialogue_text.split(":", 1)[1].strip().strip("'\"")
-                    else:
-                        char_name = "Character"
-                        speech = dialogue_text.strip("'\"")
+                if dialogue_timeline and len(dialogue_timeline) > 0:
+                    # Extract only CHARACTER dialogue (skip narrator)
+                    character_beats = [beat for beat in dialogue_timeline if beat.get('speaker', '').lower() != 'narrador' and beat.get('speaker', '').lower() != 'narrator']
                     
-                    # Append lip-sync instruction
-                    sora_prompt = f"{sora_prompt_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word, clear articulation."
-                    logger.info(f"Studio [{project_id}]: ✅ FORCED dialogue into Sora prompt: '{speech[:80]}...'")
+                    if character_beats and "says:" not in sora_prompt_base.lower():
+                        # Build timing breakdown for Sora
+                        timing_text = ""
+                        for beat in character_beats:
+                            speaker = beat.get('speaker', 'Character')
+                            text = beat.get('text', '')
+                            start = beat.get('start_time', 0)
+                            end = beat.get('end_time', 0)
+                            
+                            timing_text += f"[{start:.1f}s-{end:.1f}s] {speaker} says: '{text}' - "
+                        
+                        # Append lip-sync instruction with timing
+                        sora_prompt = f"{sora_prompt_base} DIALOGUE TIMING: {timing_text}speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word matching the exact timing above, clear articulation."
+                        logger.info(f"Studio [{project_id}]: ✅ USED dialogue_timeline with {len(character_beats)} character beats")
+                        logger.info(f"Studio [{project_id}]: Timing breakdown: {timing_text[:200]}...")
+                    else:
+                        sora_prompt = sora_prompt_base
+                        logger.info(f"Studio [{project_id}]: ⚠️ dialogue_timeline only has narrator or already present")
                 else:
-                    sora_prompt = sora_prompt_base
-                    logger.info(f"Studio [{project_id}]: ⚠️ Did NOT force dialogue (already present or empty)")
+                    # Fallback: try old dialogue field if timeline doesn't exist
+                    dialogue_text = scene.get("dialogue", "").strip()
+                    if dialogue_text and "says:" not in sora_prompt_base.lower():
+                        if ":" in dialogue_text:
+                            char_name = dialogue_text.split(":")[0].strip()
+                            speech = dialogue_text.split(":", 1)[1].strip().strip("'\"")
+                        else:
+                            char_name = "Character"
+                            speech = dialogue_text.strip("'\"")
+                        
+                        sora_prompt = f"{sora_prompt_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements."
+                        logger.info(f"Studio [{project_id}]: ⚠️ FALLBACK to dialogue field (no timeline available)")
+                    else:
+                        sora_prompt = sora_prompt_base
+                        logger.info(f"Studio [{project_id}]: ⚠️ No dialogue timeline or text available")
                 
                 # Log the final prompt  
                 logger.info(f"Studio [{project_id}]: Scene {scene_num} FINAL Sora prompt (COMPLETE): {sora_prompt}")
