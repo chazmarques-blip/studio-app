@@ -1875,6 +1875,7 @@ export default function StudioPage() {
               
               try {
                 const payload = {
+                  ...(editingAvatarId && { id: editingAvatarId }), // Include ID when editing to update instead of creating duplicate
                   url: tempAvatar.url,
                   name: avatarName || 'Novo Personagem',
                   avatar_style: tempAvatar.style || avatarPromptStyle || 'realistic',
@@ -1884,7 +1885,8 @@ export default function StudioPage() {
                   voice: tempAvatar.voice || null,
                   angles: angleImages || {},
                   video_url: previewVideoUrl || null,
-                  language: previewLanguage || 'pt'
+                  language: previewLanguage || 'pt',
+                  edit_history: avatarEditHistory || []
                 };
                 
                 console.log('📡 Salvando personagem global:', payload);
@@ -1919,6 +1921,7 @@ export default function StudioPage() {
               
               try {
                 const payload = {
+                  // Never include ID for saveAsNew - always create new avatar
                   url: tempAvatar.url,
                   name: avatarName || 'Novo Personagem',
                   avatar_style: tempAvatar.style || avatarPromptStyle || 'realistic',
@@ -1928,7 +1931,8 @@ export default function StudioPage() {
                   voice: tempAvatar.voice || null,
                   angles: angleImages || {},
                   video_url: previewVideoUrl || null,
-                  language: previewLanguage || 'pt'
+                  language: previewLanguage || 'pt',
+                  edit_history: avatarEditHistory || []
                 };
                 
                 console.log('📡 Salvando novo personagem:', payload);

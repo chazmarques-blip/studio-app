@@ -497,7 +497,7 @@ export function AvatarModal({ ctx }) {
                                 <div className="relative h-full">
                                   <img src={resolveImageUrl(tempAvatar?.url)} alt="Current"
                                     className="w-full h-full object-cover rounded-lg" />
-                                  <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group">
+                                  <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group pointer-events-none">
                                     <button 
                                       data-testid="expand-atual-btn"
                                       onMouseDown={(e) => {
@@ -506,7 +506,7 @@ export function AvatarModal({ ctx }) {
                                         console.log('🔍 Expandindo imagem atual:', tempAvatar?.url);
                                         setAvatarPreviewUrl(tempAvatar?.url);
                                       }}
-                                      className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer">
+                                      className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer pointer-events-auto">
                                       <Maximize2 size={16} className="text-white" />
                                     </button>
                                   </div>
@@ -546,7 +546,7 @@ export function AvatarModal({ ctx }) {
                                           const prevVersion = avatarEditHistory[avatarEditHistory.length - 2];
                                           setTempAvatar(p => ({ ...p, url: prevVersion.url }));
                                         }} />
-                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group">
+                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group pointer-events-none">
                                         <button 
                                           data-testid="expand-preview-btn"
                                           onMouseDown={(e) => {
@@ -555,7 +555,7 @@ export function AvatarModal({ ctx }) {
                                             console.log('🔍 Expandindo Preview');
                                             setAvatarPreviewUrl(avatarEditHistory[avatarEditHistory.length - 2].url);
                                           }}
-                                          className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer">
+                                          className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer pointer-events-auto">
                                           <Maximize2 size={16} className="text-white" />
                                         </button>
                                       </div>
@@ -582,7 +582,7 @@ export function AvatarModal({ ctx }) {
                                       <img src={resolveImageUrl(entry.url)} alt={`v${versionNumber}`}
                                         className="w-full h-full object-cover cursor-pointer"
                                         onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))} />
-                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group">
+                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition flex items-center justify-center group pointer-events-none">
                                         <button 
                                           data-testid={`expand-v${versionNumber}-btn`}
                                           onMouseDown={(e) => {
@@ -591,7 +591,7 @@ export function AvatarModal({ ctx }) {
                                             console.log(`🔍 Expandindo v${versionNumber}`);
                                             setAvatarPreviewUrl(entry.url);
                                           }}
-                                          className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer">
+                                          className="h-10 w-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer pointer-events-auto">
                                           <Maximize2 size={16} className="text-white" />
                                         </button>
                                       </div>
