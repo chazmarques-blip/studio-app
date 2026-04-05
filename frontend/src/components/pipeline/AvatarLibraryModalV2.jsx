@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Search, Check, Download, Users, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -1240,11 +1241,11 @@ export function AvatarLibraryModalV2({
         </div>
       )}
       
-      {/* Folder Create/Edit Modal */}
-      {folderModalOpen && (
+      {/* Folder Create/Edit Modal - Rendered via Portal to escape z-index stacking */}
+      {folderModalOpen && createPortal(
         <div 
           data-modal="folder-create"
-          className="fixed inset-0 z-[9999] bg-red-500/50 flex items-center justify-center p-4" 
+          className="fixed inset-0 z-[99999] bg-red-500/50 flex items-center justify-center p-4" 
           onClick={() => {
             console.log('🎯 [MODAL] Clicou no overlay - fechando');
             setFolderModalOpen(false);
@@ -1340,7 +1341,8 @@ export function AvatarLibraryModalV2({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       
       {/* Download Preview Modal - Compact popup over gallery */}
