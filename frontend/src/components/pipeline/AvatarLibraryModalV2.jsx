@@ -570,7 +570,11 @@ export function AvatarLibraryModalV2({
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           {/* Expand button */}
                           <button
-                            onClick={() => openExpanded(av)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openExpanded(av);
+                            }}
                             className="p-2 rounded-full bg-[#8B5CF6] hover:bg-[#A78BFA] transition"
                             title={L.expand}
                           >
@@ -580,7 +584,12 @@ export function AvatarLibraryModalV2({
                           {/* Edit button */}
                           {onEditAvatar && (
                             <button
-                              onClick={() => onEditAvatar(av)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('✏️ [HOVER] Edit clicked!', av.name);
+                                onEditAvatar(av);
+                              }}
                               className="p-2 rounded-full bg-blue-500 hover:bg-blue-400 transition"
                               title={L.edit}
                             >
