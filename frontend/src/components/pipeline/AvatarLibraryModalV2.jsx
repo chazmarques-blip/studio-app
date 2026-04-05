@@ -947,7 +947,7 @@ export function AvatarLibraryModalV2({
                     <div 
                       key={av.id} 
                       data-testid={`library-avatar-${av.id}`}
-                      className={`group relative rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                      className={`group relative rounded-xl overflow-hidden border-2 transition-all duration-200 max-w-[200px] ${
                         inProject ? 'border-green-500/30 opacity-70' :
                         isSelected ? 'border-[#8B5CF6] shadow-[0_0_16px_rgba(139,92,246,0.3)] scale-[1.02]' :
                         'border-[#1E1E1E] hover:border-[#8B5CF6]/50 hover:scale-[1.02]'
