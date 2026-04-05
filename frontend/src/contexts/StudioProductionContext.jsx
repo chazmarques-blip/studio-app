@@ -36,10 +36,25 @@ export function StudioProductionProvider({ children }) {
       try {
         const token = localStorage.getItem('studiox_token');
         if (!token) return;
-        const res = await axios.get(`${API}/studio/projects/${activeProduction.projectId}/status`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const d = res.data;
+        
+        // Retry logic for transient 500 errors
+        let d;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const res = await axios.get(`${API}/studio/projects/${activeProduction.projectId}/status`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            d = res.data;
+            break; // Success
+          } catch (err) {
+            if (err.response?.status === 500 && attempt < 3) {
+              console.log(`⚠️ Status 500 (attempt ${attempt}/3), retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              continue;
+            }
+            throw err; // Real error or max retries
+          }
+        }
 
         setActiveProduction(prev => {
           if (!prev || prev.projectId !== activeProduction.projectId) return prev;
