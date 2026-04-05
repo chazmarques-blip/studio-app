@@ -480,14 +480,14 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
 
-                      {/* FIXED LAYOUT: 2 Frames + AI Edit + Apply BG (always centered) */}
+                      {/* FIXED LAYOUT: Atual (fixed) + Carousel (Preview + versions) */}
                       <div className="flex justify-center">
                       
-                      {/* MAIN COLUMN: 2 Fixed Comparison Frames + AI Edit + Apply BG */}
+                      {/* MAIN COLUMN: Fixed Frame + Carousel + AI Edit + Apply BG */}
                       <div className="flex flex-col gap-2 items-center w-full">
-                        {/* TWO FIXED COMPARISON FRAMES (side by side) */}
-                        <div className="w-full grid grid-cols-2 gap-2">
-                          {/* Frame 1: Current Avatar */}
+                        {/* FRAME ATUAL (FIXED) + CAROUSEL (Preview + versions) */}
+                        <div className="w-full grid grid-cols-[1fr_1fr] gap-2">
+                          {/* LEFT: Frame "Atual" - Always Fixed */}
                           <div className="relative">
                             <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8B5CF6]/20 bg-[#0A0A0A]">
                               {avatarMediaTab === 'video' && previewVideoUrl ? (
@@ -517,33 +517,74 @@ export function AvatarModal({ ctx }) {
                             <p className="text-[8px] text-center text-[#999] mt-1">Atual</p>
                           </div>
                           
-                          {/* Frame 2: Preview Avatar (shows previous version when loading/done) */}
-                          <div className="relative">
-                            <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-dashed border-[#8B5CF6]/20 bg-[#0A0A0A] flex items-center justify-center">
-                              {aiEditLoading ? (
-                                <div className="flex flex-col items-center gap-2">
-                                  <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
-                                  <p className="text-[9px] text-[#8B5CF6]">Gerando...</p>
+                          {/* RIGHT: Horizontal Carousel (Preview + all versions) */}
+                          <div className="relative overflow-hidden">
+                            <div className="overflow-x-auto flex gap-2 scroll-smooth pb-1" style={{scrollbarWidth: 'thin'}}>
+                              {/* Preview Frame (always first in carousel) */}
+                              <div className="relative flex-shrink-0 w-full">
+                                <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-dashed border-[#8B5CF6]/20 bg-[#0A0A0A] flex items-center justify-center">
+                                  {aiEditLoading ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                      <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
+                                      <p className="text-[9px] text-[#8B5CF6]">Gerando...</p>
+                                    </div>
+                                  ) : avatarEditHistory.length > 1 && avatarEditHistory[avatarEditHistory.length - 2] ? (
+                                    <div className="relative cursor-pointer group h-full" onClick={() => {
+                                      const prevVersion = avatarEditHistory[avatarEditHistory.length - 2];
+                                      setTempAvatar(p => ({ ...p, url: prevVersion.url }));
+                                    }}>
+                                      <img src={resolveImageUrl(avatarEditHistory[avatarEditHistory.length - 2].url)} alt="Previous"
+                                        className="w-full h-full object-cover" />
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                        <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-1 text-[#666]">
+                                      <Sparkles size={16} />
+                                      <p className="text-[8px] text-center px-2">Nova versão<br/>aparecerá aqui</p>
+                                    </div>
+                                  )}
                                 </div>
-                              ) : avatarEditHistory.length > 1 && avatarEditHistory[avatarEditHistory.length - 2] ? (
-                                <div className="relative cursor-pointer group h-full" onClick={() => {
-                                  const prevVersion = avatarEditHistory[avatarEditHistory.length - 2];
-                                  setTempAvatar(p => ({ ...p, url: prevVersion.url }));
-                                }}>
-                                  <img src={resolveImageUrl(avatarEditHistory[avatarEditHistory.length - 2].url)} alt="Previous"
-                                    className="w-full h-full object-cover" />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                    <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                <p className="text-[8px] text-center text-[#999] mt-1">Preview</p>
+                              </div>
+                              
+                              {/* Additional versions (v3, v4, v5...) appear here when history > 2 */}
+                              {avatarEditHistory.length > 2 && avatarEditHistory.slice(0, -2).reverse().map((entry, idx) => {
+                                const isActive = tempAvatar?.url === entry.url;
+                                const versionNumber = avatarEditHistory.length - 3 - idx;
+                                return (
+                                  <div key={idx} className="relative flex-shrink-0 w-full">
+                                    <div 
+                                      onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}
+                                      className={`aspect-[3/4] rounded-lg overflow-hidden border-2 cursor-pointer transition ${
+                                        isActive ? 'border-[#8B5CF6] shadow-[0_0_8px_rgba(139,92,246,0.5)]' : 'border-[#333] hover:border-[#8B5CF6]/40'
+                                      } bg-[#0A0A0A] relative group`}>
+                                      <img src={resolveImageUrl(entry.url)} alt={`v${versionNumber}`}
+                                        className="w-full h-full object-cover" />
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                        <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                      </div>
+                                      {entry.isBase ? (
+                                        <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1.5 py-0.5">
+                                          <span className="text-[8px] text-black font-bold uppercase">BASE</span>
+                                        </div>
+                                      ) : (
+                                        <div className="absolute top-1 right-1 bg-black/80 rounded px-1.5 py-0.5">
+                                          <span className="text-[8px] text-white font-bold">v{versionNumber}</span>
+                                        </div>
+                                      )}
+                                      {isActive && (
+                                        <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+                                          <Check size={10} className="text-black" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-[8px] text-center text-[#999] mt-1">v{versionNumber}</p>
                                   </div>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center gap-1 text-[#666]">
-                                  <Sparkles size={16} />
-                                  <p className="text-[8px] text-center px-2">Nova versão<br/>aparecerá aqui</p>
-                                </div>
-                              )}
+                                );
+                              })}
                             </div>
-                            <p className="text-[8px] text-center text-[#999] mt-1">Preview</p>
                           </div>
                         </div>
                         
