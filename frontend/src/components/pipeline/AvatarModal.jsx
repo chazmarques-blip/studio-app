@@ -578,10 +578,10 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
                       
-                      {/* RIGHT SIDE: Main Image + AI Edit (vertical stack, aligned right, tight spacing) */}
-                      <div className="flex-1 flex flex-col gap-1 items-end">
+                      {/* RIGHT SIDE: Main Image + AI Edit (vertical stack, aligned right, no gap) */}
+                      <div className="flex-1 flex flex-col gap-0 items-end">
                         {/* Main Avatar Image */}
-                        <div className="w-full max-w-sm">
+                        <div className="max-w-sm">
                           <div className="relative aspect-[3/5]">
                             {avatarMediaTab === 'video' && previewVideoUrl ? (
                               <video
@@ -616,7 +616,7 @@ export function AvatarModal({ ctx }) {
                         
                         {/* AI Edit Panel (always visible, directly below image) */}
                         {aiEditAvatarId === 'temp' && (
-                          <div className="w-full max-w-sm bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                          <div className="max-w-sm bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center gap-1.5">
                               <Sparkles size={12} className="text-purple-400" />
                               <span className="text-xs text-purple-300 font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
@@ -696,7 +696,7 @@ export function AvatarModal({ ctx }) {
                             } finally { setApplyingClothing(false); }
                           }}
                             disabled={applyingClothing}
-                            className="w-full max-w-sm flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
+                            className="max-w-sm flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
                             {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
                             {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
                           </button>
