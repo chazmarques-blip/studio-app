@@ -950,7 +950,7 @@ export function AvatarLibraryModalV2({
                         />
                         
                         {/* Hover overlay with actions */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center gap-1.5 pb-2 pointer-events-none">
                           {/* Expand button */}
                           <button
                             onClick={(e) => {
@@ -958,10 +958,10 @@ export function AvatarLibraryModalV2({
                               e.stopPropagation();
                               openExpanded(av);
                             }}
-                            className="p-2 rounded-full bg-[#8B5CF6] hover:bg-[#A78BFA] transition pointer-events-auto"
+                            className="p-1 rounded-md bg-black/40 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:bg-black/60 transition pointer-events-auto"
                             title={L.expand}
                           >
-                            <Maximize2 size={14} className="text-black" />
+                            <Maximize2 size={12} className="text-white" strokeWidth={1.5} />
                           </button>
                           
                           {/* Edit button */}
@@ -973,10 +973,10 @@ export function AvatarLibraryModalV2({
                                 console.log('✏️ [HOVER] Edit clicked!', av.name);
                                 onEditAvatar(av);
                               }}
-                              className="p-2 rounded-full bg-blue-500 hover:bg-blue-400 transition pointer-events-auto"
+                              className="p-1 rounded-md bg-black/40 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:bg-black/60 transition pointer-events-auto"
                               title={L.edit}
                             >
-                              <Edit3 size={14} className="text-white" />
+                              <Edit3 size={12} className="text-white" strokeWidth={1.5} />
                             </button>
                           )}
                           
@@ -989,10 +989,10 @@ export function AvatarLibraryModalV2({
                                 console.log('🗑️ [CARD HOVER] Delete button clicked!', av.name, av.id);
                                 onDeleteAvatar(av);
                               }}
-                              className="p-2 rounded-full bg-red-500 hover:bg-red-400 transition pointer-events-auto"
+                              className="p-1 rounded-md bg-black/40 backdrop-blur-sm border border-red-500/30 hover:border-red-500/60 hover:bg-black/60 transition pointer-events-auto"
                               title="Excluir"
                             >
-                              <Trash2 size={14} className="text-white" />
+                              <Trash2 size={12} className="text-red-400" strokeWidth={1.5} />
                             </button>
                           )}
                           
@@ -1004,10 +1004,10 @@ export function AvatarLibraryModalV2({
                               console.log('📥 [DOWNLOAD] Abrindo modal de download');
                               setDownloadPreview(av);
                             }}
-                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition pointer-events-auto flex items-center justify-center"
+                            className="p-1 rounded-md bg-black/40 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:bg-black/60 transition pointer-events-auto flex items-center justify-center"
                             title="Baixar personagem"
                           >
-                            <Download size={14} className="text-white" />
+                            <Download size={12} className="text-white" strokeWidth={1.5} />
                           </button>
                         </div>
                       </div>
@@ -1190,10 +1190,10 @@ export function AvatarLibraryModalV2({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => downloadAvatar(expandedAvatar)}
-                  className="flex items-center gap-1 px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-xs font-medium transition"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 text-xs font-medium transition"
                   title="Baixar"
                 >
-                  <Download size={12} />
+                  <Download size={12} strokeWidth={1.5} />
                   Baixar
                 </button>
                 
@@ -1205,10 +1205,10 @@ export function AvatarLibraryModalV2({
                       setExpandedAvatar(null);
                       onEditAvatar(avatarToEdit);
                     }}
-                    className="flex items-center gap-1 px-2 py-1 rounded bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium transition"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 text-xs font-medium transition"
                     title="Editar"
                   >
-                    <Edit3 size={12} />
+                    <Edit3 size={12} strokeWidth={1.5} />
                     Editar
                   </button>
                 )}
@@ -1221,10 +1221,10 @@ export function AvatarLibraryModalV2({
                       onDeleteAvatar(expandedAvatar);
                       setExpandedAvatar(null);
                     }}
-                    className="flex items-center gap-1 px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs font-medium transition"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-red-300 hover:border-red-400 hover:bg-red-50 text-red-600 text-xs font-medium transition"
                     title="Deletar"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={12} strokeWidth={1.5} />
                     Deletar
                   </button>
                 )}
