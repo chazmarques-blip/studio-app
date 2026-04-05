@@ -536,10 +536,10 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
                       
-                      {/* RIGHT COLUMN: Character (70% width) + AI Edit + Apply BG */}
-                      <div className="flex flex-col gap-2">
-                        {/* Main Character Image - 70% width for side-by-side comparison */}
-                        <div className="relative w-[70%]">
+                      {/* RIGHT COLUMN: Character (60% width, aligned right) + AI Edit + Apply BG */}
+                      <div className="flex flex-col gap-2 items-end">
+                        {/* Main Character Image - 60% width, aligned right */}
+                        <div className="relative w-[60%]">
                           <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8B5CF6]/20 bg-[#0A0A0A]">
                             {avatarMediaTab === 'video' && previewVideoUrl ? (
                               <video src={previewVideoUrl} controls autoPlay loop playsInline
@@ -547,7 +547,7 @@ export function AvatarModal({ ctx }) {
                             ) : (
                               <div className="relative cursor-pointer group h-full" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
                                 <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                                  className="w-full h-full object-contain" />
+                                  className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
                                   <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
                                 </div>
@@ -567,9 +567,9 @@ export function AvatarModal({ ctx }) {
                           </div>
                         </div>
                         
-                        {/* AI Edit Panel (compact) */}
+                        {/* AI Edit Panel (ultra compact, 60% width, aligned right) */}
                         {aiEditAvatarId === 'temp' && (
-                          <div className="bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-3" onClick={e => e.stopPropagation()}>
+                          <div className="w-[60%] bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center gap-1.5 mb-2">
                               <Sparkles size={12} className="text-[#8B5CF6]" />
                               <span className="text-xs text-white font-bold">Editar com IA</span>
@@ -628,7 +628,7 @@ export function AvatarModal({ ctx }) {
                           </div>
                         )}
                         
-                        {/* Apply Transparent Background button (compact) */}
+                        {/* Apply Transparent Background button (ultra compact, 60% width, aligned right) */}
                         {avatarMediaTab !== 'video' && (
                           <button data-testid="apply-bg-btn" onClick={async () => {
                             if (!tempAvatar?.url || applyingClothing) return;
@@ -647,7 +647,7 @@ export function AvatarModal({ ctx }) {
                             } finally { setApplyingClothing(false); }
                           }}
                             disabled={applyingClothing}
-                            className="w-full flex items-center justify-center gap-1 py-1.5 rounded-md border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-[10px] font-bold hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
+                            className="w-[60%] flex items-center justify-center gap-1 py-1.5 rounded-md border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-[10px] font-bold hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
                             {applyingClothing ? <Loader2 size={11} className="animate-spin" /> : <ImageIcon size={11} />}
                             Aplicar Fundo Transparente
                           </button>
