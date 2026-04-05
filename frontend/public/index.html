@@ -1,6 +1,67 @@
 <!doctype html>
 <html lang="en">
     <head>
+        <script>
+        // ═══════════════════════════════════════════════════════════════
+        // BLOQUEIO ABSOLUTO E DEFINITIVO DO RRWEB - PRIMEIRA LINHA
+        // ═══════════════════════════════════════════════════════════════
+        (function() {
+          'use strict';
+          
+          // 1. HIJACK CONSOLE PRIMEIRO (antes de TUDO)
+          const _err = console.error;
+          const _warn = console.warn;
+          
+          console.error = function(...args) {
+            const str = String(args[0] || '').toLowerCase();
+            if (str.includes('rrweb') || 
+                str.includes('removeeventlistener') || 
+                str.includes('securityerror') ||
+                (str.includes('uncaught') && str.includes('window'))) {
+              return; // SILENT BLOCK
+            }
+            return _err.apply(console, args);
+          };
+          
+          console.warn = function(...args) {
+            const str = String(args[0] || '').toLowerCase();
+            if (str.includes('rrweb') || str.includes('posthog')) {
+              return; // SILENT BLOCK
+            }
+            return _warn.apply(console, args);
+          };
+          
+          // 2. BLOCK GLOBAL ERROR EVENTS
+          window.addEventListener('error', function(e) {
+            const msg = (e?.message || e?.error?.message || '').toLowerCase();
+            if (msg.includes('rrweb') || 
+                msg.includes('removeeventlistener') || 
+                msg.includes('securityerror')) {
+              e.stopImmediatePropagation();
+              e.preventDefault();
+              return false;
+            }
+          }, true);
+          
+          // 3. BLOCK UNHANDLED REJECTIONS
+          window.addEventListener('unhandledrejection', function(e) {
+            const msg = String(e?.reason || '').toLowerCase();
+            if (msg.includes('rrweb')) {
+              e.preventDefault();
+              return false;
+            }
+          }, true);
+          
+          // 4. PERMANENTLY DISABLE RRWEB
+          Object.defineProperty(window, 'rrweb', {
+            get: () => undefined,
+            set: () => {},
+            configurable: false
+          });
+          
+          console.log('%c✅ RRWEB BLOQUEADO', 'color: #10b981; font-weight: bold; font-size: 14px;');
+        })();
+        </script>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#8B5CF6" />
@@ -99,7 +160,6 @@
           });
           
           console.log('✅ Console purificado - rrweb bloqueado');
-        })();
         })();
         </script>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
