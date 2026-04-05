@@ -702,12 +702,6 @@ export function AvatarLibraryModalV2({
                               <Download size={14} className="text-white" />
                             )}
                           </a>
-                            {isDownloading ? (
-                              <RefreshCw size={14} className="text-white animate-spin" />
-                            ) : (
-                              <Download size={14} className="text-white" />
-                            )}
-                          </button>
                         </div>
                       </div>
                       
