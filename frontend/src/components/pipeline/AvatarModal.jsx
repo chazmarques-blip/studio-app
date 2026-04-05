@@ -567,21 +567,27 @@ export function AvatarModal({ ctx }) {
                           </div>
                         </div>
                         
-                        {/* AI Edit Panel (ultra compact, 60% width, aligned right) */}
+                        {/* AI Edit Panel (optimized internal spacing) */}
                         {aiEditAvatarId === 'temp' && (
                           <div className="w-[60%] bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center gap-1.5 mb-2">
-                              <Sparkles size={12} className="text-[#8B5CF6]" />
-                              <span className="text-xs text-white font-bold">Editar com IA</span>
+                            {/* Header: "com IA" (small) + "Editar" (medium) */}
+                            <div className="flex flex-col gap-0.5 mb-1">
+                              <div className="flex items-center gap-1">
+                                <Sparkles size={8} className="text-[#8B5CF6]" />
+                                <span className="text-[8px] text-[#8B5CF6]/70 uppercase tracking-wide">com IA</span>
+                              </div>
+                              <span className="text-[11px] text-white font-bold">Editar</span>
                             </div>
+                            {/* Textarea (larger) */}
                             <textarea data-testid="ai-edit-modal-input"
                               value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                              placeholder="Ex: adicionar óculos, mudar roupa para azul, fundo de praia..."
-                              className="w-full text-xs bg-[#0A0A0A] border border-[#333] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] transition"
-                              rows={2} />
-                            <div className="flex gap-1.5 mt-2">
+                              placeholder="Ex: óculos, roupa azul, fundo praia..."
+                              className="w-full text-[10px] bg-[#0A0A0A] border border-[#333] rounded-md p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] transition"
+                              rows={4} />
+                            {/* Buttons (smaller) */}
+                            <div className="flex gap-1 mt-1">
                               <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                                className="flex-1 text-xs py-1.5 px-2 rounded border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition">
+                                className="flex-1 text-[9px] py-0.5 px-1.5 rounded border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition">
                                 Cancelar
                               </button>
                               <button data-testid="ai-edit-modal-confirm" onClick={async () => {
@@ -611,18 +617,18 @@ export function AvatarModal({ ctx }) {
                                       }
                                       return updated;
                                     });
-                                    toast.success('Avatar editado com IA!');
+                                    toast.success('Avatar editado!');
                                   }
                                 } catch (err) {
-                                  toast.error(getErrorMsg(err, 'Erro ao editar'));
+                                  toast.error('Erro ao editar');
                                 } finally {
                                   setAiEditLoading(false);
                                   setAiEditAvatarId(null);
                                   setAiEditInstruction('');
                                 }
                               }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                className="flex-1 text-[10px] py-1 px-2 rounded bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-0.5">
-                                {aiEditLoading ? <><RefreshCw size={10} className="animate-spin" /> Processando</> : <><Sparkles size={10} /> Aplicar</>}
+                                className="flex-1 text-[9px] py-0.5 px-1.5 rounded bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-0.5">
+                                {aiEditLoading ? <><RefreshCw size={9} className="animate-spin" /> Processando</> : <><Sparkles size={9} /> Aplicar</>}
                               </button>
                             </div>
                           </div>
