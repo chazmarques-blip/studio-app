@@ -685,25 +685,38 @@ export function AvatarLibraryModalV2({
                           {/* Download button - Exact same method as video download */}
                           <button
                             onClick={async (e) => {
+                              console.log('🎯 [DOWNLOAD BUTTON] CLICADO! Início da função');
                               e.stopPropagation();
                               e.preventDefault();
                               
                               const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
                               const imageUrl = resolveImageUrl(av.url);
                               
+                              console.log('📥 [DOWNLOAD] Filename:', filename);
+                              console.log('📥 [DOWNLOAD] URL:', imageUrl);
+                              
                               try {
+                                console.log('🔄 [DOWNLOAD] Iniciando fetch...');
                                 const resp = await fetch(imageUrl);
+                                console.log('✅ [DOWNLOAD] Fetch OK, criando blob...');
                                 const blob = await resp.blob();
+                                console.log('✅ [DOWNLOAD] Blob criado, tamanho:', blob.size);
                                 const blobUrl = URL.createObjectURL(blob);
+                                console.log('✅ [DOWNLOAD] Blob URL criada:', blobUrl);
                                 const a = document.createElement('a');
                                 a.href = blobUrl;
                                 a.download = filename;
                                 document.body.appendChild(a);
+                                console.log('🖱️ [DOWNLOAD] Disparando click...');
                                 a.click();
+                                console.log('🧹 [DOWNLOAD] Limpando...');
                                 document.body.removeChild(a);
                                 URL.revokeObjectURL(blobUrl);
+                                console.log('✅ [DOWNLOAD] CONCLUÍDO!');
                                 toast.success(`✅ ${av.name} baixado!`);
-                              } catch {
+                              } catch (err) {
+                                console.error('❌ [DOWNLOAD] ERRO:', err);
+                                console.log('🔀 [DOWNLOAD] Abrindo em nova aba (fallback)');
                                 window.open(imageUrl, '_blank');
                               }
                             }}
