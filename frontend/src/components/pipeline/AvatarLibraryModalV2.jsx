@@ -205,6 +205,8 @@ export function AvatarLibraryModalV2({
       return;
     }
     
+    console.log('📁 [CREATE FOLDER] Iniciando criação:', newFolderName);
+    
     try {
       const { data } = await axios.post(`${API}/folders`, {
         name: newFolderName.trim(),
@@ -212,13 +214,23 @@ export function AvatarLibraryModalV2({
         color: newFolderColor
       });
       
-      setFolders(prev => [...prev, data]);
+      console.log('✅ [CREATE FOLDER] Pasta criada no backend:', data);
+      
+      setFolders(prev => {
+        const updated = [...prev, data];
+        console.log('📁 [CREATE FOLDER] Atualizando estado local. Total de pastas:', updated.length);
+        return updated;
+      });
+      
       setFolderModalOpen(false);
       setNewFolderName('');
       setNewFolderColor('#8B5CF6');
       setNewFolderParent(null);
       toast.success(`Pasta "${data.name}" criada!`);
+      
+      console.log('🎉 [CREATE FOLDER] Processo concluído!');
     } catch (err) {
+      console.error('❌ [CREATE FOLDER] Erro:', err);
       toast.error('Erro ao criar pasta');
     }
   };
@@ -800,7 +812,10 @@ export function AvatarLibraryModalV2({
           <div className="flex-1 flex overflow-hidden">
             {/* Folders Sidebar */}
             <div className="w-56 border-r border-[#151515] bg-[#0A0A0A] overflow-y-auto p-4 space-y-2">
-              <div className="text-xs font-bold text-[#666] uppercase mb-2">Pastas</div>
+              <div className="text-xs font-bold text-[#666] uppercase mb-2">
+                Pastas ({folders.length})
+                {folders.length === 0 && <span className="text-[#999] normal-case"> - Nenhuma pasta criada</span>}
+              </div>
               
               {/* All Avatars (default view) */}
               <button
