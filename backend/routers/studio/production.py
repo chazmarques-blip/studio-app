@@ -967,6 +967,12 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         # This ensures progress bar shows correctly (e.g., "1 of 6" not "1 of 1")
         total_scenes = len(scenes)
         _update_scene_status(tenant_id, project_id, scene_num, "directing", total=total_scenes)
+        
+        # Add detailed progress message
+        _update_project_field(tenant_id, project_id, {
+            "progress_message": f"Cena {scene_num}: Claude Director analisando e refinando prompt..."
+        })
+        
         logger.info(f"Studio [{project_id}]: Scene {scene_num} regeneration started - status set to 'directing' ({scene_num}/{total_scenes})")
 
         scenes = project.get("scenes", [])
@@ -1165,6 +1171,11 @@ Story: {briefing[:300]}"""
             try:
                 logger.info(f"Studio [{project_id}]: Regen scene {scene_num} attempt {attempt+1}/3")
                 
+                # Update progress message
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": f"Cena {scene_num}: Sora 2 gerando vídeo (tentativa {attempt+1}/3)... Isso pode levar 2-5 minutos."
+                })
+                
                 video_bytes = _generate_video_with_openai_direct(
                     client=openai_client,
                     prompt=sora_prompt[:1000],
@@ -1210,6 +1221,11 @@ Story: {briefing[:300]}"""
                     # Update project with new output
                     _save_project(tenant_id, settings, projects)
                     _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                    
+                    # Clear progress message
+                    _update_project_field(tenant_id, project_id, {
+                        "progress_message": f"Cena {scene_num}: Concluída! ✓"
+                    })
                     
                     logger.info(f"Studio [{project_id}]: Scene {scene_num} regenerated WITH Sora 2 native audio and lip-sync")
                     return video_url

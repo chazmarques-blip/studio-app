@@ -50,6 +50,7 @@ export function StudioProductionProvider({ children }) {
             scenes: d.scenes || prev.scenes,
             status: d.status,
             narrations: d.narrations || [],
+            progressMessage: d.progress_message || '', // NEW: detailed progress message
           };
           // Stop tracking if production is no longer active (was reset/fixed)
           if (!['starting', 'running_agents', 'generating_video'].includes(d.status)) {

@@ -20,6 +20,7 @@ export function StudioProductionBanner() {
   const totalScenes = agentStatus?.total_scenes || scenes?.length || 0;
   const videosDone = agentStatus?.videos_done || outputs?.filter(o => o.type === 'video' && o.url && o.scene_number)?.length || 0;
   const phase = agentStatus?.phase || '';
+  const progressMessage = ctx.activeProduction?.progressMessage || ''; // NEW: detailed progress message
   const elapsed = Math.round((Date.now() - startedAt) / 60000);
 
   // Progress calc
@@ -100,6 +101,13 @@ export function StudioProductionBanner() {
             isComplete ? 'bg-emerald-500' : isError ? 'bg-red-500' : 'bg-[#8B5CF6]'
           } ${isRunning ? 'animate-pulse' : ''}`} style={{ width: `${progress}%` }} />
         </div>
+
+        {/* Detailed progress message - NEW */}
+        {progressMessage && isRunning && (
+          <p className="text-[8px] text-[#999] mt-1.5 truncate">
+            {progressMessage}
+          </p>
+        )}
 
         {/* Scene mini-indicators */}
         {totalScenes > 0 && isRunning && (
