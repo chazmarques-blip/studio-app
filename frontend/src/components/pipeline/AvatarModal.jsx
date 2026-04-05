@@ -65,7 +65,7 @@ export function AvatarModal({ ctx }) {
 
   return (
     <div className={`fixed inset-0 ${zIndexOverride || 'z-50'} bg-black/80 flex items-center justify-center p-4`} onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
-      <div data-testid="avatar-modal" className="w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div data-testid="avatar-modal" className="w-full max-w-3xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
@@ -480,158 +480,126 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
 
-                      {/* Layout: History (left) + Main Image with AI Edit below (right) */}
-                      <div className="grid grid-cols-[180px_1fr] gap-6">
-                      {/* Edit History Panel (Left column, vertical scroll) */}
+                      {/* COMPACT LAYOUT: Versions (left) | Character + AI Edit (right) */}
+                      <div className={avatarEditHistory.length > 1 ? "grid grid-cols-[140px_1fr] gap-4" : "flex justify-center"}>
+                      
+                      {/* LEFT COLUMN: Edit History + 360° */}
                       {avatarEditHistory.length > 1 && (
-                        <div className="flex flex-col gap-2" data-testid="avatar-edit-history">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <History size={12} className="text-[#999]" />
-                            <span className="text-xs text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Histórico'}</span>
-                          </div>
-                          <div className="flex flex-col gap-3 overflow-y-auto pr-2 scroll-smooth" style={{maxHeight: '600px'}}
-                            ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
-                            {avatarEditHistory.map((entry, idx) => {
-                              const isCurrent = tempAvatar?.url === entry.url;
-                              return (
-                                <div key={idx} data-testid={`history-entry-${idx}`}
-                                  className={`relative shrink-0 rounded-xl overflow-hidden border-2 cursor-pointer transition group ${
-                                    isCurrent ? 'border-[#8B5CF6] shadow-[0_0_8px_rgba(201,168,76,0.15)]' : 'border-[#1E1E1E] hover:border-[#333]'
-                                  }`}
-                                  onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}>
-                                  <img loading="lazy" decoding="async" src={resolveImageUrl(entry.url)} alt={`v${idx + 1}`}
-                                    className="w-full aspect-[3/4] object-cover" />
-                                  {entry.isBase && (
-                                    <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1 py-0.5">
-                                      <span className="text-[9px] text-black font-bold uppercase tracking-tight">BASE</span>
-                                    </div>
-                                  )}
-                                  <div className="absolute top-1 right-1 bg-black/70 rounded px-1.5 py-0.5">
-                                    <span className="text-[10px] text-white font-bold">v{idx + 1}</span>
-                                  </div>
-                                  {isCurrent && (
-                                    <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#8B5CF6] flex items-center justify-center">
-                                      <Check size={8} className="text-black" />
-                                    </div>
-                                  )}
-                                  {/* Action buttons on hover */}
-                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-5 pb-1 px-1 opacity-0 group-hover:opacity-100 transition">
-                                    <p className="text-[5px] text-white/70 line-clamp-1 leading-tight mb-1">{entry.instruction}</p>
-                                    <div className="flex gap-1 justify-center">
-                                      <button data-testid={`history-download-${idx}`} title="Download"
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          try {
-                                            const response = await fetch(resolveImageUrl(entry.url));
-                                            const blob = await response.blob();
-                                            const blobUrl = window.URL.createObjectURL(blob);
-                                            const a = document.createElement('a');
-                                            a.href = blobUrl;
-                                            a.download = `avatar_v${idx + 1}_${Date.now()}.png`;
-                                            document.body.appendChild(a);
-                                            a.click();
-                                            document.body.removeChild(a);
-                                            window.URL.revokeObjectURL(blobUrl);
-                                          } catch { toast.error('Download failed'); }
-                                        }}
-                                        className="h-5 w-5 rounded bg-white/10 flex items-center justify-center hover:bg-white/25 transition">
-                                        <Download size={8} className="text-white" />
-                                      </button>
-                                      <button data-testid={`history-edit-${idx}`} title="Editar a partir desta versão"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setTempAvatar(p => ({ ...p, url: entry.url }));
-                                          setAiEditAvatarId('temp');
-                                          setAiEditInstruction('');
-                                        }}
-                                        className="h-5 w-5 rounded bg-purple-500/20 flex items-center justify-center hover:bg-purple-500/40 transition">
-                                        <Sparkles size={8} className="text-purple-300" />
-                                      </button>
-                                      {!entry.isBase && (
-                                        <button data-testid={`history-delete-${idx}`} title="Remover"
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            const newHistory = avatarEditHistory.filter((_, i) => i !== idx);
-                                            setAvatarEditHistory(newHistory);
-                                            // If we deleted the current version, switch to the last remaining
-                                            if (isCurrent && newHistory.length > 0) {
-                                              setTempAvatar(p => ({ ...p, url: newHistory[newHistory.length - 1].url }));
-                                            }
-                                            // Auto-save to server if editing existing avatar
-                                            if (editingAvatarId) {
-                                              try {
-                                                await axios.delete(`${API}/data/avatars/${editingAvatarId}/history/${idx}`);
-                                              } catch {}
-                                            }
-                                            toast.success('Versão removida');
-                                          }}
-                                          className="h-5 w-5 rounded bg-red-500/20 flex items-center justify-center hover:bg-red-500/40 transition">
-                                          <Trash2 size={8} className="text-red-400" />
+                        <div className="flex flex-col gap-3">
+                          {/* History Section */}
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <History size={10} className="text-[#999]" />
+                              <span className="text-[10px] text-[#999] uppercase tracking-wider font-bold">Versões</span>
+                            </div>
+                            <div className="flex flex-col gap-2 overflow-y-auto pr-1 scroll-smooth" style={{maxHeight: '280px'}}
+                              ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+                              {avatarEditHistory.map((entry, idx) => {
+                                const isActive = tempAvatar?.url === entry.url;
+                                return (
+                                  <div key={idx} onClick={() => setTempAvatar(p => ({ ...p, url: entry.url }))}
+                                    className={`group relative cursor-pointer rounded-lg overflow-hidden border-2 transition ${
+                                      isActive ? 'border-[#8B5CF6] shadow-[0_0_6px_rgba(139,92,246,0.4)]' : 'border-[#1E1E1E] hover:border-[#8B5CF6]/40'
+                                    }`}>
+                                    <img loading="lazy" src={resolveImageUrl(entry.url)} alt={`v${idx}`}
+                                      className="w-full aspect-[3/4] object-cover" />
+                                    {entry.isBase ? (
+                                      <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1.5 py-0.5">
+                                        <span className="text-[8px] text-black font-bold uppercase">BASE</span>
+                                      </div>
+                                    ) : (
+                                      <div className="absolute top-1 right-1 bg-black/80 rounded px-1.5 py-0.5">
+                                        <span className="text-[9px] text-white font-bold">v{idx}</span>
+                                      </div>
+                                    )}
+                                    {isActive && (
+                                      <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+                                        <Check size={10} className="text-black" />
+                                      </div>
+                                    )}
+                                    {/* Compact hover actions */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end justify-center pb-1.5">
+                                      <div className="flex gap-1">
+                                        <button onClick={(e) => { e.stopPropagation(); window.open(entry.url, '_blank'); }}
+                                          className="h-5 w-5 rounded bg-[#8B5CF6]/80 hover:bg-[#8B5CF6] flex items-center justify-center transition"
+                                          title="Download">
+                                          <Download size={9} className="text-white" />
                                         </button>
-                                      )}
+                                        {!entry.isBase && (
+                                          <button onClick={(e) => { e.stopPropagation(); setAvatarEditHistory(prev => prev.filter((_, i) => i !== idx)); }}
+                                            className="h-5 w-5 rounded bg-red-500/80 hover:bg-red-500 flex items-center justify-center transition"
+                                            title="Remover">
+                                            <Trash2 size={9} className="text-white" />
+                                          </button>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
+                          
+                          {/* 360° Quick Access */}
+                          <button onClick={() => setCustomizeTab('view360')}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border transition text-xs font-medium ${
+                              customizeTab === 'view360' 
+                                ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]' 
+                                : 'border-[#333] text-[#999] hover:border-[#666] hover:text-white'
+                            }`}>
+                            <RotateCw size={12} />
+                            <span>Visão 360°</span>
+                          </button>
                         </div>
                       )}
                       
-                      {/* RIGHT SIDE: Main Image + AI Edit (vertical stack, clean spacing) */}
-                      <div className="flex flex-col gap-4">
-                        {/* Main Avatar Image */}
+                      {/* RIGHT COLUMN: Character + AI Edit + Apply BG (compact, aligned right) */}
+                      <div className="flex flex-col gap-2.5">
+                        {/* Main Character Image */}
                         <div className="relative">
-                          <div className="aspect-[4/5] rounded-xl overflow-hidden border-2 border-[#8B5CF6]/20 shadow-xl bg-[#0A0A0A]">
+                          <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-[#8B5CF6]/20 bg-[#0A0A0A]">
                             {avatarMediaTab === 'video' && previewVideoUrl ? (
-                              <video
-                                data-testid="avatar-preview-video"
-                                src={previewVideoUrl}
-                                controls autoPlay loop playsInline
-                                className="w-full h-full rounded-2xl object-cover border-2 border-[#8B5CF6]/30 shadow-lg bg-black"
-                              />
+                              <video src={previewVideoUrl} controls autoPlay loop playsInline
+                                className="w-full h-full object-cover" />
                             ) : (
-                              <div className="relative cursor-pointer group" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
+                              <div className="relative cursor-pointer group h-full" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
                                 <img src={resolveImageUrl(tempAvatar?.url)} alt="Avatar"
-                                  className="w-full h-full rounded-2xl object-contain border-2 border-[#8B5CF6]/30 shadow-lg bg-[#0A0A0A]" />
-                                <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
-                                  <Maximize2 size={16} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                  className="w-full h-full object-contain" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                  <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
                                 </div>
                                 {applyingClothing && (
-                                  <div className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center">
-                                    <Loader2 size={24} className="animate-spin text-[#8B5CF6]" />
+                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                    <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
                                   </div>
                                 )}
                               </div>
                             )}
-                            {/* Generating video overlay */}
                             {avatarMediaTab === 'video' && generatingPreviewVideo && !previewVideoUrl && (
-                              <div className="absolute inset-0 rounded-2xl bg-black/80 border-2 border-[#8B5CF6]/30 flex flex-col items-center justify-center gap-2">
-                                <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
-                                <p className="text-[11px] text-[#8B5CF6]">{t('studio.generating_preview')}</p>
+                              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-1.5">
+                                <Loader2 size={18} className="animate-spin text-[#8B5CF6]" />
+                                <p className="text-[10px] text-[#8B5CF6]">Gerando preview...</p>
                               </div>
                             )}
                           </div>
                         </div>
                         
-                        {/* AI Edit Panel (always visible, professional layout) */}
+                        {/* AI Edit Panel (compact) */}
                         {aiEditAvatarId === 'temp' && (
-                          <div className="bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-xl p-4 shadow-lg" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="p-1.5 bg-[#8B5CF6]/20 rounded-lg">
-                                <Sparkles size={14} className="text-[#8B5CF6]" />
-                              </div>
-                              <span className="text-sm text-white font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
+                          <div className="bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-3" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Sparkles size={12} className="text-[#8B5CF6]" />
+                              <span className="text-xs text-white font-bold">Editar com IA</span>
                             </div>
                             <textarea data-testid="ai-edit-modal-input"
                               value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                              placeholder="Descreva as mudanças desejadas... Ex: adicionar óculos escuros, mudar cor da roupa para azul, fundo de praia ao pôr do sol"
-                              className="w-full text-sm bg-[#0A0A0A] border border-[#333] rounded-lg p-3 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6]/50 transition"
-                              rows={3} />
-                            <div className="flex gap-2 mt-3">
+                              placeholder="Ex: adicionar óculos, mudar roupa para azul, fundo de praia..."
+                              className="w-full text-xs bg-[#0A0A0A] border border-[#333] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] transition"
+                              rows={2} />
+                            <div className="flex gap-1.5 mt-2">
                               <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                                className="flex-1 text-sm py-2 px-4 rounded-lg border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition font-medium">
-                                {t('studio.cancel') || 'Cancelar'}
+                                className="flex-1 text-xs py-1.5 px-2 rounded border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition">
+                                Cancelar
                               </button>
                               <button data-testid="ai-edit-modal-confirm" onClick={async () => {
                                 if (!aiEditInstruction.trim() || aiEditLoading) return;
@@ -660,24 +628,24 @@ export function AvatarModal({ ctx }) {
                                       }
                                       return updated;
                                     });
-                                    toast.success(t('studio.avatar_edited') || 'Avatar editado com IA!');
+                                    toast.success('Avatar editado com IA!');
                                   }
                                 } catch (err) {
-                                  toast.error(getErrorMsg(err, 'Erro ao editar avatar'));
+                                  toast.error(getErrorMsg(err, 'Erro ao editar'));
                                 } finally {
                                   setAiEditLoading(false);
                                   setAiEditAvatarId(null);
                                   setAiEditInstruction('');
                                 }
                               }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                className="flex-1 text-sm py-2 px-4 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-[#8B5CF6]/20">
-                                {aiEditLoading ? <><RefreshCw size={14} className="animate-spin" /> Processando...</> : <><Sparkles size={14} /> {t('studio.apply') || 'Aplicar'}</>}
+                                className="flex-1 text-xs py-1.5 px-2 rounded bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-1">
+                                {aiEditLoading ? <><RefreshCw size={11} className="animate-spin" /> Processando</> : <><Sparkles size={11} /> Aplicar</>}
                               </button>
                             </div>
                           </div>
                         )}
                         
-                        {/* "Aplicar Fundo Transparente" button */}
+                        {/* Apply Transparent Background button (compact) */}
                         {avatarMediaTab !== 'video' && (
                           <button data-testid="apply-bg-btn" onClick={async () => {
                             if (!tempAvatar?.url || applyingClothing) return;
@@ -688,20 +656,21 @@ export function AvatarModal({ ctx }) {
                               });
                               if (data.url) {
                                 setTempAvatar(p => ({ ...p, url: data.url }));
-                                setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo transparente aplicado', timestamp: new Date().toISOString() }]);
-                                toast.success(isDirectedMode ? 'Fundo transparente aplicado!' : 'Transparent background applied!');
+                                setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo transparente', timestamp: new Date().toISOString() }]);
+                                toast.success('Fundo transparente aplicado!');
                               }
                             } catch (e) {
-                              toast.error(getErrorMsg(e, 'Erro ao aplicar fundo'));
+                              toast.error('Erro ao aplicar fundo');
                             } finally { setApplyingClothing(false); }
                           }}
                             disabled={applyingClothing}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-sm font-medium hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/60 transition disabled:opacity-40">
-                            {applyingClothing ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
-                            {isDirectedMode ? 'Aplicar Fundo Transparente' : 'Apply Transparent Background'}
+                            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-xs font-medium hover:bg-[#8B5CF6]/10 transition disabled:opacity-40">
+                            {applyingClothing ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                            Aplicar Fundo Transparente
                           </button>
                         )}
                       </div>
+                      {/* End grid */}
                       </div>
                     </div>
 
