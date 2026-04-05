@@ -1738,6 +1738,10 @@ export default function StudioPage() {
                 // Update cache with new/edited avatar
                 updateAvatarInCache(response.data);
                 
+                // Invalidate localStorage cache
+                localStorage.removeItem('studiox_avatar_library_v2');
+                console.log('🗑️ [SAVE] Gallery cache invalidated');
+                
                 // Fecha modal de criação
                 resetAvatarModal();
                 setShowAvatarModal(false);
@@ -1777,6 +1781,10 @@ export default function StudioPage() {
                 
                 // Update cache with new avatar
                 updateAvatarInCache(response.data);
+                
+                // Invalidate localStorage cache
+                localStorage.removeItem('studiox_avatar_library_v2');
+                console.log('🗑️ [CREATE] Gallery cache invalidated');
                 
                 // Fecha modal de criação
                 resetAvatarModal();
@@ -1965,6 +1973,11 @@ export default function StudioPage() {
             // Update cache (remove from list) - no need to reload entire gallery
             console.log('🗑️ [DELETE] Removendo do cache...');
             removeAvatarFromCache(avatar.id);
+            
+            // Invalidate localStorage cache
+            localStorage.removeItem('studiox_avatar_library_v2');
+            console.log('🗑️ [DELETE] Cache invalidado');
+            
             console.log('✅ [DELETE] Completo!');
           } catch (err) {
             console.error('❌ [DELETE] Erro:', err);

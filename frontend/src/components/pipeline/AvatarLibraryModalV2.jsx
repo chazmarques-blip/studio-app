@@ -136,14 +136,16 @@ export function AvatarLibraryModalV2({
     }
 
     const CACHE_KEY = 'studiox_avatar_library_v2';
-    const CACHE_TTL = 5 * 60 * 1000; // 5 min
+    const CACHE_VERSION = '1.0'; // Increment to invalidate cache
 
-    // 1. Instant cache load (no spinner)
+    // IMPROVED: Load cache (no expiration - only invalidate on edit/create/delete)
     try {
       const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
-      if (cached.data?.length) {
+      if (cached.data?.length && cached.version === CACHE_VERSION) {
+        console.log('✅ [Gallery] Cache hit:', cached.data.length, 'avatars');
         setLibrary(cached.data);
-        // Preload first 20 images into cache
+        
+        // Preload first 20 images
         cached.data.slice(0, 20).forEach(av => {
           if (!imageCache.current.has(av.id)) {
             const img = new Image();
@@ -152,17 +154,23 @@ export function AvatarLibraryModalV2({
           }
         });
         
-        // If fresh cache, skip API
-        if (Date.now() - (cached.ts || 0) < CACHE_TTL) return;
+        // Don't fetch - cache is permanent until invalidated
+        return;
       }
     } catch { /* ignore */ }
 
-    // 2. Background fetch
-    setLoading(prev => library.length === 0);
+    // Only fetch if no cache
+    console.log('⏳ [Gallery] Cache miss - fetching from API...');
+    setLoading(true);
     axios.get(`${API}/data/avatars`).then(res => {
       const fresh = res.data || [];
+      console.log('✅ [Gallery] Loaded', fresh.length, 'from API');
       setLibrary(fresh);
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fresh, ts: Date.now() }));
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ 
+        data: fresh, 
+        ts: Date.now(),
+        version: CACHE_VERSION 
+      }));
     }).catch(() => {}).finally(() => setLoading(false));
   }, [open, avatarsCache, avatarsCacheLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
