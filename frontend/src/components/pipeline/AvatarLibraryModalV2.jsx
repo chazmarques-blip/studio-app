@@ -41,6 +41,9 @@ export function AvatarLibraryModalV2({
   const [expandedAvatar, setExpandedAvatar] = useState(null);
   const [previewIndex, setPreviewIndex] = useState(0);
   
+  // Download preview modal
+  const [downloadPreview, setDownloadPreview] = useState(null);
+  
   // Filters
   const [styleFilter, setStyleFilter] = useState('all');
   const [has360Filter, setHas360Filter] = useState(false);
@@ -682,23 +685,19 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
-                          {/* Download button - Opens in new tab for download */}
-                          <a
-                            href={resolveImageUrl(av.url)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                              console.log('📥 [DOWNLOAD] Abrindo imagem em nova aba');
-                            }}
+                          {/* Download button - Opens compact download modal */}
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              e.preventDefault();
+                              console.log('📥 [DOWNLOAD] Abrindo modal de download');
+                              setDownloadPreview(av);
                             }}
                             className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition pointer-events-auto flex items-center justify-center"
-                            title="Abrir em nova aba (clique direito > Salvar como)"
+                            title="Baixar personagem"
                           >
                             <Download size={14} className="text-white" />
-                          </a>
+                          </button>
                         </div>
                       </div>
                       
@@ -925,6 +924,55 @@ export function AvatarLibraryModalV2({
               <span className="text-sm text-[#888]">
                 {previewIndex + 1} / {filtered.length}
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Download Preview Modal - Compact popup over gallery */}
+      {downloadPreview && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setDownloadPreview(null)}>
+          <div className="bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <Download size={16} />
+                Baixar Personagem
+              </h3>
+              <button onClick={() => setDownloadPreview(null)} className="text-white/80 hover:text-white transition">
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* Image Preview */}
+            <div className="p-4">
+              <img 
+                src={resolveImageUrl(downloadPreview.url)} 
+                alt={downloadPreview.name}
+                className="w-full aspect-[3/4] object-cover rounded-lg border border-[#333]"
+              />
+              <p className="text-white text-center mt-2 font-semibold">{downloadPreview.name}</p>
+            </div>
+            
+            {/* Download Button */}
+            <div className="px-4 pb-4 flex gap-2">
+              <button
+                onClick={() => setDownloadPreview(null)}
+                className="flex-1 py-2.5 rounded-lg border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <a
+                href={`${API}/download-image?url=${encodeURIComponent(resolveImageUrl(downloadPreview.url))}&filename=${encodeURIComponent(`${(downloadPreview.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`)}`}
+                onClick={() => {
+                  toast.success(`Download iniciado: ${downloadPreview.name}`);
+                  setDownloadPreview(null);
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
+              >
+                <Download size={16} />
+                Baixar Agora
+              </a>
             </div>
           </div>
         </div>
