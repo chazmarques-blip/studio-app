@@ -682,17 +682,20 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
-                          {/* Download button - Opens in new tab (same as video download) */}
+                          {/* Download button - Opens in new tab for download */}
                           <a
                             href={resolveImageUrl(av.url)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => {
+                            onMouseDown={(e) => {
                               e.stopPropagation();
                               console.log('📥 [DOWNLOAD] Abrindo imagem em nova aba');
                             }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
                             className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition pointer-events-auto flex items-center justify-center"
-                            title="Baixar (abre em nova aba)"
+                            title="Abrir em nova aba (clique direito > Salvar como)"
                           >
                             <Download size={14} className="text-white" />
                           </a>
