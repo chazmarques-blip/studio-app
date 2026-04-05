@@ -65,7 +65,7 @@ export function AvatarModal({ ctx }) {
 
   return (
     <div className={`fixed inset-0 ${zIndexOverride || 'z-50'} bg-black/80 flex items-center justify-center p-4`} onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
-      <div data-testid="avatar-modal" className="w-full max-w-2xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div data-testid="avatar-modal" className="w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
@@ -481,15 +481,15 @@ export function AvatarModal({ ctx }) {
                       )}
 
                       {/* Layout: History (left) + Main Image with AI Edit below (right) */}
-                      <div className="flex gap-4 items-start">
-                      {/* Edit History Panel (Left, vertical scroll) */}
+                      <div className="grid grid-cols-[180px_1fr] gap-6">
+                      {/* Edit History Panel (Left column, vertical scroll) */}
                       {avatarEditHistory.length > 1 && (
-                        <div className="w-32 shrink-0 flex flex-col gap-1.5" data-testid="avatar-edit-history">
-                          <div className="flex items-center gap-1">
-                            <History size={10} className="text-[#999]" />
-                            <span className="text-[11px] text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Historico'}</span>
+                        <div className="flex flex-col gap-2" data-testid="avatar-edit-history">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <History size={12} className="text-[#999]" />
+                            <span className="text-xs text-[#999] uppercase tracking-wider font-semibold">{t('studio.history') || 'Histórico'}</span>
                           </div>
-                          <div className="flex flex-col gap-2 overflow-y-auto pr-1 scroll-smooth" style={{maxHeight: '500px'}}
+                          <div className="flex flex-col gap-3 overflow-y-auto pr-2 scroll-smooth" style={{maxHeight: '600px'}}
                             ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
                             {avatarEditHistory.map((entry, idx) => {
                               const isCurrent = tempAvatar?.url === entry.url;
@@ -578,11 +578,11 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
                       
-                      {/* RIGHT SIDE: Main Image + AI Edit (vertical stack, aligned right, no gap) */}
-                      <div className="flex-1 flex flex-col gap-0 items-end">
+                      {/* RIGHT SIDE: Main Image + AI Edit (vertical stack, clean spacing) */}
+                      <div className="flex flex-col gap-4">
                         {/* Main Avatar Image */}
-                        <div className="max-w-sm">
-                          <div className="relative aspect-[3/5]">
+                        <div className="relative">
+                          <div className="aspect-[4/5] rounded-xl overflow-hidden border-2 border-[#8B5CF6]/20 shadow-xl bg-[#0A0A0A]">
                             {avatarMediaTab === 'video' && previewVideoUrl ? (
                               <video
                                 data-testid="avatar-preview-video"
@@ -614,21 +614,23 @@ export function AvatarModal({ ctx }) {
                           </div>
                         </div>
                         
-                        {/* AI Edit Panel (always visible, directly below image) */}
+                        {/* AI Edit Panel (always visible, professional layout) */}
                         {aiEditAvatarId === 'temp' && (
-                          <div className="max-w-sm bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center gap-1.5">
-                              <Sparkles size={12} className="text-purple-400" />
-                              <span className="text-xs text-purple-300 font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
+                          <div className="bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-xl p-4 shadow-lg" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="p-1.5 bg-[#8B5CF6]/20 rounded-lg">
+                                <Sparkles size={14} className="text-[#8B5CF6]" />
+                              </div>
+                              <span className="text-sm text-white font-bold">{t('studio.ai_edit') || 'Editar com IA'}</span>
                             </div>
                             <textarea data-testid="ai-edit-modal-input"
                               value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
-                              placeholder="Ex: mudar roupa para tunica bege, adicionar oculos, mudar fundo para praia..."
-                              className="w-full text-xs bg-[#0A0A0A] border border-[#222] rounded-lg p-2 text-white placeholder-[#666] resize-none outline-none focus:border-purple-500/40"
-                              rows={4} />
-                            <div className="flex gap-1.5">
+                              placeholder="Descreva as mudanças desejadas... Ex: adicionar óculos escuros, mudar cor da roupa para azul, fundo de praia ao pôr do sol"
+                              className="w-full text-sm bg-[#0A0A0A] border border-[#333] rounded-lg p-3 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6]/50 transition"
+                              rows={3} />
+                            <div className="flex gap-2 mt-3">
                               <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
-                                className="flex-1 text-[11px] py-1.5 rounded-lg border border-[#333] text-[#888] hover:text-white transition">
+                                className="flex-1 text-sm py-2 px-4 rounded-lg border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition font-medium">
                                 {t('studio.cancel') || 'Cancelar'}
                               </button>
                               <button data-testid="ai-edit-modal-confirm" onClick={async () => {
@@ -650,7 +652,6 @@ export function AvatarModal({ ctx }) {
                                     };
                                     setAvatarEditHistory(prev => {
                                       const updated = [...prev, newEntry];
-                                      // Auto-save history to server
                                       if (editingAvatarId) {
                                         const av = avatars.find(a => a.id === editingAvatarId);
                                         if (av) {
@@ -669,15 +670,14 @@ export function AvatarModal({ ctx }) {
                                   setAiEditInstruction('');
                                 }
                               }} disabled={aiEditLoading || !aiEditInstruction.trim()}
-                                className="flex-1 text-[11px] py-1.5 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-500 transition disabled:opacity-40 flex items-center justify-center gap-1">
-                                {aiEditLoading ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                {aiEditLoading ? (t('studio.editing') || 'Editando...') : (t('studio.apply') || 'Aplicar')}
+                                className="flex-1 text-sm py-2 px-4 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-[#8B5CF6]/20">
+                                {aiEditLoading ? <><RefreshCw size={14} className="animate-spin" /> Processando...</> : <><Sparkles size={14} /> {t('studio.apply') || 'Aplicar'}</>}
                               </button>
                             </div>
                           </div>
                         )}
                         
-                        {/* "Aplicar Fundo Invisível" button below AI Edit */}
+                        {/* "Aplicar Fundo Transparente" button */}
                         {avatarMediaTab !== 'video' && (
                           <button data-testid="apply-bg-btn" onClick={async () => {
                             if (!tempAvatar?.url || applyingClothing) return;
@@ -696,9 +696,9 @@ export function AvatarModal({ ctx }) {
                             } finally { setApplyingClothing(false); }
                           }}
                             disabled={applyingClothing}
-                            className="max-w-sm flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
-                            {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
-                            {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-[#8B5CF6]/40 text-[#8B5CF6] text-sm font-medium hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/60 transition disabled:opacity-40">
+                            {applyingClothing ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+                            {isDirectedMode ? 'Aplicar Fundo Transparente' : 'Apply Transparent Background'}
                           </button>
                         )}
                       </div>
