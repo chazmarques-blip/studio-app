@@ -682,15 +682,33 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
-                          {/* Download button - Via backend proxy (guaranteed to work) */}
-                          <a
-                            href={`${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(`${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`)}`}
-                            onClick={(e) => {
+                          {/* Download button - Exact same method as video download */}
+                          <button
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              console.log('📥 [DOWNLOAD] Download via proxy:', av.name);
-                              toast.success(`Download: ${av.name}`);
+                              e.preventDefault();
+                              
+                              const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
+                              const imageUrl = resolveImageUrl(av.url);
+                              
+                              try {
+                                const resp = await fetch(imageUrl);
+                                const blob = await resp.blob();
+                                const blobUrl = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = blobUrl;
+                                a.download = filename;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(blobUrl);
+                                toast.success(`✅ ${av.name} baixado!`);
+                              } catch {
+                                window.open(imageUrl, '_blank');
+                              }
                             }}
-                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition pointer-events-auto"
+                            disabled={isDownloading}
+                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition disabled:opacity-50 pointer-events-auto"
                             title={L.download}
                           >
                             {isDownloading ? (
@@ -698,7 +716,7 @@ export function AvatarLibraryModalV2({
                             ) : (
                               <Download size={14} className="text-white" />
                             )}
-                          </a>
+                          </button>
                         </div>
                       </div>
                       
