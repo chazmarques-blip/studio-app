@@ -36,17 +36,39 @@
         </style>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script>
-        // Suppress rrweb SecurityError spam
-        window.addEventListener('error', function(e) {
-          if (e.message && e.message.includes('removeEventListener') && e.message.includes('rrweb')) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            return false;
-          }
-        }, true);
-        // Block rrweb completely
-        Object.defineProperty(window, 'rrweb', { value: undefined, writable: false, configurable: false });
-        Object.defineProperty(window, 'posthog', { value: undefined, writable: false, configurable: false });
+        // AGGRESSIVE rrweb/PostHog blocker - MUST run before anything else
+        (function() {
+          // Intercept ALL errors and suppress rrweb
+          const originalError = console.error;
+          console.error = function(...args) {
+            const msg = args.join(' ');
+            if (msg.includes('rrweb') || msg.includes('removeEventListener') || msg.includes('SecurityError')) {
+              return; // Suppress
+            }
+            originalError.apply(console, args);
+          };
+          
+          // Block error events
+          window.addEventListener('error', function(e) {
+            if (e.message && (e.message.includes('rrweb') || e.message.includes('removeEventListener'))) {
+              e.stopImmediatePropagation();
+              e.preventDefault();
+              return false;
+            }
+          }, true);
+          
+          // Block objects
+          Object.defineProperty(window, 'rrweb', { 
+            get: function() { return undefined; },
+            set: function() { },
+            configurable: false 
+          });
+          Object.defineProperty(window, 'posthog', { 
+            get: function() { return undefined; },
+            set: function() { },
+            configurable: false 
+          });
+        })();
         </script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>
