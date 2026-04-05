@@ -480,8 +480,8 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
 
-                      {/* Media Display + History (left) + Main Image + AI Edit (right) */}
-                      <div className="flex gap-3 items-start">
+                      {/* Layout: History (left) + Main Image with AI Edit below (right) */}
+                      <div className="flex gap-4 items-start">
                       {/* Edit History Panel (Left, vertical scroll) */}
                       {avatarEditHistory.length > 1 && (
                         <div className="w-32 shrink-0 flex flex-col gap-1.5" data-testid="avatar-edit-history">
@@ -612,34 +612,9 @@ export function AvatarModal({ ctx }) {
                               </div>
                             )}
                           </div>
-                          
-                          {/* "Aplicar Fundo Invisível" button directly below image */}
-                          {avatarMediaTab !== 'video' && (
-                            <button data-testid="apply-bg-btn" onClick={async () => {
-                              if (!tempAvatar?.url || applyingClothing) return;
-                              setApplyingClothing(true);
-                              try {
-                                const { data } = await axios.post(`${API}/pipeline/avatar/apply-background`, {
-                                  avatar_url: tempAvatar.url,
-                                });
-                                if (data.url) {
-                                  setTempAvatar(p => ({ ...p, url: data.url }));
-                                  setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo transparente aplicado', timestamp: new Date().toISOString() }]);
-                                  toast.success(isDirectedMode ? 'Fundo transparente aplicado!' : 'Transparent background applied!');
-                                }
-                              } catch (e) {
-                                toast.error(getErrorMsg(e, 'Erro ao aplicar fundo'));
-                              } finally { setApplyingClothing(false); }
-                            }}
-                              disabled={applyingClothing}
-                              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
-                              {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
-                              {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
-                            </button>
-                          )}
                         </div>
                         
-                        {/* AI Edit Panel (always visible) */}
+                        {/* AI Edit Panel (always visible, directly below image) */}
                         {aiEditAvatarId === 'temp' && (
                           <div className="w-full max-w-sm bg-[#111] border border-[#1E1E1E] rounded-xl p-3 flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center gap-1.5">
@@ -700,6 +675,31 @@ export function AvatarModal({ ctx }) {
                               </button>
                             </div>
                           </div>
+                        )}
+                        
+                        {/* "Aplicar Fundo Invisível" button below AI Edit */}
+                        {avatarMediaTab !== 'video' && (
+                          <button data-testid="apply-bg-btn" onClick={async () => {
+                            if (!tempAvatar?.url || applyingClothing) return;
+                            setApplyingClothing(true);
+                            try {
+                              const { data } = await axios.post(`${API}/pipeline/avatar/apply-background`, {
+                                avatar_url: tempAvatar.url,
+                              });
+                              if (data.url) {
+                                setTempAvatar(p => ({ ...p, url: data.url }));
+                                setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo transparente aplicado', timestamp: new Date().toISOString() }]);
+                                toast.success(isDirectedMode ? 'Fundo transparente aplicado!' : 'Transparent background applied!');
+                              }
+                            } catch (e) {
+                              toast.error(getErrorMsg(e, 'Erro ao aplicar fundo'));
+                            } finally { setApplyingClothing(false); }
+                          }}
+                            disabled={applyingClothing}
+                            className="w-full max-w-sm flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
+                            {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
+                            {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
+                          </button>
                         )}
                       </div>
                       </div>
