@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 import httpx
 from urllib.parse import unquote
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["download"])
 
 @router.get("/download-image")
 async def download_image_proxy(url: str, filename: str = "avatar.png"):
