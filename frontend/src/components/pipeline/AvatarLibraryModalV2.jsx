@@ -297,21 +297,44 @@ export function AvatarLibraryModalV2({
   const downloadAvatar = async (avatar) => {
     setDownloading(prev => new Set(prev).add(avatar.id));
     try {
-      const response = await fetch(resolveImageUrl(avatar.url));
+      const imageUrl = resolveImageUrl(avatar.url);
+      console.log('📥 Baixando avatar:', avatar.name, 'URL:', imageUrl);
+      
+      const response = await fetch(imageUrl, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
+      console.log('✅ Blob criado:', blob.size, 'bytes, tipo:', blob.type);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       // Filename = character name (sanitized)
       const filename = `${(avatar.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
       a.download = filename;
+      a.style.display = 'none';
       document.body.appendChild(a);
+      
+      console.log('🔗 Iniciando download:', filename);
       a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      
+      // Delay before cleanup to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        console.log('🧹 Cleanup concluído');
+      }, 100);
+      
       toast.success(`${avatar.name} ${lang === 'pt' ? 'baixado' : 'downloaded'}!`);
     } catch (e) {
-      toast.error(getErrorMsg(e, 'Download failed'));
+      console.error('❌ Erro ao baixar:', e);
+      toast.error(getErrorMsg(e, 'Erro ao baixar avatar'));
     } finally {
       setDownloading(prev => {
         const next = new Set(prev);
