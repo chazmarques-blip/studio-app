@@ -494,11 +494,19 @@ export function AvatarModal({ ctx }) {
                                 <video src={previewVideoUrl} controls autoPlay loop playsInline
                                   className="w-full h-full object-cover" />
                               ) : (
-                                <div className="relative cursor-pointer group h-full" onClick={() => setAvatarPreviewUrl(tempAvatar?.url)}>
+                                <div className="relative cursor-pointer group h-full">
                                   <img src={resolveImageUrl(tempAvatar?.url)} alt="Current"
-                                    className="w-full h-full object-cover" />
+                                    className="w-full h-full object-cover" 
+                                    onClick={() => setTempAvatar(p => ({ ...p, url: tempAvatar?.url }))} />
                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                    <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                    <button 
+                                      onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        setAvatarPreviewUrl(tempAvatar?.url); 
+                                      }}
+                                      className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
+                                      <Maximize2 size={14} className="text-white" />
+                                    </button>
                                   </div>
                                   {applyingClothing && (
                                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -536,7 +544,16 @@ export function AvatarModal({ ctx }) {
                                       <img src={resolveImageUrl(avatarEditHistory[avatarEditHistory.length - 2].url)} alt="Previous"
                                         className="w-full h-full object-cover" />
                                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                        <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                        <div className="flex gap-2">
+                                          <button 
+                                            onClick={(e) => { 
+                                              e.stopPropagation(); 
+                                              setAvatarPreviewUrl(avatarEditHistory[avatarEditHistory.length - 2].url); 
+                                            }}
+                                            className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
+                                            <Maximize2 size={14} className="text-white" />
+                                          </button>
+                                        </div>
                                       </div>
                                     </div>
                                   ) : (
@@ -563,7 +580,14 @@ export function AvatarModal({ ctx }) {
                                       <img src={resolveImageUrl(entry.url)} alt={`v${versionNumber}`}
                                         className="w-full h-full object-cover" />
                                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                                        <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                        <button 
+                                          onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            setAvatarPreviewUrl(entry.url); 
+                                          }}
+                                          className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition opacity-0 group-hover:opacity-100">
+                                          <Maximize2 size={14} className="text-white" />
+                                        </button>
                                       </div>
                                       {entry.isBase ? (
                                         <div className="absolute top-1 left-1 bg-[#8B5CF6] rounded px-1.5 py-0.5">
