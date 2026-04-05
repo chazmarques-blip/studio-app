@@ -1869,8 +1869,8 @@ export default function StudioPage() {
             avatarInputRef,
             logoInputRef,
             isDirectedMode: true,
-            // FORÇA z-index maior para aparecer por cima da galeria (z-[10000])
-            zIndexOverride: 'z-[10005]',
+            // FORÇA z-index MÁXIMO para aparecer por cima da galeria (z-[10000])
+            zIndexOverride: 'z-[99999]',
           }}
         />
       )}
@@ -1940,6 +1940,9 @@ export default function StudioPage() {
           setAvatarStage('customize');
           setCustomizeTab('clothing');
           setShowAvatarModal(true);
+          
+          // ABRIR "Editar com IA" por padrão
+          setAiEditAvatarId('temp');
           
           console.log('✅ Avatar modal OPENED for editing:', avatar.name);
           

@@ -614,7 +614,7 @@ export function AvatarModal({ ctx }) {
                           className={`mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-xs transition ${aiEditAvatarId === 'temp' ? 'border-purple-500/50 bg-purple-500/10 text-purple-300' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'}`}>
                           <Sparkles size={10} /> {t('studio.ai_edit') || 'Editar com IA'}
                         </button>
-                        {/* Apply Standard Background button */}
+                        {/* Apply Transparent Background button */}
                         <button data-testid="apply-bg-btn" onClick={async () => {
                           if (!tempAvatar?.url || applyingClothing) return;
                           setApplyingClothing(true);
@@ -624,8 +624,8 @@ export function AvatarModal({ ctx }) {
                             });
                             if (data.url) {
                               setTempAvatar(p => ({ ...p, url: data.url }));
-                              setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo padrão aplicado', timestamp: new Date().toISOString() }]);
-                              toast.success(isDirectedMode ? 'Fundo aplicado ao personagem!' : 'Background applied!');
+                              setAvatarEditHistory(prev => [...prev, { url: data.url, instruction: 'Fundo transparente aplicado', timestamp: new Date().toISOString() }]);
+                              toast.success(isDirectedMode ? 'Fundo transparente aplicado!' : 'Transparent background applied!');
                             }
                           } catch (e) {
                             toast.error(getErrorMsg(e, 'Erro ao aplicar fundo'));
@@ -634,7 +634,7 @@ export function AvatarModal({ ctx }) {
                           disabled={applyingClothing}
                           className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
                           {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
-                          {isDirectedMode ? 'Aplicar Fundo Padrão' : 'Apply Background'}
+                          {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
                         </button>
                       </>)}
                       </div>
