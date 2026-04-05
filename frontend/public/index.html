@@ -39,8 +39,32 @@
         (function() {
           'use strict';
           
-          // 1. Block ALL error events from rrweb
-          const errorHandler = function(e) {
+          // 1. Hijack console.error FIRST to suppress ALL rrweb spam
+          const originalError = console.error;
+          const originalWarn = console.warn;
+          
+          console.error = function(...args) {
+            const msg = args.join(' ').toLowerCase();
+            if (msg.includes('rrweb') || 
+                msg.includes('removeeventlistener') || 
+                msg.includes('securityerror') || 
+                msg.includes('posthog') ||
+                msg.includes('uncaught') && msg.includes('window')) {
+              return; // SILENT SUPPRESS
+            }
+            originalError.apply(console, args);
+          };
+          
+          console.warn = function(...args) {
+            const msg = args.join(' ').toLowerCase();
+            if (msg.includes('rrweb') || msg.includes('posthog')) {
+              return; // SILENT SUPPRESS
+            }
+            originalWarn.apply(console, args);
+          };
+          
+          // 2. Block ALL error events globally
+          window.addEventListener('error', function(e) {
             if (e && e.message) {
               const msg = String(e.message).toLowerCase();
               if (msg.includes('rrweb') || 
@@ -49,75 +73,33 @@
                   msg.includes('posthog')) {
                 e.stopImmediatePropagation();
                 e.preventDefault();
-                e.stopPropagation();
                 return false;
               }
             }
-          };
-          window.addEventListener('error', errorHandler, true);
-          window.addEventListener('unhandledrejection', errorHandler, true);
+          }, true);
           
-          // 2. Hijack console.error to suppress rrweb spam
-          const originalError = console.error;
-          console.error = function(...args) {
-            const msg = args.join(' ').toLowerCase();
-            if (msg.includes('rrweb') || 
-                msg.includes('removeeventlistener') || 
-                msg.includes('securityerror') || 
-                msg.includes('posthog')) {
-              return; // Silent suppress
+          // 3. Block unhandled rejections
+          window.addEventListener('unhandledrejection', function(e) {
+            if (e && e.reason && String(e.reason).toLowerCase().includes('rrweb')) {
+              e.preventDefault();
+              return false;
             }
-            originalError.apply(console, args);
-          };
+          }, true);
           
-          // 3. Block rrweb/posthog objects PERMANENTLY
+          // 4. Define rrweb/posthog as undefined PERMANENTLY
           Object.defineProperty(window, 'rrweb', { 
             get: () => undefined,
             set: () => {},
-            configurable: false,
-            enumerable: false
+            configurable: false
           });
           Object.defineProperty(window, 'posthog', { 
             get: () => undefined,
             set: () => {},
-            configurable: false,
-            enumerable: false
+            configurable: false
           });
           
-          // 4. Intercept ALL script injections
-          const originalCreateElement = document.createElement.bind(document);
-          document.createElement = function(tagName) {
-            const element = originalCreateElement(tagName);
-            if (tagName.toLowerCase() === 'script') {
-              const originalSetAttribute = element.setAttribute.bind(element);
-              element.setAttribute = function(name, value) {
-                if (name === 'src' && value && 
-                    (value.includes('rrweb') || value.includes('posthog'))) {
-                  console.log('🚫 Blocked rrweb/posthog script injection:', value);
-                  return; // Block injection
-                }
-                return originalSetAttribute(name, value);
-              };
-            }
-            return element;
-          };
-          
-          // 5. Block EventTarget.addEventListener overrides
-          const originalAddEventListener = EventTarget.prototype.addEventListener;
-          EventTarget.prototype.addEventListener = function(type, listener, options) {
-            try {
-              // Allow normal event listeners, but catch rrweb errors
-              return originalAddEventListener.call(this, type, listener, options);
-            } catch (e) {
-              const msg = String(e.message || '').toLowerCase();
-              if (msg.includes('rrweb') || msg.includes('securityerror')) {
-                return; // Silent fail
-              }
-              throw e; // Re-throw other errors
-            }
-          };
-          
-          console.log('✅ rrweb/PostHog NUCLEAR blocker activated');
+          console.log('✅ Console purificado - rrweb bloqueado');
+        })();
         })();
         </script>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
