@@ -295,22 +295,25 @@ export function AvatarLibraryModalV2({
 
   // Download single or multiple avatars
   const downloadAvatar = async (avatar) => {
+    console.log('🎯 [DOWNLOAD] Função chamada para:', avatar.name, avatar.id);
     setDownloading(prev => new Set(prev).add(avatar.id));
     try {
       const imageUrl = resolveImageUrl(avatar.url);
-      console.log('📥 Baixando avatar:', avatar.name, 'URL:', imageUrl);
+      console.log('📥 [DOWNLOAD] Baixando avatar:', avatar.name, 'URL:', imageUrl);
       
       const response = await fetch(imageUrl, {
         mode: 'cors',
         credentials: 'omit'
       });
       
+      console.log('📡 [DOWNLOAD] Response status:', response.status, response.statusText);
+      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const blob = await response.blob();
-      console.log('✅ Blob criado:', blob.size, 'bytes, tipo:', blob.type);
+      console.log('✅ [DOWNLOAD] Blob criado:', blob.size, 'bytes, tipo:', blob.type);
       
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -321,21 +324,23 @@ export function AvatarLibraryModalV2({
       a.style.display = 'none';
       document.body.appendChild(a);
       
-      console.log('🔗 Iniciando download:', filename);
+      console.log('🔗 [DOWNLOAD] Iniciando download:', filename);
       a.click();
       
       // Delay before cleanup to ensure download starts
       setTimeout(() => {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        console.log('🧹 Cleanup concluído');
+        console.log('🧹 [DOWNLOAD] Cleanup concluído');
       }, 100);
       
       toast.success(`${avatar.name} ${lang === 'pt' ? 'baixado' : 'downloaded'}!`);
     } catch (e) {
-      console.error('❌ Erro ao baixar:', e);
+      console.error('❌ [DOWNLOAD] Erro ao baixar:', e);
+      console.error('❌ [DOWNLOAD] Stack:', e.stack);
       toast.error(getErrorMsg(e, 'Erro ao baixar avatar'));
     } finally {
+      console.log('🏁 [DOWNLOAD] Finally block - removendo do estado downloading');
       setDownloading(prev => {
         const next = new Set(prev);
         next.delete(avatar.id);
