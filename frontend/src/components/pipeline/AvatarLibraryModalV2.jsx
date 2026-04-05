@@ -56,7 +56,21 @@ export function AvatarLibraryModalV2({
   
   // Debug: log when modal state changes
   useEffect(() => {
-    console.log('📂 [FOLDER MODAL STATE]', folderModalOpen ? 'ABERTO' : 'FECHADO');
+    console.log('📂 [FOLDER MODAL STATE]', folderModalOpen ? 'ABERTO ✅' : 'FECHADO ❌');
+    if (folderModalOpen) {
+      console.log('📂 [MODAL DEBUG] Modal deveria estar visível agora!');
+      // Force a DOM check after render
+      setTimeout(() => {
+        const modalElement = document.querySelector('[data-modal="folder-create"]');
+        if (modalElement) {
+          console.log('✅ [MODAL DEBUG] Modal ENCONTRADO no DOM!', modalElement);
+          console.log('✅ [MODAL DEBUG] Posição:', modalElement.getBoundingClientRect());
+          console.log('✅ [MODAL DEBUG] Z-index:', window.getComputedStyle(modalElement).zIndex);
+        } else {
+          console.error('❌ [MODAL DEBUG] Modal NÃO encontrado no DOM!');
+        }
+      }, 100);
+    }
   }, [folderModalOpen]);
   
   // Filters
@@ -1229,27 +1243,29 @@ export function AvatarLibraryModalV2({
       {/* Folder Create/Edit Modal */}
       {folderModalOpen && (
         <div 
-          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4" 
+          data-modal="folder-create"
+          className="fixed inset-0 z-[9999] bg-red-500/50 flex items-center justify-center p-4" 
           onClick={() => {
             console.log('🎯 [MODAL] Clicou no overlay - fechando');
             setFolderModalOpen(false);
           }}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
-          <div className="bg-[#0D0D0D] rounded-2xl border-2 border-[#8B5CF6] overflow-hidden max-w-md w-full shadow-2xl" onClick={e => {
+          <div className="bg-white rounded-2xl border-4 border-red-500 overflow-hidden max-w-md w-full shadow-2xl" onClick={e => {
             e.stopPropagation();
             console.log('🎯 [MODAL] Clicou dentro do modal');
           }}>
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
-              <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                <Plus size={16} />
-                {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
+            <div className="bg-red-500 px-4 py-3 flex items-center justify-between">
+              <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                <Plus size={20} />
+                TESTE MODAL - {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
               </h3>
               <button onClick={() => {
                 console.log('🎯 [MODAL] Clicou no X - fechando');
                 setFolderModalOpen(false);
-              }} className="text-white/80 hover:text-white transition">
-                <X size={18} />
+              }} className="text-white hover:text-black transition text-2xl font-bold">
+                ✕
               </button>
             </div>
             
