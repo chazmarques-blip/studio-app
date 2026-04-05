@@ -1245,28 +1245,27 @@ export function AvatarLibraryModalV2({
       {folderModalOpen && createPortal(
         <div 
           data-modal="folder-create"
-          className="fixed inset-0 z-[99999] bg-red-500/50 flex items-center justify-center p-4" 
+          className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-4" 
           onClick={() => {
             console.log('🎯 [MODAL] Clicou no overlay - fechando');
             setFolderModalOpen(false);
           }}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
-          <div className="bg-white rounded-2xl border-4 border-red-500 overflow-hidden max-w-md w-full shadow-2xl" onClick={e => {
+          <div className="bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full shadow-2xl" onClick={e => {
             e.stopPropagation();
             console.log('🎯 [MODAL] Clicou dentro do modal');
           }}>
             {/* Header */}
-            <div className="bg-red-500 px-4 py-3 flex items-center justify-between">
-              <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                <Plus size={20} />
-                TESTE MODAL - {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
+            <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <Plus size={16} />
+                {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
               </h3>
               <button onClick={() => {
                 console.log('🎯 [MODAL] Clicou no X - fechando');
                 setFolderModalOpen(false);
-              }} className="text-white hover:text-black transition text-2xl font-bold">
-                ✕
+              }} className="text-white/80 hover:text-white transition">
+                <X size={18} />
               </button>
             </div>
             
