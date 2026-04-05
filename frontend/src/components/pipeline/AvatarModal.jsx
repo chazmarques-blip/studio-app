@@ -567,23 +567,20 @@ export function AvatarModal({ ctx }) {
                           </div>
                         </div>
                         
-                        {/* AI Edit Panel (optimized internal spacing) */}
+                        {/* AI Edit Panel (optimized - single line title, larger textarea) */}
                         {aiEditAvatarId === 'temp' && (
                           <div className="w-[60%] bg-gradient-to-br from-[#1a0f2e] to-[#0D0D0D] border border-[#8B5CF6]/30 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
-                            {/* Header: "com IA" (small) + "Editar" (medium) */}
-                            <div className="flex flex-col gap-0.5 mb-1">
-                              <div className="flex items-center gap-1">
-                                <Sparkles size={8} className="text-[#8B5CF6]" />
-                                <span className="text-[8px] text-[#8B5CF6]/70 uppercase tracking-wide">com IA</span>
-                              </div>
-                              <span className="text-[11px] text-white font-bold">Editar</span>
+                            {/* Header: "Editar com IA" (single line, compact) */}
+                            <div className="flex items-center gap-1 mb-1">
+                              <Sparkles size={9} className="text-[#8B5CF6]" />
+                              <span className="text-[9px] text-white font-bold">Editar com IA</span>
                             </div>
-                            {/* Textarea (larger) */}
+                            {/* Textarea (5 lines - more space from saved header line) */}
                             <textarea data-testid="ai-edit-modal-input"
                               value={aiEditInstruction} onChange={e => setAiEditInstruction(e.target.value)}
                               placeholder="Ex: óculos, roupa azul, fundo praia..."
                               className="w-full text-[10px] bg-[#0A0A0A] border border-[#333] rounded-md p-1.5 text-white placeholder-[#666] resize-none outline-none focus:border-[#8B5CF6] transition"
-                              rows={4} />
+                              rows={5} />
                             {/* Buttons (smaller) */}
                             <div className="flex gap-1 mt-1">
                               <button onClick={() => { setAiEditAvatarId(null); setAiEditInstruction(''); }}
