@@ -297,48 +297,89 @@ export function AvatarLibraryModalV2({
   const downloadAvatar = async (avatar) => {
     console.log('🎯 [DOWNLOAD] Função chamada para:', avatar.name, avatar.id);
     setDownloading(prev => new Set(prev).add(avatar.id));
+    
     try {
       const imageUrl = resolveImageUrl(avatar.url);
-      console.log('📥 [DOWNLOAD] Baixando avatar:', avatar.name, 'URL:', imageUrl);
+      const filename = `${(avatar.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
       
-      const response = await fetch(imageUrl, {
-        mode: 'cors',
-        credentials: 'omit'
-      });
+      console.log('📥 [DOWNLOAD] Método 1: Tentando download via fetch + blob');
+      console.log('📥 [DOWNLOAD] URL:', imageUrl);
       
-      console.log('📡 [DOWNLOAD] Response status:', response.status, response.statusText);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Method 1: Try fetch + blob (works for CORS-enabled resources)
+      try {
+        const response = await fetch(imageUrl, {
+          mode: 'cors',
+          credentials: 'omit'
+        });
+        
+        console.log('📡 [DOWNLOAD] Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        console.log('✅ [DOWNLOAD] Blob criado:', blob.size, 'bytes, tipo:', blob.type);
+        
+        // Create download link
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        
+        // Force click in a way that bypasses popup blockers
+        document.body.appendChild(a);
+        console.log('🔗 [DOWNLOAD] Iniciando download (método 1):', filename);
+        
+        // Try multiple click methods
+        a.click();
+        
+        // Fallback: dispatch click event
+        const clickEvent = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        a.dispatchEvent(clickEvent);
+        
+        // Cleanup after delay
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(blobUrl);
+          console.log('🧹 [DOWNLOAD] Cleanup concluído (método 1)');
+        }, 500);
+        
+        toast.success(`✅ ${avatar.name} baixado!`);
+        
+      } catch (fetchError) {
+        console.warn('⚠️ [DOWNLOAD] Método 1 falhou, tentando método 2 (download direto)');
+        console.error('⚠️ [DOWNLOAD] Erro método 1:', fetchError);
+        
+        // Method 2: Direct download link (fallback for non-CORS resources)
+        const a = document.createElement('a');
+        a.href = imageUrl;
+        a.download = filename;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        
+        document.body.appendChild(a);
+        console.log('🔗 [DOWNLOAD] Iniciando download (método 2 - direto):', filename);
+        a.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(a);
+          console.log('🧹 [DOWNLOAD] Cleanup concluído (método 2)');
+        }, 500);
+        
+        toast.success(`✅ ${avatar.name} - download iniciado!`);
       }
       
-      const blob = await response.blob();
-      console.log('✅ [DOWNLOAD] Blob criado:', blob.size, 'bytes, tipo:', blob.type);
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      // Filename = character name (sanitized)
-      const filename = `${(avatar.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
-      a.download = filename;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      
-      console.log('🔗 [DOWNLOAD] Iniciando download:', filename);
-      a.click();
-      
-      // Delay before cleanup to ensure download starts
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        console.log('🧹 [DOWNLOAD] Cleanup concluído');
-      }, 100);
-      
-      toast.success(`${avatar.name} ${lang === 'pt' ? 'baixado' : 'downloaded'}!`);
     } catch (e) {
-      console.error('❌ [DOWNLOAD] Erro ao baixar:', e);
+      console.error('❌ [DOWNLOAD] Erro fatal ao baixar:', e);
       console.error('❌ [DOWNLOAD] Stack:', e.stack);
-      toast.error(getErrorMsg(e, 'Erro ao baixar avatar'));
+      toast.error(`Erro ao baixar ${avatar.name}. Tente abrir em nova aba.`);
     } finally {
       console.log('🏁 [DOWNLOAD] Finally block - removendo do estado downloading');
       setDownloading(prev => {
