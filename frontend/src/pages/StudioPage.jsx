@@ -1434,6 +1434,162 @@ export default function StudioPage() {
         </div>
       )}
 
+      {/* ═══════ GLOBAL CHARACTER LIBRARY MODAL (Must be BEFORE AvatarModal in DOM) ═══════ */}
+      <AvatarLibraryModalV2
+        open={showGlobalLibrary}
+        onClose={() => setShowGlobalLibrary(false)}
+        projectId={null}
+        projectAvatarIds={new Set()}
+        avatarsCache={avatars}
+        avatarsCacheLoaded={avatarsLoaded}
+        onImported={(importedAvatars) => {
+          console.log('✅ Avatars viewed in global library:', importedAvatars.length);
+          toast.success(`Visualizando ${importedAvatars.length} personagens!`);
+        }}
+        onEditAvatar={(avatar) => {
+          console.log('✅ Editing avatar from global library:', avatar.name);
+          // Galeria permanece aberta, modal abre NA FRENTE com z-[99999]
+          setEditingAvatarId(avatar.id);
+          
+          // Infer avatar_style from creation_mode for avatars saved before the fix
+          let inferredStyle = avatar.avatar_style || 'realistic';
+          if (!avatar.avatar_style && avatar.creation_mode === '3d') {
+            inferredStyle = '3d_pixar';
+          }
+          const is3dAvatar = inferredStyle !== 'realistic';
+          
+          setTempAvatar({
+            url: avatar.url,
+            source_photo_url: avatar.source_photo_url || '',
+            clothing: avatar.clothing || 'company_uniform',
+            voice: avatar.voice || null,
+            avatar_style: inferredStyle,
+            creation_mode: avatar.creation_mode || 'photo',
+          });
+          
+          setAvatarName(avatar.name || '');
+          setPreviewVideoUrl(avatar.video_url || null);
+          setAvatarMediaTab(avatar.video_url ? 'photo' : 'photo');
+          
+          // For 3D avatars, only load angles that were generated with 3D style
+          const savedAngles = avatar.angles || {};
+          if (is3dAvatar && savedAngles.front && savedAngles.front !== avatar.url) {
+            setAngleImages({ front: avatar.url });
+          } else {
+            setAngleImages(savedAngles.front ? savedAngles : { front: avatar.url });
+          }
+          
+          // Load saved language
+          setPreviewLanguage(avatar.language || 'pt');
+          
+          // Restore audio from saved voice
+          if (avatar.voice?.url) {
+            setRecordedAudioUrl(avatar.voice.url);
+            setVoiceTab('record');
+          } else if (avatar.voice?.type === 'elevenlabs' && avatar.voice?.voice_id) {
+            setVoiceTab('premium');
+          } else if (avatar.voice?.voice_id) {
+            setVoiceTab('bank');
+          }
+          
+          // Rebuild clothing variants from angles if available
+          const variants = {};
+          if (avatar.clothing && avatar.url) variants[avatar.clothing] = avatar.url;
+          setClothingVariants(variants);
+          
+          setAvatarStage('customize');
+          setCustomizeTab('clothing');
+          setShowAvatarModal(true);
+          
+          // ABRIR "Editar com IA" por padrão
+          setAiEditAvatarId('temp');
+          
+          console.log('✅ Avatar modal OPENED for editing:', avatar.name);
+          
+          // Load saved edit history or initialize with current avatar as base
+          const savedHistory = avatar.edit_history && avatar.edit_history.length > 0 ? avatar.edit_history : [];
+          if (savedHistory.length > 0) {
+            setAvatarEditHistory(savedHistory);
+            const baseEntry = savedHistory.find(e => e.isBase);
+            setAvatarBaseUrl(baseEntry ? baseEntry.url : avatar.url);
+          } else {
+            setAvatarBaseUrl(avatar.url);
+            setAvatarEditHistory([{ 
+              url: avatar.url, 
+              instruction: 'Base original', 
+              timestamp: new Date().toISOString(), 
+              isBase: true 
+            }]);
+          }
+        }}
+        onDeleteAvatar={async (avatar, skipConfirm = false) => {
+          console.log('🗑️ [DELETE] Callback chamado para:', avatar.name, avatar.id);
+          try {
+            console.log('🗑️ [DELETE] Enviando DELETE para API...');
+            await axios.delete(`${API}/data/avatars/${avatar.id}`);
+            console.log('✅ [DELETE] Resposta 200 OK');
+            
+            // Only show individual toast if not batch (batch shows summary)
+            if (!skipConfirm) {
+              toast.success(`"${avatar.name}" excluído com sucesso!`);
+            }
+            
+            // Update cache (remove from list) - no need to reload entire gallery
+            console.log('🗑️ [DELETE] Removendo do cache...');
+            removeAvatarFromCache(avatar.id);
+            
+            // Invalidate localStorage cache
+            localStorage.removeItem('studiox_avatar_library_v2');
+            console.log('🗑️ [DELETE] Cache invalidado');
+            
+            console.log('✅ [DELETE] Completo!');
+          } catch (err) {
+            console.error('❌ [DELETE] Erro:', err);
+            console.error('❌ [DELETE] Response:', err.response);
+            
+            // Always show error toast
+            toast.error('Erro ao excluir personagem: ' + (err.response?.data?.detail || err.message));
+            throw err; // Re-throw for batch delete error counting
+          }
+        }}
+        onCreateNew={() => {
+          console.log('🎨 Creating new character from gallery');
+          
+          // EXACT COPY from PipelineView.jsx resetAvatarModal (lines 709-730)
+          setEditingAvatarId(null);
+          setShowAvatarModal(false);
+          setAvatarSourcePhoto(null);
+          setAvatarSourceType('video');
+          setAvatarVideoUploading(false);
+          setAvatarExtractedAudio(null);
+          setAvatarVideoFrames([]);
+          setAvatarStage('upload');
+          setAvatarCreationMode('photo');
+          setAvatarPromptText('');
+          setAvatarPromptGender('female');
+          setAvatarPromptStyle('custom');
+          setTempAvatar(null);
+          setCustomizeTab('clothing');
+          setAvatarEditHistory([]);
+          setAvatarBaseUrl(null);
+          setAngleImages({});
+          setClothingVariants({});
+          setAuto360Progress(null);
+          setRecordedAudioUrl(null);
+          setRecordedAudioBlob(null);
+          setAvatarName('');
+          setPreviewVideoUrl(null);
+          setAvatarPreviewUrl(null);
+          setPreviewLanguage('pt');
+          setVoiceTab('bank');
+          setAvatarMediaTab('photo');
+          
+          // Now open modal
+          setShowAvatarModal(true);
+        }}
+        lang={lang}
+      />
+
       {/* ═══════ AVATAR MODAL (Global - Outside Project Context) ═══════ */}
       {showAvatarModal && !selectedProject && (
         <AvatarModal
@@ -1874,161 +2030,6 @@ export default function StudioPage() {
           }}
         />
       )}
-      {/* Global Character Library Modal */}
-      <AvatarLibraryModalV2
-        open={showGlobalLibrary}
-        onClose={() => setShowGlobalLibrary(false)}
-        projectId={null}
-        projectAvatarIds={new Set()}
-        avatarsCache={avatars}
-        avatarsCacheLoaded={avatarsLoaded}
-        onImported={(importedAvatars) => {
-          console.log('✅ Avatars viewed in global library:', importedAvatars.length);
-          toast.success(`Visualizando ${importedAvatars.length} personagens!`);
-        }}
-        onEditAvatar={(avatar) => {
-          console.log('✅ Editing avatar from global library:', avatar.name);
-          // Galeria permanece aberta, modal abre NA FRENTE com z-[10005]
-          setEditingAvatarId(avatar.id);
-          
-          // Infer avatar_style from creation_mode for avatars saved before the fix
-          let inferredStyle = avatar.avatar_style || 'realistic';
-          if (!avatar.avatar_style && avatar.creation_mode === '3d') {
-            inferredStyle = '3d_pixar';
-          }
-          const is3dAvatar = inferredStyle !== 'realistic';
-          
-          setTempAvatar({
-            url: avatar.url,
-            source_photo_url: avatar.source_photo_url || '',
-            clothing: avatar.clothing || 'company_uniform',
-            voice: avatar.voice || null,
-            avatar_style: inferredStyle,
-            creation_mode: avatar.creation_mode || 'photo',
-          });
-          
-          setAvatarName(avatar.name || '');
-          setPreviewVideoUrl(avatar.video_url || null);
-          setAvatarMediaTab(avatar.video_url ? 'photo' : 'photo');
-          
-          // For 3D avatars, only load angles that were generated with 3D style
-          const savedAngles = avatar.angles || {};
-          if (is3dAvatar && savedAngles.front && savedAngles.front !== avatar.url) {
-            setAngleImages({ front: avatar.url });
-          } else {
-            setAngleImages(savedAngles.front ? savedAngles : { front: avatar.url });
-          }
-          
-          // Load saved language
-          setPreviewLanguage(avatar.language || 'pt');
-          
-          // Restore audio from saved voice
-          if (avatar.voice?.url) {
-            setRecordedAudioUrl(avatar.voice.url);
-            setVoiceTab('record');
-          } else if (avatar.voice?.type === 'elevenlabs' && avatar.voice?.voice_id) {
-            setVoiceTab('premium');
-          } else if (avatar.voice?.voice_id) {
-            setVoiceTab('bank');
-          }
-          
-          // Rebuild clothing variants from angles if available
-          const variants = {};
-          if (avatar.clothing && avatar.url) variants[avatar.clothing] = avatar.url;
-          setClothingVariants(variants);
-          
-          setAvatarStage('customize');
-          setCustomizeTab('clothing');
-          setShowAvatarModal(true);
-          
-          // ABRIR "Editar com IA" por padrão
-          setAiEditAvatarId('temp');
-          
-          console.log('✅ Avatar modal OPENED for editing:', avatar.name);
-          
-          // Load saved edit history or initialize with current avatar as base
-          const savedHistory = avatar.edit_history && avatar.edit_history.length > 0 ? avatar.edit_history : [];
-          if (savedHistory.length > 0) {
-            setAvatarEditHistory(savedHistory);
-            const baseEntry = savedHistory.find(e => e.isBase);
-            setAvatarBaseUrl(baseEntry ? baseEntry.url : avatar.url);
-          } else {
-            setAvatarBaseUrl(avatar.url);
-            setAvatarEditHistory([{ 
-              url: avatar.url, 
-              instruction: 'Base original', 
-              timestamp: new Date().toISOString(), 
-              isBase: true 
-            }]);
-          }
-        }}
-        onDeleteAvatar={async (avatar, skipConfirm = false) => {
-          console.log('🗑️ [DELETE] Callback chamado para:', avatar.name, avatar.id);
-          try {
-            console.log('🗑️ [DELETE] Enviando DELETE para API...');
-            await axios.delete(`${API}/data/avatars/${avatar.id}`);
-            console.log('✅ [DELETE] Resposta 200 OK');
-            
-            // Only show individual toast if not batch (batch shows summary)
-            if (!skipConfirm) {
-              toast.success(`"${avatar.name}" excluído com sucesso!`);
-            }
-            
-            // Update cache (remove from list) - no need to reload entire gallery
-            console.log('🗑️ [DELETE] Removendo do cache...');
-            removeAvatarFromCache(avatar.id);
-            
-            // Invalidate localStorage cache
-            localStorage.removeItem('studiox_avatar_library_v2');
-            console.log('🗑️ [DELETE] Cache invalidado');
-            
-            console.log('✅ [DELETE] Completo!');
-          } catch (err) {
-            console.error('❌ [DELETE] Erro:', err);
-            console.error('❌ [DELETE] Response:', err.response);
-            
-            // Always show error toast
-            toast.error('Erro ao excluir personagem: ' + (err.response?.data?.detail || err.message));
-            throw err; // Re-throw for batch delete error counting
-          }
-        }}
-        onCreateNew={() => {
-          console.log('🎨 Creating new character from gallery');
-          
-          // EXACT COPY from PipelineView.jsx resetAvatarModal (lines 709-730)
-          setEditingAvatarId(null);
-          setShowAvatarModal(false);
-          setAvatarSourcePhoto(null);
-          setAvatarSourceType('video');
-          setAvatarVideoUploading(false);
-          setAvatarExtractedAudio(null);
-          setAvatarVideoFrames([]);
-          setAvatarStage('upload');
-          setAvatarCreationMode('photo');
-          setAvatarPromptText('');
-          setAvatarPromptGender('female');
-          setAvatarPromptStyle('custom');
-          setTempAvatar(null);
-          setCustomizeTab('clothing');
-          setAvatarEditHistory([]);
-          setAvatarBaseUrl(null);
-          setAngleImages({});
-          setClothingVariants({});
-          setAuto360Progress(null);
-          setRecordedAudioUrl(null);
-          setRecordedAudioBlob(null);
-          setAvatarName('');
-          setPreviewVideoUrl(null);
-          setAvatarPreviewUrl(null);
-          setPreviewLanguage('pt');
-          setVoiceTab('bank');
-          setAvatarMediaTab('photo');
-          
-          // Now open modal
-          setShowAvatarModal(true);
-        }}
-        lang={lang}
-      />
     </div>
   );
 }
