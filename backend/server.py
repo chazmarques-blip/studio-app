@@ -31,6 +31,7 @@ from routers.agent_generator import router as agent_generator_router
 from routers.data import router as data_router
 from routers.avatar import router as avatar_router
 from routers.studio import router as studio_router
+from routers.download_proxy import router as download_proxy_router
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
 api_router = APIRouter(prefix="/api")
@@ -286,6 +287,7 @@ app.include_router(agent_generator_router)
 app.include_router(data_router)
 app.include_router(avatar_router)
 app.include_router(studio_router)
+app.include_router(download_proxy_router)
 app.include_router(api_router)
 
 # ── Static Files ──

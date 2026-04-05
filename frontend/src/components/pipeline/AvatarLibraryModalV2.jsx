@@ -682,45 +682,15 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
-                          {/* Download button - Cross-origin compatible */}
-                          <button
-                            onClick={async (e) => {
+                          {/* Download button - Via backend proxy (guaranteed to work) */}
+                          <a
+                            href={`${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(`${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`)}`}
+                            onClick={(e) => {
                               e.stopPropagation();
-                              e.preventDefault();
-                              
-                              const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
-                              const imageUrl = resolveImageUrl(av.url);
-                              
-                              console.log('📥 [DOWNLOAD] Iniciando download:', filename);
-                              
-                              try {
-                                // Fetch image as blob
-                                const response = await fetch(imageUrl);
-                                const blob = await response.blob();
-                                
-                                // Create download using blob URL
-                                const blobUrl = URL.createObjectURL(blob);
-                                const link = document.createElement('a');
-                                link.href = blobUrl;
-                                link.download = filename;
-                                
-                                // Trigger download
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                
-                                // Cleanup
-                                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-                                
-                                toast.success(`✅ ${av.name} baixado!`);
-                                console.log('✅ [DOWNLOAD] Concluído:', filename);
-                              } catch (err) {
-                                console.error('❌ [DOWNLOAD] Erro:', err);
-                                toast.error('Erro ao baixar. Tente abrir em nova aba.');
-                              }
+                              console.log('📥 [DOWNLOAD] Download via proxy:', av.name);
+                              toast.success(`Download: ${av.name}`);
                             }}
-                            disabled={isDownloading}
-                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition disabled:opacity-50 pointer-events-auto"
+                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition pointer-events-auto"
                             title={L.download}
                           >
                             {isDownloading ? (
@@ -728,7 +698,7 @@ export function AvatarLibraryModalV2({
                             ) : (
                               <Download size={14} className="text-white" />
                             )}
-                          </button>
+                          </a>
                         </div>
                       </div>
                       
