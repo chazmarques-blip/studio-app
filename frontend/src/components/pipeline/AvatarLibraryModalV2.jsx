@@ -44,6 +44,16 @@ export function AvatarLibraryModalV2({
   // Download preview modal
   const [downloadPreview, setDownloadPreview] = useState(null);
   
+  // Folders system
+  const [folders, setFolders] = useState([]);
+  const [currentFolder, setCurrentFolder] = useState(null); // null = all avatars
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState(null);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderColor, setNewFolderColor] = useState('#8B5CF6');
+  const [newFolderParent, setNewFolderParent] = useState(null);
+  const [moveToFolderMenuOpen, setMoveToFolderMenuOpen] = useState(false);
+  
   // Filters
   const [styleFilter, setStyleFilter] = useState('all');
   const [has360Filter, setHas360Filter] = useState(false);
@@ -177,6 +187,124 @@ export function AvatarLibraryModalV2({
     }).catch(() => {}).finally(() => setLoading(false));
   }, [open, avatarsCache, avatarsCacheLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load folders
+  useEffect(() => {
+    if (!open) return;
+    
+    axios.get(`${API}/folders`)
+      .then(({ data }) => {
+        setFolders(data.folders || []);
+      })
+      .catch(err => console.error('Error loading folders:', err));
+  }, [open]);
+
+  // Folder management functions
+  const createFolder = async () => {
+    if (!newFolderName.trim()) {
+      toast.error('Nome da pasta é obrigatório');
+      return;
+    }
+    
+    try {
+      const { data } = await axios.post(`${API}/folders`, {
+        name: newFolderName.trim(),
+        parent_id: newFolderParent,
+        color: newFolderColor
+      });
+      
+      setFolders(prev => [...prev, data]);
+      setFolderModalOpen(false);
+      setNewFolderName('');
+      setNewFolderColor('#8B5CF6');
+      setNewFolderParent(null);
+      toast.success(`Pasta "${data.name}" criada!`);
+    } catch (err) {
+      toast.error('Erro ao criar pasta');
+    }
+  };
+
+  const deleteFolder = async (folderId) => {
+    if (!window.confirm('Deletar esta pasta? Os personagens não serão deletados.')) return;
+    
+    try {
+      await axios.delete(`${API}/folders/${folderId}`);
+      setFolders(prev => prev.filter(f => f.id !== folderId));
+      if (currentFolder === folderId) setCurrentFolder(null);
+      toast.success('Pasta deletada');
+    } catch (err) {
+      toast.error('Erro ao deletar pasta');
+    }
+  };
+
+  const moveAvatarsToFolder = async (folderId) => {
+    if (selected.size === 0) return;
+    
+    try {
+      await axios.post(`${API}/folders/assign-avatars`, {
+        folder_id: folderId,
+        avatar_ids: Array.from(selected)
+      });
+      
+      // Update folder's avatar_ids locally
+      setFolders(prev => prev.map(f => {
+        if (f.id === folderId) {
+          const newIds = new Set([...f.avatar_ids || [], ...Array.from(selected)]);
+          return { ...f, avatar_ids: Array.from(newIds) };
+        }
+        return f;
+      }));
+      
+      const folder = folders.find(f => f.id === folderId);
+      toast.success(`${selected.size} personagens movidos para "${folder?.name}"`);
+      setSelected(new Set());
+      setMoveToFolderMenuOpen(false);
+    } catch (err) {
+      toast.error('Erro ao mover personagens');
+    }
+  };
+
+  const downloadSelected = async () => {
+    if (selected.size === 0) return;
+    
+    const toDownload = library.filter(a => selected.has(a.id));
+    toast.info(`Baixando ${toDownload.length} personagens...`);
+    
+    for (const av of toDownload) {
+      const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
+      const link = document.createElement('a');
+      link.href = `${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(filename)}`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Delay between downloads
+    }
+    
+    toast.success(`${toDownload.length} personagens baixados!`);
+    setSelected(new Set());
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Deletar ${selected.size} personagens? Esta ação não pode ser desfeita.`)) return;
+    
+    const toDelete = Array.from(selected);
+    let deleted = 0;
+    
+    for (const avatarId of toDelete) {
+      try {
+        await axios.delete(`${API}/data/avatars/${avatarId}`);
+        deleted++;
+      } catch (err) {
+        console.error('Error deleting avatar:', avatarId, err);
+      }
+    }
+    
+    setLibrary(prev => prev.filter(a => !toDelete.includes(a.id)));
+    setSelected(new Set());
+    toast.success(`${deleted} personagens deletados`);
+  };
+
   // Filtered + sorted + memoized
   const filtered = useMemo(() => {
     let result = [...library];
@@ -186,6 +314,16 @@ export function AvatarLibraryModalV2({
       const url = a.url || '';
       return url.trim() !== '';
     });
+    
+    // 0. Folder filter (if a folder is selected)
+    if (currentFolder) {
+      const folder = folders.find(f => f.id === currentFolder);
+      if (folder && folder.avatar_ids) {
+        result = result.filter(a => folder.avatar_ids.includes(a.id));
+      } else {
+        result = []; // Folder not found or empty
+      }
+    }
     
     // 1. Text search
     if (search.trim()) {
@@ -234,7 +372,7 @@ export function AvatarLibraryModalV2({
     }
     
     return result;
-  }, [library, search, styleFilter, has360Filter, hasVoiceFilter, sortBy]);
+  }, [library, search, styleFilter, has360Filter, hasVoiceFilter, sortBy, currentFolder, folders]);
 
   // Lazy image loading with IntersectionObserver
   const observerRef = useRef(null);
@@ -393,20 +531,6 @@ export function AvatarLibraryModalV2({
     }
   };
   
-  // Batch download
-  const downloadSelected = async () => {
-    if (!selected.size) return;
-    const toDownload = library.filter(a => selected.has(a.id));
-    
-    for (const avatar of toDownload) {
-      await downloadAvatar(avatar);
-      // Small delay to avoid overwhelming browser
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-    
-    toast.success(`${selected.size} ${lang === 'pt' ? 'personagem(ns) baixado(s)' : 'character(s) downloaded'}!`);
-  };
-
   // Expansion modal (4x size)
   const openExpanded = (avatar) => {
     setExpandedAvatar(avatar);
@@ -467,6 +591,20 @@ export function AvatarLibraryModalV2({
                 <span>{L.createNew}</span>
               </button>
             )}
+            <button 
+              onClick={() => {
+                setEditingFolder(null);
+                setNewFolderName('');
+                setNewFolderColor('#8B5CF6');
+                setNewFolderParent(null);
+                setFolderModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6]/20 to-[#7C3AED]/20 border border-[#8B5CF6]/40 text-xs font-semibold text-[#A78BFA] hover:from-[#8B5CF6]/30 hover:to-[#7C3AED]/30 transition-all hover:scale-105"
+              title="Nova Pasta"
+            >
+              <Plus size={14} />
+              <span>Nova Pasta</span>
+            </button>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] transition">
               <X size={18} className="text-[#999]" />
             </button>
@@ -474,6 +612,83 @@ export function AvatarLibraryModalV2({
 
           {/* Search & Actions */}
           <div className="px-5 py-3 border-b border-[#111] shrink-0 space-y-3">
+            {/* Breadcrumb & Folder Navigation */}
+            {currentFolder && (
+              <div className="flex items-center gap-2 text-xs">
+                <button
+                  onClick={() => setCurrentFolder(null)}
+                  className="text-[#8B5CF6] hover:text-[#A78BFA] transition"
+                >
+                  Todas as Pastas
+                </button>
+                <ChevronRight size={12} className="text-[#666]" />
+                <span className="text-white font-semibold">
+                  {folders.find(f => f.id === currentFolder)?.name || 'Pasta'}
+                </span>
+              </div>
+            )}
+            
+            {/* Action Bar - Shows when avatars are selected */}
+            {selected.size > 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-[#8B5CF6]/10 to-[#7C3AED]/10 border border-[#8B5CF6]/30">
+                <span className="text-xs font-semibold text-white">{selected.size} selecionado(s)</span>
+                <div className="flex-1" />
+                <button
+                  onClick={downloadSelected}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/40 text-xs font-semibold text-green-400 hover:bg-green-500/30 transition"
+                >
+                  <Download size={12} />
+                  Baixar Todos
+                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setMoveToFolderMenuOpen(!moveToFolderMenuOpen)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/40 text-xs font-semibold text-blue-400 hover:bg-blue-500/30 transition"
+                  >
+                    <Plus size={12} />
+                    Mover para Pasta
+                  </button>
+                  {moveToFolderMenuOpen && (
+                    <div className="absolute top-full mt-1 right-0 bg-[#1A1A1A] border border-[#333] rounded-lg shadow-xl z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                      {folders.length === 0 ? (
+                        <div className="px-4 py-3 text-xs text-[#666]">Nenhuma pasta criada</div>
+                      ) : (
+                        folders.map(folder => (
+                          <button
+                            key={folder.id}
+                            onClick={() => moveAvatarsToFolder(folder.id)}
+                            className="w-full px-4 py-2 text-left text-xs text-white hover:bg-[#2A2A2A] transition flex items-center gap-2"
+                          >
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: folder.color || '#8B5CF6' }}
+                            />
+                            {folder.name}
+                          </button>
+                        ))
+                      )}
+                      <button
+                        onClick={() => {
+                          setMoveToFolderMenuOpen(false);
+                          setFolderModalOpen(true);
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs text-[#8B5CF6] hover:bg-[#2A2A2A] transition border-t border-[#333]"
+                      >
+                        + Criar Nova Pasta
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={deleteSelected}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-xs font-semibold text-red-400 hover:bg-red-500/30 transition"
+                >
+                  <Trash2 size={12} />
+                  Deletar
+                </button>
+              </div>
+            )}
+            
             {/* Search bar */}
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]" />
@@ -578,8 +793,66 @@ export function AvatarLibraryModalV2({
             </div>
           </div>
 
-          {/* Grid with custom scrollbar */}
-          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+          {/* Main Content Area with Sidebar */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Folders Sidebar */}
+            <div className="w-56 border-r border-[#151515] bg-[#0A0A0A] overflow-y-auto p-4 space-y-2">
+              <div className="text-xs font-bold text-[#666] uppercase mb-2">Pastas</div>
+              
+              {/* All Avatars (default view) */}
+              <button
+                onClick={() => setCurrentFolder(null)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
+                  currentFolder === null 
+                    ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] font-semibold border border-[#8B5CF6]/40' 
+                    : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
+                }`}
+              >
+                <Users size={14} />
+                <span className="flex-1">Todos ({library.length})</span>
+              </button>
+              
+              {/* Folder List */}
+              {folders.map(folder => {
+                const count = folder.avatar_ids?.length || 0;
+                const isActive = currentFolder === folder.id;
+                
+                return (
+                  <div key={folder.id} className="relative group">
+                    <button
+                      onClick={() => setCurrentFolder(folder.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
+                        isActive 
+                          ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
+                          : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
+                      }`}
+                    >
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: folder.color || '#8B5CF6' }}
+                      />
+                      <span className="flex-1 truncate">{folder.name}</span>
+                      <span className="text-[10px] text-[#666]">({count})</span>
+                    </button>
+                    
+                    {/* Delete folder button (on hover) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteFolder(folder.id);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-red-500/20"
+                      title="Deletar pasta"
+                    >
+                      <Trash2 size={10} className="text-red-400" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Grid with custom scrollbar */}
+            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
             <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 8px;
@@ -739,6 +1012,7 @@ export function AvatarLibraryModalV2({
                 })}
               </div>
             )}
+            </div>
           </div>
 
           {/* Footer Actions */}
@@ -924,6 +1198,89 @@ export function AvatarLibraryModalV2({
               <span className="text-sm text-[#888]">
                 {previewIndex + 1} / {filtered.length}
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Folder Create/Edit Modal */}
+      {folderModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setFolderModalOpen(false)}>
+          <div className="bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <Plus size={16} />
+                {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
+              </h3>
+              <button onClick={() => setFolderModalOpen(false)} className="text-white/80 hover:text-white transition">
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* Form */}
+            <div className="p-4 space-y-4">
+              {/* Folder Name */}
+              <div>
+                <label className="text-xs text-[#999] mb-1 block">Nome da Pasta</label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={e => setNewFolderName(e.target.value)}
+                  placeholder="Ex: Projeto A"
+                  className="w-full px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-white text-sm outline-none focus:border-[#8B5CF6] transition"
+                  autoFocus
+                />
+              </div>
+              
+              {/* Folder Color */}
+              <div>
+                <label className="text-xs text-[#999] mb-1 block">Cor</label>
+                <div className="flex gap-2">
+                  {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => setNewFolderColor(color)}
+                      className={`w-10 h-10 rounded-lg transition ${
+                        newFolderColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-[#0D0D0D]' : ''
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Parent Folder (optional) */}
+              <div>
+                <label className="text-xs text-[#999] mb-1 block">Pasta Pai (opcional)</label>
+                <select
+                  value={newFolderParent || ''}
+                  onChange={e => setNewFolderParent(e.target.value || null)}
+                  className="w-full px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-white text-sm outline-none focus:border-[#8B5CF6] transition"
+                >
+                  <option value="">Nenhuma (raiz)</option>
+                  {folders.map(f => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="px-4 pb-4 flex gap-2">
+              <button
+                onClick={() => setFolderModalOpen(false)}
+                className="flex-1 py-2.5 rounded-lg border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={createFolder}
+                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition text-sm flex items-center justify-center gap-2"
+              >
+                <Plus size={16} />
+                {editingFolder ? 'Salvar' : 'Criar Pasta'}
+              </button>
             </div>
           </div>
         </div>
