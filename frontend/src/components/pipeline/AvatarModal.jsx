@@ -608,13 +608,8 @@ export function AvatarModal({ ctx }) {
                           </div>
                         )}
                       </div>
-                      {/* AI Edit button below avatar */}
-                      {avatarMediaTab !== 'video' && (<>
-                        <button data-testid="ai-edit-avatar-modal-btn" onClick={() => setAiEditAvatarId(aiEditAvatarId === 'temp' ? null : 'temp')}
-                          className={`mt-1.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-xs transition ${aiEditAvatarId === 'temp' ? 'border-purple-500/50 bg-purple-500/10 text-purple-300' : 'border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50'}`}>
-                          <Sparkles size={10} /> {t('studio.ai_edit') || 'Editar com IA'}
-                        </button>
-                        {/* Apply Transparent Background button */}
+                      {/* APENAS o botão "Aplicar Fundo Invisível" logo abaixo da imagem */}
+                      {avatarMediaTab !== 'video' && (
                         <button data-testid="apply-bg-btn" onClick={async () => {
                           if (!tempAvatar?.url || applyingClothing) return;
                           setApplyingClothing(true);
@@ -632,11 +627,11 @@ export function AvatarModal({ ctx }) {
                           } finally { setApplyingClothing(false); }
                         }}
                           disabled={applyingClothing}
-                          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
+                          className="mt-1 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-[#8B5CF6]/30 text-[#8B5CF6]/70 text-xs hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/50 hover:text-[#8B5CF6] transition disabled:opacity-40">
                           {applyingClothing ? <Loader2 size={10} className="animate-spin" /> : <ImageIcon size={10} />}
                           {isDirectedMode ? 'Aplicar Fundo Invisível' : 'Apply Transparent Background'}
                         </button>
-                      </>)}
+                      )}
                       </div>
                       {/* AI Edit Side Panel */}
                       {aiEditAvatarId === 'temp' && (
@@ -1049,72 +1044,6 @@ export function AvatarModal({ ctx }) {
                   </>
                 )}
               </div>
-
-              {/* Video Preview Controls */}
-              {avatarStage === 'customize' && tempAvatar?.url && (
-                <div className="px-5 py-2 border-t border-[#151515]/50 shrink-0 space-y-2">
-                  {/* Language Selector + Generate/Regenerate */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.test_language') || 'Language'}:</span>
-                    <div className="flex gap-1">
-                      {[{id:'pt',label:'PT'},{id:'en',label:'EN'},{id:'es',label:'ES'}].map(lang => (
-                        <button key={lang.id} onClick={() => setPreviewLanguage(lang.id)}
-                          className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
-                            previewLanguage === lang.id ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'text-[#999] border border-[#1E1E1E] hover:border-[#333]'}`}>
-                          {lang.label}
-                        </button>
-                      ))}
-                    </div>
-                    {previewVideoUrl && (
-                      <button onClick={() => { setPreviewVideoUrl(null); setAvatarMediaTab('photo'); }}
-                        className="ml-auto text-[11px] text-[#8B5CF6] hover:underline">{t('studio.regenerate') || 'Regenerate'}</button>
-                    )}
-                  </div>
-                  <button data-testid="generate-preview-video-btn"
-                    onClick={async () => {
-                      setGeneratingPreviewVideo(true);
-                      setAvatarMediaTab('video');
-                      try {
-                        const voice = tempAvatar?.voice;
-                        const { data } = await axios.post(`${API}/campaigns/pipeline/avatar-video-preview`, {
-                          avatar_url: tempAvatar.url,
-                          voice_url: voice?.url || '',
-                          voice_id: voice?.voice_id || '',
-                          language: previewLanguage,
-                        });
-                        if (data.job_id) {
-                          const pollInterval = setInterval(async () => {
-                            try {
-                              const { data: status } = await axios.get(`${API}/campaigns/pipeline/avatar-video-preview/${data.job_id}`);
-                              if (status.status === 'completed' && status.video_url) {
-                                clearInterval(pollInterval);
-                                setPreviewVideoUrl(status.video_url);
-                                setGeneratingPreviewVideo(false);
-                                setAvatarMediaTab('video');
-                                toast.success(t('studio.preview_generated'));
-                              } else if (status.status === 'failed') {
-                                clearInterval(pollInterval);
-                                setGeneratingPreviewVideo(false);
-                                setAvatarMediaTab('photo');
-                                toast.error(status.error || t('studio.err_generic'));
-                              }
-                            } catch { /* keep polling */ }
-                          }, 5000);
-                        }
-                      } catch (e) {
-                        toast.error(t('studio.err_generic'));
-                        setGeneratingPreviewVideo(false);
-                        setAvatarMediaTab('photo');
-                      }
-                    }}
-                    disabled={generatingPreviewVideo}
-                    className="w-full rounded-lg border border-dashed border-[#8B5CF6]/20 py-2 text-xs text-[#8B5CF6] hover:bg-[#8B5CF6]/5 transition flex items-center justify-center gap-1.5 disabled:opacity-40">
-                    {generatingPreviewVideo ? <><Loader2 size={10} className="animate-spin" /> {t('studio.generating_preview')}</> :
-                     previewVideoUrl ? <><Play size={10} /> {t('studio.regenerate_preview') || 'Regenerate Preview'}</> :
-                     <><Play size={10} /> {t('studio.generate_video_preview')}</>}
-                  </button>
-                </div>
-              )}
 
               {/* Footer */}
               {avatarStage === 'customize' && (
