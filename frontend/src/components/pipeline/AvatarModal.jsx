@@ -570,13 +570,24 @@ export function AvatarModal({ ctx }) {
                             <p className="text-[8px] text-center text-[#999] mt-1">Atual</p>
                           </div>
                           
-                          {/* Frame 2: New/Preview Avatar (placeholder when empty) */}
+                          {/* Frame 2: Preview Avatar (shows previous version when loading/done) */}
                           <div className="relative">
                             <div className="aspect-[3/4] rounded-lg overflow-hidden border-2 border-dashed border-[#8B5CF6]/20 bg-[#0A0A0A] flex items-center justify-center">
                               {aiEditLoading ? (
                                 <div className="flex flex-col items-center gap-2">
                                   <Loader2 size={20} className="animate-spin text-[#8B5CF6]" />
                                   <p className="text-[9px] text-[#8B5CF6]">Gerando...</p>
+                                </div>
+                              ) : avatarEditHistory.length > 1 && avatarEditHistory[avatarEditHistory.length - 2] ? (
+                                <div className="relative cursor-pointer group h-full" onClick={() => {
+                                  const prevVersion = avatarEditHistory[avatarEditHistory.length - 2];
+                                  setTempAvatar(p => ({ ...p, url: prevVersion.url }));
+                                }}>
+                                  <img src={resolveImageUrl(avatarEditHistory[avatarEditHistory.length - 2].url)} alt="Previous"
+                                    className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                                    <Maximize2 size={14} className="text-white opacity-0 group-hover:opacity-100 transition" />
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="flex flex-col items-center gap-1 text-[#666]">
