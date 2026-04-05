@@ -578,8 +578,8 @@ export function AvatarModal({ ctx }) {
                         </div>
                       )}
                       
-                      {/* RIGHT SIDE: Main Image + Apply BG + AI Edit (vertical stack) */}
-                      <div className="flex-1 flex flex-col gap-2">
+                      {/* RIGHT SIDE: Main Image + AI Edit (vertical stack, aligned right, tight spacing) */}
+                      <div className="flex-1 flex flex-col gap-1 items-end">
                         {/* Main Avatar Image */}
                         <div className="w-full max-w-sm">
                           <div className="relative aspect-[3/5]">
