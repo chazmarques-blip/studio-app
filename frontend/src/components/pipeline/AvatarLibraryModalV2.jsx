@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, Check, Download, Users, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { X, Search, Check, Download, Users, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus, Trash2, Palette, Calendar, RotateCw, Mic } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
@@ -739,50 +739,68 @@ export function AvatarLibraryModalV2({
             {/* Filters Row */}
             <div className="flex gap-2 flex-wrap items-center">
               {/* Style filter */}
-              <select
-                value={styleFilter}
-                onChange={e => setStyleFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer"
-              >
-                <option value="all">🎨 Todos os Estilos</option>
-                <option value="pixar_3d">Pixar 3D</option>
-                <option value="cartoon_3d">Cartoon 3D</option>
-                <option value="cartoon_2d">Cartoon 2D</option>
-                <option value="anime_2d">Anime 2D</option>
-                <option value="realistic">Realista</option>
-              </select>
+              <div className="relative">
+                <Palette size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] pointer-events-none" strokeWidth={1.5} />
+                <select
+                  value={styleFilter}
+                  onChange={e => setStyleFilter(e.target.value)}
+                  className="pl-9 pr-8 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center'
+                  }}
+                >
+                  <option value="all">Todos os Estilos</option>
+                  <option value="pixar_3d">Pixar 3D</option>
+                  <option value="cartoon_3d">Cartoon 3D</option>
+                  <option value="cartoon_2d">Cartoon 2D</option>
+                  <option value="anime_2d">Anime 2D</option>
+                  <option value="realistic">Realista</option>
+                </select>
+              </div>
               
               {/* Sort filter */}
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-                className="px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer"
-              >
-                <option value="recent">📅 Mais Recentes</option>
-                <option value="oldest">📅 Mais Antigos</option>
-                <option value="az">🔤 A → Z</option>
-                <option value="za">🔤 Z → A</option>
-              </select>
+              <div className="relative">
+                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] pointer-events-none" strokeWidth={1.5} />
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value)}
+                  className="pl-9 pr-8 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center'
+                  }}
+                >
+                  <option value="recent">Mais Recentes</option>
+                  <option value="oldest">Mais Antigos</option>
+                  <option value="az">A → Z</option>
+                  <option value="za">Z → A</option>
+                </select>
+              </div>
               
               {/* Checkboxes */}
-              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
                 <input
                   type="checkbox"
                   checked={has360Filter}
                   onChange={e => setHas360Filter(e.target.checked)}
                   className="w-3.5 h-3.5 rounded accent-[#8B5CF6]"
                 />
-                <span>🔄 Apenas com 360°</span>
+                <RotateCw size={12} className="text-[#888]" strokeWidth={1.5} />
+                <span>Apenas com 360°</span>
               </label>
               
-              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
                 <input
                   type="checkbox"
                   checked={hasVoiceFilter}
                   onChange={e => setHasVoiceFilter(e.target.checked)}
                   className="w-3.5 h-3.5 rounded accent-[#8B5CF6]"
                 />
-                <span>🔊 Apenas com Voz</span>
+                <Mic size={12} className="text-[#888]" strokeWidth={1.5} />
+                <span>Apenas com Voz</span>
               </label>
               
               {/* Clear filters */}
@@ -794,9 +812,10 @@ export function AvatarLibraryModalV2({
                     setHasVoiceFilter(false);
                     setSortBy('recent');
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-400 hover:bg-red-500/20 transition"
                 >
-                  ✕ Limpar Filtros
+                  <X size={12} strokeWidth={1.5} />
+                  Limpar Filtros
                 </button>
               )}
             </div>
