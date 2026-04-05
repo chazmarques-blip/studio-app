@@ -963,9 +963,11 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
 
         # REMOVED: Concurrency check (now in endpoint before thread creation)
         
-        # CRITICAL FIX (2026-04-03): Update scene status to "directing" at START
-        _update_scene_status(tenant_id, project_id, scene_num, "directing", total=1)
-        logger.info(f"Studio [{project_id}]: Scene {scene_num} regeneration started - status set to 'directing'")
+        # CRITICAL FIX (2026-04-04): Use TOTAL scenes in project, not just 1
+        # This ensures progress bar shows correctly (e.g., "1 of 6" not "1 of 1")
+        total_scenes = len(scenes)
+        _update_scene_status(tenant_id, project_id, scene_num, "directing", total=total_scenes)
+        logger.info(f"Studio [{project_id}]: Scene {scene_num} regeneration started - status set to 'directing' ({scene_num}/{total_scenes})")
 
         scenes = project.get("scenes", [])
         characters = project.get("characters", [])
