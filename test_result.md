@@ -213,10 +213,10 @@ frontend:
 frontend:
   - task: "Scene Regeneration Progress Bar Synchronization"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/src/components/DirectedStudio.jsx"
-    stuck_count: 0
-    priority: "high"
+    stuck_count: 1
+    priority: "critical"
     needs_retesting: false
     status_history:
         - working: false
@@ -231,6 +231,9 @@ frontend:
         - working: "NA"
           agent: "testing"
           comment: "⚠️ TESTING INCOMPLETE - UNABLE TO ACCESS SCENE REGENERATION INTERFACE: Attempted to test progress bar fix for project 'CANAL PULMERANEA' (ID: f28f6d348f6d) but could not access the scene editing interface with regeneration buttons. FINDINGS: (1) ✅ Successfully logged in with test@studiox.com, (2) ✅ Successfully opened project 'CANAL PULMERANEA', (3) ❌ Project appears to be in completed state - clicking workflow steps (STORYBOARD, PRODUÇÃO) opens post-production modals (Storyboard PDF viewer, Pós-Produção final video modal) instead of scene editing interface, (4) ❌ Could not find scenes with data-scene-number attribute in any workflow step, (5) ⚠️ The DirectedStudio component with scene regeneration buttons (lines 2970-3090) is rendered at step 6 (Production Progress), but navigation to this step from a completed project is not accessible through standard UI flow. CODE REVIEW: ✅ Fix is correctly implemented in DirectedStudio.jsx lines 2979-2992 - videoDone now only checks sceneState === 'done', progress percentages correctly mapped (15% directing, 70% generating_video, 100% done). RECOMMENDATION: Either (a) provide a different test project that is currently in production phase, or (b) add UI navigation to access scene regeneration interface from completed projects, or (c) manually trigger scene regeneration via API and monitor backend logs to verify fix is working."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL BUG CONFIRMED - PROGRESS BAR JUMPS TO 100% IMMEDIATELY: Completed full end-to-end test of scene regeneration for project 'CANAL PULMERANEA' Scene 1 ('O Olhar Julgador'). USER REPORT IS CORRECT - THE FIX IS NOT WORKING. TEST RESULTS: (1) ✅ Successfully navigated to Step 6 (PRODUÇÃO), (2) ✅ Found Scene 1 with video player and 'Regenerar' button, (3) ✅ Clicked 'Regenerar' at 00:51:51, (4) ✅ API call successful: POST regenerate-scene returned 200, (5) ✅ Backend started processing (confirmed in logs), (6) ❌ CRITICAL ISSUE: Progress bar shows 100% at 3s after click and stays at 100% for entire 30-second monitoring period, (7) ❌ Status text shows scene metadata '0:00-0:03 • confiante e irônico' instead of processing status like 'Dirigindo' or 'Sora 2...', (8) ✅ Status polling working: GET status API called multiple times. ROOT CAUSE ANALYSIS: The fix at line 2981-2983 uses project-level `generating` flag to determine which logic to use. When clicking 'Regenerar' on a SINGLE scene, the project-level `generating` flag is NOT set to true (it's only set when starting full production). Therefore, the code falls into the ELSE branch: `videoDone = sceneState === 'done' || !!sceneVideo`. Since the old video still exists (sceneVideo is truthy), videoDone becomes true immediately, causing progress to jump to 100%. The backend IS processing correctly (logs show Claude prompt generation, Sora 2 video, audio merge), but frontend doesn't reflect this. FIX NEEDED: The `generating` flag logic is insufficient for single-scene regeneration. Need to check if the specific scene is actively regenerating, not just if the whole project is in production mode."
 
   - task: "Single Scene Regeneration - Audio/TTS Generation"
     implemented: true
@@ -315,7 +318,8 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Scene Regeneration Progress Bar Synchronization"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -323,6 +327,8 @@ test_plan:
 agent_communication:
     - agent: "main"
       message: "✅ P1 FIXED - Progress Bar Synchronization: Fixed progress bars jumping to 100% during scene regeneration. ROOT CAUSE: Frontend was checking video file existence (!!sceneVideo) to mark scene as done, but backend was still processing audio+merge for 3-5 min after video upload. FIX: Changed videoDone logic to trust only backend scene_status='done', removed video existence check. Updated progress mapping: directing→15%, generating_video→70% (shows actual Sora+Audio+Merge progress), done→100%. TESTING AGENT: Please test scene regeneration flow and verify progress bars show realistic progression (15% → 70% → 100%) instead of jumping to 100% immediately. Monitor that status text changes from 'Dirigindo' → 'Sora 2...' → 'Pronto' with matching progress percentages."
+    - agent: "testing"
+      message: "❌ CRITICAL - PROGRESS BAR FIX NOT WORKING: Completed comprehensive 30-second real-time monitoring test of Scene 1 regeneration in project 'CANAL PULMERANEA'. USER REPORT CONFIRMED - progress bar jumps to 100% immediately and stays there. DETAILED FINDINGS: (1) ✅ Test execution successful: Login → Navigate to project → Step 6 (PRODUÇÃO) → Found Scene 1 'O Olhar Julgador' → Clicked 'Regenerar' at 00:51:51, (2) ✅ Backend processing correctly: POST regenerate-scene returned 200, GET status polling active (4 calls in 30s), backend logs show Claude prompt generation + Sora 2 video + audio merge in progress, (3) ❌ FRONTEND BUG: Progress bar shows 100% at 3s after click and remains at 100% for entire 30-second monitoring period, (4) ❌ Status text shows scene metadata '0:00-0:03 • confiante e irônico' instead of processing status ('Dirigindo', 'Sora 2...', etc.), (5) ❌ No visual feedback of regeneration progress - user cannot tell if backend is working. ROOT CAUSE: The fix uses project-level `generating` flag (line 2981) to decide logic. When regenerating a SINGLE scene (not full production), `generating` is FALSE, so code uses ELSE branch: `videoDone = sceneState === 'done' || !!sceneVideo`. Old video still exists, so sceneVideo is truthy → videoDone = true → progress = 100%. The `generating` flag is only set when calling startProduction() for full project, NOT when calling regenerateScene() for single scene. FIX REQUIRED: Need scene-level regeneration tracking, not just project-level. Suggest: (a) Set `generating` flag when ANY scene regeneration starts, OR (b) Check if scene state is 'directing' or 'generating_video' to determine if actively processing, OR (c) Add separate `regeneratingScenes` Set to track which scenes are being regenerated."
     - agent: "testing"
       message: "🚨 CRITICAL TESTING COMPLETE - ASYNC/AWAIT FIXES NOT WORKING: Tested Director's Preview and Storyboard Generation as requested. Found ALL the exact errors mentioned in review request still occurring: (1) 'Object of type coroutine is not JSON serializable' in cache flush, (2) 'coroutine _analyze_avatars_with_vision was never awaited' as RuntimeWarning, (3) 'object of type coroutine has no len()' in storyboard generation. The fixes ARE IMPLEMENTED (_run_async_in_thread helper exists and is used) but are INEFFECTIVE. Director's Preview times out with 502 error, Storyboard Generation gets stuck in 'starting' phase. Both features are completely broken. The async/await violations persist despite the applied fixes."
     - agent: "testing"
