@@ -567,7 +567,7 @@ export function AvatarLibraryModalV2({
                         />
                         
                         {/* Hover overlay with actions */}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
                           {/* Expand button */}
                           <button
                             onClick={(e) => {
@@ -575,7 +575,7 @@ export function AvatarLibraryModalV2({
                               e.stopPropagation();
                               openExpanded(av);
                             }}
-                            className="p-2 rounded-full bg-[#8B5CF6] hover:bg-[#A78BFA] transition"
+                            className="p-2 rounded-full bg-[#8B5CF6] hover:bg-[#A78BFA] transition pointer-events-auto"
                             title={L.expand}
                           >
                             <Maximize2 size={14} className="text-black" />
@@ -590,7 +590,7 @@ export function AvatarLibraryModalV2({
                                 console.log('✏️ [HOVER] Edit clicked!', av.name);
                                 onEditAvatar(av);
                               }}
-                              className="p-2 rounded-full bg-blue-500 hover:bg-blue-400 transition"
+                              className="p-2 rounded-full bg-blue-500 hover:bg-blue-400 transition pointer-events-auto"
                               title={L.edit}
                             >
                               <Edit3 size={14} className="text-white" />
@@ -606,7 +606,7 @@ export function AvatarLibraryModalV2({
                                 console.log('🗑️ [CARD HOVER] Delete button clicked!', av.name, av.id);
                                 onDeleteAvatar(av);
                               }}
-                              className="p-2 rounded-full bg-red-500 hover:bg-red-400 transition"
+                              className="p-2 rounded-full bg-red-500 hover:bg-red-400 transition pointer-events-auto"
                               title="Excluir"
                             >
                               <Trash2 size={14} className="text-white" />
@@ -621,7 +621,7 @@ export function AvatarLibraryModalV2({
                               downloadAvatar(av);
                             }}
                             disabled={isDownloading}
-                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition disabled:opacity-50"
+                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition disabled:opacity-50 pointer-events-auto"
                             title={L.download}
                           >
                             {isDownloading ? (
