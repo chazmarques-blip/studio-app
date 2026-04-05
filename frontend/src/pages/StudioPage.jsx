@@ -1869,8 +1869,8 @@ export default function StudioPage() {
             avatarInputRef,
             logoInputRef,
             isDirectedMode: true,
-            // FORÇA z-index maior para aparecer por cima da galeria
-            zIndexOverride: 'z-[70]',
+            // FORÇA z-index maior para aparecer por cima da galeria (z-[10000])
+            zIndexOverride: 'z-[10005]',
           }}
         />
       )}
@@ -1888,6 +1888,10 @@ export default function StudioPage() {
         }}
         onEditAvatar={(avatar) => {
           console.log('✅ Editing avatar from global library:', avatar.name);
+          
+          // CRITICAL FIX: Fechar galeria ANTES de abrir modal de edição (z-index conflict)
+          setShowGlobalLibrary(false);
+          
           setEditingAvatarId(avatar.id);
           
           // Infer avatar_style from creation_mode for avatars saved before the fix
