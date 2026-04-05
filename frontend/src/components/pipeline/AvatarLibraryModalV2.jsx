@@ -682,25 +682,19 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
-                          {/* Download button - Backend proxy with proper headers */}
+                          {/* Download button - Opens in new tab (same as video download) */}
                           <a
-                            href={`${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(`${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`)}`}
-                            download
+                            href={resolveImageUrl(av.url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             onClick={(e) => {
                               e.stopPropagation();
-                              console.log('📥 [DOWNLOAD] Iniciando via backend proxy');
-                              setTimeout(() => {
-                                toast.success(`Download iniciado: ${av.name}`);
-                              }, 500);
+                              console.log('📥 [DOWNLOAD] Abrindo imagem em nova aba');
                             }}
                             className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition pointer-events-auto flex items-center justify-center"
-                            title={L.download}
+                            title="Baixar (abre em nova aba)"
                           >
-                            {isDownloading ? (
-                              <RefreshCw size={14} className="text-white animate-spin" />
-                            ) : (
-                              <Download size={14} className="text-white" />
-                            )}
+                            <Download size={14} className="text-white" />
                           </a>
                         </div>
                       </div>
