@@ -682,15 +682,18 @@ export function AvatarLibraryModalV2({
                             </button>
                           )}
                           
-                          {/* Download button */}
-                          <button
+                          {/* Download button - Simple anchor tag method (same as video download) */}
+                          <a
+                            href={resolveImageUrl(av.url)}
+                            download={`${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             onClick={(e) => {
                               e.stopPropagation();
-                              e.preventDefault();
-                              downloadAvatar(av);
+                              console.log('📥 [DOWNLOAD] Download iniciado via anchor tag:', av.name);
+                              toast.success(`Download: ${av.name}`);
                             }}
-                            disabled={isDownloading}
-                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition disabled:opacity-50 pointer-events-auto"
+                            className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition pointer-events-auto"
                             title={L.download}
                           >
                             {isDownloading ? (
@@ -698,7 +701,7 @@ export function AvatarLibraryModalV2({
                             ) : (
                               <Download size={14} className="text-white" />
                             )}
-                          </button>
+                          </a>
                         </div>
                       </div>
                       
