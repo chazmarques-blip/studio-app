@@ -1,4 +1,4 @@
-import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users, Building2, Plus } from 'lucide-react';
+import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users, Building2, Plus, Trash2, Edit2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -40,6 +40,14 @@ export function NewProjectModal({
   const [newCompanyLogo, setNewCompanyLogo] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [creatingCompany, setCreatingCompany] = useState(false);
+  
+  // NEW: Company editing
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [showEditCompany, setShowEditCompany] = useState(false);
+  const [editCompanyName, setEditCompanyName] = useState('');
+  const [editCompanyLogo, setEditCompanyLogo] = useState('');
+  const [uploadingEditLogo, setUploadingEditLogo] = useState(false);
+  const [updatingCompany, setUpdatingCompany] = useState(false);
 
   // Fetch folders on mount
   useEffect(() => {
@@ -93,6 +101,130 @@ export function NewProjectModal({
     
     fetchFolders();
   }, [token]);
+
+  const handleEditLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      alert(lang === 'pt' ? 'Apenas PNG ou JPEG são aceitos' : 'Only PNG or JPEG are accepted');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert(lang === 'pt' ? 'Tamanho máximo: 5MB' : 'Max size: 5MB');
+      return;
+    }
+    
+    setUploadingEditLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('asset_type', 'company_logo');
+      
+      const response = await fetch(`${API}/api/campaigns/pipeline/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setEditCompanyLogo(data.url);
+        console.log('✅ [LOGO] Uploaded for edit:', data.url);
+      } else {
+        alert(lang === 'pt' ? 'Erro ao fazer upload' : 'Upload failed');
+      }
+    } catch (err) {
+      console.error('❌ [LOGO] Upload error:', err);
+      alert(lang === 'pt' ? 'Erro ao fazer upload' : 'Upload failed');
+    } finally {
+      setUploadingEditLogo(false);
+    }
+  };
+
+  const handleOpenEditCompany = (company, e) => {
+    e.stopPropagation(); // Prevent company selection
+    setEditingCompany(company);
+    setEditCompanyName(company.name);
+    setEditCompanyLogo(company.logo_url || '');
+    setShowEditCompany(true);
+  };
+
+  const handleUpdateCompany = async () => {
+    if (!editCompanyName.trim() || !editingCompany || updatingCompany || !token) return;
+    
+    setUpdatingCompany(true);
+    try {
+      const response = await fetch(`${API}/api/companies/${editingCompany.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: editCompanyName.trim(),
+          logo_url: editCompanyLogo || null
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ [COMPANY] Updated');
+        // Update local state
+        setCompanies(prev => prev.map(c => 
+          c.id === editingCompany.id 
+            ? { ...c, name: editCompanyName.trim(), logo_url: editCompanyLogo || null }
+            : c
+        ));
+        // Update selected company if it's the one being edited
+        if (selectedCompany?.id === editingCompany.id) {
+          setSelectedCompany({ ...selectedCompany, name: editCompanyName.trim(), logo_url: editCompanyLogo || null });
+        }
+        setShowEditCompany(false);
+        setEditingCompany(null);
+      } else {
+        alert(lang === 'pt' ? 'Erro ao atualizar empresa' : 'Failed to update company');
+      }
+    } catch (err) {
+      console.error('❌ [COMPANY] Update error:', err);
+      alert(lang === 'pt' ? 'Erro ao atualizar empresa' : 'Failed to update company');
+    } finally {
+      setUpdatingCompany(false);
+    }
+  };
+
+  const handleDeleteCompany = async (companyId, e) => {
+    e.stopPropagation();
+    
+    if (!confirm(lang === 'pt' ? 'Tem certeza que deseja excluir esta empresa?' : 'Are you sure you want to delete this company?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API}/api/companies/${companyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        console.log('✅ [COMPANY] Deleted');
+        setCompanies(prev => prev.filter(c => c.id !== companyId));
+        if (selectedCompany?.id === companyId) {
+          setSelectedCompany(null);
+        }
+      } else {
+        alert(lang === 'pt' ? 'Erro ao excluir empresa' : 'Failed to delete company');
+      }
+    } catch (err) {
+      console.error('❌ [COMPANY] Delete error:', err);
+      alert(lang === 'pt' ? 'Erro ao excluir empresa' : 'Failed to delete company');
+    }
+  };
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -259,50 +391,69 @@ export function NewProjectModal({
 
               {/* Existing companies */}
               {companies.map(company => (
-                <button
-                  key={company.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCompany(company);
-                    // Auto-fill settings from company defaults
-                    if (company.default_settings) {
-                      setAnimationSub(company.default_settings.animation_sub || animationSub);
-                      setVisualStyle(company.default_settings.visual_style || visualStyle);
-                      setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
-                      setProjectLang(company.default_settings.language || projectLang);
-                      
-                      // Auto-select first folder if company has folders
-                      if (company.folder_ids && company.folder_ids.length > 0) {
-                        setSelectedFolder(company.folder_ids[0]);
+                <div key={company.id} className="shrink-0 relative group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCompany(company);
+                      // Auto-fill settings from company defaults
+                      if (company.default_settings) {
+                        setAnimationSub(company.default_settings.animation_sub || animationSub);
+                        setVisualStyle(company.default_settings.visual_style || visualStyle);
+                        setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
+                        setProjectLang(company.default_settings.language || projectLang);
+                        
+                        // Auto-select first folder if company has folders
+                        if (company.folder_ids && company.folder_ids.length > 0) {
+                          setSelectedFolder(company.folder_ids[0]);
+                        }
                       }
-                    }
-                  }}
-                  className={`shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
-                    selectedCompany?.id === company.id
-                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                      : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
-                  }`}>
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden ${
-                    company.logo_url ? 'bg-white' : 'bg-[#1A1A1A]'
-                  }`}>
-                    {company.logo_url ? (
-                      <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
-                    ) : (
-                      <Building2 size={20} className="text-[#666]" />
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-center max-w-[80px] truncate text-white">
-                    {company.name}
-                  </span>
-                  {company.is_primary && (
-                    <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
-                      PRINCIPAL
+                    }}
+                    className={`w-full flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+                      selectedCompany?.id === company.id
+                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                        : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
+                    }`}>
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden ${
+                      company.logo_url ? 'bg-white' : 'bg-[#1A1A1A]'
+                    }`}>
+                      {company.logo_url ? (
+                        <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                      ) : (
+                        <Building2 size={20} className="text-[#666]" />
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-center max-w-[80px] truncate text-white">
+                      {company.name}
                     </span>
-                  )}
-                  {selectedCompany?.id === company.id && (
-                    <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                  )}
-                </button>
+                    {company.is_primary && (
+                      <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
+                        PRINCIPAL
+                      </span>
+                    )}
+                    {selectedCompany?.id === company.id && (
+                      <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                    )}
+                  </button>
+                  
+                  {/* Edit/Delete buttons - appear on hover */}
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => handleOpenEditCompany(company, e)}
+                      className="p-1 rounded bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition"
+                      title={lang === 'pt' ? 'Editar' : 'Edit'}>
+                      <Edit2 size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteCompany(company.id, e)}
+                      className="p-1 rounded bg-red-500 hover:bg-red-600 text-white transition"
+                      title={lang === 'pt' ? 'Excluir' : 'Delete'}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
               ))}
 
               {/* Button: Create new company */}
@@ -432,6 +583,106 @@ export function NewProjectModal({
                   {creatingCompany 
                     ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
                     : (lang === 'pt' ? 'Criar Empresa' : 'Create Company')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Modal: Edit Company */}
+        {showEditCompany && editingCompany && (
+          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowEditCompany(false)}>
+            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-5 max-w-lg w-full space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h4 className="text-base font-semibold text-white flex items-center gap-2">
+                  <Edit2 size={18} className="text-[#8B5CF6]" />
+                  {lang === 'pt' ? 'Editar Empresa' : 'Edit Company'}
+                </h4>
+                <button onClick={() => setShowEditCompany(false)} className="text-[#666] hover:text-white transition">
+                  <X size={18} />
+                </button>
+              </div>
+              
+              {/* Company Name */}
+              <div>
+                <label className="text-xs font-medium text-[#999] mb-1.5 block">
+                  {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
+                </label>
+                <input
+                  value={editCompanyName}
+                  onChange={e => setEditCompanyName(e.target.value)}
+                  placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
+                  autoFocus
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6] transition"
+                />
+              </div>
+              
+              {/* Logo Upload */}
+              <div>
+                <label className="text-xs font-medium text-[#999] mb-1.5 block">
+                  {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
+                </label>
+                
+                <div className="flex items-center gap-3">
+                  {/* Preview */}
+                  <div className="w-16 h-16 rounded-lg border border-[#333] bg-[#0A0A0A] flex items-center justify-center overflow-hidden shrink-0">
+                    {editCompanyLogo ? (
+                      <img src={editCompanyLogo} alt="Logo preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <Building2 size={24} className="text-[#444]" />
+                    )}
+                  </div>
+                  
+                  {/* Upload Button */}
+                  <label className="flex-1 cursor-pointer">
+                    <div className="border-2 border-dashed border-[#444] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-[#0A0A0A] hover:bg-[#8B5CF6]/5">
+                      {uploadingEditLogo ? (
+                        <span className="text-xs text-[#666]">
+                          {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-xs text-[#888] block">
+                            {lang === 'pt' ? 'Clique para alterar' : 'Click to change'}
+                          </span>
+                          <span className="text-[10px] text-[#555] mt-0.5 block">
+                            PNG, JPEG • Max 5MB
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      onChange={handleEditLogoUpload}
+                      disabled={uploadingEditLogo}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                
+                {editCompanyLogo && (
+                  <button
+                    onClick={() => setEditCompanyLogo('')}
+                    className="mt-2 text-xs text-[#666] hover:text-red-400 transition">
+                    {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
+                  </button>
+                )}
+              </div>
+              
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setShowEditCompany(false)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-[#333] text-xs font-medium text-[#888] hover:text-white hover:border-[#555] transition">
+                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  onClick={handleUpdateCompany}
+                  disabled={!editCompanyName.trim() || updatingCompany}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
+                  {updatingCompany 
+                    ? (lang === 'pt' ? 'Salvando...' : 'Saving...') 
+                    : (lang === 'pt' ? 'Salvar Alterações' : 'Save Changes')}
                 </button>
               </div>
             </div>
