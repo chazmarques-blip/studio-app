@@ -31,6 +31,12 @@ export function NewProjectModal({
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
+  
+  // NEW: Company creation modal
+  const [showCreateCompany, setShowCreateCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [newCompanyLogo, setNewCompanyLogo] = useState('');
+  const [creatingCompany, setCreatingCompany] = useState(false);
 
   // Fetch folders on mount
   useEffect(() => {
@@ -197,10 +203,7 @@ export function NewProjectModal({
               {/* Button: Create new company */}
               <button
                 type="button"
-                onClick={() => {
-                  // TODO: Open company creation modal
-                  alert('Abrir modal de criação de empresa');
-                }}
+                onClick={() => setShowCreateCompany(true)}
                 className="shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border border-dashed border-[#555] hover:border-[#8B5CF6] bg-[#0A0A0A] hover:bg-[#8B5CF6]/5 transition-all">
                 <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed border-[#555]">
                   <Plus size={20} className="text-[#666]" />
@@ -223,6 +226,132 @@ export function NewProjectModal({
             }
           </p>
         </div>
+        
+        {/* Modal: Create Company (inline) */}
+        {showCreateCompany && (
+          <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
+            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-white">
+                  {lang === 'pt' ? 'Nova Empresa' : 'New Company'}
+                </h4>
+                <button onClick={() => setShowCreateCompany(false)} className="text-[#666] hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <div>
+                <label className="text-xs text-[#999] mb-1 block">
+                  {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
+                </label>
+                <input
+                  value={newCompanyName}
+                  onChange={e => setNewCompanyName(e.target.value)}
+                  placeholder="Ex: Biblizoo, Agent22..."
+                  autoFocus
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]"
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs text-[#999] mb-1 block">
+                  {lang === 'pt' ? 'URL do Logo (opcional)' : 'Logo URL (optional)'}
+                </label>
+                <input
+                  value={newCompanyLogo}
+                  onChange={e => setNewCompanyLogo(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/50"
+                />
+              </div>
+              
+              <p className="text-[10px] text-[#666]">
+                {lang === 'pt' 
+                  ? 'As configurações atuais serão salvas como padrão para esta empresa.' 
+                  : 'Current settings will be saved as defaults for this company.'}
+              </p>
+              
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowCreateCompany(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-[#333] text-xs text-[#888] hover:text-white transition">
+                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  onClick={handleCreateCompany}
+                  disabled={!newCompanyName.trim() || creatingCompany}
+                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 transition">
+                  {creatingCompany 
+                    ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
+                    : (lang === 'pt' ? 'Criar' : 'Create')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Modal: Create Company (inline) */}
+        {showCreateCompany && (
+          <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
+            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-white">
+                  {lang === 'pt' ? 'Nova Empresa' : 'New Company'}
+                </h4>
+                <button onClick={() => setShowCreateCompany(false)} className="text-[#666] hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <div>
+                <label className="text-xs text-[#999] mb-1 block">
+                  {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
+                </label>
+                <input
+                  value={newCompanyName}
+                  onChange={e => setNewCompanyName(e.target.value)}
+                  placeholder="Ex: Biblizoo, Agent22..."
+                  autoFocus
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]"
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs text-[#999] mb-1 block">
+                  {lang === 'pt' ? 'URL do Logo (opcional)' : 'Logo URL (optional)'}
+                </label>
+                <input
+                  value={newCompanyLogo}
+                  onChange={e => setNewCompanyLogo(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/50"
+                />
+              </div>
+              
+              <p className="text-[10px] text-[#666]">
+                {lang === 'pt' 
+                  ? 'As configurações atuais serão salvas como padrão para esta empresa.' 
+                  : 'Current settings will be saved as defaults for this company.'}
+              </p>
+              
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowCreateCompany(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-[#333] text-xs text-[#888] hover:text-white transition">
+                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  onClick={handleCreateCompany}
+                  disabled={!newCompanyName.trim() || creatingCompany}
+                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 transition">
+                  {creatingCompany 
+                    ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
+                    : (lang === 'pt' ? 'Criar' : 'Create')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Step 1: Project Name - ULTRA COMPACTO */}
         <div className="space-y-1.5">
