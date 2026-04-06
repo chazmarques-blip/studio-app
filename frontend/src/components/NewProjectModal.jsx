@@ -42,36 +42,60 @@ export function NewProjectModal({
   useEffect(() => {
     const fetchFolders = async () => {
       try {
-        const token = localStorage.getItem('token');
-        console.log('🔍 [FOLDERS] Fetching folders...', { hasToken: !!token });
+        // Try multiple token sources
+        let token = localStorage.getItem('token') || sessionStorage.getItem('token');
         
         if (!token) {
-          console.warn('⚠️ [FOLDERS] No token found, skipping fetch');
+          const cookieMatch = document.cookie.match(/token=([^;]+)/);
+          if (cookieMatch) token = cookieMatch[1];
+        }
+        
+        console.log('🔍 [FOLDERS] Fetching folders...', { 
+          hasToken: !!token,
+          tokenSource: token ? (localStorage.getItem('token') ? 'localStorage' : 'sessionStorage or cookie') : 'NONE'
+        });
+        
+        if (!token) {
+          console.warn('⚠️ [FOLDERS] No token found - User may not be logged in');
           setLoadingFolders(false);
+          setLoadingCompanies(false);
           return;
         }
         
-        const response = await fetch(`${API}/api/folders`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
         
-        console.log('📡 [FOLDERS] Response status:', response.status);
+        // Fetch folders
+        const foldersResponse = await fetch(`${API}/api/folders`, { headers });
+        console.log('📡 [FOLDERS] Response status:', foldersResponse.status);
         
-        if (response.ok) {
-          const data = await response.json();
-          console.log('✅ [FOLDERS] Folders received:', data.folders?.length || 0, data.folders);
+        if (foldersResponse.ok) {
+          const data = await foldersResponse.json();
+          console.log('✅ [FOLDERS] Received:', data.folders?.length || 0);
           setFolders(data.folders || []);
         } else {
-          const errorText = await response.text();
-          console.error('❌ [FOLDERS] Fetch failed:', response.status, errorText);
+          console.error('❌ [FOLDERS] Fetch failed:', foldersResponse.status);
         }
+        
+        // Fetch companies
+        const companiesResponse = await fetch(`${API}/api/companies`, { headers });
+        console.log('📡 [COMPANIES] Response status:', companiesResponse.status);
+        
+        if (companiesResponse.ok) {
+          const data = await companiesResponse.json();
+          console.log('✅ [COMPANIES] Received:', data.companies?.length || 0);
+          setCompanies(data.companies || []);
+        } else {
+          console.error('❌ [COMPANIES] Fetch failed:', companiesResponse.status);
+        }
+        
       } catch (err) {
-        console.error('❌ [FOLDERS] Error fetching folders:', err);
+        console.error('❌ [FOLDERS] Error:', err);
       } finally {
         setLoadingFolders(false);
+        setLoadingCompanies(false);
       }
     };
     
