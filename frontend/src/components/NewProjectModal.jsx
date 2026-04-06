@@ -1,4 +1,4 @@
-import { X, Sparkles, Check, ChevronRight, Clapperboard } from 'lucide-react';
+import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush } from 'lucide-react';
 import { useState } from 'react';
 
 /**
@@ -64,79 +64,76 @@ export function NewProjectModal({
           </button>
         </div>
 
-        {/* Step 1: Project Name */}
-        <div className="space-y-3">
-          <label className="text-base font-bold text-white flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-[#8B5CF6] flex items-center justify-center text-sm">1</span>
+        {/* Step 1: Project Name - SIMPLIFIED */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#999] flex items-center gap-2">
+            <span className="text-[#8B5CF6]">1</span>
             {lang === 'pt' ? 'Nome do Projeto' : 'Project Name'}
-            <span className="text-red-400 text-xl">*</span>
+            <span className="text-red-400">*</span>
           </label>
           <input 
             value={projectName} 
             onChange={e => setProjectName(e.target.value)}
             placeholder={lang === 'pt' ? 'Ex: A Jornada de Abraão' : 'Ex: The Journey of Abraham'}
             autoFocus
-            className="w-full bg-[#0A0A0A] border-2 border-[#333] focus:border-[#8B5CF6] rounded-xl px-5 py-4 text-lg text-white font-semibold outline-none placeholder-[#555] transition" 
+            className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6] rounded-lg px-4 py-3 text-base text-white outline-none placeholder-[#555] transition" 
           />
         </div>
 
-        {/* Step 2: Visual Style */}
+        {/* Step 2: Visual Style - REDESIGNED: One line, minimal */}
         <div className="space-y-3">
-          <label className="text-base font-bold text-white flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-[#8B5CF6] flex items-center justify-center text-sm">2</span>
+          <label className="text-sm font-medium text-[#999] flex items-center gap-2">
+            <span className="text-[#8B5CF6]">2</span>
             {lang === 'pt' ? 'Estilo Visual' : 'Visual Style'}
-            <span className="text-red-400 text-xl">*</span>
+            <span className="text-red-400">*</span>
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="flex gap-2 overflow-x-auto pb-2">
             {[
-              { id: 'pixar_3d', label: 'Pixar 3D', desc: 'Estilo DreamWorks/Pixar', icon: '🎬', gradient: 'from-blue-500/20 to-purple-500/20' },
-              { id: 'cartoon_3d', label: 'Cartoon 3D', desc: 'Cores vivas, estilizado', icon: '🎨', gradient: 'from-pink-500/20 to-orange-500/20' },
-              { id: 'cartoon_2d', label: 'Cartoon 2D', desc: 'Clássico Disney', icon: '✏️', gradient: 'from-yellow-500/20 to-red-500/20' },
-              { id: 'anime_2d', label: 'Anime 2D', desc: 'Estilo japonês', icon: '⛩️', gradient: 'from-purple-500/20 to-pink-500/20' },
-              { id: 'realistic', label: 'Realista', desc: 'Cinematográfico', icon: '📽️', gradient: 'from-slate-500/20 to-zinc-500/20' },
-              { id: 'watercolor', label: 'Aquarela', desc: 'Artístico', icon: '🖌️', gradient: 'from-teal-500/20 to-cyan-500/20' },
-            ].map(s => (
-              <button 
-                key={s.id} 
-                type="button"
-                onClick={() => { 
-                  setAnimationSub(s.id); 
-                  setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
-                }}
-                className={`relative p-5 rounded-2xl border-2 text-left transition-all hover:scale-105 ${
-                  animationSub === s.id
-                    ? 'border-[#8B5CF6] bg-gradient-to-br shadow-xl shadow-[#8B5CF6]/30'
-                    : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
-                } ${s.gradient}`}>
-                {animationSub === s.id && (
-                  <div className="absolute top-3 right-3 w-7 h-7 bg-[#8B5CF6] rounded-full flex items-center justify-center shadow-lg">
-                    <Check size={16} strokeWidth={3} className="text-black" />
-                  </div>
-                )}
-                
-                <div className="text-3xl mb-3">{s.icon}</div>
-                <div className={`font-bold text-base mb-1 ${animationSub === s.id ? 'text-[#8B5CF6]' : 'text-white'}`}>
-                  {s.label}
-                </div>
-                <div className="text-xs text-[#666]">{s.desc}</div>
-              </button>
-            ))}
+              { id: 'pixar_3d', label: 'Pixar 3D', icon: Film },
+              { id: 'cartoon_3d', label: 'Cartoon 3D', icon: Palette },
+              { id: 'cartoon_2d', label: 'Cartoon 2D', icon: Pencil },
+              { id: 'anime_2d', label: 'Anime 2D', icon: CircleDot },
+              { id: 'realistic', label: 'Realista', icon: Camera },
+              { id: 'watercolor', label: 'Aquarela', icon: Brush },
+            ].map(s => {
+              const Icon = s.icon;
+              return (
+                <button 
+                  key={s.id} 
+                  type="button"
+                  onClick={() => { 
+                    setAnimationSub(s.id); 
+                    setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
+                  }}
+                  className={`shrink-0 px-4 py-2.5 rounded-lg border transition-all flex items-center gap-2 ${
+                    animationSub === s.id
+                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                      : 'border-[#333] bg-[#0A0A0A] text-[#888] hover:border-[#555] hover:text-white'
+                  }`}>
+                  <Icon size={16} strokeWidth={1.5} />
+                  <span className="text-sm font-medium whitespace-nowrap">{s.label}</span>
+                  {animationSub === s.id && (
+                    <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Step 3: Description (optional) */}
-        <div className="space-y-3">
-          <label className="text-base font-bold text-white flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-[#555] flex items-center justify-center text-sm">3</span>
+        {/* Step 3: Description (optional) - SIMPLIFIED */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#999] flex items-center gap-2">
+            <span className="text-[#666]">3</span>
             {lang === 'pt' ? 'Descrição' : 'Description'}
-            <span className="text-xs text-[#666] font-normal ml-1">({lang === 'pt' ? 'opcional' : 'optional'})</span>
+            <span className="text-xs text-[#666]">({lang === 'pt' ? 'opcional' : 'optional'})</span>
           </label>
           <textarea 
             value={projectDesc} 
             onChange={e => setProjectDesc(e.target.value)}
             placeholder={lang === 'pt' ? 'Descreva brevemente o tema ou objetivo do projeto...' : 'Briefly describe the theme or goal...'}
-            rows={3}
-            className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6]/50 rounded-xl px-5 py-3 text-sm text-white outline-none placeholder-[#555] resize-none transition" 
+            rows={2}
+            className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6]/50 rounded-lg px-4 py-2.5 text-sm text-white outline-none placeholder-[#555] resize-none transition" 
           />
         </div>
 
