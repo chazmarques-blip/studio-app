@@ -468,44 +468,54 @@ export function AvatarLibraryModalV2({
 
   // Download single or multiple avatars
   const downloadAvatar = async (avatar) => {
-    console.log('🎯 [DOWNLOAD] Função chamada para:', avatar.name, avatar.id);
+    console.log('🎯 [DOWNLOAD] Iniciando download:', avatar.name);
     setDownloading(prev => new Set(prev).add(avatar.id));
     
     try {
       const imageUrl = resolveImageUrl(avatar.url);
       const filename = `${(avatar.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
       
-      console.log('📥 [DOWNLOAD] Usando endpoint proxy /api/download-image');
-      console.log('📥 [DOWNLOAD] URL original:', imageUrl);
-      
-      // Use backend proxy endpoint to force download with correct headers
+      // Use backend proxy endpoint (same as downloadSelected - TESTED AND WORKING)
       const proxyUrl = `${API}/download-image?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(filename)}`;
-      console.log('📥 [DOWNLOAD] Proxy URL:', proxyUrl);
+      console.log('📥 [DOWNLOAD] Usando proxy:', proxyUrl);
       
-      // Create download link using proxy
-      const a = document.createElement('a');
-      a.href = proxyUrl;
-      a.download = filename;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      
-      document.body.appendChild(a);
-      console.log('🔗 [DOWNLOAD] Iniciando download via proxy:', filename);
-      a.click();
-      
-      setTimeout(() => {
+      // Method 1: Try fetch + blob (like working video download)
+      try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
         document.body.removeChild(a);
-        console.log('🧹 [DOWNLOAD] Cleanup concluído');
-      }, 500);
-      
-      toast.success(`✅ ${avatar.name} baixado!`);
+        URL.revokeObjectURL(blobUrl);
+        
+        console.log('✅ [DOWNLOAD] Sucesso (método blob)');
+        toast.success(`✅ ${avatar.name} baixado!`);
+        
+      } catch (fetchError) {
+        console.warn('⚠️ [DOWNLOAD] Método blob falhou, usando link direto');
+        
+        // Method 2: Direct link (fallback - same as downloadSelected)
+        const a = document.createElement('a');
+        a.href = proxyUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        console.log('✅ [DOWNLOAD] Sucesso (método direto)');
+        toast.success(`✅ ${avatar.name} baixado!`);
+      }
       
     } catch (e) {
-      console.error('❌ [DOWNLOAD] Erro fatal ao baixar:', e);
-      console.error('❌ [DOWNLOAD] Stack:', e.stack);
-      toast.error(`Erro ao baixar ${avatar.name}. Tente abrir em nova aba.`);
+      console.error('❌ [DOWNLOAD] Erro:', e);
+      toast.error(`Erro ao baixar ${avatar.name}`);
     } finally {
-      console.log('🏁 [DOWNLOAD] Finally block - removendo do estado downloading');
       setDownloading(prev => {
         const next = new Set(prev);
         next.delete(avatar.id);
@@ -1345,17 +1355,41 @@ export function AvatarLibraryModalV2({
               >
                 Cancelar
               </button>
-              <a
-                href={`${API}/download-image?url=${encodeURIComponent(resolveImageUrl(downloadPreview.url))}&filename=${encodeURIComponent(`${(downloadPreview.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`)}`}
-                onClick={() => {
-                  toast.success(`Download iniciado: ${downloadPreview.name}`);
+              <button
+                onClick={async () => {
+                  const av = downloadPreview;
                   setDownloadPreview(null);
+                  toast.info(`Iniciando download: ${av.name}`);
+                  
+                  try {
+                    const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
+                    const proxyUrl = `${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(filename)}`;
+                    
+                    // Fetch + blob method (like working video download)
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                    
+                    toast.success(`✅ ${av.name} baixado!`);
+                  } catch (err) {
+                    console.error('Download error:', err);
+                    toast.error(`Erro ao baixar ${av.name}`);
+                  }
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
               >
                 <Download size={16} />
                 Baixar Agora
-              </a>
+              </button>
             </div>
           </div>
         </div>
