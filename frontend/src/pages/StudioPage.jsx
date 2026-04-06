@@ -1443,6 +1443,11 @@ export default function StudioPage() {
         projectAvatarIds={new Set()}
         avatarsCache={avatars}
         avatarsCacheLoaded={avatarsLoaded}
+        onCreateNew={() => {
+          console.log('✅ Creating new character from global library');
+          setShowGlobalLibrary(false); // Close gallery
+          setShowAvatarModal(true); // Open creation modal
+        }}
         onImported={(importedAvatars) => {
           console.log('✅ Avatars viewed in global library:', importedAvatars.length);
           toast.success(`Visualizando ${importedAvatars.length} personagens!`);
