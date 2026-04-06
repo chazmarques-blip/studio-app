@@ -32,6 +32,14 @@ export function NewProjectModal({
     const fetchFolders = async () => {
       try {
         const token = localStorage.getItem('token');
+        console.log('🔍 [FOLDERS] Fetching folders...', { hasToken: !!token });
+        
+        if (!token) {
+          console.warn('⚠️ [FOLDERS] No token found, skipping fetch');
+          setLoadingFolders(false);
+          return;
+        }
+        
         const response = await fetch(`${API}/api/folders`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -39,12 +47,18 @@ export function NewProjectModal({
           }
         });
         
+        console.log('📡 [FOLDERS] Response status:', response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('✅ [FOLDERS] Folders received:', data.folders?.length || 0, data.folders);
           setFolders(data.folders || []);
+        } else {
+          const errorText = await response.text();
+          console.error('❌ [FOLDERS] Fetch failed:', response.status, errorText);
         }
       } catch (err) {
-        console.error('Error fetching folders:', err);
+        console.error('❌ [FOLDERS] Error fetching folders:', err);
       } finally {
         setLoadingFolders(false);
       }
