@@ -1,5 +1,7 @@
-import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush } from 'lucide-react';
-import { useState } from 'react';
+import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 /**
  * New Project Modal - Optimized UX
@@ -17,8 +19,39 @@ export function NewProjectModal({
   const [animationSub, setAnimationSub] = useState('');
   const [visualStyle, setVisualStyle] = useState('animation');
   const [continuityMode, setContinuityMode] = useState(true);
-  const [formatStrategy, setFormatStrategy] = useState('safe_zone'); // NEW
-  const [formatsRequested, setFormatsRequested] = useState(['16:9']); // NEW
+  const [formatStrategy, setFormatStrategy] = useState('safe_zone');
+  const [formatsRequested, setFormatsRequested] = useState(['16:9']);
+  
+  // NEW: Character folder selection for continuity
+  const [selectedFolder, setSelectedFolder] = useState(null); // null = criar novos personagens
+  const [folders, setFolders] = useState([]);
+  const [loadingFolders, setLoadingFolders] = useState(true);
+
+  // Fetch folders on mount
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API}/api/folders`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setFolders(data.folders || []);
+        }
+      } catch (err) {
+        console.error('Error fetching folders:', err);
+      } finally {
+        setLoadingFolders(false);
+      }
+    };
+    
+    fetchFolders();
+  }, []);
 
   const handleCreate = () => {
     if (!projectName.trim() || !animationSub) return;
@@ -31,8 +64,9 @@ export function NewProjectModal({
       audio_mode: audioMode,
       animation_sub: animationSub,
       continuity_mode: continuityMode,
-      format_strategy: formatStrategy, // NEW
-      formats_requested: formatsRequested, // NEW
+      format_strategy: formatStrategy,
+      formats_requested: formatsRequested,
+      character_folder_id: selectedFolder, // NEW: Pass selected folder for continuity
     });
   };
 
@@ -113,10 +147,77 @@ export function NewProjectModal({
           </div>
         </div>
 
-        {/* Step 3: Multi-Format Strategy - ULTRA COMPACTO (renumerado) */}
+        {/* Step 3: Character Folder Selection - NOVO PARA CONTINUIDADE */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
             <span className="text-[#8B5CF6] text-xs">3</span>
+            <Users size={12} className="text-[#8B5CF6]" />
+            {lang === 'pt' ? 'Personagens' : 'Characters'}
+          </label>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {/* Option: Create New Characters */}
+            <button
+              type="button"
+              onClick={() => setSelectedFolder(null)}
+              className={`shrink-0 px-3 py-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
+                selectedFolder === null
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                  : 'border-[#333] bg-[#0A0A0A] text-[#888] hover:border-[#555] hover:text-white'
+              }`}>
+              <Sparkles size={14} strokeWidth={1.5} />
+              <span className="text-xs font-medium whitespace-nowrap">
+                {lang === 'pt' ? 'Criar Novos' : 'Create New'}
+              </span>
+              {selectedFolder === null && (
+                <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+              )}
+            </button>
+
+            {/* Loading state */}
+            {loadingFolders && (
+              <div className="shrink-0 px-3 py-1.5 text-xs text-[#666]">
+                {lang === 'pt' ? 'Carregando...' : 'Loading...'}
+              </div>
+            )}
+
+            {/* Existing folders */}
+            {!loadingFolders && folders.map(folder => (
+              <button
+                key={folder.id}
+                type="button"
+                onClick={() => setSelectedFolder(folder.id)}
+                className={`shrink-0 px-3 py-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
+                  selectedFolder === folder.id
+                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                    : 'border-[#333] bg-[#0A0A0A] text-[#888] hover:border-[#555] hover:text-white'
+                }`}>
+                <Users size={14} strokeWidth={1.5} />
+                <span className="text-xs font-medium whitespace-nowrap">{folder.name}</span>
+                {selectedFolder === folder.id && (
+                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                )}
+              </button>
+            ))}
+
+            {/* Empty state */}
+            {!loadingFolders && folders.length === 0 && (
+              <div className="shrink-0 px-3 py-1.5 text-xs text-[#666]">
+                {lang === 'pt' ? 'Nenhuma pasta criada ainda' : 'No folders created yet'}
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-[#666]">
+            {selectedFolder === null 
+              ? (lang === 'pt' ? 'Novos personagens serão criados para este projeto' : 'New characters will be created for this project')
+              : (lang === 'pt' ? 'Personagens existentes serão reutilizados (continuidade garantida)' : 'Existing characters will be reused (continuity guaranteed)')
+            }
+          </p>
+        </div>
+
+        {/* Step 4: Multi-Format Strategy - ULTRA COMPACTO (renumerado) */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+            <span className="text-[#8B5CF6] text-xs">4</span>
             {lang === 'pt' ? 'Formato' : 'Format'}
           </label>
           <div className="flex gap-1.5">
