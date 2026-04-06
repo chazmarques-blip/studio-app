@@ -1,67 +1,6 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <script>
-        // ═══════════════════════════════════════════════════════════════
-        // BLOQUEIO ABSOLUTO E DEFINITIVO DO RRWEB - PRIMEIRA LINHA
-        // ═══════════════════════════════════════════════════════════════
-        (function() {
-          'use strict';
-          
-          // 1. HIJACK CONSOLE PRIMEIRO (antes de TUDO)
-          const _err = console.error;
-          const _warn = console.warn;
-          
-          console.error = function(...args) {
-            const str = String(args[0] || '').toLowerCase();
-            if (str.includes('rrweb') || 
-                str.includes('removeeventlistener') || 
-                str.includes('securityerror') ||
-                (str.includes('uncaught') && str.includes('window'))) {
-              return; // SILENT BLOCK
-            }
-            return _err.apply(console, args);
-          };
-          
-          console.warn = function(...args) {
-            const str = String(args[0] || '').toLowerCase();
-            if (str.includes('rrweb') || str.includes('posthog')) {
-              return; // SILENT BLOCK
-            }
-            return _warn.apply(console, args);
-          };
-          
-          // 2. BLOCK GLOBAL ERROR EVENTS
-          window.addEventListener('error', function(e) {
-            const msg = (e?.message || e?.error?.message || '').toLowerCase();
-            if (msg.includes('rrweb') || 
-                msg.includes('removeeventlistener') || 
-                msg.includes('securityerror')) {
-              e.stopImmediatePropagation();
-              e.preventDefault();
-              return false;
-            }
-          }, true);
-          
-          // 3. BLOCK UNHANDLED REJECTIONS
-          window.addEventListener('unhandledrejection', function(e) {
-            const msg = String(e?.reason || '').toLowerCase();
-            if (msg.includes('rrweb')) {
-              e.preventDefault();
-              return false;
-            }
-          }, true);
-          
-          // 4. PERMANENTLY DISABLE RRWEB
-          Object.defineProperty(window, 'rrweb', {
-            get: () => undefined,
-            set: () => {},
-            configurable: false
-          });
-          
-          console.log('%c✅ RRWEB BLOQUEADO', 'color: #10b981; font-weight: bold; font-size: 14px;');
-        })();
-        </script>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#8B5CF6" />
@@ -73,21 +12,62 @@
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
-        <!--
-        manifest.json provides metadata used when your web app is installed on a
-        user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-        -->
-        <!--
-        Notice the use of %PUBLIC_URL% in the tags above.
-        It will be replaced with the URL of the `public` folder during the build.
-        Only files inside the `public` folder can be referenced from the HTML.
-
-        Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-        work correctly both with client-side routing and a non-root public URL.
-        Learn how to configure a non-root public URL by running `npm run build`.
-        -->
         <link rel="icon" href="%PUBLIC_URL%/logo-studiox.svg" />
         <title>StudioX | AI Video Studio</title>
+        
+        <!-- Console Error Suppression (rrweb, PostHog, SecurityError) -->
+        <script>
+        (function() {
+          'use strict';
+          const _error = console.error;
+          const _warn = console.warn;
+          
+          console.error = function(...args) {
+            const msg = String(args[0] || '').toLowerCase();
+            if (msg.includes('rrweb') || 
+                msg.includes('posthog') || 
+                msg.includes('securityerror') ||
+                msg.includes('removeeventlistener')) {
+              return; // Silent block
+            }
+            return _error.apply(console, args);
+          };
+          
+          console.warn = function(...args) {
+            const msg = String(args[0] || '').toLowerCase();
+            if (msg.includes('rrweb') || msg.includes('posthog')) {
+              return; // Silent block
+            }
+            return _warn.apply(console, args);
+          };
+          
+          // Block global error events
+          window.addEventListener('error', function(e) {
+            const msg = (e?.message || '').toLowerCase();
+            if (msg.includes('rrweb') || 
+                msg.includes('securityerror') || 
+                msg.includes('posthog')) {
+              e.stopImmediatePropagation();
+              e.preventDefault();
+              return false;
+            }
+          }, true);
+          
+          // Block unhandled rejections
+          window.addEventListener('unhandledrejection', function(e) {
+            const msg = String(e?.reason || '').toLowerCase();
+            if (msg.includes('rrweb') || msg.includes('posthog')) {
+              e.preventDefault();
+              return false;
+            }
+          }, true);
+          
+          // Disable rrweb/posthog globally
+          Object.defineProperty(window, 'rrweb', { get: () => undefined, set: () => {}, configurable: false });
+          Object.defineProperty(window, 'posthog', { get: () => undefined, set: () => {}, configurable: false });
+        })();
+        </script>
+        
         <style>
         #emergent-badge, a[href*="emergent.sh"][style*="fixed"] { 
             display: none !important; visibility: hidden !important; opacity: 0 !important; 
@@ -95,73 +75,7 @@
             position: absolute !important; left: -99999px !important; top: -99999px !important;
         }
         </style>
-        <script>
-        // ULTRA AGGRESSIVE rrweb/PostHog NUCLEAR blocker
-        (function() {
-          'use strict';
-          
-          // 1. Hijack console.error FIRST to suppress ALL rrweb spam
-          const originalError = console.error;
-          const originalWarn = console.warn;
-          
-          console.error = function(...args) {
-            const msg = args.join(' ').toLowerCase();
-            if (msg.includes('rrweb') || 
-                msg.includes('removeeventlistener') || 
-                msg.includes('securityerror') || 
-                msg.includes('posthog') ||
-                msg.includes('uncaught') && msg.includes('window')) {
-              return; // SILENT SUPPRESS
-            }
-            originalError.apply(console, args);
-          };
-          
-          console.warn = function(...args) {
-            const msg = args.join(' ').toLowerCase();
-            if (msg.includes('rrweb') || msg.includes('posthog')) {
-              return; // SILENT SUPPRESS
-            }
-            originalWarn.apply(console, args);
-          };
-          
-          // 2. Block ALL error events globally
-          window.addEventListener('error', function(e) {
-            if (e && e.message) {
-              const msg = String(e.message).toLowerCase();
-              if (msg.includes('rrweb') || 
-                  msg.includes('removeeventlistener') || 
-                  msg.includes('securityerror') || 
-                  msg.includes('posthog')) {
-                e.stopImmediatePropagation();
-                e.preventDefault();
-                return false;
-              }
-            }
-          }, true);
-          
-          // 3. Block unhandled rejections
-          window.addEventListener('unhandledrejection', function(e) {
-            if (e && e.reason && String(e.reason).toLowerCase().includes('rrweb')) {
-              e.preventDefault();
-              return false;
-            }
-          }, true);
-          
-          // 4. Define rrweb/posthog as undefined PERMANENTLY
-          Object.defineProperty(window, 'rrweb', { 
-            get: () => undefined,
-            set: () => {},
-            configurable: false
-          });
-          Object.defineProperty(window, 'posthog', { 
-            get: () => undefined,
-            set: () => {},
-            configurable: false
-          });
-          
-          console.log('✅ Console purificado - rrweb bloqueado');
-        })();
-        </script>
+        
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>

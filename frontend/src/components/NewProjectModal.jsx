@@ -1,5 +1,6 @@
 import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users, Building2, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -12,6 +13,7 @@ export function NewProjectModal({
   onClose, 
   onCreate 
 }) {
+  const { token } = useAuth(); // Get token from AuthContext
   const [projectName, setProjectName] = useState('');
   const [projectDesc, setProjectDesc] = useState('');
   const [projectLang, setProjectLang] = useState('pt');
@@ -41,26 +43,15 @@ export function NewProjectModal({
   // Fetch folders on mount
   useEffect(() => {
     const fetchFolders = async () => {
+      if (!token) {
+        console.warn('⚠️ [NewProjectModal] No token available - User may not be logged in');
+        setLoadingFolders(false);
+        setLoadingCompanies(false);
+        return;
+      }
+
       try {
-        // Try multiple token sources
-        let token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        
-        if (!token) {
-          const cookieMatch = document.cookie.match(/token=([^;]+)/);
-          if (cookieMatch) token = cookieMatch[1];
-        }
-        
-        console.log('🔍 [FOLDERS] Fetching folders...', { 
-          hasToken: !!token,
-          tokenSource: token ? (localStorage.getItem('token') ? 'localStorage' : 'sessionStorage or cookie') : 'NONE'
-        });
-        
-        if (!token) {
-          console.warn('⚠️ [FOLDERS] No token found - User may not be logged in');
-          setLoadingFolders(false);
-          setLoadingCompanies(false);
-          return;
-        }
+        console.log('🔍 [NewProjectModal] Fetching folders and companies...');
         
         const headers = {
           'Authorization': `Bearer ${token}`,
@@ -92,7 +83,7 @@ export function NewProjectModal({
         }
         
       } catch (err) {
-        console.error('❌ [FOLDERS] Error:', err);
+        console.error('❌ [NewProjectModal] Error fetching data:', err);
       } finally {
         setLoadingFolders(false);
         setLoadingCompanies(false);
@@ -100,7 +91,48 @@ export function NewProjectModal({
     };
     
     fetchFolders();
-  }, []);
+  }, [token]);
+
+  const handleCreateCompany = async () => {
+    if (!newCompanyName.trim() || creatingCompany || !token) return;
+    
+    setCreatingCompany(true);
+    try {
+      const response = await fetch(`${API}/api/companies`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: newCompanyName.trim(),
+          logo_url: newCompanyLogo.trim() || null,
+          default_settings: {
+            animation_sub: animationSub,
+            visual_style: visualStyle,
+            format_strategy: formatStrategy,
+            language: projectLang
+          }
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ [COMPANY] Created:', data.company);
+        setCompanies(prev => [...prev, data.company]);
+        setSelectedCompany(data.company);
+        setShowCreateCompany(false);
+        setNewCompanyName('');
+        setNewCompanyLogo('');
+      } else {
+        console.error('❌ [COMPANY] Creation failed:', response.status);
+      }
+    } catch (err) {
+      console.error('❌ [COMPANY] Error:', err);
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
 
   const handleCreate = () => {
     if (!projectName.trim() || !animationSub) return;
@@ -250,69 +282,6 @@ export function NewProjectModal({
             }
           </p>
         </div>
-        
-        {/* Modal: Create Company (inline) */}
-        {showCreateCompany && (
-          <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
-            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-white">
-                  {lang === 'pt' ? 'Nova Empresa' : 'New Company'}
-                </h4>
-                <button onClick={() => setShowCreateCompany(false)} className="text-[#666] hover:text-white">
-                  <X size={16} />
-                </button>
-              </div>
-              
-              <div>
-                <label className="text-xs text-[#999] mb-1 block">
-                  {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
-                </label>
-                <input
-                  value={newCompanyName}
-                  onChange={e => setNewCompanyName(e.target.value)}
-                  placeholder="Ex: Biblizoo, Agent22..."
-                  autoFocus
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]"
-                />
-              </div>
-              
-              <div>
-                <label className="text-xs text-[#999] mb-1 block">
-                  {lang === 'pt' ? 'URL do Logo (opcional)' : 'Logo URL (optional)'}
-                </label>
-                <input
-                  value={newCompanyLogo}
-                  onChange={e => setNewCompanyLogo(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/50"
-                />
-              </div>
-              
-              <p className="text-[10px] text-[#666]">
-                {lang === 'pt' 
-                  ? 'As configurações atuais serão salvas como padrão para esta empresa.' 
-                  : 'Current settings will be saved as defaults for this company.'}
-              </p>
-              
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => setShowCreateCompany(false)}
-                  className="flex-1 px-4 py-2 rounded-lg border border-[#333] text-xs text-[#888] hover:text-white transition">
-                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
-                </button>
-                <button
-                  onClick={handleCreateCompany}
-                  disabled={!newCompanyName.trim() || creatingCompany}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 transition">
-                  {creatingCompany 
-                    ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
-                    : (lang === 'pt' ? 'Criar' : 'Create')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         
         {/* Modal: Create Company (inline) */}
         {showCreateCompany && (
