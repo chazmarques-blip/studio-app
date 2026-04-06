@@ -476,21 +476,21 @@ export function NewProjectModal({
         
         {/* Modal: Create Company (inline) */}
         {showCreateCompany && (
-          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
-            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-5 max-w-lg w-full space-y-4" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
+            <div className="bg-white rounded-xl border-2 border-[#8B5CF6]/30 p-5 max-w-lg w-full space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <h4 className="text-base font-semibold text-white flex items-center gap-2">
+                <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
                   <Building2 size={18} className="text-[#8B5CF6]" />
                   {lang === 'pt' ? 'Nova Empresa' : 'New Company'}
                 </h4>
-                <button onClick={() => setShowCreateCompany(false)} className="text-[#666] hover:text-white transition">
+                <button onClick={() => setShowCreateCompany(false)} className="text-[#999] hover:text-[#333] transition">
                   <X size={18} />
                 </button>
               </div>
               
               {/* Company Name */}
               <div>
-                <label className="text-xs font-medium text-[#999] mb-1.5 block">
+                <label className="text-xs font-medium text-[#666] mb-1.5 block">
                   {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
                 </label>
                 <input
@@ -498,39 +498,39 @@ export function NewProjectModal({
                   onChange={e => setNewCompanyName(e.target.value)}
                   placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
                   autoFocus
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6] transition"
+                  className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-2.5 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
                 />
               </div>
               
               {/* Logo Upload */}
               <div>
-                <label className="text-xs font-medium text-[#999] mb-1.5 block">
+                <label className="text-xs font-medium text-[#666] mb-1.5 block">
                   {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
                 
                 <div className="flex items-center gap-3">
-                  {/* Preview */}
-                  <div className="w-16 h-16 rounded-lg border border-[#333] bg-[#0A0A0A] flex items-center justify-center overflow-hidden shrink-0">
+                  {/* Preview - Logo ocupa todo o espaço */}
+                  <div className="w-20 h-20 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden shrink-0 p-2">
                     {newCompanyLogo ? (
                       <img src={newCompanyLogo} alt="Logo preview" className="w-full h-full object-contain" />
                     ) : (
-                      <Building2 size={24} className="text-[#444]" />
+                      <Building2 size={28} className="text-[#8B5CF6]/40" />
                     )}
                   </div>
                   
                   {/* Upload Button */}
                   <label className="flex-1 cursor-pointer">
-                    <div className="border-2 border-dashed border-[#444] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-[#0A0A0A] hover:bg-[#8B5CF6]/5">
+                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF]">
                       {uploadingLogo ? (
                         <span className="text-xs text-[#666]">
                           {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
                         </span>
                       ) : (
                         <>
-                          <span className="text-xs text-[#888] block">
+                          <span className="text-xs text-[#666] block font-medium">
                             {lang === 'pt' ? 'Clique para fazer upload' : 'Click to upload'}
                           </span>
-                          <span className="text-[10px] text-[#555] mt-0.5 block">
+                          <span className="text-[10px] text-[#999] mt-0.5 block">
                             PNG, JPEG • Max 5MB
                           </span>
                         </>
@@ -549,13 +549,13 @@ export function NewProjectModal({
                 {newCompanyLogo && (
                   <button
                     onClick={() => setNewCompanyLogo('')}
-                    className="mt-2 text-xs text-[#666] hover:text-red-400 transition">
+                    className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
                     {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
                   </button>
                 )}
               </div>
               
-              <p className="text-[10px] text-[#666] bg-[#0A0A0A] rounded px-2 py-1.5 border border-[#222]">
+              <p className="text-[10px] text-[#666] bg-[#F9F7FF] rounded px-2 py-1.5 border border-[#E8E3FF]">
                 💡 {lang === 'pt' 
                   ? 'As configurações atuais do projeto serão salvas como padrão para esta empresa.' 
                   : 'Current project settings will be saved as defaults for this company.'}
@@ -564,7 +564,7 @@ export function NewProjectModal({
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => setShowCreateCompany(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-[#333] text-xs font-medium text-[#888] hover:text-white hover:border-[#555] transition">
+                  className="flex-1 px-4 py-2.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
                   {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                 </button>
                 <button
@@ -582,21 +582,21 @@ export function NewProjectModal({
         
         {/* Modal: Edit Company */}
         {showEditCompany && editingCompany && (
-          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowEditCompany(false)}>
-            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-5 max-w-lg w-full space-y-4" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowEditCompany(false)}>
+            <div className="bg-white rounded-xl border-2 border-[#8B5CF6]/30 p-5 max-w-lg w-full space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <h4 className="text-base font-semibold text-white flex items-center gap-2">
+                <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
                   <Edit2 size={18} className="text-[#8B5CF6]" />
                   {lang === 'pt' ? 'Editar Empresa' : 'Edit Company'}
                 </h4>
-                <button onClick={() => setShowEditCompany(false)} className="text-[#666] hover:text-white transition">
+                <button onClick={() => setShowEditCompany(false)} className="text-[#999] hover:text-[#333] transition">
                   <X size={18} />
                 </button>
               </div>
               
               {/* Company Name */}
               <div>
-                <label className="text-xs font-medium text-[#999] mb-1.5 block">
+                <label className="text-xs font-medium text-[#666] mb-1.5 block">
                   {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
                 </label>
                 <input
@@ -604,39 +604,39 @@ export function NewProjectModal({
                   onChange={e => setEditCompanyName(e.target.value)}
                   placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
                   autoFocus
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6] transition"
+                  className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-2.5 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
                 />
               </div>
               
               {/* Logo Upload */}
               <div>
-                <label className="text-xs font-medium text-[#999] mb-1.5 block">
+                <label className="text-xs font-medium text-[#666] mb-1.5 block">
                   {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
                 
                 <div className="flex items-center gap-3">
-                  {/* Preview */}
-                  <div className="w-16 h-16 rounded-lg border border-[#333] bg-[#0A0A0A] flex items-center justify-center overflow-hidden shrink-0">
+                  {/* Preview - Logo ocupa todo o espaço */}
+                  <div className="w-20 h-20 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden shrink-0 p-2">
                     {editCompanyLogo ? (
                       <img src={editCompanyLogo} alt="Logo preview" className="w-full h-full object-contain" />
                     ) : (
-                      <Building2 size={24} className="text-[#444]" />
+                      <Building2 size={28} className="text-[#8B5CF6]/40" />
                     )}
                   </div>
                   
                   {/* Upload Button */}
                   <label className="flex-1 cursor-pointer">
-                    <div className="border-2 border-dashed border-[#444] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-[#0A0A0A] hover:bg-[#8B5CF6]/5">
+                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF]">
                       {uploadingEditLogo ? (
                         <span className="text-xs text-[#666]">
                           {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
                         </span>
                       ) : (
                         <>
-                          <span className="text-xs text-[#888] block">
+                          <span className="text-xs text-[#666] block font-medium">
                             {lang === 'pt' ? 'Clique para alterar' : 'Click to change'}
                           </span>
-                          <span className="text-[10px] text-[#555] mt-0.5 block">
+                          <span className="text-[10px] text-[#999] mt-0.5 block">
                             PNG, JPEG • Max 5MB
                           </span>
                         </>
@@ -655,7 +655,7 @@ export function NewProjectModal({
                 {editCompanyLogo && (
                   <button
                     onClick={() => setEditCompanyLogo('')}
-                    className="mt-2 text-xs text-[#666] hover:text-red-400 transition">
+                    className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
                     {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
                   </button>
                 )}
@@ -664,7 +664,7 @@ export function NewProjectModal({
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => setShowEditCompany(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-[#333] text-xs font-medium text-[#888] hover:text-white hover:border-[#555] transition">
+                  className="flex-1 px-4 py-2.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
                   {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                 </button>
                 <button
