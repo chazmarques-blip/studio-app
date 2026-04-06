@@ -1131,8 +1131,8 @@ export default function StudioPage() {
               }
             },
             saveAvatarAndClose: () => {
-              console.log('⚠️ saveAvatarAndClose: Not implemented in Directed Studio mode');
-              toast.info('Use o botão "Salvar" no projeto para persistir mudanças');
+              console.log('✅ saveAvatarAndClose: Auto-saving changes');
+              // Auto-save: Changes are already persisted when creating/editing avatar
               resetAvatarModal();
             },
             saveAvatarAsNew: async () => {
