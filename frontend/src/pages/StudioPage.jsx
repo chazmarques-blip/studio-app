@@ -624,9 +624,14 @@ export default function StudioPage() {
   // ═══════ EVENT LISTENER: Avatar Creation from DirectedStudio ═══════
   useEffect(() => {
     const handleOpenAvatarCreation = (e) => {
-      console.log('✅ Event received: openAvatarCreation', e.detail);
+      console.log('🎯 [EVENT] openAvatarCreation received:', e.detail);
+      console.log('🎯 [STATE] selectedProject:', selectedProject?.id);
+      console.log('🎯 [STATE] showAvatarModal before:', showAvatarModal);
+      
       resetAvatarModal();
       setShowAvatarModal(true);
+      
+      console.log('🎯 [ACTION] setShowAvatarModal(true) called');
     };
     
     window.addEventListener('openAvatarCreation', handleOpenAvatarCreation);
@@ -634,7 +639,7 @@ export default function StudioPage() {
     return () => {
       window.removeEventListener('openAvatarCreation', handleOpenAvatarCreation);
     };
-  }, []);
+  }, [selectedProject, showAvatarModal]);
 
   useEffect(() => {
     fetchProjects();
