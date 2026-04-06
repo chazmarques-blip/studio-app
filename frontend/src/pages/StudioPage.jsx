@@ -1182,20 +1182,25 @@ export default function StudioPage() {
               
               // 1. Save to GLOBAL gallery (tenant avatars)
               try {
+                console.log('📡 [SAVE] Sending POST /data/avatars...', newAvatar);
                 const response = await axios.post(`${API}/data/avatars`, newAvatar);
-                console.log('✅ Avatar saved to global gallery:', response.data);
+                console.log('✅ [SAVE] Response from /data/avatars:', response.data);
+                console.log('✅ [SAVE] Avatar saved to global gallery');
                 
                 // 2. Add to local state (avatars cache)
                 const updatedAvatars = [...avatars, newAvatar];
+                console.log('📊 [CACHE] Updating avatars state. Before:', avatars.length, 'After:', updatedAvatars.length);
                 setAvatars(updatedAvatars);
                 setAvatarsLoaded(true);
                 
                 // 3. Update localStorage cache
                 localStorage.setItem('studiox_avatars_cache', JSON.stringify(updatedAvatars));
+                console.log('💾 [CACHE] localStorage updated');
                 
                 toast.success(`Personagem "${name}" criado com sucesso!`);
               } catch (err) {
-                console.error('❌ Failed to save avatar to gallery:', err);
+                console.error('❌ [SAVE] Failed to save avatar to gallery:', err);
+                console.error('❌ [SAVE] Error details:', err.response?.data);
                 toast.error('Erro ao salvar personagem: ' + (err.response?.data?.detail || err.message));
                 return; // Don't continue if gallery save failed
               }
@@ -1203,13 +1208,22 @@ export default function StudioPage() {
               // 4. If there's a selected project, also add to project
               if (selectedProject?.id) {
                 try {
+                  console.log('📡 [PROJECT] Adding avatar to project:', selectedProject.id);
                   const response = await axios.post(`${API}/studio/projects/${selectedProject.id}/project-avatars/import`, {
                     avatar_ids: [newAvatar.id]
                   });
-                  console.log('✅ Avatar added to project:', response.data);
+                  console.log('✅ [PROJECT] Response:', response.data);
+                  console.log('✅ [PROJECT] Avatar added to project');
                   toast.success(`Personagem adicionado ao projeto!`);
+                  
+                  // Dispatch event to refresh DirectedStudio avatars
+                  window.dispatchEvent(new CustomEvent('avatarCreated', { 
+                    detail: { avatar: newAvatar, projectId: selectedProject.id } 
+                  }));
+                  console.log('📢 [EVENT] avatarCreated dispatched');
                 } catch (err) {
-                  console.error('❌ Failed to add avatar to project:', err);
+                  console.error('❌ [PROJECT] Failed to add avatar to project:', err);
+                  console.error('❌ [PROJECT] Error details:', err.response?.data);
                   // Don't show error - avatar is already in gallery
                 }
               }
