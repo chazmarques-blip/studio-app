@@ -523,6 +523,7 @@ export default function StudioPage() {
       voice: av.voice || null,
       avatar_style: inferredStyle,
       creation_mode: av.creation_mode || 'photo',
+      prompt: av.prompt || '', // Incluir prompt para exibir botão de copiar
     });
     setAvatarName(av.name || '');
     setPreviewVideoUrl(av.video_url || null);
@@ -1019,6 +1020,7 @@ export default function StudioPage() {
                     voice: null,
                     creation_mode: avatarCreationMode,
                     avatar_style: style,
+                    prompt: avatarPromptText, // Salvar prompt para exibir botão de copiar
                   });
                   
                   setAvatarStage('customize');
@@ -1602,6 +1604,7 @@ export default function StudioPage() {
             voice: avatar.voice || null,
             avatar_style: inferredStyle,
             creation_mode: avatar.creation_mode || 'photo',
+            prompt: avatar.prompt || '', // Incluir prompt para exibir botão de copiar
           });
           
           setAvatarName(avatar.name || '');
