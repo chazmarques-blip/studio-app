@@ -702,7 +702,7 @@ export function NewProjectModal({
             {lang === 'pt' ? 'Estilo Visual' : 'Visual Style'}
             <span className="text-red-400">*</span>
           </label>
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+          <div className="flex gap-1 overflow-x-auto pb-1">
             {[
               { id: 'pixar_3d', label: 'Pixar 3D', icon: Film },
               { id: 'cartoon_3d', label: 'Cartoon 3D', icon: Palette },
@@ -720,16 +720,13 @@ export function NewProjectModal({
                     setAnimationSub(s.id); 
                     setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
                   }}
-                  className={`shrink-0 px-3 py-1.5 rounded-md border-2 transition-all flex items-center gap-1.5 ${
+                  className={`shrink-0 px-2 py-1 rounded-md border-2 transition-all flex items-center gap-1 ${
                     animationSub === s.id
                       ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
                       : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                   }`}>
-                  <Icon size={14} strokeWidth={1.5} />
-                  <span className="text-xs font-medium whitespace-nowrap">{s.label}</span>
-                  {animationSub === s.id && (
-                    <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                  )}
+                  <Icon size={12} strokeWidth={1.5} />
+                  <span className="text-[11px] font-medium whitespace-nowrap">{s.label}</span>
                 </button>
               );
             })}
@@ -743,28 +740,25 @@ export function NewProjectModal({
             <Users size={12} className="text-[#8B5CF6]" />
             {lang === 'pt' ? 'Personagens' : 'Characters'}
           </label>
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+          <div className="flex gap-1 overflow-x-auto pb-1">
             {/* Option: Create New Characters */}
             <button
               type="button"
               onClick={() => setSelectedFolder(null)}
-              className={`shrink-0 px-3 py-1.5 rounded-md border-2 transition-all flex items-center gap-1.5 ${
+              className={`shrink-0 px-2 py-1 rounded-md border-2 transition-all flex items-center gap-1 ${
                 selectedFolder === null
                   ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
                   : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <Sparkles size={14} strokeWidth={1.5} />
-              <span className="text-xs font-medium whitespace-nowrap">
+              <Sparkles size={12} strokeWidth={1.5} />
+              <span className="text-[11px] font-medium whitespace-nowrap">
                 {lang === 'pt' ? 'Criar Novos' : 'Create New'}
               </span>
-              {selectedFolder === null && (
-                <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
-              )}
             </button>
 
             {/* Loading state */}
             {loadingFolders && (
-              <div className="shrink-0 px-3 py-1.5 text-xs text-[#666]">
+              <div className="shrink-0 px-2 py-1 text-[11px] text-[#666]">
                 {lang === 'pt' ? 'Carregando...' : 'Loading...'}
               </div>
             )}
@@ -775,16 +769,13 @@ export function NewProjectModal({
                 key={folder.id}
                 type="button"
                 onClick={() => setSelectedFolder(folder.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-md border-2 transition-all flex items-center gap-1.5 ${
+                className={`shrink-0 px-2 py-1 rounded-md border-2 transition-all flex items-center gap-1 ${
                   selectedFolder === folder.id
                     ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
                     : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                 }`}>
-                <Users size={14} strokeWidth={1.5} />
-                <span className="text-xs font-medium whitespace-nowrap">{folder.name}</span>
-                {selectedFolder === folder.id && (
-                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                )}
+                <Users size={12} strokeWidth={1.5} />
+                <span className="text-[11px] font-medium whitespace-nowrap">{folder.name}</span>
               </button>
             ))}
 
@@ -809,7 +800,7 @@ export function NewProjectModal({
             <span className="text-[#8B5CF6] text-xs">4</span>
             {lang === 'pt' ? 'Formato' : 'Format'}
           </label>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
             {/* Safe Zone */}
             <button
               type="button"
@@ -817,18 +808,18 @@ export function NewProjectModal({
                 setFormatStrategy('safe_zone');
                 setFormatsRequested(['16:9']);
               }}
-              className={`flex-1 p-2 rounded-md border-2 text-left transition-all ${
+              className={`flex-1 p-1.5 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'safe_zone'
                   ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-semibold text-[#333]">Safe Zone</span>
+                <span className="text-[11px] font-semibold text-[#333]">Safe Zone</span>
                 {formatStrategy === 'safe_zone' && (
-                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  <Check size={10} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[10px] text-[#666]">16:9 → Crop 9:16</div>
+              <div className="text-[9px] text-[#666]">16:9 → Crop 9:16</div>
             </button>
 
             {/* Dual Generation */}
@@ -838,18 +829,18 @@ export function NewProjectModal({
                 setFormatStrategy('dual_generation');
                 setFormatsRequested(['16:9', '9:16']);
               }}
-              className={`flex-1 p-2 rounded-md border-2 text-left transition-all ${
+              className={`flex-1 p-1.5 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'dual_generation'
                   ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-semibold text-[#333]">Dual</span>
+                <span className="text-[11px] font-semibold text-[#333]">Dual</span>
                 {formatStrategy === 'dual_generation' && (
-                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  <Check size={10} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[10px] text-[#666]">16:9 + 9:16</div>
+              <div className="text-[9px] text-[#666]">16:9 + 9:16</div>
             </button>
 
             {/* Multi-Format */}
@@ -859,18 +850,18 @@ export function NewProjectModal({
                 setFormatStrategy('multi_format');
                 setFormatsRequested(['16:9', '9:16', '4:5', '1:1']);
               }}
-              className={`flex-1 p-2 rounded-md border-2 text-left transition-all ${
+              className={`flex-1 p-1.5 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'multi_format'
                   ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-semibold text-[#333]">Multi</span>
+                <span className="text-[11px] font-semibold text-[#333]">Multi</span>
                 {formatStrategy === 'multi_format' && (
-                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  <Check size={10} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[10px] text-[#666]">Todos</div>
+              <div className="text-[9px] text-[#666]">Todos</div>
             </button>
           </div>
         </div>
