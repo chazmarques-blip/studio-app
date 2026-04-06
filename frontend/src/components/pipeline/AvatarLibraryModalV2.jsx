@@ -1324,7 +1324,7 @@ export function AvatarLibraryModalV2({
       
       {/* Download Preview Modal - Compact popup over gallery */}
       {downloadPreview && (
-        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setDownloadPreview(null)}>
+        <div className="fixed inset-0 z-[10001] bg-black/80 flex items-center justify-center p-4" onClick={() => setDownloadPreview(null)}>
           <div className="bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
