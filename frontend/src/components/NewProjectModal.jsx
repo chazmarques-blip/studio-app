@@ -40,34 +40,26 @@ export function NewProjectModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="glass-card p-6 space-y-5 border border-[#8B5CF6]/20 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Clapperboard size={24} className="text-[#8B5CF6]" />
+      <div className="glass-card p-4 space-y-3 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
+        {/* Header - COMPACTO */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clapperboard size={18} className="text-[#8B5CF6]" />
+            <h3 className="text-lg font-bold text-white">
               {lang === 'pt' ? 'Novo Projeto' : 'New Project'}
             </h3>
-            <p className="text-sm text-[#888] mt-1">
-              {new Date().toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </p>
           </div>
           <button 
             onClick={onClose}
-            className="text-[#666] hover:text-white transition p-2 hover:bg-white/5 rounded-lg">
-            <X size={24} />
+            className="text-[#666] hover:text-white transition p-1 hover:bg-white/5 rounded">
+            <X size={20} />
           </button>
         </div>
 
-        {/* Step 1: Project Name - SIMPLIFIED */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#999] flex items-center gap-2">
-            <span className="text-[#8B5CF6]">1</span>
+        {/* Step 1: Project Name - ULTRA COMPACTO */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+            <span className="text-[#8B5CF6] text-xs">1</span>
             {lang === 'pt' ? 'Nome do Projeto' : 'Project Name'}
             <span className="text-red-400">*</span>
           </label>
@@ -76,18 +68,18 @@ export function NewProjectModal({
             onChange={e => setProjectName(e.target.value)}
             placeholder={lang === 'pt' ? 'Ex: A Jornada de Abraão' : 'Ex: The Journey of Abraham'}
             autoFocus
-            className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6] rounded-lg px-4 py-3 text-base text-white outline-none placeholder-[#555] transition" 
+            className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6] rounded-lg px-3 py-2 text-sm text-white outline-none placeholder-[#555] transition" 
           />
         </div>
 
-        {/* Step 2: Visual Style - REDESIGNED: One line, minimal */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-[#999] flex items-center gap-2">
-            <span className="text-[#8B5CF6]">2</span>
+        {/* Step 2: Visual Style - UMA LINHA COMPACTA */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+            <span className="text-[#8B5CF6] text-xs">2</span>
             {lang === 'pt' ? 'Estilo Visual' : 'Visual Style'}
             <span className="text-red-400">*</span>
           </label>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
             {[
               { id: 'pixar_3d', label: 'Pixar 3D', icon: Film },
               { id: 'cartoon_3d', label: 'Cartoon 3D', icon: Palette },
@@ -105,15 +97,15 @@ export function NewProjectModal({
                     setAnimationSub(s.id); 
                     setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
                   }}
-                  className={`shrink-0 px-4 py-2.5 rounded-lg border transition-all flex items-center gap-2 ${
+                  className={`shrink-0 px-3 py-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
                     animationSub === s.id
                       ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
                       : 'border-[#333] bg-[#0A0A0A] text-[#888] hover:border-[#555] hover:text-white'
                   }`}>
-                  <Icon size={16} strokeWidth={1.5} />
-                  <span className="text-sm font-medium whitespace-nowrap">{s.label}</span>
+                  <Icon size={14} strokeWidth={1.5} />
+                  <span className="text-xs font-medium whitespace-nowrap">{s.label}</span>
                   {animationSub === s.id && (
-                    <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                    <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
                   )}
                 </button>
               );
@@ -121,36 +113,13 @@ export function NewProjectModal({
           </div>
         </div>
 
-        {/* Step 3: Description (optional) - SIMPLIFIED */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#999] flex items-center gap-2">
-            <span className="text-[#666]">3</span>
-            {lang === 'pt' ? 'Descrição' : 'Description'}
-            <span className="text-xs text-[#666]">({lang === 'pt' ? 'opcional' : 'optional'})</span>
+        {/* Step 3: Multi-Format Strategy - ULTRA COMPACTO (renumerado) */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+            <span className="text-[#8B5CF6] text-xs">3</span>
+            {lang === 'pt' ? 'Formato' : 'Format'}
           </label>
-          <textarea 
-            value={projectDesc} 
-            onChange={e => setProjectDesc(e.target.value)}
-            placeholder={lang === 'pt' ? 'Descreva brevemente o tema ou objetivo do projeto...' : 'Briefly describe the theme or goal...'}
-            rows={2}
-            className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6]/50 rounded-lg px-4 py-2.5 text-sm text-white outline-none placeholder-[#555] resize-none transition" 
-          />
-        </div>
-
-        {/* Step 4: Multi-Format Strategy (NEW!) */}
-        <div className="space-y-3 p-4 rounded-2xl bg-gradient-to-br from-[#8B5CF6]/5 to-purple-500/5 border border-[#8B5CF6]/20">
-          <label className="text-base font-bold text-white flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-[#8B5CF6] flex items-center justify-center text-sm">4</span>
-            📱 {lang === 'pt' ? 'Formatos de Vídeo' : 'Video Formats'}
-            <span className="text-xs bg-[#8B5CF6] text-white px-2 py-0.5 rounded-full font-bold">NOVO</span>
-          </label>
-          <p className="text-sm text-[#888] leading-relaxed">
-            {lang === 'pt' 
-              ? 'Escolha como gerar vídeos para YouTube, TikTok e Instagram.' 
-              : 'Choose how to generate videos for YouTube, TikTok and Instagram.'}
-          </p>
-
-          <div className="grid grid-cols-1 gap-3 mt-3">
+          <div className="flex gap-1.5">
             {/* Safe Zone */}
             <button
               type="button"
@@ -158,34 +127,18 @@ export function NewProjectModal({
                 setFormatStrategy('safe_zone');
                 setFormatsRequested(['16:9']);
               }}
-              className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+              className={`flex-1 p-2 rounded-md border text-left transition-all ${
                 formatStrategy === 'safe_zone'
                   ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                  : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+                  : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
               }`}>
-              {formatStrategy === 'safe_zone' && (
-                <div className="absolute top-3 right-3 w-6 h-6 bg-[#8B5CF6] rounded-full flex items-center justify-center">
-                  <Check size={14} strokeWidth={3} className="text-black" />
-                </div>
-              )}
-              <div className="flex items-start gap-3">
-                <div className="text-2xl">⚡</div>
-                <div className="flex-1">
-                  <div className="font-bold text-white mb-1">
-                    Safe Zone <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full ml-2">Recomendado</span>
-                  </div>
-                  <div className="text-xs text-[#888] mb-2">
-                    {lang === 'pt' 
-                      ? 'Gera 1 vídeo horizontal cropável para vertical. Economia de 73%.' 
-                      : 'Generates 1 horizontal video that crops well to vertical. 73% savings.'}
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">16:9 YouTube</span>
-                    <span className="bg-[#222] text-[#888] px-2 py-1 rounded">→ Crop 9:16 TikTok</span>
-                    <span className="bg-[#222] text-[#888] px-2 py-1 rounded">→ Crop 4:5 IG</span>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-xs font-semibold text-white">Safe Zone</span>
+                {formatStrategy === 'safe_zone' && (
+                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                )}
               </div>
+              <div className="text-[10px] text-[#888]">16:9 → Crop 9:16</div>
             </button>
 
             {/* Dual Generation */}
@@ -195,33 +148,18 @@ export function NewProjectModal({
                 setFormatStrategy('dual_generation');
                 setFormatsRequested(['16:9', '9:16']);
               }}
-              className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+              className={`flex-1 p-2 rounded-md border text-left transition-all ${
                 formatStrategy === 'dual_generation'
                   ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                  : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+                  : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
               }`}>
-              {formatStrategy === 'dual_generation' && (
-                <div className="absolute top-3 right-3 w-6 h-6 bg-[#8B5CF6] rounded-full flex items-center justify-center">
-                  <Check size={14} strokeWidth={3} className="text-black" />
-                </div>
-              )}
-              <div className="flex items-start gap-3">
-                <div className="text-2xl">🎬</div>
-                <div className="flex-1">
-                  <div className="font-bold text-white mb-1">
-                    Dual Generation <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full ml-2">Premium</span>
-                  </div>
-                  <div className="text-xs text-[#888] mb-2">
-                    {lang === 'pt' 
-                      ? 'Gera 2 versões nativas: horizontal e vertical. Qualidade máxima.' 
-                      : 'Generates 2 native versions: horizontal and vertical. Maximum quality.'}
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">16:9 YouTube</span>
-                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">9:16 TikTok</span>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-xs font-semibold text-white">Dual</span>
+                {formatStrategy === 'dual_generation' && (
+                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                )}
               </div>
+              <div className="text-[10px] text-[#888]">16:9 + 9:16</div>
             </button>
 
             {/* Multi-Format */}
@@ -231,112 +169,36 @@ export function NewProjectModal({
                 setFormatStrategy('multi_format');
                 setFormatsRequested(['16:9', '9:16', '4:5', '1:1']);
               }}
-              className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+              className={`flex-1 p-2 rounded-md border text-left transition-all ${
                 formatStrategy === 'multi_format'
                   ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                  : 'border-[#222] bg-[#0A0A0A] hover:border-[#444]'
+                  : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
               }`}>
-              {formatStrategy === 'multi_format' && (
-                <div className="absolute top-3 right-3 w-6 h-6 bg-[#8B5CF6] rounded-full flex items-center justify-center">
-                  <Check size={14} strokeWidth={3} className="text-black" />
-                </div>
-              )}
-              <div className="flex items-start gap-3">
-                <div className="text-2xl">🌟</div>
-                <div className="flex-1">
-                  <div className="font-bold text-white mb-1">
-                    Multi-Format Complete
-                  </div>
-                  <div className="text-xs text-[#888] mb-2">
-                    {lang === 'pt' 
-                      ? 'Versão nativa para cada formato. Máxima qualidade em todos.' 
-                      : 'Native version for each format. Maximum quality everywhere.'}
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">16:9</span>
-                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">9:16</span>
-                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">4:5</span>
-                    <span className="bg-[#222] text-[#8B5CF6] px-2 py-1 rounded">1:1</span>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-xs font-semibold text-white">Multi</span>
+                {formatStrategy === 'multi_format' && (
+                  <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                )}
               </div>
+              <div className="text-[10px] text-[#888]">Todos</div>
             </button>
           </div>
         </div>
 
-        {/* Advanced Settings - Collapsible */}
-        <details className="group">
-          <summary className="cursor-pointer text-base font-semibold text-[#8B5CF6] hover:text-[#A78BFA] flex items-center gap-2 py-2">
-            <ChevronRight size={18} className="transition-transform group-open:rotate-90" />
-            {lang === 'pt' ? 'Configurações Avançadas' : 'Advanced Settings'}
-          </summary>
-          <div className="mt-4 space-y-4 pl-2">
-            {/* Language + Audio */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-[#888] uppercase tracking-wider mb-2 block font-medium">
-                  {lang === 'pt' ? 'Idioma' : 'Language'}
-                </label>
-                <select 
-                  value={projectLang} 
-                  onChange={e => setProjectLang(e.target.value)}
-                  className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition">
-                  <option value="pt">🇧🇷 Português</option>
-                  <option value="en">🇺🇸 English</option>
-                  <option value="es">🇪🇸 Español</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-[#888] uppercase tracking-wider mb-2 block font-medium">
-                  {lang === 'pt' ? 'Tipo de Áudio' : 'Audio Type'}
-                </label>
-                <select 
-                  value={audioMode} 
-                  onChange={e => setAudioMode(e.target.value)}
-                  className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6]/50 rounded-xl px-4 py-3 text-sm text-white outline-none transition">
-                  <option value="narrated">🎙️ {lang === 'pt' ? 'Narrado' : 'Narrated'}</option>
-                  <option value="dubbed">🗣️ {lang === 'pt' ? 'Dublado' : 'Dubbed'}</option>
-                </select>
-              </div>
-            </div>
+        {/* Advanced Settings - Removido para compactar modal */}
 
-            {/* Continuity Engine */}
-            <div className="flex items-center justify-between p-4 rounded-xl border border-[#222] bg-[#0A0A0A]">
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-white flex items-center gap-2 mb-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#8B5CF6]"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                  {lang === 'pt' ? 'Motor de Continuidade' : 'Continuity Engine'}
-                </div>
-                <div className="text-xs text-[#666]">
-                  {lang === 'pt' ? 'Consistência visual entre cenas' : 'Visual consistency across scenes'}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setContinuityMode(!continuityMode)}
-                className={`relative w-14 h-7 rounded-full transition-colors ${
-                  continuityMode ? 'bg-[#8B5CF6]' : 'bg-[#333]'
-                }`}>
-                <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white transition-all shadow-lg ${
-                  continuityMode ? 'right-0.5' : 'left-0.5'
-                }`} />
-              </button>
-            </div>
-          </div>
-        </details>
-
-        {/* Action Buttons */}
-        <div className="flex gap-4 pt-4">
+        {/* Action Buttons - COMPACTO */}
+        <div className="flex gap-2 pt-2">
           <button 
             onClick={onClose}
-            className="flex-1 rounded-xl border-2 border-[#333] py-4 text-base font-semibold text-[#999] hover:text-white hover:border-[#555] transition">
+            className="px-4 py-2 rounded-lg border border-[#333] text-xs font-medium text-[#999] hover:text-white hover:border-[#555] transition">
             {lang === 'pt' ? 'Cancelar' : 'Cancel'}
           </button>
           <button 
             onClick={handleCreate} 
             disabled={!isValid}
-            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-xl py-4 text-base font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-[#8B5CF6]/40 transition-all hover:scale-[1.02]">
-            <Sparkles size={20} /> 
+            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-lg py-2 text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-lg shadow-[#8B5CF6]/40 transition-all">
+            <Sparkles size={16} /> 
             {lang === 'pt' ? 'Criar Projeto' : 'Create Project'}
           </button>
         </div>
