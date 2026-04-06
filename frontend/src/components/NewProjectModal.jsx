@@ -48,6 +48,10 @@ export function NewProjectModal({
   const [editCompanyLogo, setEditCompanyLogo] = useState('');
   const [uploadingEditLogo, setUploadingEditLogo] = useState(false);
   const [updatingCompany, setUpdatingCompany] = useState(false);
+  const [editLogoPosition, setEditLogoPosition] = useState('center'); // 'center', 'top', 'bottom', 'left', 'right'
+  
+  // NEW: Company creation logo position
+  const [newLogoPosition, setNewLogoPosition] = useState('center');
 
   // Fetch folders on mount
   useEffect(() => {
@@ -151,6 +155,7 @@ export function NewProjectModal({
     setEditingCompany(company);
     setEditCompanyName(company.name);
     setEditCompanyLogo(company.logo_url || '');
+    setEditLogoPosition(company.logo_position || 'center');
     setShowEditCompany(true);
   };
 
@@ -167,7 +172,8 @@ export function NewProjectModal({
         },
         body: JSON.stringify({
           name: editCompanyName.trim(),
-          logo_url: editCompanyLogo || null
+          logo_url: editCompanyLogo || null,
+          logo_position: editLogoPosition
         })
       });
       
@@ -176,12 +182,17 @@ export function NewProjectModal({
         // Update local state
         setCompanies(prev => prev.map(c => 
           c.id === editingCompany.id 
-            ? { ...c, name: editCompanyName.trim(), logo_url: editCompanyLogo || null }
+            ? { ...c, name: editCompanyName.trim(), logo_url: editCompanyLogo || null, logo_position: editLogoPosition }
             : c
         ));
         // Update selected company if it's the one being edited
         if (selectedCompany?.id === editingCompany.id) {
-          setSelectedCompany({ ...selectedCompany, name: editCompanyName.trim(), logo_url: editCompanyLogo || null });
+          setSelectedCompany({ 
+            ...selectedCompany, 
+            name: editCompanyName.trim(), 
+            logo_url: editCompanyLogo || null,
+            logo_position: editLogoPosition
+          });
         }
         setShowEditCompany(false);
         setEditingCompany(null);
@@ -287,6 +298,7 @@ export function NewProjectModal({
         body: JSON.stringify({
           name: newCompanyName.trim(),
           logo_url: newCompanyLogo || null,
+          logo_position: newLogoPosition,
           default_visual_style: visualStyle,
           default_animation_sub: animationSub,
           default_format_strategy: formatStrategy,
@@ -302,6 +314,7 @@ export function NewProjectModal({
         setShowCreateCompany(false);
         setNewCompanyName('');
         setNewCompanyLogo('');
+        setNewLogoPosition('center');
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ [COMPANY] Creation failed:', response.status, errorData);
@@ -407,9 +420,14 @@ export function NewProjectModal({
                         ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                         : 'border-[#E0E0E0] bg-white/50 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                     }`}>
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] p-1">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF]">
                       {company.logo_url ? (
-                        <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                        <img 
+                          src={company.logo_url} 
+                          alt={company.name} 
+                          className="w-full h-full object-cover"
+                          style={{ objectPosition: company.logo_position || 'center' }}
+                        />
                       ) : (
                         <Building2 size={20} className="text-[#8B5CF6]" />
                       )}
@@ -508,19 +526,58 @@ export function NewProjectModal({
                   {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
                 
-                <div className="flex items-center gap-3">
-                  {/* Preview - Logo ocupa todo o espaço */}
-                  <div className="w-20 h-20 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden shrink-0 p-2">
-                    {newCompanyLogo ? (
-                      <img src={newCompanyLogo} alt="Logo preview" className="w-full h-full object-contain" />
-                    ) : (
-                      <Building2 size={28} className="text-[#8B5CF6]/40" />
+                <div className="flex items-start gap-3">
+                  {/* Preview - Logo ocupa TODO o espaço */}
+                  <div className="shrink-0">
+                    <div className="w-24 h-24 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden">
+                      {newCompanyLogo ? (
+                        <img 
+                          src={newCompanyLogo} 
+                          alt="Logo preview" 
+                          className="w-full h-full object-cover"
+                          style={{ objectPosition: newLogoPosition }}
+                        />
+                      ) : (
+                        <Building2 size={32} className="text-[#8B5CF6]/40" />
+                      )}
+                    </div>
+                    
+                    {/* Position controls - appear when logo is uploaded */}
+                    {newCompanyLogo && (
+                      <div className="mt-2 grid grid-cols-3 gap-0.5 bg-[#E0E0E0] rounded p-0.5">
+                        {[
+                          { id: 'top', label: '↑' },
+                          { id: 'center', label: '●' },
+                          { id: 'bottom', label: '↓' },
+                          { id: 'left', label: '←' },
+                          { id: 'center', label: '●' },
+                          { id: 'right', label: '→' },
+                        ].slice(0, 5).map((pos, idx) => {
+                          // Only show: top, center, bottom, left, right (skip duplicate center)
+                          const positions = ['top', 'center', 'bottom', 'left', 'right'];
+                          const labels = ['↑', '●', '↓', '←', '→'];
+                          return (
+                            <button
+                              key={positions[idx]}
+                              type="button"
+                              onClick={() => setNewLogoPosition(positions[idx])}
+                              className={`px-2 py-1 text-xs rounded transition ${
+                                newLogoPosition === positions[idx]
+                                  ? 'bg-[#8B5CF6] text-white'
+                                  : 'bg-white text-[#666] hover:bg-[#F9F7FF]'
+                              }`}
+                              title={positions[idx]}>
+                              {labels[idx]}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                   
                   {/* Upload Button */}
                   <label className="flex-1 cursor-pointer">
-                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF]">
+                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF] h-24 flex flex-col items-center justify-center">
                       {uploadingLogo ? (
                         <span className="text-xs text-[#666]">
                           {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
@@ -548,7 +605,10 @@ export function NewProjectModal({
                 
                 {newCompanyLogo && (
                   <button
-                    onClick={() => setNewCompanyLogo('')}
+                    onClick={() => {
+                      setNewCompanyLogo('');
+                      setNewLogoPosition('center');
+                    }}
                     className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
                     {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
                   </button>
@@ -614,19 +674,49 @@ export function NewProjectModal({
                   {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
                 
-                <div className="flex items-center gap-3">
-                  {/* Preview - Logo ocupa todo o espaço */}
-                  <div className="w-20 h-20 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden shrink-0 p-2">
-                    {editCompanyLogo ? (
-                      <img src={editCompanyLogo} alt="Logo preview" className="w-full h-full object-contain" />
-                    ) : (
-                      <Building2 size={28} className="text-[#8B5CF6]/40" />
+                <div className="flex items-start gap-3">
+                  {/* Preview - Logo ocupa TODO o espaço */}
+                  <div className="shrink-0">
+                    <div className="w-24 h-24 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden">
+                      {editCompanyLogo ? (
+                        <img 
+                          src={editCompanyLogo} 
+                          alt="Logo preview" 
+                          className="w-full h-full object-cover"
+                          style={{ objectPosition: editLogoPosition }}
+                        />
+                      ) : (
+                        <Building2 size={32} className="text-[#8B5CF6]/40" />
+                      )}
+                    </div>
+                    
+                    {/* Position controls - appear when logo is uploaded */}
+                    {editCompanyLogo && (
+                      <div className="mt-2 grid grid-cols-3 gap-0.5 bg-[#E0E0E0] rounded p-0.5">
+                        {['top', 'center', 'bottom', 'left', 'right'].map((pos, idx) => {
+                          const labels = ['↑', '●', '↓', '←', '→'];
+                          return (
+                            <button
+                              key={pos}
+                              type="button"
+                              onClick={() => setEditLogoPosition(pos)}
+                              className={`px-2 py-1 text-xs rounded transition ${
+                                editLogoPosition === pos
+                                  ? 'bg-[#8B5CF6] text-white'
+                                  : 'bg-white text-[#666] hover:bg-[#F9F7FF]'
+                              }`}
+                              title={pos}>
+                              {labels[idx]}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                   
                   {/* Upload Button */}
                   <label className="flex-1 cursor-pointer">
-                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF]">
+                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF] h-24 flex flex-col items-center justify-center">
                       {uploadingEditLogo ? (
                         <span className="text-xs text-[#666]">
                           {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
@@ -654,7 +744,10 @@ export function NewProjectModal({
                 
                 {editCompanyLogo && (
                   <button
-                    onClick={() => setEditCompanyLogo('')}
+                    onClick={() => {
+                      setEditCompanyLogo('');
+                      setEditLogoPosition('center');
+                    }}
                     className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
                     {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
                   </button>
