@@ -477,40 +477,29 @@ export function AvatarLibraryModalV2({
       
       // Use backend proxy endpoint (same as downloadSelected - TESTED AND WORKING)
       const proxyUrl = `${API}/download-image?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(filename)}`;
-      console.log('📥 [DOWNLOAD] Usando proxy:', proxyUrl);
+      console.log('📥 [DOWNLOAD] Proxy URL:', proxyUrl);
       
-      // Method 1: Try fetch + blob (like working video download)
-      try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
+      // Create temporary link and force download
+      const a = document.createElement('a');
+      a.href = proxyUrl;
+      a.download = filename;
+      a.target = '_blank'; // Open in new tab as fallback
+      a.style.display = 'none';
+      
+      document.body.appendChild(a);
+      console.log('🔗 [DOWNLOAD] Link criado, iniciando download...');
+      
+      // Trigger download
+      a.click();
+      
+      // Cleanup after delay
+      setTimeout(() => {
         document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-        
-        console.log('✅ [DOWNLOAD] Sucesso (método blob)');
-        toast.success(`✅ ${avatar.name} baixado!`);
-        
-      } catch (fetchError) {
-        console.warn('⚠️ [DOWNLOAD] Método blob falhou, usando link direto');
-        
-        // Method 2: Direct link (fallback - same as downloadSelected)
-        const a = document.createElement('a');
-        a.href = proxyUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        console.log('✅ [DOWNLOAD] Sucesso (método direto)');
-        toast.success(`✅ ${avatar.name} baixado!`);
-      }
+        console.log('🧹 [DOWNLOAD] Cleanup completo');
+      }, 1000);
+      
+      console.log('✅ [DOWNLOAD] Download iniciado com sucesso');
+      toast.success(`✅ ${avatar.name} baixado!`);
       
     } catch (e) {
       console.error('❌ [DOWNLOAD] Erro:', e);
@@ -1356,34 +1345,32 @@ export function AvatarLibraryModalV2({
                 Cancelar
               </button>
               <button
-                onClick={async () => {
+                onClick={() => {
                   const av = downloadPreview;
                   setDownloadPreview(null);
-                  toast.info(`Iniciando download: ${av.name}`);
                   
-                  try {
-                    const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
-                    const proxyUrl = `${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(filename)}`;
-                    
-                    // Fetch + blob method (like working video download)
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const blob = await response.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = blobUrl;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
+                  console.log('🎯 [MODAL DOWNLOAD] Iniciando:', av.name);
+                  const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
+                  const proxyUrl = `${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(filename)}`;
+                  
+                  console.log('📥 [MODAL DOWNLOAD] Proxy URL:', proxyUrl);
+                  
+                  // Create and click download link
+                  const a = document.createElement('a');
+                  a.href = proxyUrl;
+                  a.download = filename;
+                  a.target = '_blank';
+                  a.style.display = 'none';
+                  
+                  document.body.appendChild(a);
+                  a.click();
+                  
+                  setTimeout(() => {
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(blobUrl);
-                    
-                    toast.success(`✅ ${av.name} baixado!`);
-                  } catch (err) {
-                    console.error('Download error:', err);
-                    toast.error(`Erro ao baixar ${av.name}`);
-                  }
+                    console.log('✅ [MODAL DOWNLOAD] Completo');
+                  }, 1000);
+                  
+                  toast.success(`✅ ${av.name} baixado!`);
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
               >
