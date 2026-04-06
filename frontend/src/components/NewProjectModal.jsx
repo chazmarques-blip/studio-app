@@ -1,4 +1,4 @@
-import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users } from 'lucide-react';
+import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users, Building2, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -85,7 +85,8 @@ export function NewProjectModal({
       continuity_mode: continuityMode,
       format_strategy: formatStrategy,
       formats_requested: formatsRequested,
-      character_folder_id: selectedFolder, // NEW: Pass selected folder for continuity
+      character_folder_id: selectedFolder,
+      company_id: selectedCompany?.id || null, // NEW: Pass selected company
     });
   };
 
@@ -107,6 +108,120 @@ export function NewProjectModal({
             className="text-[#666] hover:text-white transition p-1 hover:bg-white/5 rounded">
             <X size={20} />
           </button>
+        </div>
+
+        {/* Step 0: Empresa/Projeto Master - NOVO */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+            <span className="text-[#8B5CF6] text-xs">0</span>
+            <Building2 size={12} className="text-[#8B5CF6]" />
+            {lang === 'pt' ? 'Empresa / Projeto Master' : 'Company / Master Project'}
+          </label>
+          
+          {loadingCompanies ? (
+            <div className="text-xs text-[#666] py-2">
+              {lang === 'pt' ? 'Carregando empresas...' : 'Loading companies...'}
+            </div>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {/* Option: No company (standalone project) */}
+              <button
+                type="button"
+                onClick={() => setSelectedCompany(null)}
+                className={`shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+                  selectedCompany === null
+                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                    : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
+                }`}>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed ${
+                  selectedCompany === null ? 'border-[#8B5CF6]' : 'border-[#444]'
+                }`}>
+                  <Sparkles size={20} className={selectedCompany === null ? 'text-[#8B5CF6]' : 'text-[#666]'} />
+                </div>
+                <span className="text-xs font-medium text-center whitespace-nowrap text-white">
+                  {lang === 'pt' ? 'Sem Empresa' : 'No Company'}
+                </span>
+                {selectedCompany === null && (
+                  <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                )}
+              </button>
+
+              {/* Existing companies */}
+              {companies.map(company => (
+                <button
+                  key={company.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCompany(company);
+                    // Auto-fill settings from company defaults
+                    if (company.default_settings) {
+                      setAnimationSub(company.default_settings.animation_sub || animationSub);
+                      setVisualStyle(company.default_settings.visual_style || visualStyle);
+                      setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
+                      setProjectLang(company.default_settings.language || projectLang);
+                      
+                      // Auto-select first folder if company has folders
+                      if (company.folder_ids && company.folder_ids.length > 0) {
+                        setSelectedFolder(company.folder_ids[0]);
+                      }
+                    }
+                  }}
+                  className={`shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+                    selectedCompany?.id === company.id
+                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                      : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
+                  }`}>
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden ${
+                    company.logo_url ? 'bg-white' : 'bg-[#1A1A1A]'
+                  }`}>
+                    {company.logo_url ? (
+                      <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <Building2 size={20} className="text-[#666]" />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-center max-w-[80px] truncate text-white">
+                    {company.name}
+                  </span>
+                  {company.is_primary && (
+                    <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
+                      PRINCIPAL
+                    </span>
+                  )}
+                  {selectedCompany?.id === company.id && (
+                    <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  )}
+                </button>
+              ))}
+
+              {/* Button: Create new company */}
+              <button
+                type="button"
+                onClick={() => {
+                  // TODO: Open company creation modal
+                  alert('Abrir modal de criação de empresa');
+                }}
+                className="shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border border-dashed border-[#555] hover:border-[#8B5CF6] bg-[#0A0A0A] hover:bg-[#8B5CF6]/5 transition-all">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed border-[#555]">
+                  <Plus size={20} className="text-[#666]" />
+                </div>
+                <span className="text-xs font-medium text-center whitespace-nowrap text-[#888]">
+                  {lang === 'pt' ? '+ Nova Empresa' : '+ New Company'}
+                </span>
+              </button>
+            </div>
+          )}
+          
+          <p className="text-[10px] text-[#666]">
+            {selectedCompany 
+              ? (lang === 'pt' 
+                  ? `Configurações e personagens de "${selectedCompany.name}" serão aplicados automaticamente` 
+                  : `Settings and characters from "${selectedCompany.name}" will be applied automatically`)
+              : (lang === 'pt' 
+                  ? 'Projeto independente - configure manualmente abaixo' 
+                  : 'Standalone project - configure manually below')
+            }
+          </p>
         </div>
 
         {/* Step 1: Project Name - ULTRA COMPACTO */}
