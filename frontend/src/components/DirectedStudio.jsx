@@ -3857,6 +3857,11 @@ export const DirectedStudio = memo(function DirectedStudio({
         onClose={() => setShowLibrary(false)}
         projectId={projectId}
         projectAvatarIds={new Set(projectAvatars.map(a => a.id))}
+        onCreateNew={() => {
+          console.log('✅ Creating new character from project library');
+          setShowLibrary(false); // Close library
+          setShowAvatarModal(true); // Open creation modal
+        }}
         onImported={handleLibraryImport}
         onEditAvatar={(avatar) => {
           // Open edit modal with the selected avatar
