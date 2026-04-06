@@ -421,6 +421,29 @@ export default function StudioPage() {
   const [avatarStage, setAvatarStage] = useState('upload');
   const [avatarCreationMode, setAvatarCreationMode] = useState('photo');
   const [avatarPromptText, setAvatarPromptText] = useState('');
+  
+  // Auto-extract name from prompt
+  useEffect(() => {
+    if (avatarPromptText && !avatarName) {
+      // Try to extract name from common patterns
+      const patterns = [
+        /(?:um|uma|o|a)\s+([A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜ][a-zàáâãäåçèéêëìíîïñòóôõöùúûü]+(?:\s+[A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜ][a-zàáâãäåçèéêëìíîïñòóôõöùúûü]+)?)\s+(?:feliz|alegre|triste|sorridente|bravo|que|está|com)/i,
+        /^([A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜ][a-zàáâãäåçèéêëìíîïñòóôõöùúûü]+(?:\s+[A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜ][a-zàáâãäåçèéêëìíîïñòóôõöùúûü]+)?)\s+(?:é|está|tem|usa|veste)/i,
+        /(?:chamado|chamada|conhecido|conhecida|nome|named|called)\s+([A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜ][a-zàáâãäåçèéêëìíîïñòóôõöùúûü]+(?:\s+[A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜ][a-zàáâãäåçèéêëìíîïñòóôõöùúûü]+)?)/i,
+      ];
+      
+      for (const pattern of patterns) {
+        const match = avatarPromptText.match(pattern);
+        if (match && match[1]) {
+          const extractedName = match[1].trim();
+          console.log('✨ [AUTO-NAME] Extracted from prompt:', extractedName);
+          setAvatarName(extractedName);
+          break;
+        }
+      }
+    }
+  }, [avatarPromptText, avatarName]);
+  
   const [avatarPromptGender, setAvatarPromptGender] = useState('female');
   const [avatarPromptStyle, setAvatarPromptStyle] = useState('custom');
   const [tempAvatar, setTempAvatar] = useState(null);
