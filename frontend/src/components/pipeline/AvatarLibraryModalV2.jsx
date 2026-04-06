@@ -483,7 +483,6 @@ export function AvatarLibraryModalV2({
       const a = document.createElement('a');
       a.href = proxyUrl;
       a.download = filename;
-      a.target = '_blank'; // Open in new tab as fallback
       a.style.display = 'none';
       
       document.body.appendChild(a);
@@ -494,12 +493,18 @@ export function AvatarLibraryModalV2({
       
       // Cleanup after delay
       setTimeout(() => {
-        document.body.removeChild(a);
-        console.log('🧹 [DOWNLOAD] Cleanup completo');
+        try {
+          document.body.removeChild(a);
+          console.log('🧹 [DOWNLOAD] Cleanup completo');
+        } catch (e) {
+          console.warn('Cleanup error:', e);
+        }
       }, 1000);
       
       console.log('✅ [DOWNLOAD] Download iniciado com sucesso');
-      toast.success(`✅ ${avatar.name} baixado!`);
+      toast.success(`✅ ${avatar.name} - download iniciado!`, {
+        description: 'Verifique sua pasta Downloads. Se não aparecer, desative bloqueadores de pop-up.'
+      });
       
     } catch (e) {
       console.error('❌ [DOWNLOAD] Erro:', e);
@@ -1359,18 +1364,23 @@ export function AvatarLibraryModalV2({
                   const a = document.createElement('a');
                   a.href = proxyUrl;
                   a.download = filename;
-                  a.target = '_blank';
                   a.style.display = 'none';
                   
                   document.body.appendChild(a);
                   a.click();
                   
                   setTimeout(() => {
-                    document.body.removeChild(a);
-                    console.log('✅ [MODAL DOWNLOAD] Completo');
+                    try {
+                      document.body.removeChild(a);
+                      console.log('✅ [MODAL DOWNLOAD] Completo');
+                    } catch (e) {
+                      console.warn('Cleanup error:', e);
+                    }
                   }, 1000);
                   
-                  toast.success(`✅ ${av.name} baixado!`);
+                  toast.success(`✅ ${av.name} - download iniciado!`, {
+                    description: 'Verifique sua pasta Downloads. Se não aparecer, desative bloqueadores de pop-up.'
+                  });
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
               >
