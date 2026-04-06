@@ -26,6 +26,11 @@ export function NewProjectModal({
   const [selectedFolder, setSelectedFolder] = useState(null); // null = criar novos personagens
   const [folders, setFolders] = useState([]);
   const [loadingFolders, setLoadingFolders] = useState(true);
+  
+  // NEW: Company selection
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [companies, setCompanies] = useState([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
 
   // Fetch folders on mount
   useEffect(() => {
@@ -315,6 +320,13 @@ export function NewProjectModal({
             className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-lg py-2 text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-lg shadow-[#8B5CF6]/40 transition-all">
             <Sparkles size={16} /> 
             {lang === 'pt' ? 'Criar Projeto' : 'Create Project'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+roject'}
           </button>
         </div>
       </div>
