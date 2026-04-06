@@ -143,7 +143,6 @@ export function AvatarLibraryModalV2({
     },
   };
   const L = labels[lang] || labels.en;
-  
   // ═══════ LISTEN FOR NEW AVATAR CREATED ═══════
   useEffect(() => {
     const handleAvatarCreated = (e) => {
@@ -152,11 +151,9 @@ export function AvatarLibraryModalV2({
       localStorage.removeItem(CACHE_KEY);
       localStorage.removeItem('studiox_avatars_cache');
       console.log('🗑️ [GALLERY] Caches cleared');
-      // Reload page to get fresh data
-      if (open) {
-        console.log('🔄 [GALLERY] Reloading page...');
-        setTimeout(() => window.location.reload(), 500);
-      }
+      // DON'T reload page - just clear cache for next time gallery opens
+      // The DirectedStudio already updated projectAvatars via its own listener
+      console.log('✅ [GALLERY] Cache will refresh on next open');
     };
     
     window.addEventListener('avatarCreated', handleAvatarCreated);
