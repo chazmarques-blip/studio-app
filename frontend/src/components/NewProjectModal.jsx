@@ -326,10 +326,3 @@ export function NewProjectModal({
     </div>
   );
 }
-roject'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
