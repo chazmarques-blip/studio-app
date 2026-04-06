@@ -474,41 +474,30 @@ export function AvatarLibraryModalV2({
     try {
       const imageUrl = resolveImageUrl(avatar.url);
       const filename = `${(avatar.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
-      
-      // Use backend proxy endpoint (same as downloadSelected - TESTED AND WORKING)
       const proxyUrl = `${API}/download-image?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(filename)}`;
-      console.log('📥 [DOWNLOAD] Proxy URL:', proxyUrl);
       
-      // Create temporary link and force download
+      console.log('📥 [DOWNLOAD] Fetching:', proxyUrl);
+      
+      // EXACT SAME METHOD AS WORKING VIDEO DOWNLOAD
+      const resp = await fetch(proxyUrl);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = proxyUrl;
+      a.href = blobUrl;
       a.download = filename;
-      a.style.display = 'none';
-      
       document.body.appendChild(a);
-      console.log('🔗 [DOWNLOAD] Link criado, iniciando download...');
-      
-      // Trigger download
       a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
       
-      // Cleanup after delay
-      setTimeout(() => {
-        try {
-          document.body.removeChild(a);
-          console.log('🧹 [DOWNLOAD] Cleanup completo');
-        } catch (e) {
-          console.warn('Cleanup error:', e);
-        }
-      }, 1000);
-      
-      console.log('✅ [DOWNLOAD] Download iniciado com sucesso');
-      toast.success(`✅ ${avatar.name} - download iniciado!`, {
-        description: 'Verifique sua pasta Downloads. Se não aparecer, desative bloqueadores de pop-up.'
-      });
+      console.log('✅ [DOWNLOAD] Sucesso!');
+      toast.success(`✅ ${avatar.name} baixado!`);
       
     } catch (e) {
       console.error('❌ [DOWNLOAD] Erro:', e);
-      toast.error(`Erro ao baixar ${avatar.name}`);
+      // Fallback: open in new tab
+      window.open(resolveImageUrl(avatar.url), '_blank');
+      toast.error(`Erro ao baixar. Imagem aberta em nova aba.`);
     } finally {
       setDownloading(prev => {
         const next = new Set(prev);
@@ -1350,37 +1339,37 @@ export function AvatarLibraryModalV2({
                 Cancelar
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const av = downloadPreview;
                   setDownloadPreview(null);
                   
-                  console.log('🎯 [MODAL DOWNLOAD] Iniciando:', av.name);
-                  const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
-                  const proxyUrl = `${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(filename)}`;
-                  
-                  console.log('📥 [MODAL DOWNLOAD] Proxy URL:', proxyUrl);
-                  
-                  // Create and click download link
-                  const a = document.createElement('a');
-                  a.href = proxyUrl;
-                  a.download = filename;
-                  a.style.display = 'none';
-                  
-                  document.body.appendChild(a);
-                  a.click();
-                  
-                  setTimeout(() => {
-                    try {
-                      document.body.removeChild(a);
-                      console.log('✅ [MODAL DOWNLOAD] Completo');
-                    } catch (e) {
-                      console.warn('Cleanup error:', e);
-                    }
-                  }, 1000);
-                  
-                  toast.success(`✅ ${av.name} - download iniciado!`, {
-                    description: 'Verifique sua pasta Downloads. Se não aparecer, desative bloqueadores de pop-up.'
-                  });
+                  try {
+                    console.log('🎯 [MODAL DOWNLOAD] Iniciando:', av.name);
+                    const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
+                    const proxyUrl = `${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(filename)}`;
+                    
+                    console.log('📥 [MODAL DOWNLOAD] Fetching:', proxyUrl);
+                    
+                    // EXACT SAME METHOD AS WORKING VIDEO DOWNLOAD
+                    const resp = await fetch(proxyUrl);
+                    const blob = await resp.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                    
+                    console.log('✅ [MODAL DOWNLOAD] Sucesso!');
+                    toast.success(`✅ ${av.name} baixado!`);
+                    
+                  } catch (e) {
+                    console.error('❌ [MODAL DOWNLOAD] Erro:', e);
+                    window.open(resolveImageUrl(av.url), '_blank');
+                    toast.error('Erro ao baixar. Imagem aberta em nova aba.');
+                  }
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
               >
