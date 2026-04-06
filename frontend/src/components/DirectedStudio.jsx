@@ -142,12 +142,6 @@ export const DirectedStudio = memo(function DirectedStudio({
     return () => window.removeEventListener('keydown', handler);
   }, [previewModal]);
 
-  const loadAnalytics = async () => {
-    setAnalyticsLoading(true);
-    try {
-      const r = await axios.get(`${API}/studio/analytics/performance`);
-      setAnalyticsData(r.data);
-
   // ═══════ LISTEN FOR NEW AVATAR CREATED ═══════
   useEffect(() => {
     const handleAvatarCreated = (e) => {
@@ -176,6 +170,12 @@ export const DirectedStudio = memo(function DirectedStudio({
       window.removeEventListener('avatarCreated', handleAvatarCreated);
     };
   }, [projectId]);
+
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const r = await axios.get(`${API}/studio/analytics/performance`);
+      setAnalyticsData(r.data);
 
       setShowAnalytics(true);
     } catch { toast.error('Erro ao carregar analytics'); }
