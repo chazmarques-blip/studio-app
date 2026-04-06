@@ -420,7 +420,7 @@ export function NewProjectModal({
                         ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                         : 'border-[#E0E0E0] bg-white/50 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                     }`}>
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF]">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden">
                       {company.logo_url ? (
                         <img 
                           src={company.logo_url} 
@@ -429,7 +429,9 @@ export function NewProjectModal({
                           style={{ objectPosition: company.logo_position || 'center' }}
                         />
                       ) : (
-                        <Building2 size={20} className="text-[#8B5CF6]" />
+                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
+                          <Building2 size={20} className="text-[#8B5CF6]" />
+                        </div>
                       )}
                     </div>
                     <span className="text-xs font-medium text-center max-w-[80px] truncate text-[#333]">
@@ -529,7 +531,7 @@ export function NewProjectModal({
                 <div className="flex items-start gap-3">
                   {/* Preview - Logo ocupa TODO o espaço */}
                   <div className="shrink-0">
-                    <div className="w-24 h-24 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden">
+                    <div className="w-24 h-24 rounded-lg overflow-hidden">
                       {newCompanyLogo ? (
                         <img 
                           src={newCompanyLogo} 
@@ -538,7 +540,9 @@ export function NewProjectModal({
                           style={{ objectPosition: newLogoPosition }}
                         />
                       ) : (
-                        <Building2 size={32} className="text-[#8B5CF6]/40" />
+                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center border-2 border-[#E0E0E0]">
+                          <Building2 size={32} className="text-[#8B5CF6]/40" />
+                        </div>
                       )}
                     </div>
                     
@@ -677,7 +681,7 @@ export function NewProjectModal({
                 <div className="flex items-start gap-3">
                   {/* Preview - Logo ocupa TODO o espaço */}
                   <div className="shrink-0">
-                    <div className="w-24 h-24 rounded-lg border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center overflow-hidden">
+                    <div className="w-24 h-24 rounded-lg overflow-hidden">
                       {editCompanyLogo ? (
                         <img 
                           src={editCompanyLogo} 
@@ -686,7 +690,9 @@ export function NewProjectModal({
                           style={{ objectPosition: editLogoPosition }}
                         />
                       ) : (
-                        <Building2 size={32} className="text-[#8B5CF6]/40" />
+                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center border-2 border-[#E0E0E0]">
+                          <Building2 size={32} className="text-[#8B5CF6]/40" />
+                        </div>
                       )}
                     </div>
                     
