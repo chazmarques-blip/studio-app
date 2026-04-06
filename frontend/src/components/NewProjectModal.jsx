@@ -367,27 +367,20 @@ export function NewProjectModal({
             </div>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {/* Option: No company (standalone project) */}
-              <button
-                type="button"
-                onClick={() => setSelectedCompany(null)}
-                className={`shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
-                  selectedCompany === null
-                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                    : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
-                }`}>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed ${
-                  selectedCompany === null ? 'border-[#8B5CF6]' : 'border-[#444]'
-                }`}>
-                  <Sparkles size={20} className={selectedCompany === null ? 'text-[#8B5CF6]' : 'text-[#666]'} />
-                </div>
-                <span className="text-xs font-medium text-center whitespace-nowrap text-white">
-                  {lang === 'pt' ? 'Sem Empresa' : 'No Company'}
-                </span>
-                {selectedCompany === null && (
-                  <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                )}
-              </button>
+              {/* Option: No company (standalone project) - Only show if no company selected */}
+              {!selectedCompany && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCompany(null)}
+                  className="shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 border-dashed border-[#E0E0E0] bg-white/50 hover:border-[#8B5CF6] hover:bg-[#8B5CF6]/5 transition-all">
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed border-[#DDD]">
+                    <Sparkles size={20} className="text-[#999]" />
+                  </div>
+                  <span className="text-xs font-medium text-center whitespace-nowrap text-[#666]">
+                    {lang === 'pt' ? 'Sem Empresa' : 'No Company'}
+                  </span>
+                </button>
+              )}
 
               {/* Existing companies */}
               {companies.map(company => (
@@ -409,25 +402,23 @@ export function NewProjectModal({
                         }
                       }
                     }}
-                    className={`w-full flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+                    className={`w-full flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
                       selectedCompany?.id === company.id
-                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                        : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
+                        ? 'border-[#8B5CF6] bg-[#F3F0FF]'
+                        : 'border-[#E0E0E0] bg-white/50 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                     }`}>
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden ${
-                      company.logo_url ? 'bg-white' : 'bg-[#1A1A1A]'
-                    }`}>
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] p-1">
                       {company.logo_url ? (
                         <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
                       ) : (
-                        <Building2 size={20} className="text-[#666]" />
+                        <Building2 size={20} className="text-[#8B5CF6]" />
                       )}
                     </div>
-                    <span className="text-xs font-medium text-center max-w-[80px] truncate text-white">
+                    <span className="text-xs font-medium text-center max-w-[80px] truncate text-[#333]">
                       {company.name}
                     </span>
                     {company.is_primary && (
-                      <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[9px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-semibold">
                         PRINCIPAL
                       </span>
                     )}
@@ -460,11 +451,11 @@ export function NewProjectModal({
               <button
                 type="button"
                 onClick={() => setShowCreateCompany(true)}
-                className="shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border border-dashed border-[#555] hover:border-[#8B5CF6] bg-[#0A0A0A] hover:bg-[#8B5CF6]/5 transition-all">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed border-[#555]">
-                  <Plus size={20} className="text-[#666]" />
+                className="shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] bg-white/50 hover:bg-[#F9F7FF] transition-all">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed border-[#DDD]">
+                  <Plus size={20} className="text-[#8B5CF6]" />
                 </div>
-                <span className="text-xs font-medium text-center whitespace-nowrap text-[#888]">
+                <span className="text-xs font-medium text-center whitespace-nowrap text-[#666]">
                   {lang === 'pt' ? '+ Nova Empresa' : '+ New Company'}
                 </span>
               </button>
@@ -700,8 +691,7 @@ export function NewProjectModal({
             value={projectName} 
             onChange={e => setProjectName(e.target.value)}
             placeholder={lang === 'pt' ? 'Ex: A Jornada de Abraão' : 'Ex: The Journey of Abraham'}
-            autoFocus
-            className="w-full bg-[#0A0A0A] border border-[#333] focus:border-[#8B5CF6] rounded-lg px-3 py-2 text-sm text-white outline-none placeholder-[#555] transition" 
+            className="w-full bg-white/80 border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-lg px-3 py-2 text-sm text-[#333] outline-none placeholder-[#999] transition" 
           />
         </div>
 
@@ -730,10 +720,10 @@ export function NewProjectModal({
                     setAnimationSub(s.id); 
                     setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
                   }}
-                  className={`shrink-0 px-3 py-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
+                  className={`shrink-0 px-3 py-1.5 rounded-md border-2 transition-all flex items-center gap-1.5 ${
                     animationSub === s.id
-                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
-                      : 'border-[#333] bg-[#0A0A0A] text-[#888] hover:border-[#555] hover:text-white'
+                      ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                      : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                   }`}>
                   <Icon size={14} strokeWidth={1.5} />
                   <span className="text-xs font-medium whitespace-nowrap">{s.label}</span>
@@ -758,10 +748,10 @@ export function NewProjectModal({
             <button
               type="button"
               onClick={() => setSelectedFolder(null)}
-              className={`shrink-0 px-3 py-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
+              className={`shrink-0 px-3 py-1.5 rounded-md border-2 transition-all flex items-center gap-1.5 ${
                 selectedFolder === null
-                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
-                  : 'border-[#333] bg-[#0A0A0A] text-[#888] hover:border-[#555] hover:text-white'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
               <Sparkles size={14} strokeWidth={1.5} />
               <span className="text-xs font-medium whitespace-nowrap">
@@ -785,10 +775,10 @@ export function NewProjectModal({
                 key={folder.id}
                 type="button"
                 onClick={() => setSelectedFolder(folder.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
+                className={`shrink-0 px-3 py-1.5 rounded-md border-2 transition-all flex items-center gap-1.5 ${
                   selectedFolder === folder.id
-                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
-                    : 'border-[#333] bg-[#0A0A0A] text-[#888] hover:border-[#555] hover:text-white'
+                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                 }`}>
                 <Users size={14} strokeWidth={1.5} />
                 <span className="text-xs font-medium whitespace-nowrap">{folder.name}</span>
@@ -827,18 +817,18 @@ export function NewProjectModal({
                 setFormatStrategy('safe_zone');
                 setFormatsRequested(['16:9']);
               }}
-              className={`flex-1 p-2 rounded-md border text-left transition-all ${
+              className={`flex-1 p-2 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'safe_zone'
-                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                  : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF]'
+                  : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-semibold text-white">Safe Zone</span>
+                <span className="text-xs font-semibold text-[#333]">Safe Zone</span>
                 {formatStrategy === 'safe_zone' && (
                   <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[10px] text-[#888]">16:9 → Crop 9:16</div>
+              <div className="text-[10px] text-[#666]">16:9 → Crop 9:16</div>
             </button>
 
             {/* Dual Generation */}
@@ -848,18 +838,18 @@ export function NewProjectModal({
                 setFormatStrategy('dual_generation');
                 setFormatsRequested(['16:9', '9:16']);
               }}
-              className={`flex-1 p-2 rounded-md border text-left transition-all ${
+              className={`flex-1 p-2 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'dual_generation'
-                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                  : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF]'
+                  : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-semibold text-white">Dual</span>
+                <span className="text-xs font-semibold text-[#333]">Dual</span>
                 {formatStrategy === 'dual_generation' && (
                   <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[10px] text-[#888]">16:9 + 9:16</div>
+              <div className="text-[10px] text-[#666]">16:9 + 9:16</div>
             </button>
 
             {/* Multi-Format */}
@@ -869,18 +859,18 @@ export function NewProjectModal({
                 setFormatStrategy('multi_format');
                 setFormatsRequested(['16:9', '9:16', '4:5', '1:1']);
               }}
-              className={`flex-1 p-2 rounded-md border text-left transition-all ${
+              className={`flex-1 p-2 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'multi_format'
-                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                  : 'border-[#333] bg-[#0A0A0A] hover:border-[#555]'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF]'
+                  : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-semibold text-white">Multi</span>
+                <span className="text-xs font-semibold text-[#333]">Multi</span>
                 {formatStrategy === 'multi_format' && (
                   <Check size={12} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[10px] text-[#888]">Todos</div>
+              <div className="text-[10px] text-[#666]">Todos</div>
             </button>
           </div>
         </div>
@@ -891,7 +881,7 @@ export function NewProjectModal({
         <div className="flex gap-2 pt-2">
           <button 
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-[#333] text-xs font-medium text-[#999] hover:text-white hover:border-[#555] transition">
+            className="px-4 py-2 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
             {lang === 'pt' ? 'Cancelar' : 'Cancel'}
           </button>
           <button 
