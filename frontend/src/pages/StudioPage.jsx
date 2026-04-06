@@ -1183,25 +1183,40 @@ export default function StudioPage() {
               
               console.log('✅ New avatar created:', newAvatar);
               
-              // Add to avatars list (local state)
-              const updatedAvatars = [...avatars, newAvatar];
-              setAvatars(updatedAvatars);
+              // 1. Save to GLOBAL gallery (tenant avatars)
+              try {
+                const response = await axios.post(`${API}/data/avatars`, {
+                  avatar: newAvatar
+                });
+                console.log('✅ Avatar saved to global gallery:', response.data);
+                
+                // 2. Add to local state (avatars cache)
+                const updatedAvatars = [...avatars, newAvatar];
+                setAvatars(updatedAvatars);
+                setAvatarsLoaded(true);
+                
+                // 3. Update localStorage cache
+                localStorage.setItem('studiox_avatars_cache', JSON.stringify(updatedAvatars));
+                
+                toast.success(`Personagem "${name}" criado com sucesso!`);
+              } catch (err) {
+                console.error('❌ Failed to save avatar to gallery:', err);
+                toast.error('Erro ao salvar personagem: ' + (err.response?.data?.detail || err.message));
+                return; // Don't continue if gallery save failed
+              }
               
-              // Persist to backend (if project exists)
+              // 4. If there's a selected project, also add to project
               if (selectedProject?.id) {
                 try {
-                  const response = await axios.post(`${API}/studio/projects/${selectedProject.id}/project-avatars`, {
-                    avatar: newAvatar
+                  const response = await axios.post(`${API}/studio/projects/${selectedProject.id}/project-avatars/import`, {
+                    avatar_ids: [newAvatar.id]
                   });
-                  console.log('✅ Avatar persisted to backend:', response.data);
-                  toast.success(`Personagem "${name}" salvo com sucesso!`);
+                  console.log('✅ Avatar added to project:', response.data);
+                  toast.success(`Personagem adicionado ao projeto!`);
                 } catch (err) {
-                  console.error('❌ Failed to persist avatar:', err);
-                  toast.error('Erro ao salvar personagem no servidor: ' + (err.response?.data?.detail || err.message));
+                  console.error('❌ Failed to add avatar to project:', err);
+                  // Don't show error - avatar is already in gallery
                 }
-              } else {
-                console.log('⚠️ No selectedProject, saving locally only');
-                toast.success(`Personagem "${name}" salvo localmente!`);
               }
               
               resetAvatarModal();
