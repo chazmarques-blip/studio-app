@@ -464,8 +464,33 @@ export function AvatarModal({ ctx }) {
                         <button
                           data-testid="copy-prompt-btn"
                           onClick={() => {
-                            navigator.clipboard.writeText(tempAvatar.prompt);
-                            toast.success('Prompt copiado!');
+                            // Fallback method for copying text (works without Clipboard API permissions)
+                            try {
+                              const textArea = document.createElement('textarea');
+                              textArea.value = tempAvatar.prompt;
+                              textArea.style.position = 'fixed';
+                              textArea.style.left = '-999999px';
+                              textArea.style.top = '-999999px';
+                              document.body.appendChild(textArea);
+                              textArea.focus();
+                              textArea.select();
+                              
+                              const successful = document.execCommand('copy');
+                              document.body.removeChild(textArea);
+                              
+                              if (successful) {
+                                toast.success('✅ Prompt copiado!');
+                              } else {
+                                throw new Error('execCommand failed');
+                              }
+                            } catch (err) {
+                              console.error('❌ Erro ao copiar:', err);
+                              // Last resort: show prompt in alert so user can copy manually
+                              toast.error('Não foi possível copiar automaticamente');
+                              setTimeout(() => {
+                                alert('Copie o prompt abaixo:\n\n' + tempAvatar.prompt);
+                              }, 100);
+                            }
                           }}
                           className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 text-[#8B5CF6] hover:bg-[#8B5CF6]/20 transition group"
                           title={tempAvatar.prompt}
