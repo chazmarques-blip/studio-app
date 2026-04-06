@@ -1150,10 +1150,10 @@ export default function StudioPage() {
                 toast.error('Erro ao iniciar geração 360°');
               }
             },
-            saveAvatarAndClose: () => {
-              console.log('✅ saveAvatarAndClose: Auto-saving changes');
-              // Auto-save: Changes are already persisted when creating/editing avatar
-              resetAvatarModal();
+            saveAvatarAndClose: async () => {
+              console.log('✅ saveAvatarAndClose: Calling saveAvatarAsNew...');
+              // Call the same save logic as saveAvatarAsNew
+              await avatarModalActions.saveAvatarAsNew();
             },
             saveAvatarAsNew: async () => {
               console.log('💾 saveAvatarAsNew called');
