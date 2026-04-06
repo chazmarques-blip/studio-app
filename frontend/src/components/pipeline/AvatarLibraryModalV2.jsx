@@ -475,79 +475,30 @@ export function AvatarLibraryModalV2({
       const imageUrl = resolveImageUrl(avatar.url);
       const filename = `${(avatar.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
       
-      console.log('📥 [DOWNLOAD] Método 1: Tentando download via fetch + blob');
-      console.log('📥 [DOWNLOAD] URL:', imageUrl);
+      console.log('📥 [DOWNLOAD] Usando endpoint proxy /api/download-image');
+      console.log('📥 [DOWNLOAD] URL original:', imageUrl);
       
-      // Method 1: Try fetch + blob (works for CORS-enabled resources)
-      try {
-        const response = await fetch(imageUrl, {
-          mode: 'cors',
-          credentials: 'omit'
-        });
-        
-        console.log('📡 [DOWNLOAD] Response status:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const blob = await response.blob();
-        console.log('✅ [DOWNLOAD] Blob criado:', blob.size, 'bytes, tipo:', blob.type);
-        
-        // Create download link
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        
-        // Force click in a way that bypasses popup blockers
-        document.body.appendChild(a);
-        console.log('🔗 [DOWNLOAD] Iniciando download (método 1):', filename);
-        
-        // Try multiple click methods
-        a.click();
-        
-        // Fallback: dispatch click event
-        const clickEvent = new MouseEvent('click', {
-          view: window,
-          bubbles: true,
-          cancelable: true
-        });
-        a.dispatchEvent(clickEvent);
-        
-        // Cleanup after delay
-        setTimeout(() => {
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(blobUrl);
-          console.log('🧹 [DOWNLOAD] Cleanup concluído (método 1)');
-        }, 500);
-        
-        toast.success(`✅ ${avatar.name} baixado!`);
-        
-      } catch (fetchError) {
-        console.warn('⚠️ [DOWNLOAD] Método 1 falhou, tentando método 2 (download direto)');
-        console.error('⚠️ [DOWNLOAD] Erro método 1:', fetchError);
-        
-        // Method 2: Direct download link (fallback for non-CORS resources)
-        const a = document.createElement('a');
-        a.href = imageUrl;
-        a.download = filename;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        
-        document.body.appendChild(a);
-        console.log('🔗 [DOWNLOAD] Iniciando download (método 2 - direto):', filename);
-        a.click();
-        
-        setTimeout(() => {
-          document.body.removeChild(a);
-          console.log('🧹 [DOWNLOAD] Cleanup concluído (método 2)');
-        }, 500);
-        
-        toast.success(`✅ ${avatar.name} - download iniciado!`);
-      }
+      // Use backend proxy endpoint to force download with correct headers
+      const proxyUrl = `${API}/download-image?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(filename)}`;
+      console.log('📥 [DOWNLOAD] Proxy URL:', proxyUrl);
+      
+      // Create download link using proxy
+      const a = document.createElement('a');
+      a.href = proxyUrl;
+      a.download = filename;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      
+      document.body.appendChild(a);
+      console.log('🔗 [DOWNLOAD] Iniciando download via proxy:', filename);
+      a.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(a);
+        console.log('🧹 [DOWNLOAD] Cleanup concluído');
+      }, 500);
+      
+      toast.success(`✅ ${avatar.name} baixado!`);
       
     } catch (e) {
       console.error('❌ [DOWNLOAD] Erro fatal ao baixar:', e);
