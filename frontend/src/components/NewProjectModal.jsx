@@ -38,6 +38,7 @@ export function NewProjectModal({
   const [showCreateCompany, setShowCreateCompany] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newCompanyLogo, setNewCompanyLogo] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [creatingCompany, setCreatingCompany] = useState(false);
 
   // Fetch folders on mount
@@ -93,6 +94,53 @@ export function NewProjectModal({
     fetchFolders();
   }, [token]);
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      alert(lang === 'pt' ? 'Apenas PNG ou JPEG são aceitos' : 'Only PNG or JPEG are accepted');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert(lang === 'pt' ? 'Tamanho máximo: 5MB' : 'Max size: 5MB');
+      return;
+    }
+    
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('asset_type', 'company_logo');
+      
+      const response = await fetch(`${API}/api/campaigns/pipeline/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNewCompanyLogo(data.url);
+        console.log('✅ [LOGO] Uploaded:', data.url);
+      } else {
+        console.error('❌ [LOGO] Upload failed:', response.status);
+        alert(lang === 'pt' ? 'Erro ao fazer upload' : 'Upload failed');
+      }
+    } catch (err) {
+      console.error('❌ [LOGO] Upload error:', err);
+      alert(lang === 'pt' ? 'Erro ao fazer upload' : 'Upload failed');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleCreateCompany = async () => {
     if (!newCompanyName.trim() || creatingCompany || !token) return;
     
@@ -106,29 +154,30 @@ export function NewProjectModal({
         },
         body: JSON.stringify({
           name: newCompanyName.trim(),
-          logo_url: newCompanyLogo.trim() || null,
-          default_settings: {
-            animation_sub: animationSub,
-            visual_style: visualStyle,
-            format_strategy: formatStrategy,
-            language: projectLang
-          }
+          logo_url: newCompanyLogo || null,
+          default_visual_style: visualStyle,
+          default_animation_sub: animationSub,
+          default_format_strategy: formatStrategy,
+          default_language: projectLang
         })
       });
       
       if (response.ok) {
-        const data = await response.json();
-        console.log('✅ [COMPANY] Created:', data.company);
-        setCompanies(prev => [...prev, data.company]);
-        setSelectedCompany(data.company);
+        const company = await response.json(); // Backend returns company directly, not wrapped
+        console.log('✅ [COMPANY] Created:', company);
+        setCompanies(prev => [...prev, company]);
+        setSelectedCompany(company);
         setShowCreateCompany(false);
         setNewCompanyName('');
         setNewCompanyLogo('');
       } else {
-        console.error('❌ [COMPANY] Creation failed:', response.status);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ [COMPANY] Creation failed:', response.status, errorData);
+        alert(lang === 'pt' ? 'Erro ao criar empresa' : 'Failed to create company');
       }
     } catch (err) {
       console.error('❌ [COMPANY] Error:', err);
+      alert(lang === 'pt' ? 'Erro ao criar empresa' : 'Failed to create company');
     } finally {
       setCreatingCompany(false);
     }
@@ -285,61 +334,104 @@ export function NewProjectModal({
         
         {/* Modal: Create Company (inline) */}
         {showCreateCompany && (
-          <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
-            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-4 max-w-md w-full space-y-3" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
+            <div className="bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/20 p-5 max-w-lg w-full space-y-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-white">
+                <h4 className="text-base font-semibold text-white flex items-center gap-2">
+                  <Building2 size={18} className="text-[#8B5CF6]" />
                   {lang === 'pt' ? 'Nova Empresa' : 'New Company'}
                 </h4>
-                <button onClick={() => setShowCreateCompany(false)} className="text-[#666] hover:text-white">
-                  <X size={16} />
+                <button onClick={() => setShowCreateCompany(false)} className="text-[#666] hover:text-white transition">
+                  <X size={18} />
                 </button>
               </div>
               
+              {/* Company Name */}
               <div>
-                <label className="text-xs text-[#999] mb-1 block">
+                <label className="text-xs font-medium text-[#999] mb-1.5 block">
                   {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
                 </label>
                 <input
                   value={newCompanyName}
                   onChange={e => setNewCompanyName(e.target.value)}
-                  placeholder="Ex: Biblizoo, Agent22..."
+                  placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
                   autoFocus
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]"
+                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6] transition"
                 />
               </div>
               
+              {/* Logo Upload */}
               <div>
-                <label className="text-xs text-[#999] mb-1 block">
-                  {lang === 'pt' ? 'URL do Logo (opcional)' : 'Logo URL (optional)'}
+                <label className="text-xs font-medium text-[#999] mb-1.5 block">
+                  {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
-                <input
-                  value={newCompanyLogo}
-                  onChange={e => setNewCompanyLogo(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/50"
-                />
+                
+                <div className="flex items-center gap-3">
+                  {/* Preview */}
+                  <div className="w-16 h-16 rounded-lg border border-[#333] bg-[#0A0A0A] flex items-center justify-center overflow-hidden shrink-0">
+                    {newCompanyLogo ? (
+                      <img src={newCompanyLogo} alt="Logo preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <Building2 size={24} className="text-[#444]" />
+                    )}
+                  </div>
+                  
+                  {/* Upload Button */}
+                  <label className="flex-1 cursor-pointer">
+                    <div className="border-2 border-dashed border-[#444] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-[#0A0A0A] hover:bg-[#8B5CF6]/5">
+                      {uploadingLogo ? (
+                        <span className="text-xs text-[#666]">
+                          {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-xs text-[#888] block">
+                            {lang === 'pt' ? 'Clique para fazer upload' : 'Click to upload'}
+                          </span>
+                          <span className="text-[10px] text-[#555] mt-0.5 block">
+                            PNG, JPEG • Max 5MB
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      onChange={handleLogoUpload}
+                      disabled={uploadingLogo}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                
+                {newCompanyLogo && (
+                  <button
+                    onClick={() => setNewCompanyLogo('')}
+                    className="mt-2 text-xs text-[#666] hover:text-red-400 transition">
+                    {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
+                  </button>
+                )}
               </div>
               
-              <p className="text-[10px] text-[#666]">
-                {lang === 'pt' 
-                  ? 'As configurações atuais serão salvas como padrão para esta empresa.' 
-                  : 'Current settings will be saved as defaults for this company.'}
+              <p className="text-[10px] text-[#666] bg-[#0A0A0A] rounded px-2 py-1.5 border border-[#222]">
+                💡 {lang === 'pt' 
+                  ? 'As configurações atuais do projeto serão salvas como padrão para esta empresa.' 
+                  : 'Current project settings will be saved as defaults for this company.'}
               </p>
               
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => setShowCreateCompany(false)}
-                  className="flex-1 px-4 py-2 rounded-lg border border-[#333] text-xs text-[#888] hover:text-white transition">
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-[#333] text-xs font-medium text-[#888] hover:text-white hover:border-[#555] transition">
                   {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                 </button>
                 <button
                   onClick={handleCreateCompany}
                   disabled={!newCompanyName.trim() || creatingCompany}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 transition">
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
                   {creatingCompany 
                     ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
-                    : (lang === 'pt' ? 'Criar' : 'Create')}
+                    : (lang === 'pt' ? 'Criar Empresa' : 'Create Company')}
                 </button>
               </div>
             </div>
