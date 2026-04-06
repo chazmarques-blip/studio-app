@@ -143,6 +143,26 @@ export function AvatarLibraryModalV2({
     },
   };
   const L = labels[lang] || labels.en;
+  
+  // ═══════ LISTEN FOR NEW AVATAR CREATED ═══════
+  useEffect(() => {
+    const handleAvatarCreated = (e) => {
+      console.log('🎯 [GALLERY] avatarCreated event received:', e.detail);
+      const CACHE_KEY = 'studiox_avatar_library_v2';
+      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem('studiox_avatars_cache');
+      console.log('🗑️ [GALLERY] Caches cleared');
+      // Reload page to get fresh data
+      if (open) {
+        console.log('🔄 [GALLERY] Reloading page...');
+        setTimeout(() => window.location.reload(), 500);
+      }
+    };
+    
+    window.addEventListener('avatarCreated', handleAvatarCreated);
+    return () => window.removeEventListener('avatarCreated', handleAvatarCreated);
+  }, [open]);
+
 
   // Smart cache with TTL + external cache support
   useEffect(() => {
