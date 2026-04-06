@@ -1151,9 +1151,70 @@ export default function StudioPage() {
               }
             },
             saveAvatarAndClose: async () => {
-              console.log('✅ saveAvatarAndClose: Calling saveAvatarAsNew...');
-              // Call the same save logic as saveAvatarAsNew
-              await avatarModalActions.saveAvatarAsNew();
+              console.log('💾 saveAvatarAndClose called (saving avatar...)');
+              
+              if (!tempAvatar || !tempAvatar.url) {
+                console.warn('⚠️ No tempAvatar or tempAvatar.url to save');
+                toast.error('Nenhum personagem para salvar');
+                return;
+              }
+              
+              const name = avatarName.trim() || `Personagem ${avatars.length + 1}`;
+              
+              const newAvatar = {
+                id: uuidv4(),
+                url: tempAvatar.url,
+                name,
+                source_photo_url: tempAvatar.source_photo_url || '',
+                clothing: tempAvatar.clothing || 'keep_original',
+                voice: tempAvatar.voice || null,
+                angles: angleImages || { front: tempAvatar.url },
+                video_url: previewVideoUrl || null,
+                language: previewLanguage || 'pt',
+                creation_mode: tempAvatar.creation_mode || 'prompt',
+                avatar_style: tempAvatar.avatar_style || 'custom',
+                edit_history: avatarEditHistory || [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              
+              console.log('✅ New avatar created:', newAvatar);
+              
+              // 1. Save to GLOBAL gallery (tenant avatars)
+              try {
+                const response = await axios.post(`${API}/data/avatars`, newAvatar);
+                console.log('✅ Avatar saved to global gallery:', response.data);
+                
+                // 2. Add to local state (avatars cache)
+                const updatedAvatars = [...avatars, newAvatar];
+                setAvatars(updatedAvatars);
+                setAvatarsLoaded(true);
+                
+                // 3. Update localStorage cache
+                localStorage.setItem('studiox_avatars_cache', JSON.stringify(updatedAvatars));
+                
+                toast.success(`Personagem "${name}" criado com sucesso!`);
+              } catch (err) {
+                console.error('❌ Failed to save avatar to gallery:', err);
+                toast.error('Erro ao salvar personagem: ' + (err.response?.data?.detail || err.message));
+                return; // Don't continue if gallery save failed
+              }
+              
+              // 4. If there's a selected project, also add to project
+              if (selectedProject?.id) {
+                try {
+                  const response = await axios.post(`${API}/studio/projects/${selectedProject.id}/project-avatars/import`, {
+                    avatar_ids: [newAvatar.id]
+                  });
+                  console.log('✅ Avatar added to project:', response.data);
+                  toast.success(`Personagem adicionado ao projeto!`);
+                } catch (err) {
+                  console.error('❌ Failed to add avatar to project:', err);
+                  // Don't show error - avatar is already in gallery
+                }
+              }
+              
+              resetAvatarModal();
             },
             saveAvatarAsNew: async () => {
               console.log('💾 saveAvatarAsNew called');
