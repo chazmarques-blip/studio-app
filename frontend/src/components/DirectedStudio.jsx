@@ -147,6 +147,36 @@ export const DirectedStudio = memo(function DirectedStudio({
     try {
       const r = await axios.get(`${API}/studio/analytics/performance`);
       setAnalyticsData(r.data);
+
+  // ═══════ LISTEN FOR NEW AVATAR CREATED ═══════
+  useEffect(() => {
+    const handleAvatarCreated = (e) => {
+      console.log('🎯 [DIRECTED] avatarCreated event received:', e.detail);
+      const { avatar, projectId: eventProjectId } = e.detail;
+      
+      // Only update if it's for this project
+      if (eventProjectId === projectId) {
+        console.log('✅ [DIRECTED] Adding avatar to projectAvatars:', avatar.name);
+        setProjectAvatars(prev => {
+          // Check if avatar already exists
+          if (prev.some(a => a.id === avatar.id)) {
+            console.log('⚠️ [DIRECTED] Avatar already exists, skipping');
+            return prev;
+          }
+          const updated = [...prev, avatar];
+          console.log('✅ [DIRECTED] Updated projectAvatars. Before:', prev.length, 'After:', updated.length);
+          return updated;
+        });
+      }
+    };
+    
+    window.addEventListener('avatarCreated', handleAvatarCreated);
+    
+    return () => {
+      window.removeEventListener('avatarCreated', handleAvatarCreated);
+    };
+  }, [projectId]);
+
       setShowAnalytics(true);
     } catch { toast.error('Erro ao carregar analytics'); }
     setAnalyticsLoading(false);
