@@ -621,6 +621,21 @@ export default function StudioPage() {
     }
   }, [searchParams]);
 
+  // ═══════ EVENT LISTENER: Avatar Creation from DirectedStudio ═══════
+  useEffect(() => {
+    const handleOpenAvatarCreation = (e) => {
+      console.log('✅ Event received: openAvatarCreation', e.detail);
+      resetAvatarModal();
+      setShowAvatarModal(true);
+    };
+    
+    window.addEventListener('openAvatarCreation', handleOpenAvatarCreation);
+    
+    return () => {
+      window.removeEventListener('openAvatarCreation', handleOpenAvatarCreation);
+    };
+  }, []);
+
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);

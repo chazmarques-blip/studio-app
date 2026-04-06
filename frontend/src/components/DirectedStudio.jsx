@@ -3858,9 +3858,10 @@ export const DirectedStudio = memo(function DirectedStudio({
         projectId={projectId}
         projectAvatarIds={new Set(projectAvatars.map(a => a.id))}
         onCreateNew={() => {
-          console.log('✅ Creating new character from project library');
+          console.log('✅ Opening character creation from project library');
           setShowLibrary(false); // Close library
-          setShowAvatarModal(true); // Open creation modal
+          // Dispatch event to parent (StudioPage) to open avatar creation modal
+          window.dispatchEvent(new CustomEvent('openAvatarCreation', { detail: { source: 'project_library' } }));
         }}
         onImported={handleLibraryImport}
         onEditAvatar={(avatar) => {
