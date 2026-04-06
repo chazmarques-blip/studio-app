@@ -42,6 +42,7 @@ class AvatarIn(BaseModel):
     edit_history: Optional[list] = None
     avatar_style: str = "realistic"
     creation_mode: str = "photo"
+    prompt: str = ""  # Prompt usado para gerar o personagem
 
 
 def _get_settings(tenant_id: str) -> dict:
@@ -154,6 +155,7 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
         "edit_history": data.edit_history or [],
         "avatar_style": data.avatar_style,
         "creation_mode": data.creation_mode,
+        "prompt": data.prompt,  # Salvar prompt do personagem
         "updated_at": now,
     }
 

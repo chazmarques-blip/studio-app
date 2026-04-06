@@ -1199,6 +1199,7 @@ export default function StudioPage() {
                 creation_mode: tempAvatar.creation_mode || 'prompt',
                 avatar_style: tempAvatar.avatar_style || 'custom',
                 edit_history: avatarEditHistory || [],
+                prompt: tempAvatar.prompt || '',  // Incluir prompt
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               };
@@ -1282,6 +1283,7 @@ export default function StudioPage() {
                 creation_mode: tempAvatar.creation_mode || 'prompt',
                 avatar_style: tempAvatar.avatar_style || 'custom',
                 edit_history: avatarEditHistory || [],
+                prompt: tempAvatar.prompt || '',  // Incluir prompt
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               };
@@ -2025,7 +2027,8 @@ export default function StudioPage() {
                   angles: angleImages || {},
                   video_url: previewVideoUrl || null,
                   language: previewLanguage || 'pt',
-                  edit_history: avatarEditHistory || []
+                  edit_history: avatarEditHistory || [],
+                  prompt: tempAvatar.prompt || ''  // Incluir prompt
                 };
                 
                 console.log('📡 Salvando personagem global:', payload);
@@ -2071,7 +2074,8 @@ export default function StudioPage() {
                   angles: angleImages || {},
                   video_url: previewVideoUrl || null,
                   language: previewLanguage || 'pt',
-                  edit_history: avatarEditHistory || []
+                  edit_history: avatarEditHistory || [],
+                  prompt: tempAvatar.prompt || ''  // Incluir prompt
                 };
                 
                 console.log('📡 Salvando novo personagem:', payload);
@@ -2156,7 +2160,8 @@ export default function StudioPage() {
                   company_id: selectedCompany?.id || null,
                   angles: angleImages || {},
                   voice_id: tempAvatar.voice_id || null,
-                  language: previewLanguage || 'pt'
+                  language: previewLanguage || 'pt',
+                  prompt: tempAvatar.prompt || ''  // Incluir prompt
                 };
                 
                 await axios.post(`${API}/data/avatars`, payload);
