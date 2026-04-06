@@ -1185,9 +1185,7 @@ export default function StudioPage() {
               
               // 1. Save to GLOBAL gallery (tenant avatars)
               try {
-                const response = await axios.post(`${API}/data/avatars`, {
-                  avatar: newAvatar
-                });
+                const response = await axios.post(`${API}/data/avatars`, newAvatar);
                 console.log('✅ Avatar saved to global gallery:', response.data);
                 
                 // 2. Add to local state (avatars cache)
