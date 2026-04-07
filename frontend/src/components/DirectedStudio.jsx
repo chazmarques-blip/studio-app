@@ -135,35 +135,35 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
   };
   
   return (
-    <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-4 mb-3 shadow-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
-            <Sparkles size={16} className="text-white" />
+    <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-2 mb-2 shadow-sm">
+      {/* Header - Compacto */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
+            <Sparkles size={10} className="text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-800">
+            <h3 className="text-[10px] font-bold text-gray-800">
               {lang === 'pt' ? 'Pipeline de Produção' : 'Production Pipeline'}
             </h3>
-            <p className="text-xs text-gray-500">
+            <p className="text-[9px] text-gray-500">
               {lang === 'pt' ? 'Tempo decorrido' : 'Elapsed time'}: {formatTime(elapsedSeconds)}
             </p>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-purple-600">
+          <div className="text-sm font-bold text-purple-600">
             {Math.round((currentPhase / phases.length) * 100)}%
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-[9px] text-gray-500">
             {currentPhase + 1}/{phases.length} {lang === 'pt' ? 'etapas' : 'steps'}
           </div>
         </div>
       </div>
       
-      {/* Overall Progress Bar */}
-      <div className="mb-4">
-        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+      {/* Overall Progress Bar - Mais fino */}
+      <div className="mb-2">
+        <div className="h-1 rounded-full bg-gray-200 overflow-hidden">
           <div 
             className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 ease-out"
             style={{ width: `${(currentPhase / phases.length) * 100}%` }}
@@ -171,8 +171,8 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
         </div>
       </div>
       
-      {/* Phases */}
-      <div className="space-y-3">
+      {/* Phases - Layout ultra compacto e empilhado */}
+      <div className="space-y-1">
         {phases.map((phase, index) => {
           const Icon = phase.icon;
           const status = getPhaseStatus(index);
@@ -181,18 +181,18 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
           return (
             <div 
               key={phase.id}
-              className={`rounded-lg p-3 transition-all duration-300 ${
+              className={`rounded px-2 py-1 transition-all duration-300 ${
                 status === 'completed' 
                   ? 'bg-green-50 border border-green-200' 
                   : status === 'processing'
-                  ? 'bg-white border-2 border-purple-300 shadow-md'
-                  : 'bg-gray-50 border border-gray-200 opacity-60'
+                  ? 'bg-white border border-purple-300'
+                  : 'bg-gray-50 border border-gray-200 opacity-50'
               }`}
             >
-              <div className="flex items-start gap-3">
-                {/* Icon */}
+              <div className="flex items-center gap-1.5">
+                {/* Icon - Menor */}
                 <div 
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                  className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
                     status === 'completed' 
                       ? 'bg-green-500' 
                       : status === 'processing'
@@ -201,58 +201,55 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
                   }`}
                 >
                   {status === 'completed' ? (
-                    <CheckCircle2 size={20} className="text-white" />
+                    <CheckCircle2 size={10} className="text-white" />
                   ) : status === 'processing' ? (
-                    <Icon size={20} className="text-white" />
+                    <Icon size={10} className="text-white" />
                   ) : (
-                    <Clock size={20} className="text-white" />
+                    <Clock size={10} className="text-white" />
                   )}
                 </div>
                 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="text-sm font-bold text-gray-800">{phase.name}</h4>
-                    {status === 'processing' && (
-                      <RefreshCw size={12} className="text-purple-500 animate-spin" />
-                    )}
-                    {status === 'completed' && (
-                      <span className="text-xs font-semibold text-green-600">
-                        ✓ {lang === 'pt' ? 'Concluído' : 'Done'}
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Message */}
-                  <p className="text-xs text-gray-600 mb-2">
-                    {status === 'waiting' 
-                      ? (lang === 'pt' ? 'Aguardando...' : 'Waiting...') 
-                      : phase.message
-                    }
-                  </p>
-                  
-                  {/* Progress Bar */}
-                  {status !== 'waiting' && (
-                    <div className="space-y-1">
-                      <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div 
-                          className="h-full rounded-full transition-all duration-1000 ease-linear"
-                          style={{ 
-                            width: `${progress}%`,
-                            backgroundColor: phase.color
-                          }}
-                        />
-                      </div>
-                      {status === 'processing' && (
-                        <div className="flex justify-between text-[10px] text-gray-500">
-                          <span>{progress}%</span>
-                          <span>~{phase.duration - Math.floor((elapsedSeconds - phases.slice(0, index).reduce((sum, p) => sum + p.duration, 0)))}s {lang === 'pt' ? 'restantes' : 'remaining'}</span>
-                        </div>
-                      )}
-                    </div>
+                {/* Content - Tudo inline */}
+                <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                  <h4 className="text-[10px] font-semibold text-gray-800 truncate">{phase.name}</h4>
+                  {status === 'processing' && (
+                    <RefreshCw size={8} className="text-purple-500 animate-spin shrink-0" />
+                  )}
+                  {status === 'completed' && (
+                    <span className="text-[9px] font-semibold text-green-600 shrink-0">✓</span>
                   )}
                 </div>
+                
+                {/* Progress - Inline percentage */}
+                {status !== 'waiting' && (
+                  <span className="text-[9px] font-medium text-gray-600 shrink-0">
+                    {progress}%
+                  </span>
+                )}
               </div>
+              
+              {/* Mensagem - Abaixo do título, bem pequena */}
+              <p className="text-[9px] text-gray-500 ml-6 truncate">
+                {status === 'waiting' 
+                  ? (lang === 'pt' ? 'Aguardando...' : 'Waiting...') 
+                  : phase.message
+                }
+              </p>
+              
+              {/* Progress Bar - Muito fina */}
+              {status !== 'waiting' && (
+                <div className="ml-6 mt-0.5">
+                  <div className="h-0.5 rounded-full bg-gray-200 overflow-hidden">
+                    <div 
+                      className="h-full rounded-full transition-all duration-1000 ease-linear"
+                      style={{ 
+                        width: `${progress}%`,
+                        backgroundColor: phase.color
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
