@@ -93,13 +93,13 @@ const PIPELINE_PHASES = {
 };
 
 const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
-  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
-  const [currentPhase, setCurrentPhase] = React.useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState(0);
   
   const phases = PIPELINE_PHASES[lang] || PIPELINE_PHASES.pt;
   
   // Calcular fase atual baseado no tempo
-  React.useEffect(() => {
+  useEffect(() => {
     let accumulated = 0;
     for (let i = 0; i < phases.length; i++) {
       accumulated += phases[i].duration;
@@ -472,6 +472,27 @@ export const DirectedStudio = memo(function DirectedStudio({
   };
 
   useEffect(() => { loadProjects(); loadVoices(); }, []);
+
+  // AUTO-START Director's Preview when arriving at step 4 (AUTONOMOUS PIPELINE FIX)
+  const directorAutoStarted = useRef(false);
+  useEffect(() => {
+    if (step === 4 && projectId && !viewingProject && !directorAutoStarted.current) {
+      directorAutoStarted.current = true;
+      console.log('🎬 [AUTONOMOUS] Step 4 reached - auto-starting Director review...');
+      
+      // Small delay to ensure DirectorPreview component is mounted
+      setTimeout(() => {
+        const event = new CustomEvent('auto-start-director-review', { detail: { projectId } });
+        window.dispatchEvent(event);
+        console.log('🎬 [AUTONOMOUS] Director auto-start event dispatched');
+      }, 800);
+    }
+    
+    // Reset flag when leaving step 4
+    if (step !== 4) {
+      directorAutoStarted.current = false;
+    }
+  }, [step, projectId, viewingProject]);
 
   // Load initial project when provided via props
   const initialLoadDone = useRef(false);
