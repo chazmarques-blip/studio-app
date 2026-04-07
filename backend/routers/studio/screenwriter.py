@@ -71,9 +71,37 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
 
         system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang))
 
+        # Auto-sync character library if not loaded yet
+        character_library = project.get("character_library")
+        if not character_library:
+            logger.info(f"Project {project_id}: No character library found, auto-syncing...")
+            try:
+                from services.character_library_service import CharacterLibraryService
+                # Find Biblizoo Baby folder
+                avatar_folders = settings.get("avatar_folders", [])
+                biblizoo_folder = None
+                for folder in avatar_folders:
+                    folder_name = folder.get("name", "").lower()
+                    if "biblizoo" in folder_name and "baby" in folder_name:
+                        biblizoo_folder = folder
+                        break
+                
+                if biblizoo_folder:
+                    folder_id = biblizoo_folder["id"]
+                    all_avatars = settings.get("studio_avatars", [])
+                    folder_avatars = [a for a in all_avatars if a.get("folder_id") == folder_id]
+                    
+                    if folder_avatars:
+                        service = CharacterLibraryService()
+                        character_library = service.build_character_library(folder_avatars, biblizoo_folder)
+                        project["character_library"] = character_library
+                        _save_project(tenant_id, settings, projects)
+                        logger.info(f"✅ Auto-synced {character_library.get('total_characters', 0)} characters from {biblizoo_folder['name']}")
+            except Exception as e:
+                logger.warning(f"Auto-sync character library failed: {e}")
+
         # Inject Character Library if available
         character_library_instructions = ""
-        character_library = project.get("character_library")
         if character_library:
             from services.character_library_service import CharacterLibraryService
             character_library_instructions = CharacterLibraryService.format_for_llm_prompt(character_library)
