@@ -157,9 +157,7 @@ class CharacterLibraryService:
     @staticmethod
     def format_for_llm_prompt(character_library: Dict[str, Any]) -> str:
         """
-        Format character library for inclusion in LLM prompts
-        
-        Returns detailed character info including ORIGINAL prompts
+        Format character library for LLM - SIMPLIFIED for maximum clarity
         """
         if not character_library:
             return ""
@@ -170,92 +168,52 @@ class CharacterLibraryService:
         if not characters:
             return ""
         
+        # ULTRA SIMPLIFIED FORMAT - Just the essentials
         instructions = f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📚 BIBLIOTECA DE PERSONAGENS DISPONÍVEIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+═══════════════════════════════════════════════════════════════════════════════
+📚 CHARACTER LIBRARY: {folder_name}
+═══════════════════════════════════════════════════════════════════════════════
 
-Você tem acesso a {len(characters)} personagens PRÉ-CRIADOS da pasta "{folder_name}".
-
-⚠️ REGRA CRÍTICA DE CONTINUIDADE:
-Você DEVE usar EXATAMENTE estes personagens quando a história envolver seus nomes.
-NÃO crie novos personagens se eles já existem aqui.
-USE o nome completo e a descrição EXATA fornecida.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PERSONAGENS DISPONÍVEIS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOU HAVE {len(characters)} PRE-EXISTING CHARACTERS. USE THEM!
 
 """
         
-        # Show detailed info for first 20 characters (to avoid token overflow)
-        for i, char in enumerate(characters[:20], 1):
+        # List first 30 characters (simple format)
+        for i, char in enumerate(characters[:30], 1):
             full_name = char.get("full_name", char.get("name", "Unknown"))
-            animal = char.get("animal", "Unknown")
-            prompt_preview = char.get("prompt", "")[:150]
+            char_id = char.get("id", "")
+            animal = char.get("animal", "")
+            prompt = char.get("prompt", "")[:120]
             
-            instructions += f"{i}. **{full_name}**\n"
-            instructions += f"   Animal: {animal}\n"
-            instructions += f"   Descrição: {prompt_preview}...\n"
-            instructions += f"   ID: {char.get('id')}\n\n"
+            instructions += f'{i}. ID: "{char_id}" | NAME: "{full_name}" | ANIMAL: {animal}\n'
+            instructions += f'   PROMPT: {prompt}...\n\n'
         
-        if len(characters) > 20:
-            instructions += f"\n... e mais {len(characters) - 20} personagens disponíveis.\n\n"
+        if len(characters) > 30:
+            instructions += f"... and {len(characters) - 30} more characters available.\n\n"
         
         instructions += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 INSTRUÇÕES DE USO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+═══════════════════════════════════════════════════════════════════════════════
+🎯 MANDATORY INSTRUCTIONS:
+═══════════════════════════════════════════════════════════════════════════════
 
-1. **SEMPRE consulte esta lista ANTES de criar a história**
-   - Se o usuário pedir "história sobre Abraão", use "Abraão Biblizoo Baby" desta lista
-   - USE o nome COMPLETO exatamente como aparece (ex: "Abraão Biblizoo Baby")
+When you see a character name in the user's request (like "Abraão", "Isaac", "Noé"):
+1. FIND IT in the list above
+2. USE THE EXACT FULL NAME (with "Biblizoo Baby" suffix)
+3. COPY THE ID
+4. COPY THE FIRST 120 CHARS OF THE PROMPT as description
 
-2. **NO campo "characters" do JSON:**
-   - Inclua o ID do personagem: {{"id": "abc123", "name": "Abraão Biblizoo Baby"}}
-   - Mantenha a descrição ORIGINAL (os primeiros 150 caracteres do prompt)
+EXAMPLE - If user asks for "Abraão":
+✅ CORRECT JSON:
+{{
+  "id": "[copy ID from list above]",
+  "name": "[copy FULL NAME from list above]", 
+  "description": "[copy first 120 chars of PROMPT from list above]"
+}}
 
-3. **NÃO crie novos prompts para personagens existentes**
-   - ❌ ERRADO: Criar "Abraão - carneiro idoso com..."
-   - ✅ CORRETO: Usar "Abraão Biblizoo Baby" com ID e descrição original
+❌ WRONG: Creating "Abraão" without ID
+❌ WRONG: Creating "Abraão" with new description
+❌ WRONG: Not using "Biblizoo Baby" suffix
 
-4. **Crie novos personagens APENAS se:**
-   - Não existirem nesta biblioteca
-   - Forem figurantes/extras específicos da história
-   - Nesse caso, marque claramente: "name": "NOVO: [Nome]"
-
-5. **Para continuidade visual:**
-   - Personagens com ID garantem mesma aparência em todos os vídeos
-   - É ESSENCIAL para séries e conteúdo recorrente
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎨 TEMPLATE DE ESTILO PARA NOVOS PERSONAGENS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Se você precisar criar NOVOS personagens complementares, use este template:
-
-"""
-        
-        # Add prompt template if available
-        prompt_template = character_library.get("prompt_template", {})
-        if prompt_template and prompt_template.get("template"):
-            template_str = prompt_template["template"]
-            style = prompt_template.get("style", "custom")
-            
-            instructions += f"\nEstilo: {style}\n"
-            instructions += f"Template: {template_str}\n\n"
-            instructions += f"""
-Exemplo de uso:
-- Para criar "Moisés Biblizoo Baby" (leão):
-  Substitua [NAME]=Moisés, [ANIMAL]=leão, [COLOR]=golden amber, 
-  [VISUAL_CHARACTERISTICS]=strong leonine features, confident gentle expression
-  
-Isso garante que NOVOS personagens tenham o mesmo estilo visual dos existentes!
-"""
-        else:
-            instructions += "\nNenhum template de estilo específico disponível.\n"
-        
-        instructions += """
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+═══════════════════════════════════════════════════════════════════════════════
 """
         return instructions
