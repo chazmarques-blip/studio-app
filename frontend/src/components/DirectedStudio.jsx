@@ -19,41 +19,217 @@ import { AvatarLibraryModalV2 } from './pipeline/AvatarLibraryModalV2';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
 
-// ── Inline Pipeline Visual Tracker (simplified for chat area) ──
+// ── Enhanced Pipeline Visual Tracker ──
 const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
-  const agents = [
-    { id: 'researcher_screenwriter', name: lang === 'pt' ? 'Redator & Pesquisador' : 'Screenwriter', icon: FileText, color: '#8B5CF6' },
-    { id: 'director', name: lang === 'pt' ? 'Diretor de Cena' : 'Director', icon: Film, color: '#6366F1' },
+  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
+  const [currentPhase, setCurrentPhase] = React.useState(0);
+  
+  // Simular progresso
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  const phases = [
+    {
+      id: 'library_sync',
+      icon: Users,
+      name: lang === 'pt' ? 'Biblioteca de Personagens' : 'Character Library',
+      message: lang === 'pt' 
+        ? 'Sincronizando personagens da pasta "Biblizoo Baby"...' 
+        : 'Syncing characters from "Biblizoo Baby" folder...',
+      duration: 10,
+      color: '#3B82F6'
+    },
+    {
+      id: 'researcher',
+      icon: Search,
+      name: lang === 'pt' ? 'Pesquisador' : 'Researcher',
+      message: lang === 'pt' 
+        ? '71 personagens encontrados! Pesquisando contexto histórico...' 
+        : '71 characters found! Researching historical context...',
+      duration: 30,
+      color: '#8B5CF6'
+    },
+    {
+      id: 'screenwriter',
+      icon: FileText,
+      name: lang === 'pt' ? 'Redator' : 'Screenwriter',
+      message: lang === 'pt' 
+        ? 'Criando roteiro usando personagens existentes...' 
+        : 'Creating screenplay using existing characters...',
+      duration: 60,
+      color: '#EC4899'
+    },
+    {
+      id: 'director',
+      icon: Film,
+      name: lang === 'pt' ? 'Diretor' : 'Director',
+      message: lang === 'pt' 
+        ? 'Preparando prompts visuais e cenas...' 
+        : 'Preparing visual prompts and scenes...',
+      duration: 20,
+      color: '#10B981'
+    }
   ];
   
+  // Calcular fase atual baseado no tempo
+  React.useEffect(() => {
+    let accumulated = 0;
+    for (let i = 0; i < phases.length; i++) {
+      accumulated += phases[i].duration;
+      if (elapsedSeconds < accumulated) {
+        setCurrentPhase(i);
+        break;
+      }
+    }
+  }, [elapsedSeconds]);
+  
+  const getPhaseProgress = (phaseIndex) => {
+    if (phaseIndex < currentPhase) return 100; // Completed
+    if (phaseIndex > currentPhase) return 0;   // Not started
+    
+    // Current phase - calculate progress
+    const phase = phases[phaseIndex];
+    const phaseStartTime = phases.slice(0, phaseIndex).reduce((sum, p) => sum + p.duration, 0);
+    const timeInPhase = elapsedSeconds - phaseStartTime;
+    const progress = Math.min((timeInPhase / phase.duration) * 100, 95);
+    return Math.round(progress);
+  };
+  
+  const getPhaseStatus = (phaseIndex) => {
+    if (phaseIndex < currentPhase) return 'completed';
+    if (phaseIndex === currentPhase) return 'processing';
+    return 'waiting';
+  };
+  
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+  
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3 mb-2">
-      <div className="flex items-center gap-2 mb-2">
-        <Sparkles size={14} className="text-purple-500" />
-        <span className="text-xs font-semibold text-gray-700">
-          {lang === 'pt' ? 'Pipeline de Produção' : 'Production Pipeline'}
-        </span>
+    <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-4 mb-3 shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
+            <Sparkles size={16} className="text-white" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-gray-800">
+              {lang === 'pt' ? 'Pipeline de Produção' : 'Production Pipeline'}
+            </h3>
+            <p className="text-xs text-gray-500">
+              {lang === 'pt' ? 'Tempo decorrido' : 'Elapsed time'}: {formatTime(elapsedSeconds)}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-purple-600">
+            {Math.round((currentPhase / phases.length) * 100)}%
+          </div>
+          <div className="text-xs text-gray-500">
+            {currentPhase + 1}/{phases.length} {lang === 'pt' ? 'etapas' : 'steps'}
+          </div>
+        </div>
       </div>
-      <div className="space-y-2">
-        {agents.map(agent => {
-          const Icon = agent.icon;
-          const isActive = agent.id === currentAgent;
+      
+      {/* Overall Progress Bar */}
+      <div className="mb-4">
+        <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 ease-out"
+            style={{ width: `${(currentPhase / phases.length) * 100}%` }}
+          />
+        </div>
+      </div>
+      
+      {/* Phases */}
+      <div className="space-y-3">
+        {phases.map((phase, index) => {
+          const Icon = phase.icon;
+          const status = getPhaseStatus(index);
+          const progress = getPhaseProgress(index);
+          
           return (
-            <div key={agent.id} className={`flex items-center gap-2 p-2 rounded-lg ${
-              isActive ? 'bg-purple-50 border border-purple-200' : 'bg-gray-50'
-            }`}>
-              <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                isActive ? 'bg-purple-500' : 'bg-gray-300'
-              }`}>
-                <Icon size={12} className="text-white" />
+            <div 
+              key={phase.id}
+              className={`rounded-lg p-3 transition-all duration-300 ${
+                status === 'completed' 
+                  ? 'bg-green-50 border border-green-200' 
+                  : status === 'processing'
+                  ? 'bg-white border-2 border-purple-300 shadow-md'
+                  : 'bg-gray-50 border border-gray-200 opacity-60'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                {/* Icon */}
+                <div 
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                    status === 'completed' 
+                      ? 'bg-green-500' 
+                      : status === 'processing'
+                      ? 'bg-purple-500 animate-pulse'
+                      : 'bg-gray-300'
+                  }`}
+                >
+                  {status === 'completed' ? (
+                    <CheckCircle2 size={20} className="text-white" />
+                  ) : status === 'processing' ? (
+                    <Icon size={20} className="text-white" />
+                  ) : (
+                    <Clock size={20} className="text-white" />
+                  )}
+                </div>
+                
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-sm font-bold text-gray-800">{phase.name}</h4>
+                    {status === 'processing' && (
+                      <RefreshCw size={12} className="text-purple-500 animate-spin" />
+                    )}
+                    {status === 'completed' && (
+                      <span className="text-xs font-semibold text-green-600">
+                        ✓ {lang === 'pt' ? 'Concluído' : 'Done'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Message */}
+                  <p className="text-xs text-gray-600 mb-2">
+                    {status === 'waiting' 
+                      ? (lang === 'pt' ? 'Aguardando...' : 'Waiting...') 
+                      : phase.message
+                    }
+                  </p>
+                  
+                  {/* Progress Bar */}
+                  {status !== 'waiting' && (
+                    <div className="space-y-1">
+                      <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-1000 ease-linear"
+                          style={{ 
+                            width: `${progress}%`,
+                            backgroundColor: phase.color
+                          }}
+                        />
+                      </div>
+                      {status === 'processing' && (
+                        <div className="flex justify-between text-[10px] text-gray-500">
+                          <span>{progress}%</span>
+                          <span>~{phase.duration - Math.floor((elapsedSeconds - phases.slice(0, index).reduce((sum, p) => sum + p.duration, 0)))}s {lang === 'pt' ? 'restantes' : 'remaining'}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              <span className="text-xs text-gray-700 flex-1">{agent.name}</span>
-              {isActive && (
-                <RefreshCw size={10} className="text-purple-500 animate-spin" />
-              )}
-              {!isActive && (
-                <Clock size={10} className="text-gray-400" />
-              )}
             </div>
           );
         })}
@@ -1881,18 +2057,12 @@ export const DirectedStudio = memo(function DirectedStudio({
               </div>
             ))}
             {chatLoading && (
-              <div className="flex justify-start">
-                {/* Pipeline Visual Tracker (import will be added at top) */}
-                <div className="w-full mb-2 -mx-2">
-                  <PipelineVisualTrackerInline 
-                    lang={lang}
-                    currentAgent="researcher_screenwriter"
-                  />
-                </div>
-                <div className="bg-gray-50 border border-[#222] rounded-lg px-3 py-2 flex items-center gap-2">
-                  <RefreshCw size={10} className="animate-spin text-orange-600" />
-                  <span className="text-xs text-gray-500">{lang === 'pt' ? 'Pesquisando e escrevendo...' : 'Researching and writing...'}</span>
-                </div>
+              <div className="p-4" data-testid="chat-loading">
+                {/* Enhanced Pipeline Visual Tracker */}
+                <PipelineVisualTrackerInline 
+                  lang={lang}
+                  currentAgent="researcher_screenwriter"
+                />
               </div>
             )}
             {/* Retry button when stuck or error */}
