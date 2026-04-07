@@ -146,33 +146,75 @@ class CharacterLibraryService:
         """
         Format character library for inclusion in LLM prompts
         
-        Args:
-            character_library: The character library dict
-        
-        Returns:
-            Formatted instructions for LLM
+        Returns detailed character info including ORIGINAL prompts
         """
         if not character_library:
             return ""
         
-        summary = CharacterLibraryService.get_characters_summary(character_library)
+        folder_name = character_library.get("folder_name", "Character Library")
+        characters = character_library.get("characters", [])
+        
+        if not characters:
+            return ""
         
         instructions = f"""
-{summary}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 BIBLIOTECA DE PERSONAGENS DISPONÍVEIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📋 REGRAS IMPORTANTES PARA USO DE PERSONAGENS:
+Você tem acesso a {len(characters)} personagens PRÉ-CRIADOS da pasta "{folder_name}".
 
-1. **USE PRIORITARIAMENTE** os personagens listados acima
-   - Eles já estão criados e prontos para uso
-   - Mantenha consistência com suas características
+⚠️ REGRA CRÍTICA DE CONTINUIDADE:
+Você DEVE usar EXATAMENTE estes personagens quando a história envolver seus nomes.
+NÃO crie novos personagens se eles já existem aqui.
+USE o nome completo e a descrição EXATA fornecida.
 
-2. **Crie novos personagens APENAS se absolutamente necessário**
-   - Exemplo: figurantes, extras, personagens únicos da história
-   - Quando criar, indique claramente: "NOVO PERSONAGEM: [nome] - [descrição]"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PERSONAGENS DISPONÍVEIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-3. **Mantenha a essência dos personagens existentes**
-   - Respeite suas personalidades e características visuais
-   - Use os nomes exatamente como listados
+"""
+        
+        # Show detailed info for first 20 characters (to avoid token overflow)
+        for i, char in enumerate(characters[:20], 1):
+            full_name = char.get("full_name", char.get("name", "Unknown"))
+            animal = char.get("animal", "Unknown")
+            prompt_preview = char.get("prompt", "")[:150]
+            
+            instructions += f"{i}. **{full_name}**\n"
+            instructions += f"   Animal: {animal}\n"
+            instructions += f"   Descrição: {prompt_preview}...\n"
+            instructions += f"   ID: {char.get('id')}\n\n"
+        
+        if len(characters) > 20:
+            instructions += f"\n... e mais {len(characters) - 20} personagens disponíveis.\n\n"
+        
+        instructions += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 INSTRUÇÕES DE USO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+1. **SEMPRE consulte esta lista ANTES de criar a história**
+   - Se o usuário pedir "história sobre Abraão", use "Abraão Biblizoo Baby" desta lista
+   - USE o nome COMPLETO exatamente como aparece (ex: "Abraão Biblizoo Baby")
+
+2. **NO campo "characters" do JSON:**
+   - Inclua o ID do personagem: {{"id": "abc123", "name": "Abraão Biblizoo Baby"}}
+   - Mantenha a descrição ORIGINAL (os primeiros 150 caracteres do prompt)
+
+3. **NÃO crie novos prompts para personagens existentes**
+   - ❌ ERRADO: Criar "Abraão - carneiro idoso com..."
+   - ✅ CORRETO: Usar "Abraão Biblizoo Baby" com ID e descrição original
+
+4. **Crie novos personagens APENAS se:**
+   - Não existirem nesta biblioteca
+   - Forem figurantes/extras específicos da história
+   - Nesse caso, marque claramente: "name": "NOVO: [Nome]"
+
+5. **Para continuidade visual:**
+   - Personagens com ID garantem mesma aparência em todos os vídeos
+   - É ESSENCIAL para séries e conteúdo recorrente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
         return instructions
