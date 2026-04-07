@@ -292,6 +292,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [projectLang, setProjectLang] = useState('pt');
   const [audioMode, setAudioMode] = useState('narrated');
   const [animationSub, setAnimationSub] = useState('pixar_3d');
+  const [videoEngine, setVideoEngine] = useState('sora'); // NEW: Sora 2 or Kling AI
   // Continuity Mode removed - now using QC Team for continuity checks
   const [regenScene, setRegenScene] = useState(null);
   const [editingScene, setEditingScene] = useState(null);
@@ -1864,13 +1865,86 @@ export const DirectedStudio = memo(function DirectedStudio({
                   ))}
                 </div>
               </div>
+              
+              {/* Video Engine Selection - NEW */}
+              <div>
+                <label className="text-[11px] text-gray-500 uppercase tracking-wider mb-1 block">
+                  {lang === 'pt' ? '🎬 Engine de Vídeo' : '🎬 Video Engine'}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Sora 2 Option */}
+                  <button type="button"
+                    onClick={() => setVideoEngine('sora')}
+                    data-testid="video-engine-sora"
+                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                      videoEngine === 'sora'
+                        ? 'border-blue-500/50 bg-blue-500/10 shadow-sm'
+                        : 'border-[#222] bg-gray-50 hover:border-[#444]'
+                    }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-6 h-6 rounded flex items-center justify-center ${
+                        videoEngine === 'sora' ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}>
+                        <span className="text-white text-xs font-bold">S</span>
+                      </div>
+                      <div className={`font-semibold text-xs ${videoEngine === 'sora' ? 'text-blue-600' : 'text-gray-900'}`}>
+                        Sora 2
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-600 space-y-0.5">
+                      <div>⏱️ 12s por cena</div>
+                      <div>🎨 Boa continuidade</div>
+                      <div>💰 ~$0.12/segundo</div>
+                      <div className="text-[9px] text-gray-500 mt-1">OpenAI • Estável</div>
+                    </div>
+                  </button>
+                  
+                  {/* Kling AI Option */}
+                  <button type="button"
+                    onClick={() => setVideoEngine('kling')}
+                    data-testid="video-engine-kling"
+                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                      videoEngine === 'kling'
+                        ? 'border-purple-500/50 bg-purple-500/10 shadow-sm'
+                        : 'border-[#222] bg-gray-50 hover:border-[#444]'
+                    }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-6 h-6 rounded flex items-center justify-center ${
+                        videoEngine === 'kling' ? 'bg-purple-500' : 'bg-gray-300'
+                      }`}>
+                        <span className="text-white text-xs font-bold">K</span>
+                      </div>
+                      <div className={`font-semibold text-xs ${videoEngine === 'kling' ? 'text-purple-600' : 'text-gray-900'}`}>
+                        Kling AI
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-600 space-y-0.5">
+                      <div>⏱️ Até 5 minutos</div>
+                      <div>🎨 Excelente continuidade</div>
+                      <div>💰 ~$0.05/segundo</div>
+                      <div className="text-[9px] text-gray-500 mt-1">Kuaishou • Beta</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+              
               {/* Continuity Engine section removed - now using QC Team instead */}
               <div className="flex gap-2">
                 <button onClick={() => { setShowNewProject(false); setProjectName(''); setProjectDesc(''); }}
                   className="flex-1 rounded-lg border border-[#333] py-2 text-[10px] text-[#999] hover:text-gray-900 transition">
                   {lang === 'pt' ? 'Cancelar' : 'Cancel'}
                 </button>
-                <button onClick={createNewProject} disabled={!projectName.trim()} data-testid="create-project-btn"
+                <button onClick={() => createNewProject({
+                    name: projectName,
+                    briefing: projectDesc,
+                    language: projectLang,
+                    audio_mode: audioMode,
+                    animation_sub: animationSub,
+                    visual_style: animationSub.includes('3d') ? 'animation' : animationSub.includes('2d') ? (animationSub === 'anime_2d' ? 'anime' : 'cartoon') : animationSub === 'realistic' ? 'realistic' : 'watercolor',
+                    video_engine: videoEngine // NEW: Pass selected video engine
+                  })} 
+                  disabled={!projectName.trim()} 
+                  data-testid="create-project-btn"
                   className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
                   <Sparkles size={10} /> {lang === 'pt' ? 'Criar Projecto' : 'Create Project'}
                 </button>
