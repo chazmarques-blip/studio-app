@@ -20,60 +20,83 @@ import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
 
 // ── Enhanced Pipeline Visual Tracker ──
-const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
-  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
-  const [currentPhase, setCurrentPhase] = React.useState(0);
-  
-  // Simular progresso
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-  
-  const phases = [
+// Define phases OUTSIDE component to avoid re-creation on every render
+const PIPELINE_PHASES = {
+  pt: [
     {
       id: 'library_sync',
       icon: Users,
-      name: lang === 'pt' ? 'Biblioteca de Personagens' : 'Character Library',
-      message: lang === 'pt' 
-        ? 'Sincronizando personagens da pasta "Biblizoo Baby"...' 
-        : 'Syncing characters from "Biblizoo Baby" folder...',
+      name: 'Biblioteca de Personagens',
+      message: 'Sincronizando personagens da pasta "Biblizoo Baby"...',
       duration: 10,
       color: '#3B82F6'
     },
     {
       id: 'researcher',
       icon: Search,
-      name: lang === 'pt' ? 'Pesquisador' : 'Researcher',
-      message: lang === 'pt' 
-        ? '71 personagens encontrados! Pesquisando contexto histórico...' 
-        : '71 characters found! Researching historical context...',
+      name: 'Pesquisador',
+      message: '71 personagens encontrados! Pesquisando contexto histórico...',
       duration: 30,
       color: '#8B5CF6'
     },
     {
       id: 'screenwriter',
       icon: FileText,
-      name: lang === 'pt' ? 'Redator' : 'Screenwriter',
-      message: lang === 'pt' 
-        ? 'Criando roteiro usando personagens existentes...' 
-        : 'Creating screenplay using existing characters...',
+      name: 'Redator',
+      message: 'Criando roteiro usando personagens existentes...',
       duration: 60,
       color: '#EC4899'
     },
     {
       id: 'director',
       icon: Film,
-      name: lang === 'pt' ? 'Diretor' : 'Director',
-      message: lang === 'pt' 
-        ? 'Preparando prompts visuais e cenas...' 
-        : 'Preparing visual prompts and scenes...',
+      name: 'Diretor',
+      message: 'Preparando prompts visuais e cenas...',
       duration: 20,
       color: '#10B981'
     }
-  ];
+  ],
+  en: [
+    {
+      id: 'library_sync',
+      icon: Users,
+      name: 'Character Library',
+      message: 'Syncing characters from "Biblizoo Baby" folder...',
+      duration: 10,
+      color: '#3B82F6'
+    },
+    {
+      id: 'researcher',
+      icon: Search,
+      name: 'Researcher',
+      message: '71 characters found! Researching historical context...',
+      duration: 30,
+      color: '#8B5CF6'
+    },
+    {
+      id: 'screenwriter',
+      icon: FileText,
+      name: 'Screenwriter',
+      message: 'Creating screenplay using existing characters...',
+      duration: 60,
+      color: '#EC4899'
+    },
+    {
+      id: 'director',
+      icon: Film,
+      name: 'Director',
+      message: 'Preparing visual prompts and scenes...',
+      duration: 20,
+      color: '#10B981'
+    }
+  ]
+};
+
+const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
+  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
+  const [currentPhase, setCurrentPhase] = React.useState(0);
+  
+  const phases = PIPELINE_PHASES[lang] || PIPELINE_PHASES.pt;
   
   // Calcular fase atual baseado no tempo
   React.useEffect(() => {
