@@ -98,6 +98,15 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
   
   const phases = PIPELINE_PHASES[lang] || PIPELINE_PHASES.pt;
   
+  // Timer to increment elapsed time - FIX: was missing!
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, []);
+  
   // Calcular fase atual baseado no tempo
   useEffect(() => {
     let accumulated = 0;
@@ -108,7 +117,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
         break;
       }
     }
-  }, [elapsedSeconds]);
+  }, [elapsedSeconds, phases]);
   
   const getPhaseProgress = (phaseIndex) => {
     if (phaseIndex < currentPhase) return 100;
@@ -834,12 +843,18 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   const pollChatResult = (pid) => {
     let pollCount = 0;
-    const MAX_POLLS = 40; // ~2 min (3s each)
+    const MAX_POLLS = 60; // ~3 min (3s each) - increased from 40
     const poll = () => {
       pollCount++;
+      console.log(`📝 [Polling] Attempt ${pollCount}/${MAX_POLLS} - checking project ${pid} status...`);
+      
       axios.get(`${API}/studio/projects/${pid}/status`).then(res => {
         const d = res.data;
+        console.log(`📝 [Polling] Status:`, d.chat_status, `Scenes: ${(d.scenes || []).length}, Characters: ${(d.characters || []).length}`);
+        
         if (d.chat_status === 'done') {
+          console.log('✅ [Polling] Roteiro COMPLETO! Atualizando UI...');
+          
           const history = d.chat_history || [];
           const lastAssistant = [...history].reverse().find(m => m.role === 'assistant');
           if (lastAssistant) {
@@ -852,9 +867,18 @@ export const DirectedStudio = memo(function DirectedStudio({
           setScenes(d.scenes || []);
           setCharacters(d.characters || []);
           setChatLoading(false);
+          
+          // Show success toast
+          toast.success(lang === 'pt' 
+            ? `✅ Roteiro pronto! ${d.scenes?.length || 0} cenas criadas.` 
+            : `✅ Script ready! ${d.scenes?.length || 0} scenes created.`
+          );
+          
+          console.log('✅ [Polling] UI atualizada com sucesso!');
           return;
         }
         if (d.chat_status === 'error') {
+          console.error('❌ [Polling] Erro no roteiro:', d.error);
           toast.error(d.error || 'Erro ao processar');
           setChatMessages(prev => [...prev, { role: 'assistant', text: `Erro: ${d.error || 'Erro ao processar. Clique "Tentar Novamente"'}` }]);
           setChatLoading(false);
@@ -862,12 +886,16 @@ export const DirectedStudio = memo(function DirectedStudio({
         }
         // Still thinking — check if stuck too long
         if (pollCount >= MAX_POLLS) {
+          console.warn('⚠️ [Polling] Timeout - polling excedeu tempo máximo');
           setChatMessages(prev => [...prev, { role: 'assistant', text: 'O redator está demorando mais que o esperado. Use o botão "Tentar Novamente" abaixo.' }]);
           setChatLoading(false);
           return;
         }
         setTimeout(poll, 3000);
-      }).catch(() => setTimeout(poll, 5000));
+      }).catch(err => {
+        console.error('❌ [Polling] Erro na requisição:', err);
+        setTimeout(poll, 5000);
+      });
     };
     setTimeout(poll, 2000);
   };
