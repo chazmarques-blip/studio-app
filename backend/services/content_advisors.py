@@ -59,7 +59,6 @@ class ToddlerContentAdvisor(ContentAdvisor):
         """
         from core.llm import get_claude_client
         
-        vocabulary_level = config.get("vocabulary_level", "simple")
         repetition_freq = config.get("repetition_frequency", "high")
         
         prompt = f"""Você é um especialista em desenvolvimento infantil para crianças de 2-5 anos.
@@ -109,7 +108,7 @@ Agora adapte o texto acima mantendo a história, mas tornando-a perfeita para cr
         
         try:
             claude = get_claude_client()
-            response = await claude.messages.create(
+            response = await claude.messages_create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=4000,
                 messages=[{
@@ -150,7 +149,6 @@ class MusicalComposerAdvisor(ContentAdvisor):
         from core.llm import get_claude_client
         
         music_style = config.get("music_style", "chiclete")
-        duration_target = config.get("duration_target", "2-3min")
         
         prompt = f"""Você é um compositor especializado em MÚSICAS INFANTIS CHICLETE (grudentas e memoráveis).
 
@@ -219,7 +217,7 @@ Agora transforme a história acima em uma música chiclete:
         
         try:
             claude = get_claude_client()
-            response = await claude.messages.create(
+            response = await claude.messages_create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=3000,
                 messages=[{
@@ -317,7 +315,7 @@ Adicione marcações ao texto acima:
         
         try:
             claude = get_claude_client()
-            response = await claude.messages.create(
+            response = await claude.messages_create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=4000,
                 messages=[{
@@ -327,7 +325,7 @@ Adicione marcações ao texto acima:
             )
             
             marked_text = response.content[0].text
-            logger.info(f"Narration advisor: Added style markers")
+            logger.info("Narration advisor: Added style markers")
             
             return marked_text
             

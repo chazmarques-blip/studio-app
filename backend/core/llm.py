@@ -104,6 +104,28 @@ async def multi_turn_completion(
     return response.choices[0].message.content
 
 
+def get_claude_client():
+    """Get Claude client for content advisors."""
+    class ClaudeClient:
+        def __init__(self, api_key):
+            self.api_key = api_key
+        
+        async def messages_create(self, model: str, max_tokens: int, messages: list):
+            """Create message with Claude."""
+            response = await litellm.acompletion(
+                model=model,
+                messages=messages,
+                api_key=self.api_key,
+                max_tokens=max_tokens,
+                timeout=120,
+            )
+            return type('Response', (), {
+                'content': [type('Content', (), {'text': response.choices[0].message.content})()]
+            })()
+    
+    return ClaudeClient(ANTHROPIC_API_KEY)
+
+
 async def speech_to_text(file_path: str, language: str = None, response_format: str = "json"):
     """Transcribe audio using OpenAI Whisper via emergentintegrations."""
     from emergentintegrations.llm.openai import OpenAISpeechToText

@@ -219,6 +219,80 @@ async def update_project_settings(project_id: str, payload: dict = Body(...), te
     return {"status": "ok"}
 
 
+@router.post("/projects/{project_id}/content-advisors")
+async def configure_content_advisors(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """
+    Configure Content Advisors for a project.
+    
+    Payload example:
+    {
+      "content_advisors": {
+        "toddler_content": {
+          "enabled": true,
+          "vocabulary_level": "simple",
+          "repetition_frequency": "high"
+        },
+        "musical_composer": {
+          "enabled": false
+        },
+        "narration_style": {
+          "enabled": true,
+          "tone": "enthusiastic"
+        }
+      }
+    }
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Update content_advisors configuration
+    project["content_advisors"] = payload.get("content_advisors", {})
+    project["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Count enabled advisors
+    enabled_advisors = []
+    for advisor_name, config in project["content_advisors"].items():
+        if isinstance(config, dict) and config.get("enabled", False):
+            enabled_advisors.append(advisor_name)
+    
+    if enabled_advisors:
+        _add_milestone(project, "content_advisors_configured", 
+                      f"Content Advisors configurados: {', '.join(enabled_advisors)}")
+    
+    _save_project(tenant["id"], settings, projects)
+    
+    return {
+        "status": "ok",
+        "enabled_advisors": enabled_advisors,
+        "config": project["content_advisors"]
+    }
+
+
+@router.get("/projects/{project_id}/content-advisors")
+async def get_content_advisors_config(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get current Content Advisors configuration for a project."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    from services.advisor_chain import get_default_advisor_config
+    
+    # Return current config or default
+    current_config = project.get("content_advisors", {})
+    
+    return {
+        "current_config": current_config,
+        "default_configs": {
+            "toddler": get_default_advisor_config("toddler"),
+            "musical": get_default_advisor_config("musical"),
+            "narrated": get_default_advisor_config("narrated"),
+            "default": get_default_advisor_config("default")
+        }
+    }
+
+
+
 @router.patch("/projects/{project_id}")
 async def update_project(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
     """Update project basic info (name, etc.)."""

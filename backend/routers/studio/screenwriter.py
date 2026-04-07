@@ -256,13 +256,68 @@ IMPORTANT:
             final_scenes = project["scenes"]
             final_characters = project.get("characters", [])
 
+            # ═══════════════════════════════════════════════════════════════
+            # PHASE 2: CONTENT ADVISORS SYSTEM
+            # Apply content advisors if enabled in project configuration
+            # ═══════════════════════════════════════════════════════════════
+            from services.advisor_chain import AdvisorChain, has_active_advisors
+            import asyncio
+            
+            advisor_results = None
+            if has_active_advisors(project):
+                try:
+                    logger.info(f"Studio [{project_id}]: Content advisors are enabled, processing screenplay")
+                    
+                    # Build complete screenplay text from all scenes
+                    screenplay_text = f"{parsed.get('title', 'Untitled')}\n\n"
+                    for scene in final_scenes:
+                        screenplay_text += f"CENA {scene.get('scene_number')}: {scene.get('title', '')}\n"
+                        screenplay_text += f"{scene.get('description', '')}\n"
+                        if scene.get('dialogue'):
+                            screenplay_text += f"{scene['dialogue']}\n"
+                        screenplay_text += "\n"
+                    
+                    # Process through advisor chain (sync wrapper for async function)
+                    chain = AdvisorChain()
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    advisor_results = loop.run_until_complete(chain.process(screenplay_text, project))
+                    loop.close()
+                    
+                    # Save advisor results to project
+                    project["agents_output"]["content_advisors"] = {
+                        "applied": advisor_results["applied_advisors"],
+                        "stages": {
+                            advisor_name: stage[:500] + "..." if len(stage) > 500 else stage
+                            for advisor_name, stage in advisor_results["stages"].items()
+                            if isinstance(stage, str)
+                        },
+                        "final_length": len(advisor_results["final"])
+                    }
+                    
+                    logger.info(f"Studio [{project_id}]: Content advisors applied: {advisor_results['applied_advisors']}")
+                    
+                except Exception as advisor_error:
+                    logger.error(f"Studio [{project_id}]: Content advisors failed: {advisor_error}")
+                    # Continue without advisors on error
+                    project["agents_output"]["content_advisors"] = {
+                        "error": str(advisor_error)[:300]
+                    }
+
             project["agents_output"] = project.get("agents_output", {})
             project["agents_output"]["screenwriter"] = {
                 "title": parsed.get("title", ""),
                 "research_notes": parsed.get("research_notes", ""),
                 "narration": parsed.get("narration", ""),
             }
+            
+            # Build assistant text
             assistant_text = f"**{parsed.get('title', 'Roteiro')}** — {len(all_scenes)} {'novas cenas' if prev_scenes and not prev_scene_nums.intersection(new_scene_nums) else 'cenas'} (total: {len(final_scenes)})\n\n"
+            
+            # Add advisor info if applied
+            if advisor_results and advisor_results["applied_advisors"]:
+                assistant_text += f"✨ **Content Advisors aplicados:** {', '.join(advisor_results['applied_advisors'])}\n\n"
+            
             for s in all_scenes:
                 assistant_text += f"**CENA {s.get('scene_number','')}** ({s.get('time_start','')}-{s.get('time_end','')}) — {s.get('title','')}\n"
                 assistant_text += f"_{s.get('description','')}_\n"

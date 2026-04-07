@@ -235,161 +235,71 @@ Crie a história completa:
 
 ---
 
-### 🟡 FASE 2: CONTENT ADVISORS SYSTEM (Especialização)
+### 🟡 FASE 2: CONTENT ADVISORS SYSTEM (Especialização) ✅ BACKEND COMPLETO
+
 **Objetivo**: Adaptar conteúdo para faixa etária específica
 
-#### Task 2.1: Backend - Content Advisors Schema
+**STATUS**: ✅ Backend 100% implementado | ⏸ Frontend pendente
+
+#### Task 2.1: Backend - Content Advisors Schema ✅
 **Arquivo**: Schema do projeto
-- [ ] Adicionar campo `content_advisors` no projeto:
-  ```json
-  {
-    "toddler_content": {
-      "enabled": true,
-      "vocabulary_level": "simple",
-      "repetition_frequency": "high"
-    },
-    "musical_composer": {
-      "enabled": true,
-      "music_style": "chiclete"
-    },
-    "narration_style": {
-      "enabled": true,
-      "tone": "enthusiastic"
-    }
-  }
-  ```
+- [x] Adicionar campo `content_advisors` no projeto
+- [x] Sistema de configuração modular
 
-**Estimativa**: 1 hora
+**Status**: COMPLETO
 
 ---
 
-#### Task 2.2: Backend - Toddler Content Advisor
-**Arquivo**: `/app/backend/pipeline/advisors/toddler_advisor.py`
-- [ ] Criar agente especialista em conteúdo 2-5 anos
-- [ ] Recebe texto do Redator
-- [ ] Simplifica linguagem
-- [ ] Adiciona repetições ("Quem é forte? O leão é forte!")
-- [ ] Reduz vocabulário (200-500 palavras)
-- [ ] Retorna texto adaptado
+#### Task 2.2: Backend - Toddler Content Advisor ✅
+**Arquivo**: `/app/backend/services/content_advisors.py`
+- [x] Criar agente especialista em conteúdo 2-5 anos
+- [x] Recebe texto do Redator
+- [x] Simplifica linguagem
+- [x] Adiciona repetições ("Quem é forte? O leão é forte!")
+- [x] Reduz vocabulário (200-500 palavras)
+- [x] Retorna texto adaptado
 
-**Estimativa**: 4-5 horas
-**Código exemplo**:
-```python
-class ToddlerContentAdvisor:
-    """Adapta conteúdo para crianças de 2-5 anos"""
-    
-    async def refine(self, original_text: str, config: dict) -> str:
-        prompt = f"""
-Você é um especialista em desenvolvimento infantil (2-5 anos).
-
-TEXTO ORIGINAL:
-{original_text}
-
-ADAPTE o texto seguindo estas regras:
-1. Vocabulário simples (200-500 palavras básicas)
-2. Frases curtas (máximo 8 palavras)
-3. Repetições para fixação ("Quem...? O ... é...")
-4. Perguntas retóricas para engajamento
-5. Ritmo e musicalidade nas palavras
-6. Conceitos concretos (evitar abstrações)
-
-EXEMPLO:
-Original: "Abraão era um homem de grande fé que confiava em Deus"
-Adaptado: "Quem é Abraão? Abraão é papai! Abraão ama Deus muito muito! 
-           Deus fala com Abraão. Abraão escuta!"
-
-Adapte o texto acima:
-"""
-        
-        response = await claude_api.generate(prompt)
-        return response
-```
+**Status**: COMPLETO
 
 ---
 
-#### Task 2.3: Backend - Musical Composer Advisor
-**Arquivo**: `/app/backend/pipeline/advisors/musical_advisor.py`
-- [ ] Criar agente compositor
-- [ ] Recebe roteiro
-- [ ] Transforma em estrutura musical
-- [ ] Cria letra (verso, refrão, ponte)
-- [ ] Define estilo ("children's music, upbeat, xylophone")
-- [ ] Retorna letra + prompt para ElevenLabs Music
+#### Task 2.3: Backend - Musical Composer Advisor ✅
+**Arquivo**: `/app/backend/services/content_advisors.py`
+- [x] Criar agente compositor
+- [x] Recebe roteiro
+- [x] Transforma em estrutura musical
+- [x] Cria letra (verso, refrão, ponte)
+- [x] Define estilo ("children's music, upbeat, xylophone")
+- [x] Retorna letra + prompt para ElevenLabs Music
 
-**Estimativa**: 4-5 horas
-**Código exemplo**:
-```python
-class MusicalComposerAdvisor:
-    """Transforma roteiro em música infantil"""
-    
-    async def compose(self, story: str, config: dict) -> dict:
-        prompt = f"""
-Você é um compositor de músicas infantis educativas.
-
-HISTÓRIA:
-{story}
-
-Crie uma MÚSICA CHICLETE infantil com:
-1. Refrão cativante e repetitivo (4-6 linhas)
-2. 2-3 versos simples contando a história
-3. Ritmo alegre e fácil de memorizar
-4. Palavras que rimam
-5. Repetição do refrão entre versos
-
-ESTRUTURA:
-[Refrão]
-(letra do refrão)
-
-[Verso 1]
-(primeira parte da história)
-
-[Refrão]
-
-[Verso 2]
-(continuação da história)
-
-[Refrão]
-
-Crie a música:
-"""
-        
-        lyrics = await claude_api.generate(prompt)
-        
-        return {
-            "lyrics": lyrics,
-            "style": "upbeat children's music, catchy, xylophone, tambourine, educational",
-            "duration": 180
-        }
-```
+**Status**: COMPLETO
 
 ---
 
-#### Task 2.4: Backend - Narration Style Advisor
-**Arquivo**: `/app/backend/pipeline/advisors/narration_advisor.py`
-- [ ] Adiciona marcações de entonação
-- [ ] Define pausas dramáticas
-- [ ] Guia para síntese de voz
-- [ ] Tom (entusiasmado, calmo, misterioso)
+#### Task 2.4: Backend - Narration Style Advisor ✅
+**Arquivo**: `/app/backend/services/content_advisors.py`
+- [x] Adiciona marcações de entonação
+- [x] Define pausas dramáticas
+- [x] Guia para síntese de voz
+- [x] Tom (entusiasmado, calmo, misterioso)
 
-**Estimativa**: 2-3 horas
+**Status**: COMPLETO
 
 ---
 
-#### Task 2.5: Backend - Advisor Chain System
-**Arquivo**: `/app/backend/pipeline/advisor_chain.py`
-- [ ] Sistema que executa advisors em sequência
-- [ ] Configurável por projeto
-- [ ] Pipeline: Redator → Toddler → Musical → Narration
-- [ ] Salva cada versão (original, adaptada, musical)
+#### Task 2.5: Backend - Advisor Chain System ✅
+**Arquivo**: `/app/backend/services/advisor_chain.py`
+- [x] Sistema que executa advisors em sequência
+- [x] Configurável por projeto
+- [x] Pipeline: Redator → Toddler → Musical → Narration
+- [x] Salva cada versão (original, adaptada, musical)
 
-**Estimativa**: 3-4 horas
-**Código exemplo**:
+**Status**: COMPLETO
+
+**Implementação**:
 ```python
 class AdvisorChain:
     """Executa múltiplos advisors em sequência"""
-    
-    def __init__(self, advisors: list):
-        self.advisors = advisors
     
     async def process(self, content: str, project_config: dict) -> dict:
         results = {"original": content}
@@ -401,20 +311,22 @@ class AdvisorChain:
                 results[advisor.name] = current_content
         
         return results
-
-# Uso:
-chain = AdvisorChain([
-    ToddlerContentAdvisor(),
-    MusicalComposerAdvisor(),
-    NarrationStyleAdvisor()
-])
-
-results = await chain.process(original_story, project.content_advisors)
 ```
+
+**API Endpoints criados**:
+- `POST /api/studio/projects/{project_id}/content-advisors` - Configurar advisors
+- `GET /api/studio/projects/{project_id}/content-advisors` - Obter configuração
+
+**Integração no Screenwriter**: ✅ Completa
+- Detecta advisors habilitados após geração do roteiro
+- Aplica transformações automaticamente
+- Salva resultados em `project.agents_output.content_advisors`
+
+**Documentação**: `/app/CONTENT_ADVISORS_INTEGRATION.md`
 
 ---
 
-#### Task 2.6: Frontend - Content Type Selector
+#### Task 2.6: Frontend - Content Type Selector ⏸
 **Arquivo**: `/app/frontend/src/components/ContentTypeSelectorModal.jsx`
 - [ ] Modal para escolher tipo de conteúdo ao iniciar Redator
 - [ ] Opções:
@@ -423,7 +335,7 @@ results = await chain.process(original_story, project.content_advisors)
   - Música infantil (chiclete)
 - [ ] Salva em `project.content_advisors`
 
-**Estimativa**: 3 horas
+**Status**: PENDENTE
 **UI proposta**:
 ```jsx
 <div className="content-type-selector">
