@@ -3124,17 +3124,24 @@ export const DirectedStudio = memo(function DirectedStudio({
               {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
             </h3>
             {/* FIX 2026-04-07: Allow viewing results even during generation if at least 1 video is ready */}
-            {scenes.length > 0 && outputs.filter(o => o.type === 'video' && o.url).length > 0 && (
-              <button
-                onClick={() => setStep(7)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-gray-900 font-semibold text-[11px] hover:shadow-lg transition-all">
-                <Film size={12} />
-                {generating 
-                  ? (lang === 'pt' ? `Ver ${outputs.filter(o => o.type === 'video' && o.url).length} Prontos` : `View ${outputs.filter(o => o.type === 'video' && o.url).length} Ready`)
-                  : (lang === 'pt' ? 'Ver Resultados Finais' : 'View Final Results')
-                }
-              </button>
-            )}
+            {(() => {
+              const videoCount = outputs.filter(o => o.type === 'video' && o.url).length;
+              console.log('🎬 [Production] Videos prontos:', videoCount, 'Total outputs:', outputs.length);
+              return videoCount > 0 && (
+                <button
+                  onClick={() => {
+                    console.log('🎬 [Production] Botão Ver Resultados clicado!');
+                    setStep(7);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white font-semibold text-[11px] hover:shadow-lg transition-all">
+                  <Film size={12} />
+                  {generating 
+                    ? (lang === 'pt' ? `Ver ${videoCount} Prontos` : `View ${videoCount} Ready`)
+                    : (lang === 'pt' ? 'Ver Resultados Finais' : 'View Final Results')
+                  }
+                </button>
+              );
+            })()}
           </div>
 
           {/* Start Production Button - Only show if not generating */}
@@ -3350,16 +3357,19 @@ export const DirectedStudio = memo(function DirectedStudio({
                         className="w-full max-h-[120px] object-contain" />
                     </div>
                   )}
-                  {/* Per-scene action buttons: ALWAYS SHOW (even during generation) */}
-                  {/* FIX 2026-04-07: Show "Gerar Vídeo" button for queued scenes even during batch production */}
+                  {/* Per-scene action buttons: ALWAYS SHOW and ALWAYS CLICKABLE */}
+                  {/* FIX 2026-04-07: Show "Gerar Vídeo" button for queued scenes, always enabled */}
                   <div className="mt-1.5 flex gap-1">
                     {/* Generate button for scenes never produced */}
                     {!videoDone && !videoError && sceneState === 'queued' && (
                       <button
-                        onClick={() => regenerateScene(sceneNum)}
-                        disabled={regenScene === sceneNum || (generating && !sceneVideo)}
+                        onClick={() => {
+                          console.log(`🎬 [Scene ${sceneNum}] Botão Gerar Vídeo clicado!`);
+                          regenerateScene(sceneNum);
+                        }}
+                        disabled={regenScene === sceneNum}
                         data-testid={`generate-scene-${sceneNum}`}
-                        className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition bg-orange-500/10 border border-orange-500/30 text-orange-600 hover:bg-orange-500/20 ${(regenScene === sceneNum || (generating && !sceneVideo)) ? 'opacity-50' : ''}`}>
+                        className={`flex-1 flex items-center justify-center gap-1 rounded-md py-1 text-[11px] font-medium transition bg-orange-500/10 border border-orange-500/30 text-orange-600 hover:bg-orange-500/20 ${regenScene === sceneNum ? 'opacity-50' : ''}`}>
                         <Play size={8} className={regenScene === sceneNum ? 'animate-spin' : ''} />
                         {regenScene === sceneNum ? (lang === 'pt' ? 'Gerando...' : 'Generating...') : (lang === 'pt' ? 'Gerar Vídeo' : 'Generate Video')}
                       </button>
