@@ -19,6 +19,49 @@ import { AvatarLibraryModalV2 } from './pipeline/AvatarLibraryModalV2';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
 
+// ── Inline Pipeline Visual Tracker (simplified for chat area) ──
+const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
+  const agents = [
+    { id: 'researcher_screenwriter', name: lang === 'pt' ? 'Redator & Pesquisador' : 'Screenwriter', icon: FileText, color: '#8B5CF6' },
+    { id: 'director', name: lang === 'pt' ? 'Diretor de Cena' : 'Director', icon: Film, color: '#6366F1' },
+  ];
+  
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-3 mb-2">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles size={14} className="text-purple-500" />
+        <span className="text-xs font-semibold text-gray-700">
+          {lang === 'pt' ? 'Pipeline de Produção' : 'Production Pipeline'}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {agents.map(agent => {
+          const Icon = agent.icon;
+          const isActive = agent.id === currentAgent;
+          return (
+            <div key={agent.id} className={`flex items-center gap-2 p-2 rounded-lg ${
+              isActive ? 'bg-purple-50 border border-purple-200' : 'bg-gray-50'
+            }`}>
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                isActive ? 'bg-purple-500' : 'bg-gray-300'
+              }`}>
+                <Icon size={12} className="text-white" />
+              </div>
+              <span className="text-xs text-gray-700 flex-1">{agent.name}</span>
+              {isActive && (
+                <RefreshCw size={10} className="text-purple-500 animate-spin" />
+              )}
+              {!isActive && (
+                <Clock size={10} className="text-gray-400" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // ── Sortable wrapper for scene cards (drag-and-drop) ──
@@ -1839,6 +1882,13 @@ export const DirectedStudio = memo(function DirectedStudio({
             ))}
             {chatLoading && (
               <div className="flex justify-start">
+                {/* Pipeline Visual Tracker (import will be added at top) */}
+                <div className="w-full mb-2 -mx-2">
+                  <PipelineVisualTrackerInline 
+                    lang={lang}
+                    currentAgent="researcher_screenwriter"
+                  />
+                </div>
                 <div className="bg-gray-50 border border-[#222] rounded-lg px-3 py-2 flex items-center gap-2">
                   <RefreshCw size={10} className="animate-spin text-orange-600" />
                   <span className="text-xs text-gray-500">{lang === 'pt' ? 'Pesquisando e escrevendo...' : 'Researching and writing...'}</span>
