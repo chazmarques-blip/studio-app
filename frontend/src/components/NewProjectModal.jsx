@@ -23,6 +23,7 @@ export function NewProjectModal({
   const [continuityMode, setContinuityMode] = useState(true);
   const [formatStrategy, setFormatStrategy] = useState('safe_zone');
   const [formatsRequested, setFormatsRequested] = useState(['16:9']);
+  const [videoEngine, setVideoEngine] = useState('sora'); // NEW: Sora 2 or Kling AI
   
   // NEW: Character folder selection for continuity
   const [selectedFolder, setSelectedFolder] = useState(null); // null = criar novos personagens
@@ -342,7 +343,8 @@ export function NewProjectModal({
       format_strategy: formatStrategy,
       formats_requested: formatsRequested,
       character_folder_id: selectedFolder,
-      company_id: selectedCompany?.id || null, // NEW: Pass selected company
+      company_id: selectedCompany?.id || null,
+      video_engine: videoEngine, // NEW: Pass selected video engine
     });
   };
 
@@ -961,6 +963,73 @@ export function NewProjectModal({
                 )}
               </div>
               <div className="text-[9px] text-[#666]">Todos</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Step 5: Video Engine - NEW */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+            <span className="text-[#8B5CF6] text-xs">5</span>
+            {lang === 'pt' ? '🎬 Engine de Vídeo' : '🎬 Video Engine'}
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Sora 2 */}
+            <button
+              type="button"
+              onClick={() => setVideoEngine('sora')}
+              className={`p-2 rounded-md border-2 text-left transition-all ${
+                videoEngine === 'sora'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-[#E0E0E0] bg-white/80 hover:border-blue-300'
+              }`}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                  videoEngine === 'sora' ? 'bg-blue-500' : 'bg-gray-300'
+                }`}>
+                  <span className="text-white text-[10px] font-bold">S</span>
+                </div>
+                <span className={`text-[11px] font-semibold ${videoEngine === 'sora' ? 'text-blue-600' : 'text-gray-700'}`}>
+                  Sora 2
+                </span>
+                {videoEngine === 'sora' && (
+                  <Check size={10} strokeWidth={2.5} className="text-blue-500 ml-auto" />
+                )}
+              </div>
+              <div className="text-[9px] text-gray-600 space-y-0.5 ml-6">
+                <div>⏱️ 12s/cena</div>
+                <div>🎨 Boa cont.</div>
+                <div>💰 ~$0.12/s</div>
+              </div>
+            </button>
+
+            {/* Kling AI */}
+            <button
+              type="button"
+              onClick={() => setVideoEngine('kling')}
+              className={`p-2 rounded-md border-2 text-left transition-all ${
+                videoEngine === 'kling'
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'border-[#E0E0E0] bg-white/80 hover:border-purple-300'
+              }`}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                  videoEngine === 'kling' ? 'bg-purple-500' : 'bg-gray-300'
+                }`}>
+                  <span className="text-white text-[10px] font-bold">K</span>
+                </div>
+                <span className={`text-[11px] font-semibold ${videoEngine === 'kling' ? 'text-purple-600' : 'text-gray-700'}`}>
+                  Kling AI
+                </span>
+                {videoEngine === 'kling' && (
+                  <Check size={10} strokeWidth={2.5} className="text-purple-500 ml-auto" />
+                )}
+              </div>
+              <div className="text-[9px] text-gray-600 space-y-0.5 ml-6">
+                <div>⏱️ 5min</div>
+                <div>🎨 Exc. cont.</div>
+                <div>💰 ~$0.05/s</div>
+              </div>
             </button>
           </div>
         </div>
