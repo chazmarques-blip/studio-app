@@ -131,8 +131,33 @@ async def delete_company(company_id: str, user=Depends(get_current_user), tenant
 
 @router.get("/avatars")
 async def list_avatars(user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    """
+    List all avatars for current tenant
+    
+    On first access, auto-seeds official Biblizoo Baby avatars if tenant has no avatars
+    """
     settings = _get_settings(tenant["id"])
-    return settings.get("studio_avatars", [])
+    avatars = settings.get("studio_avatars", [])
+    
+    # Auto-seed official avatars if tenant has none
+    if len(avatars) == 0:
+        logger.info(f"Tenant {tenant['id']}: No avatars found, seeding official avatars...")
+        avatars = _seed_official_avatars(tenant["id"])
+    
+    return avatars
+
+
+def _seed_official_avatars(tenant_id: str) -> list:
+    """
+    Seed official Biblizoo Baby avatars for new tenants
+    
+    Returns list of seeded avatars
+    """
+    # Check if there's a master tenant with official avatars
+    # For now, return empty list - will be implemented with migration
+    logger.info(f"Seeding official avatars for tenant {tenant_id} (not implemented yet)")
+    return []
+
 
 
 @router.post("/avatars")
