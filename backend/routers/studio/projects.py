@@ -292,6 +292,214 @@ async def get_content_advisors_config(project_id: str, tenant=Depends(get_curren
     }
 
 
+@router.post("/projects/{project_id}/generate-music-video")
+async def generate_music_video(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """
+    Generate complete music video for a project
+    
+    This endpoint:
+    1. Uses the Musical Composer Advisor output (lyrics + style)
+    2. Generates music with ElevenLabs Music API
+    3. Generates video scenes (characters dancing, NO lip-sync)
+    4. Merges video + music
+    5. Creates subtitle file (SRT) with lyrics
+    
+    Payload:
+    {
+      "musical_data": {
+        "lyrics": "...",
+        "style": "...",
+        "duration": 180,
+        "video_scenes": [...]
+      }
+    }
+    """
+    import threading
+    
+    def _generate_music_video_background():
+        try:
+            from services.musical_video_service import get_musical_video_service
+            from services.music_service import get_music_service
+            import tempfile
+            import asyncio
+            
+            # Get services
+            musical_video_service = get_musical_video_service()
+            music_service = get_music_service()
+            
+            # Get project data
+            settings, projects, project = _get_project(tenant["id"], project_id)
+            if not project:
+                return
+            
+            musical_data = payload.get("musical_data", {})
+            lyrics = musical_data.get("lyrics", "")
+            style = musical_data.get("style", "children's music")
+            duration = musical_data.get("duration", 180)
+            video_scenes = musical_data.get("video_scenes", [])
+            
+            logger.info(f"Studio [{project_id}]: Starting music video generation")
+            
+            # Update project status
+            project["music_video_status"] = "generating_music"
+            _save_project(tenant["id"], settings, projects)
+            
+            # 1. Generate music with ElevenLabs
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            music_result = loop.run_until_complete(
+                music_service.generate_music(
+                    prompt=f"{style}\n\nLyrics:\n{lyrics}",
+                    duration_seconds=duration,
+                    with_vocals=True
+                )
+            )
+            
+            task_id = music_result["task_id"]
+            
+            # Wait for music completion
+            music_status = loop.run_until_complete(
+                music_service.wait_for_completion(task_id, max_wait_seconds=300)
+            )
+            
+            if music_status["status"] != "completed":
+                raise Exception("Music generation failed")
+            
+            music_url = music_status["audio_url"]
+            logger.info(f"Studio [{project_id}]: Music generated: {music_url}")
+            
+            # Download music to temp file
+            import urllib.request
+            music_temp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            urllib.request.urlretrieve(music_url, music_temp.name)
+            
+            # Update project status
+            project["music_video_status"] = "generating_video"
+            project["music_url"] = music_url
+            _save_project(tenant["id"], settings, projects)
+            
+            # 2. Generate video scenes
+            video_segments = []
+            characters = [c.get("name") for c in project.get("characters", [])]
+            visual_style = project.get("animation_sub", "pixar_3d")
+            
+            for i, scene in enumerate(video_scenes[:3]):  # Generate 3 scenes (12s each = 36s)
+                prompt = musical_video_service.build_musical_scene_prompt(
+                    characters=characters,
+                    scene_description=scene.get("description", ""),
+                    lyrics_excerpt="",
+                    music_style=style,
+                    visual_style=visual_style
+                )
+                
+                logger.info(f"Studio [{project_id}]: Generating video segment {i+1}/3")
+                
+                video_bytes = loop.run_until_complete(
+                    musical_video_service.generate_video_segment(
+                        prompt=prompt,
+                        duration=12,
+                        size="1280x720"
+                    )
+                )
+                
+                # Save temp video
+                video_temp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+                video_temp.write(video_bytes)
+                video_temp.close()
+                video_segments.append(video_temp.name)
+            
+            loop.close()
+            
+            # 3. Concatenate video segments if multiple
+            if len(video_segments) > 1:
+                concat_file = tempfile.NamedTemporaryFile(mode='w', suffix=".txt", delete=False)
+                for seg in video_segments:
+                    concat_file.write(f"file '{seg}'\n")
+                concat_file.close()
+                
+                final_video_temp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+                
+                concat_cmd = [
+                    "ffmpeg", "-y",
+                    "-f", "concat",
+                    "-safe", "0",
+                    "-i", concat_file.name,
+                    "-c", "copy",
+                    final_video_temp.name
+                ]
+                subprocess.run(concat_cmd, capture_output=True, timeout=120)
+                final_video_path = final_video_temp.name
+            else:
+                final_video_path = video_segments[0]
+            
+            logger.info(f"Studio [{project_id}]: Video segments concatenated")
+            
+            # 4. Merge video + music
+            output_temp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+            merged_video_path = musical_video_service.merge_video_and_music(
+                video_path=final_video_path,
+                music_path=music_temp.name,
+                output_path=output_temp.name,
+                fade_in=True,
+                fade_out=True
+            )
+            
+            # 5. Upload to storage
+            with open(merged_video_path, 'rb') as f:
+                video_bytes_final = f.read()
+            
+            video_filename = f"studio/{project_id}_music_video.mp4"
+            video_url = _upload_to_storage(video_bytes_final, video_filename, "video/mp4")
+            
+            logger.info(f"Studio [{project_id}]: Music video uploaded: {video_url}")
+            
+            # 6. Create subtitle file
+            srt_temp = tempfile.NamedTemporaryFile(mode='w', suffix=".srt", delete=False)
+            srt_path = musical_video_service.create_subtitle_file(
+                lyrics=lyrics,
+                duration=duration,
+                output_path=srt_temp.name
+            )
+            
+            if srt_path:
+                with open(srt_path, 'rb') as f:
+                    srt_bytes = f.read()
+                srt_filename = f"studio/{project_id}_music_video.srt"
+                srt_url = _upload_to_storage(srt_bytes, srt_filename, "text/plain")
+            else:
+                srt_url = None
+            
+            # Update project with final data
+            settings, projects, project = _get_project(tenant["id"], project_id)
+            project["music_video_status"] = "completed"
+            project["music_video_url"] = video_url
+            project["music_video_subtitles_url"] = srt_url
+            project["music_video_lyrics"] = lyrics
+            _add_milestone(project, "music_video_generated", "Vídeo musical gerado com sucesso")
+            _save_project(tenant["id"], settings, projects)
+            
+            logger.info(f"Studio [{project_id}]: Music video generation COMPLETE")
+            
+        except Exception as e:
+            logger.error(f"Studio [{project_id}]: Music video generation error: {e}")
+            settings, projects, project = _get_project(tenant["id"], project_id)
+            if project:
+                project["music_video_status"] = "error"
+                project["music_video_error"] = str(e)[:300]
+                _save_project(tenant["id"], settings, projects)
+    
+    # Start background thread
+    thread = threading.Thread(target=_generate_music_video_background, daemon=True)
+    thread.start()
+    
+    return {
+        "status": "processing",
+        "message": "Music video generation started. Check project status for progress."
+    }
+
+
+
 
 @router.patch("/projects/{project_id}")
 async def update_project(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):

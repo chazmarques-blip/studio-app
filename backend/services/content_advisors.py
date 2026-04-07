@@ -236,11 +236,15 @@ Agora transforme a história acima em uma música chiclete:
             
             logger.info(f"Musical composer: Created lyrics ({len(lyrics)} chars)")
             
+            # Extract scene suggestions for video
+            scene_suggestions = self._extract_scene_suggestions(lyrics, content)
+            
             return {
                 "lyrics": lyrics,
                 "style": style_description,
                 "duration": 180,  # 3 minutes
-                "structure": "chorus-verse-chorus-verse-chorus"
+                "structure": "chorus-verse-chorus-verse-chorus",
+                "video_scenes": scene_suggestions  # For music video generation
             }
             
         except Exception as e:
@@ -248,8 +252,70 @@ Agora transforme a história acima em uma música chiclete:
             return {
                 "lyrics": content,
                 "style": "children's music",
-                "duration": 180
+                "duration": 180,
+                "video_scenes": []
             }
+    
+    def _extract_scene_suggestions(self, lyrics: str, original_story: str) -> list:
+        """
+        Extract visual scene suggestions from lyrics and story
+        
+        Args:
+            lyrics: Generated song lyrics
+            original_story: Original story text
+        
+        Returns:
+            List of scene descriptions for video generation
+        """
+        # Split lyrics into verses
+        parts = lyrics.split('[')
+        scenes = []
+        
+        for part in parts:
+            if 'Verso' in part or 'Verse' in part:
+                # Extract verse content
+                if ']' in part:
+                    verse_text = part.split(']', 1)[1].strip()
+                    if verse_text:
+                        # Create scene description
+                        scene = {
+                            "type": "verse",
+                            "description": f"Characters in joyful activities: {verse_text[:100]}...",
+                            "action": "dancing, playing, moving rhythmically"
+                        }
+                        scenes.append(scene)
+            elif 'Refrão' in part or 'Chorus' in part:
+                if ']' in part:
+                    chorus_text = part.split(']', 1)[1].strip()
+                    if chorus_text:
+                        scene = {
+                            "type": "chorus",
+                            "description": f"Energetic celebration: {chorus_text[:100]}...",
+                            "action": "jumping, spinning, celebrating together"
+                        }
+                        scenes.append(scene)
+        
+        # If no verses/chorus detected, create generic scenes
+        if not scenes:
+            scenes = [
+                {
+                    "type": "intro",
+                    "description": "Characters introduction in colorful environment",
+                    "action": "waving, smiling, dancing gently"
+                },
+                {
+                    "type": "main",
+                    "description": "Characters playing and having fun together",
+                    "action": "running, jumping, laughing joyfully"
+                },
+                {
+                    "type": "outro",
+                    "description": "Characters celebrating happily",
+                    "action": "dancing in circle, clapping hands"
+                }
+            ]
+        
+        return scenes
 
 
 class NarrationStyleAdvisor(ContentAdvisor):
