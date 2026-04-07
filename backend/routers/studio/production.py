@@ -3,6 +3,12 @@ from ._shared import *
 import asyncio
 from openai import OpenAI
 import base64
+import sys
+import os
+
+# Add backend root to path for kling_client import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from core.kling_client import KlingClient
 
 def _run_async_in_thread(coro):
     """Execute async function in sync thread context"""
@@ -110,6 +116,61 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
                 img_file_handle.close()
             except:
                 pass
+
+def _generate_video_unified(
+    prompt: str,
+    engine: str = "sora",
+    size: str = "1280x720",
+    duration: int = 12,
+    image_path: str = None,
+    max_wait: int = 600,
+    openai_client: Optional[OpenAI] = None,
+    kling_client: Optional[KlingClient] = None
+) -> bytes:
+    """Unified video generation supporting both Sora 2 and Kling AI
+    
+    Args:
+        prompt: Text description for video generation
+        engine: "sora" or "kling" (default: "sora")
+        size: Video resolution
+        duration: Video duration in seconds
+        image_path: Optional reference image
+        max_wait: Maximum wait time in seconds
+        openai_client: OpenAI client instance (required if engine="sora")
+        kling_client: Kling client instance (required if engine="kling")
+        
+    Returns:
+        Video bytes if successful, empty bytes if failed
+    """
+    if engine == "kling":
+        if not kling_client:
+            logger.error("Kling engine selected but kling_client not provided")
+            return b""
+        
+        logger.info(f"🎬 Using KLING AI engine (duration={duration}s)")
+        return kling_client.text_to_video(
+            prompt=prompt,
+            image_path=image_path,
+            duration=float(duration),
+            resolution=size,
+            model="kling-v3",
+            max_wait=max_wait
+        )
+    
+    else:  # Default: Sora 2
+        if not openai_client:
+            logger.error("Sora engine selected but openai_client not provided")
+            return b""
+        
+        logger.info(f"🎬 Using SORA 2 engine (duration={duration}s)")
+        return _generate_video_with_openai_direct(
+            client=openai_client,
+            prompt=prompt,
+            size=size,
+            duration=duration,
+            image_path=image_path,
+            max_wait=max_wait
+        )
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 — Per-Scene Parallel Teams) ──
 
@@ -346,12 +407,23 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             _save_project(tenant_id, settings, projects)
             logger.info(f"Studio [{project_id}]: Dialogue timelines generated for production sync")
 
-        # ── Rate limiter for Sora 2 ──
+        # ── Rate limiter for video generation ──
         sora_semaphore = threading.Semaphore(5)
 
-        # Use direct OpenAI SDK (not emergentintegrations)
-        openai_client = OpenAI(api_key=OPENAI_API_KEY)
-        logger.info(f"Studio [{project_id}]: Using DIRECT OpenAI SDK for Sora 2 (bypassing emergentintegrations)")
+        # ── Initialize video generation engines ──
+        # Check which engine to use (default: Sora 2)
+        video_engine = project.get("video_engine", "sora")  # "sora" or "kling"
+        
+        openai_client = None
+        kling_client = None
+        
+        if video_engine == "kling":
+            kling_client = KlingClient()
+            logger.info(f"Studio [{project_id}]: Using KLING AI engine (v3)")
+        else:
+            # Default: Sora 2
+            openai_client = OpenAI(api_key=OPENAI_API_KEY)
+            logger.info(f"Studio [{project_id}]: Using SORA 2 engine (OpenAI SDK)")
 
         # Track budget state across threads
         budget_exhausted = threading.Event()
@@ -389,6 +461,7 @@ Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, m
 
 CRITICAL RULES:
 - START your prompt with the exact mandatory style text above — copy it word for word
+- IMMEDIATELY AFTER the style, add this CRITICAL INSTRUCTION: "[CRITICAL: All visible text, signs, letters, and written words must be in {language_marker}]"
 - Describe EVERY character by their EXACT PHYSICAL APPEARANCE from the character descriptions below — these descriptions come from analyzing the actual avatar images, so they are the ABSOLUTE SOURCE OF TRUTH
 - For EACH character appearing in the scene, copy their FULL character_bible description into the prompt — DO NOT summarize or abbreviate
 - SPECIES LOCK: If a character is described as an "anthropomorphic camel", they are ALWAYS a camel in EVERY scene — NEVER a lion, bear, or any other animal
@@ -399,6 +472,7 @@ CRITICAL RULES:
 - If a scene says "child" or "young", the character must be visibly SMALL and childlike — NOT adult-sized
 - Include: specific environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
 - Each scene must look like it belongs to the SAME FILM — same art technique, same 3D rendering quality, same color grading
+- MATCH THE CHARACTER REFERENCE IMAGE EXACTLY FOR ALL CHARACTERS — the image shows the absolute truth of how characters must look
 
 🆕 TIMING BREAKDOWN (NEW):
 - If DIALOGUE TIMELINE is provided, structure your prompt as a TIMING BREAKDOWN
@@ -407,10 +481,6 @@ CRITICAL RULES:
 - Characters who are speaking must be shown ON CAMERA with MOUTH MOVING and appropriate gestures
 - Characters who are NOT speaking should be shown LISTENING or REACTING
 - If no dialogue timeline, write a standard continuous description
-
-🌐 LANGUAGE MARKER:
-- At the END of your sora_prompt, add: "Any visible text in {language_marker}."
-- This ensures Sora 2 generates text elements in the correct language
 
 - The sora_prompt MUST be in ENGLISH"""
 
@@ -503,16 +573,20 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
                     t_v = _time.time()
                     try:
-                        logger.info(f"Studio [{project_id}]: Scene {scene_num} Sora 2 attempt {attempt+1}/{max_retries} (ref_image={'Y' if ref_path else 'N'})")
+                        engine_name = video_engine.upper()
+                        logger.info(f"Studio [{project_id}]: Scene {scene_num} {engine_name} attempt {attempt+1}/{max_retries} (ref_image={'Y' if ref_path else 'N'})")
                         
-                        # Use direct OpenAI SDK
-                        video_bytes = _generate_video_with_openai_direct(
-                            client=openai_client,
-                            prompt=sora_prompt[:1000],
+                        # FIX 2026-04-07: Unified video generation supporting Sora 2 and Kling AI
+                        # Increased prompt limit to 2500 chars (was 1000)
+                        video_bytes = _generate_video_unified(
+                            prompt=sora_prompt[:2500],
+                            engine=video_engine,
                             size="1280x720",
                             duration=12,
                             image_path=ref_path,
-                            max_wait=600
+                            max_wait=600,
+                            openai_client=openai_client,
+                            kling_client=kling_client
                         )
                         elapsed = _time.time() - t_v
 
