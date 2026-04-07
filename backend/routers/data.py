@@ -169,6 +169,10 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
 
     settings["studio_avatars"] = avatars
     _save_settings(tenant["id"], settings)
+    
+    # Auto-sync character library for affected projects
+    _trigger_character_library_sync(tenant["id"], doc.get("folder_id"))
+    
     return doc
 
 
@@ -215,3 +219,64 @@ async def delete_all_avatars(user=Depends(get_current_user), tenant=Depends(get_
     settings["studio_avatars"] = []
     _save_settings(tenant["id"], settings)
     return {"status": "ok", "deleted": count}
+
+
+
+
+def _trigger_character_library_sync(tenant_id: str, folder_id: Optional[str]):
+    """
+    Trigger character library sync for projects using this folder
+    
+    Called when:
+    - Avatar is added/updated in a folder
+    - Avatar folder_id is changed
+    
+    This updates the character_library in all projects that use this folder.
+    """
+    if not folder_id:
+        return  # Avatar not in any folder
+    
+    try:
+        from services.character_library_service import CharacterLibraryService
+        
+        # Get settings
+        settings = _get_settings(tenant_id)
+        
+        # Get all projects
+        projects = settings.get("studio_projects", [])
+        
+        # Get folder info
+        folders = settings.get("avatar_folders", [])
+        folder = next((f for f in folders if f.get("id") == folder_id), None)
+        
+        if not folder:
+            return
+        
+        # Get avatars in this folder
+        all_avatars = settings.get("studio_avatars", [])
+        folder_avatars = [a for a in all_avatars if a.get("folder_id") == folder_id]
+        
+        # Update character library for each project using this folder
+        updated_count = 0
+        for project in projects:
+            # Check if project uses this folder
+            existing_lib = project.get("character_library")
+            if existing_lib and existing_lib.get("folder_id") == folder_id:
+                # Re-sync character library
+                new_library = CharacterLibraryService.build_character_library(
+                    folder_id=folder_id,
+                    folder_name=folder["name"],
+                    avatars=folder_avatars
+                )
+                project["character_library"] = new_library
+                updated_count += 1
+                logger.info(f"Auto-synced character library for project {project.get('id')}")
+        
+        if updated_count > 0:
+            settings["studio_projects"] = projects
+            _save_settings(tenant_id, settings)
+            logger.info(f"Auto-sync: Updated {updated_count} projects with new character library")
+    
+    except Exception as e:
+        # Don't fail the avatar save if sync fails
+        logger.error(f"Failed to auto-sync character library: {e}")
