@@ -18,12 +18,19 @@ TASK: Create a screenplay structure. Return ONLY valid JSON:
   "title": "Story Title",
   "total_scenes": N,
   "characters": [
-    {{"name": "Name", "description": "DETAILED physical: species/type, body shape, size, colors, textures (fur/skin/feathers), clothing/accessories, unique features", "age": "young/adult/old", "role": "protagonist/supporting"}}
+    {{"id": "character_id_if_exists_in_library", "name": "Full Character Name", "description": "DETAILED physical: species/type, body shape, size, colors, textures (fur/skin/feathers), clothing/accessories, unique features", "age": "young/adult/old", "role": "protagonist/supporting"}}
   ],
   "scenes": [SCENES_HERE],
   "research_notes": "Sources used",
   "narration": "Brief context"
 }}
+
+⚠️ CRITICAL: If a CHARACTER LIBRARY is provided below, you MUST:
+1. Use EXACT character names from the library (e.g., "Abraão Biblizoo Baby", not just "Abraão")
+2. Include the character's ID in the JSON: {{"id": "abc123", "name": "Abraão Biblizoo Baby", ...}}
+3. Use the ORIGINAL description/prompt from the library (first 150 characters)
+4. ONLY create NEW characters if they don't exist in the library
+5. For new characters, do NOT include "id" field
 
 Each scene:
 {{"scene_number": N, "time_start": "M:SS", "time_end": "M:SS", "title": "Title", "description": "RICH visual: WHERE (landscape, nature), WHEN (time of day, weather), WHAT (action), ATMOSPHERE (light, colors)", "dialogue": "Text or narration", "characters_in_scene": ["Name"], "emotion": "mood", "camera": "shot type", "transition": "fade/cut"}}
