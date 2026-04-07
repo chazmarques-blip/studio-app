@@ -221,7 +221,10 @@ export function AvatarLibraryModalV2({
         ts: Date.now(),
         version: CACHE_VERSION 
       }));
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(err => {
+      console.error('❌ [Gallery] Error loading avatars:', err.response?.data || err.message);
+      toast.error('Erro ao carregar galeria de personagens');
+    }).finally(() => setLoading(false));
   }, [open, avatarsCache, avatarsCacheLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load folders
