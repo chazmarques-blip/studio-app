@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   Film, Plus, Trash2, Clock, Layers, Users, Play, Folder, 
   ChevronRight, MoreHorizontal, Search, ArrowLeft, Eye,
-  FileText, Palette, Video, CheckCircle2, Circle, Sparkles, Pencil, Check, X, BookOpen
+  FileText, Palette, Video, CheckCircle2, Circle, Sparkles, Pencil, Check, X, BookOpen, RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -57,7 +57,7 @@ function getProjectProgress(project) {
 }
 
 /* ── Unified Project Row ── */
-function ProjectRow({ project, onSelect, onDelete, onRename }) {
+function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(project.name || '');
@@ -202,6 +202,12 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
               <Clock size={13} className="text-gray-900/60" /> {formatDate(updatedAt)}
             </span>
           )}
+          {/* Character Library Status */}
+          {project.character_library && (
+            <span className="flex items-center gap-1.5 text-emerald-600">
+              <BookOpen size={13} /> {project.character_library.total_characters} disponíveis
+            </span>
+          )}
         </div>
 
         {/* Progress Steps - Mini - CORES MAIS CLARAS */}
@@ -257,6 +263,25 @@ function ProjectRow({ project, onSelect, onDelete, onRename }) {
         >
           <Play size={13} /> Abrir
         </button>
+        
+        {/* Character Library Button */}
+        {!project.character_library ? (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onSyncCharacters(project); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-600 text-xs font-medium hover:bg-emerald-500/30 transition"
+            title="Carregar personagens da pasta"
+          >
+            <BookOpen size={13} /> Carregar
+          </button>
+        ) : (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onSyncCharacters(project); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium hover:bg-emerald-500/20 transition"
+            title={`Atualizar biblioteca (${project.character_library.total_characters} personagens)`}
+          >
+            <RefreshCw size={13} />
+          </button>
+        )}
         
         {/* Menu */}
         <div className="relative">
@@ -786,6 +811,42 @@ export default function StudioPage() {
       toast.error('Erro ao renomear projeto');
     }
   };
+
+  // Sync Character Library
+  const handleSyncCharacters = async (project) => {
+    try {
+      toast.loading('Carregando personagens...');
+      const { data } = await axios.post(`${API}/studio/projects/${project.id}/sync-characters`);
+      
+      toast.dismiss();
+      
+      if (data.status === 'success') {
+        toast.success(`✅ ${data.character_library.total_characters} personagens carregados da pasta "${data.character_library.folder_name}"!`);
+        
+        // Update project in state
+        setProjects(prev => prev.map(p => 
+          p.id === project.id 
+            ? { ...p, character_library: data.character_library }
+            : p
+        ));
+        
+        // If this is the selected project, update it too
+        if (selectedProject?.id === project.id) {
+          setSelectedProject(prev => ({
+            ...prev,
+            character_library: data.character_library
+          }));
+        }
+      } else if (data.status === 'warning') {
+        toast.warning(data.message);
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error('Erro ao carregar personagens: ' + (err.response?.data?.detail || err.message));
+      console.error('Error syncing characters:', err);
+    }
+  };
+
 
   // Select project - CORRIGIDO
   const handleSelectProject = (project) => {
@@ -1530,6 +1591,7 @@ export default function StudioPage() {
                 onSelect={handleSelectProject}
                 onDelete={handleDeleteProject}
                 onRename={handleRenameProject}
+                onSyncCharacters={handleSyncCharacters}
               />
             ))}
           </div>

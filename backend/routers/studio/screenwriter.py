@@ -71,6 +71,14 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
 
         system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang))
 
+        # Inject Character Library if available
+        character_library_instructions = ""
+        character_library = project.get("character_library")
+        if character_library:
+            from services.character_library_service import CharacterLibraryService
+            character_library_instructions = CharacterLibraryService.format_for_llm_prompt(character_library)
+            logger.info(f"Injecting character library: {character_library.get('total_characters', 0)} characters available")
+
         # Inject audio mode context into prompt
         audio_instruction = ""
         lang_name = LANG_FULL_NAMES.get(lang, lang)
@@ -115,6 +123,8 @@ Format: "dialogue": "Narrador: 'Descrição do que acontece nesta cena...'"
 EXISTING SCREENPLAY (already written — DO NOT rewrite these, only ADD new scenes):
 {existing_summary}
 
+{character_library_instructions}
+
 The user now says: {message}
 {audio_instruction}
 
@@ -131,6 +141,8 @@ CONTINUATION RULES:
         else:
             user_prompt = f"""Previous conversation:
 {history_text}
+
+{character_library_instructions}
 
 Current request: {message}
 {audio_instruction}
