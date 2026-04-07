@@ -99,7 +99,11 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
                     
                     if folder_avatars:
                         service = CharacterLibraryService()
-                        character_library = service.build_character_library(folder_avatars, biblizoo_folder)
+                        character_library = service.build_character_library(
+                            folder_id=folder_id,
+                            folder_name=folder_name,
+                            avatars=folder_avatars
+                        )
                         project["character_library"] = character_library
                         _save_project(tenant_id, settings, projects)
                         logger.info(f"✅ Auto-synced {character_library.get('total_characters', 0)} characters from {biblizoo_folder['name']}")
