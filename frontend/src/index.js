@@ -11,9 +11,9 @@ root.render(
   </React.StrictMode>,
 );
 
-// Register PWA Service Worker
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
-  });
-}
+// Service worker disabled - causing preview errors
+// if ("serviceWorker" in navigator) {
+//   window.addEventListener("load", () => {
+//     navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+//   });
+// }
