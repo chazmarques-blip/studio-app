@@ -111,10 +111,9 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
   }, [elapsedSeconds]);
   
   const getPhaseProgress = (phaseIndex) => {
-    if (phaseIndex < currentPhase) return 100; // Completed
-    if (phaseIndex > currentPhase) return 0;   // Not started
+    if (phaseIndex < currentPhase) return 100;
+    if (phaseIndex > currentPhase) return 0;
     
-    // Current phase - calculate progress
     const phase = phases[phaseIndex];
     const phaseStartTime = phases.slice(0, phaseIndex).reduce((sum, p) => sum + p.duration, 0);
     const timeInPhase = elapsedSeconds - phaseStartTime;
@@ -128,51 +127,30 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
     return 'waiting';
   };
   
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-  };
-  
   return (
-    <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-2 mb-2 shadow-sm">
-      {/* Header - Compacto */}
-      <div className="flex items-center justify-between mb-1.5">
+    <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-1.5 mb-1.5 shadow-sm">
+      {/* Header ultra compacto - tudo inline */}
+      <div className="flex items-center justify-between mb-1 px-1">
+        <div className="flex items-center gap-1">
+          <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center">
+            <Sparkles size={8} className="text-white" />
+          </div>
+          <h3 className="text-[9px] font-bold text-gray-800">
+            {lang === 'pt' ? 'Pipeline de Produção' : 'Production Pipeline'}
+          </h3>
+        </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
-            <Sparkles size={10} className="text-white" />
-          </div>
-          <div>
-            <h3 className="text-[10px] font-bold text-gray-800">
-              {lang === 'pt' ? 'Pipeline de Produção' : 'Production Pipeline'}
-            </h3>
-            <p className="text-[9px] text-gray-500">
-              {lang === 'pt' ? 'Tempo decorrido' : 'Elapsed time'}: {formatTime(elapsedSeconds)}
-            </p>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-sm font-bold text-purple-600">
+          <span className="text-xs font-bold text-purple-600">
             {Math.round((currentPhase / phases.length) * 100)}%
-          </div>
-          <div className="text-[9px] text-gray-500">
-            {currentPhase + 1}/{phases.length} {lang === 'pt' ? 'etapas' : 'steps'}
-          </div>
+          </span>
+          <span className="text-[8px] text-gray-500">
+            {currentPhase + 1}/{phases.length}
+          </span>
         </div>
       </div>
       
-      {/* Overall Progress Bar - Mais fino */}
-      <div className="mb-2">
-        <div className="h-1 rounded-full bg-gray-200 overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 ease-out"
-            style={{ width: `${(currentPhase / phases.length) * 100}%` }}
-          />
-        </div>
-      </div>
-      
-      {/* Phases - Layout ultra compacto e empilhado */}
-      <div className="space-y-1">
+      {/* Phases - Ultra compacto, sem espaçamento extra */}
+      <div className="space-y-0.5 px-1">
         {phases.map((phase, index) => {
           const Icon = phase.icon;
           const status = getPhaseStatus(index);
@@ -181,7 +159,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
           return (
             <div 
               key={phase.id}
-              className={`rounded px-2 py-1 transition-all duration-300 ${
+              className={`rounded px-1.5 py-0.5 transition-all duration-300 ${
                 status === 'completed' 
                   ? 'bg-green-50 border border-green-200' 
                   : status === 'processing'
@@ -189,10 +167,11 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
                   : 'bg-gray-50 border border-gray-200 opacity-50'
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                {/* Icon - Menor */}
+              {/* Tudo em uma linha só */}
+              <div className="flex items-center gap-1">
+                {/* Icon mini */}
                 <div 
-                  className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
+                  className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
                     status === 'completed' 
                       ? 'bg-green-500' 
                       : status === 'processing'
@@ -201,45 +180,39 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
                   }`}
                 >
                   {status === 'completed' ? (
-                    <CheckCircle2 size={10} className="text-white" />
+                    <CheckCircle2 size={8} className="text-white" />
                   ) : status === 'processing' ? (
-                    <Icon size={10} className="text-white" />
+                    <Icon size={8} className="text-white" />
                   ) : (
-                    <Clock size={10} className="text-white" />
+                    <Clock size={8} className="text-white" />
                   )}
                 </div>
                 
-                {/* Content - Tudo inline */}
-                <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                  <h4 className="text-[10px] font-semibold text-gray-800 truncate">{phase.name}</h4>
-                  {status === 'processing' && (
-                    <RefreshCw size={8} className="text-purple-500 animate-spin shrink-0" />
-                  )}
-                  {status === 'completed' && (
-                    <span className="text-[9px] font-semibold text-green-600 shrink-0">✓</span>
-                  )}
-                </div>
+                {/* Nome */}
+                <span className="text-[9px] font-semibold text-gray-800 truncate flex-1">
+                  {phase.name}
+                </span>
                 
-                {/* Progress - Inline percentage */}
+                {/* Status icon */}
+                {status === 'processing' && (
+                  <RefreshCw size={7} className="text-purple-500 animate-spin shrink-0" />
+                )}
+                {status === 'completed' && (
+                  <span className="text-[8px] font-semibold text-green-600 shrink-0">✓</span>
+                )}
+                
+                {/* Progress inline */}
                 {status !== 'waiting' && (
-                  <span className="text-[9px] font-medium text-gray-600 shrink-0">
+                  <span className="text-[8px] font-medium text-gray-600 shrink-0 w-6 text-right">
                     {progress}%
                   </span>
                 )}
               </div>
               
-              {/* Mensagem - Abaixo do título, bem pequena */}
-              <p className="text-[9px] text-gray-500 ml-6 truncate">
-                {status === 'waiting' 
-                  ? (lang === 'pt' ? 'Aguardando...' : 'Waiting...') 
-                  : phase.message
-                }
-              </p>
-              
-              {/* Progress Bar - Muito fina */}
-              {status !== 'waiting' && (
-                <div className="ml-6 mt-0.5">
-                  <div className="h-0.5 rounded-full bg-gray-200 overflow-hidden">
+              {/* Barra de progresso - Extremamente fina, só para fase ativa */}
+              {status === 'processing' && (
+                <div className="mt-0.5 ml-5">
+                  <div className="h-px rounded-full bg-gray-200 overflow-hidden">
                     <div 
                       className="h-full rounded-full transition-all duration-1000 ease-linear"
                       style={{ 
