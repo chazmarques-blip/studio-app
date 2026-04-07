@@ -813,3 +813,161 @@ CRITICAL REQUIREMENTS:
         logger.error(f"Failed to generate avatar for '{char_name}': {gen_err}")
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(gen_err)}")
 
+
+
+
+# ── Character Library System ──
+
+@router.post("/projects/{project_id}/sync-characters")
+async def sync_characters(
+    project_id: str,
+    tenant=Depends(get_current_tenant)
+):
+    """
+    Sync character library for a project
+    
+    Loads all avatars from the project's associated company/folder
+    and creates a character library for quick reference.
+    
+    This should be called:
+    - When project is created
+    - When user manually refreshes
+    - When avatars are added/modified in the folder
+    """
+    from services.character_library_service import CharacterLibraryService
+    
+    try:
+        # Get project
+        settings, projects, project = _get_project(tenant["id"], project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        # Get company/master project to find character folder
+        company_id = project.get("company_id")
+        if not company_id:
+            # Try to find folder from project avatars or use a default folder
+            # For now, we'll look for "Biblizoo Baby" folder
+            logger.warning(f"Project {project_id} has no company_id, searching for default folder")
+        
+        # Get all avatar folders
+        avatar_folders = settings.get("avatar_folders", [])
+        
+        # Find the relevant folder
+        # Strategy: 
+        # 1. If project has company_id, use company's character_folder_id
+        # 2. Otherwise, find folder with most avatars (heuristic)
+        # 3. Or use first folder with "biblizoo" in name
+        
+        target_folder = None
+        
+        # Strategy 3 for now (simple heuristic)
+        for folder in avatar_folders:
+            folder_name = folder.get("name", "").lower()
+            if "biblizoo" in folder_name and "baby" in folder_name:
+                target_folder = folder
+                break
+        
+        if not target_folder and avatar_folders:
+            # Fallback: use first folder
+            target_folder = avatar_folders[0]
+        
+        if not target_folder:
+            raise HTTPException(
+                status_code=404,
+                detail="No avatar folder found. Create a folder first."
+            )
+        
+        folder_id = target_folder["id"]
+        folder_name = target_folder["name"]
+        
+        logger.info(f"Syncing characters from folder: {folder_name} ({folder_id})")
+        
+        # Get all avatars from this folder
+        all_avatars = settings.get("studio_avatars", [])
+        folder_avatars = [
+            avatar for avatar in all_avatars
+            if avatar.get("folder_id") == folder_id
+        ]
+        
+        logger.info(f"Found {len(folder_avatars)} avatars in folder {folder_name}")
+        
+        if len(folder_avatars) == 0:
+            return {
+                "status": "warning",
+                "message": f"Folder '{folder_name}' is empty. Add characters first.",
+                "character_library": None
+            }
+        
+        # Build character library
+        character_library = CharacterLibraryService.build_character_library(
+            folder_id=folder_id,
+            folder_name=folder_name,
+            avatars=folder_avatars
+        )
+        
+        # Save to project
+        project["character_library"] = character_library
+        project["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        _save_project(tenant["id"], settings, projects)
+        _save_settings(tenant["id"], settings)
+        
+        logger.info(
+            f"Character library synced: {len(character_library['characters'])} "
+            f"characters from '{folder_name}'"
+        )
+        
+        return {
+            "status": "success",
+            "message": f"Loaded {len(character_library['characters'])} characters",
+            "character_library": character_library
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error syncing characters: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to sync characters: {str(e)}"
+        )
+
+
+@router.get("/projects/{project_id}/characters")
+async def get_project_characters(
+    project_id: str,
+    tenant=Depends(get_current_tenant)
+):
+    """
+    Get the character library for a project
+    
+    Returns the cached character library if available,
+    otherwise returns empty state.
+    """
+    try:
+        settings, projects, project = _get_project(tenant["id"], project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        character_library = project.get("character_library")
+        
+        if not character_library:
+            return {
+                "status": "empty",
+                "message": "No character library loaded. Call /sync-characters first.",
+                "character_library": None
+            }
+        
+        return {
+            "status": "loaded",
+            "character_library": character_library
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting characters: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get characters: {str(e)}"
+        )
