@@ -191,7 +191,7 @@ YOU HAVE {len(characters)} PRE-EXISTING CHARACTERS. USE THEM!
         if len(characters) > 30:
             instructions += f"... and {len(characters) - 30} more characters available.\n\n"
         
-        instructions += f"""
+        instructions += """
 ═══════════════════════════════════════════════════════════════════════════════
 🎯 MANDATORY INSTRUCTIONS:
 ═══════════════════════════════════════════════════════════════════════════════
@@ -204,11 +204,11 @@ When you see a character name in the user's request (like "Abraão", "Isaac", "N
 
 EXAMPLE - If user asks for "Abraão":
 ✅ CORRECT JSON:
-{{
+{
   "id": "[copy ID from list above]",
   "name": "[copy FULL NAME from list above]", 
   "description": "[copy first 120 chars of PROMPT from list above]"
-}}
+}
 
 ❌ WRONG: Creating "Abraão" without ID
 ❌ WRONG: Creating "Abraão" with new description

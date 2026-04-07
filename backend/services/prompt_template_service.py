@@ -77,7 +77,7 @@ class PromptTemplateService:
         # Extract head size
         if any("oversized round head" in p for p in sample_prompts):
             patterns["head_size"] = "oversized round head 50% of body height"
-        elif any("large head" in p for p in sample_promats):
+        elif any("large head" in p for p in sample_prompts):
             patterns["head_size"] = "large head"
         
         # Extract quality markers
