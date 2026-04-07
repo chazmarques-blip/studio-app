@@ -315,20 +315,32 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       attempts++;
       axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r => {
         const d = r.data;
-        setPanels(d.panels || []);
-        setStoryboardStatus(d.storyboard_status || {});
+        const newPanels = d.panels || [];
+        const newStatus = d.storyboard_status || {};
+        
+        // 🐛 DEBUG: Log progress updates
+        console.log(`🎨 [Storyboard Poll] Attempt ${attempts}:`, {
+          phase: newStatus.phase,
+          current: newStatus.current,
+          total: newStatus.total,
+          panelsCount: newPanels.length,
+          panelsDone: newPanels.filter(p => p.image_url).length
+        });
+        
+        setPanels(newPanels);
+        setStoryboardStatus(newStatus);
 
-        if (d.storyboard_status?.phase === 'complete') {
+        if (newStatus.phase === 'complete') {
           setLoading(false);
-          const doneCount = (d.panels || []).filter(p => p.image_url).length;
+          const doneCount = newPanels.filter(p => p.image_url).length;
           toast.success(lang === 'pt'
             ? `Storyboard pronto! ${doneCount} painéis gerados.`
             : `Storyboard ready! ${doneCount} panels generated.`);
           return;
         }
-        if (d.storyboard_status?.phase === 'error' || attempts > 60) {
+        if (newStatus.phase === 'error' || attempts > 60) {
           setLoading(false);
-          if ((d.panels || []).length > 0) {
+          if (newPanels.length > 0) {
             toast.info(lang === 'pt' ? 'Storyboard parcialmente gerado.' : 'Storyboard partially generated.');
           } else {
             toast.error(lang === 'pt' ? 'Erro ao gerar storyboard' : 'Storyboard generation failed');
@@ -965,15 +977,43 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           <div className="flex items-center justify-between text-xs">
             <span className="text-[#999] flex items-center gap-1.5">
               <FilmSpinner size={10} className="text-[#8B5CF6]" />
-              {lang === 'pt'
-                ? `Gerando painel ${storyboardStatus.current || '...'}/${storyboardStatus.total || totalPanels}`
-                : `Generating panel ${storyboardStatus.current || '...'}/${storyboardStatus.total || totalPanels}`}
+              {(() => {
+                const current = storyboardStatus.current || 0;
+                const total = storyboardStatus.total || totalPanels;
+                const phase = storyboardStatus.phase || 'generating';
+                
+                if (phase === 'dialogue_timing') {
+                  return lang === 'pt' ? 'Analisando timing dos diálogos...' : 'Analyzing dialogue timing...';
+                }
+                if (phase === 'planning') {
+                  return lang === 'pt' ? 'Diretor planejando enquadramentos...' : 'Director planning shots...';
+                }
+                // Show current panel being generated
+                return lang === 'pt' 
+                  ? `Gerando painel ${current}/${total}`
+                  : `Generating panel ${current}/${total}`;
+              })()}
             </span>
-            <span className="text-[#8B5CF6] font-semibold">{doneCount}/{totalPanels}</span>
+            <span className="text-[#8B5CF6] font-semibold">
+              {lang === 'pt' ? 'Prontos:' : 'Done:'} {doneCount}/{totalPanels}
+            </span>
           </div>
           <div className="w-full bg-[#111] rounded-full h-1.5">
             <div className="h-1.5 rounded-full bg-[#8B5CF6] transition-all duration-500"
-              style={{ width: `${totalPanels > 0 ? (doneCount / totalPanels) * 100 : 0}%` }} />
+              style={{ 
+                width: `${(() => {
+                  // Use storyboard_status.current for real-time progress during generation
+                  const current = storyboardStatus.current || 0;
+                  const total = storyboardStatus.total || totalPanels || 1;
+                  // Show generation progress (0-95%), then jump to 100% when complete
+                  if (current > 0 && total > 0) {
+                    const progress = Math.min((current / total) * 95, 95);
+                    return progress;
+                  }
+                  // Fallback to done count if no current status
+                  return totalPanels > 0 ? (doneCount / totalPanels) * 100 : 0;
+                })()}%` 
+              }} />
           </div>
         </div>
       )}
