@@ -34,6 +34,7 @@ from routers.studio import router as studio_router
 from routers.download_proxy import router as download_proxy_router
 from routers.folders import router as folders_router
 from routers.companies import router as companies_router
+from routers.music import router as music_router
 
 app = FastAPI(title=APP_NAME, version=APP_VERSION)
 api_router = APIRouter(prefix="/api")
@@ -292,6 +293,7 @@ app.include_router(studio_router)
 app.include_router(download_proxy_router)
 app.include_router(folders_router)
 app.include_router(companies_router)
+app.include_router(music_router)
 app.include_router(api_router)
 
 # ── Static Files ──
