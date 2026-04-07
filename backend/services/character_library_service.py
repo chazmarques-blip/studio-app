@@ -92,13 +92,26 @@ class CharacterLibraryService:
                 logger.warning(f"Failed to extract character info: {e}")
                 continue
         
+        # Extract prompt template for visual consistency
+        from services.prompt_template_service import PromptTemplateService
+        template_service = PromptTemplateService()
+        
+        # Use pre-defined template for Biblizoo Baby, or extract from folder
+        if "biblizoo" in folder_name.lower() and "baby" in folder_name.lower():
+            prompt_template = template_service.get_biblizoo_baby_template()
+        else:
+            prompt_template = template_service.extract_template_from_folder(avatars)
+        
+        logger.info(f"Built character library: {len(characters)} characters with template '{prompt_template.get('style')}'")
+        
         return {
             "folder_id": folder_id,
             "folder_name": folder_name,
             "last_synced": datetime.now(timezone.utc).isoformat(),
             "total_characters": len(characters),
             "characters": characters,
-            "version": "1.0"
+            "prompt_template": prompt_template,  # NEW: Template for new characters
+            "version": "1.1"
         }
     
     @staticmethod
@@ -215,6 +228,34 @@ PERSONAGENS DISPONÍVEIS:
    - Personagens com ID garantem mesma aparência em todos os vídeos
    - É ESSENCIAL para séries e conteúdo recorrente
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 TEMPLATE DE ESTILO PARA NOVOS PERSONAGENS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se você precisar criar NOVOS personagens complementares, use este template:
+
+"""
+        
+        # Add prompt template if available
+        prompt_template = character_library.get("prompt_template", {})
+        if prompt_template and prompt_template.get("template"):
+            template_str = prompt_template["template"]
+            style = prompt_template.get("style", "custom")
+            
+            instructions += f"\nEstilo: {style}\n"
+            instructions += f"Template: {template_str}\n\n"
+            instructions += f"""
+Exemplo de uso:
+- Para criar "Moisés Biblizoo Baby" (leão):
+  Substitua [NAME]=Moisés, [ANIMAL]=leão, [COLOR]=golden amber, 
+  [VISUAL_CHARACTERISTICS]=strong leonine features, confident gentle expression
+  
+Isso garante que NOVOS personagens tenham o mesmo estilo visual dos existentes!
+"""
+        else:
+            instructions += "\nNenhum template de estilo específico disponível.\n"
+        
+        instructions += """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
         return instructions
