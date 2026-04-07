@@ -85,7 +85,11 @@ export function StudioProductionBanner() {
                 <Minimize2 size={10} />
               </button>
             )}
-            <button onClick={() => { navigate('/marketing/studio'); if (isComplete || isError) ctx.stopTracking(); }}
+            <button onClick={() => { 
+                // FIX 2026-04-07: Navigate to correct DirectedStudio project, not marketing
+                navigate(`/studio/projects/${projectId}`); 
+                if (isComplete || isError) ctx.stopTracking(); 
+              }}
               data-testid="studio-banner-go"
               className={`rounded-lg px-2 py-1 text-[8px] font-semibold flex items-center gap-0.5 ${
                 isComplete ? 'bg-emerald-500 text-black' : 'bg-[#8B5CF6]/20 text-[#8B5CF6] hover:bg-[#8B5CF6]/30'
