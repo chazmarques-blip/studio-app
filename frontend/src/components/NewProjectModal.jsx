@@ -861,18 +861,21 @@ export function NewProjectModal({
                   Configure valores padrão que serão aplicados automaticamente ao criar novos projetos
                 </p>
                 
-                {/* Default Visual Style */}
-                <div className="mb-1.5">
-                  <label className="text-xs font-medium text-[#666] mb-0.5 block">Estilo Visual Padrão</label>
-                  <div className="grid grid-cols-3 gap-1">
+                {/* Default Visual Style - COMPLETO */}
+                <div className="mb-1">
+                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Estilo Visual Padrão</label>
+                  <div className="grid grid-cols-3 gap-0.5">
                     {[
                       { id: 'pixar_3d', label: 'Pixar 3D' },
+                      { id: 'cartoon_3d', label: 'Cartoon 3D' },
                       { id: 'cartoon_2d', label: 'Cartoon 2D' },
-                      { id: 'realista', label: 'Realista' },
+                      { id: 'anime_2d', label: 'Anime 2D' },
+                      { id: 'realistic', label: 'Realista' },
+                      { id: 'watercolor', label: 'Aquarela' },
                     ].map(style => (
                       <button key={style.id} type="button"
                         onClick={() => setEditCompanyDefaults(p => ({ ...p, default_visual_style: style.id, default_animation_sub: style.id }))}
-                        className={`px-2 py-1 rounded-lg border-2 text-xs font-medium transition ${
+                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                           editCompanyDefaults.default_visual_style === style.id
                             ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
                             : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
