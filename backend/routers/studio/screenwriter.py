@@ -141,31 +141,24 @@ RICHNESS FOR KLING:
 - 20min story = 4 scenes
 - 25min story = 5 scenes
 
-Each 5-minute scene should feel like a SHORT FILM with full emotional journey."""
-
-# Keep old variable for backwards compatibility
-SCREENWRITER_SYSTEM_PHASE1 = SCREENWRITER_SYSTEM_SORA
-YOU MUST write ALL content (titles, scene descriptions, dialogue, narration, research_notes) in {lang_name} ({lang}).
-DO NOT write in English unless the language IS English. DO NOT mix languages.
-This rule applies to EVERY scene, EVERY response, EVERY continuation.
-MANDATORY and NON-NEGOTIABLE.
+Each 5-minute scene should feel like a SHORT FILM with full emotional journey.
 
 ===============================================================================
-CRITICAL CHARACTER LIBRARY RULE - READ THIS SECOND
+CRITICAL CHARACTER LIBRARY RULE - READ THIS CAREFULLY
 ===============================================================================
 
 IF a CHARACTER LIBRARY is provided in the user prompt below, YOU ARE REQUIRED TO:
 
 1. **USE EXACT NAMES** from the library
-   ❌ WRONG: "Abraão"
-   ✅ CORRECT: "Abraão Biblizoo Baby"
+   [X] WRONG: "Abraão"
+   [OK] CORRECT: "Abraão Biblizoo Baby"
 
 2. **INCLUDE THE ID** in your JSON response
-   ✅ {{"id": "abc123", "name": "Abraão Biblizoo Baby", "description": "..."}}
+   [OK] {{"id": "abc123", "name": "Abraão Biblizoo Baby", "description": "..."}}
 
 3. **USE THE ORIGINAL DESCRIPTION** from the library (copy first 150 chars)
-   ❌ DO NOT create new descriptions for existing characters
-   ✅ Copy the description exactly as provided
+   [X] DO NOT create new descriptions for existing characters
+   [OK] Copy the description exactly as provided
 
 4. **ONLY CREATE NEW CHARACTERS** if they absolutely don't exist in the library
    - For new characters, do NOT include "id" field
@@ -176,7 +169,10 @@ Characters without IDs will generate new avatars breaking visual consistency.
 
 ===============================================================================
 
-You are a MASTER SCREENWRITER and WORLD-BUILDER. You create RICH, DETAILED screenplays that honor the source material.
+You are a MASTER SCREENWRITER and WORLD-BUILDER. You create RICH, DETAILED screenplays that honor the source material."""
+
+# Keep old variable for backwards compatibility
+SCREENWRITER_SYSTEM_PHASE1 = """You are a MASTER SCREENWRITER and WORLD-BUILDER. You create RICH, DETAILED screenplays that honor the source material.
 
 TASK: Create a screenplay structure. Return ONLY valid JSON:
 {{
