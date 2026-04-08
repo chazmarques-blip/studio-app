@@ -352,50 +352,69 @@ export function AvatarModal({ ctx }) {
                     {avatarCreationMode === 'prompt' && (
                       <div className="space-y-3">
                         {/* DEBUG: Force Batch Mode Button */}
-                        <div className="px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                        <div className="px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg relative z-10" style={{pointerEvents: 'auto'}}>
                           <p className="text-[10px] text-yellow-400 mb-2">🔧 DEBUG: Modo atual = {ctx.promptBatchMode ? 'LOTE' : 'Individual'}</p>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               console.log('🔧 DEBUG: Forcing batch mode to TRUE');
                               ctx.setPromptBatchMode?.(true);
                             }}
-                            className="px-3 py-1 bg-yellow-500 text-black text-xs rounded mr-2"
+                            className="px-3 py-1 bg-yellow-500 text-black text-xs rounded mr-2 cursor-pointer"
+                            style={{pointerEvents: 'auto'}}
                           >
                             Forçar Modo Lote
                           </button>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               console.log('🔧 DEBUG: Forcing batch mode to FALSE');
                               ctx.setPromptBatchMode?.(false);
                             }}
-                            className="px-3 py-1 bg-gray-500 text-white text-xs rounded"
+                            className="px-3 py-1 bg-gray-500 text-white text-xs rounded cursor-pointer"
+                            style={{pointerEvents: 'auto'}}
                           >
                             Forçar Individual
                           </button>
                         </div>
 
                         {/* Individual vs Batch Toggle */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 relative z-10" style={{pointerEvents: 'auto'}}>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               console.log('🔘 Individual button clicked');
                               ctx.setPromptBatchMode?.(false);
                             }}
-                            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+                            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
                               !ctx.promptBatchMode ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'
                             }`}
+                            style={{pointerEvents: 'auto'}}
                           >
                             Individual
                           </button>
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               console.log('🔘 Em Lote button clicked');
                               console.log('setPromptBatchMode exists?', !!ctx.setPromptBatchMode);
                               ctx.setPromptBatchMode?.(true);
                             }}
-                            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('🔘 Em Lote button clicked');
+                              console.log('setPromptBatchMode exists?', !!ctx.setPromptBatchMode);
+                              ctx.setPromptBatchMode?.(true);
+                            }}
+                            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
                               ctx.promptBatchMode ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'
                             }`}
+                            style={{pointerEvents: 'auto'}}
                           >
                             Em Lote
                           </button>
