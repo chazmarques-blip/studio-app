@@ -20,7 +20,7 @@ __all__ = [
     "_analyze_avatars_with_vision", "_build_production_design", "_create_composite_avatar",
     "_ANTI_INSTRUCTIONS", "_extract_last_frame", "_generate_character_sheet",
     "_build_style_dna", "_validate_scene_continuity", "_apply_color_grading",
-    "_generate_scene_keyframe",
+    "_generate_scene_keyframe", "_get_folder_characters", "_simplify_character_name", "_get_audience_guideline",
     # Pydantic Models
     "StudioProject", "ChatMessage", "StartProductionRequest", "RegenerateSceneRequest",
     "GenerateAvatarRequest", "GenerateNarrationRequest", "PostProduceRequest", "LocalizeRequest",
@@ -880,4 +880,74 @@ class LocalizeRequest(BaseModel):
     similarity: float = 0.80
     style_val: float = 0.55
 
+
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CHARACTER FOLDER HELPERS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _get_folder_characters(tenant_id: str, folder_id: str) -> List[dict]:
+    """
+    Get ALL characters from a specific folder
+    Used by Screenwriter to know which characters are available
+    """
+    if not folder_id:
+        return []
+    
+    settings = _get_settings(tenant_id)
+    avatars = settings.get("avatars", {})
+    
+    folder_characters = []
+    for avatar_id, avatar_data in avatars.items():
+        if avatar_data.get("folder_id") == folder_id:
+            folder_characters.append({
+                "id": avatar_id,
+                "name": avatar_data.get("name", ""),
+                "description": avatar_data.get("prompt", "")[:200],  # First 200 chars
+                "image_url": avatar_data.get("image_url", ""),
+                "age": avatar_data.get("age", "adult"),
+                "role": avatar_data.get("role", "supporting"),
+                "species": avatar_data.get("species", ""),
+            })
+    
+    logger.info(f"Folder {folder_id}: Found {len(folder_characters)} characters")
+    return folder_characters
+
+
+def _simplify_character_name(full_name: str) -> str:
+    """
+    Simplify character name for narrative
+    Ex: "Adão Biblizoo Baby" → "Adão"
+    """
+    # Remove common suffixes
+    name = full_name.replace(" Biblizoo Baby", "").replace(" Studio", "").strip()
+    return name
+
+
+def _get_audience_guideline(target_audience: str, lang: str = "pt") -> str:
+    """Get content adaptation guidelines for target audience"""
+    guidelines = {
+        "pt": {
+            "3-6": "Público 3-6 anos: Linguagem EXTREMAMENTE SIMPLES, frases curtas (3-5 palavras). Ações claras e óbvias. Emoções primárias e exageradas. Ritmo lento. Tom alegre e lúdico.",
+            "6-9": "Público 6-9 anos: Linguagem SIMPLES com variedade. Ações dinâmicas com pequenos desafios. Emoções primárias e secundárias. Ritmo moderado. Tom educativo e aventureiro.",
+            "10-13": "Público 10-13 anos: Linguagem CLARA, conceitos mais complexos. Ações elaboradas com causa-efeito. Emoções amplas incluindo conflitos internos. Ritmo variado. Tom inspirador e épico.",
+            "14-17": "Público 14-17 anos: Linguagem NATURAL com nuances. Ações complexas com simbolismo. Emoções profundas e ambiguidade moral. Ritmo cinematográfico. Tom realista e maduro.",
+            "18-25": "Público 18-25 anos: Linguagem SOFISTICADA com referências culturais. Ações realistas com consequências. Emoções complexas e sutileza. Ritmo variado. Tom contemporâneo e autêntico.",
+            "25+": "Público 25+ anos: Linguagem COMPLETA sem restrições. Ações realistas com simbolismo profundo. Emoções nuançadas. Ritmo sofisticado. Tom maduro e reflexivo.",
+            "all": "Público TODAS IDADES: Linguagem CLARA mas não infantilizada. Ações universais. Emoções primárias com camadas sutis. Ritmo equilibrado. Tom caloroso e inspirador com múltiplas camadas."
+        },
+        "en": {
+            "3-6": "Audience 3-6 years: EXTREMELY SIMPLE language, short sentences (3-5 words). Clear obvious actions. Primary exaggerated emotions. Slow pace. Cheerful playful tone.",
+            "6-9": "Audience 6-9 years: SIMPLE language with variety. Dynamic actions with small challenges. Primary and secondary emotions. Moderate pace. Educational adventurous tone.",
+            "10-13": "Audience 10-13 years: CLEAR language, more complex concepts. Elaborate cause-effect actions. Wide emotions including internal conflicts. Varied pace. Inspiring epic tone.",
+            "14-17": "Audience 14-17 years: NATURAL language with nuances. Complex actions with symbolism. Deep emotions and moral ambiguity. Cinematic pace. Realistic mature tone.",
+            "18-25": "Audience 18-25 years: SOPHISTICATED language with cultural references. Realistic actions with consequences. Complex emotions and subtlety. Varied pace. Contemporary authentic tone.",
+            "25+": "Audience 25+ years: COMPLETE language without restrictions. Realistic actions with deep symbolism. Nuanced emotions. Sophisticated pace. Mature reflective tone.",
+            "all": "Audience ALL AGES: CLEAR language but not infantilized. Universal actions. Primary emotions with subtle layers. Balanced pace. Warm inspiring tone with multiple layers."
+        }
+    }
+    
+    return guidelines.get(lang, {}).get(target_audience, guidelines[lang]["all"])
 

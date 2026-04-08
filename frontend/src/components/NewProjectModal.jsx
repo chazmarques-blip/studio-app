@@ -25,6 +25,7 @@ export function NewProjectModal({
   const [formatsRequested, setFormatsRequested] = useState(['16:9']);
   const [videoEngine, setVideoEngine] = useState('sora'); // NEW: Sora 2 or Kling AI
   const [targetDuration, setTargetDuration] = useState(5); // NEW: Duration in minutes (5, 10, 15, 20, 25)
+  const [targetAudience, setTargetAudience] = useState('all'); // NEW: Target audience age range
   
   // NEW: Character folder selection for continuity
   const [selectedFolder, setSelectedFolder] = useState(null); // null = criar novos personagens
@@ -347,6 +348,7 @@ export function NewProjectModal({
       company_id: selectedCompany?.id || null,
       video_engine: videoEngine, // NEW: Pass selected video engine
       target_duration_minutes: targetDuration, // NEW: Pass target duration
+      target_audience: targetAudience, // NEW: Pass target audience
     });
   };
 
@@ -897,10 +899,49 @@ export function NewProjectModal({
           </p>
         </div>
 
-        {/* Step 4: Multi-Format Strategy - ULTRA COMPACTO (renumerado) */}
+        {/* Step 4: Target Audience (Público-Alvo) - NOVO */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
             <span className="text-[#8B5CF6] text-xs">4</span>
+            <Users size={12} className="text-[#8B5CF6]" />
+            {lang === 'pt' ? 'Público-Alvo' : 'Target Audience'}
+            <span className="text-red-400">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              { id: '3-6', emoji: '🧒', label: lang === 'pt' ? '3-6 anos' : '3-6 years', desc: lang === 'pt' ? 'Pré-escolar' : 'Preschool' },
+              { id: '6-9', emoji: '👦', label: lang === 'pt' ? '6-9 anos' : '6-9 years', desc: lang === 'pt' ? 'Infantil' : 'Children' },
+              { id: '10-13', emoji: '🧑', label: lang === 'pt' ? '10-13 anos' : '10-13 years', desc: lang === 'pt' ? 'Pré-teens' : 'Pre-teens' },
+              { id: '14-17', emoji: '👨', label: lang === 'pt' ? '14-17 anos' : '14-17 years', desc: lang === 'pt' ? 'Teens' : 'Teens' },
+              { id: '18-25', emoji: '🧑‍🦱', label: lang === 'pt' ? '18-25 anos' : '18-25 years', desc: lang === 'pt' ? 'Jovens' : 'Young adults' },
+              { id: '25+', emoji: '👨‍💼', label: lang === 'pt' ? '25+ anos' : '25+ years', desc: lang === 'pt' ? 'Adultos' : 'Adults' },
+              { id: 'all', emoji: '👨‍👩‍👧‍👦', label: lang === 'pt' ? 'Todas idades' : 'All ages', desc: lang === 'pt' ? 'Geral' : 'General' },
+            ].map(age => (
+              <button
+                key={age.id}
+                type="button"
+                onClick={() => setTargetAudience(age.id)}
+                className={`px-2 py-1.5 rounded-md border-2 transition text-left ${
+                  targetAudience === age.id
+                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                }`}>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">{age.emoji}</span>
+                  <div>
+                    <div className="text-[10px] font-semibold leading-tight">{age.label}</div>
+                    <div className="text-[9px] text-[#999] leading-tight">{age.desc}</div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Step 5: Multi-Format Strategy - ULTRA COMPACTO (renumerado) */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+            <span className="text-[#8B5CF6] text-xs">5</span>
             {lang === 'pt' ? 'Formato' : 'Format'}
           </label>
           <div className="flex gap-1">
@@ -969,10 +1010,10 @@ export function NewProjectModal({
           </div>
         </div>
 
-        {/* Step 5: Video Engine - NEW */}
+        {/* Step 6: Video Engine - NEW (renumerado) */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">5</span>
+            <span className="text-[#8B5CF6] text-xs">6</span>
             {lang === 'pt' ? '🎬 Engine de Vídeo' : '🎬 Video Engine'}
           </label>
           <div className="grid grid-cols-2 gap-2">

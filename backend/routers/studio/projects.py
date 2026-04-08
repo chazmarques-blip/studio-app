@@ -47,6 +47,10 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "audio_mode": req.audio_mode or "narrated",
         "animation_sub": req.animation_sub or "pixar_3d",
         "continuity_mode": req.continuity_mode,
+        "target_audience": getattr(req, 'target_audience', 'all'),  # NEW: Age range
+        "character_folder_id": getattr(req, 'character_folder_id', None),  # NEW: Folder for characters
+        "video_engine": getattr(req, 'video_engine', 'sora'),  # Video engine (sora/kling)
+        "target_duration_minutes": getattr(req, 'target_duration_minutes', 5),  # Duration in minutes
         "created_at": now,
         "updated_at": now,
     }
