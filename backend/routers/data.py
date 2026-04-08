@@ -13,6 +13,55 @@ from core.deps import supabase, get_current_user, get_current_tenant, logger
 router = APIRouter(prefix="/api/data", tags=["data"])
 
 
+def _auto_detect_folder_from_name(avatar_name: str, existing_folders: list) -> Optional[str]:
+    """
+    Auto-detect folder based on avatar name extension/tag.
+    
+    Examples:
+        "Pescocinho Biblizoo Baby" → finds/creates "Biblizoo Baby" folder
+        "Jonas Biblizoo Baby" → finds/creates "Biblizoo Baby" folder
+    
+    Returns folder_id if match found, or tag name to create folder.
+    """
+    if not avatar_name or len(avatar_name) < 5:
+        return None
+    
+    # Common folder tags/extensions (case-insensitive)
+    common_tags = [
+        "Biblizoo Baby",
+        "BibleZoo",
+    ]
+    
+    # Check if name contains a known tag
+    name_lower = avatar_name.lower()
+    for tag in common_tags:
+        if tag.lower() in name_lower:
+            # Find existing folder
+            folder = next((f for f in existing_folders if f.get("name", "").lower() == tag.lower()), None)
+            if folder:
+                logger.info(f"Avatar '{avatar_name}' auto-assigned to folder '{tag}' ({folder['id']})")
+                return folder["id"]
+            # Tag found but folder doesn't exist - return tag to create
+            logger.info(f"Avatar '{avatar_name}' will create folder '{tag}'")
+            return f"CREATE:{tag}"
+    
+    # Extract last 2 words as potential tag
+    words = avatar_name.strip().split()
+    if len(words) >= 3:
+        potential_tag = " ".join(words[-2:])
+        
+        # Check if looks like a tag (capitalized)
+        if potential_tag[0].isupper():
+            folder = next((f for f in existing_folders if f.get("name", "").lower() == potential_tag.lower()), None)
+            if folder:
+                logger.info(f"Avatar '{avatar_name}' auto-assigned to folder '{potential_tag}'")
+                return folder["id"]
+            # Potential tag found
+            return f"CREATE:{potential_tag}"
+    
+    return None
+
+
 # ── Models ──
 
 class CompanyIn(BaseModel):
@@ -181,8 +230,33 @@ def _seed_official_avatars(tenant_id: str) -> list:
 async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
     settings = _get_settings(tenant["id"])
     avatars = settings.get("studio_avatars", [])
+    folders = settings.get("avatar_folders", [])
     now = datetime.now(timezone.utc).isoformat()
     doc_id = data.id or uuid.uuid4().hex[:12]
+
+    # ✅ AUTO-DETECT folder from name extension
+    folder_id = data.folder_id
+    if not folder_id and data.name:
+        auto_folder = _auto_detect_folder_from_name(data.name, folders)
+        if auto_folder:
+            if auto_folder.startswith("CREATE:"):
+                # Create new folder
+                folder_name = auto_folder.replace("CREATE:", "")
+                new_folder_id = uuid.uuid4().hex[:12]
+                new_folder = {
+                    "id": new_folder_id,
+                    "name": folder_name,
+                    "avatar_ids": [],
+                    "created_at": now,
+                    "updated_at": now,
+                }
+                folders.append(new_folder)
+                settings["avatar_folders"] = folders
+                folder_id = new_folder_id
+                logger.info(f"✅ Created folder '{folder_name}' ({new_folder_id}) for avatar '{data.name}'")
+            else:
+                # Use existing folder
+                folder_id = auto_folder
 
     doc = {
         "id": doc_id,
@@ -197,7 +271,8 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
         "edit_history": data.edit_history or [],
         "avatar_style": data.avatar_style,
         "creation_mode": data.creation_mode,
-        "prompt": data.prompt,  # Salvar prompt do personagem
+        "prompt": data.prompt,
+        "folder_id": folder_id,  # ✅ Assign to folder
         "updated_at": now,
     }
 
@@ -209,11 +284,22 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
         doc["created_at"] = now
         avatars.append(doc)
 
+    # ✅ Update folder's avatar_ids
+    if folder_id:
+        folder = next((f for f in folders if f.get("id") == folder_id), None)
+        if folder:
+            avatar_ids = folder.get("avatar_ids", [])
+            if doc_id not in avatar_ids:
+                avatar_ids.append(doc_id)
+                folder["avatar_ids"] = avatar_ids
+                folder["updated_at"] = now
+                settings["avatar_folders"] = folders
+
     settings["studio_avatars"] = avatars
     _save_settings(tenant["id"], settings)
     
     # Auto-sync character library for affected projects
-    _trigger_character_library_sync(tenant["id"], doc.get("folder_id"))
+    _trigger_character_library_sync(tenant["id"], folder_id)
     
     return doc
 
