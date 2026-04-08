@@ -543,8 +543,8 @@ export function NewProjectModal({
                     }}
                     className={`w-24 h-14 rounded-lg border-2 overflow-hidden transition-all relative bg-white ${
                       selectedCompany?.id === company.id
-                        ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6] ring-offset-2'
-                        : 'border-[#E0E0E0] hover:border-[#8B5CF6]'
+                        ? 'border-[#8B5CF6]'
+                        : 'border-[#E0E0E0] hover:border-[#8B5CF6]/50'
                     }`}>
                     {company.logo_url ? (
                       <img 
