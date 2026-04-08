@@ -223,12 +223,15 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
             worker_panels_indices = [i for i in range(len(panels)) if i % MAX_WORKERS == worker_id]
             worker_panels = [panels[i] for i in worker_panels_indices]
             
-            logger.info(f"Worker {worker_id}: Assigned {len(worker_panels)} panels: {[p['panel_number'] for p in worker_panels]}")
+            panel_numbers = [p['panel_number'] for p in worker_panels]
+            logger.info(f"🤖 Worker {worker_id + 1}/{MAX_WORKERS} INICIADO: {len(worker_panels)} painéis {panel_numbers}")
             
-            for panel in worker_panels:
+            for idx, panel in enumerate(worker_panels, 1):
                 try:
                     panel_num = panel["panel_number"]
                     scene_num = panel["scene_number"]
+                    
+                    logger.info(f"🎨 Worker {worker_id + 1}: Painel {panel_num}/{len(panels)} ({idx}/{len(worker_panels)} do worker) - Cena {scene_num}")
                     
                     # Find corresponding scene
                     scene = next((s for s in scenes if s.get("scene_number") == scene_num), None)
@@ -299,15 +302,22 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
                     panel["completed_at"] = datetime.now(timezone.utc).isoformat()
                     _update_panel_status(tenant_id, project_id, panel)
                     
-                    logger.info(f"Worker {worker_id}: ✅ Panel {panel_num} complete ({len(panel['frames'])} frames)")
+                    logger.info(f"✅ Worker {worker_id + 1}: Painel {panel_num} COMPLETO ({len(panel['frames'])} frames) | Progresso worker: {idx}/{len(worker_panels)}")
                     
                 except Exception as e:
-                    logger.error(f"Worker {worker_id}: Panel {panel.get('panel_number')} failed: {e}", exc_info=True)
+                    logger.error(f"❌ Worker {worker_id + 1}: Painel {panel.get('panel_number')} FALHOU: {e}", exc_info=True)
                     panel["status"] = "error"
                     panel["error"] = str(e)[:200]
                     _update_panel_status(tenant_id, project_id, panel)
         
         # Launch workers
+        logger.info(f"🚀 Lançando {MAX_WORKERS} workers paralelos para gerar {len(panels)} painéis...")
+        logger.info(f"📊 Distribuição: Worker 1→{[p['panel_number'] for i, p in enumerate(panels) if i % MAX_WORKERS == 0]}")
+        logger.info(f"📊 Distribuição: Worker 2→{[p['panel_number'] for i, p in enumerate(panels) if i % MAX_WORKERS == 1]}")
+        logger.info(f"📊 Distribuição: Worker 3→{[p['panel_number'] for i, p in enumerate(panels) if i % MAX_WORKERS == 2]}")
+        logger.info(f"📊 Distribuição: Worker 4→{[p['panel_number'] for i, p in enumerate(panels) if i % MAX_WORKERS == 3]}")
+        logger.info(f"📊 Distribuição: Worker 5→{[p['panel_number'] for i, p in enumerate(panels) if i % MAX_WORKERS == 4]}")
+        
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = []
             for worker_id in range(MAX_WORKERS):

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
   Sparkles, ChevronRight, ChevronDown, ChevronUp, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
-  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, GripVertical
+  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, GripVertical, Clock
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { getErrorMsg } from '../utils/getErrorMsg';
@@ -1081,34 +1081,47 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           
           {/* Grid preview during generation - shows panels as they become ready */}
           {panels.length > 0 && (
-            <div className="mt-4 grid grid-cols-6 gap-2">
-              {panels.map((panel) => (
-                <div 
-                  key={panel.panel_number}
-                  className="aspect-video rounded border overflow-hidden bg-[#0D0D0D] relative"
-                >
-                  {panel.status === 'done' && panel.image_url ? (
-                    <img 
-                      src={resolveImageUrl(panel.image_url)} 
-                      alt={`Painel ${panel.panel_number}`}
-                      className="w-full h-full object-cover animate-fade-in"
-                    />
-                  ) : panel.status === 'generating' ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-purple-500/5">
-                      <FilmSpinner size={12} className="text-[#8B5CF6]" />
-                      <span className="text-[8px] text-purple-400">Gerando...</span>
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-gray-400">
+                  {lang === 'pt' ? '🤖 5 workers gerando em paralelo' : '🤖 5 workers generating in parallel'}
+                </span>
+                <span className="text-[10px] font-mono text-purple-400">
+                  {panels.filter(p => p.status === 'generating').length} gerando | {panels.filter(p => p.status === 'done').length} prontos
+                </span>
+              </div>
+              <div className="grid grid-cols-6 gap-2">{panels.map((panel) => (
+                  <div 
+                    key={panel.panel_number}
+                    className="aspect-video rounded border overflow-hidden bg-[#0D0D0D] relative"
+                  >
+                    {panel.status === 'done' && panel.image_url ? (
+                      <img 
+                        src={resolveImageUrl(panel.image_url)} 
+                        alt={`Painel ${panel.panel_number}`}
+                        className="w-full h-full object-cover animate-fade-in"
+                      />
+                    ) : panel.status === 'generating' ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-purple-500/10 border border-purple-500/30 animate-pulse">
+                        <FilmSpinner size={12} className="text-[#8B5CF6]" />
+                        <span className="text-[8px] text-purple-400 font-semibold">Worker ativo</span>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#111]">
+                        <Clock size={10} className="text-gray-600" />
+                      </div>
+                    )}
+                    {/* Panel number badge with status color */}
+                    <div className={`absolute top-1 left-1 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] font-mono ${
+                      panel.status === 'done' ? 'bg-green-500/80 text-white' :
+                      panel.status === 'generating' ? 'bg-purple-500/80 text-white animate-pulse' :
+                      'bg-black/70 text-gray-400'
+                    }`}>
+                      {panel.panel_number}
                     </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#111]">
-                      <span className="text-[10px] text-gray-600">{panel.panel_number}</span>
-                    </div>
-                  )}
-                  {/* Panel number badge */}
-                  <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white font-mono">
-                    {panel.panel_number}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -1205,13 +1218,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Expanded Panel Details Modal (Optional - click on panel to see details) */}
-          </div>
-        </SortableContext>
-      </DndContext>
         </div>
       )}
 
