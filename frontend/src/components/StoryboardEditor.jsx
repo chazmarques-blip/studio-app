@@ -1183,7 +1183,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[#111]">
-                      <ImageIcon size={20} className="text-[#333]" />
+                      <Image size={20} className="text-[#333]" />
                     </div>
                   )}
                   
