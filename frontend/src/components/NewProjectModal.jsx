@@ -476,152 +476,104 @@ export function NewProjectModal({
   return (
     <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-white rounded-xl p-6 space-y-4 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="bg-white rounded-lg p-4 max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Clapperboard size={24} className="text-[#8B5CF6]" />
-            <h3 className="text-2xl font-bold text-[#333]">
-              {lang === 'pt' ? 'Novo Projeto' : 'New Project'}
-            </h3>
-          </div>
-          <button 
-            onClick={onClose}
-            className="text-[#999] hover:text-[#333] transition p-1">
-            <X size={24} />
+        <div className="flex items-center justify-between">
+          <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
+            <Clapperboard size={18} className="text-[#8B5CF6]" />
+            {lang === 'pt' ? 'Novo Projeto' : 'New Project'}
+          </h4>
+          <button onClick={onClose} className="text-[#999] hover:text-[#333] transition">
+            <X size={18} />
           </button>
         </div>
 
-        {/* Step 0: Empresa/Projeto Master */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#666] flex items-center gap-2">
-            <Building2 size={16} className="text-[#8B5CF6]" />
+        {/* Step 0: Empresa/Projeto Master - COMPACTO */}
+        <div className="mb-1">
+          <label className="text-xs font-medium text-[#666] mb-0.5 block">
             {lang === 'pt' ? 'Empresa / Projeto Master' : 'Company / Master Project'}
           </label>
           
           {loadingCompanies ? (
-            <div className="text-xs text-[#666] py-2">
+            <div className="text-xs text-[#666] py-1">
               {lang === 'pt' ? 'Carregando empresas...' : 'Loading companies...'}
             </div>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {/* Option: No company (standalone project) - Only show if no company selected */}
-              {!selectedCompany && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedCompany(null)}
-                  className="shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 border-dashed border-[#E0E0E0] bg-white/50 hover:border-[#8B5CF6] hover:bg-[#8B5CF6]/5 transition-all">
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed border-[#DDD]">
-                    <Sparkles size={20} className="text-[#999]" />
-                  </div>
-                  <span className="text-xs font-medium text-center whitespace-nowrap text-[#666]">
-                    {lang === 'pt' ? 'Sem Empresa' : 'No Company'}
-                  </span>
-                </button>
-              )}
-
+            <div className="flex gap-1 overflow-x-auto pb-1">
               {/* Existing companies */}
               {companies.map(company => (
-                <div key={company.id} className="shrink-0 relative group">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCompany(company);
-                      // Auto-fill settings from company defaults
-                      if (company.default_settings) {
-                        setAnimationSub(company.default_settings.animation_sub || animationSub);
-                        setVisualStyle(company.default_settings.visual_style || visualStyle);
-                        setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
-                        setProjectLang(company.default_settings.language || projectLang);
-                        
-                        // Auto-select first folder if company has folders
-                        if (company.folder_ids && company.folder_ids.length > 0) {
-                          setSelectedFolder(company.folder_ids[0]);
-                        }
+                <button
+                  key={company.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCompany(company);
+                    // Auto-fill settings from company defaults
+                    if (company.default_settings) {
+                      setAnimationSub(company.default_settings.animation_sub || animationSub);
+                      setVisualStyle(company.default_settings.visual_style || visualStyle);
+                      setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
+                      setProjectLang(company.default_settings.language || projectLang);
+                      
+                      if (company.folder_ids && company.folder_ids.length > 0) {
+                        setSelectedFolder(company.folder_ids[0]);
                       }
-                    }}
-                    className={`w-full flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
-                      selectedCompany?.id === company.id
-                        ? 'border-[#8B5CF6] bg-[#F3F0FF]'
-                        : 'border-[#E0E0E0] bg-white/50 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
-                    }`}>
-                    <div className="w-12 h-12 rounded-lg overflow-hidden">
-                      {company.logo_url ? (
-                        <img 
-                          src={company.logo_url} 
-                          alt={company.name} 
-                          className="w-full h-full object-cover"
-                          style={{ objectPosition: company.logo_position || 'center' }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
-                          <Building2 size={20} className="text-[#8B5CF6]" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium text-center max-w-[80px] truncate text-[#333]">
-                      {company.name}
-                    </span>
-                    {company.is_primary && (
-                      <span className="text-[9px] bg-green-500/20 text-green-600 px-1.5 py-0.5 rounded-full font-semibold">
-                        PRINCIPAL
-                      </span>
+                    }
+                  }}
+                  className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 transition-all ${
+                    selectedCompany?.id === company.id
+                      ? 'border-[#8B5CF6] bg-[#F3F0FF]'
+                      : 'border-[#E0E0E0] bg-white hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  }`}>
+                  <div className="w-8 h-8 rounded overflow-hidden shrink-0">
+                    {company.logo_url ? (
+                      <img 
+                        src={company.logo_url} 
+                        alt={company.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
+                        <Building2 size={14} className="text-[#8B5CF6]" />
+                      </div>
                     )}
-                    {selectedCompany?.id === company.id && (
-                      <Check size={14} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                    )}
-                  </button>
-                  
-                  {/* Edit/Delete buttons - appear on hover */}
-                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button
-                      type="button"
-                      onClick={(e) => handleOpenEditCompany(company, e)}
-                      className="p-1 rounded bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition"
-                      title={lang === 'pt' ? 'Editar' : 'Edit'}>
-                      <Edit2 size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteCompany(company.id, e)}
-                      className="p-1 rounded bg-red-500 hover:bg-red-600 text-white transition"
-                      title={lang === 'pt' ? 'Excluir' : 'Delete'}>
-                      <Trash2 size={12} />
-                    </button>
                   </div>
-                </div>
+                  <span className="text-[10px] font-medium truncate max-w-[60px] text-[#333]">
+                    {company.name}
+                  </span>
+                  {selectedCompany?.id === company.id && (
+                    <Check size={12} className="text-[#8B5CF6] shrink-0" />
+                  )}
+                </button>
               ))}
 
               {/* Button: Create new company */}
               <button
                 type="button"
                 onClick={() => setShowCreateCompany(true)}
-                className="shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] bg-white/50 hover:bg-[#F9F7FF] transition-all">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-dashed border-[#DDD]">
-                  <Plus size={20} className="text-[#8B5CF6]" />
-                </div>
-                <span className="text-xs font-medium text-center whitespace-nowrap text-[#666]">
-                  {lang === 'pt' ? '+ Nova Empresa' : '+ New Company'}
+                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] bg-white hover:bg-[#F9F7FF] transition-all">
+                <Plus size={14} className="text-[#8B5CF6]" />
+                <span className="text-[10px] font-medium whitespace-nowrap text-[#666]">
+                  {lang === 'pt' ? 'Nova' : 'New'}
                 </span>
               </button>
             </div>
           )}
           
-          <p className="text-[9px] text-[#666]">
+          <p className="text-[9px] text-[#999] mt-0.5">
             {selectedCompany 
               ? (lang === 'pt' 
-                  ? `Configurações e personagens de "${selectedCompany.name}" serão aplicados automaticamente` 
-                  : `Settings and characters from "${selectedCompany.name}" will be applied automatically`)
+                  ? `Configurações de "${selectedCompany.name}" serão aplicadas` 
+                  : `"${selectedCompany.name}" settings will be applied`)
               : (lang === 'pt' 
-                  ? 'Projeto independente - configure manualmente abaixo' 
-                  : 'Standalone project - configure manually below')
+                  ? 'Configure manualmente abaixo' 
+                  : 'Configure manually below')
             }
           </p>
         </div>
         
         {/* Step 1: Project Name */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#666]">
+        <div className="mb-1">
+          <label className="text-xs font-medium text-[#666] mb-0.5 block">
             {lang === 'pt' ? 'Nome do Projeto' : 'Project Name'}
             <span className="text-red-400 ml-1">*</span>
           </label>
@@ -629,17 +581,17 @@ export function NewProjectModal({
             value={projectName} 
             onChange={e => setProjectName(e.target.value)}
             placeholder={lang === 'pt' ? 'Ex: A Jornada de Abraão' : 'Ex: The Journey of Abraham'}
-            className="w-full bg-white border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-xl px-4 py-3 text-sm text-[#333] outline-none placeholder-[#999] transition" 
+            className="w-full bg-white border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-xl px-3 py-1.5 text-sm text-[#333] outline-none placeholder-[#999] transition" 
           />
         </div>
 
         {/* Step 2: Visual Style */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#666]">
+        <div className="mb-1">
+          <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
             {lang === 'pt' ? 'Estilo Visual Padrão' : 'Default Visual Style'}
             <span className="text-red-400 ml-1">*</span>
           </label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-0.5">
             {[
               { id: 'pixar_3d', label: 'Pixar 3D' },
               { id: 'cartoon_3d', label: 'Cartoon 3D' },
@@ -655,10 +607,10 @@ export function NewProjectModal({
                   setAnimationSub(s.id); 
                   setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
                 }}
-                className={`px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                className={`px-1.5 py-0.5 rounded-lg border-2 transition-all text-[10px] font-medium ${
                   animationSub === s.id
-                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
                 }`}>
                 {s.label}
               </button>
@@ -667,20 +619,20 @@ export function NewProjectModal({
         </div>
 
         {/* Step 3: Character Folder Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#666]">
+        <div className="mb-1">
+          <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
             {lang === 'pt' ? 'Pasta de Personagens Padrão' : 'Default Character Folder'}
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-0.5 max-h-20 overflow-y-auto p-0.5 bg-gray-50 rounded-lg">
             <button
               type="button"
               onClick={() => setSelectedFolder(null)}
-              className={`px-4 py-3 rounded-xl border-2 transition-all flex items-center gap-2 text-sm font-medium ${
+              className={`px-1.5 py-0.5 rounded-lg border-2 transition-all flex items-center gap-1 text-[10px] font-medium text-left ${
                 selectedFolder === null
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-white'
               }`}>
-              <Sparkles size={16} />
+              <Sparkles size={12} />
               <span>{lang === 'pt' ? 'Criar Novos' : 'Create New'}</span>
             </button>
 
@@ -689,12 +641,12 @@ export function NewProjectModal({
                 key={folder.id}
                 type="button"
                 onClick={() => setSelectedFolder(folder.id)}
-                className={`px-4 py-3 rounded-xl border-2 transition-all flex items-center gap-2 text-sm font-medium text-left ${
+                className={`px-1.5 py-0.5 rounded-lg border-2 transition-all flex items-center gap-1 text-[10px] font-medium text-left ${
                   selectedFolder === folder.id
-                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-white'
                 }`}>
-                <Users size={16} />
+                <Users size={12} />
                 <span className="truncate">{folder.name}</span>
               </button>
             ))}
@@ -702,12 +654,12 @@ export function NewProjectModal({
         </div>
 
         {/* Step 4: Target Audience */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#666]">
+        <div className="mb-1">
+          <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
             {lang === 'pt' ? 'Público-Alvo Padrão' : 'Default Target Audience'}
             <span className="text-red-400 ml-1">*</span>
           </label>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-0.5">
             {[
               { id: '3-6', label: '3-6' },
               { id: '6-9', label: '6-9' },
@@ -718,16 +670,16 @@ export function NewProjectModal({
                 key={age.id}
                 type="button"
                 onClick={() => setTargetAudience(age.id)}
-                className={`px-4 py-3 rounded-xl border-2 transition text-sm font-medium ${
+                className={`px-1.5 py-0.5 rounded-lg border-2 transition text-[10px] font-medium ${
                   targetAudience === age.id
-                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
                 }`}>
                 {age.label}
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-0.5 mt-0.5">
             {[
               { id: '18-25', label: '18-25' },
               { id: '25+', label: '25+' },
@@ -737,10 +689,10 @@ export function NewProjectModal({
                 key={age.id}
                 type="button"
                 onClick={() => setTargetAudience(age.id)}
-                className={`px-4 py-3 rounded-xl border-2 transition text-sm font-medium ${
+                className={`px-1.5 py-0.5 rounded-lg border-2 transition text-[10px] font-medium ${
                   targetAudience === age.id
-                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                    ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
                 }`}>
                 {age.label}
               </button>
@@ -749,21 +701,21 @@ export function NewProjectModal({
         </div>
 
         {/* Step 5: Multi-Format Strategy */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#666]">
+        <div className="mb-1">
+          <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
             {lang === 'pt' ? 'Formato Padrão' : 'Default Format'}
           </label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-0.5">
             <button
               type="button"
               onClick={() => {
                 setFormatStrategy('safe_zone');
                 setFormatsRequested(['16:9']);
               }}
-              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
+              className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                 formatStrategy === 'safe_zone'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
               }`}>
               Safe Zone
             </button>
@@ -774,10 +726,10 @@ export function NewProjectModal({
                 setFormatStrategy('dual_generation');
                 setFormatsRequested(['16:9', '9:16']);
               }}
-              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
+              className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                 formatStrategy === 'dual_generation'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
               }`}>
               Dual
             </button>
@@ -788,10 +740,10 @@ export function NewProjectModal({
                 setFormatStrategy('multi_format');
                 setFormatsRequested(['16:9', '9:16', '4:5', '1:1']);
               }}
-              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
+              className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                 formatStrategy === 'multi_format'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
               }`}>
               Multi
             </button>
@@ -799,18 +751,18 @@ export function NewProjectModal({
         </div>
 
         {/* Step 6: Video Engine */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-[#666]">
+        <div className="mb-1">
+          <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
             {lang === 'pt' ? 'Engine de Vídeo Padrão' : 'Default Video Engine'}
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-0.5">
             <button
               type="button"
               onClick={() => setVideoEngine('sora')}
-              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
+              className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                 videoEngine === 'sora'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
               }`}>
               Sora 2 (12s)
             </button>
@@ -818,10 +770,10 @@ export function NewProjectModal({
             <button
               type="button"
               onClick={() => setVideoEngine('kling')}
-              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
+              className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                 videoEngine === 'kling'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
               }`}>
               Kling AI (5min)
             </button>
@@ -830,20 +782,20 @@ export function NewProjectModal({
 
         {/* Step 7: Target Duration (only for Kling) */}
         {videoEngine === 'kling' && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-[#666]">
+          <div className="mb-1">
+            <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
               {lang === 'pt' ? 'Duração Padrão (min)' : 'Default Duration (min)'}
             </label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-5 gap-0.5">
               {[5, 10, 15, 20, 25].map(duration => (
                 <button
                   key={duration}
                   type="button"
                   onClick={() => setTargetDuration(duration)}
-                  className={`px-3 py-2 rounded-xl border-2 text-sm font-medium transition ${
+                  className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                     targetDuration === duration
-                      ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                      : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                      : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
                   }`}>
                   {duration}min
                 </button>
@@ -852,23 +804,23 @@ export function NewProjectModal({
           </div>
         )}
 
-        <p className="text-xs text-[#999] italic">
+        <p className="text-[9px] text-[#999] italic mt-2">
           💡 {lang === 'pt' 
             ? 'Esses valores serão aplicados automaticamente ao criar novos projetos' 
             : 'These values will be applied automatically when creating new projects'}
         </p>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-2 pt-0.5">
           <button 
             onClick={onClose}
-            className="flex-1 px-6 py-3 rounded-xl border-2 border-[#E0E0E0] text-base font-semibold text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white">
+            className="flex-1 px-4 py-1.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
             {lang === 'pt' ? 'Cancelar' : 'Cancel'}
           </button>
           <button 
             onClick={handleCreate} 
             disabled={!isValid}
-            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-xl py-3 text-base font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#8B5CF6]/40 transition-all">
+            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-lg py-1.5 text-xs font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-lg shadow-[#8B5CF6]/40 transition-all">
             {lang === 'pt' ? 'Salvar' : 'Save'}
           </button>
         </div>
