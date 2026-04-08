@@ -100,7 +100,8 @@ class AvatarIn(BaseModel):
     edit_history: Optional[list] = None
     avatar_style: str = "realistic"
     creation_mode: str = "photo"
-    prompt: str = ""  # Prompt usado para gerar o personagem
+    prompt: str = ""
+    folder_id: Optional[str] = None  # ✅ ADDED: For folder organization  # Prompt usado para gerar o personagem
 
 
 def _get_settings(tenant_id: str) -> dict:
