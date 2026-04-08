@@ -275,22 +275,31 @@ export function NewProjectModal({
       if (response.ok) {
         console.log('✅ [COMPANY] Updated with defaults:', editCompanyDefaults);
         
-        // Update local state WITH defaults
-        const updatedCompany = {
-          ...editingCompany,
-          name: editCompanyName.trim(),
-          logo_url: editCompanyLogo || null,
-          logo_position: editLogoPosition,
-          ...editCompanyDefaults
-        };
-        
-        setCompanies(prev => prev.map(c => 
-          c.id === editingCompany.id ? updatedCompany : c
-        ));
-        
-        // Update selected company if it's the one being edited
-        if (selectedCompany?.id === editingCompany.id) {
-          setSelectedCompany(updatedCompany);
+        // Refetch companies from backend to get updated data
+        try {
+          const refetchResponse = await fetch(`${API}/api/companies`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (refetchResponse.ok) {
+            const data = await refetchResponse.json();
+            console.log('🔄 [COMPANY] Refetched from backend:', data.companies?.length || 0);
+            setCompanies(data.companies || []);
+            
+            // Update selected company with fresh data
+            if (selectedCompany?.id === editingCompany.id) {
+              const freshCompany = data.companies.find(c => c.id === editingCompany.id);
+              if (freshCompany) {
+                console.log('🔄 [COMPANY] Updated selectedCompany with fresh data:', freshCompany);
+                setSelectedCompany(freshCompany);
+              }
+            }
+          }
+        } catch (refetchErr) {
+          console.error('❌ [COMPANY] Refetch failed:', refetchErr);
         }
         
         setShowEditCompany(false);
