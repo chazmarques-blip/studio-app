@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, memo, Fragment, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music, GripVertical, Search, CheckCircle2 } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music, GripVertical, Search, CheckCircle2, Minus } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -92,11 +92,24 @@ const PIPELINE_PHASES = {
   ]
 };
 
-const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
+const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [currentPhase, setCurrentPhase] = useState(0);
   
+  // State for minimize/close with localStorage persistence
+  const [trackerState, setTrackerState] = useState(() => {
+    const saved = localStorage.getItem(`pipeline_tracker_${projectId}`);
+    return saved || 'expanded'; // 'expanded' | 'minimized' | 'closed'
+  });
+  
   const phases = PIPELINE_PHASES[lang] || PIPELINE_PHASES.pt;
+  
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (projectId) {
+      localStorage.setItem(`pipeline_tracker_${projectId}`, trackerState);
+    }
+  }, [trackerState, projectId]);
   
   // Timer to increment elapsed time - FIX: was missing!
   useEffect(() => {
@@ -136,9 +149,57 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
     return 'waiting';
   };
   
+  // If closed, don't render anything
+  if (trackerState === 'closed') {
+    return null;
+  }
+  
+  // If minimized, show compact badge in corner
+  if (trackerState === 'minimized') {
+    return (
+      <div 
+        onClick={() => setTrackerState('expanded')}
+        className="fixed bottom-4 right-4 z-50 cursor-pointer hover:scale-105 transition-transform"
+      >
+        <div className="relative">
+          {/* Badge with progress */}
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg flex flex-col items-center justify-center text-white animate-pulse">
+            <Sparkles size={16} className="mb-0.5" />
+            <span className="text-[10px] font-bold">
+              {currentPhase + 1}/{phases.length}
+            </span>
+          </div>
+          {/* Progress ring */}
+          <svg className="absolute inset-0 w-14 h-14 -rotate-90">
+            <circle
+              cx="28"
+              cy="28"
+              r="26"
+              stroke="rgba(255,255,255,0.3)"
+              strokeWidth="2"
+              fill="none"
+            />
+            <circle
+              cx="28"
+              cy="28"
+              r="26"
+              stroke="white"
+              strokeWidth="2"
+              fill="none"
+              strokeDasharray={`${2 * Math.PI * 26}`}
+              strokeDashoffset={`${2 * Math.PI * 26 * (1 - (currentPhase / phases.length))}`}
+              className="transition-all duration-300"
+            />
+          </svg>
+        </div>
+      </div>
+    );
+  }
+  
+  // Expanded view (original modal)
   return (
     <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-1.5 mb-1.5 shadow-sm">
-      {/* Header ultra compacto - tudo inline */}
+      {/* Header ultra compacto - tudo inline com botões de controle */}
       <div className="flex items-center justify-between mb-1 px-1">
         <div className="flex items-center gap-1">
           <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center">
@@ -155,6 +216,25 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent }) => {
           <span className="text-[8px] text-gray-500">
             {currentPhase + 1}/{phases.length}
           </span>
+          {/* Control buttons */}
+          <div className="flex items-center gap-0.5 ml-1">
+            {/* Minimize button */}
+            <button
+              onClick={() => setTrackerState('minimized')}
+              className="w-4 h-4 rounded flex items-center justify-center hover:bg-purple-200 transition-colors"
+              title={lang === 'pt' ? 'Minimizar' : 'Minimize'}
+            >
+              <Minus size={10} className="text-gray-600" />
+            </button>
+            {/* Close button */}
+            <button
+              onClick={() => setTrackerState('closed')}
+              className="w-4 h-4 rounded flex items-center justify-center hover:bg-red-200 transition-colors"
+              title={lang === 'pt' ? 'Fechar' : 'Close'}
+            >
+              <X size={10} className="text-gray-600" />
+            </button>
+          </div>
         </div>
       </div>
       
@@ -2207,6 +2287,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                 <PipelineVisualTrackerInline 
                   lang={lang}
                   currentAgent="researcher_screenwriter"
+                  projectId={projectId}
                 />
               </div>
             )}
