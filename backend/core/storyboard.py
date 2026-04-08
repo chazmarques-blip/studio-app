@@ -76,6 +76,30 @@ FRAME_TYPES = [
 ]
 
 
+# Kling AI frames: 1 frame every 10 seconds for 5-minute scenes (30 frames total)
+def generate_kling_frames():
+    """Generate 30 frame definitions for Kling (1 every 10s in a 5min scene)."""
+    frames = []
+    for i in range(30):
+        start_sec = i * 10
+        end_sec = start_sec + 10
+        mm_start = start_sec // 60
+        ss_start = start_sec % 60
+        mm_end = end_sec // 60
+        ss_end = end_sec % 60
+        
+        frames.append({
+            "label": f"{mm_start}:{ss_start:02d}",
+            "order": i + 1,
+            "time": f"{mm_start}:{ss_start:02d}-{mm_end}:{ss_end:02d}",
+            "prompt": f"Momento em {mm_start}:{ss_start:02d} - Capturar ação e emoção neste ponto específico da cena de 5 minutos.",
+        })
+    return frames
+
+FRAME_TYPES_KLING = generate_kling_frames()
+
+
+
 # ── Shot Briefs Generator (Claude as Shot Director) ──────────────────────
 
 def _generate_shot_briefs(

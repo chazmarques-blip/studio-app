@@ -98,6 +98,18 @@ async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = 
     if quality == "custom" and req.custom_frames:
         frames_to_generate = req.custom_frames
     
+    # **NEW:** Detect video engine and adjust frame count
+    video_engine = project.get("video_engine", "sora")
+    
+    if video_engine == "kling":
+        # Kling: 30 frames per 5-minute scene (1 frame every 10s)
+        from core.storyboard import FRAME_TYPES_KLING
+        frames_to_generate = list(range(1, 31))  # All 30 frames
+        logger.info(f"Storyboard [{project_id}]: Kling engine detected - generating 30 frames per scene")
+    else:
+        # Sora: 6 frames per 12s scene (default)
+        logger.info(f"Storyboard [{project_id}]: Sora engine - generating {len(frames_to_generate)} frames per scene")
+    
     # Store quality choice in project
     project["storyboard_quality"] = quality
     if quality == "custom":
@@ -147,7 +159,7 @@ async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = 
     # Launch background thread
     thread = threading.Thread(
         target=_generate_panels_ordered_parallel,
-        args=(tenant["id"], project_id, quality, frames_to_generate),
+        args=(tenant["id"], project_id, quality, frames_to_generate, video_engine),
         daemon=True,
     )
     thread.start()
@@ -156,11 +168,13 @@ async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = 
         "status": "started",
         "total_panels": len(panels),
         "quality": quality,
+        "video_engine": video_engine,
+        "frames_per_scene": len(frames_to_generate) if isinstance(frames_to_generate, list) else "variable",
         "message": f"Estrutura criada! Gerando {len(panels)} painéis em paralelo..."
     }
 
 
-def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: str, frames_to_generate: list):
+def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: str, frames_to_generate: list, video_engine: str = "sora"):
     """PHASE 2: Generate panel images in ordered batches using 5 workers.
     
     Worker distribution for sequential visual progression:
@@ -258,6 +272,10 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
                     )
                     
                     # Generate all frames for this panel
+                    # Use Kling frames (30) or Sora frames (6) based on engine
+                    from core.storyboard import FRAME_TYPES_KLING, FRAME_TYPES
+                    frame_types_to_use = FRAME_TYPES_KLING if video_engine == "kling" else FRAME_TYPES
+                    
                     frames_data = _generate_all_frames_for_scene(
                         scene=scene,
                         scene_num=scene_num,
@@ -270,6 +288,7 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
                         shot_briefs=shot_briefs,
                         lang=project.get("language", "pt"),
                         enable_validation=True,
+                        frame_types=frame_types_to_use,  # Pass correct frame types
                     )
                     
                     # Upload frames to Supabase and build frame URLs
