@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # ✅ User's own Gemini API key
 
 # COST OPTIMIZATION PRESETS
 QUALITY_PRESETS = {
@@ -312,10 +313,10 @@ def _build_identity_prompt(
     # Use the richest dialogue source available
     context_text = dubbed_text or dialogue or narrated_text
     if context_text:
-        dialogue_block = f"═══ LANGUAGE & DIALOGUE CONTEXT FOR THIS SCENE ═══\n"
+        dialogue_block = "═══ LANGUAGE & DIALOGUE CONTEXT FOR THIS SCENE ═══\n"
         dialogue_block += f"🌐 CRITICAL LANGUAGE REQUIREMENT: This scene is in {lang_name.upper()} language ({lang}).\n"
         dialogue_block += f"⚠️ ALL text, signs, speech bubbles, captions, labels, and written elements MUST be in {lang_name}.\n"
-        dialogue_block += f"⚠️ NO English text unless scene explicitly specifies it.\n\n"
+        dialogue_block += "⚠️ NO English text unless scene explicitly specifies it.\n\n"
         dialogue_block += f"📢 EXACT DIALOGUE/NARRATION:\n\"{context_text}\"\n\n"
         dialogue_block += "VISUAL REQUIREMENTS based on this dialogue:\n"
         dialogue_block += "- Character EXPRESSIONS must match the emotion and tone of what they're saying\n"
@@ -408,9 +409,10 @@ def _generate_single_frame(
     """
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 
-    api_key = EMERGENT_LLM_KEY
+    # ✅ Use user's own Gemini API key (not Emergent LLM key)
+    api_key = GEMINI_API_KEY or EMERGENT_LLM_KEY
     if not api_key:
-        logger.warning(f"Storyboard [{project_id}]: No EMERGENT_LLM_KEY")
+        logger.warning(f"Storyboard [{project_id}]: No GEMINI_API_KEY or EMERGENT_LLM_KEY")
         return None
 
     # Build the identity-first prompt
