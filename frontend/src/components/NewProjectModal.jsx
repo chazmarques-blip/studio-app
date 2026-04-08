@@ -797,70 +797,77 @@ export function NewProjectModal({
                 />
               </div>
               
-              {/* Logo Upload - COMPACTO */}
+              {/* Logo Upload - REDESENHADO VERTICAL */}
               <div>
                 <label className="text-xs font-medium text-[#666] mb-0.5 block">
                   {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
                 
-                <div className="flex items-start gap-2">
-                  {/* Preview */}
-                  <div className="shrink-0">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden">
-                      {editCompanyLogo ? (
-                        <img 
-                          src={editCompanyLogo} 
-                          alt="Logo preview" 
-                          className="w-full h-full object-cover"
-                          style={{ objectPosition: editLogoPosition }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center border-2 border-[#E0E0E0]">
-                          <Building2 size={32} className="text-[#8B5CF6]/40" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Position controls */}
-                    {editCompanyLogo && (
-                      <div className="mt-1 grid grid-cols-3 gap-0.5 bg-[#E0E0E0] rounded p-0.5">
-                        {['top', 'center', 'bottom', 'left', 'right'].map((pos, idx) => {
-                          const labels = ['↑', '●', '↓', '←', '→'];
-                          return (
-                            <button
-                              key={pos}
-                              type="button"
-                              onClick={() => setEditLogoPosition(pos)}
-                              className={`px-1.5 py-0.5 text-xs rounded transition ${
-                                editLogoPosition === pos
-                                  ? 'bg-[#8B5CF6] text-white'
-                                  : 'bg-white text-[#666] hover:bg-[#F9F7FF]'
-                              }`}
-                              title={pos}>
-                              {labels[idx]}
-                            </button>
-                          );
-                        })}
-                      </div>
+                {/* Preview + Upload em layout vertical compacto */}
+                <div className="space-y-1.5">
+                  {/* Logo Preview com aspect-ratio controlado */}
+                  <div className="flex items-center justify-center w-full h-16 rounded-lg overflow-hidden border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF]">
+                    {editCompanyLogo ? (
+                      <img 
+                        src={editCompanyLogo} 
+                        alt="Logo preview" 
+                        className="max-w-full max-h-full object-contain p-1"
+                        style={{ objectPosition: editLogoPosition }}
+                      />
+                    ) : (
+                      <Building2 size={24} className="text-[#8B5CF6]/40" />
                     )}
                   </div>
                   
-                  {/* Upload Button - COMPACTO */}
-                  <label className="flex-1 cursor-pointer">
-                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-3 py-2 text-center transition-all bg-white/50 hover:bg-[#F9F7FF] h-20 flex flex-col items-center justify-center">
+                  {/* Controls inline (quando tem logo) */}
+                  {editCompanyLogo && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[8px] text-[#999] mr-1">Posição:</span>
+                      {['top', 'center', 'bottom', 'left', 'right'].map((pos, idx) => {
+                        const labels = ['↑', '●', '↓', '←', '→'];
+                        return (
+                          <button
+                            key={pos}
+                            type="button"
+                            onClick={() => setEditLogoPosition(pos)}
+                            className={`w-6 h-6 flex items-center justify-center text-xs rounded transition ${
+                              editLogoPosition === pos
+                                ? 'bg-[#8B5CF6] text-white'
+                                : 'bg-[#E0E0E0] text-[#666] hover:bg-[#8B5CF6]/20'
+                            }`}
+                            title={pos}>
+                            {labels[idx]}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditCompanyLogo('');
+                          setEditLogoPosition('center');
+                        }}
+                        className="ml-auto text-[9px] text-red-500 hover:text-red-600 transition px-1">
+                        ✕ Remover
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Upload Button compacto */}
+                  <label className="block cursor-pointer">
+                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-3 py-2 text-center transition-all bg-white/50 hover:bg-[#F9F7FF]">
                       {uploadingEditLogo ? (
-                        <span className="text-xs text-[#666]">
-                          {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
+                        <span className="text-[9px] text-[#666]">
+                          {lang === 'pt' ? 'Enviando...' : 'Uploading...'}
                         </span>
                       ) : (
-                        <>
-                          <span className="text-[9px] text-[#666] block font-medium">
-                            {lang === 'pt' ? 'Clique para alterar' : 'Click to change'}
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-[9px] text-[#666] font-medium">
+                            {editCompanyLogo 
+                              ? (lang === 'pt' ? 'Alterar logo' : 'Change logo')
+                              : (lang === 'pt' ? 'Clique para adicionar' : 'Click to add')}
                           </span>
-                          <span className="text-[8px] text-[#999] mt-0.5 block">
-                            PNG, JPEG • Max 5MB
-                          </span>
-                        </>
+                          <span className="text-[8px] text-[#999]">PNG/JPEG • Max 5MB</span>
+                        </div>
                       )}
                     </div>
                     <input
@@ -872,8 +879,7 @@ export function NewProjectModal({
                     />
                   </label>
                 </div>
-                
-
+              </div>
               
               {/* PROJECT DEFAULTS SECTION - COMPACTO */}
               <div className="border-t-2 border-[#E0E0E0] pt-2 mt-1">
