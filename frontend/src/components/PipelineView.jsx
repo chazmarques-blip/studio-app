@@ -58,7 +58,15 @@ export default function PipelineView({ context }) {
   const [activeCompanyId, setActiveCompanyId] = useState(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState(null);
-  const [newCompany, setNewCompany] = useState({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
+  const [newCompany, setNewCompany] = useState({ 
+    name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', 
+    product_description: '', profile_type: 'company', facebook_url: '', 
+    instagram_url: '', tiktok_url: '',
+    default_visual_style: null, default_animation_sub: null,
+    default_target_audience: null, default_character_folder_id: null,
+    default_format_strategy: null, default_video_engine: null,
+    default_target_duration: null
+  });
 
   // Campaign Type Selector
   const [campaignTypes, setCampaignTypes] = useState(['image_post']);
@@ -195,7 +203,15 @@ export default function PipelineView({ context }) {
       saveCompanies(updated);
       setActiveCompanyId(co.id);
     }
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
+    setNewCompany({ 
+      name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', 
+      product_description: '', profile_type: 'company', facebook_url: '', 
+      instagram_url: '', tiktok_url: '',
+      default_visual_style: null, default_animation_sub: null,
+      default_target_audience: null, default_character_folder_id: null,
+      default_format_strategy: null, default_video_engine: null,
+      default_target_duration: null
+    });
     setShowCompanyModal(false);
     setEditingCompanyId(null);
     toast.success(t('studio.company_saved'));
@@ -211,7 +227,26 @@ export default function PipelineView({ context }) {
 
   const startEditCompany = (co) => {
     setEditingCompanyId(co.id);
-    setNewCompany({ name: co.name, phone: co.phone || '', is_whatsapp: co.is_whatsapp !== false, website_url: co.website_url || '', logo_url: co.logo_url || '', product_description: co.product_description || '', profile_type: co.profile_type || 'company' });
+    setNewCompany({ 
+      name: co.name, 
+      phone: co.phone || '', 
+      is_whatsapp: co.is_whatsapp !== false, 
+      website_url: co.website_url || '', 
+      logo_url: co.logo_url || '', 
+      product_description: co.product_description || '', 
+      profile_type: co.profile_type || 'company',
+      facebook_url: co.facebook_url || '',
+      instagram_url: co.instagram_url || '',
+      tiktok_url: co.tiktok_url || '',
+      // Project Defaults
+      default_visual_style: co.default_visual_style || null,
+      default_animation_sub: co.default_animation_sub || null,
+      default_target_audience: co.default_target_audience || null,
+      default_character_folder_id: co.default_character_folder_id || null,
+      default_format_strategy: co.default_format_strategy || null,
+      default_video_engine: co.default_video_engine || null,
+      default_target_duration: co.default_target_duration || null,
+    });
     setShowCompanyModal(true);
   };
 
@@ -224,7 +259,15 @@ export default function PipelineView({ context }) {
     const updated = companies.map(c => c.id === editingCompanyId ? { ...c, ...newCompany } : c);
     setCompanies(updated);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
+    setNewCompany({ 
+      name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', 
+      product_description: '', profile_type: 'company', facebook_url: '', 
+      instagram_url: '', tiktok_url: '',
+      default_visual_style: null, default_animation_sub: null,
+      default_target_audience: null, default_character_folder_id: null,
+      default_format_strategy: null, default_video_engine: null,
+      default_target_duration: null
+    });
     setShowCompanyModal(false);
     toast.success(t('studio.company_updated'));
   };
@@ -232,7 +275,15 @@ export default function PipelineView({ context }) {
   const cancelCompanyForm = () => {
     setShowCompanyModal(false);
     setEditingCompanyId(null);
-    setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' });
+    setNewCompany({ 
+      name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', 
+      product_description: '', profile_type: 'company', facebook_url: '', 
+      instagram_url: '', tiktok_url: '',
+      default_visual_style: null, default_animation_sub: null,
+      default_target_audience: null, default_character_folder_id: null,
+      default_format_strategy: null, default_video_engine: null,
+      default_target_duration: null
+    });
   };
 
   const uploadCompanyLogo = async (files) => {
@@ -1203,7 +1254,19 @@ export default function PipelineView({ context }) {
             <label className="text-xs text-[#999] uppercase tracking-wider flex items-center gap-1">
               <Building2 size={10} /> {t('studio.advertiser_company')}
             </label>
-            <button data-testid="add-company-btn" onClick={() => { setEditingCompanyId(null); setNewCompany({ name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', product_description: '', profile_type: 'company' }); setShowCompanyModal(true); }}
+            <button data-testid="add-company-btn" onClick={() => { 
+              setEditingCompanyId(null); 
+              setNewCompany({ 
+                name: '', phone: '', is_whatsapp: true, website_url: '', logo_url: '', 
+                product_description: '', profile_type: 'company', facebook_url: '', 
+                instagram_url: '', tiktok_url: '',
+                default_visual_style: null, default_animation_sub: null,
+                default_target_audience: null, default_character_folder_id: null,
+                default_format_strategy: null, default_video_engine: null,
+                default_target_duration: null
+              }); 
+              setShowCompanyModal(true); 
+            }}
               className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-gray-300 text-xs text-[#999] hover:text-orange-600 hover:border-orange-500/30 transition">
               <Plus size={10} />
             </button>
