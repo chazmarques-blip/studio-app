@@ -30,6 +30,7 @@ def _auto_detect_folder_from_name(avatar_name: str, existing_folders: list) -> O
     common_tags = [
         "Biblizoo Baby",
         "Biblis Ubaby",  # ✅ Variação alternativa
+        "Biblisub Baby",  # ✅ Variação alternativa
         "BibleZoo",
     ]
     
