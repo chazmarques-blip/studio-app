@@ -124,6 +124,11 @@ export default function PipelineView({ context }) {
   const [avatarPromptStyle, setAvatarPromptStyle] = useState('custom'); // 'custom' | 'realistic' | '3d_cartoon' | '3d_pixar'
   const [promptBatchMode, setPromptBatchMode] = useState(false); // false = individual, true = batch
   const [batchProgress, setBatchProgress] = useState(null); // { completed, total, currentPrompt }
+
+  // Log batch mode changes
+  useEffect(() => {
+    console.log('📊 promptBatchMode changed:', promptBatchMode);
+  }, [promptBatchMode]);
   const [tempAvatar, setTempAvatar] = useState(null); // { url, source_photo_url, clothing, voice }
   const [editingAvatarId, setEditingAvatarId] = useState(null); // null = new, string = editing existing
   const [customizeTab, setCustomizeTab] = useState('clothing');
