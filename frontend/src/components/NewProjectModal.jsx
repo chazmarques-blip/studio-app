@@ -476,7 +476,7 @@ export function NewProjectModal({
   return (
     <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-white rounded-lg p-4 max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl">
+      <div className="bg-white rounded-lg p-4 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
