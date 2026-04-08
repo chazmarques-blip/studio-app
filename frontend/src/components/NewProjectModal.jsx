@@ -475,7 +475,7 @@ export function NewProjectModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="glass-card p-2.5 space-y-1.5 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
+      <div className="glass-card p-2 space-y-1 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
         {/* Header - COMPACTO */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -492,10 +492,10 @@ export function NewProjectModal({
         </div>
 
         {/* Step 0: Empresa/Projeto Master - NOVO */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">0</span>
-            <Building2 size={12} className="text-[#8B5CF6]" />
+        <div className="space-y-0.5">
+          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+            <span className="text-[#8B5CF6] text-[10px]">0</span>
+            <Building2 size={11} className="text-[#8B5CF6]" />
             {lang === 'pt' ? 'Empresa / Projeto Master' : 'Company / Master Project'}
           </label>
           
@@ -607,7 +607,7 @@ export function NewProjectModal({
             </div>
           )}
           
-          <p className="text-[10px] text-[#666]">
+          <p className="text-[9px] text-[#666]">
             {selectedCompany 
               ? (lang === 'pt' 
                   ? `Configurações e personagens de "${selectedCompany.name}" serão aplicados automaticamente` 
@@ -1023,8 +1023,8 @@ export function NewProjectModal({
 
         {/* Step 1: Project Name - ULTRA COMPACTO */}
         <div className="space-y-0.5">
-          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">1</span>
+          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+            <span className="text-[#8B5CF6] text-[10px]">1</span>
             {lang === 'pt' ? 'Nome do Projeto' : 'Project Name'}
             <span className="text-red-400">*</span>
           </label>
@@ -1032,14 +1032,14 @@ export function NewProjectModal({
             value={projectName} 
             onChange={e => setProjectName(e.target.value)}
             placeholder={lang === 'pt' ? 'Ex: A Jornada de Abraão' : 'Ex: The Journey of Abraham'}
-            className="w-full bg-white/80 border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-lg px-3 py-1 text-sm text-[#333] outline-none placeholder-[#999] transition" 
+            className="w-full bg-white/80 border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-lg px-2.5 py-1 text-xs text-[#333] outline-none placeholder-[#999] transition" 
           />
         </div>
 
         {/* Step 2: Visual Style - UMA LINHA COMPACTA */}
         <div className="space-y-0.5">
-          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">2</span>
+          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+            <span className="text-[#8B5CF6] text-[10px]">2</span>
             {lang === 'pt' ? 'Estilo Visual' : 'Visual Style'}
             <span className="text-red-400">*</span>
           </label>
@@ -1066,8 +1066,8 @@ export function NewProjectModal({
                       ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
                       : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                   }`}>
-                  <Icon size={12} strokeWidth={1.5} />
-                  <span className="text-[11px] font-medium whitespace-nowrap">{s.label}</span>
+                  <Icon size={11} strokeWidth={1.5} />
+                  <span className="text-[10px] font-medium whitespace-nowrap">{s.label}</span>
                 </button>
               );
             })}
@@ -1075,10 +1075,10 @@ export function NewProjectModal({
         </div>
 
         {/* Step 3: Character Folder Selection - COMPACTO */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">3</span>
-            <Users size={12} className="text-[#8B5CF6]" />
+        <div className="space-y-0.5">
+          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+            <span className="text-[#8B5CF6] text-[10px]">3</span>
+            <Users size={11} className="text-[#8B5CF6]" />
             {lang === 'pt' ? 'Personagens' : 'Characters'}
           </label>
           <div className="flex gap-1 overflow-x-auto pb-1">
@@ -1091,15 +1091,15 @@ export function NewProjectModal({
                   ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
                   : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <Sparkles size={12} strokeWidth={1.5} />
-              <span className="text-[11px] font-medium whitespace-nowrap">
+              <Sparkles size={11} strokeWidth={1.5} />
+              <span className="text-[10px] font-medium whitespace-nowrap">
                 {lang === 'pt' ? 'Criar Novos' : 'Create New'}
               </span>
             </button>
 
             {/* Loading state */}
             {loadingFolders && (
-              <div className="shrink-0 px-2 py-1 text-[11px] text-[#666]">
+              <div className="shrink-0 px-2 py-1 text-[10px] text-[#666]">
                 {lang === 'pt' ? 'Carregando...' : 'Loading...'}
               </div>
             )}
@@ -1115,14 +1115,14 @@ export function NewProjectModal({
                     ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
                     : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                 }`}>
-                <Users size={12} strokeWidth={1.5} />
-                <span className="text-[11px] font-medium whitespace-nowrap">{folder.name}</span>
+                <Users size={11} strokeWidth={1.5} />
+                <span className="text-[10px] font-medium whitespace-nowrap">{folder.name}</span>
               </button>
             ))}
 
             {/* Empty state */}
             {!loadingFolders && folders.length === 0 && (
-              <div className="shrink-0 px-3 py-1.5 text-xs text-[#666]">
+              <div className="shrink-0 px-3 py-1.5 text-[10px] text-[#666]">
                 {lang === 'pt' ? 'Nenhuma pasta criada ainda' : 'No folders created yet'}
               </div>
             )}
@@ -1135,39 +1135,37 @@ export function NewProjectModal({
           </p>
         </div>
 
-        {/* Step 4: Target Audience (Público-Alvo) - NOVO */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">4</span>
-            <Users size={12} className="text-[#8B5CF6]" />
+        {/* Step 4: Target Audience (Público-Alvo) - COMPACTO */}
+        <div className="space-y-0.5">
+          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+            <span className="text-[#8B5CF6] text-[10px]">4</span>
+            <Users size={11} className="text-[#8B5CF6]" />
             {lang === 'pt' ? 'Público-Alvo' : 'Target Audience'}
             <span className="text-red-400">*</span>
           </label>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-4 gap-1">
             {[
-              { id: '3-6', emoji: '🧒', label: lang === 'pt' ? '3-6 anos' : '3-6 years', desc: lang === 'pt' ? 'Pré-escolar' : 'Preschool' },
-              { id: '6-9', emoji: '👦', label: lang === 'pt' ? '6-9 anos' : '6-9 years', desc: lang === 'pt' ? 'Infantil' : 'Children' },
-              { id: '10-13', emoji: '🧑', label: lang === 'pt' ? '10-13 anos' : '10-13 years', desc: lang === 'pt' ? 'Pré-teens' : 'Pre-teens' },
-              { id: '14-17', emoji: '👨', label: lang === 'pt' ? '14-17 anos' : '14-17 years', desc: lang === 'pt' ? 'Teens' : 'Teens' },
-              { id: '18-25', emoji: '🧑‍🦱', label: lang === 'pt' ? '18-25 anos' : '18-25 years', desc: lang === 'pt' ? 'Jovens' : 'Young adults' },
-              { id: '25+', emoji: '👨‍💼', label: lang === 'pt' ? '25+ anos' : '25+ years', desc: lang === 'pt' ? 'Adultos' : 'Adults' },
-              { id: 'all', emoji: '👨‍👩‍👧‍👦', label: lang === 'pt' ? 'Todas idades' : 'All ages', desc: lang === 'pt' ? 'Geral' : 'General' },
+              { id: '3-6', emoji: '🧒', label: '3-6', desc: lang === 'pt' ? 'Pré-escolar' : 'Preschool' },
+              { id: '6-9', emoji: '👦', label: '6-9', desc: lang === 'pt' ? 'Infantil' : 'Children' },
+              { id: '10-13', emoji: '🧑', label: '10-13', desc: lang === 'pt' ? 'Pré-teens' : 'Pre-teens' },
+              { id: '14-17', emoji: '👨', label: '14-17', desc: lang === 'pt' ? 'Teens' : 'Teens' },
+              { id: '18-25', emoji: '🧑‍🦱', label: '18-25', desc: lang === 'pt' ? 'Jovens' : 'Young adults' },
+              { id: '25+', emoji: '👨‍💼', label: '25+', desc: lang === 'pt' ? 'Adultos' : 'Adults' },
+              { id: 'all', emoji: '👨‍👩‍👧‍👦', label: lang === 'pt' ? 'Todas' : 'All', desc: lang === 'pt' ? 'Geral' : 'General' },
             ].map(age => (
               <button
                 key={age.id}
                 type="button"
                 onClick={() => setTargetAudience(age.id)}
-                className={`px-2 py-1.5 rounded-md border-2 transition text-left ${
+                className={`px-1.5 py-1 rounded-md border-2 transition text-center ${
                   targetAudience === age.id
                     ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
                     : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                 }`}>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm">{age.emoji}</span>
-                  <div>
-                    <div className="text-[10px] font-semibold leading-tight">{age.label}</div>
-                    <div className="text-[9px] text-[#999] leading-tight">{age.desc}</div>
-                  </div>
+                <div className="flex flex-col items-center gap-0">
+                  <span className="text-xs">{age.emoji}</span>
+                  <div className="text-[9px] font-semibold leading-tight">{age.label}</div>
+                  <div className="text-[8px] text-[#999] leading-tight">{age.desc}</div>
                 </div>
               </button>
             ))}
@@ -1176,8 +1174,8 @@ export function NewProjectModal({
 
         {/* Step 5: Multi-Format Strategy - COMPACTO */}
         <div className="space-y-0.5">
-          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">5</span>
+          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+            <span className="text-[#8B5CF6] text-[10px]">5</span>
             {lang === 'pt' ? 'Formato' : 'Format'}
           </label>
           <div className="flex gap-1">
@@ -1188,18 +1186,18 @@ export function NewProjectModal({
                 setFormatStrategy('safe_zone');
                 setFormatsRequested(['16:9']);
               }}
-              className={`flex-1 p-1.5 rounded-md border-2 text-left transition-all ${
+              className={`flex-1 p-1 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'safe_zone'
                   ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[11px] font-semibold text-[#333]">Safe Zone</span>
+              <div className="flex items-center justify-between mb-0">
+                <span className="text-[10px] font-semibold text-[#333]">Safe Zone</span>
                 {formatStrategy === 'safe_zone' && (
-                  <Check size={10} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  <Check size={9} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[9px] text-[#666]">16:9 → Crop 9:16</div>
+              <div className="text-[8px] text-[#666]">16:9 → Crop 9:16</div>
             </button>
 
             {/* Dual Generation */}
@@ -1209,18 +1207,18 @@ export function NewProjectModal({
                 setFormatStrategy('dual_generation');
                 setFormatsRequested(['16:9', '9:16']);
               }}
-              className={`flex-1 p-1.5 rounded-md border-2 text-left transition-all ${
+              className={`flex-1 p-1 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'dual_generation'
                   ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[11px] font-semibold text-[#333]">Dual</span>
+              <div className="flex items-center justify-between mb-0">
+                <span className="text-[10px] font-semibold text-[#333]">Dual</span>
                 {formatStrategy === 'dual_generation' && (
-                  <Check size={10} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  <Check size={9} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[9px] text-[#666]">16:9 + 9:16</div>
+              <div className="text-[8px] text-[#666]">16:9 + 9:16</div>
             </button>
 
             {/* Multi-Format */}
@@ -1230,26 +1228,26 @@ export function NewProjectModal({
                 setFormatStrategy('multi_format');
                 setFormatsRequested(['16:9', '9:16', '4:5', '1:1']);
               }}
-              className={`flex-1 p-1.5 rounded-md border-2 text-left transition-all ${
+              className={`flex-1 p-1 rounded-md border-2 text-left transition-all ${
                 formatStrategy === 'multi_format'
                   ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[11px] font-semibold text-[#333]">Multi</span>
+              <div className="flex items-center justify-between mb-0">
+                <span className="text-[10px] font-semibold text-[#333]">Multi</span>
                 {formatStrategy === 'multi_format' && (
-                  <Check size={10} strokeWidth={2.5} className="text-[#8B5CF6]" />
+                  <Check size={9} strokeWidth={2.5} className="text-[#8B5CF6]" />
                 )}
               </div>
-              <div className="text-[9px] text-[#666]">Todos</div>
+              <div className="text-[8px] text-[#666]">Todos</div>
             </button>
           </div>
         </div>
 
         {/* Step 6: Video Engine - ULTRA COMPACTO */}
         <div className="space-y-0.5">
-          <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-            <span className="text-[#8B5CF6] text-xs">6</span>
+          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+            <span className="text-[#8B5CF6] text-[10px]">6</span>
             {lang === 'pt' ? '🎬 Engine de Vídeo' : '🎬 Video Engine'}
           </label>
           <div className="grid grid-cols-2 gap-1">
@@ -1262,22 +1260,21 @@ export function NewProjectModal({
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-blue-300'
               }`}>
-              <div className="flex items-center gap-1 mb-0.5">
-                <div className={`w-3 h-3 rounded flex items-center justify-center ${
+              <div className="flex items-center gap-1 mb-0">
+                <div className={`w-2.5 h-2.5 rounded flex items-center justify-center ${
                   videoEngine === 'sora' ? 'bg-blue-500' : 'bg-gray-300'
                 }`}>
-                  <span className="text-white text-[8px] font-bold">S</span>
+                  <span className="text-white text-[7px] font-bold">S</span>
                 </div>
                 <span className={`text-[9px] font-semibold ${videoEngine === 'sora' ? 'text-blue-600' : 'text-gray-700'}`}>
                   Sora 2
                 </span>
                 {videoEngine === 'sora' && (
-                  <Check size={8} strokeWidth={2.5} className="text-blue-500 ml-auto" />
+                  <Check size={7} strokeWidth={2.5} className="text-blue-500 ml-auto" />
                 )}
               </div>
-              <div className="text-[7px] text-gray-600 space-y-0 ml-3.5 leading-tight">
+              <div className="text-[7px] text-gray-600 space-y-0 ml-3 leading-tight">
                 <div>⏱️ 12s/cena</div>
-                <div>🎨 Boa cont.</div>
                 <div>💰 ~$0.12/s</div>
               </div>
             </button>
@@ -1291,22 +1288,21 @@ export function NewProjectModal({
                   ? 'border-purple-500 bg-purple-50'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-purple-300'
               }`}>
-              <div className="flex items-center gap-1 mb-0.5">
-                <div className={`w-3 h-3 rounded flex items-center justify-center ${
+              <div className="flex items-center gap-1 mb-0">
+                <div className={`w-2.5 h-2.5 rounded flex items-center justify-center ${
                   videoEngine === 'kling' ? 'bg-purple-500' : 'bg-gray-300'
                 }`}>
-                  <span className="text-white text-[8px] font-bold">K</span>
+                  <span className="text-white text-[7px] font-bold">K</span>
                 </div>
                 <span className={`text-[9px] font-semibold ${videoEngine === 'kling' ? 'text-purple-600' : 'text-gray-700'}`}>
                   Kling AI
                 </span>
                 {videoEngine === 'kling' && (
-                  <Check size={8} strokeWidth={2.5} className="text-purple-500 ml-auto" />
+                  <Check size={7} strokeWidth={2.5} className="text-purple-500 ml-auto" />
                 )}
               </div>
-              <div className="text-[7px] text-gray-600 space-y-0 ml-3.5 leading-tight">
+              <div className="text-[7px] text-gray-600 space-y-0 ml-3 leading-tight">
                 <div>⏱️ 5min</div>
-                <div>🎨 Exc. cont.</div>
                 <div>💰 ~$0.05/s</div>
               </div>
             </button>
@@ -1318,8 +1314,8 @@ export function NewProjectModal({
         {/* Step 7: Target Duration (only for Kling) - COMPACTO */}
         {videoEngine === 'kling' && (
           <div className="space-y-0.5">
-            <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
-              <span className="text-[#8B5CF6] text-xs">7</span>
+            <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
+              <span className="text-[#8B5CF6] text-[10px]">7</span>
               {lang === 'pt' ? '⏱️ Duração' : '⏱️ Duration'}
             </label>
             <div className="flex gap-0.5">
@@ -1343,17 +1339,17 @@ export function NewProjectModal({
         {/* Advanced Settings - Removido para compactar modal */}
 
         {/* Action Buttons - COMPACTO */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-1">
           <button 
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
+            className="px-3 py-1.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
             {lang === 'pt' ? 'Cancelar' : 'Cancel'}
           </button>
           <button 
             onClick={handleCreate} 
             disabled={!isValid}
-            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-lg py-2 text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-lg shadow-[#8B5CF6]/40 transition-all">
-            <Sparkles size={16} /> 
+            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-lg py-1.5 text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-lg shadow-[#8B5CF6]/40 transition-all">
+            <Sparkles size={14} /> 
             {lang === 'pt' ? 'Criar Projeto' : 'Create Project'}
           </button>
         </div>
