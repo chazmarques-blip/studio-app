@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
-  Sparkles, ChevronRight, ChevronDown, ChevronUp, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
+  Sparkles, ChevronRight, ChevronDown, ChevronUp, ChevronLeft, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
   Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, GripVertical, Clock
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -121,6 +121,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [correcting, setCorrecting] = useState(false);
   const [continuityNotes, setContinuityNotes] = useState('');
   // Expandable panels — collapsed by default for performance
+  const [selectedPanelForView, setSelectedPanelForView] = useState(null); // For viewing expanded
+  const [selectedFrameIndex, setSelectedFrameIndex] = useState(0); // For frame navigation
+  
   const [expandedPanels, setExpandedPanels] = useState(new Set());
   const togglePanel = (sceneNum) => {
     setExpandedPanels(prev => {
@@ -1172,7 +1175,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 <div 
                   key={panel.panel_number}
                   className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
-                  onClick={() => togglePanel(panel.scene_number)}
+                  onClick={() => {
+                    setSelectedPanelForView(panel);
+                    setSelectedFrameIndex(0);
+                  }}
                 >
                   {/* Image or placeholder */}
                   {imageUrl ? (
@@ -1372,6 +1378,122 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           </>
         )}
       </div>
+
+      {/* Expanded Panel View Modal */}
+      {selectedPanelForView && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedPanelForView(null)}
+        >
+          <div 
+            className="relative max-w-5xl w-full bg-[#0D0D0D] rounded-xl border border-[#8B5CF6]/30 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[#222]">
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {lang === 'pt' ? 'Painel' : 'Panel'} {selectedPanelForView.panel_number} - {selectedPanelForView.title || `Cena ${selectedPanelForView.scene_number}`}
+                </h3>
+                {selectedPanelForView.frames && selectedPanelForView.frames.length > 1 && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {selectedPanelForView.frames.length} frames • {lang === 'pt' ? 'Use as setas para navegar' : 'Use arrows to navigate'}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedPanelForView(null)}
+                className="w-8 h-8 rounded-full bg-[#222] hover:bg-[#333] flex items-center justify-center transition"
+              >
+                <X size={16} className="text-white" />
+              </button>
+            </div>
+
+            {/* Main Image Area */}
+            <div className="relative bg-black">
+              {(() => {
+                const frames = selectedPanelForView.frames || [];
+                const currentFrame = frames[selectedFrameIndex] || { image_url: selectedPanelForView.image_url };
+                
+                return (
+                  <>
+                    <img 
+                      src={resolveImageUrl(currentFrame.image_url)}
+                      alt={`Frame ${selectedFrameIndex + 1}`}
+                      className="w-full max-h-[70vh] object-contain"
+                    />
+                    
+                    {/* Navigation Arrows (if multiple frames) */}
+                    {frames.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setSelectedFrameIndex(prev => Math.max(0, prev - 1))}
+                          disabled={selectedFrameIndex === 0}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/70 backdrop-blur-sm hover:bg-black/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition"
+                        >
+                          <ChevronLeft size={20} className="text-white" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedFrameIndex(prev => Math.min(frames.length - 1, prev + 1))}
+                          disabled={selectedFrameIndex === frames.length - 1}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/70 backdrop-blur-sm hover:bg-black/90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition"
+                        >
+                          <ChevronRight size={20} className="text-white" />
+                        </button>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Frame Thumbnails (if multiple frames) */}
+            {selectedPanelForView.frames && selectedPanelForView.frames.length > 1 && (
+              <div className="p-4 border-t border-[#222]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Film size={12} className="text-[#8B5CF6]" />
+                  <span className="text-xs font-semibold text-gray-400">
+                    {lang === 'pt' ? 'Frames desta cena' : 'Frames of this scene'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {selectedPanelForView.frames.map((frame, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedFrameIndex(idx)}
+                      className={`relative aspect-video rounded border-2 overflow-hidden cursor-pointer transition ${
+                        idx === selectedFrameIndex 
+                          ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6]/50' 
+                          : 'border-[#333] hover:border-[#555]'
+                      }`}
+                    >
+                      <img 
+                        src={resolveImageUrl(frame.image_url)}
+                        alt={frame.label}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm px-1 py-0.5">
+                        <span className="text-[8px] text-white font-mono">{frame.label || `Frame ${idx + 1}`}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Footer Info */}
+            <div className="px-4 py-3 bg-[#111] border-t border-[#222] text-xs text-gray-400">
+              <p className="mb-1"><strong className="text-white">{lang === 'pt' ? 'Descrição:' : 'Description:'}</strong> {selectedPanelForView.description || 'N/A'}</p>
+              {selectedPanelForView.frames && selectedPanelForView.frames.length > 0 && (
+                <p className="text-[#8B5CF6]">
+                  ✓ {selectedPanelForView.frames.length} {lang === 'pt' ? 'frames gerados' : 'frames generated'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Fullscreen Preview Overlay — Portal to body */}
       {showPreview && createPortal(
