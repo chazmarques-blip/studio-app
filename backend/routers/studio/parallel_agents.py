@@ -26,7 +26,8 @@ def generate_screenplay_parallel(
     batch_size: int = 10,
     max_workers: int = 3,
     character_folder_id: str = None,  # NEW: Folder ID for character library
-    target_audience: str = "all"  # NEW: Target audience age range
+    target_audience: str = "all",  # NEW: Target audience age range
+    video_engine: str = "sora"  # NEW: Video engine (sora/kling)
 ) -> Dict:
     """
     Generate screenplay using parallel agents
@@ -49,9 +50,17 @@ def generate_screenplay_parallel(
     Returns:
         Dict with scenes, characters, metadata
     """
-    logger.info(f"ParallelScreenplay [{project_id}]: Starting parallel generation (max_scenes={max_scenes}, workers={max_workers})")
+    logger.info(f"ParallelScreenplay [{project_id}]: Starting parallel generation (max_scenes={max_scenes}, workers={max_workers}, engine={video_engine})")
     
-    from .screenwriter import SCREENWRITER_SYSTEM_PHASE1, LANG_FULL_NAMES
+    from .screenwriter import SCREENWRITER_SYSTEM_SORA, SCREENWRITER_SYSTEM_KLING, LANG_FULL_NAMES
+    
+    # ── Choose system template based on video engine ──
+    if video_engine == "kling":
+        system_template = SCREENWRITER_SYSTEM_KLING
+        logger.info(f"ParallelScreenplay [{project_id}]: Using KLING template (5-minute scenes)")
+    else:
+        system_template = SCREENWRITER_SYSTEM_SORA
+        logger.info(f"ParallelScreenplay [{project_id}]: Using SORA template (12-second scenes)")
     
     # ── NEW: Get character library from folder ──
     folder_characters = []
@@ -84,7 +93,7 @@ def generate_screenplay_parallel(
     # ── Phase 1: Foundation Agent (First Batch) ──
     logger.info(f"ParallelScreenplay [{project_id}]: Phase 1 - Foundation agent generating structure")
     
-    system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang))
+    system = system_template.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang))
     
     # Add character library and audience guidelines to system prompt
     if character_library_text:
@@ -187,6 +196,14 @@ Create the screenplay structure with the first {batch_size} scenes. Set "total_s
                 char_names = ', '.join([c.get('name', '') for c in all_characters])
                 last_time = all_scenes[-1].get('time_end', '0:00') if all_scenes else '0:00'
             
+            # Adapt prompt based on video engine
+            if video_engine == "kling":
+                scene_duration_text = "Each scene = 5 minutes (300 seconds)"
+                timing_instruction = f"- Start time from {last_time}\n- Each scene is EXACTLY 5 minutes long\n- Scene transitions happen at 5-minute intervals"
+            else:
+                scene_duration_text = "Each scene = 12 seconds"
+                timing_instruction = f"- Start time from {last_time}\n- Each scene is EXACTLY 12 seconds long"
+            
             batch_prompt = f"""⚠️ CRITICAL: ALL text MUST be in {LANG_FULL_NAMES.get(lang, lang)}. DO NOT use English.
 
 Continue the screenplay "{title}".
@@ -198,8 +215,8 @@ CHARACTERS SO FAR: {char_names}
 RECENT SCENES (for continuity):
 {context_summary}
 
-Generate scenes {start_num} to {end_num}. Each scene = 12 seconds.
-- Start time from {last_time}
+Generate scenes {start_num} to {end_num}. {scene_duration_text}
+{timing_instruction}
 - Maintain visual consistency with existing scenes
 - Keep same characters, tone, and narrative flow
 - Introduce NEW characters only if story needs them
