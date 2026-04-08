@@ -510,14 +510,35 @@ export function NewProjectModal({
                       setSelectedCompany(company);
                       // Auto-fill settings from company defaults
                       if (company.default_settings) {
-                        setAnimationSub(company.default_settings.animation_sub || animationSub);
-                        setVisualStyle(company.default_settings.visual_style || visualStyle);
-                        setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
-                        setProjectLang(company.default_settings.language || projectLang);
-                        
-                        if (company.folder_ids && company.folder_ids.length > 0) {
+                        // Apply ALL defaults
+                        if (company.default_settings.animation_sub) {
+                          setAnimationSub(company.default_settings.animation_sub);
+                        }
+                        if (company.default_settings.visual_style) {
+                          setVisualStyle(company.default_settings.visual_style);
+                        }
+                        if (company.default_settings.target_audience) {
+                          setTargetAudience(company.default_settings.target_audience);
+                        }
+                        if (company.default_settings.format_strategy) {
+                          setFormatStrategy(company.default_settings.format_strategy);
+                        }
+                        if (company.default_settings.video_engine) {
+                          setVideoEngine(company.default_settings.video_engine);
+                        }
+                        if (company.default_settings.target_duration) {
+                          setTargetDuration(company.default_settings.target_duration);
+                        }
+                        if (company.default_settings.language) {
+                          setProjectLang(company.default_settings.language);
+                        }
+                        if (company.default_settings.character_folder_id) {
+                          setSelectedFolder(company.default_settings.character_folder_id);
+                        } else if (company.folder_ids && company.folder_ids.length > 0) {
                           setSelectedFolder(company.folder_ids[0]);
                         }
+                        
+                        console.log('✅ [AUTO-FILL] Applied defaults from company:', company.default_settings);
                       }
                     }}
                     className={`w-24 h-14 rounded-lg border-2 overflow-hidden transition-all relative bg-white ${

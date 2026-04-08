@@ -23,11 +23,15 @@ class CompanyCreate(BaseModel):
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     logo_url: Optional[str] = None
+    logo_position: Optional[str] = None
     folder_ids: Optional[List[str]] = None
     default_visual_style: Optional[str] = None
     default_animation_sub: Optional[str] = None
+    default_target_audience: Optional[str] = None
+    default_character_folder_id: Optional[str] = None
     default_format_strategy: Optional[str] = None
-    default_language: Optional[str] = None
+    default_video_engine: Optional[str] = None
+    default_target_duration: Optional[int] = None
 
 @router.get("")
 async def get_companies(user = Depends(get_current_user)):
@@ -92,18 +96,30 @@ async def update_company(company_id: str, data: CompanyUpdate, user = Depends(ge
                 company['name'] = data.name
             if data.logo_url is not None:
                 company['logo_url'] = data.logo_url
+            if data.logo_position is not None:
+                company['logo_position'] = data.logo_position
             if data.folder_ids is not None:
                 company['folder_ids'] = data.folder_ids
             
-            # Update default settings
+            # Initialize default_settings if it doesn't exist
+            if 'default_settings' not in company:
+                company['default_settings'] = {}
+            
+            # Update ALL default settings
             if data.default_visual_style is not None:
                 company['default_settings']['visual_style'] = data.default_visual_style
             if data.default_animation_sub is not None:
                 company['default_settings']['animation_sub'] = data.default_animation_sub
+            if data.default_target_audience is not None:
+                company['default_settings']['target_audience'] = data.default_target_audience
+            if data.default_character_folder_id is not None:
+                company['default_settings']['character_folder_id'] = data.default_character_folder_id
             if data.default_format_strategy is not None:
                 company['default_settings']['format_strategy'] = data.default_format_strategy
-            if data.default_language is not None:
-                company['default_settings']['language'] = data.default_language
+            if data.default_video_engine is not None:
+                company['default_settings']['video_engine'] = data.default_video_engine
+            if data.default_target_duration is not None:
+                company['default_settings']['target_duration'] = data.default_target_duration
             
             company['updated_at'] = datetime.now(timezone.utc).isoformat()
             break
@@ -113,6 +129,8 @@ async def update_company(company_id: str, data: CompanyUpdate, user = Depends(ge
     
     settings['companies'] = companies
     supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
+    
+    print(f"✅ [COMPANY] Updated {company_id} with defaults: {company.get('default_settings', {})}")
     
     return {"success": True}
 
