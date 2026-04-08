@@ -534,8 +534,6 @@ async def create_avatars_batch(
                 "updated_at": now,
             }
             
-            avatars.append(doc)
-            
             # Update folder's avatar_ids
             if folder_id:
                 folder = next((f for f in folders if f.get("id") == folder_id), None)
@@ -545,6 +543,7 @@ async def create_avatars_batch(
                     folder["avatar_ids"] = avatar_ids
                     folder["updated_at"] = now
             
+            avatars.append(doc)
             created.append(doc)
             logger.info(f"✅ Batch avatar created: {avatar_name} ({doc_id})")
             
@@ -555,7 +554,7 @@ async def create_avatars_batch(
             logger.error(f"Failed to create avatar from prompt '{prompt[:50]}': {e}")
             failed.append({"prompt": prompt, "error": str(e)})
     
-    # Save all changes
+    # Save all changes (update settings with modified lists)
     settings["studio_avatars"] = avatars
     settings["avatar_folders"] = folders
     _save_settings(tenant["id"], settings)
