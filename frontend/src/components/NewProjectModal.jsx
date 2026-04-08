@@ -474,8 +474,9 @@ export function NewProjectModal({
   const isValid = projectName.trim() && animationSub;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className={`glass-card p-2 space-y-1 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto ${(showCreateCompany || showEditCompany) ? 'opacity-0 pointer-events-none' : ''}`}>
+      <div className="glass-card p-2 space-y-1 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
         {/* Header - COMPACTO */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -619,408 +620,6 @@ export function NewProjectModal({
           </p>
         </div>
         
-        {/* Modal: Create Company (inline) */}
-        {showCreateCompany && (
-          <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-0" onClick={() => setShowCreateCompany(false)}>
-            <div className="bg-white rounded-lg p-4 max-w-md w-[90%] space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
-                <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
-                  <Building2 size={18} className="text-[#8B5CF6]" />
-                  {lang === 'pt' ? 'Nova Empresa' : 'New Company'}
-                </h4>
-                <button onClick={() => setShowCreateCompany(false)} className="text-[#999] hover:text-[#333] transition">
-                  <X size={18} />
-                </button>
-              </div>
-              
-              {/* Company Name */}
-              <div>
-                <label className="text-xs font-medium text-[#666] mb-1.5 block">
-                  {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
-                </label>
-                <input
-                  value={newCompanyName}
-                  onChange={e => setNewCompanyName(e.target.value)}
-                  placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
-                  autoFocus
-                  className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-2.5 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
-                />
-              </div>
-              
-              {/* Logo Upload */}
-              <div>
-                <label className="text-xs font-medium text-[#666] mb-1.5 block">
-                  {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
-                </label>
-                
-                <div className="flex items-start gap-3">
-                  {/* Preview - Logo ocupa TODO o espaço */}
-                  <div className="shrink-0">
-                    <div className="w-24 h-24 rounded-lg overflow-hidden">
-                      {newCompanyLogo ? (
-                        <img 
-                          src={newCompanyLogo} 
-                          alt="Logo preview" 
-                          className="w-full h-full object-cover"
-                          style={{ objectPosition: newLogoPosition }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center border-2 border-[#E0E0E0]">
-                          <Building2 size={32} className="text-[#8B5CF6]/40" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Position controls - appear when logo is uploaded */}
-                    {newCompanyLogo && (
-                      <div className="mt-2 grid grid-cols-3 gap-0.5 bg-[#E0E0E0] rounded p-0.5">
-                        {[
-                          { id: 'top', label: '↑' },
-                          { id: 'center', label: '●' },
-                          { id: 'bottom', label: '↓' },
-                          { id: 'left', label: '←' },
-                          { id: 'center', label: '●' },
-                          { id: 'right', label: '→' },
-                        ].slice(0, 5).map((pos, idx) => {
-                          // Only show: top, center, bottom, left, right (skip duplicate center)
-                          const positions = ['top', 'center', 'bottom', 'left', 'right'];
-                          const labels = ['↑', '●', '↓', '←', '→'];
-                          return (
-                            <button
-                              key={positions[idx]}
-                              type="button"
-                              onClick={() => setNewLogoPosition(positions[idx])}
-                              className={`px-2 py-1 text-xs rounded transition ${
-                                newLogoPosition === positions[idx]
-                                  ? 'bg-[#8B5CF6] text-white'
-                                  : 'bg-white text-[#666] hover:bg-[#F9F7FF]'
-                              }`}
-                              title={positions[idx]}>
-                              {labels[idx]}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Upload Button */}
-                  <label className="flex-1 cursor-pointer">
-                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF] h-24 flex flex-col items-center justify-center">
-                      {uploadingLogo ? (
-                        <span className="text-xs text-[#666]">
-                          {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
-                        </span>
-                      ) : (
-                        <>
-                          <span className="text-xs text-[#666] block font-medium">
-                            {lang === 'pt' ? 'Clique para fazer upload' : 'Click to upload'}
-                          </span>
-                          <span className="text-[10px] text-[#999] mt-0.5 block">
-                            PNG, JPEG • Max 5MB
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg"
-                      onChange={handleLogoUpload}
-                      disabled={uploadingLogo}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                
-                {newCompanyLogo && (
-                  <button
-                    onClick={() => {
-                      setNewCompanyLogo('');
-                      setNewLogoPosition('center');
-                    }}
-                    className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
-                    {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
-                  </button>
-                )}
-              </div>
-              
-              <p className="text-[10px] text-[#666] bg-[#F9F7FF] rounded px-2 py-1.5 border border-[#E8E3FF]">
-                💡 {lang === 'pt' 
-                  ? 'As configurações atuais do projeto serão salvas como padrão para esta empresa.' 
-                  : 'Current project settings will be saved as defaults for this company.'}
-              </p>
-              
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => setShowCreateCompany(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
-                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
-                </button>
-                <button
-                  onClick={handleCreateCompany}
-                  disabled={!newCompanyName.trim() || creatingCompany}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
-                  {creatingCompany 
-                    ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
-                    : (lang === 'pt' ? 'Criar Empresa' : 'Create Company')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Modal: Edit Company */}
-        {showEditCompany && editingCompany && (
-          <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-0" onClick={() => setShowEditCompany(false)}>
-            <div className="bg-white rounded-lg p-4 max-w-md w-[90%] max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
-                <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
-                  <Edit2 size={18} className="text-[#8B5CF6]" />
-                  {lang === 'pt' ? 'Editar Empresa' : 'Edit Company'}
-                </h4>
-                <button onClick={() => setShowEditCompany(false)} className="text-[#999] hover:text-[#333] transition">
-                  <X size={18} />
-                </button>
-              </div>
-              
-              {/* Company Name */}
-              <div>
-                <label className="text-xs font-medium text-[#666] mb-0.5 block">
-                  {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
-                </label>
-                <input
-                  value={editCompanyName}
-                  onChange={e => setEditCompanyName(e.target.value)}
-                  placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
-                  autoFocus
-                  className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-1.5 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
-                />
-              </div>
-              
-              {/* Logo Upload - SIMPLIFICADO */}
-              <div>
-                <label className="text-xs font-medium text-[#666] mb-0.5 block">
-                  {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
-                </label>
-                
-                <div className="flex items-center gap-2">
-                  {/* Preview compacto SEM bordas lilás */}
-                  <div className="shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-white border border-[#E0E0E0] flex items-center justify-center">
-                    {editCompanyLogo ? (
-                      <img 
-                        src={editCompanyLogo} 
-                        alt="Logo" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Building2 size={16} className="text-gray-300" />
-                    )}
-                  </div>
-                  
-                  {/* Upload button compacto */}
-                  <label className="flex-1 cursor-pointer">
-                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-2 py-1.5 text-center transition bg-white/50 hover:bg-[#F9F7FF]">
-                      <span className="text-[9px] text-[#666] font-medium block">
-                        {uploadingEditLogo 
-                          ? (lang === 'pt' ? 'Enviando...' : 'Uploading...') 
-                          : (editCompanyLogo 
-                              ? (lang === 'pt' ? 'Alterar logo' : 'Change')
-                              : (lang === 'pt' ? 'Adicionar logo' : 'Add logo'))}
-                      </span>
-                      <span className="text-[7px] text-[#999]">PNG/JPEG • 5MB</span>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg"
-                      onChange={handleEditLogoUpload}
-                      disabled={uploadingEditLogo}
-                      className="hidden"
-                    />
-                  </label>
-                  
-                  {/* Botão remover inline */}
-                  {editCompanyLogo && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditCompanyLogo('');
-                      }}
-                      className="text-[9px] text-red-500 hover:text-red-600 transition whitespace-nowrap">
-                      ✕ Remover
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              {/* PROJECT DEFAULTS SECTION - COMPACTO */}
-              <div className="border-t-2 border-[#E0E0E0] pt-2 mt-1">
-                <h5 className="text-sm font-semibold text-[#333] mb-0.5 flex items-center gap-1.5">
-                  ⚙️ Padrões de Projeto
-                </h5>
-                <p className="text-[9px] text-[#999] mb-1.5">
-                  Configure valores padrão que serão aplicados automaticamente ao criar novos projetos
-                </p>
-                
-                {/* Default Visual Style - COMPLETO */}
-                <div className="mb-1">
-                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Estilo Visual Padrão</label>
-                  <div className="grid grid-cols-3 gap-0.5">
-                    {[
-                      { id: 'pixar_3d', label: 'Pixar 3D' },
-                      { id: 'cartoon_3d', label: 'Cartoon 3D' },
-                      { id: 'cartoon_2d', label: 'Cartoon 2D' },
-                      { id: 'anime_2d', label: 'Anime 2D' },
-                      { id: 'realistic', label: 'Realista' },
-                      { id: 'watercolor', label: 'Aquarela' },
-                    ].map(style => (
-                      <button key={style.id} type="button"
-                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_visual_style: style.id, default_animation_sub: style.id }))}
-                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
-                          editCompanyDefaults.default_visual_style === style.id
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
-                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
-                        }`}>
-                        {style.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Default Character Folder */}
-                <div className="mb-1">
-                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Pasta de Personagens Padrão</label>
-                  <div className="grid grid-cols-2 gap-0.5 max-h-20 overflow-y-auto p-0.5 bg-gray-50 rounded-lg">
-                    {folders.length > 0 ? folders.map(folder => (
-                      <button key={folder.id} type="button"
-                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_character_folder_id: folder.id }))}
-                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition text-left ${
-                          editCompanyDefaults.default_character_folder_id === folder.id
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
-                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-white'
-                        }`}>
-                        📁 {folder.name}
-                      </button>
-                    )) : (
-                      <p className="text-[10px] text-[#999] col-span-2 py-0.5 text-center">
-                        Nenhuma pasta
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Default Target Audience */}
-                <div className="mb-1">
-                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Público-Alvo Padrão</label>
-                  <div className="grid grid-cols-4 gap-0.5">
-                    {[
-                      { id: '3-6', label: '3-6' },
-                      { id: '6-9', label: '6-9' },
-                      { id: '10-13', label: '10-13' },
-                      { id: '14-17', label: '14-17' },
-                      { id: '18-25', label: '18-25' },
-                      { id: '25+', label: '25+' },
-                      { id: 'all', label: 'Todas' },
-                    ].map(age => (
-                      <button key={age.id} type="button"
-                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_audience: age.id }))}
-                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
-                          editCompanyDefaults.default_target_audience === age.id
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
-                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
-                        }`}>
-                        {age.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Default Format */}
-                <div className="mb-1">
-                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Formato Padrão</label>
-                  <div className="grid grid-cols-3 gap-0.5">
-                    {[
-                      { id: 'safe_zone', label: 'Safe Zone' },
-                      { id: 'dual', label: 'Dual' },
-                      { id: 'multi', label: 'Multi' },
-                    ].map(format => (
-                      <button key={format.id} type="button"
-                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_format_strategy: format.id }))}
-                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
-                          editCompanyDefaults.default_format_strategy === format.id
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
-                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
-                        }`}>
-                        {format.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Default Video Engine */}
-                <div className="mb-1">
-                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Engine de Vídeo Padrão</label>
-                  <div className="grid grid-cols-2 gap-0.5">
-                    {[
-                      { id: 'sora', label: 'Sora 2 (12s)' },
-                      { id: 'kling', label: 'Kling AI (5min)' },
-                    ].map(engine => (
-                      <button key={engine.id} type="button"
-                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_video_engine: engine.id }))}
-                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
-                          editCompanyDefaults.default_video_engine === engine.id
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
-                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
-                        }`}>
-                        {engine.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Default Duration (only for Kling) */}
-                {editCompanyDefaults.default_video_engine === 'kling' && (
-                  <div className="mb-1">
-                    <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Duração Padrão (min)</label>
-                    <div className="grid grid-cols-5 gap-0.5">
-                      {[5, 10, 15, 20, 25].map(duration => (
-                        <button key={duration} type="button"
-                          onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_duration: duration }))}
-                          className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
-                            editCompanyDefaults.default_target_duration === duration
-                              ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
-                              : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
-                          }`}>
-                          {duration}min
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <p className="text-[9px] text-[#999] italic mt-2">
-                  💡 Esses valores serão aplicados automaticamente ao criar novos projetos
-                </p>
-              </div>
-              
-              <div className="flex gap-2 pt-0.5">
-                <button
-                  onClick={() => setShowEditCompany(false)}
-                  className="flex-1 px-4 py-1.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
-                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
-                </button>
-                <button
-                  onClick={handleUpdateCompany}
-                  disabled={!editCompanyName.trim() || updatingCompany}
-                  className="flex-1 px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-xs font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
-                  {updatingCompany 
-                    ? (lang === 'pt' ? 'Salvando...' : 'Saving...') 
-                    : (lang === 'pt' ? 'Salvar' : 'Save')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Step 1: Project Name - ULTRA COMPACTO */}
         <div className="space-y-0.5">
           <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
@@ -1355,6 +954,403 @@ export function NewProjectModal({
         </div>
       </div>
     </div>
+    
+    {/* Modals de Empresa - Renderizados FORA do modal principal */}
+    {/* Modal: Create Company (inline) */}
+    {showCreateCompany && (
+      <div className="fixed inset-0 z-[80] bg-black/85 backdrop-blur-sm flex items-center justify-center p-0" onClick={() => setShowCreateCompany(false)}>
+        <div className="bg-white rounded-lg p-4 max-w-md w-[90%] space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between">
+            <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
+              <Building2 size={18} className="text-[#8B5CF6]" />
+              {lang === 'pt' ? 'Nova Empresa' : 'New Company'}
+            </h4>
+            <button onClick={() => setShowCreateCompany(false)} className="text-[#999] hover:text-[#333] transition">
+              <X size={18} />
+            </button>
+          </div>
+          
+          {/* Company Name */}
+          <div>
+            <label className="text-xs font-medium text-[#666] mb-1.5 block">
+              {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
+            </label>
+            <input
+              value={newCompanyName}
+              onChange={e => setNewCompanyName(e.target.value)}
+              placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
+              autoFocus
+              className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-2.5 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
+            />
+          </div>
+          
+          {/* Logo Upload */}
+          <div>
+            <label className="text-xs font-medium text-[#666] mb-1.5 block">
+              {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
+            </label>
+            
+            <div className="flex items-start gap-3">
+              <div className="shrink-0">
+                <div className="w-24 h-24 rounded-lg overflow-hidden">
+                  {newCompanyLogo ? (
+                    <img 
+                      src={newCompanyLogo} 
+                      alt="Logo preview" 
+                      className="w-full h-full object-cover"
+                      style={{ objectPosition: newLogoPosition }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center border-2 border-[#E0E0E0]">
+                      <Building2 size={32} className="text-[#8B5CF6]/40" />
+                    </div>
+                  )}
+                </div>
+                
+                {newCompanyLogo && (
+                  <div className="mt-2 grid grid-cols-3 gap-0.5 bg-[#E0E0E0] rounded p-0.5">
+                    {[
+                      { id: 'top', label: '↑' },
+                      { id: 'center', label: '●' },
+                      { id: 'bottom', label: '↓' },
+                      { id: 'left', label: '←' },
+                      { id: 'center', label: '●' },
+                      { id: 'right', label: '→' },
+                    ].slice(0, 5).map((pos, idx) => {
+                      const positions = ['top', 'center', 'bottom', 'left', 'right'];
+                      const labels = ['↑', '●', '↓', '←', '→'];
+                      return (
+                        <button
+                          key={positions[idx]}
+                          type="button"
+                          onClick={() => setNewLogoPosition(positions[idx])}
+                          className={`px-2 py-1 text-xs rounded transition ${
+                            newLogoPosition === positions[idx]
+                              ? 'bg-[#8B5CF6] text-white'
+                              : 'bg-white text-[#666] hover:bg-[#F9F7FF]'
+                          }`}
+                          title={positions[idx]}>
+                          {labels[idx]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              
+              <label className="flex-1 cursor-pointer">
+                <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF] h-24 flex flex-col items-center justify-center">
+                  {uploadingLogo ? (
+                    <span className="text-xs text-[#666]">
+                      {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-xs text-[#666] block font-medium">
+                        {lang === 'pt' ? 'Clique para fazer upload' : 'Click to upload'}
+                      </span>
+                      <span className="text-[10px] text-[#999] mt-0.5 block">
+                        PNG, JPEG • Max 5MB
+                      </span>
+                    </>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleLogoUpload}
+                  disabled={uploadingLogo}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            
+            {newCompanyLogo && (
+              <button
+                onClick={() => {
+                  setNewCompanyLogo('');
+                  setNewLogoPosition('center');
+                }}
+                className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
+                {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
+              </button>
+            )}
+          </div>
+          
+          <p className="text-[10px] text-[#666] bg-[#F9F7FF] rounded px-2 py-1.5 border border-[#E8E3FF]">
+            💡 {lang === 'pt' 
+              ? 'As configurações atuais do projeto serão salvas como padrão para esta empresa.' 
+              : 'Current project settings will be saved as defaults for this company.'}
+          </p>
+          
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => setShowCreateCompany(false)}
+              className="flex-1 px-4 py-2.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
+              {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+            </button>
+            <button
+              onClick={handleCreateCompany}
+              disabled={!newCompanyName.trim() || creatingCompany}
+              className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
+              {creatingCompany 
+                ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
+                : (lang === 'pt' ? 'Criar Empresa' : 'Create Company')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    {/* Modal: Edit Company */}
+    {showEditCompany && editingCompany && (
+      <div className="fixed inset-0 z-[80] bg-black/85 backdrop-blur-sm flex items-center justify-center p-0" onClick={() => setShowEditCompany(false)}>
+        <div className="bg-white rounded-lg p-4 max-w-md w-[90%] max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between">
+            <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
+              <Edit2 size={18} className="text-[#8B5CF6]" />
+              {lang === 'pt' ? 'Editar Empresa' : 'Edit Company'}
+            </h4>
+            <button onClick={() => setShowEditCompany(false)} className="text-[#999] hover:text-[#333] transition">
+              <X size={18} />
+            </button>
+          </div>
+          
+          {/* Company Name */}
+          <div>
+            <label className="text-xs font-medium text-[#666] mb-0.5 block">
+              {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
+            </label>
+            <input
+              value={editCompanyName}
+              onChange={e => setEditCompanyName(e.target.value)}
+              placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
+              autoFocus
+              className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-1.5 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
+            />
+          </div>
+          
+          {/* Logo Upload - SIMPLIFICADO */}
+          <div>
+            <label className="text-xs font-medium text-[#666] mb-0.5 block">
+              {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
+            </label>
+            
+            <div className="flex items-center gap-2">
+              <div className="shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-white border border-[#E0E0E0] flex items-center justify-center">
+                {editCompanyLogo ? (
+                  <img 
+                    src={editCompanyLogo} 
+                    alt="Logo" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Building2 size={16} className="text-gray-300" />
+                )}
+              </div>
+              
+              <label className="flex-1 cursor-pointer">
+                <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-2 py-1.5 text-center transition bg-white/50 hover:bg-[#F9F7FF]">
+                  <span className="text-[9px] text-[#666] font-medium block">
+                    {uploadingEditLogo 
+                      ? (lang === 'pt' ? 'Enviando...' : 'Uploading...') 
+                      : (editCompanyLogo 
+                          ? (lang === 'pt' ? 'Alterar logo' : 'Change')
+                          : (lang === 'pt' ? 'Adicionar logo' : 'Add logo'))}
+                  </span>
+                  <span className="text-[7px] text-[#999]">PNG/JPEG • 5MB</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleEditLogoUpload}
+                  disabled={uploadingEditLogo}
+                  className="hidden"
+                />
+              </label>
+              
+              {editCompanyLogo && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditCompanyLogo('');
+                  }}
+                  className="text-[9px] text-red-500 hover:text-red-600 transition whitespace-nowrap">
+                  ✕ Remover
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* PROJECT DEFAULTS SECTION - COMPACTO */}
+          <div className="border-t-2 border-[#E0E0E0] pt-2 mt-1">
+            <h5 className="text-sm font-semibold text-[#333] mb-0.5 flex items-center gap-1.5">
+              ⚙️ Padrões de Projeto
+            </h5>
+            <p className="text-[9px] text-[#999] mb-1.5">
+              Configure valores padrão que serão aplicados automaticamente ao criar novos projetos
+            </p>
+            
+            {/* Default Visual Style - COMPLETO */}
+            <div className="mb-1">
+              <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Estilo Visual Padrão</label>
+              <div className="grid grid-cols-3 gap-0.5">
+                {[
+                  { id: 'pixar_3d', label: 'Pixar 3D' },
+                  { id: 'cartoon_3d', label: 'Cartoon 3D' },
+                  { id: 'cartoon_2d', label: 'Cartoon 2D' },
+                  { id: 'anime_2d', label: 'Anime 2D' },
+                  { id: 'realistic', label: 'Realista' },
+                  { id: 'watercolor', label: 'Aquarela' },
+                ].map(style => (
+                  <button key={style.id} type="button"
+                    onClick={() => setEditCompanyDefaults(p => ({ ...p, default_visual_style: style.id, default_animation_sub: style.id }))}
+                    className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                      editCompanyDefaults.default_visual_style === style.id
+                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                        : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                    }`}>
+                    {style.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Default Character Folder */}
+            <div className="mb-1">
+              <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Pasta de Personagens Padrão</label>
+              <div className="grid grid-cols-2 gap-0.5 max-h-20 overflow-y-auto p-0.5 bg-gray-50 rounded-lg">
+                {folders.length > 0 ? folders.map(folder => (
+                  <button key={folder.id} type="button"
+                    onClick={() => setEditCompanyDefaults(p => ({ ...p, default_character_folder_id: folder.id }))}
+                    className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition text-left ${
+                      editCompanyDefaults.default_character_folder_id === folder.id
+                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                        : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-white'
+                    }`}>
+                    📁 {folder.name}
+                  </button>
+                )) : (
+                  <p className="text-[10px] text-[#999] col-span-2 py-0.5 text-center">
+                    Nenhuma pasta
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Default Target Audience */}
+            <div className="mb-1">
+              <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Público-Alvo Padrão</label>
+              <div className="grid grid-cols-4 gap-0.5">
+                {[
+                  { id: '3-6', label: '3-6' },
+                  { id: '6-9', label: '6-9' },
+                  { id: '10-13', label: '10-13' },
+                  { id: '14-17', label: '14-17' },
+                  { id: '18-25', label: '18-25' },
+                  { id: '25+', label: '25+' },
+                  { id: 'all', label: 'Todas' },
+                ].map(age => (
+                  <button key={age.id} type="button"
+                    onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_audience: age.id }))}
+                    className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                      editCompanyDefaults.default_target_audience === age.id
+                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                        : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                    }`}>
+                    {age.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Default Format */}
+            <div className="mb-1">
+              <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Formato Padrão</label>
+              <div className="grid grid-cols-3 gap-0.5">
+                {[
+                  { id: 'safe_zone', label: 'Safe Zone' },
+                  { id: 'dual', label: 'Dual' },
+                  { id: 'multi', label: 'Multi' },
+                ].map(format => (
+                  <button key={format.id} type="button"
+                    onClick={() => setEditCompanyDefaults(p => ({ ...p, default_format_strategy: format.id }))}
+                    className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                      editCompanyDefaults.default_format_strategy === format.id
+                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                        : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                    }`}>
+                    {format.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Default Video Engine */}
+            <div className="mb-1">
+              <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Engine de Vídeo Padrão</label>
+              <div className="grid grid-cols-2 gap-0.5">
+                {[
+                  { id: 'sora', label: 'Sora 2 (12s)' },
+                  { id: 'kling', label: 'Kling AI (5min)' },
+                ].map(engine => (
+                  <button key={engine.id} type="button"
+                    onClick={() => setEditCompanyDefaults(p => ({ ...p, default_video_engine: engine.id }))}
+                    className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                      editCompanyDefaults.default_video_engine === engine.id
+                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                        : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                    }`}>
+                    {engine.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Default Duration (only for Kling) */}
+            {editCompanyDefaults.default_video_engine === 'kling' && (
+              <div className="mb-1">
+                <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Duração Padrão (min)</label>
+                <div className="grid grid-cols-5 gap-0.5">
+                  {[5, 10, 15, 20, 25].map(duration => (
+                    <button key={duration} type="button"
+                      onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_duration: duration }))}
+                      className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                        editCompanyDefaults.default_target_duration === duration
+                          ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                          : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                      }`}>
+                      {duration}min
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <p className="text-[9px] text-[#999] italic mt-2">
+              💡 Esses valores serão aplicados automaticamente ao criar novos projetos
+            </p>
+          </div>
+          
+          <div className="flex gap-2 pt-0.5">
+            <button
+              onClick={() => setShowEditCompany(false)}
+              className="flex-1 px-4 py-1.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
+              {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+            </button>
+            <button
+              onClick={handleUpdateCompany}
+              disabled={!editCompanyName.trim() || updatingCompany}
+              className="flex-1 px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-xs font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
+              {updatingCompany 
+                ? (lang === 'pt' ? 'Salvando...' : 'Saving...') 
+                : (lang === 'pt' ? 'Salvar' : 'Save')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
