@@ -662,8 +662,9 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
             character_folder_id = project.get("character_folder_id")  # NEW
             target_audience = project.get("target_audience", "all")  # NEW
             video_engine = project.get("video_engine", "sora")  # NEW: Get video engine
+            target_duration = project.get("target_duration_minutes", 5)  # FIXED: Get target duration
             
-            logger.info(f"Screenwriter [{project['id']}]: Using engine={video_engine}, target_audience={target_audience}")
+            logger.info(f"Screenwriter [{project['id']}]: Using engine={video_engine}, target_duration={target_duration}min, target_audience={target_audience}")
             
             result = generate_screenplay_parallel(
                 tenant_id=tenant["id"],
@@ -676,7 +677,8 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
                 max_workers=3,
                 character_folder_id=character_folder_id,  # NEW
                 target_audience=target_audience,  # NEW
-                video_engine=video_engine  # NEW: Pass video engine
+                video_engine=video_engine,  # NEW: Pass video engine
+                target_duration_minutes=target_duration  # FIXED: Pass target duration
             )
             _merge_screenplay_results(tenant["id"], project["id"], result)
         except Exception as e:

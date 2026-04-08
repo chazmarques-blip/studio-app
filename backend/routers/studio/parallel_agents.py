@@ -27,7 +27,8 @@ def generate_screenplay_parallel(
     max_workers: int = 3,
     character_folder_id: str = None,  # NEW: Folder ID for character library
     target_audience: str = "all",  # NEW: Target audience age range
-    video_engine: str = "sora"  # NEW: Video engine (sora/kling)
+    video_engine: str = "sora",  # NEW: Video engine (sora/kling)
+    target_duration_minutes: int = 5  # FIXED: Target duration in minutes
 ) -> Dict:
     """
     Generate screenplay using parallel agents
@@ -50,17 +51,25 @@ def generate_screenplay_parallel(
     Returns:
         Dict with scenes, characters, metadata
     """
-    logger.info(f"ParallelScreenplay [{project_id}]: Starting parallel generation (max_scenes={max_scenes}, workers={max_workers}, engine={video_engine})")
+    logger.info(f"ParallelScreenplay [{project_id}]: Starting parallel generation (max_scenes={max_scenes}, workers={max_workers}, engine={video_engine}, target_duration={target_duration_minutes}min)")
     
     from .screenwriter import SCREENWRITER_SYSTEM_SORA, SCREENWRITER_SYSTEM_KLING, LANG_FULL_NAMES
     
-    # ── Choose system template based on video engine ──
+    # ── Calculate number of scenes based on video engine ──
     if video_engine == "kling":
+        # Kling: 5 minutes per scene
+        num_scenes_needed = target_duration_minutes // 5
+        if num_scenes_needed < 1:
+            num_scenes_needed = 1
         system_template = SCREENWRITER_SYSTEM_KLING
-        logger.info(f"ParallelScreenplay [{project_id}]: Using KLING template (5-minute scenes)")
+        scene_duration = "5 minutos"
+        logger.info(f"ParallelScreenplay [{project_id}]: KLING mode - {num_scenes_needed} scene(s) × 5min = {target_duration_minutes}min")
     else:
+        # Sora: 12 seconds per scene
+        num_scenes_needed = (target_duration_minutes * 60) // 12
         system_template = SCREENWRITER_SYSTEM_SORA
-        logger.info(f"ParallelScreenplay [{project_id}]: Using SORA template (12-second scenes)")
+        scene_duration = "12 segundos"
+        logger.info(f"ParallelScreenplay [{project_id}]: SORA mode - {num_scenes_needed} scenes × 12s = {target_duration_minutes}min")
     
     # ── NEW: Get character library from folder ──
     folder_characters = []
@@ -93,7 +102,8 @@ def generate_screenplay_parallel(
     # ── Phase 1: Foundation Agent (First Batch) ──
     logger.info(f"ParallelScreenplay [{project_id}]: Phase 1 - Foundation agent generating structure")
     
-    system = system_template.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang))
+    # Replace all template placeholders
+    system = system_template.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang)).replace("{target_duration}", str(target_duration_minutes)).replace("{num_scenes}", str(num_scenes_needed))
     
     # Add character library and audience guidelines to system prompt
     if character_library_text:
@@ -104,15 +114,26 @@ def generate_screenplay_parallel(
     
     audio_instruction = _build_audio_instruction(lang, audio_mode, LANG_FULL_NAMES)
     
+    # Adapt batch_size for video engine
+    if video_engine == "kling":
+        # For Kling, generate fewer scenes per batch (1-2 scenes, as each is 5min)
+        effective_batch_size = min(2, num_scenes_needed)
+    else:
+        # For Sora, keep original batch size
+        effective_batch_size = min(batch_size, num_scenes_needed)
+    
     initial_prompt = f"""
 Story: {user_prompt}
 {audio_instruction}
 
-Create the screenplay structure with the first {batch_size} scenes. Set "total_scenes" to the FULL number the story needs (up to {max_scenes}). Return ONLY valid JSON with:
+ENGINE: {video_engine.upper()} ({scene_duration} por cena)
+TARGET: {target_duration_minutes} minutos = {num_scenes_needed} cena(s)
+
+Create the screenplay structure with the first {effective_batch_size} scene(s). Set "total_scenes" to {num_scenes_needed}. Return ONLY valid JSON with:
 - title
-- total_scenes (full amount needed)
+- total_scenes (exactly {num_scenes_needed})
 - characters (all main characters)
-- scenes (first {batch_size} scenes only)
+- scenes (first {effective_batch_size} scene(s) only)
 - research_notes
 """
     
@@ -131,7 +152,8 @@ Create the screenplay structure with the first {batch_size} scenes. Set "total_s
         
         all_scenes = foundation.get("scenes", [])
         all_characters = foundation.get("characters", [])
-        total_needed = min(foundation.get("total_scenes", len(all_scenes)), max_scenes)
+        # Cap total_scenes to what was calculated based on target_duration and engine
+        total_needed = min(foundation.get("total_scenes", len(all_scenes)), num_scenes_needed)
         title = foundation.get("title", "Untitled")
         
         logger.info(f"ParallelScreenplay [{project_id}]: Foundation complete - {len(all_scenes)}/{total_needed} scenes, {len(all_characters)} characters")
