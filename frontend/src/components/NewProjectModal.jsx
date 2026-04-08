@@ -797,48 +797,25 @@ export function NewProjectModal({
                 />
               </div>
               
-              {/* Logo Upload - TUDO EM UMA LINHA HORIZONTAL */}
+              {/* Logo Upload - SIMPLIFICADO */}
               <div>
                 <label className="text-xs font-medium text-[#666] mb-0.5 block">
                   {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
                 
                 <div className="flex items-center gap-2">
-                  {/* Preview compacto */}
-                  <div className="shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
+                  {/* Preview compacto SEM bordas lilás */}
+                  <div className="shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-white border border-[#E0E0E0] flex items-center justify-center">
                     {editCompanyLogo ? (
                       <img 
                         src={editCompanyLogo} 
                         alt="Logo" 
-                        className="max-w-full max-h-full object-contain p-0.5"
-                        style={{ objectPosition: editLogoPosition }}
+                        className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Building2 size={16} className="text-[#8B5CF6]/40" />
+                      <Building2 size={16} className="text-gray-300" />
                     )}
                   </div>
-                  
-                  {/* Controles de posição inline */}
-                  {editCompanyLogo && (
-                    <div className="flex gap-0.5">
-                      {['top', 'center', 'bottom', 'left', 'right'].map((pos, idx) => {
-                        const labels = ['↑', '●', '↓', '←', '→'];
-                        return (
-                          <button
-                            key={pos}
-                            type="button"
-                            onClick={() => setEditLogoPosition(pos)}
-                            className={`w-5 h-5 flex items-center justify-center text-[10px] rounded transition ${
-                              editLogoPosition === pos
-                                ? 'bg-[#8B5CF6] text-white'
-                                : 'bg-[#E0E0E0] text-[#666] hover:bg-[#8B5CF6]/20'
-                            }`}>
-                            {labels[idx]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
                   
                   {/* Upload button compacto */}
                   <label className="flex-1 cursor-pointer">
@@ -867,7 +844,6 @@ export function NewProjectModal({
                       type="button"
                       onClick={() => {
                         setEditCompanyLogo('');
-                        setEditLogoPosition('center');
                       }}
                       className="text-[9px] text-red-500 hover:text-red-600 transition whitespace-nowrap">
                       ✕ Remover
