@@ -106,6 +106,65 @@ export function NewProjectModal({
       }
     };
     
+
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW: Apply company defaults when company is selected
+  // ═══════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (selectedCompany) {
+      console.log('🏢 [NewProjectModal] Applying defaults from company:', selectedCompany.name);
+      
+      // Apply defaults if they exist
+      if (selectedCompany.default_visual_style) {
+        setVisualStyle(selectedCompany.default_visual_style);
+        console.log('  ✅ Visual Style:', selectedCompany.default_visual_style);
+      }
+      
+      if (selectedCompany.default_animation_sub) {
+        setAnimationSub(selectedCompany.default_animation_sub);
+        console.log('  ✅ Animation Sub:', selectedCompany.default_animation_sub);
+      }
+      
+      if (selectedCompany.default_target_audience) {
+        setTargetAudience(selectedCompany.default_target_audience);
+        console.log('  ✅ Target Audience:', selectedCompany.default_target_audience);
+      }
+      
+      if (selectedCompany.default_format_strategy) {
+        setFormatStrategy(selectedCompany.default_format_strategy);
+        console.log('  ✅ Format Strategy:', selectedCompany.default_format_strategy);
+      }
+      
+      if (selectedCompany.default_video_engine) {
+        setVideoEngine(selectedCompany.default_video_engine);
+        console.log('  ✅ Video Engine:', selectedCompany.default_video_engine);
+      }
+      
+      if (selectedCompany.default_target_duration) {
+        setTargetDuration(selectedCompany.default_target_duration);
+        console.log('  ✅ Target Duration:', selectedCompany.default_target_duration);
+      }
+      
+      // Auto-select company's character folder if it exists
+      if (selectedCompany.default_character_folder_id) {
+        const folder = folders.find(f => f.id === selectedCompany.default_character_folder_id);
+        if (folder) {
+          setSelectedFolder(folder.id);
+          console.log('  ✅ Character Folder:', folder.name);
+        }
+      }
+    }
+  }, [selectedCompany, folders]);
+  
+  // Auto-select company if only one exists
+  useEffect(() => {
+    if (companies.length === 1 && !selectedCompany) {
+      console.log('📍 [NewProjectModal] Only 1 company, auto-selecting:', companies[0].name);
+      setSelectedCompany(companies[0]);
+    }
+  }, [companies, selectedCompany]);
+
     fetchFolders();
   }, [token]);
 

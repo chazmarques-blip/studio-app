@@ -117,6 +117,130 @@ export function CompanyModal({
               className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#fff]/20" />
           </div>
         </div>
+        
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* PROJECT DEFAULTS SECTION (NEW) */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <div className="border-t border-[#1E1E1E] pt-3 mt-2">
+          <p className="text-xs text-white font-semibold mb-2">⚙️ Padrões de Projeto</p>
+          <p className="text-[10px] text-[#999] mb-3">Configure valores padrão que serão aplicados automaticamente ao criar novos projetos</p>
+          
+          {/* Default Visual Style */}
+          <div className="mb-2">
+            <label className="text-[10px] text-[#999] uppercase mb-1 block">Estilo Visual Padrão</label>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                { id: 'pixar_3d', label: 'Pixar 3D' },
+                { id: 'cartoon_2d', label: 'Cartoon 2D' },
+                { id: 'realista', label: 'Realista' },
+              ].map(style => (
+                <button key={style.id} type="button"
+                  onClick={() => setNewCompany(p => ({ ...p, default_visual_style: style.id, default_animation_sub: style.id }))}
+                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                    newCompany.default_visual_style === style.id
+                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                      : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
+                  }`}>
+                  {style.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Default Target Audience */}
+          <div className="mb-2">
+            <label className="text-[10px] text-[#999] uppercase mb-1 block">Público-Alvo Padrão</label>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                { id: '3-6', label: '3-6 anos' },
+                { id: '6-9', label: '6-9 anos' },
+                { id: '10-13', label: '10-13' },
+                { id: '14-17', label: '14-17' },
+                { id: '18-25', label: '18-25' },
+                { id: '25+', label: '25+' },
+                { id: 'all', label: 'Todas' },
+              ].map(age => (
+                <button key={age.id} type="button"
+                  onClick={() => setNewCompany(p => ({ ...p, default_target_audience: age.id }))}
+                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                    newCompany.default_target_audience === age.id
+                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                      : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
+                  }`}>
+                  {age.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Default Format */}
+          <div className="mb-2">
+            <label className="text-[10px] text-[#999] uppercase mb-1 block">Formato Padrão</label>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                { id: 'safe_zone', label: 'Safe Zone' },
+                { id: 'dual', label: 'Dual' },
+                { id: 'multi', label: 'Multi' },
+              ].map(format => (
+                <button key={format.id} type="button"
+                  onClick={() => setNewCompany(p => ({ ...p, default_format_strategy: format.id }))}
+                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                    newCompany.default_format_strategy === format.id
+                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                      : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
+                  }`}>
+                  {format.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Default Video Engine */}
+          <div className="mb-2">
+            <label className="text-[10px] text-[#999] uppercase mb-1 block">Engine de Vídeo Padrão</label>
+            <div className="grid grid-cols-2 gap-1">
+              {[
+                { id: 'sora', label: 'Sora 2 (12s)' },
+                { id: 'kling', label: 'Kling AI (5min)' },
+              ].map(engine => (
+                <button key={engine.id} type="button"
+                  onClick={() => setNewCompany(p => ({ ...p, default_video_engine: engine.id }))}
+                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                    newCompany.default_video_engine === engine.id
+                      ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                      : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
+                  }`}>
+                  {engine.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Default Duration (only for Kling) */}
+          {newCompany.default_video_engine === 'kling' && (
+            <div className="mb-2">
+              <label className="text-[10px] text-[#999] uppercase mb-1 block">Duração Padrão (minutos)</label>
+              <div className="grid grid-cols-5 gap-1">
+                {[5, 10, 15, 20, 25].map(duration => (
+                  <button key={duration} type="button"
+                    onClick={() => setNewCompany(p => ({ ...p, default_target_duration: duration }))}
+                    className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                      newCompany.default_target_duration === duration
+                        ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
+                        : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
+                    }`}>
+                    {duration}min
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <p className="text-[9px] text-[#666] italic mt-2">
+            💡 Pasta de personagens padrão será definida após selecionar a empresa no projeto
+          </p>
+        </div>
+
         <div className="flex gap-2 pt-2">
           <button onClick={cancelCompanyForm}
             className="flex-1 rounded-lg border border-[#1E1E1E] py-2 text-xs text-[#888] hover:text-white transition">

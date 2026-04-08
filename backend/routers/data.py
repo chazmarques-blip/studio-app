@@ -28,6 +28,15 @@ class CompanyIn(BaseModel):
     facebook_url: str = ""
     instagram_url: str = ""
     tiktok_url: str = ""
+    
+    # ── Project Defaults (NEW) ──
+    default_visual_style: Optional[str] = None
+    default_animation_sub: Optional[str] = None
+    default_target_audience: Optional[str] = None
+    default_character_folder_id: Optional[str] = None
+    default_format_strategy: Optional[str] = None
+    default_video_engine: Optional[str] = None
+    default_target_duration: Optional[int] = None
 
 class AvatarIn(BaseModel):
     id: Optional[str] = None
@@ -90,6 +99,14 @@ async def upsert_company(data: CompanyIn, user=Depends(get_current_user), tenant
         "facebook_url": data.facebook_url,
         "instagram_url": data.instagram_url,
         "tiktok_url": data.tiktok_url,
+        # Project Defaults
+        "default_visual_style": data.default_visual_style,
+        "default_animation_sub": data.default_animation_sub,
+        "default_target_audience": data.default_target_audience,
+        "default_character_folder_id": data.default_character_folder_id,
+        "default_format_strategy": data.default_format_strategy,
+        "default_video_engine": data.default_video_engine,
+        "default_target_duration": data.default_target_duration,
         "updated_at": now,
     }
 
