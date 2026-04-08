@@ -1918,6 +1918,9 @@ export default function StudioPage() {
             elevenLabsVoices,
             elevenLabsAvailable,
             avatarPreviewUrl,
+            promptBatchMode,
+            batchProgress,
+            avatars,
             setAvatarCreationMode,
             setAvatarSourceType,
             setAvatarSourcePhoto,
@@ -1941,6 +1944,7 @@ export default function StudioPage() {
             setPreviewVideoUrl,
             setGeneratingPreviewVideo,
             setApplyingClothing,
+            setPromptBatchMode,
             resetAvatarModal,
             generateAvatarFromPhoto: async () => {
               console.log('🎨 Global generateAvatarFromPhoto');
@@ -2145,6 +2149,7 @@ export default function StudioPage() {
                 toast.error('Erro ao iniciar geração 360°');
               }
             },
+            generateAvatarBatch,
             saveAvatarAndClose: async () => {
               console.log('💾 Global saveAvatarAndClose');
               
