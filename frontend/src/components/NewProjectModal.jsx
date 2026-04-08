@@ -529,7 +529,7 @@ export function NewProjectModal({
                       <img 
                         src={company.logo_url} 
                         alt={company.name} 
-                        className="w-full h-full object-contain p-1"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
