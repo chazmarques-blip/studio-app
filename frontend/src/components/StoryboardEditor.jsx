@@ -264,6 +264,42 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // ✅ NEW: Continuous polling when panels are generating
+  useEffect(() => {
+    if (!projectId) return;
+    
+    const hasGeneratingPanels = panels.some(p => p.status === 'generating');
+    if (!hasGeneratingPanels) return;
+    
+    // Poll every 2 seconds while generating
+    const pollInterval = setInterval(async () => {
+      try {
+        const r = await axios.get(`${API}/studio/projects/${projectId}/storyboard/progress`);
+        const { progress, panels: newPanels } = r.data;
+        
+        const sortedPanels = (newPanels || []).sort((a, b) => a.panel_number - b.panel_number);
+        setPanels(sortedPanels);
+        setStoryboardStatus(progress || {});
+        
+        console.log(`🎨 [Polling] ${sortedPanels.filter(p => p.status === 'done').length}/${sortedPanels.length} done`);
+        
+        // Stop polling if all done
+        const allDone = sortedPanels.every(p => p.status === 'done' || p.status === 'error');
+        if (allDone) {
+          const doneCount = sortedPanels.filter(p => p.status === 'done').length;
+          toast.success(lang === 'pt'
+            ? `✅ Storyboard completo! ${doneCount}/${sortedPanels.length} painéis gerados.`
+            : `✅ Storyboard complete! ${doneCount}/${sortedPanels.length} panels generated.`
+          );
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 2000);
+    
+    return () => clearInterval(pollInterval);
+  }, [projectId, panels, lang]);
+
   const loadStoryboard = async () => {
     try {
       const r = await axios.get(`${API}/studio/projects/${projectId}/storyboard`);
