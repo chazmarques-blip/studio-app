@@ -499,9 +499,9 @@ export function NewProjectModal({
               {lang === 'pt' ? 'Carregando empresas...' : 'Loading companies...'}
             </div>
           ) : (
-            <div className="flex gap-1 overflow-x-auto pb-1">
-              {/* Existing companies */}
-              {companies.map(company => (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {/* Existing companies - Filtrar Test Company */}
+              {companies.filter(c => !c.name.toLowerCase().includes('test')).map(company => (
                 <div key={company.id} className="shrink-0 relative group">
                   <button
                     type="button"
@@ -519,12 +519,13 @@ export function NewProjectModal({
                         }
                       }
                     }}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 transition-all ${
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all w-20 ${
                       selectedCompany?.id === company.id
                         ? 'border-[#8B5CF6] bg-[#F3F0FF]'
                         : 'border-[#E0E0E0] bg-white hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                     }`}>
-                    <div className="w-8 h-8 rounded overflow-hidden shrink-0">
+                    {/* Logo grande */}
+                    <div className="w-14 h-14 rounded overflow-hidden shrink-0">
                       {company.logo_url ? (
                         <img 
                           src={company.logo_url} 
@@ -533,38 +534,37 @@ export function NewProjectModal({
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
-                          <Building2 size={14} className="text-[#8B5CF6]" />
+                          <Building2 size={24} className="text-[#8B5CF6]" />
                         </div>
                       )}
                     </div>
-                    <span className="text-[10px] font-medium truncate max-w-[60px] text-[#333]">
+                    {/* Nome pequeno abaixo */}
+                    <span className="text-[8px] font-medium text-center text-[#333] leading-tight line-clamp-2 w-full">
                       {company.name}
                     </span>
                     {selectedCompany?.id === company.id && (
-                      <Check size={12} className="text-[#8B5CF6] shrink-0" />
+                      <Check size={10} className="text-[#8B5CF6] absolute top-1 right-1" />
                     )}
                   </button>
                   
-                  {/* Edit button - inside card, top right corner */}
+                  {/* Edit button - inside card, top left corner */}
                   <button
                     type="button"
                     onClick={(e) => handleOpenEditCompany(company, e)}
-                    className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md z-10"
+                    className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md z-10"
                     title={lang === 'pt' ? 'Editar' : 'Edit'}>
-                    <Edit2 size={10} />
+                    <Edit2 size={9} />
                   </button>
                 </div>
               ))}
 
-              {/* Button: Create new company */}
+              {/* Button: Create new company - SEM QUADRO, apenas ícone + */}
               <button
                 type="button"
                 onClick={() => setShowCreateCompany(true)}
-                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] bg-white hover:bg-[#F9F7FF] transition-all">
-                <Plus size={14} className="text-[#8B5CF6]" />
-                <span className="text-[10px] font-medium whitespace-nowrap text-[#666]">
-                  {lang === 'pt' ? 'Nova' : 'New'}
-                </span>
+                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all shadow-md self-start mt-2"
+                title={lang === 'pt' ? 'Nova Empresa' : 'New Company'}>
+                <Plus size={16} strokeWidth={2.5} />
               </button>
             </div>
           )}
