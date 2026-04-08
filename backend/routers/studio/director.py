@@ -13,7 +13,7 @@ class DirectorReviewRequest(BaseModel):
     focus: str = "full"  # "full", "dialogues", "pacing", "emotion", "continuity"
 
 
-async def _review_scene_batch(batch_scenes, characters, project_meta, lang, batch_num, max_retries=5):
+async def _review_scene_batch(batch_scenes, characters, project_meta, lang, batch_num, max_retries=3):
     """Review a batch of scenes with AUTOMATIC RETRY on failure.
     NEVER gives up — retries with exponential backoff until success."""
     import litellm
@@ -94,11 +94,11 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
     
     user_prompt = f"Review these {len(batch_scenes)} scenes. Return ONLY the JSON response:\n\n{script_text}"
     
-    # RETRY LOOP with exponential backoff
+    # RETRY LOOP with fixed backoff
     last_error = None
     for attempt in range(max_retries):
         try:
-            logger.info(f"Batch {batch_num}: Attempt {attempt + 1}/{max_retries}")
+            logger.info(f"Batch {batch_num}: Attempt {attempt + 1}/{max_retries} — Reviewing {len(batch_scenes)} scenes (timeout: 15min, max_tokens: 16k)")
             
             response = await litellm.acompletion(
                 model="anthropic/claude-sonnet-4-5-20250929",
@@ -107,8 +107,8 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
                     {"role": "user", "content": user_prompt}
                 ],
                 api_key=api_key,
-                max_tokens=6000,
-                timeout=300,  # 5 minutes - no API contention with sequential processing
+                max_tokens=16000,  # Increased from 6000 → handles long/complex scenes
+                timeout=900,  # 15 minutes (increased from 5) → no premature timeouts
                 response_format={
                     "type": "json_schema",
                     "json_schema": {
@@ -154,8 +154,8 @@ CRITICAL: Return ONLY valid JSON, no extra text before or after.
             logger.error(f"Batch {batch_num}: Attempt {attempt + 1} failed: {e}")
             
             if attempt < max_retries - 1:
-                # Exponential backoff: 2s, 4s, 8s, 16s
-                wait_time = 2 ** (attempt + 1)
+                # Fixed 5s backoff (simpler, less aggressive than exponential)
+                wait_time = 5
                 logger.info(f"Batch {batch_num}: Retrying in {wait_time}s...")
                 await asyncio.sleep(wait_time)
             else:
@@ -512,7 +512,7 @@ async def resume_director_review(project_id: str, tenant=Depends(get_current_ten
         logger.info(f"Resume: No stuck review found for {project_id}, starting fresh...")
         return await director_review(project_id, DirectorReviewRequest(focus="full"), tenant)
     
-    # Check if truly stuck (no update in last 5 minutes)
+    # Check if truly stuck (no update in last 10 minutes)
     import time
     from datetime import datetime, timezone, timedelta
     
@@ -521,7 +521,7 @@ async def resume_director_review(project_id: str, tenant=Depends(get_current_ten
         last_update_time = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
         time_since_update = (datetime.now(timezone.utc) - last_update_time).total_seconds()
         
-        if time_since_update < 300:  # Less than 5 minutes
+        if time_since_update < 600:  # Less than 10 minutes (increased from 5)
             return {
                 "status": "in_progress",
                 "message": f"Review is actively running (updated {int(time_since_update)}s ago)",

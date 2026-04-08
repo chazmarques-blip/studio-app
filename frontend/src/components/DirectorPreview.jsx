@@ -93,11 +93,12 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             watchdogTriggered = false;
           }
           
-          // WATCHDOG: If no progress for 90 seconds, auto-resume
+          // WATCHDOG: If no progress for 8 minutes (480s), auto-resume
+          // Backend timeout is 15min per batch, so give it plenty of time
           const timeSinceUpdate = (Date.now() - lastProgressUpdate) / 1000;
-          if (timeSinceUpdate > 90 && !watchdogTriggered) {
+          if (timeSinceUpdate > 480 && !watchdogTriggered) {
             watchdogTriggered = true;
-            console.warn('🐕 WATCHDOG: Progress stuck for 90s, auto-resuming...');
+            console.warn('🐕 WATCHDOG: Progress stuck for 8 minutes, auto-resuming...');
             toast.warning(
               lang === 'pt' 
                 ? '⚠️ Revisão travada detectada. Retomando automaticamente...' 
