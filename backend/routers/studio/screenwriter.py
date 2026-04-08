@@ -8,8 +8,54 @@ from ._shared import *
 SCREENWRITER_SYSTEM_SORA = """⚠️ CRITICAL LANGUAGE RULE - READ THIS FIRST:
 YOU MUST write ALL content (titles, scene descriptions, dialogue, narration, research_notes) in {lang_name} ({lang}).
 DO NOT write in English unless the language IS English. DO NOT mix languages.
-This rule applies to EVERY scene, EVERY response, EVERY continuation.
-MANDATORY and NON-NEGOTIABLE.
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NARRATIVE STRUCTURE GUIDELINES - INTRO & CLOSING
+# ══════════════════════════════════════════════════════════════════════════════
+
+NARRATIVE_STRUCTURE_INTRO_CLOSING = """
+===============================================================================
+MANDATORY NARRATIVE STRUCTURE - READ THIS FIRST
+===============================================================================
+
+EVERY story MUST follow this 3-part structure:
+
+1. **INTRODUÇÃO (Introduction) - First 1-2 scenes**
+   - Apresenta os personagens principais
+   - Estabelece o contexto e cenário
+   - Cria o gancho inicial (hook)
+   - Tom: Convidativo, estabelece expectativa
+   - Exemplo: "Era uma vez... Conheça [personagem]... Um dia..."
+
+2. **DESENVOLVIMENTO (Development) - Middle scenes**
+   - A história principal se desenrola
+   - Conflitos, desafios, aventuras
+   - Crescimento dos personagens
+   - Emoções e reviravoltasantes
+
+3. **ENCERRAMENTO (Closing) - Last 1-2 scenes**
+   - Resolução da história
+   - Moral ou aprendizado (se apropriado para a idade)
+   - Fechamento emocional satisfatório
+   - **CRÍTICO**: Convite para a próxima história
+   - Exemplo: "E assim... [lição aprendida]... Até a próxima aventura!"
+   - Tom: Caloroso, deixa porta aberta para continuação
+
+FUTURE ENHANCEMENT (não implementar agora):
+- Vídeo de ABERTURA animado será adicionado ANTES da introdução
+- Vídeo de CRÉDITOS será adicionado DEPOIS do encerramento
+
+REGRAS:
+- Introdução: Clara apresentação, sem pressa
+- Desenvolvimento: Foco na narrativa principal
+- Encerramento: SEMPRE inclui convite para próxima história
+- Transições suaves entre as três partes
+
+===============================================================================
+"""
+
+#  ── System Prompts for Sora (12s scenes) and Kling (5min scenes) ──
 
 ===============================================================================
 CRITICAL CHARACTER LIBRARY RULE - READ THIS SECOND
@@ -72,6 +118,13 @@ DO NOT write in English unless the language IS English. DO NOT mix languages.
 This rule applies to EVERY scene, EVERY response, EVERY continuation.
 MANDATORY and NON-NEGOTIABLE.
 
+
+"""
+
+# Add narrative structure guidelines
+SCREENWRITER_SYSTEM_KLING += NARRATIVE_STRUCTURE_INTRO_CLOSING
+
+SCREENWRITER_SYSTEM_KLING += """
 ===============================================================================
 CRITICAL CHARACTER LIBRARY RULE - READ THIS SECOND
 ===============================================================================

@@ -538,7 +538,18 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 return {"scene_number": scene_num, "sora_prompt": fallback[:1000], "cached": False}
 
         def _sora_render(directed_scene, scene):
-            """PHASE B — Sora 2 video render with retries, budget awareness, and continuity anchoring."""
+            """PHASE B — Video render with Sora 2 or Kling AI.
+            
+            For KLING AI (5-minute scenes):
+            - Calls Cinematographer to generate ultra-detailed 5-minute description
+            - Uses 30 storyboard frames as visual anchors
+            - Integrates dialogue timeline
+            - Duration: 300 seconds
+            
+            For SORA 2 (12-second scenes):
+            - Uses directed scene prompt directly
+            - Duration: 12 seconds
+            """
             scene_num = directed_scene["scene_number"]
 
             if directed_scene.get("cached"):
@@ -551,6 +562,53 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
 
             sora_prompt = directed_scene["sora_prompt"]
             chars_in_scene = scene.get("characters_in_scene", [])
+            
+            # Determine video duration based on engine
+            video_duration = 300 if video_engine == "kling" else 12
+            
+            # ══════════════════════════════════════════════════════════════
+            # KLING AI: Use Cinematographer for detailed 5-minute description
+            # ══════════════════════════════════════════════════════════════
+            if video_engine == "kling":
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} - Calling Cinematographer for Kling AI")
+                
+                # Get storyboard frames for this scene
+                storyboard_frames = project.get("storyboard_frames", {}).get(str(scene_num), [])
+                
+                # Get dialogue timeline for this scene
+                dialogue_timeline = scene.get("dialogue_timeline", [])
+                
+                # Get target audience
+                target_audience = project.get("target_audience", "all")
+                
+                if storyboard_frames and len(storyboard_frames) >= 30:
+                    try:
+                        from .cinematographer import generate_cinematic_description
+                        
+                        # Call Cinematographer
+                        cinematographer_result = _run_async_in_thread(
+                            generate_cinematic_description(
+                                scene=scene,
+                                storyboard_frames=storyboard_frames,
+                                dialogue_timeline=dialogue_timeline,
+                                characters=characters,
+                                target_audience=target_audience,
+                                lang=project_lang
+                            )
+                        )
+                        
+                        # Use Cinematographer's detailed prompt
+                        if cinematographer_result and cinematographer_result.get("kling_prompt"):
+                            sora_prompt = cinematographer_result["kling_prompt"]
+                            logger.info(f"Studio [{project_id}]: Scene {scene_num} - Cinematographer generated {len(sora_prompt)} chars")
+                        else:
+                            logger.warning(f"Studio [{project_id}]: Scene {scene_num} - Cinematographer failed, using director prompt")
+                    
+                    except Exception as e:
+                        logger.error(f"Studio [{project_id}]: Cinematographer error: {e}")
+                        # Fallback to director prompt
+                else:
+                    logger.warning(f"Studio [{project_id}]: Scene {scene_num} - No storyboard frames, using director prompt for Kling")
 
             # KEYFRAME-FIRST: If continuity mode, generate a Gemini keyframe first
             # This forces correct character identity that Sora 2 can't override
@@ -574,15 +632,14 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     t_v = _time.time()
                     try:
                         engine_name = video_engine.upper()
-                        logger.info(f"Studio [{project_id}]: Scene {scene_num} {engine_name} attempt {attempt+1}/{max_retries} (ref_image={'Y' if ref_path else 'N'})")
+                        logger.info(f"Studio [{project_id}]: Scene {scene_num} {engine_name} attempt {attempt+1}/{max_retries} (dur={video_duration}s, ref_image={'Y' if ref_path else 'N'})")
                         
-                        # FIX 2026-04-07: Unified video generation supporting Sora 2 and Kling AI
-                        # Increased prompt limit to 2500 chars (was 1000)
+                        # Unified video generation supporting Sora 2 and Kling AI
                         video_bytes = _generate_video_unified(
-                            prompt=sora_prompt[:2500],
+                            prompt=sora_prompt[:2500] if video_engine == "sora" else sora_prompt,  # Kling can handle longer prompts
                             engine=video_engine,
                             size="1280x720",
-                            duration=12,
+                            duration=video_duration,  # 12s for Sora, 300s for Kling
                             image_path=ref_path,
                             max_wait=600,
                             openai_client=openai_client,
@@ -595,7 +652,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
                             logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {elapsed:.0f}s ({len(video_bytes)//1024}KB)")
                             _save_scene_video(tenant_id, project_id, scene_num, video_url, total)
-                            return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 12}
+                            return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": video_duration}
                         else:
                             sz = len(video_bytes) if video_bytes else 0
                             if elapsed < 30:
