@@ -594,7 +594,7 @@ export function NewProjectModal({
             value={projectName} 
             onChange={e => setProjectName(e.target.value)}
             placeholder={lang === 'pt' ? 'Ex: A Jornada de Abraão' : 'Ex: The Journey of Abraham'}
-            className="w-full bg-white border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-xl px-3 py-1.5 text-sm text-[#333] outline-none placeholder-[#999] transition" 
+            className="w-full bg-white border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-xl px-3 py-0.5 text-sm text-[#333] outline-none placeholder-[#999] transition" 
           />
         </div>
 
