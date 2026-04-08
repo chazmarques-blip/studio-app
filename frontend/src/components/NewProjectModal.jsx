@@ -24,6 +24,7 @@ export function NewProjectModal({
   const [formatStrategy, setFormatStrategy] = useState('safe_zone');
   const [formatsRequested, setFormatsRequested] = useState(['16:9']);
   const [videoEngine, setVideoEngine] = useState('sora'); // NEW: Sora 2 or Kling AI
+  const [targetDuration, setTargetDuration] = useState(5); // NEW: Duration in minutes (5, 10, 15, 20, 25)
   
   // NEW: Character folder selection for continuity
   const [selectedFolder, setSelectedFolder] = useState(null); // null = criar novos personagens
@@ -345,6 +346,7 @@ export function NewProjectModal({
       character_folder_id: selectedFolder,
       company_id: selectedCompany?.id || null,
       video_engine: videoEngine, // NEW: Pass selected video engine
+      target_duration_minutes: targetDuration, // NEW: Pass target duration
     });
   };
 
@@ -1031,6 +1033,33 @@ export function NewProjectModal({
                 <div>💰 ~$0.05/s</div>
               </div>
             </button>
+
+
+          {/* Target Duration (only for Kling) */}
+          {videoEngine === 'kling' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-900">
+                {lang === 'pt' ? 'Duração do Vídeo Final' : 'Final Video Duration'}
+              </label>
+              <select 
+                value={targetDuration}
+                onChange={(e) => setTargetDuration(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+              >
+                <option value="5">5 minutos (1 cena)</option>
+                <option value="10">10 minutos (2 cenas)</option>
+                <option value="15">15 minutos (3 cenas)</option>
+                <option value="20">20 minutos (4 cenas)</option>
+                <option value="25">25 minutos (5 cenas)</option>
+              </select>
+              <p className="text-xs text-gray-500">
+                ✨ {lang === 'pt' ? 'Cada cena Kling = 5 minutos contínuos' : 'Each Kling scene = 5 continuous minutes'}
+                <br />
+                💰 {lang === 'pt' ? 'Custo storyboard' : 'Storyboard cost'}: {(targetDuration / 5) * 30} frames × $0.04 = ${((targetDuration / 5) * 30 * 0.04).toFixed(2)}
+              </p>
+            </div>
+          )}
+
           </div>
         </div>
 
