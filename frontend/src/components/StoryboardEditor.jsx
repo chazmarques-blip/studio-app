@@ -283,12 +283,81 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     setLoading(true);
     try {
       await axios.post(`${API}/studio/projects/${projectId}/generate-storyboard`);
-      toast.success(lang === 'pt' ? 'Gerando storyboard...' : 'Generating storyboard...');
-      pollStoryboard();
+      toast.success(lang === 'pt' ? 'Criando estrutura de painéis...' : 'Creating panel structure...');
+      
+      // Start polling with new progress endpoint
+      pollStoryboardProgress();
     } catch (err) {
       toast.error(getErrorMsg(err, 'Erro ao gerar storyboard'));
       setLoading(false);
     }
+  };
+
+  const pollStoryboardProgress = () => {
+    let attempts = 0;
+    const maxAttempts = 120; // 120 * 3s = 6 minutes max
+    
+    const poll = () => {
+      attempts++;
+      
+      axios.get(`${API}/studio/projects/${projectId}/storyboard/progress`).then(r => {
+        const { in_progress, progress, panels: newPanels } = r.data;
+        
+        // Sort panels by panel_number to ensure chronological order
+        const sortedPanels = (newPanels || []).sort((a, b) => a.panel_number - b.panel_number);
+        
+        // 🐛 DEBUG: Log progress updates
+        console.log(`🎨 [Storyboard Poll] Attempt ${attempts}:`, {
+          status: progress?.status,
+          phase: progress?.phase,
+          completed: progress?.completed,
+          total: progress?.total,
+          panelsReady: sortedPanels.filter(p => p.status === 'done').length
+        });
+        
+        setPanels(sortedPanels);
+        setStoryboardStatus(progress || {});
+        
+        // Check if complete
+        if (!in_progress || progress?.status === 'complete') {
+          setLoading(false);
+          const doneCount = sortedPanels.filter(p => p.status === 'done').length;
+          toast.success(lang === 'pt'
+            ? `✅ Storyboard completo! ${doneCount}/${progress?.total || sortedPanels.length} painéis gerados.`
+            : `✅ Storyboard complete! ${doneCount}/${progress?.total || sortedPanels.length} panels generated.`
+          );
+          return;
+        }
+        
+        // Check for errors or max attempts
+        if (progress?.status === 'error' || attempts > maxAttempts) {
+          setLoading(false);
+          const doneCount = sortedPanels.filter(p => p.status === 'done').length;
+          if (doneCount > 0) {
+            toast.info(lang === 'pt' 
+              ? `⚠️ Storyboard parcialmente gerado: ${doneCount}/${progress?.total || sortedPanels.length}` 
+              : `⚠️ Storyboard partially generated: ${doneCount}/${progress?.total || sortedPanels.length}`
+            );
+          } else {
+            toast.error(lang === 'pt' ? 'Erro ao gerar storyboard' : 'Storyboard generation failed');
+          }
+          return;
+        }
+        
+        // Continue polling every 3 seconds
+        setTimeout(poll, 3000);
+      }).catch(err => {
+        console.error('Storyboard polling error:', err);
+        if (attempts > maxAttempts) {
+          setLoading(false);
+          toast.error(lang === 'pt' ? 'Timeout ao gerar storyboard' : 'Storyboard generation timeout');
+        } else {
+          setTimeout(poll, 3000);
+        }
+      });
+    };
+    
+    poll();
   };
 
   const syncMissingPanels = async () => {
@@ -297,7 +366,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       const { data } = await axios.post(`${API}/studio/projects/${projectId}/storyboard/sync-panels`);
       if (data.synced > 0) {
         toast.success(lang === 'pt' ? `Gerando ${data.synced} painéis faltantes...` : `Generating ${data.synced} missing panels...`);
-        pollStoryboard();
+        pollStoryboardProgress(); // Use new polling
       } else {
         toast.info(lang === 'pt' ? 'Todos os painéis já existem' : 'All panels already exist');
         setSyncingPanels(false);
@@ -971,50 +1040,77 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         </div>
       )}
 
-      {/* Loading state */}
+      {/* Loading state with ordered generation progress */}
       {loading && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-[#999] flex items-center gap-1.5">
               <FilmSpinner size={10} className="text-[#8B5CF6]" />
               {(() => {
-                const current = storyboardStatus.current || 0;
-                const total = storyboardStatus.total || totalPanels;
+                const completed = storyboardStatus.completed || 0;
+                const total = storyboardStatus.total || scenes.length;
                 const phase = storyboardStatus.phase || 'generating';
                 
-                if (phase === 'dialogue_timing') {
-                  return lang === 'pt' ? 'Analisando timing dos diálogos...' : 'Analyzing dialogue timing...';
+                if (phase === 'structure_created') {
+                  return lang === 'pt' 
+                    ? `📝 Estrutura criada! Gerando ${total} imagens...` 
+                    : `📝 Structure created! Generating ${total} images...`;
                 }
-                if (phase === 'planning') {
-                  return lang === 'pt' ? 'Diretor planejando enquadramentos...' : 'Director planning shots...';
-                }
-                // Show current panel being generated
+                
+                // Show real-time progress
                 return lang === 'pt' 
-                  ? `Gerando painel ${current}/${total}`
-                  : `Generating panel ${current}/${total}`;
+                  ? `Gerando painéis: ${completed}/${total}`
+                  : `Generating panels: ${completed}/${total}`;
               })()}
             </span>
             <span className="text-[#8B5CF6] font-semibold">
-              {lang === 'pt' ? 'Prontos:' : 'Done:'} {doneCount}/{totalPanels}
+              {Math.round((storyboardStatus.completed || 0) / (storyboardStatus.total || 1) * 100)}%
             </span>
           </div>
           <div className="w-full bg-[#111] rounded-full h-1.5">
-            <div className="h-1.5 rounded-full bg-[#8B5CF6] transition-all duration-500"
+            <div className="h-1.5 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] transition-all duration-500"
               style={{ 
                 width: `${(() => {
-                  // Use storyboard_status.current for real-time progress during generation
-                  const current = storyboardStatus.current || 0;
-                  const total = storyboardStatus.total || totalPanels || 1;
-                  // Show generation progress (0-95%), then jump to 100% when complete
-                  if (current > 0 && total > 0) {
-                    const progress = Math.min((current / total) * 95, 95);
-                    return progress;
-                  }
-                  // Fallback to done count if no current status
-                  return totalPanels > 0 ? (doneCount / totalPanels) * 100 : 0;
-                })()}%` 
-              }} />
+                  const completed = storyboardStatus.completed || 0;
+                  const total = storyboardStatus.total || 1;
+                  return Math.min((completed / total) * 100, 100);
+                })()}%`
+              }}
+            />
           </div>
+          
+          {/* Grid preview during generation - shows panels as they become ready */}
+          {panels.length > 0 && (
+            <div className="mt-4 grid grid-cols-6 gap-2">
+              {panels.map((panel) => (
+                <div 
+                  key={panel.panel_number}
+                  className="aspect-video rounded border overflow-hidden bg-[#0D0D0D] relative"
+                >
+                  {panel.status === 'done' && panel.image_url ? (
+                    <img 
+                      src={resolveImageUrl(panel.image_url)} 
+                      alt={`Painel ${panel.panel_number}`}
+                      className="w-full h-full object-cover animate-fade-in"
+                    />
+                  ) : panel.status === 'generating' ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-purple-500/5">
+                      <FilmSpinner size={12} className="text-[#8B5CF6]" />
+                      <span className="text-[8px] text-purple-400">Gerando...</span>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#111]">
+                      <span className="text-[10px] text-gray-600">{panel.panel_number}</span>
+                    </div>
+                  )}
+                  {/* Panel number badge */}
+                  <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white font-mono">
+                    {panel.panel_number}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

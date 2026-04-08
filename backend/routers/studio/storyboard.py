@@ -68,7 +68,10 @@ class StoryboardApproveRequest(BaseModel):
 
 @router.post("/projects/{project_id}/generate-storyboard")
 async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = None, tenant=Depends(get_current_tenant)):
-    """Generate storyboard panels for scenes using Gemini Nano Banana.
+    """Generate storyboard panels in 2 phases using parallel ordered generation.
+    
+    PHASE 1: Create panel structure with prompts (instant)
+    PHASE 2: Generate images in ordered batches (parallel, 5 workers)
     
     Quality presets:
     - preview: 1 frame/scene (~$8 for 24 scenes) - apenas momento-chave
@@ -76,7 +79,7 @@ async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = 
     - standard: 6 frames/scene (~$25 for 24 scenes) - cobertura completa
     - custom: frames personalizados (especificar em custom_frames)
     """
-    from core.storyboard import generate_all_panels, QUALITY_PRESETS
+    from core.storyboard import QUALITY_PRESETS, FRAME_TYPES
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -100,113 +103,295 @@ async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = 
     if quality == "custom":
         project["storyboard_custom_frames"] = req.custom_frames
 
-    # Mark as generating
-    project["storyboard_status"] = {"phase": "starting", "current": 0, "total": len(scenes), "panels_done": 0}
+    # ═══ PHASE 1: Create panel structure with prompts ═══
+    logger.info(f"Storyboard [{project_id}]: PHASE 1 - Creating structure for {len(scenes)} scenes")
+    
+    panels = []
+    for scene_idx, scene in enumerate(scenes, 1):
+        # Build basic prompt for this scene
+        scene_num = scene.get("scene_number", scene_idx)
+        title = scene.get("title", f"Cena {scene_num}")
+        description = scene.get("description", "")
+        characters = scene.get("characters_in_scene", [])
+        
+        # Create panel structure
+        panel = {
+            "panel_number": scene_idx,
+            "scene_number": scene_num,
+            "title": title,
+            "description": description,
+            "characters": characters,
+            "prompt": f"Scene {scene_num}: {title}. {description}",  # Will be enriched in Phase 2
+            "status": "pending",  # pending → generating → done | error
+            "image_url": None,
+            "frames": [],  # Will store multiple frames for this panel
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        panels.append(panel)
+    
+    # Save panel structure to DB
+    project["storyboard_panels"] = panels
+    project["storyboard_progress"] = {
+        "status": "generating",
+        "phase": "structure_created",
+        "total": len(panels),
+        "completed": 0,
+        "current_panel": 0,
+    }
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     _save_project(tenant["id"], settings, projects)
-
-    # Run generation in background thread
-    def _bg_gen():
-        try:
-            _settings, _projects, _project = _get_project(tenant["id"], project_id)
-            if not _project:
-                return
-
-            # Extract identity cards from production_design (stored by _analyze_avatars_with_vision)
-            pd = _project.get("agents_output", {}).get("production_design", {})
-            identity_cards = pd.get("identity_cards", {})
-
-            # If no identity cards yet, try to generate them from avatar analysis
-            if not identity_cards:
-                char_avatars_dict = _project.get("character_avatars", {})
-                characters_list = _project.get("characters", [])
-                if char_avatars_dict and characters_list:
-                    # Download avatars temporarily to analyze
-                    import tempfile, urllib.request
-                    temp_cache = {}
-                    supabase_url = os.environ.get('SUPABASE_URL', '')
-                    for name, url in char_avatars_dict.items():
-                        if url:
-                            try:
-                                full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
-                                ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                                urllib.request.urlretrieve(full_url, ref_file.name)
-                                temp_cache[url] = ref_file.name
-                            except Exception:
-                                temp_cache[url] = None
-
-                    identity_cards = _run_async_in_thread(_analyze_avatars_with_vision(
-                        characters_list, char_avatars_dict, temp_cache, project_id
-                    ))
-
-                    # Clean up temp files
-                    for path in temp_cache.values():
-                        if path and os.path.exists(path):
-                            try: os.unlink(path)
-                            except Exception: pass
-
-                    # Store identity cards in the project for reuse
-                    if identity_cards:
-                        agents_output = _project.get("agents_output", {})
-                        if "production_design" not in agents_output:
-                            agents_output["production_design"] = {}
-                        agents_output["production_design"]["identity_cards"] = identity_cards
-                        _project["agents_output"] = agents_output
-                        _save_project(tenant["id"], _settings, _projects)
-                        logger.info(f"Storyboard [{project_id}]: Identity Cards generated and stored for {len(identity_cards)} characters")
-
-            panels = generate_all_panels(
-                tenant_id=tenant["id"],
-                project_id=project_id,
-                scenes=_project.get("scenes", []),
-                characters=_project.get("characters", []),
-                char_avatars=_project.get("character_avatars", {}),
-                production_design=pd,
-                identity_cards=identity_cards,
-                lang=_project.get("language", "pt"),
-                upload_fn=_upload_to_storage,
-                update_fn=_update_project_field,
-                frames_to_generate=frames_to_generate,  # NEW: selective frame generation
-            )
-            done_count = len([p for p in panels if p.get("image_url")])
-            
-            # CRITICAL FIX: Save to BOTH storyboard_panels AND outputs (for frontend compatibility)
-            outputs = _project.get("outputs", [])
-            
-            # Remove old storyboard outputs
-            outputs = [o for o in outputs if o.get("type") != "storyboard"]
-            
-            # Add new storyboard outputs
-            for panel in panels:
-                if panel.get("image_url"):  # Only add successful panels
-                    outputs.append({
-                        "type": "storyboard",
-                        "scene_number": panel["scene_number"],
-                        "url": panel["image_url"],
-                        "status": panel.get("status", "done"),
-                        "title": panel.get("title", ""),
-                        "frames": panel.get("frames", []),
-                        "created_at": panel.get("generated_at", datetime.now(timezone.utc).isoformat()),
-                    })
-            
-            _update_project_field(tenant["id"], project_id, {
-                "storyboard_panels": panels,
-                "outputs": outputs,  # CRITICAL: Save to outputs too!
-                "storyboard_status": {"phase": "complete", "current": len(panels), "total": len(panels), "panels_done": done_count},
-                "storyboard_approved": False,
-            })
-            _add_milestone(_project, "storyboard_generated", f"Storyboard — {done_count}/{len(panels)} painéis")
-            _save_project(tenant["id"], _settings, _projects)
-            logger.info(f"Storyboard [{project_id}]: Complete — {done_count}/{len(panels)} panels | {len(outputs)} outputs saved")
-        except Exception as e:
-            logger.error(f"Storyboard [{project_id}]: Generation failed: {e}")
-            _update_project_field(tenant["id"], project_id, {
-                "storyboard_status": {"phase": "error", "error": str(e)[:200]},
-            })
-
-    thread = threading.Thread(target=_bg_gen, daemon=True)
+    
+    logger.info(f"Storyboard [{project_id}]: Structure created - {len(panels)} panels ready")
+    
+    # ═══ PHASE 2: Generate images in ordered batches (parallel) ═══
+    # Launch background thread
+    thread = threading.Thread(
+        target=_generate_panels_ordered_parallel,
+        args=(tenant["id"], project_id, quality, frames_to_generate),
+        daemon=True,
+    )
     thread.start()
-    return {"status": "generating", "total_scenes": len(scenes)}
+    
+    return {
+        "status": "started",
+        "total_panels": len(panels),
+        "quality": quality,
+        "message": f"Estrutura criada! Gerando {len(panels)} painéis em paralelo..."
+    }
+
+
+def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: str, frames_to_generate: list):
+    """PHASE 2: Generate panel images in ordered batches using 5 workers.
+    
+    Worker distribution for sequential visual progression:
+    - Worker 1: Panels [1, 6, 11, 16, 21, 26, 31, 36, ...]
+    - Worker 2: Panels [2, 7, 12, 17, 22, 27, 32, 37, ...]
+    - Worker 3: Panels [3, 8, 13, 18, 23, 28, 33, 38, ...]
+    - Worker 4: Panels [4, 9, 14, 19, 24, 29, 34, ...]
+    - Worker 5: Panels [5, 10, 15, 20, 25, 30, 35, ...]
+    
+    This ensures panels become ready in sequence: 1→2→3→4→5→6→...
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from core.storyboard import _generate_all_frames_for_scene, _generate_shot_briefs
+    import tempfile
+    import urllib.request
+    
+    MAX_WORKERS = 5
+    
+    try:
+        # Get project data
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            logger.error(f"Storyboard [{project_id}]: Project not found in Phase 2")
+            return
+        
+        panels = project.get("storyboard_panels", [])
+        scenes = project.get("scenes", [])
+        characters = project.get("characters", [])
+        char_avatars = project.get("character_avatars", {})
+        
+        if not panels:
+            logger.error(f"Storyboard [{project_id}]: No panels to generate")
+            return
+        
+        logger.info(f"Storyboard [{project_id}]: PHASE 2 - Starting parallel generation with {MAX_WORKERS} workers for {len(panels)} panels")
+        
+        # Extract identity cards and style DNA
+        pd = project.get("agents_output", {}).get("production_design", {})
+        identity_cards = pd.get("identity_cards", {})
+        style_dna = pd.get("style_dna", "")
+        character_bible = pd.get("character_bible", {})
+        
+        # Download avatar cache (for character references)
+        avatar_cache = {}
+        supabase_url = os.environ.get('SUPABASE_URL', '')
+        for name, url in char_avatars.items():
+            if url:
+                try:
+                    full_url = url if not url.startswith("/") else f"{supabase_url}/storage/v1/object/public{url}"
+                    ref_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                    urllib.request.urlretrieve(full_url, ref_file.name)
+                    avatar_cache[url] = ref_file.name
+                except Exception as e:
+                    logger.warning(f"Failed to download avatar {name}: {e}")
+                    avatar_cache[url] = None
+        
+        def generate_worker_batch(worker_id: int):
+            """Each worker generates its assigned panels in sequence."""
+            # Get panels for this worker: worker_id, worker_id+N, worker_id+2N, ...
+            worker_panels_indices = [i for i in range(len(panels)) if i % MAX_WORKERS == worker_id]
+            worker_panels = [panels[i] for i in worker_panels_indices]
+            
+            logger.info(f"Worker {worker_id}: Assigned {len(worker_panels)} panels: {[p['panel_number'] for p in worker_panels]}")
+            
+            for panel in worker_panels:
+                try:
+                    panel_num = panel["panel_number"]
+                    scene_num = panel["scene_number"]
+                    
+                    # Find corresponding scene
+                    scene = next((s for s in scenes if s.get("scene_number") == scene_num), None)
+                    if not scene:
+                        logger.error(f"Worker {worker_id}: Scene {scene_num} not found for panel {panel_num}")
+                        panel["status"] = "error"
+                        panel["error"] = f"Scene {scene_num} not found"
+                        _update_panel_status(tenant_id, project_id, panel)
+                        continue
+                    
+                    # Update status to generating
+                    panel["status"] = "generating"
+                    _update_panel_status(tenant_id, project_id, panel)
+                    logger.info(f"Worker {worker_id}: Generating panel {panel_num} (Scene {scene_num})")
+                    
+                    # Generate shot briefs for this scene
+                    shot_briefs = _generate_shot_briefs(
+                        scene=scene,
+                        scene_num=scene_num,
+                        identity_cards=identity_cards,
+                        style_dna=style_dna,
+                        lang=project.get("language", "pt"),
+                        project_id=project_id,
+                    )
+                    
+                    # Generate all frames for this panel
+                    frames_data = _generate_all_frames_for_scene(
+                        scene=scene,
+                        scene_num=scene_num,
+                        project_id=project_id,
+                        char_avatars=char_avatars,
+                        avatar_cache=avatar_cache,
+                        character_bible=character_bible,
+                        identity_cards=identity_cards,
+                        style_dna=style_dna,
+                        shot_briefs=shot_briefs,
+                        lang=project.get("language", "pt"),
+                        enable_validation=True,
+                    )
+                    
+                    # Upload frames to Supabase and build frame URLs
+                    from services.supabase_service import upload_storyboard_frame
+                    panel["frames"] = []
+                    
+                    for frame_type, image_bytes in frames_data:
+                        if image_bytes:
+                            try:
+                                frame_url = upload_storyboard_frame(
+                                    project_id=project_id,
+                                    scene_num=scene_num,
+                                    frame_label=frame_type["label"],
+                                    image_bytes=image_bytes,
+                                    tenant_id=tenant_id
+                                )
+                                panel["frames"].append({
+                                    "label": frame_type["label"],
+                                    "order": frame_type["order"],
+                                    "image_url": frame_url
+                                })
+                            except Exception as e:
+                                logger.error(f"Worker {worker_id}: Failed to upload frame {frame_type['label']}: {e}")
+                    
+                    # Set main image_url to first frame
+                    if panel["frames"]:
+                        panel["image_url"] = panel["frames"][0]["image_url"]
+                    
+                    # Mark as done
+                    panel["status"] = "done"
+                    panel["completed_at"] = datetime.now(timezone.utc).isoformat()
+                    _update_panel_status(tenant_id, project_id, panel)
+                    
+                    logger.info(f"Worker {worker_id}: ✅ Panel {panel_num} complete ({len(panel['frames'])} frames)")
+                    
+                except Exception as e:
+                    logger.error(f"Worker {worker_id}: Panel {panel.get('panel_number')} failed: {e}", exc_info=True)
+                    panel["status"] = "error"
+                    panel["error"] = str(e)[:200]
+                    _update_panel_status(tenant_id, project_id, panel)
+        
+        # Launch workers
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = []
+            for worker_id in range(MAX_WORKERS):
+                future = executor.submit(generate_worker_batch, worker_id)
+                futures.append(future)
+            
+            # Wait for all workers to complete
+            for future in futures:
+                future.result()
+        
+        # Clean up avatar cache
+        for path in avatar_cache.values():
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
+        
+        # Mark as complete
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if project:
+            project["storyboard_progress"]["status"] = "complete"
+            project["storyboard_progress"]["phase"] = "done"
+            project["storyboard_progress"]["completed"] = len(panels)
+            project["updated_at"] = datetime.now(timezone.utc).isoformat()
+            _save_project(tenant_id, settings, projects)
+            logger.info(f"Storyboard [{project_id}]: ✅ All {len(panels)} panels complete!")
+        
+    except Exception as e:
+        logger.error(f"Storyboard [{project_id}]: PHASE 2 failed: {e}", exc_info=True)
+        # Update project with error
+        try:
+            settings, projects, project = _get_project(tenant_id, project_id)
+            if project:
+                project["storyboard_progress"]["status"] = "error"
+                project["storyboard_progress"]["error"] = str(e)[:300]
+                _save_project(tenant_id, settings, projects)
+        except:
+            pass
+
+
+def _update_panel_status(tenant_id: str, project_id: str, panel: dict):
+    """Update a single panel's status in the database."""
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+        
+        panels = project.get("storyboard_panels", [])
+        panel_num = panel["panel_number"]
+        
+        # Find and update panel
+        for i, p in enumerate(panels):
+            if p["panel_number"] == panel_num:
+                panels[i] = panel
+                break
+        
+        # Update completed count
+        completed = len([p for p in panels if p["status"] == "done"])
+        project["storyboard_progress"]["completed"] = completed
+        project["storyboard_progress"]["current_panel"] = panel_num
+        
+        _save_project(tenant_id, settings, projects)
+        
+    except Exception as e:
+        logger.error(f"Failed to update panel {panel.get('panel_number')}: {e}")
+
+
+@router.get("/projects/{project_id}/storyboard/progress")
+async def get_storyboard_progress(project_id: str, tenant=Depends(get_current_tenant)):
+    """Get real-time progress of storyboard generation."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    progress = project.get("storyboard_progress", {})
+    panels = project.get("storyboard_panels", [])
+    
+    return {
+        "in_progress": progress.get("status") == "generating",
+        "progress": progress,
+        "panels": panels  # Full panel data for frontend to render
+    }
 
 
 @router.get("/projects/{project_id}/storyboard")
