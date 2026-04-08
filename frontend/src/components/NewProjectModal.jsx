@@ -797,32 +797,30 @@ export function NewProjectModal({
                 />
               </div>
               
-              {/* Logo Upload - REDESENHADO VERTICAL */}
+              {/* Logo Upload - TUDO EM UMA LINHA HORIZONTAL */}
               <div>
                 <label className="text-xs font-medium text-[#666] mb-0.5 block">
                   {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
                 </label>
                 
-                {/* Preview + Upload em layout vertical compacto */}
-                <div className="space-y-1.5">
-                  {/* Logo Preview com aspect-ratio controlado */}
-                  <div className="flex items-center justify-center w-full h-16 rounded-lg overflow-hidden border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF]">
+                <div className="flex items-center gap-2">
+                  {/* Preview compacto */}
+                  <div className="shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 border-[#E0E0E0] bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
                     {editCompanyLogo ? (
                       <img 
                         src={editCompanyLogo} 
-                        alt="Logo preview" 
-                        className="max-w-full max-h-full object-contain p-1"
+                        alt="Logo" 
+                        className="max-w-full max-h-full object-contain p-0.5"
                         style={{ objectPosition: editLogoPosition }}
                       />
                     ) : (
-                      <Building2 size={24} className="text-[#8B5CF6]/40" />
+                      <Building2 size={16} className="text-[#8B5CF6]/40" />
                     )}
                   </div>
                   
-                  {/* Controls inline (quando tem logo) */}
+                  {/* Controles de posição inline */}
                   {editCompanyLogo && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[8px] text-[#999] mr-1">Posição:</span>
+                    <div className="flex gap-0.5">
                       {['top', 'center', 'bottom', 'left', 'right'].map((pos, idx) => {
                         const labels = ['↑', '●', '↓', '←', '→'];
                         return (
@@ -830,45 +828,29 @@ export function NewProjectModal({
                             key={pos}
                             type="button"
                             onClick={() => setEditLogoPosition(pos)}
-                            className={`w-6 h-6 flex items-center justify-center text-xs rounded transition ${
+                            className={`w-5 h-5 flex items-center justify-center text-[10px] rounded transition ${
                               editLogoPosition === pos
                                 ? 'bg-[#8B5CF6] text-white'
                                 : 'bg-[#E0E0E0] text-[#666] hover:bg-[#8B5CF6]/20'
-                            }`}
-                            title={pos}>
+                            }`}>
                             {labels[idx]}
                           </button>
                         );
                       })}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditCompanyLogo('');
-                          setEditLogoPosition('center');
-                        }}
-                        className="ml-auto text-[9px] text-red-500 hover:text-red-600 transition px-1">
-                        ✕ Remover
-                      </button>
                     </div>
                   )}
                   
-                  {/* Upload Button compacto */}
-                  <label className="block cursor-pointer">
-                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-3 py-2 text-center transition-all bg-white/50 hover:bg-[#F9F7FF]">
-                      {uploadingEditLogo ? (
-                        <span className="text-[9px] text-[#666]">
-                          {lang === 'pt' ? 'Enviando...' : 'Uploading...'}
-                        </span>
-                      ) : (
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-[9px] text-[#666] font-medium">
-                            {editCompanyLogo 
-                              ? (lang === 'pt' ? 'Alterar logo' : 'Change logo')
-                              : (lang === 'pt' ? 'Clique para adicionar' : 'Click to add')}
-                          </span>
-                          <span className="text-[8px] text-[#999]">PNG/JPEG • Max 5MB</span>
-                        </div>
-                      )}
+                  {/* Upload button compacto */}
+                  <label className="flex-1 cursor-pointer">
+                    <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-2 py-1.5 text-center transition bg-white/50 hover:bg-[#F9F7FF]">
+                      <span className="text-[9px] text-[#666] font-medium block">
+                        {uploadingEditLogo 
+                          ? (lang === 'pt' ? 'Enviando...' : 'Uploading...') 
+                          : (editCompanyLogo 
+                              ? (lang === 'pt' ? 'Alterar logo' : 'Change')
+                              : (lang === 'pt' ? 'Adicionar logo' : 'Add logo'))}
+                      </span>
+                      <span className="text-[7px] text-[#999]">PNG/JPEG • 5MB</span>
                     </div>
                     <input
                       type="file"
@@ -878,6 +860,19 @@ export function NewProjectModal({
                       className="hidden"
                     />
                   </label>
+                  
+                  {/* Botão remover inline */}
+                  {editCompanyLogo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditCompanyLogo('');
+                        setEditLogoPosition('center');
+                      }}
+                      className="text-[9px] text-red-500 hover:text-red-600 transition whitespace-nowrap">
+                      ✕ Remover
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -912,14 +907,14 @@ export function NewProjectModal({
                   </div>
                 </div>
                 
-                {/* Default Character Folder - COMPACTO */}
-                <div className="mb-1.5">
-                  <label className="text-xs font-medium text-[#666] mb-0.5 block">Pasta de Personagens Padrão</label>
-                  <div className="grid grid-cols-2 gap-1 max-h-24 overflow-y-auto p-1 bg-gray-50 rounded-lg">
+                {/* Default Character Folder */}
+                <div className="mb-1">
+                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Pasta de Personagens Padrão</label>
+                  <div className="grid grid-cols-2 gap-0.5 max-h-20 overflow-y-auto p-0.5 bg-gray-50 rounded-lg">
                     {folders.length > 0 ? folders.map(folder => (
                       <button key={folder.id} type="button"
                         onClick={() => setEditCompanyDefaults(p => ({ ...p, default_character_folder_id: folder.id }))}
-                        className={`px-2 py-1 rounded-lg border-2 text-xs font-medium transition text-left ${
+                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition text-left ${
                           editCompanyDefaults.default_character_folder_id === folder.id
                             ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
                             : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-white'
@@ -927,17 +922,17 @@ export function NewProjectModal({
                         📁 {folder.name}
                       </button>
                     )) : (
-                      <p className="text-xs text-[#999] col-span-2 py-1 text-center">
-                        Nenhuma pasta disponível
+                      <p className="text-[10px] text-[#999] col-span-2 py-0.5 text-center">
+                        Nenhuma pasta
                       </p>
                     )}
                   </div>
                 </div>
 
-                {/* Default Target Audience - COMPACTO */}
-                <div className="mb-1.5">
-                  <label className="text-xs font-medium text-[#666] mb-0.5 block">Público-Alvo Padrão</label>
-                  <div className="grid grid-cols-4 gap-1">
+                {/* Default Target Audience */}
+                <div className="mb-1">
+                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Público-Alvo Padrão</label>
+                  <div className="grid grid-cols-4 gap-0.5">
                     {[
                       { id: '3-6', label: '3-6' },
                       { id: '6-9', label: '6-9' },
@@ -949,7 +944,7 @@ export function NewProjectModal({
                     ].map(age => (
                       <button key={age.id} type="button"
                         onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_audience: age.id }))}
-                        className={`px-2 py-1 rounded-lg border-2 text-xs font-medium transition ${
+                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                           editCompanyDefaults.default_target_audience === age.id
                             ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
                             : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
@@ -960,10 +955,10 @@ export function NewProjectModal({
                   </div>
                 </div>
                 
-                {/* Default Format - COMPACTO */}
-                <div className="mb-1.5">
-                  <label className="text-xs font-medium text-[#666] mb-0.5 block">Formato Padrão</label>
-                  <div className="grid grid-cols-3 gap-1">
+                {/* Default Format */}
+                <div className="mb-1">
+                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Formato Padrão</label>
+                  <div className="grid grid-cols-3 gap-0.5">
                     {[
                       { id: 'safe_zone', label: 'Safe Zone' },
                       { id: 'dual', label: 'Dual' },
@@ -971,7 +966,7 @@ export function NewProjectModal({
                     ].map(format => (
                       <button key={format.id} type="button"
                         onClick={() => setEditCompanyDefaults(p => ({ ...p, default_format_strategy: format.id }))}
-                        className={`px-2 py-1 rounded-lg border-2 text-xs font-medium transition ${
+                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                           editCompanyDefaults.default_format_strategy === format.id
                             ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
                             : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
@@ -982,17 +977,17 @@ export function NewProjectModal({
                   </div>
                 </div>
                 
-                {/* Default Video Engine - COMPACTO */}
-                <div className="mb-1.5">
-                  <label className="text-xs font-medium text-[#666] mb-0.5 block">Engine de Vídeo Padrão</label>
-                  <div className="grid grid-cols-2 gap-1">
+                {/* Default Video Engine */}
+                <div className="mb-1">
+                  <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Engine de Vídeo Padrão</label>
+                  <div className="grid grid-cols-2 gap-0.5">
                     {[
                       { id: 'sora', label: 'Sora 2 (12s)' },
                       { id: 'kling', label: 'Kling AI (5min)' },
                     ].map(engine => (
                       <button key={engine.id} type="button"
                         onClick={() => setEditCompanyDefaults(p => ({ ...p, default_video_engine: engine.id }))}
-                        className={`px-2 py-1 rounded-lg border-2 text-xs font-medium transition ${
+                        className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                           editCompanyDefaults.default_video_engine === engine.id
                             ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
                             : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
@@ -1003,15 +998,15 @@ export function NewProjectModal({
                   </div>
                 </div>
                 
-                {/* Default Duration (only for Kling) - COMPACTO */}
+                {/* Default Duration (only for Kling) */}
                 {editCompanyDefaults.default_video_engine === 'kling' && (
-                  <div className="mb-1.5">
-                    <label className="text-xs font-medium text-[#666] mb-0.5 block">Duração Padrão (minutos)</label>
-                    <div className="grid grid-cols-5 gap-1">
+                  <div className="mb-1">
+                    <label className="text-[10px] font-medium text-[#666] mb-0.5 block">Duração Padrão (min)</label>
+                    <div className="grid grid-cols-5 gap-0.5">
                       {[5, 10, 15, 20, 25].map(duration => (
                         <button key={duration} type="button"
                           onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_duration: duration }))}
-                          className={`px-2 py-1 rounded-lg border-2 text-xs font-medium transition ${
+                          className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
                             editCompanyDefaults.default_target_duration === duration
                               ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
                               : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
@@ -1387,3 +1382,4 @@ export function NewProjectModal({
     </div>
   );
 }
+
