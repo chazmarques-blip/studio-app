@@ -15,7 +15,7 @@ export function CompanyModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={cancelCompanyForm}>
-      <div data-testid="company-modal" className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] p-5 space-y-3" onClick={e => e.stopPropagation()}>
+      <div data-testid="company-modal" className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] p-4 space-y-2" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <p className="text-sm text-white font-semibold">{editingCompanyId ? t('studio.edit_company') : t('studio.new_company')}</p>
           <button onClick={cancelCompanyForm} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#999]" /></button>
@@ -62,72 +62,72 @@ export function CompanyModal({
           </div>
         </div>
         <div>
-          <label className="text-xs text-[#999] uppercase mb-1 block">{newCompany.profile_type === 'personal' ? 'Nome' : newCompany.profile_type === 'professional' ? 'Nome Profissional' : t('studio.company_name_label')} *</label>
+          <label className="text-xs text-[#999] uppercase mb-0.5 block">{newCompany.profile_type === 'personal' ? 'Nome' : newCompany.profile_type === 'professional' ? 'Nome Profissional' : t('studio.company_name_label')} *</label>
           <input data-testid="new-company-name" value={newCompany.name} onChange={e => setNewCompany(p => ({ ...p, name: e.target.value }))}
             placeholder="E.g.: StudioX, My Company..."
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
         </div>
         <div className="grid grid-cols-[1fr_auto] gap-3">
           <div>
-            <label className="text-xs text-[#999] uppercase mb-1 block">{t('studio.company_phone')}</label>
+            <label className="text-xs text-[#999] uppercase mb-0.5 block">{t('studio.company_phone')}</label>
             <input data-testid="new-company-phone" value={newCompany.phone} onChange={e => setNewCompany(p => ({ ...p, phone: e.target.value }))}
               placeholder="+1 555 123-4567"
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
           </div>
           <div className="flex items-end pb-0.5">
             <button data-testid="new-company-whatsapp-toggle" onClick={() => setNewCompany(p => ({ ...p, is_whatsapp: !p.is_whatsapp }))}
-              className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-[10px] font-medium transition ${newCompany.is_whatsapp ? 'border-[#25D366]/40 bg-[#25D366]/10 text-[#25D366]' : 'border-[#1E1E1E] text-[#999]'}`}>
+              className={`flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[10px] font-medium transition ${newCompany.is_whatsapp ? 'border-[#25D366]/40 bg-[#25D366]/10 text-[#25D366]' : 'border-[#1E1E1E] text-[#999]'}`}>
               <MessageSquare size={10} /> WhatsApp
             </button>
           </div>
         </div>
         <div>
-          <label className="text-xs text-[#999] uppercase mb-1 flex items-center gap-1">
+          <label className="text-xs text-[#999] uppercase mb-0.5 flex items-center gap-1">
             <Globe size={9} /> {t('studio.company_website')}
           </label>
           <input data-testid="new-company-website" value={newCompany.website_url} onChange={e => setNewCompany(p => ({ ...p, website_url: e.target.value }))}
             placeholder="https://www.yourcompany.com"
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30" />
         </div>
         <div>
-          <label className="text-xs text-[#999] uppercase mb-1 block">{t('studio.product_service') || 'Produto / Servico'}</label>
+          <label className="text-xs text-[#999] uppercase mb-0.5 block">{t('studio.product_service') || 'Produto / Servico'}</label>
           <textarea data-testid="new-company-product" value={newCompany.product_description} onChange={e => setNewCompany(p => ({ ...p, product_description: e.target.value }))}
             placeholder="Ex: Plataforma de agentes IA para atendimento ao cliente, Loja de roupas femininas..."
             rows={2}
-            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-2 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none" />
+            className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-3 py-1.5 text-xs text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none" />
         </div>
         {/* Social Links */}
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="text-[11px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#1877F2'}}>f</span> Facebook</label>
+            <label className="text-[11px] text-[#999] uppercase mb-0.5 flex items-center gap-1"><span style={{color:'#1877F2'}}>f</span> Facebook</label>
             <input data-testid="new-company-facebook" value={newCompany.facebook_url || ''} onChange={e => setNewCompany(p => ({ ...p, facebook_url: e.target.value }))}
               placeholder="facebook.com/..."
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#1877F2]/30" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#1877F2]/30" />
           </div>
           <div>
-            <label className="text-[11px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#E4405F'}}>@</span> Instagram</label>
+            <label className="text-[11px] text-[#999] uppercase mb-0.5 flex items-center gap-1"><span style={{color:'#E4405F'}}>@</span> Instagram</label>
             <input data-testid="new-company-instagram" value={newCompany.instagram_url || ''} onChange={e => setNewCompany(p => ({ ...p, instagram_url: e.target.value }))}
               placeholder="instagram.com/..."
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#E4405F]/30" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#E4405F]/30" />
           </div>
           <div>
-            <label className="text-[11px] text-[#999] uppercase mb-1 flex items-center gap-1"><span style={{color:'#fff'}}>T</span> TikTok</label>
+            <label className="text-[11px] text-[#999] uppercase mb-0.5 flex items-center gap-1"><span style={{color:'#fff'}}>T</span> TikTok</label>
             <input data-testid="new-company-tiktok" value={newCompany.tiktok_url || ''} onChange={e => setNewCompany(p => ({ ...p, tiktok_url: e.target.value }))}
               placeholder="tiktok.com/@..."
-              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#fff]/20" />
+              className="w-full rounded-lg border border-[#1E1E1E] bg-[#111] px-2 py-1 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#fff]/20" />
           </div>
         </div>
         
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* PROJECT DEFAULTS SECTION (NEW) */}
         {/* ═══════════════════════════════════════════════════════════════ */}
-        <div className="border-t border-[#1E1E1E] pt-3 mt-2">
-          <p className="text-xs text-white font-semibold mb-2">⚙️ Padrões de Projeto</p>
-          <p className="text-[10px] text-[#999] mb-3">Configure valores padrão que serão aplicados automaticamente ao criar novos projetos</p>
+        <div className="border-t border-[#1E1E1E] pt-2 mt-1.5">
+          <p className="text-xs text-white font-semibold mb-1.5">⚙️ Padrões de Projeto</p>
+          <p className="text-[9px] text-[#999] mb-2">Configure valores padrão que serão aplicados automaticamente ao criar novos projetos</p>
           
           {/* Default Visual Style */}
-          <div className="mb-2">
-            <label className="text-[10px] text-[#999] uppercase mb-1 block">Estilo Visual Padrão</label>
+          <div className="mb-1.5">
+            <label className="text-[9px] text-[#999] uppercase mb-0.5 block">Estilo Visual Padrão</label>
             <div className="grid grid-cols-3 gap-1">
               {[
                 { id: 'pixar_3d', label: 'Pixar 3D' },
@@ -136,7 +136,7 @@ export function CompanyModal({
               ].map(style => (
                 <button key={style.id} type="button"
                   onClick={() => setNewCompany(p => ({ ...p, default_visual_style: style.id, default_animation_sub: style.id }))}
-                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                  className={`px-2 py-1 rounded border text-[9px] transition ${
                     newCompany.default_visual_style === style.id
                       ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
                       : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
@@ -148,12 +148,12 @@ export function CompanyModal({
           </div>
           
           {/* Default Target Audience */}
-          <div className="mb-2">
-            <label className="text-[10px] text-[#999] uppercase mb-1 block">Público-Alvo Padrão</label>
-            <div className="grid grid-cols-3 gap-1">
+          <div className="mb-1.5">
+            <label className="text-[9px] text-[#999] uppercase mb-0.5 block">Público-Alvo Padrão</label>
+            <div className="grid grid-cols-4 gap-1">
               {[
-                { id: '3-6', label: '3-6 anos' },
-                { id: '6-9', label: '6-9 anos' },
+                { id: '3-6', label: '3-6' },
+                { id: '6-9', label: '6-9' },
                 { id: '10-13', label: '10-13' },
                 { id: '14-17', label: '14-17' },
                 { id: '18-25', label: '18-25' },
@@ -162,7 +162,7 @@ export function CompanyModal({
               ].map(age => (
                 <button key={age.id} type="button"
                   onClick={() => setNewCompany(p => ({ ...p, default_target_audience: age.id }))}
-                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                  className={`px-1.5 py-1 rounded border text-[9px] transition ${
                     newCompany.default_target_audience === age.id
                       ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
                       : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
@@ -174,8 +174,8 @@ export function CompanyModal({
           </div>
           
           {/* Default Format */}
-          <div className="mb-2">
-            <label className="text-[10px] text-[#999] uppercase mb-1 block">Formato Padrão</label>
+          <div className="mb-1.5">
+            <label className="text-[9px] text-[#999] uppercase mb-0.5 block">Formato Padrão</label>
             <div className="grid grid-cols-3 gap-1">
               {[
                 { id: 'safe_zone', label: 'Safe Zone' },
@@ -184,7 +184,7 @@ export function CompanyModal({
               ].map(format => (
                 <button key={format.id} type="button"
                   onClick={() => setNewCompany(p => ({ ...p, default_format_strategy: format.id }))}
-                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                  className={`px-2 py-1 rounded border text-[9px] transition ${
                     newCompany.default_format_strategy === format.id
                       ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
                       : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
@@ -196,8 +196,8 @@ export function CompanyModal({
           </div>
           
           {/* Default Video Engine */}
-          <div className="mb-2">
-            <label className="text-[10px] text-[#999] uppercase mb-1 block">Engine de Vídeo Padrão</label>
+          <div className="mb-1.5">
+            <label className="text-[9px] text-[#999] uppercase mb-0.5 block">Engine de Vídeo Padrão</label>
             <div className="grid grid-cols-2 gap-1">
               {[
                 { id: 'sora', label: 'Sora 2 (12s)' },
@@ -205,7 +205,7 @@ export function CompanyModal({
               ].map(engine => (
                 <button key={engine.id} type="button"
                   onClick={() => setNewCompany(p => ({ ...p, default_video_engine: engine.id }))}
-                  className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                  className={`px-2 py-1 rounded border text-[9px] transition ${
                     newCompany.default_video_engine === engine.id
                       ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
                       : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
@@ -218,13 +218,13 @@ export function CompanyModal({
           
           {/* Default Duration (only for Kling) */}
           {newCompany.default_video_engine === 'kling' && (
-            <div className="mb-2">
-              <label className="text-[10px] text-[#999] uppercase mb-1 block">Duração Padrão (minutos)</label>
+            <div className="mb-1.5">
+              <label className="text-[9px] text-[#999] uppercase mb-0.5 block">Duração Padrão (minutos)</label>
               <div className="grid grid-cols-5 gap-1">
                 {[5, 10, 15, 20, 25].map(duration => (
                   <button key={duration} type="button"
                     onClick={() => setNewCompany(p => ({ ...p, default_target_duration: duration }))}
-                    className={`px-2 py-1.5 rounded border text-[9px] transition ${
+                    className={`px-1.5 py-1 rounded border text-[9px] transition ${
                       newCompany.default_target_duration === duration
                         ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-[#8B5CF6]'
                         : 'border-[#1E1E1E] text-[#999] hover:border-[#333]'
@@ -236,12 +236,12 @@ export function CompanyModal({
             </div>
           )}
           
-          <p className="text-[9px] text-[#666] italic mt-2">
+          <p className="text-[8px] text-[#666] italic mt-1">
             💡 Pasta de personagens padrão será definida após selecionar a empresa no projeto
           </p>
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-1.5">
           <button onClick={cancelCompanyForm}
             className="flex-1 rounded-lg border border-[#1E1E1E] py-2 text-xs text-[#888] hover:text-white transition">
             {t('studio.cancel')}
