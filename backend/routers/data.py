@@ -410,3 +410,194 @@ def _trigger_character_library_sync(tenant_id: str, folder_id: Optional[str]):
     except Exception as e:
         # Don't fail the avatar save if sync fails
         logger.error(f"Failed to auto-sync character library: {e}")
+
+
+
+
+# ── Batch Avatar Creation ──
+
+class BatchPromptRequest(BaseModel):
+    prompts: list[str]  # List of prompts (one per character)
+    style: str = "custom"
+    gender: Optional[str] = None
+
+
+@router.post("/avatars/batch")
+async def create_avatars_batch(
+    data: BatchPromptRequest, 
+    user=Depends(get_current_user), 
+    tenant=Depends(get_current_tenant)
+):
+    """
+    Create multiple avatars from a list of prompts.
+    Each prompt will be processed to generate one avatar.
+    
+    Returns: { "created": [...avatars], "failed": [{prompt, error}] }
+    """
+    from core.llm import generate_image_gemini
+    from pipeline.utils import _upload_to_storage
+    import asyncio
+    
+    if not data.prompts or len(data.prompts) == 0:
+        raise HTTPException(400, "No prompts provided")
+    
+    if len(data.prompts) > 20:
+        raise HTTPException(400, "Maximum 20 avatars per batch")
+    
+    # Filter empty prompts
+    prompts = [p.strip() for p in data.prompts if p.strip()]
+    
+    created = []
+    failed = []
+    
+    settings = _get_settings(tenant["id"])
+    avatars = settings.get("studio_avatars", [])
+    folders = settings.get("avatar_folders", [])
+    now = datetime.now(timezone.utc).isoformat()
+    
+    logger.info(f"Batch creation: {len(prompts)} avatars for tenant {tenant['id']}")
+    
+    # Process each prompt sequentially (to avoid rate limits)
+    for idx, prompt in enumerate(prompts):
+        try:
+            logger.info(f"Batch {idx+1}/{len(prompts)}: Generating avatar from: {prompt[:50]}...")
+            
+            # Build style-based prompt
+            style_templates = {
+                "realistic": f"Create a photorealistic FULL-BODY portrait. Description: {prompt}. FACING DIRECTLY TOWARDS THE CAMERA, front view, standing. Plain white background. VERTICAL format.",
+                "3d_cartoon": f"Create a 3D animated cartoon character, full body. Description: {prompt}. Modern 3D cartoon like Pixar, vibrant colors. Plain white background. VERTICAL format.",
+                "3d_pixar": f"Create a Pixar-style 3D character, full body. Description: {prompt}. Ultra-polished Pixar quality. Plain white background. VERTICAL format.",
+                "custom": f"{prompt}\n\nFull body character, standing, front view, centered. High quality. Plain white background. VERTICAL format.",
+            }
+            
+            full_prompt = style_templates.get(data.style, style_templates["custom"])
+            
+            # Generate image
+            raw_bytes = await generate_image_gemini(full_prompt)
+            
+            if not raw_bytes:
+                failed.append({"prompt": prompt, "error": "Image generation returned empty"})
+                continue
+            
+            # Upload to storage
+            fname = f"avatars/{user.get('id', 'anon')}/{uuid.uuid4().hex[:8]}_batch_{data.style}.png"
+            avatar_url = _upload_to_storage(raw_bytes, fname, "image/png")
+            
+            if not avatar_url:
+                failed.append({"prompt": prompt, "error": "Upload to storage failed"})
+                continue
+            
+            # Auto-extract name from prompt
+            avatar_name = _extract_name_from_prompt(prompt)
+            
+            # Auto-detect folder
+            folder_id = None
+            if avatar_name:
+                auto_folder = _auto_detect_folder_from_name(avatar_name, folders)
+                if auto_folder:
+                    if auto_folder.startswith("CREATE:"):
+                        # Create new folder
+                        folder_name = auto_folder.replace("CREATE:", "")
+                        new_folder_id = uuid.uuid4().hex[:12]
+                        new_folder = {
+                            "id": new_folder_id,
+                            "name": folder_name,
+                            "avatar_ids": [],
+                            "created_at": now,
+                            "updated_at": now,
+                        }
+                        folders.append(new_folder)
+                        folder_id = new_folder_id
+                        logger.info(f"✅ Created folder '{folder_name}' for batch avatar '{avatar_name}'")
+                    else:
+                        folder_id = auto_folder
+            
+            # Create avatar document
+            doc_id = uuid.uuid4().hex[:12]
+            doc = {
+                "id": doc_id,
+                "url": avatar_url,
+                "name": avatar_name or f"Personagem {idx+1}",
+                "source_photo_url": None,
+                "clothing": [],
+                "voice": None,
+                "angles": {},
+                "video_url": None,
+                "language": "pt",
+                "edit_history": [],
+                "avatar_style": data.style,
+                "creation_mode": "prompt",
+                "prompt": prompt,
+                "folder_id": folder_id,
+                "created_at": now,
+                "updated_at": now,
+            }
+            
+            avatars.append(doc)
+            
+            # Update folder's avatar_ids
+            if folder_id:
+                folder = next((f for f in folders if f.get("id") == folder_id), None)
+                if folder:
+                    avatar_ids = folder.get("avatar_ids", [])
+                    avatar_ids.append(doc_id)
+                    folder["avatar_ids"] = avatar_ids
+                    folder["updated_at"] = now
+            
+            created.append(doc)
+            logger.info(f"✅ Batch avatar created: {avatar_name} ({doc_id})")
+            
+            # Small delay to avoid rate limits
+            await asyncio.sleep(0.5)
+            
+        except Exception as e:
+            logger.error(f"Failed to create avatar from prompt '{prompt[:50]}': {e}")
+            failed.append({"prompt": prompt, "error": str(e)})
+    
+    # Save all changes
+    settings["studio_avatars"] = avatars
+    settings["avatar_folders"] = folders
+    _save_settings(tenant["id"], settings)
+    
+    # Auto-sync character libraries
+    for avatar_doc in created:
+        if avatar_doc.get("folder_id"):
+            _auto_sync_character_library(tenant["id"], avatar_doc["folder_id"])
+    
+    return {
+        "created": created,
+        "failed": failed,
+        "total": len(prompts),
+        "success": len(created),
+    }
+
+
+def _extract_name_from_prompt(prompt: str) -> str:
+    """
+    Extract character name from prompt.
+    
+    Examples:
+        "Pescocinho Biblizoo Baby, girafa bebê" → "Pescocinho Biblizoo Baby"
+        "Jonas, leão corajoso" → "Jonas"
+        "friendly dog character" → "Friendly Dog"
+    """
+    import re
+    
+    # Pattern 1: "NAME, description"
+    comma_match = re.match(r'^([^,]+),', prompt)
+    if comma_match:
+        name = comma_match.group(1).strip()
+        # Limit to first 50 chars and 5 words max
+        words = name.split()
+        if len(words) <= 5 and len(name) <= 50:
+            return name
+    
+    # Pattern 2: First 3 words if capitalized
+    words = prompt.strip().split()
+    if len(words) >= 2:
+        potential = ' '.join(words[:min(3, len(words))])
+        if potential[0].isupper() and len(potential) <= 50:
+            return potential
+    
+    # Fallback: First 30 chars
+    return prompt[:30].strip()

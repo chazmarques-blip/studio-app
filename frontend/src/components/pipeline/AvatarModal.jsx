@@ -351,49 +351,121 @@ export function AvatarModal({ ctx }) {
                     {/* MODE: By Prompt */}
                     {avatarCreationMode === 'prompt' && (
                       <div className="space-y-3">
+                        {/* Individual vs Batch Toggle */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => ctx.setPromptBatchMode?.(false)}
+                            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+                              !ctx.promptBatchMode ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'
+                            }`}
+                          >
+                            Individual
+                          </button>
+                          <button
+                            onClick={() => ctx.setPromptBatchMode?.(true)}
+                            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+                              ctx.promptBatchMode ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'
+                            }`}
+                          >
+                            Em Lote
+                          </button>
+                        </div>
+
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <PenTool size={12} className="text-[#8B5CF6]" />
-                            <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">{isDirectedMode ? 'Descreva seu personagem' : (t('studio.describe_avatar') || 'Describe your avatar')}</span>
+                            <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">
+                              {ctx.promptBatchMode 
+                                ? 'Cole os prompts (um por linha)' 
+                                : (isDirectedMode ? 'Descreva seu personagem' : (t('studio.describe_avatar') || 'Describe your avatar'))
+                              }
+                            </span>
                           </div>
                           <textarea data-testid="avatar-prompt-input" value={avatarPromptText}
                             onChange={e => setAvatarPromptText(e.target.value)}
-                            placeholder={t('studio.avatar_prompt_placeholder') || 'E.g.: Young professional woman, 28 years old, brown hair, confident smile, business attire'}
-                            className="w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none h-20" />
+                            placeholder={ctx.promptBatchMode 
+                              ? 'Exemplo:\nPescocinho Biblizoo Baby, girafa bebê fofa\nJonas Biblizoo Baby, leão adolescente corajoso\nMaria Biblizoo Baby, elefante filhote sorridente'
+                              : (t('studio.avatar_prompt_placeholder') || 'E.g.: Young professional woman, 28 years old, brown hair, confident smile, business attire')
+                            }
+                            className={`w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none ${
+                              ctx.promptBatchMode ? 'h-32' : 'h-20'
+                            }`} />
                         </div>
-                        <div className="flex gap-2">
-                          <div className="flex-1 space-y-1">
-                            <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
-                            <div className="flex gap-1">
-                              {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
-                                <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
-                                  className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
-                                  {g.label}
-                                </button>
-                              ))}
+
+                        {/* Batch Mode Info */}
+                        {ctx.promptBatchMode && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
+                            <Sparkles size={12} className="text-[#8B5CF6] shrink-0" />
+                            <p className="text-[10px] text-[#999]">
+                              {avatarPromptText.trim().split('\n').filter(l => l.trim()).length} personagens serão criados
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Gender & Style (only for individual mode) */}
+                        {!ctx.promptBatchMode && (
+                          <>
+                            <div className="flex gap-2">
+                              <div className="flex-1 space-y-1">
+                                <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.gender') || 'Gender'}</span>
+                                <div className="flex gap-1">
+                                  {[{id:'female', label:'F'}, {id:'male', label:'M'}].map(g => (
+                                    <button key={g.id} onClick={() => setAvatarPromptGender(g.id)}
+                                      className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${avatarPromptGender === g.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                      {g.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
+                            {/* Style selector - also for prompt mode */}
+                            <div className="space-y-1">
+                              <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
+                              <div className="flex gap-1">
+                                {[{id:'custom', label:'Custom'}, {id:'realistic', label:'Realistic'}, {id:'3d_cartoon', label:'3D Cartoon'}, {id:'3d_pixar', label:'3D Pixar'}].map(s => (
+                                  <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
+                                    data-testid={`prompt-style-${s.id}`}
+                                    className={`flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
+                                    {s.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Batch Progress Indicator */}
+                        {generatingAvatar && ctx.batchProgress && (
+                          <div className="rounded-xl bg-[#0A0A0A] border border-[#1E1E1E] p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-[#888]">Gerando personagens em lote...</p>
+                              <span className="text-xs font-mono text-[#8B5CF6]">
+                                {ctx.batchProgress.completed}/{ctx.batchProgress.total}
+                              </span>
+                            </div>
+                            <div className="h-1.5 bg-[#1E1E1E] rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] transition-all duration-300"
+                                style={{width: `${(ctx.batchProgress.completed / ctx.batchProgress.total) * 100}%`}}
+                              />
+                            </div>
+                            {ctx.batchProgress.currentPrompt && (
+                              <p className="text-[10px] text-[#666] truncate">
+                                Gerando: {ctx.batchProgress.currentPrompt}
+                              </p>
+                            )}
                           </div>
-                        </div>
-                        {/* Style selector - also for prompt mode */}
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-[#999] uppercase tracking-wider">{t('studio.style') || 'Style'}</span>
-                          <div className="flex gap-1">
-                            {[{id:'custom', label:'Custom'}, {id:'realistic', label:'Realistic'}, {id:'3d_cartoon', label:'3D Cartoon'}, {id:'3d_pixar', label:'3D Pixar'}].map(s => (
-                              <button key={s.id} onClick={() => setAvatarPromptStyle(s.id)}
-                                data-testid={`prompt-style-${s.id}`}
-                                className={`flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition ${avatarPromptStyle === s.id ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/30' : 'border border-[#1E1E1E] text-[#999]'}`}>
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <button data-testid="generate-avatar-prompt-btn" onClick={generateAvatarFromPrompt}
+                        )}
+
+                        <button 
+                          data-testid="generate-avatar-prompt-btn" 
+                          onClick={ctx.promptBatchMode ? ctx.generateAvatarBatch : generateAvatarFromPrompt}
                           disabled={generatingAvatar || !avatarPromptText.trim()}
                           className="w-full rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] py-3 text-xs font-bold text-black hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2">
                           {generatingAvatar ? (
-                            <><Loader2 size={14} className="animate-spin" /> {accuracyProgress?.progress || t('studio.generating_avatar')}</>
+                            <><Loader2 size={14} className="animate-spin" /> {ctx.batchProgress ? `${ctx.batchProgress.completed}/${ctx.batchProgress.total}` : (accuracyProgress?.progress || t('studio.generating_avatar'))}</>
                           ) : (
-                            <><Sparkles size={14} /> {isDirectedMode ? 'Gerar Personagem com IA' : t('studio.generate_avatar_ai')}</>
+                            <><Sparkles size={14} /> {ctx.promptBatchMode ? 'Gerar Todos' : (isDirectedMode ? 'Gerar Personagem com IA' : t('studio.generate_avatar_ai'))}</>
                           )}
                         </button>
                       </div>

@@ -122,6 +122,8 @@ export default function PipelineView({ context }) {
   const [avatarPromptText, setAvatarPromptText] = useState('');
   const [avatarPromptGender, setAvatarPromptGender] = useState('female');
   const [avatarPromptStyle, setAvatarPromptStyle] = useState('custom'); // 'custom' | 'realistic' | '3d_cartoon' | '3d_pixar'
+  const [promptBatchMode, setPromptBatchMode] = useState(false); // false = individual, true = batch
+  const [batchProgress, setBatchProgress] = useState(null); // { completed, total, currentPrompt }
   const [tempAvatar, setTempAvatar] = useState(null); // { url, source_photo_url, clothing, voice }
   const [editingAvatarId, setEditingAvatarId] = useState(null); // null = new, string = editing existing
   const [customizeTab, setCustomizeTab] = useState('clothing');
@@ -596,6 +598,66 @@ export default function PipelineView({ context }) {
       setGeneratingAvatar(false);
     }
   };
+
+
+  const generateAvatarBatch = async () => {
+    if (!avatarPromptText.trim()) { 
+      toast.error('Cole os prompts (um por linha)'); 
+      return; 
+    }
+
+    // Split prompts by line
+    const prompts = avatarPromptText
+      .split('\n')
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+
+    if (prompts.length === 0) {
+      toast.error('Nenhum prompt válido encontrado');
+      return;
+    }
+
+    if (prompts.length > 20) {
+      toast.error('Máximo de 20 personagens por lote');
+      return;
+    }
+
+    setGeneratingAvatar(true);
+    setBatchProgress({ completed: 0, total: prompts.length, currentPrompt: prompts[0] });
+
+    try {
+      const { data } = await axios.post(`${API}/data/avatars/batch`, {
+        prompts,
+        style: avatarPromptStyle,
+        gender: avatarPromptGender,
+      });
+
+      const { created, failed, success } = data;
+
+      // Refresh avatar list
+      const freshAvatars = await axios.get(`${API}/data/avatars`);
+      setAvatars(freshAvatars.data || []);
+      localStorage.setItem('studiox_avatars', JSON.stringify(freshAvatars.data || []));
+
+      // Show results
+      if (success > 0) {
+        toast.success(`${success} personagens criados com sucesso!`);
+      }
+      if (failed && failed.length > 0) {
+        toast.warning(`${failed.length} personagens falharam na criação`);
+      }
+
+      // Reset modal
+      resetAvatarModal();
+
+    } catch (e) {
+      toast.error(getErrorMsg(e, 'Erro ao criar personagens em lote'));
+    } finally {
+      setGeneratingAvatar(false);
+      setBatchProgress(null);
+    }
+  };
+
 
   const saveAvatarAndClose = async () => {
     if (!tempAvatar) return;
@@ -1960,14 +2022,15 @@ export default function PipelineView({ context }) {
           avatarEditHistory, avatarBaseUrl, applyingClothing, isRecording,
           recordedAudioUrl, recordedAudioBlob, uploadingRecording, loadingVoicePreview,
           playingVoiceId, elevenLabsVoices, elevenLabsAvailable, avatarPreviewUrl, avatars,
+          promptBatchMode, batchProgress,
           setAvatarCreationMode, setAvatarSourceType, setAvatarSourcePhoto,
           setAvatarExtractedAudio, setAvatarVideoFrames, setAvatarName,
           setAvatarMediaTab, setAvatarPromptText, setAvatarPromptGender,
           setAvatarPromptStyle, setAiEditAvatarId, setAiEditInstruction, setAiEditLoading,
           setTempAvatar, setCustomizeTab, setVoiceTab, setAngleImages,
           setPreviewLanguage, setAvatarPreviewUrl, setAvatarEditHistory,
-          setPreviewVideoUrl, setGeneratingPreviewVideo,
-          resetAvatarModal, generateAvatarFromPhoto, generateAvatarFromPrompt,
+          setPreviewVideoUrl, setGeneratingPreviewVideo, setPromptBatchMode,
+          resetAvatarModal, generateAvatarFromPhoto, generateAvatarFromPrompt, generateAvatarBatch,
           uploadAvatarPhoto, uploadAvatarVideo, applyClothing, generateAngle,
           startAuto360, saveAvatarAndClose, saveAvatarAsNew, previewVoice,
           startRecording, stopRecording, saveRecordingAsVoice, persistAvatarToServer,
