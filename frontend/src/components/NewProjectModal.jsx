@@ -461,7 +461,7 @@ export function NewProjectModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="glass-card p-4 space-y-3 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
+      <div className="glass-card p-3 space-y-2 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
         {/* Header - COMPACTO */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1096,8 +1096,8 @@ export function NewProjectModal({
           </div>
         </div>
 
-        {/* Step 3: Character Folder Selection - NOVO PARA CONTINUIDADE */}
-        <div className="space-y-1.5">
+        {/* Step 3: Character Folder Selection - COMPACTO */}
+        <div className="space-y-1">
           <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
             <span className="text-[#8B5CF6] text-xs">3</span>
             <Users size={12} className="text-[#8B5CF6]" />
@@ -1149,7 +1149,7 @@ export function NewProjectModal({
               </div>
             )}
           </div>
-          <p className="text-[10px] text-[#666]">
+          <p className="text-[9px] text-[#666]">
             {selectedFolder === null 
               ? (lang === 'pt' ? 'Novos personagens serão criados para este projeto' : 'New characters will be created for this project')
               : (lang === 'pt' ? 'Personagens existentes serão reutilizados (continuidade garantida)' : 'Existing characters will be reused (continuity guaranteed)')
@@ -1196,8 +1196,8 @@ export function NewProjectModal({
           </div>
         </div>
 
-        {/* Step 5: Multi-Format Strategy - ULTRA COMPACTO (renumerado) */}
-        <div className="space-y-1.5">
+        {/* Step 5: Multi-Format Strategy - COMPACTO */}
+        <div className="space-y-1">
           <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
             <span className="text-[#8B5CF6] text-xs">5</span>
             {lang === 'pt' ? 'Formato' : 'Format'}
@@ -1268,36 +1268,36 @@ export function NewProjectModal({
           </div>
         </div>
 
-        {/* Step 6: Video Engine - NEW (renumerado) */}
-        <div className="space-y-1.5">
+        {/* Step 6: Video Engine - COMPACTO */}
+        <div className="space-y-1">
           <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
             <span className="text-[#8B5CF6] text-xs">6</span>
             {lang === 'pt' ? '🎬 Engine de Vídeo' : '🎬 Video Engine'}
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5">
             {/* Sora 2 */}
             <button
               type="button"
               onClick={() => setVideoEngine('sora')}
-              className={`p-2 rounded-md border-2 text-left transition-all ${
+              className={`p-1.5 rounded-md border-2 text-left transition-all ${
                 videoEngine === 'sora'
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-blue-300'
               }`}>
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <div className={`w-4 h-4 rounded flex items-center justify-center ${
                   videoEngine === 'sora' ? 'bg-blue-500' : 'bg-gray-300'
                 }`}>
-                  <span className="text-white text-[10px] font-bold">S</span>
+                  <span className="text-white text-[9px] font-bold">S</span>
                 </div>
-                <span className={`text-[11px] font-semibold ${videoEngine === 'sora' ? 'text-blue-600' : 'text-gray-700'}`}>
+                <span className={`text-[10px] font-semibold ${videoEngine === 'sora' ? 'text-blue-600' : 'text-gray-700'}`}>
                   Sora 2
                 </span>
                 {videoEngine === 'sora' && (
                   <Check size={10} strokeWidth={2.5} className="text-blue-500 ml-auto" />
                 )}
               </div>
-              <div className="text-[9px] text-gray-600 space-y-0.5 ml-6">
+              <div className="text-[8px] text-gray-600 space-y-0.5 ml-5">
                 <div>⏱️ 12s/cena</div>
                 <div>🎨 Boa cont.</div>
                 <div>💰 ~$0.12/s</div>
@@ -1308,25 +1308,25 @@ export function NewProjectModal({
             <button
               type="button"
               onClick={() => setVideoEngine('kling')}
-              className={`p-2 rounded-md border-2 text-left transition-all ${
+              className={`p-1.5 rounded-md border-2 text-left transition-all ${
                 videoEngine === 'kling'
                   ? 'border-purple-500 bg-purple-50'
                   : 'border-[#E0E0E0] bg-white/80 hover:border-purple-300'
               }`}>
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <div className={`w-4 h-4 rounded flex items-center justify-center ${
                   videoEngine === 'kling' ? 'bg-purple-500' : 'bg-gray-300'
                 }`}>
-                  <span className="text-white text-[10px] font-bold">K</span>
+                  <span className="text-white text-[9px] font-bold">K</span>
                 </div>
-                <span className={`text-[11px] font-semibold ${videoEngine === 'kling' ? 'text-purple-600' : 'text-gray-700'}`}>
+                <span className={`text-[10px] font-semibold ${videoEngine === 'kling' ? 'text-purple-600' : 'text-gray-700'}`}>
                   Kling AI
                 </span>
                 {videoEngine === 'kling' && (
                   <Check size={10} strokeWidth={2.5} className="text-purple-500 ml-auto" />
                 )}
               </div>
-              <div className="text-[9px] text-gray-600 space-y-0.5 ml-6">
+              <div className="text-[8px] text-gray-600 space-y-0.5 ml-5">
                 <div>⏱️ 5min</div>
                 <div>🎨 Exc. cont.</div>
                 <div>💰 ~$0.05/s</div>
@@ -1334,33 +1334,33 @@ export function NewProjectModal({
             </button>
 
 
-          {/* Target Duration (only for Kling) */}
-          {videoEngine === 'kling' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-900">
-                {lang === 'pt' ? 'Duração do Vídeo Final' : 'Final Video Duration'}
-              </label>
-              <select 
-                value={targetDuration}
-                onChange={(e) => setTargetDuration(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-              >
-                <option value="5">5 minutos (1 cena)</option>
-                <option value="10">10 minutos (2 cenas)</option>
-                <option value="15">15 minutos (3 cenas)</option>
-                <option value="20">20 minutos (4 cenas)</option>
-                <option value="25">25 minutos (5 cenas)</option>
-              </select>
-              <p className="text-xs text-gray-500">
-                ✨ {lang === 'pt' ? 'Cada cena Kling = 5 minutos contínuos' : 'Each Kling scene = 5 continuous minutes'}
-                <br />
-                💰 {lang === 'pt' ? 'Custo storyboard' : 'Storyboard cost'}: {(targetDuration / 5) * 30} frames × $0.04 = ${((targetDuration / 5) * 30 * 0.04).toFixed(2)}
-              </p>
-            </div>
-          )}
-
           </div>
         </div>
+
+        {/* Step 7: Target Duration (only for Kling) - COMPACTO */}
+        {videoEngine === 'kling' && (
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-[#999] flex items-center gap-1.5">
+              <span className="text-[#8B5CF6] text-xs">7</span>
+              {lang === 'pt' ? '⏱️ Duração' : '⏱️ Duration'}
+            </label>
+            <div className="flex gap-1">
+              {[5, 10, 15, 20, 25].map(duration => (
+                <button
+                  key={duration}
+                  type="button"
+                  onClick={() => setTargetDuration(duration)}
+                  className={`flex-1 px-2 py-1 rounded-md border-2 text-center transition-all ${
+                    targetDuration === duration
+                      ? 'border-purple-500 bg-purple-50 text-purple-600'
+                      : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-purple-300'
+                  }`}>
+                  <span className="text-[10px] font-semibold">{duration}min</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Advanced Settings - Removido para compactar modal */}
 
