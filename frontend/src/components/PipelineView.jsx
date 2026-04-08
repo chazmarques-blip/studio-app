@@ -601,6 +601,10 @@ export default function PipelineView({ context }) {
 
 
   const generateAvatarBatch = async () => {
+    console.log('🚀 generateAvatarBatch called');
+    console.log('promptBatchMode:', promptBatchMode);
+    console.log('avatarPromptText:', avatarPromptText);
+    
     if (!avatarPromptText.trim()) { 
       toast.error('Cole os prompts (um por linha)'); 
       return; 
@@ -611,6 +615,8 @@ export default function PipelineView({ context }) {
       .split('\n')
       .map(p => p.trim())
       .filter(p => p.length > 0);
+
+    console.log('Prompts parsed:', prompts);
 
     if (prompts.length === 0) {
       toast.error('Nenhum prompt válido encontrado');
@@ -626,11 +632,14 @@ export default function PipelineView({ context }) {
     setBatchProgress({ completed: 0, total: prompts.length, currentPrompt: prompts[0] });
 
     try {
+      console.log('Sending batch request...');
       const { data } = await axios.post(`${API}/data/avatars/batch`, {
         prompts,
         style: avatarPromptStyle,
         gender: avatarPromptGender,
       });
+
+      console.log('Batch response:', data);
 
       const { created, failed, success } = data;
 
@@ -651,6 +660,7 @@ export default function PipelineView({ context }) {
       resetAvatarModal();
 
     } catch (e) {
+      console.error('Batch error:', e);
       toast.error(getErrorMsg(e, 'Erro ao criar personagens em lote'));
     } finally {
       setGeneratingAvatar(false);

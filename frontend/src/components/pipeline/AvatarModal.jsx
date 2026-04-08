@@ -394,11 +394,18 @@ export function AvatarModal({ ctx }) {
 
                         {/* Batch Mode Info */}
                         {ctx.promptBatchMode && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
-                            <Sparkles size={12} className="text-[#8B5CF6] shrink-0" />
-                            <p className="text-[10px] text-[#999]">
-                              {avatarPromptText.trim().split('\n').filter(l => l.trim()).length} personagens serão criados
-                            </p>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
+                              <Sparkles size={12} className="text-[#8B5CF6] shrink-0" />
+                              <p className="text-[10px] text-[#999]">
+                                {avatarPromptText.trim().split('\n').filter(l => l.trim()).length} personagens serão criados
+                              </p>
+                            </div>
+                            <div className="px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                              <p className="text-[10px] text-blue-400">
+                                💡 <strong>Como usar:</strong> Cole um prompt por linha. Cada linha = 1 personagem.
+                              </p>
+                            </div>
                           </div>
                         )}
 
