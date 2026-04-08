@@ -55,6 +55,55 @@ export function AvatarModal({ ctx }) {
 
   const setAiEditLoading = _setAiEditLoading || (() => {});
 
+  // ✅ AUTO-EXTRACT character name from prompt
+  React.useEffect(() => {
+    if (avatarPromptText && avatarPromptText.length > 10 && !avatarName) {
+      // Extract name from common patterns:
+      // 1. "chibi 3D render of NAME, ..." 
+      // 2. "NAME, description..."
+      // 3. "character named NAME"
+      
+      let extractedName = '';
+      
+      // Pattern 1: "render of NAME," or "of NAME,"
+      const ofMatch = avatarPromptText.match(/(?:render of|portrait of|image of)\s+([^,]+?)(?:,|\s+wild|\s+female|\s+male|\s+quadruped)/i);
+      if (ofMatch && ofMatch[1]) {
+        extractedName = ofMatch[1].trim();
+      }
+      
+      // Pattern 2: "NAME," at the start (if longer than 3 words, probably not a name)
+      if (!extractedName) {
+        const startMatch = avatarPromptText.match(/^([^,]+),/);
+        if (startMatch && startMatch[1] && startMatch[1].split(' ').length <= 5) {
+          extractedName = startMatch[1].trim();
+        }
+      }
+      
+      // Pattern 3: "named NAME" or "called NAME"
+      if (!extractedName) {
+        const namedMatch = avatarPromptText.match(/(?:named|called)\s+([^,\s]+(?:\s+[^,\s]+)?)/i);
+        if (namedMatch && namedMatch[1]) {
+          extractedName = namedMatch[1].trim();
+        }
+      }
+      
+      // Clean up extracted name
+      if (extractedName) {
+        // Remove common prefixes/words that aren't part of the name
+        extractedName = extractedName
+          .replace(/^(a|an|the)\s+/i, '')
+          .replace(/\s+(character|person|avatar|render)$/i, '')
+          .trim();
+        
+        // Only auto-fill if it looks like a valid name (2-50 chars, starts with letter)
+        if (extractedName.length >= 2 && extractedName.length <= 50 && /^[A-Za-z]/.test(extractedName)) {
+          setAvatarName(extractedName);
+          console.log('✅ Nome extraído automaticamente do prompt:', extractedName);
+        }
+      }
+    }
+  }, [avatarPromptText, avatarName, setAvatarName]);
+
   // Labels adapt based on context (Directed Studio = "Personagem", Campaign = "Avatar")
   const entityLabel = isDirectedMode ? 'Personagem' : 'Avatar';
 
