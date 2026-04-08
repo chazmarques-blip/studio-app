@@ -24,7 +24,9 @@ def generate_screenplay_parallel(
     audio_mode: str,
     max_scenes: int = 50,
     batch_size: int = 10,
-    max_workers: int = 3
+    max_workers: int = 3,
+    character_folder_id: str = None,  # NEW: Folder ID for character library
+    target_audience: str = "all"  # NEW: Target audience age range
 ) -> Dict:
     """
     Generate screenplay using parallel agents
@@ -51,10 +53,45 @@ def generate_screenplay_parallel(
     
     from .screenwriter import SCREENWRITER_SYSTEM_PHASE1, LANG_FULL_NAMES
     
+    # ── NEW: Get character library from folder ──
+    folder_characters = []
+    character_library_text = ""
+    
+    if character_folder_id:
+        folder_characters = _get_folder_characters(tenant_id, character_folder_id)
+        if folder_characters:
+            logger.info(f"ParallelScreenplay [{project_id}]: Using {len(folder_characters)} characters from folder {character_folder_id}")
+            character_library_text = "\n\n" + "="*80 + "\n"
+            character_library_text += f"📚 CHARACTER LIBRARY - {len(folder_characters)} PERSONAGENS DISPONÍVEIS\n"
+            character_library_text += "="*80 + "\n"
+            character_library_text += "Você DEVE usar SOMENTE personagens desta lista:\n\n"
+            
+            for char in folder_characters:
+                character_library_text += f"- ID: {char['id']}\n"
+                character_library_text += f"  Nome: {char['name']}\n"
+                character_library_text += f"  Descrição: {char['description']}\n"
+                character_library_text += f"  Idade: {char.get('age', 'adulto')}\n\n"
+            
+            character_library_text += "\n⚠️ REGRA CRÍTICA:\n"
+            character_library_text += "- Use o NOME COMPLETO exatamente como fornecido\n"
+            character_library_text += "- Inclua o ID do personagem na sua resposta JSON\n"
+            character_library_text += "- Se precisar de personagens extras (figurantes, multidão), marque como 'NOVO:'\n"
+            character_library_text += "="*80 + "\n"
+    
+    # ── NEW: Get audience guidelines ──
+    audience_guideline = _get_audience_guideline(target_audience, lang)
+    
     # ── Phase 1: Foundation Agent (First Batch) ──
     logger.info(f"ParallelScreenplay [{project_id}]: Phase 1 - Foundation agent generating structure")
     
     system = SCREENWRITER_SYSTEM_PHASE1.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang))
+    
+    # Add character library and audience guidelines to system prompt
+    if character_library_text:
+        system += character_library_text
+    
+    if audience_guideline:
+        system += f"\n\n🎯 TARGET AUDIENCE: {target_audience}\n{audience_guideline}\n"
     
     audio_instruction = _build_audio_instruction(lang, audio_mode, LANG_FULL_NAMES)
     

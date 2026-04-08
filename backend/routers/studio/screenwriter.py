@@ -614,6 +614,9 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
     def _parallel_screenplay_wrapper():
         try:
             audio_mode = project.get("audio_mode", "narrated")
+            character_folder_id = project.get("character_folder_id")  # NEW
+            target_audience = project.get("target_audience", "all")  # NEW
+            
             result = generate_screenplay_parallel(
                 tenant_id=tenant["id"],
                 project_id=project["id"],
@@ -622,7 +625,9 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
                 audio_mode=audio_mode,
                 max_scenes=50,
                 batch_size=10,
-                max_workers=3
+                max_workers=3,
+                character_folder_id=character_folder_id,  # NEW
+                target_audience=target_audience  # NEW
             )
             _merge_screenplay_results(tenant["id"], project["id"], result)
         except Exception as e:
