@@ -131,72 +131,6 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
   };
 
 
-  // Batch avatar generation function
-  const generateAvatarBatch = async () => {
-    console.log('🚀 generateAvatarBatch called (StudioPage)');
-    
-    if (!avatarPromptText.trim()) {
-      toast.error('Cole os prompts separados por linha em branco');
-      return;
-    }
-
-    // Split prompts by blank line
-    const prompts = avatarPromptText
-      .split(/\n\s*\n/)
-      .map(p => p.trim())
-      .filter(p => p.length > 0);
-
-    console.log('Prompts parsed:', prompts.length, 'prompts');
-
-    if (prompts.length === 0) {
-      toast.error('Nenhum prompt válido encontrado');
-      return;
-    }
-
-    if (prompts.length > 20) {
-      toast.error('Máximo de 20 personagens por lote');
-      return;
-    }
-
-    setGeneratingAvatar(true);
-    setBatchProgress({ completed: 0, total: prompts.length, currentPrompt: prompts[0].substring(0, 60) + '...' });
-
-    try {
-      console.log('Sending batch request...');
-      const { data } = await axios.post(`${API}/data/avatars/batch`, {
-        prompts,
-        style: avatarPromptStyle,
-        gender: avatarPromptGender,
-      });
-
-      console.log('Batch response:', data);
-
-      const { created, failed, success } = data;
-
-      // Refresh avatar list
-      const freshAvatars = await axios.get(`${API}/data/avatars`);
-      setAvatars(freshAvatars.data || []);
-      localStorage.setItem('studiox_avatars', JSON.stringify(freshAvatars.data || []));
-
-      // Show results
-      if (success > 0) {
-        toast.success(`${success} personagens criados com sucesso!`);
-      }
-      if (failed && failed.length > 0) {
-        toast.warning(`${failed.length} personagens falharam na criação`);
-      }
-
-      // Reset modal
-      resetAvatarModal();
-
-    } catch (e) {
-      console.error('Batch error:', e);
-      toast.error(e.response?.data?.detail || 'Erro ao criar personagens em lote');
-    } finally {
-      setGeneratingAvatar(false);
-      setBatchProgress(null);
-    }
-  };
 
 
   return (
@@ -542,6 +476,75 @@ export default function StudioPage() {
   const [avatarPromptStyle, setAvatarPromptStyle] = useState('custom');
   const [promptBatchMode, setPromptBatchMode] = useState(false); // false = individual, true = batch
   const [batchProgress, setBatchProgress] = useState(null); // { completed, total, currentPrompt }
+
+  // Batch avatar generation function
+  const generateAvatarBatch = async () => {
+    console.log('🚀 generateAvatarBatch called (StudioPage)');
+    
+    if (!avatarPromptText.trim()) {
+      toast.error('Cole os prompts separados por linha em branco');
+      return;
+    }
+
+    // Split prompts by blank line
+    const prompts = avatarPromptText
+      .split(/\n\s*\n/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+
+    console.log('Prompts parsed:', prompts.length, 'prompts');
+
+    if (prompts.length === 0) {
+      toast.error('Nenhum prompt válido encontrado');
+      return;
+    }
+
+    if (prompts.length > 20) {
+      toast.error('Máximo de 20 personagens por lote');
+      return;
+    }
+
+    setGeneratingAvatar(true);
+    setBatchProgress({ completed: 0, total: prompts.length, currentPrompt: prompts[0].substring(0, 60) + '...' });
+
+    try {
+      console.log('Sending batch request...');
+      const { data } = await axios.post(`${API}/data/avatars/batch`, {
+        prompts,
+        style: avatarPromptStyle,
+        gender: avatarPromptGender,
+      });
+
+      console.log('Batch response:', data);
+
+      const { created, failed, success } = data;
+
+      // Refresh avatar list
+      const freshAvatars = await axios.get(`${API}/data/avatars`);
+      setAvatars(freshAvatars.data || []);
+      localStorage.setItem('studiox_avatars', JSON.stringify(freshAvatars.data || []));
+
+      // Show results
+      if (success > 0) {
+        toast.success(`${success} personagens criados com sucesso!`);
+      }
+      if (failed && failed.length > 0) {
+        toast.warning(`${failed.length} personagens falharam na criação`);
+      }
+
+      // Reset modal
+      resetAvatarModal();
+
+    } catch (e) {
+      console.error('Batch error:', e);
+      toast.error(e.response?.data?.detail || 'Erro ao criar personagens em lote');
+    } finally {
+      setGeneratingAvatar(false);
+      setBatchProgress(null);
+    }
+  };
+
+
 
   const [tempAvatar, setTempAvatar] = useState(null);
   const [editingAvatarId, setEditingAvatarId] = useState(null);
