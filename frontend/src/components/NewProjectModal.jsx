@@ -475,7 +475,7 @@ export function NewProjectModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="glass-card p-2 space-y-1 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
+      <div className={`glass-card p-2 space-y-1 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto ${(showCreateCompany || showEditCompany) ? 'opacity-0 pointer-events-none' : ''}`}>
         {/* Header - COMPACTO */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -621,8 +621,8 @@ export function NewProjectModal({
         
         {/* Modal: Create Company (inline) */}
         {showCreateCompany && (
-          <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreateCompany(false)}>
-            <div className="bg-white rounded-xl border-2 border-[#8B5CF6]/30 p-5 max-w-lg w-full space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-0" onClick={() => setShowCreateCompany(false)}>
+            <div className="bg-white rounded-lg p-4 max-w-md w-[90%] space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
                   <Building2 size={18} className="text-[#8B5CF6]" />
@@ -771,8 +771,8 @@ export function NewProjectModal({
         
         {/* Modal: Edit Company */}
         {showEditCompany && editingCompany && (
-          <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowEditCompany(false)}>
-            <div className="bg-white rounded-xl border-2 border-[#8B5CF6]/30 p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-0" onClick={() => setShowEditCompany(false)}>
+            <div className="bg-white rounded-lg p-4 max-w-md w-[90%] max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
                   <Edit2 size={18} className="text-[#8B5CF6]" />
