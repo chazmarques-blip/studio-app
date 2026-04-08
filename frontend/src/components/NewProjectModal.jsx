@@ -49,6 +49,15 @@ export function NewProjectModal({
   const [showEditCompany, setShowEditCompany] = useState(false);
   const [editCompanyName, setEditCompanyName] = useState('');
   const [editCompanyLogo, setEditCompanyLogo] = useState('');
+  // NEW: Company defaults editing
+  const [editCompanyDefaults, setEditCompanyDefaults] = useState({
+    default_visual_style: '',
+    default_animation_sub: '',
+    default_target_audience: '',
+    default_format_strategy: '',
+    default_video_engine: '',
+    default_target_duration: 5
+  });
   const [uploadingEditLogo, setUploadingEditLogo] = useState(false);
   const [updatingCompany, setUpdatingCompany] = useState(false);
   const [editLogoPosition, setEditLogoPosition] = useState('center'); // 'center', 'top', 'bottom', 'left', 'right'
@@ -217,6 +226,15 @@ export function NewProjectModal({
     setEditCompanyName(company.name);
     setEditCompanyLogo(company.logo_url || '');
     setEditLogoPosition(company.logo_position || 'center');
+    // Load company defaults
+    setEditCompanyDefaults({
+      default_visual_style: company.default_visual_style || '',
+      default_animation_sub: company.default_animation_sub || '',
+      default_target_audience: company.default_target_audience || '',
+      default_format_strategy: company.default_format_strategy || '',
+      default_video_engine: company.default_video_engine || '',
+      default_target_duration: company.default_target_duration || 5
+    });
     setShowEditCompany(true);
   };
 
@@ -234,7 +252,9 @@ export function NewProjectModal({
         body: JSON.stringify({
           name: editCompanyName.trim(),
           logo_url: editCompanyLogo || null,
-          logo_position: editLogoPosition
+          logo_position: editLogoPosition,
+          // Include defaults
+          ...editCompanyDefaults
         })
       });
       
@@ -711,7 +731,7 @@ export function NewProjectModal({
         {/* Modal: Edit Company */}
         {showEditCompany && editingCompany && (
           <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowEditCompany(false)}>
-            <div className="bg-white rounded-xl border-2 border-[#8B5CF6]/30 p-5 max-w-lg w-full space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-xl border-2 border-[#8B5CF6]/30 p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
                   <Edit2 size={18} className="text-[#8B5CF6]" />
@@ -812,6 +832,135 @@ export function NewProjectModal({
                   </label>
                 </div>
                 
+
+              
+              {/* ═══════════════════════════════════════════════════════════════ */}
+              {/* PROJECT DEFAULTS SECTION (NEW) */}
+              {/* ═══════════════════════════════════════════════════════════════ */}
+              <div className="border-t-2 border-[#E0E0E0] pt-4 mt-2">
+                <h5 className="text-sm font-semibold text-[#333] mb-1 flex items-center gap-1.5">
+                  ⚙️ Padrões de Projeto
+                </h5>
+                <p className="text-[10px] text-[#999] mb-3">
+                  Configure valores padrão que serão aplicados automaticamente ao criar novos projetos
+                </p>
+                
+                {/* Default Visual Style */}
+                <div className="mb-3">
+                  <label className="text-xs font-medium text-[#666] mb-1.5 block">Estilo Visual Padrão</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'pixar_3d', label: 'Pixar 3D' },
+                      { id: 'cartoon_2d', label: 'Cartoon 2D' },
+                      { id: 'realista', label: 'Realista' },
+                    ].map(style => (
+                      <button key={style.id} type="button"
+                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_visual_style: style.id, default_animation_sub: style.id }))}
+                        className={`px-2 py-2 rounded-lg border-2 text-xs font-medium transition ${
+                          editCompanyDefaults.default_visual_style === style.id
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                        }`}>
+                        {style.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Default Target Audience */}
+                <div className="mb-3">
+                  <label className="text-xs font-medium text-[#666] mb-1.5 block">Público-Alvo Padrão</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { id: '3-6', label: '3-6' },
+                      { id: '6-9', label: '6-9' },
+                      { id: '10-13', label: '10-13' },
+                      { id: '14-17', label: '14-17' },
+                      { id: '18-25', label: '18-25' },
+                      { id: '25+', label: '25+' },
+                      { id: 'all', label: 'Todas' },
+                    ].map(age => (
+                      <button key={age.id} type="button"
+                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_audience: age.id }))}
+                        className={`px-2 py-2 rounded-lg border-2 text-xs font-medium transition ${
+                          editCompanyDefaults.default_target_audience === age.id
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                        }`}>
+                        {age.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Default Format */}
+                <div className="mb-3">
+                  <label className="text-xs font-medium text-[#666] mb-1.5 block">Formato Padrão</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'safe_zone', label: 'Safe Zone' },
+                      { id: 'dual', label: 'Dual' },
+                      { id: 'multi', label: 'Multi' },
+                    ].map(format => (
+                      <button key={format.id} type="button"
+                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_format_strategy: format.id }))}
+                        className={`px-2 py-2 rounded-lg border-2 text-xs font-medium transition ${
+                          editCompanyDefaults.default_format_strategy === format.id
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                        }`}>
+                        {format.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Default Video Engine */}
+                <div className="mb-3">
+                  <label className="text-xs font-medium text-[#666] mb-1.5 block">Engine de Vídeo Padrão</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { id: 'sora', label: 'Sora 2 (12s)' },
+                      { id: 'kling', label: 'Kling AI (5min)' },
+                    ].map(engine => (
+                      <button key={engine.id} type="button"
+                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_video_engine: engine.id }))}
+                        className={`px-2 py-2 rounded-lg border-2 text-xs font-medium transition ${
+                          editCompanyDefaults.default_video_engine === engine.id
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                        }`}>
+                        {engine.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Default Duration (only for Kling) */}
+                {editCompanyDefaults.default_video_engine === 'kling' && (
+                  <div className="mb-3">
+                    <label className="text-xs font-medium text-[#666] mb-1.5 block">Duração Padrão (minutos)</label>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[5, 10, 15, 20, 25].map(duration => (
+                        <button key={duration} type="button"
+                          onClick={() => setEditCompanyDefaults(p => ({ ...p, default_target_duration: duration }))}
+                          className={`px-2 py-2 rounded-lg border-2 text-xs font-medium transition ${
+                            editCompanyDefaults.default_target_duration === duration
+                              ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                              : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-[#F9F7FF]'
+                          }`}>
+                          {duration}min
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-[9px] text-[#999] italic mt-2">
+                  💡 Esses valores serão aplicados automaticamente ao criar novos projetos
+                </p>
+              </div>
+
                 {editCompanyLogo && (
                   <button
                     onClick={() => {
