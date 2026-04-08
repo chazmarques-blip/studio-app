@@ -113,8 +113,23 @@ export function AvatarModal({ ctx }) {
   if (!showAvatarModal) return null;
 
   return (
-    <div className={`fixed inset-0 ${zIndexOverride || 'z-50'} bg-black/80 flex items-center justify-center p-4`} onClick={() => { if (!generatingAvatar && !applyingClothing) resetAvatarModal(); }}>
-      <div data-testid="avatar-modal" className="w-full max-w-xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div 
+      className={`fixed inset-0 ${zIndexOverride || 'z-50'} bg-black/80 flex items-center justify-center p-4`} 
+      style={{pointerEvents: 'auto'}}
+      onClick={(e) => { 
+        console.log('🔴 Backdrop clicked');
+        if (!generatingAvatar && !applyingClothing) resetAvatarModal(); 
+      }}
+    >
+      <div 
+        data-testid="avatar-modal" 
+        className="w-full max-w-xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[85vh] flex flex-col" 
+        style={{pointerEvents: 'auto'}}
+        onClick={e => {
+          console.log('🟢 Modal content clicked - stopping propagation');
+          e.stopPropagation();
+        }}
+      >
               {/* Header */}
               <div className="px-5 py-3 border-b border-[#151515] flex items-center justify-between shrink-0">
                 <p className="text-sm text-white font-semibold">
