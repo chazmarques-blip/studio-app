@@ -619,336 +619,257 @@ export function NewProjectModal({
           </p>
         </div>
         
-        {/* Step 1: Project Name - ULTRA COMPACTO */}
-        <div className="space-y-0.5">
-          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-            <span className="text-[#8B5CF6] text-[10px]">1</span>
+        {/* Step 1: Project Name */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#666]">
             {lang === 'pt' ? 'Nome do Projeto' : 'Project Name'}
-            <span className="text-red-400">*</span>
+            <span className="text-red-400 ml-1">*</span>
           </label>
           <input 
             value={projectName} 
             onChange={e => setProjectName(e.target.value)}
             placeholder={lang === 'pt' ? 'Ex: A Jornada de Abraão' : 'Ex: The Journey of Abraham'}
-            className="w-full bg-white/80 border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-lg px-2.5 py-1 text-xs text-[#333] outline-none placeholder-[#999] transition" 
+            className="w-full bg-white border-2 border-[#E0E0E0] focus:border-[#8B5CF6] rounded-xl px-4 py-3 text-sm text-[#333] outline-none placeholder-[#999] transition" 
           />
         </div>
 
-        {/* Step 2: Visual Style - UMA LINHA COMPACTA */}
-        <div className="space-y-0.5">
-          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-            <span className="text-[#8B5CF6] text-[10px]">2</span>
-            {lang === 'pt' ? 'Estilo Visual' : 'Visual Style'}
-            <span className="text-red-400">*</span>
+        {/* Step 2: Visual Style */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#666]">
+            {lang === 'pt' ? 'Estilo Visual Padrão' : 'Default Visual Style'}
+            <span className="text-red-400 ml-1">*</span>
           </label>
-          <div className="flex gap-1 overflow-x-auto pb-1">
+          <div className="grid grid-cols-3 gap-3">
             {[
-              { id: 'pixar_3d', label: 'Pixar 3D', icon: Film },
-              { id: 'cartoon_3d', label: 'Cartoon 3D', icon: Palette },
-              { id: 'cartoon_2d', label: 'Cartoon 2D', icon: Pencil },
-              { id: 'anime_2d', label: 'Anime 2D', icon: CircleDot },
-              { id: 'realistic', label: 'Realista', icon: Camera },
-              { id: 'watercolor', label: 'Aquarela', icon: Brush },
-            ].map(s => {
-              const Icon = s.icon;
-              return (
-                <button 
-                  key={s.id} 
-                  type="button"
-                  onClick={() => { 
-                    setAnimationSub(s.id); 
-                    setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
-                  }}
-                  className={`shrink-0 px-2 py-1 rounded-md border-2 transition-all flex items-center gap-1 ${
-                    animationSub === s.id
-                      ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                      : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
-                  }`}>
-                  <Icon size={11} strokeWidth={1.5} />
-                  <span className="text-[10px] font-medium whitespace-nowrap">{s.label}</span>
-                </button>
-              );
-            })}
+              { id: 'pixar_3d', label: 'Pixar 3D' },
+              { id: 'cartoon_3d', label: 'Cartoon 3D' },
+              { id: 'cartoon_2d', label: 'Cartoon 2D' },
+              { id: 'anime_2d', label: 'Anime 2D' },
+              { id: 'realistic', label: 'Realista' },
+              { id: 'watercolor', label: 'Aquarela' },
+            ].map(s => (
+              <button 
+                key={s.id} 
+                type="button"
+                onClick={() => { 
+                  setAnimationSub(s.id); 
+                  setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); 
+                }}
+                className={`px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                  animationSub === s.id
+                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                }`}>
+                {s.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Step 3: Character Folder Selection - COMPACTO */}
-        <div className="space-y-0.5">
-          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-            <span className="text-[#8B5CF6] text-[10px]">3</span>
-            <Users size={11} className="text-[#8B5CF6]" />
-            {lang === 'pt' ? 'Personagens' : 'Characters'}
+        {/* Step 3: Character Folder Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#666]">
+            {lang === 'pt' ? 'Pasta de Personagens Padrão' : 'Default Character Folder'}
           </label>
-          <div className="flex gap-1 overflow-x-auto pb-1">
-            {/* Option: Create New Characters */}
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setSelectedFolder(null)}
-              className={`shrink-0 px-2 py-1 rounded-md border-2 transition-all flex items-center gap-1 ${
+              className={`px-4 py-3 rounded-xl border-2 transition-all flex items-center gap-2 text-sm font-medium ${
                 selectedFolder === null
                   ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                  : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <Sparkles size={11} strokeWidth={1.5} />
-              <span className="text-[10px] font-medium whitespace-nowrap">
-                {lang === 'pt' ? 'Criar Novos' : 'Create New'}
-              </span>
+              <Sparkles size={16} />
+              <span>{lang === 'pt' ? 'Criar Novos' : 'Create New'}</span>
             </button>
 
-            {/* Loading state */}
-            {loadingFolders && (
-              <div className="shrink-0 px-2 py-1 text-[10px] text-[#666]">
-                {lang === 'pt' ? 'Carregando...' : 'Loading...'}
-              </div>
-            )}
-
-            {/* Existing folders */}
             {!loadingFolders && folders.map(folder => (
               <button
                 key={folder.id}
                 type="button"
                 onClick={() => setSelectedFolder(folder.id)}
-                className={`shrink-0 px-2 py-1 rounded-md border-2 transition-all flex items-center gap-1 ${
+                className={`px-4 py-3 rounded-xl border-2 transition-all flex items-center gap-2 text-sm font-medium text-left ${
                   selectedFolder === folder.id
                     ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                    : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                 }`}>
-                <Users size={11} strokeWidth={1.5} />
-                <span className="text-[10px] font-medium whitespace-nowrap">{folder.name}</span>
+                <Users size={16} />
+                <span className="truncate">{folder.name}</span>
               </button>
             ))}
-
-            {/* Empty state */}
-            {!loadingFolders && folders.length === 0 && (
-              <div className="shrink-0 px-3 py-1.5 text-[10px] text-[#666]">
-                {lang === 'pt' ? 'Nenhuma pasta criada ainda' : 'No folders created yet'}
-              </div>
-            )}
           </div>
-          <p className="text-[9px] text-[#666]">
-            {selectedFolder === null 
-              ? (lang === 'pt' ? 'Novos personagens serão criados para este projeto' : 'New characters will be created for this project')
-              : (lang === 'pt' ? 'Personagens existentes serão reutilizados (continuidade garantida)' : 'Existing characters will be reused (continuity guaranteed)')
-            }
-          </p>
         </div>
 
-        {/* Step 4: Target Audience (Público-Alvo) - COMPACTO */}
-        <div className="space-y-0.5">
-          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-            <span className="text-[#8B5CF6] text-[10px]">4</span>
-            <Users size={11} className="text-[#8B5CF6]" />
-            {lang === 'pt' ? 'Público-Alvo' : 'Target Audience'}
-            <span className="text-red-400">*</span>
+        {/* Step 4: Target Audience */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#666]">
+            {lang === 'pt' ? 'Público-Alvo Padrão' : 'Default Target Audience'}
+            <span className="text-red-400 ml-1">*</span>
           </label>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-4 gap-3">
             {[
-              { id: '3-6', emoji: '🧒', label: '3-6', desc: lang === 'pt' ? 'Pré-escolar' : 'Preschool' },
-              { id: '6-9', emoji: '👦', label: '6-9', desc: lang === 'pt' ? 'Infantil' : 'Children' },
-              { id: '10-13', emoji: '🧑', label: '10-13', desc: lang === 'pt' ? 'Pré-teens' : 'Pre-teens' },
-              { id: '14-17', emoji: '👨', label: '14-17', desc: lang === 'pt' ? 'Teens' : 'Teens' },
-              { id: '18-25', emoji: '🧑‍🦱', label: '18-25', desc: lang === 'pt' ? 'Jovens' : 'Young adults' },
-              { id: '25+', emoji: '👨‍💼', label: '25+', desc: lang === 'pt' ? 'Adultos' : 'Adults' },
-              { id: 'all', emoji: '👨‍👩‍👧‍👦', label: lang === 'pt' ? 'Todas' : 'All', desc: lang === 'pt' ? 'Geral' : 'General' },
+              { id: '3-6', label: '3-6' },
+              { id: '6-9', label: '6-9' },
+              { id: '10-13', label: '10-13' },
+              { id: '14-17', label: '14-17' },
             ].map(age => (
               <button
                 key={age.id}
                 type="button"
                 onClick={() => setTargetAudience(age.id)}
-                className={`px-1.5 py-1 rounded-md border-2 transition text-center ${
+                className={`px-4 py-3 rounded-xl border-2 transition text-sm font-medium ${
                   targetAudience === age.id
                     ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
-                    : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                 }`}>
-                <div className="flex flex-col items-center gap-0">
-                  <span className="text-xs">{age.emoji}</span>
-                  <div className="text-[9px] font-semibold leading-tight">{age.label}</div>
-                  <div className="text-[8px] text-[#999] leading-tight">{age.desc}</div>
-                </div>
+                {age.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { id: '18-25', label: '18-25' },
+              { id: '25+', label: '25+' },
+              { id: 'all', label: lang === 'pt' ? 'Todas' : 'All' },
+            ].map(age => (
+              <button
+                key={age.id}
+                type="button"
+                onClick={() => setTargetAudience(age.id)}
+                className={`px-4 py-3 rounded-xl border-2 transition text-sm font-medium ${
+                  targetAudience === age.id
+                    ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                    : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                }`}>
+                {age.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Step 5: Multi-Format Strategy - COMPACTO */}
-        <div className="space-y-0.5">
-          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-            <span className="text-[#8B5CF6] text-[10px]">5</span>
-            {lang === 'pt' ? 'Formato' : 'Format'}
+        {/* Step 5: Multi-Format Strategy */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#666]">
+            {lang === 'pt' ? 'Formato Padrão' : 'Default Format'}
           </label>
-          <div className="flex gap-1">
-            {/* Safe Zone */}
+          <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => {
                 setFormatStrategy('safe_zone');
                 setFormatsRequested(['16:9']);
               }}
-              className={`flex-1 p-1 rounded-md border-2 text-left transition-all ${
+              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
                 formatStrategy === 'safe_zone'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF]'
-                  : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center justify-between mb-0">
-                <span className="text-[10px] font-semibold text-[#333]">Safe Zone</span>
-                {formatStrategy === 'safe_zone' && (
-                  <Check size={9} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                )}
-              </div>
-              <div className="text-[8px] text-[#666]">16:9 → Crop 9:16</div>
+              Safe Zone
             </button>
 
-            {/* Dual Generation */}
             <button
               type="button"
               onClick={() => {
                 setFormatStrategy('dual_generation');
                 setFormatsRequested(['16:9', '9:16']);
               }}
-              className={`flex-1 p-1 rounded-md border-2 text-left transition-all ${
+              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
                 formatStrategy === 'dual_generation'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF]'
-                  : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center justify-between mb-0">
-                <span className="text-[10px] font-semibold text-[#333]">Dual</span>
-                {formatStrategy === 'dual_generation' && (
-                  <Check size={9} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                )}
-              </div>
-              <div className="text-[8px] text-[#666]">16:9 + 9:16</div>
+              Dual
             </button>
 
-            {/* Multi-Format */}
             <button
               type="button"
               onClick={() => {
                 setFormatStrategy('multi_format');
                 setFormatsRequested(['16:9', '9:16', '4:5', '1:1']);
               }}
-              className={`flex-1 p-1 rounded-md border-2 text-left transition-all ${
+              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
                 formatStrategy === 'multi_format'
-                  ? 'border-[#8B5CF6] bg-[#F3F0FF]'
-                  : 'border-[#E0E0E0] bg-white/80 hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center justify-between mb-0">
-                <span className="text-[10px] font-semibold text-[#333]">Multi</span>
-                {formatStrategy === 'multi_format' && (
-                  <Check size={9} strokeWidth={2.5} className="text-[#8B5CF6]" />
-                )}
-              </div>
-              <div className="text-[8px] text-[#666]">Todos</div>
+              Multi
             </button>
           </div>
         </div>
 
-        {/* Step 6: Video Engine - ULTRA COMPACTO */}
-        <div className="space-y-0.5">
-          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-            <span className="text-[#8B5CF6] text-[10px]">6</span>
-            {lang === 'pt' ? '🎬 Engine de Vídeo' : '🎬 Video Engine'}
+        {/* Step 6: Video Engine */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#666]">
+            {lang === 'pt' ? 'Engine de Vídeo Padrão' : 'Default Video Engine'}
           </label>
-          <div className="grid grid-cols-2 gap-1">
-            {/* Sora 2 */}
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setVideoEngine('sora')}
-              className={`p-1 rounded-md border-2 text-left transition-all ${
+              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
                 videoEngine === 'sora'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-[#E0E0E0] bg-white/80 hover:border-blue-300'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center gap-1 mb-0">
-                <div className={`w-2.5 h-2.5 rounded flex items-center justify-center ${
-                  videoEngine === 'sora' ? 'bg-blue-500' : 'bg-gray-300'
-                }`}>
-                  <span className="text-white text-[7px] font-bold">S</span>
-                </div>
-                <span className={`text-[9px] font-semibold ${videoEngine === 'sora' ? 'text-blue-600' : 'text-gray-700'}`}>
-                  Sora 2
-                </span>
-                {videoEngine === 'sora' && (
-                  <Check size={7} strokeWidth={2.5} className="text-blue-500 ml-auto" />
-                )}
-              </div>
-              <div className="text-[7px] text-gray-600 space-y-0 ml-3 leading-tight">
-                <div>⏱️ 12s/cena</div>
-                <div>💰 ~$0.12/s</div>
-              </div>
+              Sora 2 (12s)
             </button>
 
-            {/* Kling AI */}
             <button
               type="button"
               onClick={() => setVideoEngine('kling')}
-              className={`p-1 rounded-md border-2 text-left transition-all ${
+              className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition ${
                 videoEngine === 'kling'
-                  ? 'border-purple-500 bg-purple-50'
-                  : 'border-[#E0E0E0] bg-white/80 hover:border-purple-300'
+                  ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                  : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
               }`}>
-              <div className="flex items-center gap-1 mb-0">
-                <div className={`w-2.5 h-2.5 rounded flex items-center justify-center ${
-                  videoEngine === 'kling' ? 'bg-purple-500' : 'bg-gray-300'
-                }`}>
-                  <span className="text-white text-[7px] font-bold">K</span>
-                </div>
-                <span className={`text-[9px] font-semibold ${videoEngine === 'kling' ? 'text-purple-600' : 'text-gray-700'}`}>
-                  Kling AI
-                </span>
-                {videoEngine === 'kling' && (
-                  <Check size={7} strokeWidth={2.5} className="text-purple-500 ml-auto" />
-                )}
-              </div>
-              <div className="text-[7px] text-gray-600 space-y-0 ml-3 leading-tight">
-                <div>⏱️ 5min</div>
-                <div>💰 ~$0.05/s</div>
-              </div>
+              Kling AI (5min)
             </button>
-
-
           </div>
         </div>
 
-        {/* Step 7: Target Duration (only for Kling) - COMPACTO */}
+        {/* Step 7: Target Duration (only for Kling) */}
         {videoEngine === 'kling' && (
-          <div className="space-y-0.5">
-            <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-              <span className="text-[#8B5CF6] text-[10px]">7</span>
-              {lang === 'pt' ? '⏱️ Duração' : '⏱️ Duration'}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#666]">
+              {lang === 'pt' ? 'Duração Padrão (min)' : 'Default Duration (min)'}
             </label>
-            <div className="flex gap-0.5">
+            <div className="grid grid-cols-5 gap-2">
               {[5, 10, 15, 20, 25].map(duration => (
                 <button
                   key={duration}
                   type="button"
                   onClick={() => setTargetDuration(duration)}
-                  className={`flex-1 px-1.5 py-0.5 rounded-md border-2 text-center transition-all ${
+                  className={`px-3 py-2 rounded-xl border-2 text-sm font-medium transition ${
                     targetDuration === duration
-                      ? 'border-purple-500 bg-purple-50 text-purple-600'
-                      : 'border-[#E0E0E0] bg-white/80 text-[#666] hover:border-purple-300'
+                      ? 'border-[#8B5CF6] bg-[#F3F0FF] text-[#8B5CF6]'
+                      : 'border-[#E0E0E0] bg-white text-[#666] hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
                   }`}>
-                  <span className="text-[9px] font-semibold">{duration}min</span>
+                  {duration}min
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Advanced Settings - Removido para compactar modal */}
+        <p className="text-xs text-[#999] italic">
+          💡 {lang === 'pt' 
+            ? 'Esses valores serão aplicados automaticamente ao criar novos projetos' 
+            : 'These values will be applied automatically when creating new projects'}
+        </p>
 
-        {/* Action Buttons - COMPACTO */}
-        <div className="flex gap-2 pt-1">
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-2">
           <button 
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
+            className="flex-1 px-6 py-3 rounded-xl border-2 border-[#E0E0E0] text-base font-semibold text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white">
             {lang === 'pt' ? 'Cancelar' : 'Cancel'}
           </button>
           <button 
             onClick={handleCreate} 
             disabled={!isValid}
-            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-lg py-1.5 text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-lg shadow-[#8B5CF6]/40 transition-all">
-            <Sparkles size={14} /> 
-            {lang === 'pt' ? 'Criar Projeto' : 'Create Project'}
+            className="flex-1 bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] hover:from-[#7C3AED] hover:to-[#6D28D9] rounded-xl py-3 text-base font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#8B5CF6]/40 transition-all">
+            {lang === 'pt' ? 'Salvar' : 'Save'}
           </button>
         </div>
       </div>
