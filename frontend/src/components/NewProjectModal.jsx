@@ -503,7 +503,7 @@ export function NewProjectModal({
               {/* Existing companies - Filtrar Test Company */}
               {companies.filter(c => !c.name.toLowerCase().includes('test')).map(company => (
                 <div key={company.id} className="shrink-0 flex flex-col items-center gap-1 relative group">
-                  {/* Logo dentro do quadro HORIZONTAL (mais largo que alto) */}
+                  {/* Logo dentro do quadro HORIZONTAL com BORDA ARREDONDADA */}
                   <button
                     type="button"
                     onClick={() => {
@@ -520,10 +520,10 @@ export function NewProjectModal({
                         }
                       }
                     }}
-                    className={`w-24 h-14 rounded-lg overflow-hidden transition-all relative bg-white ${
+                    className={`w-24 h-14 rounded-lg border-2 overflow-hidden transition-all relative bg-white ${
                       selectedCompany?.id === company.id
-                        ? 'ring-2 ring-[#8B5CF6] ring-offset-2'
-                        : 'hover:ring-2 hover:ring-[#8B5CF6]/30'
+                        ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6] ring-offset-2'
+                        : 'border-[#E0E0E0] hover:border-[#8B5CF6]'
                     }`}>
                     {company.logo_url ? (
                       <img 
@@ -559,14 +559,14 @@ export function NewProjectModal({
                 </div>
               ))}
 
-              {/* Button: Create new company - Apenas ícone + circular */}
-              <div className="shrink-0 flex flex-col items-center gap-1 mt-4">
+              {/* Button: Create new company - BEM PEQUENO */}
+              <div className="shrink-0 flex flex-col items-center gap-1 mt-1">
                 <button
                   type="button"
                   onClick={() => setShowCreateCompany(true)}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all shadow-md"
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all shadow-md"
                   title={lang === 'pt' ? 'Nova Empresa' : 'New Company'}>
-                  <Plus size={18} strokeWidth={2.5} />
+                  <Plus size={14} strokeWidth={2.5} />
                 </button>
               </div>
             </div>
