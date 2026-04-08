@@ -1027,18 +1027,6 @@ export function NewProjectModal({
                   💡 Esses valores serão aplicados automaticamente ao criar novos projetos
                 </p>
               </div>
-
-                {editCompanyLogo && (
-                  <button
-                    onClick={() => {
-                      setEditCompanyLogo('');
-                      setEditLogoPosition('center');
-                    }}
-                    className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
-                    {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
-                  </button>
-                )}
-              </div>
               
               <div className="flex gap-2 pt-0.5">
                 <button
