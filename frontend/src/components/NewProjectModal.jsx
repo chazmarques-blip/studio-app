@@ -502,48 +502,58 @@ export function NewProjectModal({
             <div className="flex gap-1 overflow-x-auto pb-1">
               {/* Existing companies */}
               {companies.map(company => (
-                <button
-                  key={company.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCompany(company);
-                    // Auto-fill settings from company defaults
-                    if (company.default_settings) {
-                      setAnimationSub(company.default_settings.animation_sub || animationSub);
-                      setVisualStyle(company.default_settings.visual_style || visualStyle);
-                      setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
-                      setProjectLang(company.default_settings.language || projectLang);
-                      
-                      if (company.folder_ids && company.folder_ids.length > 0) {
-                        setSelectedFolder(company.folder_ids[0]);
+                <div key={company.id} className="shrink-0 relative group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCompany(company);
+                      // Auto-fill settings from company defaults
+                      if (company.default_settings) {
+                        setAnimationSub(company.default_settings.animation_sub || animationSub);
+                        setVisualStyle(company.default_settings.visual_style || visualStyle);
+                        setFormatStrategy(company.default_settings.format_strategy || formatStrategy);
+                        setProjectLang(company.default_settings.language || projectLang);
+                        
+                        if (company.folder_ids && company.folder_ids.length > 0) {
+                          setSelectedFolder(company.folder_ids[0]);
+                        }
                       }
-                    }
-                  }}
-                  className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 transition-all ${
-                    selectedCompany?.id === company.id
-                      ? 'border-[#8B5CF6] bg-[#F3F0FF]'
-                      : 'border-[#E0E0E0] bg-white hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
-                  }`}>
-                  <div className="w-8 h-8 rounded overflow-hidden shrink-0">
-                    {company.logo_url ? (
-                      <img 
-                        src={company.logo_url} 
-                        alt={company.name} 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
-                        <Building2 size={14} className="text-[#8B5CF6]" />
-                      </div>
+                    }}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 transition-all ${
+                      selectedCompany?.id === company.id
+                        ? 'border-[#8B5CF6] bg-[#F3F0FF]'
+                        : 'border-[#E0E0E0] bg-white hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                    }`}>
+                    <div className="w-8 h-8 rounded overflow-hidden shrink-0">
+                      {company.logo_url ? (
+                        <img 
+                          src={company.logo_url} 
+                          alt={company.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
+                          <Building2 size={14} className="text-[#8B5CF6]" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-medium truncate max-w-[60px] text-[#333]">
+                      {company.name}
+                    </span>
+                    {selectedCompany?.id === company.id && (
+                      <Check size={12} className="text-[#8B5CF6] shrink-0" />
                     )}
-                  </div>
-                  <span className="text-[10px] font-medium truncate max-w-[60px] text-[#333]">
-                    {company.name}
-                  </span>
-                  {selectedCompany?.id === company.id && (
-                    <Check size={12} className="text-[#8B5CF6] shrink-0" />
-                  )}
-                </button>
+                  </button>
+                  
+                  {/* Edit button - appears on hover */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenEditCompany(company, e)}
+                    className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md"
+                    title={lang === 'pt' ? 'Editar' : 'Edit'}>
+                    <Edit2 size={10} />
+                  </button>
+                </div>
               ))}
 
               {/* Button: Create new company */}
