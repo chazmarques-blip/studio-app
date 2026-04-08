@@ -476,27 +476,26 @@ export function NewProjectModal({
   return (
     <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="glass-card p-2 space-y-1 border border-[#8B5CF6]/20 max-w-2xl w-full max-h-[95vh] overflow-y-auto">
-        {/* Header - COMPACTO */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clapperboard size={18} className="text-[#8B5CF6]" />
-            <h3 className="text-lg font-bold text-white">
+      <div className="bg-white rounded-xl p-6 space-y-4 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Clapperboard size={24} className="text-[#8B5CF6]" />
+            <h3 className="text-2xl font-bold text-[#333]">
               {lang === 'pt' ? 'Novo Projeto' : 'New Project'}
             </h3>
           </div>
           <button 
             onClick={onClose}
-            className="text-[#666] hover:text-white transition p-1 hover:bg-white/5 rounded">
-            <X size={20} />
+            className="text-[#999] hover:text-[#333] transition p-1">
+            <X size={24} />
           </button>
         </div>
 
-        {/* Step 0: Empresa/Projeto Master - NOVO */}
-        <div className="space-y-0.5">
-          <label className="text-[10px] font-medium text-[#999] flex items-center gap-1">
-            <span className="text-[#8B5CF6] text-[10px]">0</span>
-            <Building2 size={11} className="text-[#8B5CF6]" />
+        {/* Step 0: Empresa/Projeto Master */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-[#666] flex items-center gap-2">
+            <Building2 size={16} className="text-[#8B5CF6]" />
             {lang === 'pt' ? 'Empresa / Projeto Master' : 'Company / Master Project'}
           </label>
           
