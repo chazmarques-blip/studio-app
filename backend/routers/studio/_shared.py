@@ -833,6 +833,14 @@ class StudioProject(BaseModel):
     audio_mode: str = "narrated"  # narrated (voice-over) or dubbed (per-character)
     animation_sub: str = "pixar_3d"  # pixar_3d, cartoon_3d, cartoon_2d, anime_2d, realistic, watercolor
     continuity_mode: bool = True  # enable enhanced continuity engine
+    # ✅ CRITICAL FIELDS ADDED - Required for Kling support
+    target_audience: str = "all"
+    character_folder_id: Optional[str] = None
+    company_id: Optional[str] = None
+    format_strategy: str = "safe_zone"
+    formats_requested: list = ["16:9"]
+    video_engine: str = "sora"  # ✅ CRITICAL: "sora" or "kling"
+    target_duration_minutes: int = 5  # ✅ CRITICAL: duration in minutes
 
 class ChatMessage(BaseModel):
     project_id: Optional[str] = None
