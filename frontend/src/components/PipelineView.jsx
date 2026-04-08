@@ -606,17 +606,18 @@ export default function PipelineView({ context }) {
     console.log('avatarPromptText:', avatarPromptText);
     
     if (!avatarPromptText.trim()) { 
-      toast.error('Cole os prompts (um por linha)'); 
+      toast.error('Cole os prompts separados por linha em branco'); 
       return; 
     }
 
-    // Split prompts by line
+    // Split prompts by DOUBLE newline (blank line separator)
     const prompts = avatarPromptText
-      .split('\n')
+      .split(/\n\s*\n/)  // Split by blank lines
       .map(p => p.trim())
       .filter(p => p.length > 0);
 
-    console.log('Prompts parsed:', prompts);
+    console.log('Prompts parsed:', prompts.length, 'prompts');
+    console.log('First prompt preview:', prompts[0]?.substring(0, 100) + '...');
 
     if (prompts.length === 0) {
       toast.error('Nenhum prompt válido encontrado');
@@ -629,7 +630,7 @@ export default function PipelineView({ context }) {
     }
 
     setGeneratingAvatar(true);
-    setBatchProgress({ completed: 0, total: prompts.length, currentPrompt: prompts[0] });
+    setBatchProgress({ completed: 0, total: prompts.length, currentPrompt: prompts[0].substring(0, 60) + '...' });
 
     try {
       console.log('Sending batch request...');

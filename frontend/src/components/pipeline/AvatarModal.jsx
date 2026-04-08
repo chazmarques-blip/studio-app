@@ -376,7 +376,7 @@ export function AvatarModal({ ctx }) {
                             <PenTool size={12} className="text-[#8B5CF6]" />
                             <span className="text-xs text-[#8B5CF6] font-bold uppercase tracking-wider">
                               {ctx.promptBatchMode 
-                                ? 'Cole os prompts (um por linha)' 
+                                ? 'Cole os prompts completos (separe com linha em branco)' 
                                 : (isDirectedMode ? 'Descreva seu personagem' : (t('studio.describe_avatar') || 'Describe your avatar'))
                               }
                             </span>
@@ -384,11 +384,11 @@ export function AvatarModal({ ctx }) {
                           <textarea data-testid="avatar-prompt-input" value={avatarPromptText}
                             onChange={e => setAvatarPromptText(e.target.value)}
                             placeholder={ctx.promptBatchMode 
-                              ? 'Exemplo:\nPescocinho Biblizoo Baby, girafa bebê fofa\nJonas Biblizoo Baby, leão adolescente corajoso\nMaria Biblizoo Baby, elefante filhote sorridente'
+                              ? 'Cole seus prompts aqui, separados por uma linha em branco:\n\nchibi 3D render of Urso Macho Biblizoo Baby, wild male brown bear...\n\nchibi 3D render of Girafa Fêmea Biblizoo Baby, gentle female giraffe...\n\nchibi 3D render of Leão Biblizoo Baby, brave lion cub...'
                               : (t('studio.avatar_prompt_placeholder') || 'E.g.: Young professional woman, 28 years old, brown hair, confident smile, business attire')
                             }
                             className={`w-full bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl px-3 py-2.5 text-[10px] text-white placeholder-[#666] outline-none focus:border-[#8B5CF6]/30 resize-none ${
-                              ctx.promptBatchMode ? 'h-32' : 'h-20'
+                              ctx.promptBatchMode ? 'h-40' : 'h-20'
                             }`} />
                         </div>
 
@@ -398,12 +398,14 @@ export function AvatarModal({ ctx }) {
                             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
                               <Sparkles size={12} className="text-[#8B5CF6] shrink-0" />
                               <p className="text-[10px] text-[#999]">
-                                {avatarPromptText.trim().split('\n').filter(l => l.trim()).length} personagens serão criados
+                                {avatarPromptText.trim().split(/\n\s*\n/).filter(l => l.trim()).length} personagens serão criados
                               </p>
                             </div>
-                            <div className="px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                              <p className="text-[10px] text-blue-400">
-                                💡 <strong>Como usar:</strong> Cole um prompt por linha. Cada linha = 1 personagem.
+                            <div className="px-3 py-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                              <p className="text-[10px] text-blue-300 leading-relaxed">
+                                <strong>💡 Como usar:</strong> Cole seus prompts completos.<br/>
+                                <strong>Separe cada prompt com uma linha em branco.</strong><br/>
+                                Exemplo: Prompt 1 → [linha vazia] → Prompt 2 → [linha vazia] → Prompt 3
                               </p>
                             </div>
                           </div>
