@@ -54,6 +54,7 @@ export function NewProjectModal({
     default_visual_style: '',
     default_animation_sub: '',
     default_target_audience: '',
+    default_character_folder_id: '',
     default_format_strategy: '',
     default_video_engine: '',
     default_target_duration: 5
@@ -123,7 +124,15 @@ export function NewProjectModal({
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (selectedCompany) {
-      console.log('🏢 [NewProjectModal] Applying defaults from company:', selectedCompany.name);
+      console.log('🏢 [NewProjectModal] Company selected:', selectedCompany.name);
+      console.log('📊 [NewProjectModal] Company defaults:', {
+        visual_style: selectedCompany.default_visual_style,
+        target_audience: selectedCompany.default_target_audience,
+        format: selectedCompany.default_format_strategy,
+        engine: selectedCompany.default_video_engine,
+        duration: selectedCompany.default_target_duration,
+        folder: selectedCompany.default_character_folder_id
+      });
       
       // Apply defaults if they exist
       if (selectedCompany.default_visual_style) {
@@ -162,8 +171,12 @@ export function NewProjectModal({
         if (folder) {
           setSelectedFolder(folder.id);
           console.log('  ✅ Character Folder:', folder.name);
+        } else {
+          console.log('  ⚠️ Character Folder ID exists but folder not found:', selectedCompany.default_character_folder_id);
         }
       }
+    } else {
+      console.log('🏢 [NewProjectModal] No company selected');
     }
   }, [selectedCompany, folders]);
   
@@ -231,6 +244,7 @@ export function NewProjectModal({
       default_visual_style: company.default_visual_style || '',
       default_animation_sub: company.default_animation_sub || '',
       default_target_audience: company.default_target_audience || '',
+      default_character_folder_id: company.default_character_folder_id || '',
       default_format_strategy: company.default_format_strategy || '',
       default_video_engine: company.default_video_engine || '',
       default_target_duration: company.default_target_duration || 5
@@ -259,22 +273,26 @@ export function NewProjectModal({
       });
       
       if (response.ok) {
-        console.log('✅ [COMPANY] Updated');
-        // Update local state
+        console.log('✅ [COMPANY] Updated with defaults:', editCompanyDefaults);
+        
+        // Update local state WITH defaults
+        const updatedCompany = {
+          ...editingCompany,
+          name: editCompanyName.trim(),
+          logo_url: editCompanyLogo || null,
+          logo_position: editLogoPosition,
+          ...editCompanyDefaults
+        };
+        
         setCompanies(prev => prev.map(c => 
-          c.id === editingCompany.id 
-            ? { ...c, name: editCompanyName.trim(), logo_url: editCompanyLogo || null, logo_position: editLogoPosition }
-            : c
+          c.id === editingCompany.id ? updatedCompany : c
         ));
+        
         // Update selected company if it's the one being edited
         if (selectedCompany?.id === editingCompany.id) {
-          setSelectedCompany({ 
-            ...selectedCompany, 
-            name: editCompanyName.trim(), 
-            logo_url: editCompanyLogo || null,
-            logo_position: editLogoPosition
-          });
+          setSelectedCompany(updatedCompany);
         }
+        
         setShowEditCompany(false);
         setEditingCompany(null);
       } else {
@@ -867,6 +885,30 @@ export function NewProjectModal({
                   </div>
                 </div>
                 
+
+                
+                {/* Default Character Folder */}
+                <div className="mb-3">
+                  <label className="text-xs font-medium text-[#666] mb-1.5 block">Pasta de Personagens Padrão</label>
+                  <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto p-1 bg-gray-50 rounded-lg">
+                    {folders.length > 0 ? folders.map(folder => (
+                      <button key={folder.id} type="button"
+                        onClick={() => setEditCompanyDefaults(p => ({ ...p, default_character_folder_id: folder.id }))}
+                        className={`px-2 py-2 rounded-lg border-2 text-xs font-medium transition text-left ${
+                          editCompanyDefaults.default_character_folder_id === folder.id
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]'
+                            : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30 hover:bg-white'
+                        }`}>
+                        📁 {folder.name}
+                      </button>
+                    )) : (
+                      <p className="text-xs text-[#999] col-span-2 py-2 text-center">
+                        Nenhuma pasta disponível
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 {/* Default Target Audience */}
                 <div className="mb-3">
                   <label className="text-xs font-medium text-[#666] mb-1.5 block">Público-Alvo Padrão</label>
