@@ -92,10 +92,7 @@ const PIPELINE_PHASES = {
   ]
 };
 
-const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [currentPhase, setCurrentPhase] = useState(0);
-  
+const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId, project, onRetryPhase, onNextStep }) => {
   // State for minimize/close with localStorage persistence
   const [trackerState, setTrackerState] = useState(() => {
     const saved = localStorage.getItem(`pipeline_tracker_${projectId}`);
@@ -111,43 +108,60 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
     }
   }, [trackerState, projectId]);
   
-  // Timer to increment elapsed time - FIX: was missing!
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
+  // ✅ NEW: Get REAL progress from project data
+  const getRealPhaseProgress = (phaseId) => {
+    if (!project) return 0;
     
-    return () => clearInterval(timer);
-  }, []);
-  
-  // Calcular fase atual baseado no tempo
-  useEffect(() => {
-    let accumulated = 0;
-    for (let i = 0; i < phases.length; i++) {
-      accumulated += phases[i].duration;
-      if (elapsedSeconds < accumulated) {
-        setCurrentPhase(i);
-        break;
-      }
+    switch (phaseId) {
+      case 'library_sync':
+        // Check if character_library exists and has characters
+        const library = project.character_library;
+        return library && library.total_characters > 0 ? 100 : 0;
+      
+      case 'researcher':
+        // Check if research_notes or agents_output.screenwriter exists
+        const research = project.agents_output?.screenwriter?.research_notes;
+        return research ? 100 : 0;
+      
+      case 'screenwriter':
+        // Check if scenes exist
+        const scenes = project.scenes || [];
+        return scenes.length > 0 ? 100 : 0;
+      
+      case 'director':
+        // Check director_review and director_progress
+        const directorReview = project.director_review;
+        const directorProgress = project.director_progress;
+        
+        if (directorReview) {
+          return 100; // Complete
+        }
+        
+        if (directorProgress) {
+          const { scenes_processed = 0, total_scenes = 1 } = directorProgress;
+          return Math.min(Math.round((scenes_processed / total_scenes) * 100), 98);
+        }
+        
+        return 0;
+      
+      default:
+        return 0;
     }
-  }, [elapsedSeconds, phases]);
-  
-  const getPhaseProgress = (phaseIndex) => {
-    if (phaseIndex < currentPhase) return 100;
-    if (phaseIndex > currentPhase) return 0;
-    
-    const phase = phases[phaseIndex];
-    const phaseStartTime = phases.slice(0, phaseIndex).reduce((sum, p) => sum + p.duration, 0);
-    const timeInPhase = elapsedSeconds - phaseStartTime;
-    const progress = Math.min((timeInPhase / phase.duration) * 100, 95);
-    return Math.round(progress);
   };
   
-  const getPhaseStatus = (phaseIndex) => {
-    if (phaseIndex < currentPhase) return 'completed';
-    if (phaseIndex === currentPhase) return 'processing';
+  const getPhaseStatus = (phaseId) => {
+    const progress = getRealPhaseProgress(phaseId);
+    if (progress === 100) return 'completed';
+    if (progress > 0) return 'processing';
     return 'waiting';
   };
+  
+  // Calculate overall progress
+  const overallProgress = Math.round(
+    phases.reduce((sum, phase) => sum + getRealPhaseProgress(phase.id), 0) / phases.length
+  );
+  
+  const allPhasesComplete = phases.every(phase => getRealPhaseProgress(phase.id) === 100);
   
   // If closed, don't render anything
   if (trackerState === 'closed') {
@@ -166,7 +180,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg flex flex-col items-center justify-center text-white animate-pulse">
             <Sparkles size={16} className="mb-0.5" />
             <span className="text-[10px] font-bold">
-              {currentPhase + 1}/{phases.length}
+              {overallProgress}%
             </span>
           </div>
           {/* Progress ring */}
@@ -187,7 +201,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
               strokeWidth="2"
               fill="none"
               strokeDasharray={`${2 * Math.PI * 26}`}
-              strokeDashoffset={`${2 * Math.PI * 26 * (1 - (currentPhase / phases.length))}`}
+              strokeDashoffset={`${2 * Math.PI * 26 * (1 - (overallProgress / 100))}`}
               className="transition-all duration-300"
             />
           </svg>
@@ -196,7 +210,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
     );
   }
   
-  // Expanded view (original modal)
+  // Expanded view with retry buttons
   return (
     <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-1.5 mb-1.5 shadow-sm">
       {/* Header ultra compacto - tudo inline com botões de controle */}
@@ -210,12 +224,12 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
           </h3>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-purple-600">
-            {Math.round((currentPhase / phases.length) * 100)}%
+          <span className={`text-xs font-bold ${allPhasesComplete ? 'text-green-600' : 'text-purple-600'}`}>
+            {overallProgress}%
           </span>
-          <span className="text-[8px] text-gray-500">
-            {currentPhase + 1}/{phases.length}
-          </span>
+          {allPhasesComplete && (
+            <span className="text-[8px] font-bold text-green-600">✓ COMPLETO</span>
+          )}
           {/* Control buttons */}
           <div className="flex items-center gap-0.5 ml-1">
             {/* Minimize button */}
@@ -238,12 +252,12 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
         </div>
       </div>
       
-      {/* Phases - Ultra compacto, sem espaçamento extra */}
+      {/* Phases - Ultra compacto com botões de retry */}
       <div className="space-y-0.5 px-1">
         {phases.map((phase, index) => {
           const Icon = phase.icon;
-          const status = getPhaseStatus(index);
-          const progress = getPhaseProgress(index);
+          const status = getPhaseStatus(phase.id);
+          const progress = getRealPhaseProgress(phase.id);
           
           return (
             <div 
@@ -282,16 +296,27 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
                   {phase.name}
                 </span>
                 
+                {/* Retry button - only show if phase has progress or is completed */}
+                {(status === 'completed' || status === 'processing') && onRetryPhase && (
+                  <button
+                    onClick={() => onRetryPhase(phase.id)}
+                    className="w-4 h-4 rounded flex items-center justify-center hover:bg-purple-200 transition-colors shrink-0"
+                    title={lang === 'pt' ? `Refazer ${phase.name}` : `Retry ${phase.name}`}
+                  >
+                    <RefreshCw size={7} className="text-gray-600" />
+                  </button>
+                )}
+                
                 {/* Status icon */}
-                {status === 'processing' && (
+                {status === 'processing' && progress < 100 && (
                   <RefreshCw size={7} className="text-purple-500 animate-spin shrink-0" />
                 )}
                 {status === 'completed' && (
-                  <span className="text-[8px] font-semibold text-green-600 shrink-0">✓</span>
+                  <span className="text-[8px] font-semibold text-green-600 shrink-0">✓ 100%</span>
                 )}
                 
                 {/* Progress inline */}
-                {status !== 'waiting' && (
+                {status === 'processing' && progress < 100 && (
                   <span className="text-[8px] font-medium text-gray-600 shrink-0 w-6 text-right">
                     {progress}%
                   </span>
@@ -299,7 +324,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
               </div>
               
               {/* Barra de progresso - Extremamente fina, só para fase ativa */}
-              {status === 'processing' && (
+              {status === 'processing' && progress < 100 && (
                 <div className="mt-0.5 ml-5">
                   <div className="h-px rounded-full bg-gray-200 overflow-hidden">
                     <div 
@@ -316,6 +341,19 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId }) => {
           );
         })}
       </div>
+      
+      {/* Next Step Button - Only show when all phases complete */}
+      {allPhasesComplete && onNextStep && (
+        <div className="mt-2 px-1">
+          <button
+            onClick={onNextStep}
+            className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1"
+          >
+            <ChevronRight size={14} />
+            {lang === 'pt' ? 'Próxima Etapa' : 'Next Step'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -410,6 +448,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [projectAvatars, setProjectAvatars] = useState([]); // Avatars scoped to current project
   const [autoGenCharacters, setAutoGenCharacters] = useState(false); // Auto-generate characters flag
   const [charGenProgress, setCharGenProgress] = useState({ current: 0, total: 0, status: '' });
+  const [currentProjectData, setCurrentProjectData] = useState(null); // ✅ NEW: Full project data for pipeline
   const [showLibrary, setShowLibrary] = useState(false); // Avatar library modal
   const [previewModal, setPreviewModal] = useState(null); // { type: 'video'|'gallery'|'book'|'pdf', data: any }
   const [allPanelFrames, setAllPanelFrames] = useState([]); // All storyboard frames for gallery
@@ -832,6 +871,53 @@ export const DirectedStudio = memo(function DirectedStudio({
     }
   };
 
+  // ✅ NEW: Retry individual pipeline phase
+  const retryPhase = async (phaseId) => {
+    if (!projectId) return;
+    
+    try {
+      toast.info(lang === 'pt' ? `Refazendo ${phaseId}...` : `Retrying ${phaseId}...`);
+      
+      switch (phaseId) {
+        case 'library_sync':
+          // Re-sync character library
+          await axios.post(`${API}/studio/projects/${projectId}/sync-character-library`);
+          break;
+        
+        case 'researcher':
+        case 'screenwriter':
+          // Retry screenplay generation
+          await axios.post(`${API}/studio/${projectId}/screenwriter/retry-chat`);
+          break;
+        
+        case 'director':
+          // Retry director review
+          await axios.post(`${API}/studio/projects/${projectId}/director/review`, { focus: 'full' });
+          break;
+        
+        default:
+          toast.error('Fase desconhecida');
+          return;
+      }
+      
+      toast.success(lang === 'pt' ? `✅ ${phaseId} reiniciado!` : `✅ ${phaseId} restarted!`);
+      
+      // Reload project data
+      const res = await axios.get(`${API}/studio/projects/${projectId}/status`);
+      setCurrentProjectData(res.data);
+      
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Error retrying phase'));
+    }
+  };
+  
+  // ✅ NEW: Navigate to next step when pipeline complete
+  const handlePipelineNextStep = () => {
+    // Move to Director's Preview (Step 4)
+    setStep(4);
+    toast.success(lang === 'pt' ? '✅ Pipeline completo! Indo para Revisão do Diretor' : '✅ Pipeline complete! Moving to Director Review');
+  };
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
@@ -847,6 +933,7 @@ export const DirectedStudio = memo(function DirectedStudio({
     const poll = () => {
       axios.get(`${API}/studio/projects/${pid}/status`).then(res => {
         const d = res.data;
+        setCurrentProjectData(d); // ✅ NEW: Save full project data
         setAgentStatus(d.agent_status || {});
         setScenes(d.scenes || []);
         // Update outputs in real-time (partial videos as they complete)
@@ -2288,6 +2375,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                   lang={lang}
                   currentAgent="researcher_screenwriter"
                   projectId={projectId}
+                  project={currentProjectData}
+                  onRetryPhase={retryPhase}
+                  onNextStep={handlePipelineNextStep}
                 />
               </div>
             )}
