@@ -106,8 +106,9 @@ export function NewProjectModal({
       }
     };
     
+    fetchFolders();
+  }, [token]);
 
-  
   // ═══════════════════════════════════════════════════════════════════════════
   // NEW: Apply company defaults when company is selected
   // ═══════════════════════════════════════════════════════════════════════════
@@ -165,8 +166,6 @@ export function NewProjectModal({
     }
   }, [companies, selectedCompany]);
 
-    fetchFolders();
-  }, [token]);
 
   const handleEditLogoUpload = async (e) => {
     const file = e.target.files?.[0];
