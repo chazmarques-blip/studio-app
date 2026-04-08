@@ -476,7 +476,7 @@ export function NewProjectModal({
   return (
     <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-white rounded-lg p-4 max-w-3xl w-full max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl">
+      <div className="bg-white rounded-lg p-4 max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
@@ -545,11 +545,11 @@ export function NewProjectModal({
                     )}
                   </button>
                   
-                  {/* Edit button - appears on hover */}
+                  {/* Edit button - inside card, top right corner */}
                   <button
                     type="button"
                     onClick={(e) => handleOpenEditCompany(company, e)}
-                    className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md"
+                    className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md z-10"
                     title={lang === 'pt' ? 'Editar' : 'Edit'}>
                     <Edit2 size={10} />
                   </button>
