@@ -322,14 +322,34 @@ export function AvatarLibraryModalV2({
     toast.info(`Baixando ${toDownload.length} personagens...`);
     
     for (const av of toDownload) {
-      const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
-      const link = document.createElement('a');
-      link.href = `${API}/download-image?url=${encodeURIComponent(resolveImageUrl(av.url))}&filename=${encodeURIComponent(filename)}`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Delay between downloads
+      try {
+        const imageUrl = resolveImageUrl(av.url);
+        const filename = `${(av.name || 'character').replace(/[^a-z0-9]/gi, '_')}.png`;
+        const proxyUrl = `${API}/download-image?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(filename)}`;
+        
+        const resp = await fetch(proxyUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up after delay
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        }, 1000);
+        
+        await new Promise(resolve => setTimeout(resolve, 800)); // Delay between downloads
+      } catch (e) {
+        console.error(`Erro ao baixar ${av.name}:`, e);
+      }
     }
     
     toast.success(`${toDownload.length} personagens baixados!`);
@@ -498,17 +518,27 @@ export function AvatarLibraryModalV2({
       
       console.log('📥 [DOWNLOAD] Fetching:', proxyUrl);
       
-      // EXACT SAME METHOD AS WORKING VIDEO DOWNLOAD
+      // CRITICAL FIX: Use blob + setTimeout to prevent premature revoke
       const resp = await fetch(proxyUrl);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      
       const blob = await resp.blob();
       const blobUrl = URL.createObjectURL(blob);
+      
       const a = document.createElement('a');
       a.href = blobUrl;
       a.download = filename;
+      a.style.display = 'none';
       document.body.appendChild(a);
+      
+      // Trigger download
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      
+      // Clean up after delay (allow browser to process download)
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
       
       console.log('✅ [DOWNLOAD] Sucesso!');
       toast.success(`✅ ${avatar.name} baixado!`);

@@ -154,6 +154,7 @@ def _generate_video_unified(
             duration=float(duration),
             resolution=size,
             model="kling-v3",
+            generate_audio=True,  # Enable native audio (voice, music, SFX, lip-sync)
             max_wait=max_wait
         )
     

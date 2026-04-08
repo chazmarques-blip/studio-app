@@ -58,6 +58,7 @@ class KlingClient:
         model: str = "kling-v3",
         cfg_scale: float = 0.5,
         seed: Optional[int] = None,
+        generate_audio: bool = True,
         max_wait: int = 600
     ) -> bytes:
         """Generate video using Kling AI
@@ -70,6 +71,7 @@ class KlingClient:
             model: Kling model version ("kling-v3", "kling-2.6", "kling-2.5")
             cfg_scale: Prompt adherence (0.0-1.0, default 0.5)
             seed: Random seed for reproducibility (optional)
+            generate_audio: Enable native audio generation (voice, music, SFX) - Kling 2.6+/v3 only
             max_wait: Maximum seconds to wait for generation
             
         Returns:
@@ -87,6 +89,11 @@ class KlingClient:
                 "aspect_ratio": self._resolution_to_aspect(resolution),
                 "cfg_scale": cfg_scale
             }
+            
+            # Enable native audio generation (Kling 2.6+/v3 feature)
+            if generate_audio:
+                payload["generate_audio"] = True
+                logger.info("Kling AI: Native audio generation ENABLED (voice+music+SFX)")
             
             if seed is not None:
                 payload["seed"] = seed
