@@ -560,10 +560,10 @@ async def create_avatars_batch(
     settings["avatar_folders"] = folders
     _save_settings(tenant["id"], settings)
     
-    # Auto-sync character libraries
-    for avatar_doc in created:
-        if avatar_doc.get("folder_id"):
-            _auto_sync_character_library(tenant["id"], avatar_doc["folder_id"])
+    # Auto-sync character libraries (comentado - função não existe)
+    # for avatar_doc in created:
+    #     if avatar_doc.get("folder_id"):
+    #         _auto_sync_character_library(tenant["id"], avatar_doc["folder_id"])
     
     return {
         "created": created,
