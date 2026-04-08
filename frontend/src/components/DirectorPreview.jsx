@@ -155,13 +155,52 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const runReview = async () => {
     setReviewing(true);
     try {
-      const res = await api.post(`/studio/projects/${projectId}/director/review`, { focus: 'full' }, { timeout: 300000 }); // 5 minutes (was 120s - too short!)
+      const res = await api.post(`/studio/projects/${projectId}/director/review`, { focus: 'full' }, { timeout: 900000 }); // 15 minutes
       setReview(res.data);
-      toast.success(lang === 'pt' ? 'Revisão do Director concluída!' : 'Director review complete!');
+      
+      // ✅ AUTO-APPLY FIXES if score < 90
+      const newScore = res.data.overall_score || 0;
+      const needsWork = (res.data.scene_reviews || []).filter(s => s.score < 80).length;
+      
+      if (newScore < 90 || needsWork > 0) {
+        toast.info(lang === 'pt' 
+          ? `📊 Score: ${newScore}% — Aplicando correções automaticamente...` 
+          : `📊 Score: ${newScore}% — Auto-applying fixes...`
+        );
+        
+        // Auto-apply fixes
+        setTimeout(() => {
+          applyFixesAndRetry();
+        }, 2000);
+      } else {
+        // ✅ AUTO-ADVANCE to Storyboard when approved
+        toast.success(lang === 'pt' 
+          ? `🎉 APROVADO! Score: ${newScore}% — Avançando para Storyboard automaticamente...` 
+          : `🎉 APPROVED! Score: ${newScore}% — Auto-advancing to Storyboard...`, 
+          { duration: 5000 }
+        );
+        
+        // Auto-advance to storyboard
+        setTimeout(() => {
+          onApprove();
+        }, 3000);
+      }
     } catch (err) {
-      toast.error(getErrorMsg(err, 'Review failed'));
+      // ✅ NEVER GIVE UP - Auto-retry on error
+      const errorMsg = getErrorMsg(err, 'Review failed');
+      console.error('Director review failed:', errorMsg);
+      
+      toast.error(lang === 'pt' 
+        ? `❌ Erro: ${errorMsg} — Retentando em 5 segundos...` 
+        : `❌ Error: ${errorMsg} — Retrying in 5 seconds...`
+      );
+      
+      // Auto-retry after 5 seconds
+      setTimeout(() => {
+        runReview();
+      }, 5000);
     } finally {
-      setReviewing(false);
+      // Don't set reviewing to false here - let it continue retrying
     }
   };
 
@@ -182,7 +221,7 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
   const applyFixes = async () => {
     setApplying(true);
     try {
-      const res = await api.post(`/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true }, { timeout: 300000 }); // 5 minutes
+      const res = await api.post(`/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true }, { timeout: 900000 }); // 15 minutes
       const applied = res.data.applied;
       
       toast.success(lang === 'pt'
@@ -228,6 +267,88 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
       // CRITICAL: Always stop applying state, even on error
       setApplying(false);
       setReviewing(false);
+    }
+  };
+
+  // ✅ NEW: Apply fixes and auto-retry until score >= 90
+  const applyFixesAndRetry = async (retryCount = 0) => {
+    const MAX_RETRIES = 5; // Maximum 5 cycles of fix + review
+    
+    setApplying(true);
+    try {
+      const res = await api.post(`/studio/projects/${projectId}/director/apply-fixes`, { re_evaluate: true }, { timeout: 900000 });
+      const applied = res.data.applied;
+      
+      toast.success(lang === 'pt'
+        ? `✅ ${applied} cena(s) corrigida(s)!`
+        : `✅ ${applied} scene(s) fixed!`);
+      
+      // Check new score after re-evaluation
+      if (res.data.re_evaluated && res.data.new_review) {
+        const newReview = res.data.new_review;
+        setReview(newReview);
+        
+        const newScore = newReview.overall_score || 0;
+        const needsWork = (newReview.scene_reviews || []).filter(s => s.score < 80).length;
+        
+        if (newScore >= 90 && needsWork === 0) {
+          // ✅ SUCCESS - Auto-advance to Storyboard
+          setApplying(false);
+          setReviewing(false);
+          
+          toast.success(lang === 'pt' 
+            ? `🎉 EXCELENTE! Score: ${newScore}% — Avançando para Storyboard...`
+            : `🎉 EXCELLENT! Score: ${newScore}% — Advancing to Storyboard...`, 
+            { duration: 5000 }
+          );
+          
+          setTimeout(() => {
+            onApprove();
+          }, 3000);
+        } else if (retryCount < MAX_RETRIES) {
+          // 🔄 RETRY - Apply fixes again
+          toast.info(lang === 'pt' 
+            ? `📊 Score: ${newScore}% (${needsWork} cenas <80%) — Aplicando mais correções... (${retryCount + 1}/${MAX_RETRIES})`
+            : `📊 Score: ${newScore}% (${needsWork} scenes <80%) — Applying more fixes... (${retryCount + 1}/${MAX_RETRIES})`,
+            { duration: 4000 }
+          );
+          
+          setTimeout(() => {
+            applyFixesAndRetry(retryCount + 1);
+          }, 3000);
+        } else {
+          // ⚠️ MAX RETRIES REACHED
+          setApplying(false);
+          setReviewing(false);
+          
+          toast.warning(lang === 'pt'
+            ? `⚠️ Score: ${newScore}% após ${MAX_RETRIES} tentativas. Pode prosseguir manualmente.`
+            : `⚠️ Score: ${newScore}% after ${MAX_RETRIES} attempts. You may proceed manually.`,
+            { duration: 7000 }
+          );
+        }
+      }
+      
+    } catch (err) {
+      // ✅ NEVER GIVE UP - Auto-retry on error
+      if (retryCount < MAX_RETRIES) {
+        const errorMsg = getErrorMsg(err, 'Apply fixes failed');
+        toast.error(lang === 'pt' 
+          ? `❌ Erro: ${errorMsg} — Retentando em 5 segundos...`
+          : `❌ Error: ${errorMsg} — Retrying in 5 seconds...`
+        );
+        
+        setTimeout(() => {
+          applyFixesAndRetry(retryCount + 1);
+        }, 5000);
+      } else {
+        setApplying(false);
+        setReviewing(false);
+        toast.error(lang === 'pt' 
+          ? `❌ Máximo de tentativas atingido. Tente novamente manualmente.`
+          : `❌ Max retries reached. Try again manually.`
+        );
+      }
     }
   };
 
