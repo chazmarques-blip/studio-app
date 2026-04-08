@@ -1023,6 +1023,34 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     return {"status": "started", "project_id": req.project_id, "total_scenes": total}
 
 
+@router.post("/projects/{project_id}/stop-production")
+async def stop_production(project_id: str, tenant=Depends(get_current_tenant)):
+    """Stop ongoing production and reset to storyboard step.
+    
+    This allows users to review storyboards before continuing to production.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Stop production by resetting status
+    previous_status = project.get("status", "unknown")
+    project["status"] = "scripting"  # Reset to pre-production state
+    project["agent_status"] = {}
+    project["error"] = None
+    
+    _add_milestone(project, "production_stopped", f"Produção parada pelo usuário (estava: {previous_status})")
+    _save_project(tenant["id"], settings, projects)
+    
+    logger.info(f"Studio [{project_id}]: Production STOPPED by user (was: {previous_status})")
+    
+    return {
+        "status": "stopped",
+        "message": "Production stopped. You can now review storyboards.",
+        "previous_status": previous_status
+    }
+
+
 # ── Per-Scene Regeneration ──
 
 def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, custom_prompt: str = None):

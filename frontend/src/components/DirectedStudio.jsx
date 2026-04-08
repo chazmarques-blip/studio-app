@@ -1609,10 +1609,13 @@ export const DirectedStudio = memo(function DirectedStudio({
     }
   };
 
-  // Approve preview and start production
+  // Approve preview and GO TO STORYBOARD (not directly to production!)
   const approveAndProduce = async () => {
     setShowPreview(false);
-    startProduction();
+    
+    // CRITICAL FIX: Must go through Storyboard (Step 5) before Production (Step 6)
+    toast.info(lang === 'pt' ? '✅ Preview aprovado! Indo para Storyboard...' : '✅ Preview approved! Going to Storyboard...');
+    setStep(5); // Go to Storyboard step, NOT directly to production
   };
 
   // Start multi-scene production
@@ -1644,6 +1647,32 @@ export const DirectedStudio = memo(function DirectedStudio({
       const errorMsg = err.response?.data?.detail || err.message || 'Failed to start production';
       toast.error(lang === 'pt' ? `Erro: ${errorMsg}` : `Error: ${errorMsg}`);
       setGenerating(false);
+    }
+  };
+
+  // Stop production and return to storyboard
+  const stopProductionAndGoToStoryboard = async () => {
+    if (!projectId) return;
+    
+    try {
+      setGenerating(false); // Stop polling immediately
+      
+      const response = await axios.post(`${API}/studio/projects/${projectId}/stop-production`);
+      
+      toast.success(lang === 'pt' 
+        ? '⏸️ Produção parada! Indo para Storyboard...' 
+        : '⏸️ Production stopped! Going to Storyboard...');
+      
+      console.log('Production stopped:', response.data);
+      
+      // Go to storyboard step
+      setStep(5);
+    } catch (err) {
+      console.error('Stop production error:', err);
+      toast.error(lang === 'pt' ? 'Erro ao parar produção' : 'Failed to stop production');
+      // Force go to storyboard anyway
+      setGenerating(false);
+      setStep(5);
     }
   };
 
@@ -3195,25 +3224,36 @@ export const DirectedStudio = memo(function DirectedStudio({
               <Clapperboard size={12} className="text-orange-600" />
               {lang === 'pt' ? 'Produção em Andamento' : 'Production in Progress'}
             </h3>
-            {/* FIX 2026-04-07: Allow viewing results even during generation if at least 1 video is ready */}
-            {(() => {
-              const videoCount = outputs.filter(o => o.type === 'video' && o.url).length;
-              console.log('🎬 [Production] Videos prontos:', videoCount, 'Total outputs:', outputs.length);
-              return videoCount > 0 && (
+            <div className="flex items-center gap-2">
+              {/* Stop Production and Go to Storyboard button */}
+              {generating && (
                 <button
-                  onClick={() => {
-                    console.log('🎬 [Production] Botão Ver Resultados clicado!');
-                    setStep(7);
-                  }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white font-semibold text-[11px] hover:shadow-lg transition-all">
-                  <Film size={12} />
-                  {generating 
-                    ? (lang === 'pt' ? `Ver ${videoCount} Prontos` : `View ${videoCount} Ready`)
-                    : (lang === 'pt' ? 'Ver Resultados Finais' : 'View Final Results')
-                  }
+                  onClick={stopProductionAndGoToStoryboard}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 font-semibold text-[11px] hover:bg-amber-500/20 transition-all">
+                  <Camera size={12} />
+                  {lang === 'pt' ? '⏸️ Ver Storyboard' : '⏸️ View Storyboard'}
                 </button>
-              );
-            })()}
+              )}
+              {/* FIX 2026-04-07: Allow viewing results even during generation if at least 1 video is ready */}
+              {(() => {
+                const videoCount = outputs.filter(o => o.type === 'video' && o.url).length;
+                console.log('🎬 [Production] Videos prontos:', videoCount, 'Total outputs:', outputs.length);
+                return videoCount > 0 && (
+                  <button
+                    onClick={() => {
+                      console.log('🎬 [Production] Botão Ver Resultados clicado!');
+                      setStep(7);
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white font-semibold text-[11px] hover:shadow-lg transition-all">
+                    <Film size={12} />
+                    {generating 
+                      ? (lang === 'pt' ? `Ver ${videoCount} Prontos` : `View ${videoCount} Ready`)
+                      : (lang === 'pt' ? 'Ver Resultados Finais' : 'View Final Results')
+                    }
+                  </button>
+                );
+              })()}
+            </div>
           </div>
 
           {/* Start Production Button - Only show if not generating */}
