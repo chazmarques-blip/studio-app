@@ -214,8 +214,12 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
         # Extract identity cards and style DNA
         pd = project.get("agents_output", {}).get("production_design", {})
         identity_cards = pd.get("identity_cards", {})
-        style_dna = pd.get("style_dna", "")
         character_bible = pd.get("character_bible", {})
+        
+        # ✅ BUILD style_dna from current animation_sub (not stale production_design)
+        animation_sub = project.get("animation_sub", "pixar_3d")
+        style_dna = _build_style_dna(animation_sub, pd)
+        logger.info(f"Storyboard [{project_id}]: Style DNA built from animation_sub='{animation_sub}' ({len(style_dna)} chars)")
         
         # Download avatar cache (for character references)
         avatar_cache = {}
@@ -497,7 +501,9 @@ async def sync_storyboard_panels(project_id: str, tenant=Depends(get_current_ten
                         except Exception:
                             avatar_cache[url] = None
 
-                style_dna = "ART STYLE: Premium 3D CGI animation (Pixar/DreamWorks quality). Volumetric lighting."
+                # ✅ BUILD style_dna from animation_sub (not hardcoded)
+                animation_sub = _project.get("animation_sub", "pixar_3d")
+                style_dna = _build_style_dna(animation_sub, pd)
                 style_anchors = pd.get("style_anchors", "")
                 if style_anchors:
                     style_dna = f"{style_dna} {style_anchors}"
@@ -641,7 +647,9 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
                         except Exception:
                             avatar_cache[url] = None
 
-                style_dna = "ART STYLE: Premium 3D CGI animation (Pixar/DreamWorks quality). Volumetric lighting."
+                # ✅ BUILD style_dna from animation_sub (not hardcoded)
+                animation_sub = project.get("animation_sub", "pixar_3d")
+                style_dna = _build_style_dna(animation_sub, production_design)
                 style_anchors = production_design.get("style_anchors", "")
                 if style_anchors:
                     style_dna = f"{style_dna} {style_anchors}"

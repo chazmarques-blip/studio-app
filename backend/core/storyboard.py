@@ -566,8 +566,37 @@ def _generate_all_frames_for_scene(
 
     for t in threads:
         t.join(timeout=180)  # Extended timeout for validation retries
-
-    return [r for r in results if r is not None]
+    
+    # ✅ RETRY failed frames (None results) once
+    failed_indices = [i for i, (ft, img) in enumerate(results) if img is None]
+    if failed_indices:
+        logger.warning(f"Storyboard [{project_id}] Scene {scene_num}: Retrying {len(failed_indices)} failed frames: {[FRAME_TYPES[i]['label'] for i in failed_indices]}")
+        for idx in failed_indices:
+            try:
+                frame_type = FRAME_TYPES[idx]
+                img = _generate_single_frame(
+                    scene=scene,
+                    scene_num=scene_num,
+                    frame_type=frame_type,
+                    project_id=project_id,
+                    char_avatars=char_avatars,
+                    avatar_cache=avatar_cache,
+                    character_bible=character_bible,
+                    identity_cards=identity_cards,
+                    style_dna=style_dna,
+                    shot_briefs=shot_briefs,
+                    lang=lang,
+                )
+                if img:
+                    results[idx] = (frame_type, img)
+                    logger.info(f"Storyboard [{project_id}] Scene {scene_num}: Frame {frame_type['label']} retry SUCCESS")
+            except Exception as e:
+                logger.error(f"Storyboard [{project_id}] Scene {scene_num}: Frame {FRAME_TYPES[idx]['label']} retry FAILED: {e}")
+    
+    successful_frames = [r for r in results if r[1] is not None]
+    logger.info(f"Storyboard [{project_id}] Scene {scene_num}: {len(successful_frames)}/{len(FRAME_TYPES)} frames generated")
+    
+    return successful_frames
 
 
 def generate_all_panels(
