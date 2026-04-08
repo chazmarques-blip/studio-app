@@ -15,7 +15,7 @@ export function CompanyModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={cancelCompanyForm}>
-      <div data-testid="company-modal" className="w-full max-w-md rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] p-5 space-y-3" onClick={e => e.stopPropagation()}>
+      <div data-testid="company-modal" className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <p className="text-sm text-white font-semibold">{editingCompanyId ? t('studio.edit_company') : t('studio.new_company')}</p>
           <button onClick={cancelCompanyForm} className="p-1 rounded hover:bg-[#1A1A1A]"><X size={16} className="text-[#999]" /></button>
