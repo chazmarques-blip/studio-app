@@ -288,7 +288,6 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
                         shot_briefs=shot_briefs,
                         lang=project.get("language", "pt"),
                         enable_validation=True,
-                        frame_types=frame_types_to_use,  # Pass correct frame types
                     )
                     
                     # Upload frames to Supabase and build frame URLs
