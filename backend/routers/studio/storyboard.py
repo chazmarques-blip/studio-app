@@ -270,18 +270,17 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
                     )
                     
                     # Upload frames to Supabase and build frame URLs
-                    from services.supabase_service import upload_storyboard_frame
                     panel["frames"] = []
                     
                     for frame_type, image_bytes in frames_data:
                         if image_bytes:
                             try:
-                                frame_url = upload_storyboard_frame(
-                                    project_id=project_id,
-                                    scene_num=scene_num,
-                                    frame_label=frame_type["label"],
-                                    image_bytes=image_bytes,
-                                    tenant_id=tenant_id
+                                # Use _upload_to_storage helper
+                                frame_filename = f"storyboard/{project_id}/scene_{scene_num:03d}_{frame_type['label']}.png"
+                                frame_url = _upload_to_storage(
+                                    file_bytes=image_bytes,
+                                    filename=frame_filename,
+                                    content_type="image/png"
                                 )
                                 panel["frames"].append({
                                     "label": frame_type["label"],

@@ -1114,29 +1114,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         </div>
       )}
 
-      {/* Panels Grid */}
-      {panels.length > 0 && (
-        <div className="space-y-2">
-          {/* Missing panels alert */}
-          {scenes.length > panels.length && (
-            <div className="rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 p-3 flex items-center justify-between" data-testid="missing-panels-alert">
-              <div className="flex items-center gap-2">
-                <RefreshCw size={14} className={`text-[#8B5CF6] ${syncingPanels ? 'animate-spin' : ''}`} />
-                <span className="text-xs text-[#8B5CF6]">
-                  {lang === 'pt'
-                    ? `${scenes.length - panels.length} cena(s) sem storyboard`
-                    : `${scenes.length - panels.length} scene(s) without storyboard`}
-                </span>
-              </div>
-              <button onClick={syncMissingPanels} disabled={syncingPanels || loading}
-                data-testid="sync-panels-btn"
-                className="text-[10px] font-semibold bg-[#8B5CF6] text-black px-3 py-1 rounded-full hover:bg-[#D4AF37] transition disabled:opacity-50 flex items-center gap-1">
-                {syncingPanels
-                  ? <>{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
-                  : <>{lang === 'pt' ? 'Gerar Faltantes' : 'Generate Missing'}</>}
-              </button>
-            </div>
-          )}
+      {/* Panels Grid - ALWAYS 6 COLUMNS COMPACT VIEW */}
+      {panels.length > 0 && !loading && (
+        <div className="space-y-3">
           {/* Summary bar */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-[#666]">
@@ -1149,429 +1129,86 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             )}
           </div>
 
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-[#666]">
-              {expandedPanels.size === 0
-                ? (lang === 'pt' ? 'Clique numa cena para expandir' : 'Click a scene to expand')
-                : `${expandedPanels.size}/${panels.length} ${lang === 'pt' ? 'abertas' : 'open'}`}
-            </span>
-            <div className="flex gap-1.5">
-              <button onClick={expandAll} data-testid="expand-all-panels"
-                className="text-[10px] text-[#888] hover:text-[#8B5CF6] transition px-2 py-1 rounded bg-[#111] border border-[#222]">
-                {lang === 'pt' ? 'Abrir Todas' : 'Expand All'}
+          {/* Missing panels alert */}
+          {scenes.length > panels.length && (
+            <div className="rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCw size={14} className={`text-[#8B5CF6] ${syncingPanels ? 'animate-spin' : ''}`} />
+                <span className="text-xs text-[#8B5CF6]">
+                  {lang === 'pt'
+                    ? `${scenes.length - panels.length} cena(s) sem storyboard`
+                    : `${scenes.length - panels.length} scene(s) without storyboard`}
+                </span>
+              </div>
+              <button onClick={syncMissingPanels} disabled={syncingPanels}
+                className="text-[10px] font-semibold bg-[#8B5CF6] text-white px-3 py-1 rounded-full hover:bg-[#7C4FD6] transition disabled:opacity-50">
+                {syncingPanels
+                  ? <>{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
+                  : <>{lang === 'pt' ? 'Gerar Faltantes' : 'Generate Missing'}</>}
               </button>
-              <button onClick={collapseAll} data-testid="collapse-all-panels"
-                className="text-[10px] text-[#888] hover:text-white transition px-2 py-1 rounded bg-[#111] border border-[#222]">
-                {lang === 'pt' ? 'Fechar Todas' : 'Collapse All'}
-              </button>
-            </div>
-          </div>
-
-          {/* Drag instruction hint */}
-          {panels.length > 1 && !reordering && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 mb-2">
-              <GripVertical size={14} className="text-[#8B5CF6]" />
-              <span className="text-[10px] text-[#888]">
-                {lang === 'pt' 
-                  ? '💡 Pressione e segure o ícone ⋮⋮ por 250ms para arrastar e reordenar as cenas'
-                  : '💡 Press and hold the ⋮⋮ icon for 250ms to drag and reorder scenes'}
-              </span>
             </div>
           )}
 
-          {/* Loading indicator during reordering */}
-          {reordering && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 mb-2">
-              <RefreshCw size={14} className="text-orange-500 animate-spin" />
-              <span className="text-[10px] text-orange-500 font-medium">
-                {lang === 'pt' 
-                  ? 'Renumerando cenas e atualizando roteiro, storyboard, câmera...'
-                  : 'Renumbering scenes and updating screenplay, storyboard, camera...'}
-              </span>
-            </div>
-          )}
-
-          <DndContext 
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext 
-              items={panels.map((_, idx) => `panel-${idx}`)}
-              strategy={rectSortingStrategy}
-            >
-              <div className="grid grid-cols-2 gap-2">
-                {panels.map((panel, panelIndex) => {
-              const isEditing = editingPanel === panel.scene_number;
-              const isGenerating = generatingPanel === panel.scene_number;
-              const isExpanded = expandedPanels.has(panel.scene_number) || isEditing || isGenerating;
-
-              // ── COLLAPSED STATE: Lightweight card ──
-              if (!isExpanded) {
-                return (
-                  <SortablePanel key={`panel-${panelIndex}`} id={`panel-${panelIndex}`}>
-                    {({ dragHandleProps }) => (
-                      <div className="rounded-xl border border-[#222] bg-[#0A0A0A] hover:border-[#8B5CF6]/40 transition-all text-left overflow-hidden group w-full">
-                        <div className="flex items-center gap-2 p-2">
-                          {/* Drag handle - PRESSIONE E SEGURE AQUI */}
-                          <div 
-                            {...dragHandleProps}
-                            className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 -m-1"
-                            title={lang === 'pt' ? 'Pressione e segure para arrastar' : 'Press and hold to drag'}
-                          >
-                            <GripVertical size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition" />
-                          </div>
-                          {/* Rest of content - clickable to expand */}
-                          <button
-                            onClick={() => togglePanel(panel.scene_number)}
-                            data-testid={`storyboard-panel-${panel.scene_number}`}
-                            className="flex items-center gap-2 flex-1 min-w-0"
-                          >
-                            {/* Mini thumbnail */}
-                            <div className="relative w-16 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#111]">
-                              {panel.image_url ? (
-                                <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
-                                  loading="lazy" decoding="async"
-                                  className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Image size={12} className="text-[#333]" />
-                                </div>
-                              )}
-                              <span className="absolute top-0.5 left-0.5 bg-black/80 text-[8px] text-[#8B5CF6] font-bold px-1 rounded">
-                                {panel.scene_number}
-                              </span>
-                            </div>
-                            {/* Title + info */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[11px] font-medium text-white truncate">{panel.title}</p>
-                              <p className="text-[9px] text-[#555] truncate">{panel.dialogue || panel.description || ''}</p>
-                              {panel.frames?.length > 1 && (
-                                <span className="text-[8px] text-[#8B5CF6]/60">{panel.frames.length} frames</span>
-                              )}
-                            </div>
-                            {/* Expand icon */}
-                            <ChevronDown size={14} className="text-[#555] group-hover:text-[#8B5CF6] transition flex-shrink-0" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </SortablePanel>
-                );
-              }
-
-              // ── EXPANDED STATE: Full panel content ──
-
+          {/* Grid 6 colunas - Formato compacto permanente */}
+          <div className="grid grid-cols-6 gap-3">
+            {panels.sort((a, b) => a.panel_number - b.panel_number).map((panel) => {
+              const selectedFrame = getSelectedFrame(panel.scene_number, panel.frames);
+              const imageUrl = selectedFrame?.image_url || panel.image_url;
+              
               return (
-                <SortablePanel key={`panel-${panelIndex}`} id={`panel-${panelIndex}`}>
-                  {({ dragHandleProps }) => (
-                    <div
-                      data-testid={`storyboard-panel-${panel.scene_number}`}
-                      className={`rounded-xl border overflow-hidden transition-all ${
-                        panel.status === 'error'
-                          ? 'border-red-500/30 bg-red-500/5'
-                          : panel.image_url
-                            ? 'border-[#8B5CF6]/30 bg-[#0A0A0A]'
-                            : 'border-[#1A1A1A] bg-[#0A0A0A]'
-                      }`}>
-                      {/* Collapse header with drag handle */}
-                      <div className="w-full flex items-center gap-2 px-2.5 py-1.5 bg-[#0D0D0D] border-b border-[#1A1A1A]">
-                        <div 
-                          {...dragHandleProps}
-                          className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 -m-1"
-                          title={lang === 'pt' ? 'Pressione e segure para arrastar' : 'Press and hold to drag'}
-                        >
-                          <GripVertical size={14} className="text-[#555] hover:text-[#8B5CF6] transition" />
-                        </div>
-                        <button 
-                          onClick={() => togglePanel(panel.scene_number)}
-                          data-testid={`collapse-panel-${panel.scene_number}`}
-                          className="flex-1 flex items-center justify-between hover:bg-[#111] transition rounded px-1">
-                          <span className="text-[10px] text-[#8B5CF6] font-bold">{lang === 'pt' ? `Cena ${panel.scene_number}` : `Scene ${panel.scene_number}`} — {panel.title}</span>
-                          <ChevronUp size={12} className="text-[#666]" />
-                        </button>
-                      </div>
-                  {/* Image area — Gallery view with filmstrip */}
-                  <div className="relative bg-[#0A0A0A] overflow-hidden">
-                    {/* Main display image */}
-                    {panel.frames?.length > 1 && !isGenerating ? (() => {
-                      const activeFrame = getSelectedFrame(panel.scene_number, panel.frames);
-                      const activeIdx = selectedFrames[panel.scene_number] || 0;
-                      return (
-                        <div>
-                          {/* Large main frame */}
-                          <div className="relative aspect-video overflow-hidden bg-black">
-                            <img
-                              src={resolveImageUrl(activeFrame?.image_url || panel.image_url)}
-                              alt={activeFrame?.label || panel.title}
-                              loading="lazy" decoding="async"
-                              className="w-full h-full object-cover"
-                              data-testid={`panel-main-frame-${panel.scene_number}`}
-                            />
-                            {/* Scene number badge */}
-                            <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#8B5CF6] font-bold px-1.5 py-0.5 rounded">
-                              {panel.scene_number}
-                            </span>
-                            {/* Frame label badge */}
-                            {activeFrame?.label && (
-                              <span className="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-[10px] text-[#8B5CF6] font-medium px-2 py-0.5 rounded-full">
-                                {activeFrame.label}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Filmstrip — horizontal thumbnails */}
-                          <div className="flex gap-[2px] bg-[#111] p-[2px]" data-testid={`panel-filmstrip-${panel.scene_number}`}>
-                            {panel.frames.map((frame, fi) => (
-                              <button
-                                key={frame.frame_number}
-                                onClick={() => selectFrame(panel.scene_number, fi)}
-                                data-testid={`frame-thumb-${panel.scene_number}-${fi}`}
-                                className={`relative flex-1 aspect-[16/10] overflow-hidden rounded-sm transition-all ${
-                                  fi === activeIdx
-                                    ? 'ring-1 ring-[#8B5CF6] brightness-100'
-                                    : 'brightness-50 hover:brightness-75'
-                                }`}
-                              >
-                                <img
-                                  src={resolveImageUrl(frame.image_url)}
-                                  alt={frame.label}
-                                  loading="lazy" decoding="async"
-                                  className="w-full h-full object-cover"
-                                />
-                                <span className="absolute bottom-0.5 right-0.5 text-[5px] text-white/70 bg-black/60 px-0.5 rounded">
-                                  {fi + 1}
-                                </span>
-                                {fi === activeIdx && (
-                                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[#8B5CF6]" />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Action toolbar — below filmstrip, always visible */}
-                          <div className="flex items-center justify-between px-2 py-1 bg-[#0D0D0D] border-t border-[#1A1A1A]">
-                            <div className="flex items-center gap-1">
-                              <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
-                                data-testid={`inpaint-panel-${panel.scene_number}`}
-                                className={`h-6 w-6 rounded flex items-center justify-center transition ${
-                                  inpaintingPanel === panel.scene_number
-                                    ? 'bg-orange-500/20 text-orange-400'
-                                    : 'bg-[#1A1A1A] text-orange-400/60 hover:text-orange-400 hover:bg-[#222]'
-                                }`} title={lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}>
-                                <Paintbrush size={10} />
-                              </button>
-                              <button onClick={() => regeneratePanel(panel.scene_number)}
-                                data-testid={`regen-panel-${panel.scene_number}`}
-                                className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#8B5CF6]/60 hover:text-[#8B5CF6] hover:bg-[#222] transition" title={lang === 'pt' ? 'Regenerar' : 'Regenerate'}>
-                                <Film size={10} />
-                              </button>
-                            </div>
-                            <span className="text-[10px] text-[#555]">
-                              {lang === 'pt' ? `Pag ${activeIdx + 1}/${panel.frames.length}` : `Page ${activeIdx + 1}/${panel.frames.length}`}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })() : panel.image_url && !isGenerating ? (
-                      <div>
-                        <div className="relative aspect-video">
-                          <img src={resolveImageUrl(panel.image_url)} alt={panel.title}
-                            loading="lazy" decoding="async"
-                            className="w-full h-full object-cover" />
-                          <span className="absolute top-1 left-1 bg-black/80 text-[10px] text-[#8B5CF6] font-bold px-1.5 py-0.5 rounded">
-                            {panel.scene_number}
-                          </span>
-                        </div>
-                        {/* Action toolbar for single image */}
-                        <div className="flex items-center gap-1 px-2 py-1 bg-[#0D0D0D] border-t border-[#1A1A1A]">
-                          <button onClick={() => { setInpaintingPanel(inpaintingPanel === panel.scene_number ? null : panel.scene_number); setInpaintPrompt(''); }}
-                            data-testid={`inpaint-panel-single-${panel.scene_number}`}
-                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-orange-400/60 hover:text-orange-400 hover:bg-[#222] transition">
-                            <Paintbrush size={10} />
-                          </button>
-                          <button onClick={() => regeneratePanel(panel.scene_number)}
-                            className="h-6 w-6 rounded bg-[#1A1A1A] flex items-center justify-center text-[#8B5CF6]/60 hover:text-[#8B5CF6] hover:bg-[#222] transition">
-                            <Film size={10} />
-                          </button>
-                        </div>
-                      </div>
-                    ) : isGenerating ? (
-                      <div className="aspect-video flex flex-col items-center justify-center gap-2">
-                        <FilmSpinner size={20} className="text-[#8B5CF6]" />
-                        <span className="text-[10px] text-[#666]">{lang === 'pt' ? 'Gerando 6 paginas...' : 'Generating 6 pages...'}</span>
-                      </div>
-                    ) : (
-                      <div className="aspect-video flex items-center justify-center">
-                        <Image size={20} className="text-[#333]" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Inpainting — Element edit UI with Smart Editor */}
-                  {inpaintingPanel === panel.scene_number && (() => {
-                    const frameIdx = selectedFrames[panel.scene_number] || 0;
-                    const analysisKey = `${panel.scene_number}-${frameIdx}`;
-                    const analysis = sceneAnalysis[analysisKey];
-                    return (
-                    <div className="px-2 py-1.5 bg-orange-500/5 border-t border-orange-500/20 space-y-1.5">
-                      {/* Header with Smart mode toggle */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <Paintbrush size={12} className="text-orange-400 flex-shrink-0" />
-                          <span className="text-[11px] text-orange-300 font-medium">
-                            {lang === 'pt' ? 'Editar Elemento' : 'Edit Element'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {/* Analyze button */}
-                          <button
-                            onClick={() => analyzeScene(panel.scene_number)}
-                            disabled={analyzing === panel.scene_number}
-                            data-testid={`analyze-scene-${panel.scene_number}`}
-                            className="h-6 rounded px-2 text-[10px] font-medium bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition disabled:opacity-40 flex items-center gap-1"
-                          >
-                            {analyzing === panel.scene_number ? <FilmSpinner size={10} className="text-cyan-400" /> : <ScanSearch size={10} />}
-                            {lang === 'pt' ? 'Analisar' : 'Analyze'}
-                          </button>
-                          {/* Smart mode toggle */}
-                          <button
-                            onClick={() => setSmartMode(!smartMode)}
-                            data-testid="smart-mode-toggle"
-                            className={`h-6 rounded px-2 text-[10px] font-medium flex items-center gap-1 transition ${
-                              smartMode
-                                ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
-                                : 'bg-[#1A1A1A] border border-[#333] text-[#666]'
-                            }`}
-                          >
-                            <Zap size={10} />
-                            Smart
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Scene analysis display */}
-                      {analysis && !analysis.error && (
-                        <div className="bg-[#0D0D0D] rounded border border-cyan-500/10 p-2 space-y-1 max-h-32 overflow-y-auto">
-                          <div className="text-[10px] text-cyan-300 font-semibold flex items-center gap-1">
-                            <ScanSearch size={10} /> {lang === 'pt' ? 'Mapa da Cena' : 'Scene Map'}
-                          </div>
-                          {(analysis.characters || []).map((c, ci) => (
-                            <button key={ci} onClick={() => setInpaintPrompt(c.name)}
-                              className="block w-full text-left text-[10px] px-1.5 py-1 rounded hover:bg-cyan-500/10 transition leading-relaxed">
-                              <span className="text-cyan-200 font-medium">{c.name}</span>
-                              <span className="text-[#888]"> ({c.position}) — {c.expression}, {c.posture}</span>
-                              {c.issues && <span className="text-red-300 text-xs block mt-0.5">{c.issues}</span>}
-                            </button>
-                          ))}
-                          {(analysis.objects || []).map((o, oi) => (
-                            <button key={oi} onClick={() => setInpaintPrompt(o.name)}
-                              className="block w-full text-left text-[10px] px-1.5 py-1 rounded hover:bg-cyan-500/10 transition">
-                              <span className="text-yellow-200 font-medium">{o.name}</span>
-                              <span className="text-[#888]"> ({o.position})</span>
-                            </button>
-                          ))}
-                          {(analysis.quality_issues || []).length > 0 && (
-                            <div className="text-xs text-red-300 mt-0.5">
-                              {analysis.quality_issues.map((q, qi) => <div key={qi}>• {q}</div>)}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Input row */}
-                      <div className="flex gap-1.5 items-center">
-                        <input
-                          value={inpaintPrompt}
-                          onChange={e => setInpaintPrompt(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && editElement(panel.scene_number)}
-                          placeholder={lang === 'pt' ? 'Ex: Remover a corcova do Isaque' : 'Ex: Remove the hump from Isaac'}
-                          data-testid={`inpaint-input-${panel.scene_number}`}
-                          className="flex-1 bg-[#111] border border-orange-500/30 rounded px-2.5 py-2 text-[11px] text-white placeholder-[#666] outline-none focus:border-orange-500/50"
-                          disabled={inpaintLoading}
-                        />
-                        <VoiceInput
-                          onResult={text => setInpaintPrompt(prev => prev ? `${prev} ${text}` : text)}
-                          lang={lang}
-                          size={14}
-                          className="h-8 w-8 rounded-md bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 hover:bg-orange-500/20 transition flex-shrink-0"
-                        />
-                        <button
-                          onClick={() => editElement(panel.scene_number)}
-                          disabled={inpaintLoading || !inpaintPrompt.trim()}
-                          data-testid={`inpaint-submit-${panel.scene_number}`}
-                          className="h-8 rounded-md px-3 py-1.5 text-[11px] font-semibold bg-orange-500/20 border border-orange-500/30 text-orange-300 hover:bg-orange-500/30 transition disabled:opacity-30 flex items-center gap-1.5 flex-shrink-0"
-                        >
-                          {inpaintLoading ? <FilmSpinner size={12} className="text-orange-400" /> : (smartMode ? <Zap size={12} /> : <Paintbrush size={12} />)}
-                          {smartMode ? 'Smart Edit' : (lang === 'pt' ? 'Editar' : 'Edit')}
-                        </button>
-                      </div>
+                <div 
+                  key={panel.panel_number}
+                  className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
+                  onClick={() => togglePanel(panel.scene_number)}
+                >
+                  {/* Image or placeholder */}
+                  {imageUrl ? (
+                    <img 
+                      src={resolveImageUrl(imageUrl)}
+                      alt={`Painel ${panel.panel_number}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#111]">
+                      <ImageIcon size={20} className="text-[#333]" />
                     </div>
-                    );
-                  })()}
-
-                  {/* Text area */}
-                  <div className="p-2.5 space-y-1.5">
-                    {isEditing ? (
-                      <div className="space-y-2">
-                        <input value={editForm.title || ''} onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))}
-                          placeholder={lang === 'pt' ? 'Título' : 'Title'}
-                          className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#8B5CF6]" />
-                        <textarea value={editForm.description || ''} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
-                          placeholder={lang === 'pt' ? 'Descrição visual' : 'Visual description'}
-                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#8B5CF6] resize-none" />
-                        <textarea value={editForm.dialogue || ''} onChange={e => setEditForm(p => ({ ...p, dialogue: e.target.value }))}
-                          placeholder={lang === 'pt' ? 'Diálogo/Narração' : 'Dialogue/Narration'}
-                          rows={2} className="w-full bg-[#111] border border-[#333] rounded px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-[#8B5CF6] resize-none" />
-                        <div className="flex gap-1.5">
-                          <button onClick={() => { setEditingPanel(null); setEditForm({}); }}
-                            className="flex-1 rounded border border-[#333] py-1.5 text-[11px] text-[#999] hover:text-white transition">
-                            {lang === 'pt' ? 'Cancelar' : 'Cancel'}
-                          </button>
-                          <button onClick={() => saveEditPanel(panel.scene_number)}
-                            className="flex-1 btn-gold rounded py-1.5 text-[11px] font-semibold">
-                            {lang === 'pt' ? 'Salvar' : 'Save'}
-                          </button>
-                          <button onClick={() => { saveEditPanel(panel.scene_number); setTimeout(() => regeneratePanel(panel.scene_number), 500); }}
-                            className="flex-1 rounded py-1.5 text-[11px] font-semibold bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6]">
-                            {lang === 'pt' ? 'Salvar & Reger.' : 'Save & Regen'}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <p className="text-[12px] font-semibold text-white truncate flex-1">{panel.title}</p>
-                          <button onClick={() => {
-                            setEditingPanel(panel.scene_number);
-                            setEditForm({ title: panel.title, description: panel.description, dialogue: panel.dialogue });
-                          }}
-                            data-testid={`edit-panel-${panel.scene_number}`}
-                            className="text-[#555] hover:text-[#8B5CF6] transition ml-1">
-                            <Edit3 size={10} />
-                          </button>
-                        </div>
-                        {panel.dialogue && (
-                          <p className="text-[11px] text-[#BBB] leading-relaxed line-clamp-3">
-                            {panel.dialogue}
-                          </p>
-                        )}
-                        {panel.characters_in_scene?.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {panel.characters_in_scene.map((c, ci) => (
-                              <span key={ci} className="text-xs bg-[#8B5CF6]/10 text-[#8B5CF6] rounded px-1.5 py-0.5">{c}</span>
-                            ))}
-                          </div>
-                        )}
-                      </>
+                  )}
+                  
+                  {/* Panel number badge */}
+                  <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white font-mono">
+                    {panel.panel_number}
+                  </div>
+                  
+                  {/* Hover overlay with actions */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); regeneratePanel(panel.scene_number); }}
+                      className="px-2 py-1 bg-[#8B5CF6] rounded text-[9px] text-white font-semibold hover:bg-[#7C4FD6] flex items-center gap-1"
+                    >
+                      <RefreshCw size={10} />
+                      {lang === 'pt' ? 'Regerar' : 'Regenerate'}
+                    </button>
+                    {panel.frames && panel.frames.length > 1 && (
+                      <span className="text-[8px] text-white/70">
+                        {panel.frames.length} frames
+                      </span>
                     )}
                   </div>
-                </div>
+                  
+                  {/* Expanded view indicator */}
+                  {expandedPanels.has(panel.scene_number) && (
+                    <div className="absolute bottom-1 right-1 bg-purple-500 rounded-full p-0.5">
+                      <ChevronDown size={10} className="text-white" />
+                    </div>
                   )}
-              </SortablePanel>
+                </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Expanded Panel Details Modal (Optional - click on panel to see details) */}
           </div>
         </SortableContext>
       </DndContext>
