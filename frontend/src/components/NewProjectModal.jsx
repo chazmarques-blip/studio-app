@@ -503,7 +503,7 @@ export function NewProjectModal({
               {/* Existing companies - Filtrar Test Company */}
               {companies.filter(c => !c.name.toLowerCase().includes('test')).map(company => (
                 <div key={company.id} className="shrink-0 flex flex-col items-center gap-1 relative group">
-                  {/* Logo dentro do quadro SEM BORDA */}
+                  {/* Logo dentro do quadro HORIZONTAL (mais largo que alto) */}
                   <button
                     type="button"
                     onClick={() => {
@@ -520,7 +520,7 @@ export function NewProjectModal({
                         }
                       }
                     }}
-                    className={`w-16 h-16 rounded-lg overflow-hidden transition-all relative ${
+                    className={`w-24 h-14 rounded-lg overflow-hidden transition-all relative bg-white ${
                       selectedCompany?.id === company.id
                         ? 'ring-2 ring-[#8B5CF6] ring-offset-2'
                         : 'hover:ring-2 hover:ring-[#8B5CF6]/30'
@@ -529,11 +529,11 @@ export function NewProjectModal({
                       <img 
                         src={company.logo_url} 
                         alt={company.name} 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-1"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
-                        <Building2 size={28} className="text-[#8B5CF6]" />
+                        <Building2 size={24} className="text-[#8B5CF6]" />
                       </div>
                     )}
                     {selectedCompany?.id === company.id && (
@@ -544,7 +544,7 @@ export function NewProjectModal({
                   </button>
                   
                   {/* Nome FORA do quadro, abaixo */}
-                  <span className="text-[8px] font-medium text-center text-[#333] leading-tight w-16 line-clamp-2">
+                  <span className="text-[8px] font-medium text-center text-[#333] leading-tight w-24 line-clamp-2">
                     {company.name}
                   </span>
                   
