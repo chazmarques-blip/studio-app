@@ -499,10 +499,11 @@ export function NewProjectModal({
               {lang === 'pt' ? 'Carregando empresas...' : 'Loading companies...'}
             </div>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-3 overflow-x-auto pb-1 items-start">
               {/* Existing companies - Filtrar Test Company */}
               {companies.filter(c => !c.name.toLowerCase().includes('test')).map(company => (
-                <div key={company.id} className="shrink-0 relative group">
+                <div key={company.id} className="shrink-0 flex flex-col items-center gap-1 relative group">
+                  {/* Logo dentro do quadro SEM BORDA */}
                   <button
                     type="button"
                     onClick={() => {
@@ -519,53 +520,55 @@ export function NewProjectModal({
                         }
                       }
                     }}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all w-20 ${
+                    className={`w-16 h-16 rounded-lg overflow-hidden transition-all relative ${
                       selectedCompany?.id === company.id
-                        ? 'border-[#8B5CF6] bg-[#F3F0FF]'
-                        : 'border-[#E0E0E0] bg-white hover:border-[#8B5CF6] hover:bg-[#F9F7FF]'
+                        ? 'ring-2 ring-[#8B5CF6] ring-offset-2'
+                        : 'hover:ring-2 hover:ring-[#8B5CF6]/30'
                     }`}>
-                    {/* Logo grande */}
-                    <div className="w-14 h-14 rounded overflow-hidden shrink-0">
-                      {company.logo_url ? (
-                        <img 
-                          src={company.logo_url} 
-                          alt={company.name} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
-                          <Building2 size={24} className="text-[#8B5CF6]" />
-                        </div>
-                      )}
-                    </div>
-                    {/* Nome pequeno abaixo */}
-                    <span className="text-[8px] font-medium text-center text-[#333] leading-tight line-clamp-2 w-full">
-                      {company.name}
-                    </span>
+                    {company.logo_url ? (
+                      <img 
+                        src={company.logo_url} 
+                        alt={company.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center">
+                        <Building2 size={28} className="text-[#8B5CF6]" />
+                      </div>
+                    )}
                     {selectedCompany?.id === company.id && (
-                      <Check size={10} className="text-[#8B5CF6] absolute top-1 right-1" />
+                      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+                        <Check size={10} strokeWidth={3} className="text-white" />
+                      </div>
                     )}
                   </button>
                   
-                  {/* Edit button - inside card, top left corner */}
+                  {/* Nome FORA do quadro, abaixo */}
+                  <span className="text-[8px] font-medium text-center text-[#333] leading-tight w-16 line-clamp-2">
+                    {company.name}
+                  </span>
+                  
+                  {/* Edit button - canto superior esquerdo do quadro */}
                   <button
                     type="button"
                     onClick={(e) => handleOpenEditCompany(company, e)}
-                    className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md z-10"
+                    className="absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md z-10"
                     title={lang === 'pt' ? 'Editar' : 'Edit'}>
                     <Edit2 size={9} />
                   </button>
                 </div>
               ))}
 
-              {/* Button: Create new company - SEM QUADRO, apenas ícone + */}
-              <button
-                type="button"
-                onClick={() => setShowCreateCompany(true)}
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all shadow-md self-start mt-2"
-                title={lang === 'pt' ? 'Nova Empresa' : 'New Company'}>
-                <Plus size={16} strokeWidth={2.5} />
-              </button>
+              {/* Button: Create new company - Apenas ícone + circular */}
+              <div className="shrink-0 flex flex-col items-center gap-1 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCompany(true)}
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white transition-all shadow-md"
+                  title={lang === 'pt' ? 'Nova Empresa' : 'New Company'}>
+                  <Plus size={18} strokeWidth={2.5} />
+                </button>
+              </div>
             </div>
           )}
           
