@@ -235,7 +235,7 @@ Each scene:
 {{"scene_number": N, "time_start": "M:SS", "time_end": "M:SS", "title": "Title", "description": "RICH visual: WHERE (landscape, nature), WHEN (time of day, weather), WHAT (action), ATMOSPHERE (light, colors)", "dialogue": "Text or narration", "characters_in_scene": ["Name"], "emotion": "mood", "camera": "shot type", "transition": "fade/cut"}}
 
 RULES:
-- Each scene = EXACTLY 12 seconds
+- Each scene = EXACTLY {scene_duration_label}
 - There is NO LIMIT on the number of scenes or characters. Generate as many as the story NEEDS to be rich and faithful
 - Generate up to 10 scenes per response. Set "total_scenes" to the FULL number the story needs. If more than 10, I will ask you to continue
 - EVERY KEY NARRATIVE MOMENT deserves its OWN dedicated scene. NEVER compress multiple important events into a single scene
@@ -277,6 +277,12 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
 
         # Detect video engine and adapt system prompt
         video_engine = project.get("video_engine", "sora")
+        
+        # ✅ Calculate scene duration based on video engine
+        scene_duration_seconds = 300 if video_engine == "kling" else 12
+        scene_duration_label = "5 minutos" if video_engine == "kling" else "12 segundos"
+        logger.info(f"Screenwriter [{project_id}]: Engine={video_engine}, scene_duration={scene_duration_seconds}s")
+        
         target_duration = project.get("target_duration_minutes", 5)
         
         if video_engine == "kling":
@@ -391,7 +397,7 @@ The user now says: {message}
 
 CONTINUATION RULES:
 - Scene numbers MUST start from {last_scene_num + 1}
-- Time starts from {last_time_end} (each scene = 12 seconds)
+- Time starts from {last_time_end} (each scene = {scene_duration_label})
 - Keep the same characters, visual style, and narrative tone
 - There is NO limit on new scenes or characters — generate as many as needed to enrich the story
 - If the user asks to expand a specific part, create MULTIPLE detailed scenes for it
