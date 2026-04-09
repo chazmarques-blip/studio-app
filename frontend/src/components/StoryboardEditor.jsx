@@ -1274,21 +1274,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   {/* Hover overlay with actions */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                     <button
-                      onClick={(e) => { e.stopPropagation(); regeneratePanel(panel.scene_number); }}
+                      onClick={(e) => { e.stopPropagation(); !isKlingFrame && regeneratePanel(item.scene_number); }}
                       className="px-2 py-1 bg-[#8B5CF6] rounded text-[9px] text-white font-semibold hover:bg-[#7C4FD6] flex items-center gap-1"
+                      disabled={isKlingFrame}
                     >
                       <RefreshCw size={10} />
                       {lang === 'pt' ? 'Regerar' : 'Regenerate'}
                     </button>
-                    {panel.frames && panel.frames.length > 1 && (
+                    {!isKlingFrame && item.frames && item.frames.length > 1 && (
                       <span className="text-[8px] text-white/70">
-                        {panel.frames.length} frames
+                        {item.frames.length} frames
                       </span>
                     )}
                   </div>
                   
                   {/* Expanded view indicator */}
-                  {expandedPanels.has(panel.scene_number) && (
+                  {!isKlingFrame && expandedPanels.has(item.scene_number) && (
                     <div className="absolute bottom-1 right-1 bg-purple-500 rounded-full p-0.5">
                       <ChevronDown size={10} className="text-white" />
                     </div>
