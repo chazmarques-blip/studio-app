@@ -511,20 +511,22 @@ export function AvatarModal({ ctx }) {
                         {generatingAvatar && ctx.batchProgress && (
                           <div className="rounded-xl bg-[#0A0A0A] border border-[#1E1E1E] p-4 space-y-3">
                             <div className="flex items-center justify-between">
-                              <p className="text-xs text-[#888]">Gerando personagens em lote...</p>
-                              <span className="text-xs font-mono text-[#8B5CF6]">
+                              <p className="text-sm font-semibold text-[#8B5CF6]">
+                                ✨ Criando personagem {ctx.batchProgress.currentNum || ctx.batchProgress.completed + 1} de {ctx.batchProgress.total}
+                              </p>
+                              <span className="text-sm font-mono font-bold text-[#D4B85A]">
                                 {ctx.batchProgress.completed}/{ctx.batchProgress.total}
                               </span>
                             </div>
-                            <div className="h-1.5 bg-[#1E1E1E] rounded-full overflow-hidden">
+                            <div className="h-2 bg-[#1E1E1E] rounded-full overflow-hidden">
                               <div 
-                                className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] transition-all duration-300"
+                                className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#D4B85A] transition-all duration-500 ease-out"
                                 style={{width: `${(ctx.batchProgress.completed / ctx.batchProgress.total) * 100}%`}}
                               />
                             </div>
                             {ctx.batchProgress.currentPrompt && (
-                              <p className="text-[10px] text-[#666] truncate">
-                                Gerando: {ctx.batchProgress.currentPrompt}
+                              <p className="text-[10px] text-[#888] truncate">
+                                📝 {ctx.batchProgress.currentPrompt}
                               </p>
                             )}
                           </div>

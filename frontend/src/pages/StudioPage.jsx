@@ -505,32 +505,70 @@ export default function StudioPage() {
     }
 
     setGeneratingAvatar(true);
-    setBatchProgress({ completed: 0, total: prompts.length, currentPrompt: prompts[0].substring(0, 60) + '...' });
+    
+    const created = [];
+    const failed = [];
 
-    try {
-      console.log('Sending batch request...');
-      const { data } = await axios.post(`${API}/data/avatars/batch`, {
-        prompts,
-        style: avatarPromptStyle,
-        gender: avatarPromptGender,
-      }, {
-        timeout: 300000, // 5 minutos para criação em lote
+    // Process each prompt one by one with real-time progress
+    for (let i = 0; i < prompts.length; i++) {
+      const prompt = prompts[i];
+      const currentNum = i + 1;
+      
+      // Update progress bar
+      setBatchProgress({ 
+        completed: i, 
+        total: prompts.length, 
+        currentPrompt: prompt.substring(0, 60) + '...',
+        currentNum
       });
 
-      console.log('Batch response:', data);
+      try {
+        console.log(`Creating ${currentNum}/${prompts.length}: ${prompt.substring(0, 50)}...`);
+        
+        // Call batch endpoint with single prompt
+        const { data } = await axios.post(`${API}/data/avatars/batch`, {
+          prompts: [prompt],
+          style: avatarPromptStyle,
+          gender: avatarPromptGender,
+        }, {
+          timeout: 60000, // 1 minute per avatar
+        });
 
-      const { created, failed, success } = data;
+        if (data.created && data.created.length > 0) {
+          created.push(...data.created);
+          
+          // Update progress to show completion
+          setBatchProgress({ 
+            completed: currentNum, 
+            total: prompts.length, 
+            currentPrompt: prompt.substring(0, 60) + '...',
+            currentNum
+          });
+          
+          console.log(`✅ Created ${currentNum}/${prompts.length}`);
+        }
+        
+        if (data.failed && data.failed.length > 0) {
+          failed.push(...data.failed);
+        }
 
+      } catch (e) {
+        console.error(`Failed to create avatar ${currentNum}/${prompts.length}:`, e);
+        failed.push({ prompt, error: e.message });
+      }
+    }
+
+    try {
       // Refresh avatar list
       const freshAvatars = await axios.get(`${API}/data/avatars`);
       setAvatars(freshAvatars.data || []);
       localStorage.setItem('studiox_avatars', JSON.stringify(freshAvatars.data || []));
 
       // Show results
-      if (success > 0) {
-        toast.success(`${success} personagens criados com sucesso!`);
+      if (created.length > 0) {
+        toast.success(`${created.length} personagens criados com sucesso!`);
       }
-      if (failed && failed.length > 0) {
+      if (failed.length > 0) {
         toast.warning(`${failed.length} personagens falharam na criação`);
       }
 
@@ -538,14 +576,8 @@ export default function StudioPage() {
       resetAvatarModal();
 
     } catch (e) {
-      console.error('Batch error:', e);
-      
-      // Check if it's a timeout error
-      if (e.code === 'ECONNABORTED') {
-        toast.error('Tempo limite excedido. Verifique se os personagens foram criados na galeria.');
-      } else {
-        toast.error(e.response?.data?.detail || e.message || 'Erro ao criar personagens em lote');
-      }
+      console.error('Error refreshing avatars:', e);
+      toast.error('Personagens criados, mas erro ao atualizar lista');
     } finally {
       setGeneratingAvatar(false);
       setBatchProgress(null);
