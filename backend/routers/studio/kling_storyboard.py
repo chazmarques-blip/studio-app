@@ -557,36 +557,120 @@ async def _generate_images_parallel(frames: List[Dict], tenant_id: str, project_
 
 
 async def _generate_single_frame_image(frame: Dict, tenant_id: str, project_id: str) -> str:
-    """Generate image for a single frame using Nano Banana"""
+    """Generate image for a single frame using Gemini Nano Banana (gemini-2.5-flash-image)"""
     
     image_prompt = frame.get("image_prompt", "")
     frame_num = frame.get("frame_number", 0)
     
-    # Call Nano Banana (Gemini 2.5 Flash Image)
+    # Use native GEMINI_API_KEY for Nano Banana
     try:
-        emergent_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        if not emergent_key:
-            raise Exception("EMERGENT_LLM_KEY not found")
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if not gemini_key:
+            raise Exception("GEMINI_API_KEY not found")
         
-        import litellm
+        import httpx
+        import base64
         
-        response = await litellm.aimage_generation(
-            model="gemini/gemini-2.0-flash-exp",
-            prompt=image_prompt,
-            api_key=emergent_key,
-            timeout=60
-        )
+        # Gemini Nano Banana (gemini-2.5-flash-image) endpoint
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
         
-        # Get image URL from response
-        if hasattr(response, 'data') and len(response.data) > 0:
-            image_url = response.data[0].url
-            logger.info(f"Frame {frame_num}: Image generated")
-            return image_url
-        else:
-            raise Exception("No image URL in response")
+        headers = {
+            "x-goog-api-key": gemini_key,
+            "Content-Type": "application/json"
+        }
+        
+        # Simplify prompt for better results (keep under 1000 chars)
+        simplified_prompt = image_prompt[:1000] if len(image_prompt) > 1000 else image_prompt
+        
+        payload = {
+            "contents": [{
+                "parts": [{
+                    "text": simplified_prompt
+                }]
+            }],
+            "generationConfig": {
+                "responseModalities": ["IMAGE"]
+            }
+        }
+        
+        logger.info(f"Frame {frame_num}: Calling Gemini Nano Banana API...")
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code != 200:
+                raise Exception(f"API returned {response.status_code}: {response.text}")
+            
+            result = response.json()
+            
+            # Extract base64 image from response (Gemini returns candidates->content->parts->inlineData)
+            if "candidates" in result:
+                for candidate in result["candidates"]:
+                    if "content" in candidate:
+                        parts = candidate["content"].get("parts", [])
+                        for part in parts:
+                            if "inlineData" in part:
+                                image_base64 = part["inlineData"].get("data")
+                                
+                                if image_base64:
+                                    # Upload to Supabase storage
+                                    image_url = await _upload_base64_to_supabase(
+                                        image_base64, 
+                                        tenant_id, 
+                                        project_id, 
+                                        f"storyboard_frame_{frame_num}.png"
+                                    )
+                                    
+                                    logger.info(f"Frame {frame_num}: ✅ Image generated and uploaded")
+                                    return image_url
+            
+            raise Exception(f"No image found in response: {result.keys()}")
             
     except Exception as e:
         logger.error(f"Frame {frame_num} image generation failed: {e}")
+        raise
+
+
+async def _upload_base64_to_supabase(
+    base64_data: str, 
+    tenant_id: str, 
+    project_id: str, 
+    filename: str
+) -> str:
+    """Upload base64 image to Supabase storage and return public URL"""
+    import base64
+    from supabase import create_client
+    
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    
+    if not supabase_url or not supabase_key:
+        raise Exception("Supabase credentials not found")
+    
+    # Decode base64 to bytes
+    image_bytes = base64.b64decode(base64_data)
+    
+    # Create Supabase client
+    supabase = create_client(supabase_url, supabase_key)
+    
+    # Upload to storage bucket
+    storage_path = f"{tenant_id}/projects/{project_id}/storyboards/{filename}"
+    
+    try:
+        # Upload file
+        response = supabase.storage.from_("studio-assets").upload(
+            path=storage_path,
+            file=image_bytes,
+            file_options={"content-type": "image/png", "upsert": "true"}
+        )
+        
+        # Get public URL
+        public_url = supabase.storage.from_("studio-assets").get_public_url(storage_path)
+        
+        return public_url
+        
+    except Exception as e:
+        logger.error(f"Supabase upload failed: {e}")
         raise
 
 
@@ -692,8 +776,7 @@ async def regenerate_images(project_id: str, tenant=Depends(get_current_tenant))
 
 async def _generate_frame_image_with_tool(frame: Dict, project_id: str) -> str:
     """
-    Generate image for a frame using the system image generation tool
-    This uses the proper tool interface instead of direct API calls
+    Generate image for a frame using Gemini Nano Banana with native GEMINI_API_KEY
     """
     image_prompt = frame.get("image_prompt", "")
     frame_num = frame.get("frame_number", 0)
@@ -701,60 +784,86 @@ async def _generate_frame_image_with_tool(frame: Dict, project_id: str) -> str:
     if not image_prompt:
         raise Exception("No image_prompt available")
     
-    # Simplify prompt for better results (keep under 500 chars)
-    simplified_prompt = image_prompt[:500] if len(image_prompt) > 500 else image_prompt
-    
     logger.info(f"      Generating image for frame {frame_num}...")
     
-    # Use the system's image generation (will use Nano Banana via Emergent key)
-    # This is more reliable than direct litellm calls
     try:
-        # Import the image generation utility
-        import subprocess
-        import json
-        import tempfile
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if not gemini_key:
+            raise Exception("GEMINI_API_KEY not found")
         
-        # Create a request payload
-        payload = {
-            "prompts": [
-                {
-                    "slug_name": f"frame_{frame_num}",
-                    "prompt": simplified_prompt,
-                    "size": "1024x1024",
-                    "quality": "low",  # Use low for faster generation
-                    "output_format": "png"
-                }
-            ]
+        import httpx
+        import base64
+        from supabase import create_client
+        
+        # Gemini Nano Banana endpoint
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
+        
+        headers = {
+            "x-goog-api-key": gemini_key,
+            "Content-Type": "application/json"
         }
         
-        # Save to temp file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(payload, f)
-            temp_file = f.name
+        # Simplify prompt for better results (keep under 1000 chars)
+        simplified_prompt = image_prompt[:1000] if len(image_prompt) > 1000 else image_prompt
         
-        # Call image generation via curl (more reliable)
-        result = subprocess.run([
-            'curl', '-s', '-X', 'POST',
-            'https://api.emergent.ag/v1/image/generate',
-            '-H', 'Content-Type: application/json',
-            '-H', f'Authorization: Bearer {os.environ.get("EMERGENT_LLM_KEY", "")}',
-            '-d', f'@{temp_file}'
-        ], capture_output=True, text=True, timeout=120)
+        payload = {
+            "contents": [{
+                "parts": [{
+                    "text": simplified_prompt
+                }]
+            }],
+            "generationConfig": {
+                "responseModalities": ["IMAGE"]
+            }
+        }
         
-        # Clean up
-        os.unlink(temp_file)
-        
-        if result.returncode != 0:
-            raise Exception(f"Image generation failed: {result.stderr}")
-        
-        response_data = json.loads(result.stdout)
-        
-        # Extract URL from response
-        if 'images' in response_data and len(response_data['images']) > 0:
-            return response_data['images'][0]['url']
-        else:
-            raise Exception(f"No image URL in response: {response_data}")
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code != 200:
+                raise Exception(f"API returned {response.status_code}: {response.text}")
+            
+            result = response.json()
+            
+            # Extract base64 image from response
+            if "candidates" in result:
+                for candidate in result["candidates"]:
+                    if "content" in candidate:
+                        parts = candidate["content"].get("parts", [])
+                        for part in parts:
+                            if "inlineData" in part:
+                                image_base64 = part["inlineData"].get("data")
+                                
+                                if image_base64:
+                                    # Decode base64 to bytes
+                                    image_bytes = base64.b64decode(image_base64)
+                                    
+                                    # Upload to Supabase
+                                    supabase_url = os.environ.get("SUPABASE_URL", "")
+                                    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+                                    
+                                    if not supabase_url or not supabase_key:
+                                        raise Exception("Supabase credentials not found")
+                                    
+                                    supabase = create_client(supabase_url, supabase_key)
+                                    
+                                    # Get tenant ID from project
+                                    storage_path = f"storyboards/{project_id}/frame_{frame_num}.png"
+                                    
+                                    supabase.storage.from_("studio-assets").upload(
+                                        path=storage_path,
+                                        file=image_bytes,
+                                        file_options={"content-type": "image/png", "upsert": "true"}
+                                    )
+                                    
+                                    # Get public URL
+                                    public_url = supabase.storage.from_("studio-assets").get_public_url(storage_path)
+                                    
+                                    logger.info(f"      Frame {frame_num}: ✅ Image generated")
+                                    return public_url
+            
+            raise Exception(f"No image found in response")
             
     except Exception as e:
-        logger.error(f"      Image generation error: {e}")
+        logger.info(f"      Image generation error: {e}")
         raise
