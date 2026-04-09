@@ -1,6 +1,16 @@
 """Auto-generated module from studio.py split."""
 from ._shared import *
 
+def _parse_time_to_seconds(time_str: str) -> int:
+    """Parse '0:12' or '5:30' to seconds."""
+    try:
+        parts = time_str.split(':')
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        return int(parts[0])
+    except:
+        return 12  # default 12s
+
 # ══ MASTER DIALOGUE WRITER SYSTEM ══
 
 MASTER_DIALOGUE_SYSTEM = """You are a MASTER DIALOGUE WRITER — a legendary screenwriter known for creating dialogue that moves audiences to tears, laughter, and profound emotion.
@@ -218,12 +228,26 @@ async def generate_dialogues(project_id: str, req: DialogueGenerateRequest, tena
         existing_dialogue = scene.get("dialogue", "")
         existing_narration = scene.get("narration", "")
         chars_in = scene.get("characters_in_scene", [])
+        
+        # Calculate scene duration and expected word count
+        start = scene.get("start_time", "0:00")
+        end = scene.get("end_time", "0:12")
+        duration_seconds = _parse_time_to_seconds(end) - _parse_time_to_seconds(start)
+        expected_words = int(duration_seconds * 2.5)  # ~2.5 words per second (150 words/min)
+        
+        duration_guidance = f"""
+SCENE DURATION: {duration_seconds} seconds ({duration_seconds//60}:{duration_seconds%60:02d})
+EXPECTED DIALOGUE LENGTH: ~{expected_words} words
+- Write enough dialogue to fill the scene naturally
+- For {duration_seconds}s: aim for {expected_words-50} to {expected_words+50} words total
+"""
 
         if req.mode == "dubbed":
             system = f"""You are a MASTER screenwriter creating emotional, impactful CHARACTER DIALOGUES.
 Project: {project_name}. Language: {lang_name}.
 Characters available: {', '.join(char_names)}.
 Characters in this scene: {', '.join(chars_in)}.
+{duration_guidance}
 {f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
 
 RULES:
@@ -233,7 +257,7 @@ RULES:
 - Make dialogue NATURAL, EMOTIONAL, and MEMORABLE
 - Use subtext — characters don't always say what they mean
 - Write in {lang_name}
-- Minimum 3-5 lines of dialogue per scene
+- TARGET: ~{expected_words} words total to fill {duration_seconds} seconds
 - For children's content: warm, accessible, impactful"""
 
             user_msg = f"""Scene {sn}: {title}
@@ -246,6 +270,7 @@ Generate POWERFUL character dialogues that will move the audience."""
         elif req.mode == "narrated":
             system = f"""You are a MASTER narrator/voice-over writer creating CINEMATIC storytelling.
 Project: {project_name}. Language: {lang_name}.
+{duration_guidance}
 {f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
 
 RULES:
@@ -253,7 +278,7 @@ RULES:
 - Format: Narrador: "text..."
 - Be VIVID, EMOTIONAL, and ENGAGING
 - Create imagery with your words
-- Write 2-4 sentences that CAPTURE the scene's essence
+- TARGET: ~{expected_words} words to fill {duration_seconds} seconds naturally
 - For children: warm, gentle, not condescending
 - Write in {lang_name}"""
 
@@ -287,10 +312,14 @@ Write a BEAUTIFUL storybook passage that captures this moment."""
         try:
             import litellm
             api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
+            
+            # Calculate max tokens based on expected words (1 word ≈ 1.3 tokens)
+            max_tokens_needed = max(1500, int(expected_words * 1.5))
+            
             response = await litellm.acompletion(
                 model="anthropic/claude-sonnet-4-5-20250929",
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
-                api_key=api_key, max_tokens=1500, timeout=60,
+                api_key=api_key, max_tokens=max_tokens_needed, timeout=120,
             )
             generated = response.choices[0].message.content.strip()
         except Exception as e:
