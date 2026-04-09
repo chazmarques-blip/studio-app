@@ -618,3 +618,44 @@ async def get_kling_storyboards(project_id: str, tenant=Depends(get_current_tena
         "frames": storyboards,
         "generated_at": project.get("kling_storyboards_generated_at")
     }
+
+
+
+@router.post("/projects/{project_id}/kling-storyboards/regenerate-images")
+async def regenerate_images(project_id: str, tenant=Depends(get_current_tenant)):
+    """
+    Regenerate ONLY the images for frames (prompts already exist)
+    Note: Images are OPTIONAL - kling_prompts are what matters for video generation
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    storyboards = project.get("kling_storyboards", [])
+    if not storyboards:
+        raise HTTPException(status_code=400, detail="No storyboards found")
+    
+    logger.info(f"RegenerateImages [{project_id}]: Checking frames...")
+    
+    # Count status
+    total_frames = 0
+    frames_without_images = 0
+    frames_with_prompts = 0
+    
+    for scene in storyboards:
+        frames = scene.get("frames", [])
+        total_frames += len(frames)
+        for f in frames:
+            if not f.get("image_url"):
+                frames_without_images += 1
+            if f.get("kling_prompt"):
+                frames_with_prompts += 1
+    
+    return {
+        "status": "ready",
+        "message": "✅ Kling prompts are ready! Images are optional reference only.",
+        "total_frames": total_frames,
+        "frames_with_prompts": frames_with_prompts,
+        "frames_without_images": frames_without_images,
+        "note": "You can proceed to Kling video generation using the kling_prompt field from each frame. Images were just visual references and are not required for the video generation process."
+    }
