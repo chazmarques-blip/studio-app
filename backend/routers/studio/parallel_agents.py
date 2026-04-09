@@ -11,6 +11,16 @@ import threading
 # Thread-safe lock for merging results
 merge_lock = threading.Lock()
 
+def _parse_time(time_str: str) -> int:
+    """Parse time string '0:12' or '5:30' to seconds"""
+    try:
+        parts = time_str.split(':')
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        return int(parts[0])
+    except:
+        return 12  # default 12s
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PARALLEL SCREENPLAY GENERATION
@@ -383,6 +393,18 @@ def generate_dialogues_parallel(
         for c in characters
     ])
     
+    # Build FULL SCRIPT CONTEXT (all scenes summary)
+    full_script_context = "FULL STORY CONTEXT:\n"
+    for idx, s in enumerate(scenes):
+        scene_title = s.get("title", f"Scene {idx+1}")
+        scene_desc = s.get("description", "")
+        scene_start = s.get("time_start", "0:00")
+        scene_end = s.get("time_end", "0:12")
+        scene_chars = ", ".join(s.get("characters_in_scene", []))
+        full_script_context += f"\nScene {idx+1}: {scene_title} ({scene_start} - {scene_end})\n"
+        full_script_context += f"Characters: {scene_chars}\n"
+        full_script_context += f"Description: {scene_desc}\n"
+    
     # Mode-specific instructions
     LANG_NAMES = {"pt": "Português", "en": "English", "es": "Español", "fr": "Français"}
     lang_name = LANG_NAMES.get(lang, lang)
@@ -436,12 +458,15 @@ EXPERTISE:
 - Emotional beats and story rhythm
 - Age-appropriate language for all audiences
 
-TASK: Write dialogue for this scene ({duration_secs} seconds = approximately {expected_words} words).
+{full_script_context}
+
+TASK: Write dialogue for Scene {scene_num} ({duration_secs} seconds = approximately {expected_words} words).
 
 {mode_instruction}
 
 CRITICAL: This scene is {duration_secs} seconds long. You MUST write approximately {expected_words} WORDS to fill this duration.
 For a {duration_secs//60}-minute scene, write EXTENSIVE dialogue with 15-20 exchanges per character.
+USE THE FULL STORY CONTEXT ABOVE to ensure dialogue flows naturally from previous scenes and sets up future scenes.
 
 Return ONLY JSON:
 {{
@@ -452,14 +477,15 @@ Return ONLY JSON:
             user_prompt = f"""CHARACTERS:
 {char_context}
 
-SCENE {scene_num}: {scene.get('title', '')}
+CURRENT SCENE {scene_num}: {scene.get('title', '')}
 - Time: {scene.get('time_start', '0:00')} - {scene.get('time_end', '0:12')}
 - Characters present: {', '.join(scene.get('characters_in_scene', []))}
 - Description: {scene.get('description', '')}
 - Emotion: {scene.get('emotion', 'neutral')}
 - Camera: {scene.get('camera', 'medium shot')}
 
-Write emotionally powerful, natural dialogue for this scene in {lang_name}."""
+Write emotionally powerful, natural dialogue for this scene in {lang_name}.
+Remember: You know the FULL STORY from the context above. Use that knowledge to create dialogue that fits perfectly into the narrative arc."""
             
             result_text = _call_claude_sync(system_prompt, user_prompt, max_tokens=max_tokens, timeout_per_attempt=180)
             dialogue_data = _parse_json(result_text)
