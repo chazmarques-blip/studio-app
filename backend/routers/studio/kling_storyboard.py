@@ -162,6 +162,7 @@ async def generate_kling_storyboards(
     
     # Get project metadata
     characters = project.get("characters", [])
+    character_avatars = project.get("character_avatars", {})  # NOVO: avatares selecionados
     dialogues_data = project.get("dialogues", {}).get("scenes", [])
     target_audience = project.get("target_audience", "all")
     lang = project.get("language", "pt")
@@ -219,7 +220,8 @@ async def generate_kling_storyboards(
                 lang,
                 tenant["id"],
                 project_id,
-                project  # NOVO: passa projeto completo
+                project,  # projeto completo
+                character_avatars  # NOVO: avatares selecionados
             )
             tasks.append(task)
         
@@ -272,7 +274,8 @@ async def _generate_storyboards_for_single_scene(
     lang: str,
     tenant_id: str,
     project_id: str,
-    project: Dict  # NOVO: projeto completo para acessar visual_style
+    project: Dict,  # projeto completo para acessar visual_style
+    character_avatars: Dict[str, str]  # NOVO: {nome: avatar_url}
 ) -> Dict:
     """
     Generate storyboards for a single scene
@@ -301,7 +304,8 @@ async def _generate_storyboards_for_single_scene(
             lang,
             num_frames,
             duration_secs,
-            project.get("visual_style", "pixar_3d")  # NOVO: passa estilo visual
+            project.get("visual_style", "pixar_3d"),  # estilo visual
+            character_avatars  # NOVO: avatares
         )
     except Exception as e:
         logger.error(f"Scene {scene_num} prompt generation failed: {e}")
@@ -331,19 +335,36 @@ async def _generate_frame_prompts_for_scene(
     lang: str,
     num_frames: int,
     duration_secs: int,
-    visual_style: str = "pixar_3d"  # NOVO: estilo visual
+    visual_style: str = "pixar_3d",  # estilo visual
+    character_avatars: Dict[str, str] = None  # NOVO: {nome: avatar_url}
 ) -> List[Dict]:
     """
     Generate frame structures with detailed prompts for a single scene
     Uses mini-batch approach: generates 5 frames at a time for better reliability
     """
     
-    # Build character context with DETAILED descriptions
+    # Build character context with DETAILED descriptions AND avatar references
     scene_characters = scene.get("characters_in_scene", [])
-    char_descriptions = "\n".join([
-        f"- {c.get('name', 'Unknown')}: {c.get('description', 'No description')} (Role: {c.get('role', 'supporting')})"
-        for c in characters
-    ])
+    character_avatars = character_avatars or {}
+    
+    char_descriptions = []
+    for c in characters:
+        char_name = c.get('name', 'Unknown')
+        char_desc = c.get('description', 'No description')
+        char_role = c.get('role', 'supporting')
+        
+        # Add avatar URL if available
+        avatar_url = character_avatars.get(char_name)
+        if avatar_url:
+            char_descriptions.append(
+                f"- {char_name}: {char_desc} (Role: {char_role})\n"
+                f"  VISUAL REFERENCE: {avatar_url}\n"
+                f"  IMPORTANT: Use this exact visual appearance in all frames!"
+            )
+        else:
+            char_descriptions.append(f"- {char_name}: {char_desc} (Role: {char_role})")
+    
+    char_descriptions_text = "\n".join(char_descriptions)
     
     # Map visual style to description
     style_descriptions = {
@@ -401,7 +422,7 @@ Description: {scene.get('description', '')}
 Duration: {duration_secs}s (frames {batch_start+1}-{batch_end} out of {num_frames} total)
 
 CHARACTERS:
-{char_descriptions}
+{char_descriptions_text}
 
 MAIN CHARACTERS IN SCENE: {', '.join(scene_characters)}
 
