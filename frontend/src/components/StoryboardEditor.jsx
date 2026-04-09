@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Image, MessageSquare, Send, RefreshCw, Check, X, Edit3, Save,
   Sparkles, ChevronRight, ChevronDown, ChevronUp, ChevronLeft, BookOpen, Wand2, Play, Download, Film, Mic, Paintbrush,
-  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, GripVertical, Clock
+  Languages, ScanSearch, Zap, Globe, Shield, AlertTriangle, CheckCircle, PenTool, GripVertical, Clock, Copy
 } from 'lucide-react';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 import { getErrorMsg } from '../utils/getErrorMsg';
@@ -72,6 +72,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   // NOVO: Kling storyboards (30 frames)
   const [klingStoryboards, setKlingStoryboards] = useState(null);
   const [useKlingMode, setUseKlingMode] = useState(false);
+  
+  // NOVO: Zoom modal for frame details
+  const [zoomFrame, setZoomFrame] = useState(null);
+  const [zoomFrameIndex, setZoomFrameIndex] = useState(null);
   
   // NOVO: Multi-select regeneration states
   const [selectedPanels, setSelectedPanels] = useState(new Set());
@@ -308,6 +312,46 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   }, [projectId, panels, lang]);
 
   const loadStoryboard = async () => {
+
+  // Zoom modal functions
+  const openZoomModal = (frame, index) => {
+    setZoomFrame(frame);
+    setZoomFrameIndex(index);
+  };
+
+  const closeZoomModal = () => {
+    setZoomFrame(null);
+    setZoomFrameIndex(null);
+  };
+
+  const navigateFrame = (direction) => {
+    if (zoomFrameIndex === null) return;
+    const newIndex = direction === 'next' 
+      ? Math.min(zoomFrameIndex + 1, displayFrames.length - 1)
+      : Math.max(zoomFrameIndex - 1, 0);
+    setZoomFrame(displayFrames[newIndex]);
+    setZoomFrameIndex(newIndex);
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success(lang === 'pt' ? 'Prompt copiado!' : 'Prompt copied!');
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!zoomFrame) return;
+    
+    const handleKeyPress = (e) => {
+      if (e.key === 'Escape') closeZoomModal();
+      if (e.key === 'ArrowLeft') navigateFrame('prev');
+      if (e.key === 'ArrowRight') navigateFrame('next');
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [zoomFrame, zoomFrameIndex]);
+
     try {
       // Try loading Kling storyboards first
       try {
@@ -1240,10 +1284,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   key={isKlingFrame ? `kling-${frameNumber}` : `scene-${item.scene_number}`}
                   className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
                   onClick={() => {
-                    if (!isKlingFrame) {
-                      setSelectedPanelForView(item);
-                      setSelectedFrameIndex(0);
-                    }
+                    openZoomModal(item, idx);
                   }}
                 >
                   {/* Image or placeholder */}
@@ -1582,6 +1623,161 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         </div>,
         document.body
       )}
+
+
+      {/* Zoom Modal */}
+      {zoomFrame && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4"
+             onClick={closeZoomModal}>
+          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+               onClick={(e) => e.stopPropagation()}>
+            
+            {/* Close button */}
+            <button
+              onClick={closeZoomModal}
+              className="absolute top-4 right-4 z-10 bg-black/80 hover:bg-black text-white rounded-full p-2 transition">
+              <X size={20} />
+            </button>
+
+            {/* Navigation buttons */}
+            {zoomFrameIndex > 0 && (
+              <button
+                onClick={() => navigateFrame('prev')}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full p-3 transition">
+                <ChevronLeft size={24} />
+              </button>
+            )}
+            {zoomFrameIndex < displayFrames.length - 1 && (
+              <button
+                onClick={() => navigateFrame('next')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full p-3 transition">
+                <ChevronRight size={24} />
+              </button>
+            )}
+
+            <div className="bg-[#0A0A0A] rounded-xl border border-[#222] overflow-hidden">
+              {/* Header */}
+              <div className="bg-[#111] border-b border-[#222] px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">
+                      Frame {useKlingMode ? zoomFrame.frame_number : zoomFrame.scene_number}
+                    </h3>
+                    {useKlingMode && (
+                      <p className="text-sm text-gray-400 mt-1">
+                        {zoomFrame.time_start} - {zoomFrame.time_end} (10 segundos)
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {zoomFrameIndex + 1} / {displayFrames.length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Image */}
+              <div className="relative bg-black">
+                {zoomFrame.image_url ? (
+                  <img
+                    src={resolveImageUrl(zoomFrame.image_url)}
+                    alt={`Frame ${zoomFrame.frame_number}`}
+                    className="w-full h-auto max-h-[60vh] object-contain mx-auto"
+                  />
+                ) : (
+                  <div className="w-full h-64 flex items-center justify-center">
+                    <Film size={48} className="text-gray-600 animate-pulse" />
+                  </div>
+                )}
+              </div>
+
+              {/* Prompts Section */}
+              {useKlingMode && (
+                <div className="p-6 space-y-4">
+                  {/* Image Prompt */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-purple-400 flex items-center gap-2">
+                        <Paintbrush size={14} />
+                        {lang === 'pt' ? 'Prompt de Imagem (Gemini)' : 'Image Prompt (Gemini)'}
+                      </h4>
+                      <button
+                        onClick={() => copyToClipboard(zoomFrame.image_prompt)}
+                        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
+                        <Copy size={12} />
+                        {lang === 'pt' ? 'Copiar' : 'Copy'}
+                      </button>
+                    </div>
+                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        {zoomFrame.image_prompt}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Kling Prompt */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-orange-400 flex items-center gap-2">
+                        <Film size={14} />
+                        {lang === 'pt' ? 'Prompt Kling (Para Vídeo)' : 'Kling Prompt (For Video)'}
+                      </h4>
+                      <button
+                        onClick={() => copyToClipboard(zoomFrame.kling_prompt)}
+                        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
+                        <Copy size={12} />
+                        {lang === 'pt' ? 'Copiar' : 'Copy'}
+                      </button>
+                    </div>
+                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        {zoomFrame.kling_prompt}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Additional Details */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#222]">
+                    {zoomFrame.characters_present && zoomFrame.characters_present.length > 0 && (
+                      <div>
+                        <h5 className="text-xs font-semibold text-gray-400 mb-1">
+                          {lang === 'pt' ? 'Personagens' : 'Characters'}
+                        </h5>
+                        <p className="text-xs text-gray-300">{zoomFrame.characters_present.join(', ')}</p>
+                      </div>
+                    )}
+                    {zoomFrame.camera_movement && (
+                      <div>
+                        <h5 className="text-xs font-semibold text-gray-400 mb-1">
+                          {lang === 'pt' ? 'Movimento de Câmera' : 'Camera Movement'}
+                        </h5>
+                        <p className="text-xs text-gray-300">{zoomFrame.camera_movement}</p>
+                      </div>
+                    )}
+                    {zoomFrame.emotion && (
+                      <div>
+                        <h5 className="text-xs font-semibold text-gray-400 mb-1">
+                          {lang === 'pt' ? 'Emoção' : 'Emotion'}
+                        </h5>
+                        <p className="text-xs text-gray-300">{zoomFrame.emotion}</p>
+                      </div>
+                    )}
+                    {zoomFrame.lighting && (
+                      <div>
+                        <h5 className="text-xs font-semibold text-gray-400 mb-1">
+                          {lang === 'pt' ? 'Iluminação' : 'Lighting'}
+                        </h5>
+                        <p className="text-xs text-gray-300">{zoomFrame.lighting}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }
