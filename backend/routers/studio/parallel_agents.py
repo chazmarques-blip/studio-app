@@ -360,6 +360,7 @@ def generate_dialogues_parallel(
     characters: List[Dict],
     audio_mode: str,
     lang: str,
+    target_audience: str = "all",
     max_workers: int = 5
 ) -> List[Dict]:
     """
@@ -368,6 +369,7 @@ def generate_dialogues_parallel(
     Strategy:
     - Each agent processes one scene independently
     - Agents receive character context and scene details
+    - Dialogues adapt automatically to target audience age
     - Results merged in scene order
     
     Args:
@@ -377,15 +379,20 @@ def generate_dialogues_parallel(
         characters: List of characters
         audio_mode: narrated or dubbed  
         lang: Language code
+        target_audience: Target age group (2-5, 3-6, 6-9, 10-13, 14-17, 18-25, 25+, all)
         max_workers: Number of parallel agents (default 5)
     
     Returns:
         List of dialogue objects (one per scene)
     """
-    logger.info(f"ParallelDialogue [{project_id}]: Generating dialogues for {len(scenes)} scenes (workers={max_workers})")
+    logger.info(f"ParallelDialogue [{project_id}]: Generating dialogues for {len(scenes)} scenes (workers={max_workers}, audience={target_audience})")
     
     all_dialogues = [None] * len(scenes)  # Pre-allocate to preserve order
     dialogue_lock = threading.Lock()
+    
+    # Get age-specific dialogue profile
+    from ._shared import _get_dialogue_age_profile
+    age_profile = _get_dialogue_age_profile(target_audience, lang)
     
     # Character context
     char_context = "\n".join([
@@ -456,16 +463,35 @@ EXPERTISE:
 - Academy Award-level dramatic writing
 - Expert in character voice differentiation
 - Emotional beats and story rhythm
-- Age-appropriate language for all audiences
+- Age-appropriate language adaptation
+
+TARGET AUDIENCE: {age_profile['name']}
+AGE-SPECIFIC DIALOGUE REQUIREMENTS:
+- Words per line: {age_profile['words_per_line']}
+- Vocabulary: {age_profile['vocabulary']}
+- Sentence structure: {age_profile['sentence_structure']}
+- Repetition level: {age_profile['repetition']}
+- Rhythm: {age_profile['rhythm']}
+- Emotions: {age_profile['emotions']}
+- Questions: {age_profile['questions']}
+
+TECHNIQUES FOR THIS AGE GROUP:
+{chr(10).join(['- ' + t for t in age_profile['techniques']])}
+
+EXAMPLE DIALOGUE FOR THIS AGE:
+{age_profile['example']}
 
 {full_script_context}
 
 TASK: Write dialogue for Scene {scene_num} ({duration_secs} seconds = approximately {expected_words} words).
+CRITICAL: Adapt word count per line to age group. For {age_profile['name']}, each character line should have {age_profile['words_per_line']}.
 
 {mode_instruction}
 
-CRITICAL: This scene is {duration_secs} seconds long. You MUST write approximately {expected_words} WORDS to fill this duration.
-For a {duration_secs//60}-minute scene, write EXTENSIVE dialogue with 15-20 exchanges per character.
+IMPORTANT: This scene is {duration_secs} seconds long. Write dialogue that fills this duration while respecting the age-appropriate line length.
+For young audiences (2-5, 3-6): Write MORE lines with FEWER words each.
+For older audiences: Write fewer lines with more words each.
+
 USE THE FULL STORY CONTEXT ABOVE to ensure dialogue flows naturally from previous scenes and sets up future scenes.
 
 Return ONLY JSON:

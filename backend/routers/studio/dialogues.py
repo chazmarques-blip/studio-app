@@ -152,9 +152,10 @@ async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest,
 
     characters = project.get("characters", [])
     lang = project.get("language", "pt")
+    target_audience = project.get("target_audience", "all")  # Get target audience from project
     lang_name = LANG_NAMES.get(lang, lang)
 
-    logger.info(f"MasterDialogue [{project_id}]: Starting PARALLEL generation for {len(scenes)} scenes")
+    logger.info(f"MasterDialogue [{project_id}]: Starting PARALLEL generation for {len(scenes)} scenes (audience={target_audience})")
 
     # Execute parallel dialogue generation SYNCHRONOUSLY (wait for completion)
     from .parallel_agents import generate_dialogues_parallel
@@ -167,6 +168,7 @@ async def master_generate_dialogues(project_id: str, req: MasterDialogueRequest,
             characters=characters,
             audio_mode=req.mode,
             lang=lang,
+            target_audience=target_audience,  # Pass target audience to parallel agents
             max_workers=5  # 5 agents in parallel
         )
         

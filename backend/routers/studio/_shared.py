@@ -39,7 +39,7 @@ import shutil
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 from dotenv import load_dotenv
 
 load_dotenv(override=False)
@@ -958,4 +958,255 @@ def _get_audience_guideline(target_audience: str, lang: str = "pt") -> str:
     }
     
     return guidelines.get(lang, {}).get(target_audience, guidelines[lang]["all"])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DIALOGUE AGE PROFILES - Detailed dialogue adaptation for each age group
+# ══════════════════════════════════════════════════════════════════════════════
+
+DIALOGUE_AGE_PROFILES = {
+    "pt": {
+        "2-5": {
+            "name": "Pré-escolar (2-5 anos)",
+            "words_per_line": "3-5 palavras",
+            "vocabulary": "ULTRA SIMPLES - Palavras concretas e cotidianas (mamãe, papai, água, sol, bola, casa)",
+            "sentence_structure": "Frases declarativas curtas. Evitar subordinadas.",
+            "repetition": "ALTA - Repetir palavras-chave 3-4 vezes por cena para fixação",
+            "rhythm": "MUITO LENTO - Pausas longas entre falas (2-3 segundos)",
+            "emotions": "EXAGERADAS - Usar adjetivos intensificadores (muito feliz!, super triste!, tão lindo!)",
+            "questions": "Simples e diretas (O que é? Onde vai? Quem é?)",
+            "techniques": [
+                "Usar MUITAS onomatopeias (piu-piu, au-au, miau, trim-trim, vrum-vrum)",
+                "Usar diminutivos carinhosos (papai, mamãe, filhinho, nenê, docinho)",
+                "Usar interjeições frequentes (Uau!, Olha!, Eba!, Ai!)",
+                "Narrador repete ações que os personagens fazem",
+                "Perguntas retóricas para engajamento (Vamos ver? Quer ver?)"
+            ],
+            "example": """Sara: 'Olha, Isaac! Olha!'
+Isaac: 'O quê, mamãe?'
+Sara: 'Passarinho! Passarinho azul!'
+Isaac: 'Piu-piu! Passarinho piu-piu!'
+Abraão: 'Que lindo, filho!'
+Isaac: 'Papai, passarinho voando!'
+Narrador: 'O passarinho voa alto, alto, alto no céu azul!'"""
+        },
+        "3-6": {
+            "name": "Pré-escolar (3-6 anos)",
+            "words_per_line": "5-8 palavras",
+            "vocabulary": "MUITO SIMPLES - Objetos concretos, ações básicas, cores primárias",
+            "sentence_structure": "Frases simples. Até 2 orações coordenadas.",
+            "repetition": "ALTA - Repetir conceitos-chave 2-3 vezes",
+            "rhythm": "LENTO - Pausas perceptíveis entre diálogos",
+            "emotions": "Claras e nomeadas (alegria, tristeza, medo, amor)",
+            "questions": "Simples com 'o que', 'onde', 'quem'",
+            "techniques": [
+                "Onomatopeias frequentes",
+                "Rimas simples ocasionais",
+                "Contagem básica (um, dois, três)",
+                "Cores e formas mencionadas",
+                "Causa-efeito óbvio"
+            ],
+            "example": """Narrador: 'Era uma vez uma família especial.'
+Sara: 'Bom dia, meu filhinho! Quer leite?'
+Isaac: 'Quero sim, mamãe! Leite quentinho!'
+Abraão: 'Vamos passear hoje, Isaac.'
+Isaac: 'Passear? Para onde, papai?'
+Abraão: 'Vamos à montanha grande e bonita!'"""
+        },
+        "6-9": {
+            "name": "Infantil (6-9 anos)",
+            "words_per_line": "8-12 palavras",
+            "vocabulary": "SIMPLES - Vocabulário expandido, verbos de ação, adjetivos descritivos",
+            "sentence_structure": "Frases compostas simples. Pode usar 'porque', 'mas', 'então'",
+            "repetition": "MODERADA - Repetir conceitos importantes",
+            "rhythm": "MODERADO - Diálogos ágeis com pausas narrativas",
+            "emotions": "Nomeadas e explicadas (nervoso, animado, preocupado, orgulhoso)",
+            "questions": "Incluir 'por que', 'como'",
+            "techniques": [
+                "Pequenas lições morais",
+                "Humor leve",
+                "Desafios simples",
+                "Amizade e trabalho em equipe",
+                "Descobertas e aprendizado"
+            ],
+            "example": """Abraão: 'Isaac, precisamos fazer uma jornada especial hoje.'
+Isaac: 'Uma jornada? Que legal! Vamos ver coisas novas?'
+Sara: 'Cuidem um do outro, está bem? A mamãe vai ficar com saudades.'
+Isaac: 'Não se preocupe, mamãe! O papai vai cuidar de mim!'
+Narrador: 'E assim começou a aventura de pai e filho pela montanha misteriosa.'"""
+        },
+        "10-13": {
+            "name": "Pré-adolescente (10-13 anos)",
+            "words_per_line": "12-18 palavras",
+            "vocabulary": "INTERMEDIÁRIO - Vocabulário rico, metáforas simples, conceitos abstratos introduzidos",
+            "sentence_structure": "Frases complexas. Pode usar subordinadas simples.",
+            "repetition": "BAIXA - Apenas para ênfase dramática",
+            "rhythm": "DINÂMICO - Alternância entre diálogos rápidos e pausas reflexivas",
+            "emotions": "Complexas e sutis (conflito interno, dúvida, esperança, determinação)",
+            "questions": "Filosóficas e reflexivas",
+            "techniques": [
+                "Dilemas morais",
+                "Simbolismo básico",
+                "Crescimento pessoal",
+                "Conflitos e resoluções",
+                "Inspiração e coragem"
+            ],
+            "example": """Abraão: 'Filho, às vezes Deus nos pede coisas que não entendemos completamente.'
+Isaac: 'Pai, eu confio em você. Se você diz que precisamos ir, então vamos juntos.'
+Sara: 'A fé não é sobre ter todas as respostas, Abraão. É sobre confiar mesmo nas perguntas.'
+Narrador: 'Enquanto caminhavam, pai e filho carregavam mais do que apenas suas mochilas. Carregavam uma promessa antiga e um futuro incerto.'"""
+        },
+        "14-17": {
+            "name": "Adolescente (14-17 anos)",
+            "words_per_line": "15-25 palavras",
+            "vocabulary": "AVANÇADO - Vocabulário sofisticado, metáforas complexas, conceitos filosóficos",
+            "sentence_structure": "Livre. Subordinadas, elipses, fragmentos intencionais.",
+            "repetition": "MÍNIMA - Apenas para efeito retórico",
+            "rhythm": "CINEMATOGRÁFICO - Silêncios carregados, subtext",
+            "emotions": "Ambíguas e layered (amor e raiva simultâneos, alegria melancólica)",
+            "questions": "Existenciais e provocativas",
+            "techniques": [
+                "Ambiguidade moral",
+                "Simbolismo profundo",
+                "Ironia e sarcasmo sutil",
+                "Conflitos internos intensos",
+                "Realismo emocional"
+            ],
+            "example": """Abraão: 'Cada passo que dou me afasta da tenda, mas me aproxima de algo que não consigo nomear.'
+Isaac: 'Pai... há algo que você não está me contando, não é? Sinto isso no seu silêncio.'
+Sara: 'Vá, Abraão. Mas saiba que quando você voltar, nenhum de nós será o mesmo.'
+Narrador: 'A montanha os aguardava impassível, testemunha silenciosa de um teste que atravessaria gerações.'"""
+        },
+        "18-25": {
+            "name": "Jovem adulto (18-25 anos)",
+            "words_per_line": "20-30 palavras",
+            "vocabulary": "SOFISTICADO - Sem restrições, referências culturais, jargões contextuais",
+            "sentence_structure": "Totalmente livre e variada",
+            "repetition": "Apenas estilística",
+            "rhythm": "NATURAL - Como conversas reais",
+            "emotions": "Complexas e contraditórias",
+            "questions": "Retóricas e filosóficas profundas",
+            "techniques": [
+                "Subtexto pesado",
+                "Referências intertextuais",
+                "Crítica social sutil",
+                "Psicologia profunda",
+                "Realismo cru"
+            ],
+            "example": """Abraão: 'Há momentos na vida onde a fé deixa de ser conforto e se torna o próprio abismo que nos desafia a saltar.'
+Isaac: 'Você está me levando para algum lugar, pai, ou está fugindo de algo que deixamos para trás?'
+Sara: 'O amor verdadeiro não é sobre segurar. É sobre soltar e confiar que o que é seu voltará transformado.'"""
+        },
+        "25+": {
+            "name": "Adulto (25+ anos)",
+            "words_per_line": "25-35 palavras",
+            "vocabulary": "COMPLETO - Sem limitações, literário quando apropriado",
+            "sentence_structure": "Complexa e variada, pode ser lírica",
+            "repetition": "Artística e intencional",
+            "rhythm": "SOFISTICADO - Usa silêncios e pausas como ferramenta narrativa",
+            "emotions": "Nuançadas com múltiplas camadas simultâneas",
+            "questions": "Profundas, podem ficar sem resposta",
+            "techniques": [
+                "Simbolismo multicamadas",
+                "Filosofia e teologia",
+                "Ambiguidade intencional",
+                "Beleza lírica",
+                "Profundidade psicológica"
+            ],
+            "example": """Abraão: 'Quando Deus fala, Ele não pede apenas obediência. Ele pede que entreguemos a própria lógica que sustenta nosso mundo, que sacrifiquemos não apenas o que amamos, mas a própria capacidade de entender por que amamos.'
+Isaac: 'Pai, há uma diferença entre o que sabemos e o que suportamos saber. Hoje, caminhamos nessa fronteira.'
+Sara: 'Cada patriarca, cada matriarca antes de nós enfrentou seu próprio Moriá. O nosso só parece impossível porque é nosso.'"""
+        },
+        "all": {
+            "name": "Todas as idades",
+            "words_per_line": "10-15 palavras",
+            "vocabulary": "CLARO mas não simplificado - Acessível mas rico",
+            "sentence_structure": "Variada mas compreensível",
+            "repetition": "Moderada para conceitos-chave",
+            "rhythm": "EQUILIBRADO - Dinâmico sem ser frenético",
+            "emotions": "Universais e facilmente identificáveis",
+            "questions": "Relevantes para múltiplas idades",
+            "techniques": [
+                "Camadas narrativas (crianças veem ação, adultos veem significado)",
+                "Humor universal",
+                "Temas atemporais",
+                "Emoção genuína",
+                "Respeito pela inteligência da audiência"
+            ],
+            "example": """Narrador: 'Esta é uma história sobre fé, família e o poder do amor que transcende o entendimento.'
+Abraão: 'Isaac, hoje vamos fazer algo que vai mudar nossa história para sempre.'
+Sara: 'Vocês dois são meu mundo inteiro. Voltem seguros para mim.'
+Isaac: 'Não se preocupe, mamãe. Papai e eu cuidamos um do outro!'"""
+        }
+    },
+    "en": {
+        "2-5": {
+            "name": "Preschool (2-5 years)",
+            "words_per_line": "3-5 words",
+            "vocabulary": "ULTRA SIMPLE - Concrete everyday words (mommy, daddy, ball, sun)",
+            "sentence_structure": "Short declarative sentences. No subordinates.",
+            "repetition": "HIGH - Repeat keywords 3-4 times per scene",
+            "rhythm": "VERY SLOW - Long pauses between lines (2-3 seconds)",
+            "emotions": "EXAGGERATED - Use intensifiers (so happy!, very sad!, so pretty!)",
+            "questions": "Simple and direct (What is? Where go? Who is?)",
+            "techniques": [
+                "Use LOTS of onomatopoeia (tweet-tweet, woof-woof, meow)",
+                "Use affectionate diminutives (daddy, mommy, baby)",
+                "Use frequent interjections (Wow!, Look!, Yay!, Oh!)",
+                "Narrator repeats character actions",
+                "Rhetorical questions for engagement (See? Want to see?)"
+            ],
+            "example": """Sarah: 'Look, Isaac! Look!'
+Isaac: 'What, Mama?'
+Sarah: 'Bird! Blue bird!'
+Isaac: 'Tweet-tweet! Bird tweet-tweet!'
+Abraham: 'So pretty, son!'
+Isaac: 'Daddy, bird flying!'
+Narrator: 'The bird flies high, high, high in the blue sky!'"""
+        },
+        "3-6": {
+            "name": "Preschool (3-6 years)",
+            "words_per_line": "5-8 words",
+            "vocabulary": "VERY SIMPLE - Concrete objects, basic actions, primary colors",
+            "sentence_structure": "Simple sentences. Up to 2 coordinated clauses.",
+            "repetition": "HIGH - Repeat key concepts 2-3 times",
+            "rhythm": "SLOW - Noticeable pauses between dialogues",
+            "emotions": "Clear and named (happy, sad, scared, love)",
+            "questions": "Simple with 'what', 'where', 'who'",
+            "techniques": [
+                "Frequent onomatopoeia",
+                "Simple occasional rhymes",
+                "Basic counting (one, two, three)",
+                "Colors and shapes mentioned",
+                "Obvious cause-effect"
+            ],
+            "example": """Narrator: 'Once upon a time there was a special family.'
+Sarah: 'Good morning, my little one! Want milk?'
+Isaac: 'Yes, Mama! Warm milk!'
+Abraham: 'We'll go for a walk today, Isaac.'
+Isaac: 'A walk? Where, Daddy?'
+Abraham: 'To the big beautiful mountain!'"""
+        }
+    }
+}
+
+
+def _get_dialogue_age_profile(target_audience: str, lang: str = "pt") -> Dict:
+    """Get detailed dialogue profile for target age group"""
+    profiles = DIALOGUE_AGE_PROFILES.get(lang, DIALOGUE_AGE_PROFILES["pt"])
+    
+    # Map common age formats to profile keys
+    age_mapping = {
+        "2-5": "2-5",
+        "3-6": "3-6",
+        "6-9": "6-9", 
+        "10-13": "10-13",
+        "14-17": "14-17",
+        "18-25": "18-25",
+        "25+": "25+",
+        "all": "all"
+    }
+    
+    profile_key = age_mapping.get(target_audience, "all")
+    return profiles.get(profile_key, profiles["all"])
 
