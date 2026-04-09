@@ -730,10 +730,14 @@ async def get_kling_storyboards(project_id: str, tenant=Depends(get_current_tena
     
     storyboards = project.get("kling_storyboards", [])
     
+    # Calculate total frames across all scenes (each scene has a "frames" array)
+    total_frames = sum(len(s.get("frames", [])) for s in storyboards)
+    
     return {
         "has_storyboards": len(storyboards) > 0,
-        "total_frames": len(storyboards),
-        "frames": storyboards,
+        "total_scenes": len(storyboards),
+        "total_frames": total_frames,
+        "scenes": storyboards,  # Renamed from "frames" to "scenes" for clarity
         "generated_at": project.get("kling_storyboards_generated_at")
     }
 
