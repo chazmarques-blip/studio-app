@@ -69,6 +69,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [editForm, setEditForm] = useState({});
   const [approved, setApproved] = useState(false);
   
+  // NOVO: Kling storyboards (30 frames)
+  const [klingStoryboards, setKlingStoryboards] = useState(null);
+  const [useKlingMode, setUseKlingMode] = useState(false);
+  
   // NOVO: Multi-select regeneration states
   const [selectedPanels, setSelectedPanels] = useState(new Set());
   const [regeneratingPanels, setRegeneratingPanels] = useState(new Map()); // panelNum -> {status, progress}
@@ -77,7 +81,10 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   // Flag to prevent reloading during drag operation
   const isDraggingRef = useRef(false);
   
-  console.log('📦 StoryboardEditor - panels:', panels.length, 'projectId:', projectId);
+  // Use Kling frames if available, otherwise use regular panels
+  const displayFrames = useKlingMode && klingStoryboards ? klingStoryboards.scenes?.[0]?.frames || [] : panels;
+  
+  console.log('📦 StoryboardEditor - panels:', panels.length, 'kling frames:', klingStoryboards?.total_frames || 0, 'useKlingMode:', useKlingMode, 'projectId:', projectId);
 
   // AI Facilitator
   const [chatOpen, setChatOpen] = useState(false);
@@ -302,12 +309,28 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   const loadStoryboard = async () => {
     try {
+      // Try loading Kling storyboards first
+      try {
+        const klingRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
+        if (klingRes.data.has_storyboards && klingRes.data.total_frames > 0) {
+          setKlingStoryboards(klingRes.data);
+          setUseKlingMode(true);
+          console.log('✅ Loaded Kling storyboards:', klingRes.data.total_frames, 'frames');
+          return; // Use Kling mode
+        }
+      } catch (err) {
+        console.log('No Kling storyboards yet, loading regular storyboard');
+      }
+      
+      // Fallback to regular storyboard panels
       const r = await axios.get(`${API}/studio/projects/${projectId}/storyboard`);
       const loadedPanels = r.data.panels || [];
       setPanels(loadedPanels);
       setApproved(r.data.storyboard_approved || false);
       setChatMessages(r.data.storyboard_chat_history || []);
       setStoryboardStatus(r.data.storyboard_status || {});
+      setUseKlingMode(false);
+      
       // Pre-load all frame images for instant display
       const allUrls = loadedPanels.flatMap(p =>
         (p.frames || []).map(f => f.image_url).filter(Boolean).map(resolveImageUrl)
@@ -939,7 +962,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     }
   };
 
-  const doneCount = panels.filter(p => p.image_url).length;
+  const doneCount = useKlingMode && klingStoryboards
+    ? klingStoryboards.scenes?.[0]?.frames?.filter(f => f.image_url).length || 0
+    : panels.filter(p => p.image_url).length;
   const totalPanels = panels.length || scenes.length;
 
   return (
@@ -1167,12 +1192,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       )}
 
       {/* Panels Grid - ALWAYS 6 COLUMNS COMPACT VIEW */}
-      {panels.length > 0 && !loading && (
+      {displayFrames.length > 0 && !loading && (
         <div className="space-y-3">
           {/* Summary bar */}
           <div className="flex items-center justify-between">
             <span className="text-xs text-[#666]">
-              {doneCount}/{panels.length} {lang === 'pt' ? 'painéis prontos' : 'panels ready'}
+              {doneCount}/{useKlingMode && klingStoryboards ? klingStoryboards.total_frames : panels.length} {lang === 'pt' ? 'painéis prontos' : 'panels ready'}
             </span>
             {approved && (
               <span className="text-[11px] text-emerald-400 flex items-center gap-1">
@@ -1182,7 +1207,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           </div>
 
           {/* Missing panels alert */}
-          {scenes.length > panels.length && (
+          {!useKlingMode && scenes.length > panels.length && (
             <div className="rounded-lg border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 p-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <RefreshCw size={14} className={`text-[#8B5CF6] ${syncingPanels ? 'animate-spin' : ''}`} />
@@ -1203,24 +1228,29 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
           {/* Grid 6 colunas - Formato compacto permanente */}
           <div className="grid grid-cols-6 gap-3">
-            {panels.sort((a, b) => a.panel_number - b.panel_number).map((panel) => {
-              const selectedFrame = getSelectedFrame(panel.scene_number, panel.frames);
-              const imageUrl = selectedFrame?.image_url || panel.image_url;
+            {displayFrames.map((item, idx) => {
+              // Handle both Kling frames and regular panels
+              const isKlingFrame = useKlingMode;
+              const frameNumber = isKlingFrame ? item.frame_number : item.panel_number;
+              const imageUrl = isKlingFrame ? item.image_url : (getSelectedFrame(item.scene_number, item.frames)?.image_url || item.image_url);
+              const timeLabel = isKlingFrame ? `${item.time_start}-${item.time_end}` : null;
               
               return (
                 <div 
-                  key={panel.panel_number}
+                  key={isKlingFrame ? `kling-${frameNumber}` : item.panel_number}
                   className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
                   onClick={() => {
-                    setSelectedPanelForView(panel);
-                    setSelectedFrameIndex(0);
+                    if (!isKlingFrame) {
+                      setSelectedPanelForView(item);
+                      setSelectedFrameIndex(0);
+                    }
                   }}
                 >
                   {/* Image or placeholder */}
                   {imageUrl ? (
                     <img 
                       src={resolveImageUrl(imageUrl)}
-                      alt={`Painel ${panel.panel_number}`}
+                      alt={`${isKlingFrame ? 'Frame' : 'Painel'} ${frameNumber}`}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -1229,10 +1259,17 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     </div>
                   )}
                   
-                  {/* Panel number badge */}
+                  {/* Panel/Frame number badge */}
                   <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white font-mono">
-                    {panel.panel_number}
+                    {frameNumber}
                   </div>
+                  
+                  {/* Time label for Kling frames */}
+                  {isKlingFrame && timeLabel && (
+                    <div className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white/70 font-mono">
+                      {timeLabel}
+                    </div>
+                  )}
                   
                   {/* Hover overlay with actions */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
