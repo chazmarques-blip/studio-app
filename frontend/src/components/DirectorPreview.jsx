@@ -93,16 +93,16 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             watchdogTriggered = false;
           }
           
-          // WATCHDOG: If no progress for 8 minutes (480s), auto-resume
+          // WATCHDOG: If no progress for 10 minutes (600s), auto-resume
           // Backend timeout is 15min per batch, so give it plenty of time
           const timeSinceUpdate = (Date.now() - lastProgressUpdate) / 1000;
-          if (timeSinceUpdate > 480 && !watchdogTriggered) {
+          if (timeSinceUpdate > 600 && !watchdogTriggered) {
             watchdogTriggered = true;
-            console.warn('🐕 WATCHDOG: Progress stuck for 8 minutes, auto-resuming...');
+            console.warn('🐕 WATCHDOG: Progress stuck for 10 minutes, auto-resuming...');
             toast.warning(
               lang === 'pt' 
-                ? '⚠️ Revisão travada detectada. Retomando automaticamente...' 
-                : '⚠️ Stuck review detected. Auto-resuming...'
+                ? '⚠️ Revisão travada detectada (10min sem progresso). Retomando automaticamente...' 
+                : '⚠️ Stuck review detected (10min no progress). Auto-resuming...'
             );
             
             // Call resume endpoint
@@ -125,19 +125,29 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
             }
           }
         } else {
+          // Progress cleared - check if review completed
           setProgress(null);
           
           // Check if review completed
           try {
             const reviewRes = await api.get(`/studio/projects/${projectId}/director/review`);
-            if (reviewRes.data.has_review && reviewing) {
-              setReview(reviewRes.data.review);
-              setReviewing(false);
-              setApplying(false);
-              toast.success(lang === 'pt' ? 'Revisão do Director concluída!' : 'Director review complete!');
+            if (reviewRes.data.has_review) {
+              const newReview = reviewRes.data.review;
+              
+              // Only update if we're still in reviewing/applying state
+              if (reviewing || applying) {
+                setReview(newReview);
+                setReviewing(false);
+                setApplying(false);
+                
+                const newScore = newReview.overall_score || 0;
+                toast.success(lang === 'pt' 
+                  ? `✅ Revisão concluída! Score: ${newScore}%` 
+                  : `✅ Review complete! Score: ${newScore}%`);
+              }
             }
-          } catch {
-            // No review yet
+          } catch (err) {
+            console.error('Failed to fetch review after completion:', err);
           }
         }
       } catch (err) {
