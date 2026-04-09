@@ -235,6 +235,8 @@ async def generate_dialogues(project_id: str, req: DialogueGenerateRequest, tena
         duration_seconds = _parse_time_to_seconds(end) - _parse_time_to_seconds(start)
         expected_words = int(duration_seconds * 2.5)  # ~2.5 words per second (150 words/min)
         
+        logger.info(f"Scene duration: {start} to {end} = {duration_seconds}s, expecting ~{expected_words} words")
+        
         duration_guidance = f"""
 SCENE DURATION: {duration_seconds} seconds ({duration_seconds//60}:{duration_seconds%60:02d})
 EXPECTED DIALOGUE LENGTH: ~{expected_words} words
@@ -265,7 +267,13 @@ Description: {desc}
 Emotion: {scene.get('emotion', 'neutral')}
 {f'Existing reference: {existing_dialogue or existing_narration}' if existing_dialogue or existing_narration else ''}
 
-Generate POWERFUL character dialogues that will move the audience."""
+⚠️ CRITICAL: This scene is {duration_seconds} seconds long ({duration_seconds//60}:{duration_seconds%60:02d}).
+You MUST write approximately {expected_words} WORDS of dialogue to fill this duration.
+For reference: this is about {expected_words//150} minute(s) of spoken content.
+
+Write EXTENSIVE, DETAILED dialogue that will fill the entire {duration_seconds} seconds.
+Each character should speak multiple times with substantial dialogue.
+DO NOT write just 3-4 short lines - this needs {expected_words} words total!"""
 
         elif req.mode == "narrated":
             system = f"""You are a MASTER narrator/voice-over writer creating CINEMATIC storytelling.
@@ -287,7 +295,13 @@ Description: {desc}
 Characters present: {', '.join(chars_in)}
 Emotion: {scene.get('emotion', 'neutral')}
 
-Generate narrator voice-over that brings this scene to LIFE."""
+⚠️ CRITICAL: This scene is {duration_seconds} seconds long ({duration_seconds//60}:{duration_seconds%60:02d}).
+You MUST write approximately {expected_words} WORDS of narration to fill this duration.
+For reference: this is about {expected_words//150} minute(s) of spoken content at normal speaking pace.
+
+Write EXTENSIVE, DETAILED narration that will fill the entire {duration_seconds} seconds.
+DO NOT write just 2-3 short sentences - this needs {expected_words} words total!
+Think of this as a {expected_words//150}-minute story segment that needs complete narration."""
 
         else:  # book
             system = f"""You are a MASTER children's book author creating LITERARY MAGIC.
