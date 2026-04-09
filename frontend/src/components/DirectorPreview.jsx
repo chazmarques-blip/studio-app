@@ -252,6 +252,20 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
           toast.success(lang === 'pt' 
             ? `🎉 EXCELENTE! Score: ${newScore}% - Aprovado para produção!`
             : `🎉 EXCELLENT! Score: ${newScore}% - Approved for production!`, { duration: 5000 });
+          
+          // AUTO-GENERATE KLING STORYBOARDS
+          setTimeout(async () => {
+            try {
+              toast.info(lang === 'pt' ? '🎬 Gerando storyboards Kling para todas as cenas...' : '🎬 Generating Kling storyboards for all scenes...');
+              await api.post(`/studio/projects/${projectId}/kling-storyboards/generate`, {});
+              toast.success(lang === 'pt' ? '✅ Storyboards Kling prontos!' : '✅ Kling storyboards ready!');
+              onApprove();
+            } catch (err) {
+              console.error('Kling storyboards generation failed:', err);
+              toast.warning(lang === 'pt' ? '⚠️ Erro ao gerar storyboards Kling. Continuando...' : '⚠️ Failed to generate Kling storyboards. Continuing...');
+              onApprove();
+            }
+          }, 2000);
         } else if (newScore >= 80 && needsWork === 0) {
           toast.success(lang === 'pt'
             ? `✅ BOM! Score: ${newScore}% - Pode prosseguir (pequenos ajustes recomendados)`

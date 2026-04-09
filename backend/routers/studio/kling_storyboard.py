@@ -136,10 +136,9 @@ async def generate_kling_storyboards(
     tenant=Depends(get_current_tenant)
 ):
     """
-    Generate 30 ultra-detailed storyboards for Kling 5-minute video
-    Each storyboard includes:
-    - Reference image (generated via Nano Banana)
-    - Kling-optimized prompt for 10-second video generation
+    Generate ultra-detailed storyboards for ALL scenes in project
+    Processes 5 scenes at a time in parallel for efficiency
+    Each scene gets storyboards based on its duration (1 per 10 seconds)
     """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
@@ -149,88 +148,164 @@ async def generate_kling_storyboards(
     if not scenes:
         raise HTTPException(status_code=400, detail="No scenes available")
     
-    # Find the 5-minute scene (or use specified scene)
-    target_scene = None
-    if req.scene_id:
-        target_scene = next((s for s in scenes if s.get("id") == req.scene_id), None)
-    else:
-        # Find first scene with ~300s duration
-        for scene in scenes:
-            start = scene.get("time_start", "0:00")
-            end = scene.get("time_end", "0:00")
-            duration = _parse_time_to_seconds(end) - _parse_time_to_seconds(start)
-            if 250 <= duration <= 350:  # Allow some flexibility
-                target_scene = scene
-                break
-    
-    if not target_scene:
-        raise HTTPException(status_code=400, detail="No 5-minute scene found. Create a scene with ~300 seconds duration.")
-    
     # Get project metadata
     characters = project.get("characters", [])
-    dialogues = project.get("dialogues", {}).get("scenes", [])
+    dialogues_data = project.get("dialogues", {}).get("scenes", [])
     target_audience = project.get("target_audience", "all")
     lang = project.get("language", "pt")
     
-    # Find dialogue for this scene
-    scene_dialogue = next(
-        (d for d in dialogues if d.get("scene_number") == target_scene.get("scene_number")),
-        None
-    )
+    logger.info(f"KlingStoryboard [{project_id}]: Processing {len(scenes)} scenes with {len(characters)} characters")
     
-    logger.info(f"KlingStoryboard [{project_id}]: Generating 30 frames for scene '{target_scene.get('title', 'Untitled')}'")
+    # Process scenes in batches of 5
+    BATCH_SIZE = 5
+    all_scene_storyboards = []
     
-    # Step 1: Generate frame structure with prompts
-    try:
-        frames_data = await _generate_frame_prompts(
-            target_scene,
-            scene_dialogue,
-            characters,
-            target_audience,
-            lang
-        )
-    except Exception as e:
-        logger.error(f"KlingStoryboard ERROR generating prompts: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate frame prompts: {str(e)}")
+    for batch_start in range(0, len(scenes), BATCH_SIZE):
+        batch_end = min(batch_start + BATCH_SIZE, len(scenes))
+        batch_scenes = scenes[batch_start:batch_end]
+        
+        logger.info(f"KlingStoryboard [{project_id}]: Processing batch {batch_start//BATCH_SIZE + 1} (scenes {batch_start+1}-{batch_end})")
+        
+        # Process this batch in parallel
+        tasks = []
+        for scene in batch_scenes:
+            # Find dialogue for this scene
+            scene_num = scene.get("scene_number", 0)
+            scene_dialogue = next(
+                (d for d in dialogues_data if d.get("scene_number") == scene_num),
+                None
+            )
+            
+            # Create task for this scene
+            task = _generate_storyboards_for_single_scene(
+                scene,
+                scene_dialogue,
+                characters,
+                target_audience,
+                lang,
+                tenant["id"],
+                project_id
+            )
+            tasks.append(task)
+        
+        # Execute batch in parallel
+        try:
+            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results
+            for i, result in enumerate(batch_results):
+                if isinstance(result, Exception):
+                    logger.error(f"Scene {batch_scenes[i].get('scene_number')} failed: {result}")
+                    all_scene_storyboards.append({
+                        "scene_number": batch_scenes[i].get("scene_number"),
+                        "error": str(result),
+                        "frames": []
+                    })
+                else:
+                    all_scene_storyboards.append(result)
+            
+            logger.info(f"✅ Batch {batch_start//BATCH_SIZE + 1} complete")
+            
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
     
-    # Step 2: Generate images in parallel (batches of 10)
-    logger.info(f"KlingStoryboard [{project_id}]: Generating 30 images in 3 batches...")
-    
-    try:
-        frames_with_images = await _generate_images_parallel(frames_data, tenant["id"], project_id)
-    except Exception as e:
-        logger.error(f"KlingStoryboard ERROR generating images: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate images: {str(e)}")
-    
-    # Step 3: Save to project
+    # Save all storyboards to project
     _update_project_field(tenant["id"], project_id, {
-        "kling_storyboards": frames_with_images,
+        "kling_storyboards": all_scene_storyboards,
         "kling_storyboards_generated_at": datetime.now(timezone.utc).isoformat()
     })
     
-    logger.info(f"KlingStoryboard [{project_id}]: ✅ Generated 30 frames with images")
+    # Calculate totals
+    total_frames = sum(len(s.get("frames", [])) for s in all_scene_storyboards)
+    
+    logger.info(f"KlingStoryboard [{project_id}]: ✅ Generated {total_frames} frames across {len(scenes)} scenes")
     
     return {
         "status": "success",
-        "total_frames": len(frames_with_images),
-        "scene_title": target_scene.get("title"),
-        "frames": frames_with_images
+        "total_scenes": len(scenes),
+        "total_frames": total_frames,
+        "scenes": all_scene_storyboards
     }
 
 
-async def _generate_frame_prompts(
+async def _generate_storyboards_for_single_scene(
     scene: Dict,
     dialogue: Optional[Dict],
     characters: List[Dict],
     target_audience: str,
-    lang: str
-) -> List[Dict]:
-    """Generate 30 frame structures with detailed prompts"""
+    lang: str,
+    tenant_id: str,
+    project_id: str
+) -> Dict:
+    """
+    Generate storyboards for a single scene
+    Number of frames based on scene duration (1 frame per 10 seconds)
+    """
+    # Calculate scene duration
+    start_time = scene.get("time_start", "0:00")
+    end_time = scene.get("time_end", "0:00")
+    duration_secs = _parse_time_to_seconds(end_time) - _parse_time_to_seconds(start_time)
     
-    # Build character context
+    # Calculate number of frames needed (1 per 10 seconds)
+    num_frames = max(1, duration_secs // 10)
+    
+    scene_num = scene.get("scene_number", 0)
+    scene_title = scene.get("title", f"Scene {scene_num}")
+    
+    logger.info(f"KlingStoryboard: Scene {scene_num} - {duration_secs}s → {num_frames} frames")
+    
+    # Step 1: Generate frame prompts
+    try:
+        frames_data = await _generate_frame_prompts_for_scene(
+            scene,
+            dialogue,
+            characters,
+            target_audience,
+            lang,
+            num_frames,
+            duration_secs
+        )
+    except Exception as e:
+        logger.error(f"Scene {scene_num} prompt generation failed: {e}")
+        raise
+    
+    # Step 2: Generate images in parallel
+    try:
+        frames_with_images = await _generate_images_parallel(frames_data, tenant_id, project_id)
+    except Exception as e:
+        logger.error(f"Scene {scene_num} image generation failed: {e}")
+        # Continue with frames but without images
+        frames_with_images = frames_data
+    
+    return {
+        "scene_number": scene_num,
+        "scene_title": scene_title,
+        "duration_seconds": duration_secs,
+        "frames": frames_with_images
+    }
+
+
+async def _generate_frame_prompts_for_scene(
+    scene: Dict,
+    dialogue: Optional[Dict],
+    characters: List[Dict],
+    target_audience: str,
+    lang: str,
+    num_frames: int,
+    duration_secs: int
+) -> List[Dict]:
+    """Generate frame structures with detailed prompts for a single scene"""
+    
+    # Build character context - Include ALL characters (principais + composição)
     char_names = [c.get("name", "") for c in characters if c.get("name")]
+    
+    # Identify main characters in this scene
+    scene_characters = scene.get("characters_in_scene", [])
+    
+    # Build detailed character descriptions
     char_descriptions = "\n".join([
-        f"- {c.get('name', 'Unknown')}: {c.get('description', 'No description')}"
+        f"- {c.get('name', 'Unknown')}: {c.get('description', 'No description')} (Role: {c.get('role', 'supporting')})"
         for c in characters
     ])
     
@@ -252,41 +327,50 @@ async def _generate_frame_prompts(
     # Build user prompt
     user_prompt = f"""
 SCENE INFORMATION:
+- Scene Number: {scene.get('scene_number', 1)}
 - Title: {scene.get('title', 'Untitled')}
 - Description: {scene.get('description', '')}
 - Emotion: {scene.get('emotion', 'neutral')}
 - Camera: {scene.get('camera', 'varied')}
-- Duration: 300 seconds (5 minutes)
+- Duration: {duration_secs} seconds
+- Frames needed: {num_frames} (1 frame per 10 seconds)
 - Target audience: {target_audience}
 
-CHARACTERS (use ONLY these names):
+MAIN CHARACTERS IN THIS SCENE:
+{', '.join(scene_characters)}
+
+ALL AVAILABLE CHARACTERS (principais + composição):
 {char_descriptions}
 
 DIALOGUE TEXT (integrate at appropriate moments):
 {dialogue_text if dialogue_text else "No dialogue for this scene"}
 
 YOUR TASK:
-Generate 30 frames covering 0:00 to 5:00 (300 seconds).
+Generate {num_frames} frames covering 0:00 to {duration_secs//60}:{duration_secs%60:02d}.
 Each frame covers exactly 10 seconds.
 
 Frame 1: 0:00-0:10
 Frame 2: 0:10-0:20
 ...
-Frame 30: 4:50-5:00
+Frame {num_frames}: {((num_frames-1)*10)//60}:{((num_frames-1)*10)%60:02d}-{duration_secs//60}:{duration_secs%60:02d}
 
 For each frame, provide:
-1. image_prompt - Visual description for reference image
-2. kling_prompt - Detailed 10-second action description for Kling
+1. image_prompt - Visual description for reference image (include character appearance from descriptions above)
+2. kling_prompt - Detailed 10-second action description for Kling (NEVER describe character appearance, only actions)
 3. All metadata fields
 
-Ensure VISUAL CONTINUITY between frames.
-Character positions at end of Frame N should match start of Frame N+1.
+CRITICAL RULES:
+- image_prompt: CAN include character physical descriptions (from character sheets above)
+- kling_prompt: ONLY character names + actions/emotions/movements (Kling already knows their appearance)
+- Ensure VISUAL CONTINUITY between frames
+- Character positions at end of Frame N should match start of Frame N+1
+- Use BOTH main characters AND supporting/composition characters when appropriate
 
-Return as valid JSON array with 30 frame objects.
+Return as valid JSON array with {num_frames} frame objects.
 """
     
     # Call Claude to generate structure
-    logger.info("Calling Claude to generate 30 frame structures...")
+    logger.info(f"Calling Claude to generate {num_frames} frame structures...")
     result = await _call_claude_for_frames(system_prompt, user_prompt)
     
     data = _parse_json(result)
@@ -295,30 +379,36 @@ Return as valid JSON array with 30 frame objects.
         if isinstance(data, dict) and "frames" in data:
             data = data["frames"]
         else:
-            raise Exception("Invalid response format - expected array of 30 frames")
+            raise Exception(f"Invalid response format - expected array of {num_frames} frames")
     
-    if len(data) != 30:
-        logger.warning(f"Expected 30 frames, got {len(data)}. Padding/trimming...")
-        # Pad or trim to exactly 30
-        while len(data) < 30:
+    # Ensure we have exactly num_frames
+    if len(data) != num_frames:
+        logger.warning(f"Expected {num_frames} frames, got {len(data)}. Adjusting...")
+        
+        # Pad with scene description if too few
+        while len(data) < num_frames:
+            frame_num = len(data) + 1
+            start_sec = (frame_num - 1) * 10
+            end_sec = min(start_sec + 10, duration_secs)
+            
             data.append({
-                "frame_number": len(data) + 1,
-                "time_start": f"0:{(len(data) * 10) // 60:02d}:{(len(data) * 10) % 60:02d}",
-                "time_end": f"0:{((len(data) + 1) * 10) // 60:02d}:{((len(data) + 1) * 10) % 60:02d}",
-                "image_prompt": scene.get("description", ""),
-                "kling_prompt": scene.get("description", ""),
-                "characters_present": char_names,
+                "frame_number": frame_num,
+                "time_start": f"{start_sec//60}:{start_sec%60:02d}",
+                "time_end": f"{end_sec//60}:{end_sec%60:02d}",
+                "image_prompt": f"{scene.get('description', '')} - Frame {frame_num}",
+                "kling_prompt": f"Continuation of scene action. {scene.get('description', '')}",
+                "characters_present": scene_characters,
                 "camera_movement": "static",
                 "key_action": "scene continues",
                 "emotion": scene.get("emotion", "neutral"),
                 "lighting": "natural"
             })
-        data = data[:30]
+        
+        # Trim if too many
+        data = data[:num_frames]
     
     logger.info(f"✅ Generated structure for {len(data)} frames")
     return data
-
-
 async def _call_claude_for_frames(system: str, user: str) -> str:
     """Call Claude with large context for frame generation"""
     import litellm
