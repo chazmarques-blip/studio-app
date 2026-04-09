@@ -493,6 +493,7 @@ export default function StudioPage() {
       .filter(p => p.length > 0);
 
     console.log('Prompts parsed:', prompts.length, 'prompts');
+    console.log('Prompt list:', prompts.map((p, i) => `${i+1}. ${p.substring(0, 50)}...`));
 
     if (prompts.length === 0) {
       toast.error('Nenhum prompt válido encontrado');
