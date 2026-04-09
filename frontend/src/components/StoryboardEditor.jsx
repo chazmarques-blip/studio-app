@@ -1093,13 +1093,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           </div>
           <p className="text-[10px] text-[#666] max-w-[280px] mx-auto">
             {lang === 'pt'
-              ? 'Gere ilustrações para cada cena do roteiro. Você poderá editar textos, regenerar imagens e usar o Facilitador IA antes de produzir os vídeos.'
-              : 'Generate illustrations for each scene. You can edit text, regenerate images and use the AI Facilitator before producing videos.'}
+              ? 'Gere automaticamente 30 frames detalhados (1 a cada 10s) para seu vídeo Kling de 5 minutos. Estilo Pixar 3D consistente com seus personagens selecionados.'
+              : 'Automatically generate 30 detailed frames (1 every 10s) for your 5-minute Kling video. Consistent Pixar 3D style with your selected characters.'}
           </p>
           <button onClick={generateStoryboard} data-testid="generate-storyboard-btn"
             className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2 mx-auto">
             <Sparkles size={14} />
-            {lang === 'pt' ? `Gerar Storyboard (${scenes.length} painéis)` : `Generate Storyboard (${scenes.length} panels)`}
+            {lang === 'pt' ? 'Gerar Storyboard (30 painéis)' : 'Generate Storyboard (30 panels)'}
           </button>
         </div>
       )}
