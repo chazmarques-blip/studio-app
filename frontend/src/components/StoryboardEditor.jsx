@@ -1231,13 +1231,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             {displayFrames.map((item, idx) => {
               // Handle both Kling frames and regular panels
               const isKlingFrame = useKlingMode;
-              const frameNumber = isKlingFrame ? item.frame_number : item.panel_number;
+              const frameNumber = isKlingFrame ? item.frame_number : item.scene_number;
               const imageUrl = isKlingFrame ? item.image_url : (getSelectedFrame(item.scene_number, item.frames)?.image_url || item.image_url);
               const timeLabel = isKlingFrame ? `${item.time_start}-${item.time_end}` : null;
               
               return (
                 <div 
-                  key={isKlingFrame ? `kling-${frameNumber}` : item.panel_number}
+                  key={isKlingFrame ? `kling-${frameNumber}` : `scene-${item.scene_number}`}
                   className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
                   onClick={() => {
                     if (!isKlingFrame) {
