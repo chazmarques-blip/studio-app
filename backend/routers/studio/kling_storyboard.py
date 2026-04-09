@@ -373,13 +373,29 @@ Return as valid JSON array with {num_frames} frame objects.
     logger.info(f"Calling Claude to generate {num_frames} frame structures...")
     result = await _call_claude_for_frames(system_prompt, user_prompt)
     
-    data = _parse_json(result)
+    # Parse JSON - be more lenient
+    try:
+        data = _parse_json(result)
+    except Exception as e:
+        logger.error(f"Initial JSON parse failed: {e}")
+        logger.error(f"Response preview: {result[:500]}")
+        # Try to extract JSON manually
+        import re
+        json_match = re.search(r'\[[\s\S]*\]', result)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(0))
+            except:
+                raise Exception(f"Could not parse JSON from Claude response: {str(e)}")
+        else:
+            raise Exception(f"No JSON array found in response: {result[:200]}")
+    
     if not data or not isinstance(data, list):
         # Try to extract array from response
         if isinstance(data, dict) and "frames" in data:
             data = data["frames"]
         else:
-            raise Exception(f"Invalid response format - expected array of {num_frames} frames")
+            raise Exception(f"Invalid response format - expected array of {num_frames} frames, got: {type(data)}")
     
     # Ensure we have exactly num_frames
     if len(data) != num_frames:

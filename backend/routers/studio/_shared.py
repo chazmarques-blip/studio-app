@@ -309,43 +309,65 @@ def _parse_json(text):
     if code_match:
         text = code_match.group(1).strip()
 
-    if '{' not in text:
+    # Try to find JSON object or array
+    if '{' not in text and '[' not in text:
         return None
 
     try:
-        start = text.index('{')
-        depth = 0
-        for i in range(start, len(text)):
-            if text[i] == '{':
-                depth += 1
-            elif text[i] == '}':
-                depth -= 1
-            if depth == 0:
-                return json.loads(text[start:i+1])
+        # Try parsing whole text first
+        return json.loads(text)
+    except:
+        pass
 
-        # JSON was truncated — try to repair by closing open braces/brackets
-        raw = text[start:]
-        # Count open structures
-        open_brackets = raw.count('[') - raw.count(']')
-        open_braces = raw.count('{') - raw.count('}')
-        # Close them
-        repair = raw
-        if repair.rstrip().endswith(','):
-            repair = repair.rstrip()[:-1]  # remove trailing comma
-        repair += ']' * max(0, open_brackets) + '}' * max(0, open_braces)
+    # Try extracting object
+    if '{' in text:
         try:
-            return json.loads(repair)
-        except json.JSONDecodeError:
-            # Try more aggressive repair: truncate to last complete scene
-            last_complete = repair.rfind('},')
-            if last_complete > 0:
-                truncated = repair[:last_complete+1]
-                truncated += ']' * max(0, truncated.count('[') - truncated.count(']'))
-                truncated += '}' * max(0, truncated.count('{') - truncated.count('}'))
-                try:
-                    return json.loads(truncated)
-                except json.JSONDecodeError:
-                    pass
+            start = text.index('{')
+            depth = 0
+            for i in range(start, len(text)):
+                if text[i] == '{':
+                    depth += 1
+                elif text[i] == '}':
+                    depth -= 1
+                if depth == 0:
+                    return json.loads(text[start:i+1])
+        except:
+            pass
+
+    # Try extracting array
+    if '[' in text:
+        try:
+            start = text.index('[')
+            depth = 0
+            for i in range(start, len(text)):
+                if text[i] == '[':
+                    depth += 1
+                elif text[i] == ']':
+                    depth -= 1
+                if depth == 0:
+                    return json.loads(text[start:i+1])
+        except:
+            pass
+
+    # JSON was truncated — try to repair
+    if '{' in text:
+        start = text.index('{')
+        raw = text[start:]
+    elif '[' in text:
+        start = text.index('[')
+        raw = text[start:]
+    else:
+        return None
+        
+    # Count open structures
+    open_brackets = raw.count('[') - raw.count(']')
+    open_braces = raw.count('{') - raw.count('}')
+    
+    repaired = raw + ']' * open_brackets + '}' * open_braces
+    try:
+        return json.loads(repaired)
+    except Exception:
+        return None
     except Exception:
         pass
     return None
