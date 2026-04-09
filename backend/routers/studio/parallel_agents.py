@@ -409,8 +409,24 @@ Format: "Narrador: 'Full narration...'"
         """Single agent generates dialogue for one scene"""
         scene_num = scene.get("scene_number", scene_idx + 1)
         
+        # Calculate scene duration
+        start_time = scene.get("time_start", "0:00")
+        end_time = scene.get("time_end", "0:12")
+        start_secs = _parse_time(start_time)
+        end_secs = _parse_time(end_time)
+        duration_secs = end_secs - start_secs
+        expected_words = int(duration_secs * 2.5)  # 150 words/min = 2.5 words/sec
+        
+        duration_display = f"{duration_secs//60}:{duration_secs%60:02d}"
+        
         try:
-            logger.info(f"ParallelDialogue [{project_id}]: Agent processing scene {scene_num}")
+            logger.info(f"ParallelDialogue [{project_id}]: Agent processing scene {scene_num} ({duration_secs}s, ~{expected_words} words)")
+            
+            # Determine max tokens based on duration
+            if duration_secs > 60:
+                max_tokens = 4096  # Long scenes need maximum output
+            else:
+                max_tokens = max(1500, int(expected_words * 1.5))
             
             system_prompt = f"""You are a MASTER DIALOGUE WRITER for {audio_mode} mode.
 
@@ -420,9 +436,12 @@ EXPERTISE:
 - Emotional beats and story rhythm
 - Age-appropriate language for all audiences
 
-TASK: Write dialogue for this scene (12 seconds ≈ 25-35 words).
+TASK: Write dialogue for this scene ({duration_secs} seconds = approximately {expected_words} words).
 
 {mode_instruction}
+
+CRITICAL: This scene is {duration_secs} seconds long. You MUST write approximately {expected_words} WORDS to fill this duration.
+For a {duration_secs//60}-minute scene, write EXTENSIVE dialogue with 15-20 exchanges per character.
 
 Return ONLY JSON:
 {{
@@ -442,7 +461,7 @@ SCENE {scene_num}: {scene.get('title', '')}
 
 Write emotionally powerful, natural dialogue for this scene in {lang_name}."""
             
-            result_text = _call_claude_sync(system_prompt, user_prompt, max_tokens=1500, timeout_per_attempt=90)
+            result_text = _call_claude_sync(system_prompt, user_prompt, max_tokens=max_tokens, timeout_per_attempt=180)
             dialogue_data = _parse_json(result_text)
             
             if not dialogue_data:
