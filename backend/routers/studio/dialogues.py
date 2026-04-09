@@ -267,7 +267,7 @@ Description: {desc}
 Emotion: {scene.get('emotion', 'neutral')}
 {f'Existing reference: {existing_dialogue or existing_narration}' if existing_dialogue or existing_narration else ''}
 
-⚠️ CRITICAL: This scene is {duration_seconds} seconds long ({duration_seconds//60}:{duration_seconds%60:02d}).
+CRITICAL: This scene is {duration_seconds} seconds long ({duration_seconds//60}:{duration_seconds%60:02d}).
 You MUST write approximately {expected_words} WORDS of dialogue to fill this duration.
 For reference: this is about {expected_words//150} minute(s) of spoken content.
 
@@ -302,7 +302,7 @@ Description: {desc}
 Characters present: {', '.join(chars_in)}
 Emotion: {scene.get('emotion', 'neutral')}
 
-⚠️ CRITICAL: This scene is {duration_seconds} seconds long ({duration_seconds//60}:{duration_seconds%60:02d}).
+CRITICAL: This scene is {duration_seconds} seconds long ({duration_seconds//60}:{duration_seconds%60:02d}).
 You MUST write approximately {expected_words} WORDS of narration to fill this duration.
 For reference: this is about {expected_words//150} minute(s) of spoken content at normal speaking pace.
 
