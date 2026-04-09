@@ -295,15 +295,13 @@ async def _generate_frame_prompts_for_scene(
     num_frames: int,
     duration_secs: int
 ) -> List[Dict]:
-    """Generate frame structures with detailed prompts for a single scene"""
+    """
+    Generate frame structures with detailed prompts for a single scene
+    Uses mini-batch approach: generates 5 frames at a time for better reliability
+    """
     
-    # Build character context - Include ALL characters (principais + composição)
-    char_names = [c.get("name", "") for c in characters if c.get("name")]
-    
-    # Identify main characters in this scene
+    # Build character context
     scene_characters = scene.get("characters_in_scene", [])
-    
-    # Build detailed character descriptions
     char_descriptions = "\n".join([
         f"- {c.get('name', 'Unknown')}: {c.get('description', 'No description')} (Role: {c.get('role', 'supporting')})"
         for c in characters
@@ -317,114 +315,192 @@ async def _generate_frame_prompts_for_scene(
     # Get audience cinematography guidelines
     audience_guide = AUDIENCE_CINEMATOGRAPHY.get(lang, {}).get(target_audience, "")
     
-    # Build system prompt
-    system_prompt = KLING_STORYBOARD_SYSTEM.format(
-        language="Portuguese" if lang == "pt" else "English",
-        target_audience=target_audience,
-        audience_guidelines=audience_guide
-    )
+    logger.info(f"Generating {num_frames} frames in mini-batches of 5...")
     
-    # Build user prompt
-    user_prompt = f"""
-SCENE INFORMATION:
-- Scene Number: {scene.get('scene_number', 1)}
-- Title: {scene.get('title', 'Untitled')}
-- Description: {scene.get('description', '')}
-- Emotion: {scene.get('emotion', 'neutral')}
-- Camera: {scene.get('camera', 'varied')}
-- Duration: {duration_secs} seconds
-- Frames needed: {num_frames} (1 frame per 10 seconds)
-- Target audience: {target_audience}
+    all_frames = []
+    last_frame_context = "Scene begins."
+    
+    # Generate in mini-batches of 5 frames
+    MINI_BATCH_SIZE = 5
+    for batch_start in range(0, num_frames, MINI_BATCH_SIZE):
+        batch_end = min(batch_start + MINI_BATCH_SIZE, num_frames)
+        frames_in_batch = batch_end - batch_start
+        
+        logger.info(f"  Mini-batch: frames {batch_start+1}-{batch_end} ({frames_in_batch} frames)")
+        
+        # Build prompt for this mini-batch
+        system_prompt = f"""You are an ELITE CINEMATOGRAPHER creating detailed storyboard frames.
 
-MAIN CHARACTERS IN THIS SCENE:
-{', '.join(scene_characters)}
+TARGET AUDIENCE: {target_audience}
+{audience_guide}
 
-ALL AVAILABLE CHARACTERS (principais + composição):
-{char_descriptions}
-
-DIALOGUE TEXT (integrate at appropriate moments):
-{dialogue_text if dialogue_text else "No dialogue for this scene"}
-
-YOUR TASK:
-Generate {num_frames} frames covering 0:00 to {duration_secs//60}:{duration_secs%60:02d}.
-Each frame covers exactly 10 seconds.
-
-Frame 1: 0:00-0:10
-Frame 2: 0:10-0:20
-...
-Frame {num_frames}: {((num_frames-1)*10)//60}:{((num_frames-1)*10)%60:02d}-{duration_secs//60}:{duration_secs%60:02d}
-
-For each frame, provide:
-1. image_prompt - Visual description for reference image (include character appearance from descriptions above)
-2. kling_prompt - Detailed 10-second action description for Kling (NEVER describe character appearance, only actions)
-3. All metadata fields
+TASK: Generate {frames_in_batch} consecutive frames (frames {batch_start+1} to {batch_end} of {num_frames} total).
+Each frame = 10 seconds of video.
 
 CRITICAL RULES:
-- image_prompt: CAN include character physical descriptions (from character sheets above)
-- kling_prompt: ONLY character names + actions/emotions/movements (Kling already knows their appearance)
-- Ensure VISUAL CONTINUITY between frames
-- Character positions at end of Frame N should match start of Frame N+1
-- Use BOTH main characters AND supporting/composition characters when appropriate
+1. image_prompt: Visual description including character appearance
+2. kling_prompt: Action description (character names only, NO physical descriptions)
+3. Ensure CONTINUITY from previous frame
+4. Return ONLY valid JSON array
 
-Return as valid JSON array with {num_frames} frame objects.
-"""
-    
-    # Call Claude to generate structure
-    logger.info(f"Calling Claude to generate {num_frames} frame structures...")
-    result = await _call_claude_for_frames(system_prompt, user_prompt)
-    
-    # Parse JSON - be more lenient
-    try:
-        data = _parse_json(result)
-    except Exception as e:
-        logger.error(f"Initial JSON parse failed: {e}")
-        logger.error(f"Response preview: {result[:500]}")
-        # Try to extract JSON manually
-        import re
-        json_match = re.search(r'\[[\s\S]*\]', result)
-        if json_match:
-            try:
-                data = json.loads(json_match.group(0))
-            except:
-                raise Exception(f"Could not parse JSON from Claude response: {str(e)}")
-        else:
-            raise Exception(f"No JSON array found in response: {result[:200]}")
-    
-    if not data or not isinstance(data, list):
-        # Try to extract array from response
-        if isinstance(data, dict) and "frames" in data:
-            data = data["frames"]
-        else:
-            raise Exception(f"Invalid response format - expected array of {num_frames} frames, got: {type(data)}")
-    
-    # Ensure we have exactly num_frames
-    if len(data) != num_frames:
-        logger.warning(f"Expected {num_frames} frames, got {len(data)}. Adjusting...")
+Language: {"Portuguese" if lang == "pt" else "English"}"""
         
-        # Pad with scene description if too few
-        while len(data) < num_frames:
-            frame_num = len(data) + 1
-            start_sec = (frame_num - 1) * 10
-            end_sec = min(start_sec + 10, duration_secs)
+        user_prompt = f"""SCENE: {scene.get('title', 'Untitled')}
+Description: {scene.get('description', '')}
+Duration: {duration_secs}s (frames {batch_start+1}-{batch_end} out of {num_frames} total)
+
+CHARACTERS:
+{char_descriptions}
+
+MAIN CHARACTERS IN SCENE: {', '.join(scene_characters)}
+
+DIALOGUE SNIPPET (for timing reference):
+{dialogue_text[:500] if dialogue_text else "No dialogue"}...
+
+PREVIOUS FRAME CONTEXT:
+{last_frame_context}
+
+Generate {frames_in_batch} frames. Each frame must have:
+- frame_number: {batch_start+1} to {batch_end}
+- time_start & time_end (format "M:SS")
+- image_prompt: Detailed visual description
+- kling_prompt: Detailed 10-second action description
+- characters_present: List of character names
+- camera_movement: e.g., "dolly forward", "static", "pan right"
+- key_action: Brief description
+- emotion: Emotional tone
+- lighting: Lighting description
+
+Return ONLY a JSON array of {frames_in_batch} frame objects. No markdown, no explanation."""
+        
+        try:
+            # Call Claude for this mini-batch
+            result = await _call_claude_for_mini_batch(system_prompt, user_prompt, frames_in_batch)
             
-            data.append({
-                "frame_number": frame_num,
-                "time_start": f"{start_sec//60}:{start_sec%60:02d}",
-                "time_end": f"{end_sec//60}:{end_sec%60:02d}",
-                "image_prompt": f"{scene.get('description', '')} - Frame {frame_num}",
-                "kling_prompt": f"Continuation of scene action. {scene.get('description', '')}",
-                "characters_present": scene_characters,
-                "camera_movement": "static",
-                "key_action": "scene continues",
-                "emotion": scene.get("emotion", "neutral"),
-                "lighting": "natural"
-            })
-        
-        # Trim if too many
-        data = data[:num_frames]
+            # Parse result
+            frames_batch = _parse_frames_response(result, frames_in_batch, batch_start)
+            
+            if not frames_batch:
+                logger.warning(f"Mini-batch {batch_start+1}-{batch_end} failed, using fallback")
+                frames_batch = _generate_fallback_frames(
+                    scene, batch_start, frames_in_batch, duration_secs, scene_characters
+                )
+            
+            all_frames.extend(frames_batch)
+            
+            # Update context for next batch
+            if frames_batch:
+                last_frame = frames_batch[-1]
+                last_frame_context = f"Frame {last_frame.get('frame_number')} ended with: {last_frame.get('key_action', 'action continues')}. Camera at: {last_frame.get('camera_movement', 'static')}."
+            
+            logger.info(f"  ✅ Mini-batch {batch_start+1}-{batch_end} complete")
+            
+        except Exception as e:
+            logger.error(f"Mini-batch {batch_start+1}-{batch_end} error: {e}")
+            # Generate fallback frames
+            frames_batch = _generate_fallback_frames(
+                scene, batch_start, frames_in_batch, duration_secs, scene_characters
+            )
+            all_frames.extend(frames_batch)
     
-    logger.info(f"✅ Generated structure for {len(data)} frames")
-    return data
+    logger.info(f"✅ Generated {len(all_frames)} frames total")
+    return all_frames
+
+
+async def _call_claude_for_mini_batch(system: str, user: str, expected_frames: int) -> str:
+    """Call Claude for a mini-batch of frames"""
+    import litellm
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
+    
+    response = await litellm.acompletion(
+        model="anthropic/claude-sonnet-4-20250514",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user}
+        ],
+        max_tokens=8000,  # Enough for 5 frames
+        timeout=120,
+        api_key=api_key
+    )
+    
+    return response.choices[0].message.content
+
+
+def _parse_frames_response(response: str, expected_count: int, start_index: int) -> List[Dict]:
+    """Parse Claude response into frames array"""
+    import json
+    import re
+    
+    # Try direct JSON parse first
+    try:
+        data = json.loads(response)
+        if isinstance(data, list) and len(data) > 0:
+            return data
+    except:
+        pass
+    
+    # Try extracting JSON array with regex
+    try:
+        # Remove markdown code blocks
+        cleaned = re.sub(r'```json\s*', '', response)
+        cleaned = re.sub(r'```\s*', '', cleaned)
+        
+        # Find array
+        array_match = re.search(r'\[[\s\S]*\]', cleaned)
+        if array_match:
+            data = json.loads(array_match.group(0))
+            if isinstance(data, list):
+                return data
+    except Exception as e:
+        logger.error(f"Regex extraction failed: {e}")
+    
+    # Try line-by-line object extraction (if Claude returned objects separated)
+    try:
+        objects = re.findall(r'\{[^}]+\}', response, re.DOTALL)
+        frames = []
+        for obj_str in objects:
+            try:
+                frame = json.loads(obj_str)
+                if 'frame_number' in frame:
+                    frames.append(frame)
+            except:
+                continue
+        if len(frames) > 0:
+            return frames
+    except:
+        pass
+    
+    return []
+
+
+def _generate_fallback_frames(
+    scene: Dict, 
+    start_index: int, 
+    count: int, 
+    total_duration: int,
+    characters: List[str]
+) -> List[Dict]:
+    """Generate simple fallback frames if AI generation fails"""
+    frames = []
+    for i in range(count):
+        frame_num = start_index + i + 1
+        start_sec = (frame_num - 1) * 10
+        end_sec = min(start_sec + 10, total_duration)
+        
+        frames.append({
+            "frame_number": frame_num,
+            "time_start": f"{start_sec//60}:{start_sec%60:02d}",
+            "time_end": f"{end_sec//60}:{end_sec%60:02d}",
+            "image_prompt": f"{scene.get('title', 'Scene')} - Frame {frame_num}. {scene.get('description', 'Scene continues.')}",
+            "kling_prompt": f"[{start_sec//60}:{start_sec%60:02d}-{end_sec//60}:{end_sec%60:02d}] {scene.get('description', 'Action continues.')} Characters: {', '.join(characters)}. Camera static. Natural lighting.",
+            "characters_present": characters,
+            "camera_movement": "static",
+            "key_action": "scene continues",
+            "emotion": scene.get("emotion", "neutral"),
+            "lighting": "natural"
+        })
+    
+    return frames
 async def _call_claude_for_frames(system: str, user: str) -> str:
     """Call Claude with large context for frame generation"""
     import litellm
