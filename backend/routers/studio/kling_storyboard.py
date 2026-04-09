@@ -136,23 +136,57 @@ async def generate_kling_storyboards(
     tenant=Depends(get_current_tenant)
 ):
     """
-    Generate ultra-detailed storyboards for ALL scenes in project
-    Processes 5 scenes at a time in parallel for efficiency
-    Each scene gets storyboards based on its duration (1 per 10 seconds)
+    Generate ultra-detailed storyboards for 5-minute video (30 frames)
+    If project has scenes, uses them. Otherwise creates a virtual 5-minute scene.
+    Always generates exactly 30 frames for Kling video production.
     """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
     scenes = project.get("scenes", [])
+    
+    # If no scenes or scenes are too short, create a virtual 5-minute scene
     if not scenes:
-        raise HTTPException(status_code=400, detail="No scenes available")
+        logger.info(f"KlingStoryboard [{project_id}]: No scenes found, creating virtual 5-minute scene")
+        scenes = [{
+            "scene_number": 1,
+            "title": project.get("title", "Cena Principal"),
+            "description": project.get("description", "Cena do vídeo"),
+            "time_start": "0:00",
+            "time_end": "5:00",
+            "duration_seconds": 300,
+            "characters_in_scene": [c.get("name") for c in project.get("characters", [])],
+            "emotion": "neutral"
+        }]
     
     # Get project metadata
     characters = project.get("characters", [])
     dialogues_data = project.get("dialogues", {}).get("scenes", [])
     target_audience = project.get("target_audience", "all")
     lang = project.get("language", "pt")
+    
+    # Calculate total duration
+    total_duration = sum(
+        _parse_time_to_seconds(s.get("time_end", "0:00")) - _parse_time_to_seconds(s.get("time_start", "0:00"))
+        for s in scenes
+    )
+    
+    # If total duration is less than 5 minutes, adjust the last scene to reach 300 seconds
+    if total_duration < 300:
+        logger.info(f"KlingStoryboard [{project_id}]: Total duration {total_duration}s < 300s, extending to 5 minutes")
+        if len(scenes) == 1:
+            scenes[0]["time_end"] = "5:00"
+            scenes[0]["duration_seconds"] = 300
+        else:
+            # Extend last scene to reach 5 minutes total
+            last_scene = scenes[-1]
+            last_start = _parse_time_to_seconds(last_scene.get("time_start", "0:00"))
+            needed_duration = 300 - (total_duration - (
+                _parse_time_to_seconds(last_scene.get("time_end", "0:00")) - last_start
+            ))
+            last_scene["time_end"] = f"{(last_start + needed_duration)//60}:{(last_start + needed_duration)%60:02d}"
+            last_scene["duration_seconds"] = needed_duration
     
     logger.info(f"KlingStoryboard [{project_id}]: Processing {len(scenes)} scenes with {len(characters)} characters")
     
@@ -658,14 +692,14 @@ async def _upload_base64_to_supabase(
     
     try:
         # Upload file
-        response = supabase.storage.from_("studio-assets").upload(
+        response = supabase.storage.from_("pipeline-assets").upload(
             path=storage_path,
             file=image_bytes,
             file_options={"content-type": "image/png", "upsert": "true"}
         )
         
         # Get public URL
-        public_url = supabase.storage.from_("studio-assets").get_public_url(storage_path)
+        public_url = supabase.storage.from_("pipeline-assets").get_public_url(storage_path)
         
         return public_url
         
@@ -850,14 +884,14 @@ async def _generate_frame_image_with_tool(frame: Dict, project_id: str) -> str:
                                     # Get tenant ID from project
                                     storage_path = f"storyboards/{project_id}/frame_{frame_num}.png"
                                     
-                                    supabase.storage.from_("studio-assets").upload(
+                                    supabase.storage.from_("pipeline-assets").upload(
                                         path=storage_path,
                                         file=image_bytes,
                                         file_options={"content-type": "image/png", "upsert": "true"}
                                     )
                                     
                                     # Get public URL
-                                    public_url = supabase.storage.from_("studio-assets").get_public_url(storage_path)
+                                    public_url = supabase.storage.from_("pipeline-assets").get_public_url(storage_path)
                                     
                                     logger.info(f"      Frame {frame_num}: ✅ Image generated")
                                     return public_url
