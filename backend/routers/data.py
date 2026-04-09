@@ -577,27 +577,47 @@ def _extract_name_from_prompt(prompt: str) -> str:
     Extract character name from prompt.
     
     Examples:
+        "chibi 3D render of Urso Polar Macho Biblizoo Baby, wild male..." → "Urso Polar Macho Biblizoo Baby"
         "Pescocinho Biblizoo Baby, girafa bebê" → "Pescocinho Biblizoo Baby"
         "Jonas, leão corajoso" → "Jonas"
-        "friendly dog character" → "Friendly Dog"
     """
     import re
     
-    # Pattern 1: "NAME, description"
+    # Pattern 1: "chibi 3D render of NAME, description" (Midjourney style)
+    midjourney_match = re.match(r'^chibi 3D render of\s+([^,]+),', prompt, re.IGNORECASE)
+    if midjourney_match:
+        name = midjourney_match.group(1).strip()
+        # Limit to reasonable length
+        if len(name) <= 100:
+            return name
+    
+    # Pattern 2: "NAME, description"
     comma_match = re.match(r'^([^,]+),', prompt)
     if comma_match:
         name = comma_match.group(1).strip()
-        # Limit to first 50 chars and 5 words max
-        words = name.split()
-        if len(words) <= 5 and len(name) <= 50:
+        # Skip common prefixes
+        skip_prefixes = ["chibi", "3d render", "render of", "image of"]
+        name_lower = name.lower()
+        is_prefix = any(name_lower.startswith(prefix) for prefix in skip_prefixes)
+        
+        if not is_prefix and len(name) <= 100:
             return name
     
-    # Pattern 2: First 3 words if capitalized
+    # Pattern 3: First 3-5 words if capitalized (after skipping common prefixes)
     words = prompt.strip().split()
-    if len(words) >= 2:
-        potential = ' '.join(words[:min(3, len(words))])
-        if potential[0].isupper() and len(potential) <= 50:
+    start_idx = 0
+    
+    # Skip common prefixes
+    if len(words) > 3 and words[0].lower() == "chibi":
+        start_idx = 4  # Skip "chibi 3D render of"
+    
+    if len(words) > start_idx + 2:
+        # Take next 5 words after prefix
+        potential = ' '.join(words[start_idx:start_idx+5])
+        if potential[0].isupper() and len(potential) <= 100:
+            # Remove trailing comma if exists
+            potential = potential.rstrip(',')
             return potential
     
-    # Fallback: First 30 chars
-    return prompt[:30].strip()
+    # Fallback: First 50 chars
+    return prompt[:50].strip()
