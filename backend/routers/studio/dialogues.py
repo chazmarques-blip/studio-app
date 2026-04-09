@@ -249,12 +249,13 @@ EXPECTED DIALOGUE LENGTH: ~{expected_words} words
 """
 
         if req.mode == "dubbed":
+            user_instr_dubbed = f'User instructions: {req.user_instructions}' if req.user_instructions else ''
             system = f"""You are a MASTER screenwriter creating emotional, impactful CHARACTER DIALOGUES.
 Project: {project_name}. Language: {lang_name}.
 Characters available: {', '.join(char_names)}.
 Characters in this scene: {', '.join(chars_in)}.
 {duration_guidance}
-{f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
+{user_instr_dubbed}
 
 RULES:
 - Write ONLY character dialogue lines, formatted as: CharacterName (stage direction): "dialogue text"
@@ -284,13 +285,14 @@ EXAMPLE of length expected for a 5-minute scene:
 
 Write EXTENSIVE, DETAILED dialogue that will fill the entire {duration_seconds} seconds.
 DO NOT write just 3-4 short lines - this needs {expected_words} words total!
-Make characters have FULL conversations, not just quick exchanges.""""""
+Make characters have FULL conversations, not just quick exchanges."""
 
         elif req.mode == "narrated":
+            user_instr_narr = f'User instructions: {req.user_instructions}' if req.user_instructions else ''
             system = f"""You are a MASTER narrator/voice-over writer creating CINEMATIC storytelling.
 Project: {project_name}. Language: {lang_name}.
 {duration_guidance}
-{f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
+{user_instr_narr}
 
 RULES:
 - Write NARRATOR text in storytelling voice
@@ -323,9 +325,10 @@ Think of this as a {expected_words//150}-minute story segment that needs complet
 Write as if narrating a documentary or audiobook - rich, flowing, detailed text."""
 
         else:  # book
+            user_instr = f'User instructions: {req.user_instructions}' if req.user_instructions else ''
             system = f"""You are a MASTER children's book author creating LITERARY MAGIC.
 Project: {project_name}. Language: {lang_name}.
-{f'User instructions: {req.user_instructions}' if req.user_instructions else ''}
+{user_instr}
 
 RULES:
 - Write in warm, engaging, LITERARY style
