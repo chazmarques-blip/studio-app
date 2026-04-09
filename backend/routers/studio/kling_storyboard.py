@@ -218,7 +218,8 @@ async def generate_kling_storyboards(
                 target_audience,
                 lang,
                 tenant["id"],
-                project_id
+                project_id,
+                project  # NOVO: passa projeto completo
             )
             tasks.append(task)
         
@@ -270,7 +271,8 @@ async def _generate_storyboards_for_single_scene(
     target_audience: str,
     lang: str,
     tenant_id: str,
-    project_id: str
+    project_id: str,
+    project: Dict  # NOVO: projeto completo para acessar visual_style
 ) -> Dict:
     """
     Generate storyboards for a single scene
@@ -298,7 +300,8 @@ async def _generate_storyboards_for_single_scene(
             target_audience,
             lang,
             num_frames,
-            duration_secs
+            duration_secs,
+            project.get("visual_style", "pixar_3d")  # NOVO: passa estilo visual
         )
     except Exception as e:
         logger.error(f"Scene {scene_num} prompt generation failed: {e}")
@@ -327,19 +330,30 @@ async def _generate_frame_prompts_for_scene(
     target_audience: str,
     lang: str,
     num_frames: int,
-    duration_secs: int
+    duration_secs: int,
+    visual_style: str = "pixar_3d"  # NOVO: estilo visual
 ) -> List[Dict]:
     """
     Generate frame structures with detailed prompts for a single scene
     Uses mini-batch approach: generates 5 frames at a time for better reliability
     """
     
-    # Build character context
+    # Build character context with DETAILED descriptions
     scene_characters = scene.get("characters_in_scene", [])
     char_descriptions = "\n".join([
         f"- {c.get('name', 'Unknown')}: {c.get('description', 'No description')} (Role: {c.get('role', 'supporting')})"
         for c in characters
     ])
+    
+    # Map visual style to description
+    style_descriptions = {
+        "pixar_3d": "Disney Pixar 3D animation style - cute, rounded characters, vibrant colors, cinematic lighting, high-quality CGI",
+        "disney_2d": "Disney 2D hand-drawn animation style - classic animation, smooth lines, painted backgrounds",
+        "anime": "Anime style - Japanese animation, expressive eyes, dynamic poses",
+        "realistic": "Photorealistic live-action style - real people, natural lighting, cinematic",
+        "cartoon": "Cartoon style - simplified, colorful, exaggerated features"
+    }
+    style_guide = style_descriptions.get(visual_style, style_descriptions["pixar_3d"])
     
     # Get dialogue text if available
     dialogue_text = ""
@@ -365,6 +379,9 @@ async def _generate_frame_prompts_for_scene(
         # Build prompt for this mini-batch
         system_prompt = f"""You are an ELITE CINEMATOGRAPHER creating detailed storyboard frames.
 
+VISUAL STYLE REQUIREMENT: {style_guide}
+CRITICAL: ALL frames MUST use this exact style. No mixing of styles allowed!
+
 TARGET AUDIENCE: {target_audience}
 {audience_guide}
 
@@ -372,7 +389,7 @@ TASK: Generate {frames_in_batch} consecutive frames (frames {batch_start+1} to {
 Each frame = 10 seconds of video.
 
 CRITICAL RULES:
-1. image_prompt: Visual description including character appearance
+1. image_prompt: MUST start with style description, then visual details including character appearance
 2. kling_prompt: Action description (character names only, NO physical descriptions)
 3. Ensure CONTINUITY from previous frame
 4. Return ONLY valid JSON array
