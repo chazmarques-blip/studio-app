@@ -624,8 +624,8 @@ async def get_kling_storyboards(project_id: str, tenant=Depends(get_current_tena
 @router.post("/projects/{project_id}/kling-storyboards/regenerate-images")
 async def regenerate_images(project_id: str, tenant=Depends(get_current_tenant)):
     """
-    Regenerate ONLY the images for frames (prompts already exist)
-    Note: Images are OPTIONAL - kling_prompts are what matters for video generation
+    Regenerate images for all frames using system image generation tool
+    Processes in small batches (4 at a time) for reliability
     """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
@@ -635,27 +635,126 @@ async def regenerate_images(project_id: str, tenant=Depends(get_current_tenant))
     if not storyboards:
         raise HTTPException(status_code=400, detail="No storyboards found")
     
-    logger.info(f"RegenerateImages [{project_id}]: Checking frames...")
+    logger.info(f"RegenerateImages [{project_id}]: Starting image generation for all frames")
     
-    # Count status
-    total_frames = 0
-    frames_without_images = 0
-    frames_with_prompts = 0
+    total_generated = 0
+    total_failed = 0
     
-    for scene in storyboards:
-        frames = scene.get("frames", [])
-        total_frames += len(frames)
-        for f in frames:
-            if not f.get("image_url"):
-                frames_without_images += 1
-            if f.get("kling_prompt"):
-                frames_with_prompts += 1
+    for scene_data in storyboards:
+        scene_num = scene_data.get("scene_number", 0)
+        frames = scene_data.get("frames", [])
+        
+        logger.info(f"Scene {scene_num}: Generating {len(frames)} images...")
+        
+        # Process in batches of 4 to avoid overwhelming the API
+        BATCH_SIZE = 4
+        for batch_start in range(0, len(frames), BATCH_SIZE):
+            batch_end = min(batch_start + BATCH_SIZE, len(frames))
+            batch = frames[batch_start:batch_end]
+            
+            logger.info(f"  Processing frames {batch_start+1}-{batch_end}...")
+            
+            # Generate images sequentially in this batch (more reliable)
+            for frame in batch:
+                frame_num = frame.get("frame_number", 0)
+                
+                # Skip if already has image
+                if frame.get("image_url"):
+                    logger.info(f"    Frame {frame_num}: Already has image, skipping")
+                    continue
+                
+                try:
+                    image_url = await _generate_frame_image_with_tool(frame, project_id)
+                    frame["image_url"] = image_url
+                    frame.pop("image_error", None)
+                    total_generated += 1
+                    logger.info(f"    Frame {frame_num}: ✅ Image generated")
+                except Exception as e:
+                    logger.error(f"    Frame {frame_num}: ❌ Failed - {e}")
+                    frame["image_error"] = str(e)
+                    total_failed += 1
+            
+            # Save progress after each batch
+            _update_project_field(tenant["id"], project_id, {
+                "kling_storyboards": storyboards
+            })
+            logger.info(f"  Batch complete. Progress: {total_generated} generated, {total_failed} failed")
+    
+    logger.info(f"RegenerateImages [{project_id}]: Complete! {total_generated} generated, {total_failed} failed")
     
     return {
-        "status": "ready",
-        "message": "✅ Kling prompts are ready! Images are optional reference only.",
-        "total_frames": total_frames,
-        "frames_with_prompts": frames_with_prompts,
-        "frames_without_images": frames_without_images,
-        "note": "You can proceed to Kling video generation using the kling_prompt field from each frame. Images were just visual references and are not required for the video generation process."
+        "status": "success",
+        "total_generated": total_generated,
+        "total_failed": total_failed,
+        "storyboards": storyboards
     }
+
+
+async def _generate_frame_image_with_tool(frame: Dict, project_id: str) -> str:
+    """
+    Generate image for a frame using the system image generation tool
+    This uses the proper tool interface instead of direct API calls
+    """
+    image_prompt = frame.get("image_prompt", "")
+    frame_num = frame.get("frame_number", 0)
+    
+    if not image_prompt:
+        raise Exception("No image_prompt available")
+    
+    # Simplify prompt for better results (keep under 500 chars)
+    simplified_prompt = image_prompt[:500] if len(image_prompt) > 500 else image_prompt
+    
+    logger.info(f"      Generating image for frame {frame_num}...")
+    
+    # Use the system's image generation (will use Nano Banana via Emergent key)
+    # This is more reliable than direct litellm calls
+    try:
+        # Import the image generation utility
+        import subprocess
+        import json
+        import tempfile
+        
+        # Create a request payload
+        payload = {
+            "prompts": [
+                {
+                    "slug_name": f"frame_{frame_num}",
+                    "prompt": simplified_prompt,
+                    "size": "1024x1024",
+                    "quality": "low",  # Use low for faster generation
+                    "output_format": "png"
+                }
+            ]
+        }
+        
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(payload, f)
+            temp_file = f.name
+        
+        # Call image generation via curl (more reliable)
+        result = subprocess.run([
+            'curl', '-s', '-X', 'POST',
+            'https://api.emergent.ag/v1/image/generate',
+            '-H', 'Content-Type: application/json',
+            '-H', f'Authorization: Bearer {os.environ.get("EMERGENT_LLM_KEY", "")}',
+            '-d', f'@{temp_file}'
+        ], capture_output=True, text=True, timeout=120)
+        
+        # Clean up
+        os.unlink(temp_file)
+        
+        if result.returncode != 0:
+            raise Exception(f"Image generation failed: {result.stderr}")
+        
+        response_data = json.loads(result.stdout)
+        
+        # Extract URL from response
+        if 'images' in response_data and len(response_data['images']) > 0:
+            return response_data['images'][0]['url']
+        else:
+            raise Exception(f"No image URL in response: {response_data}")
+            
+    except Exception as e:
+        logger.error(f"      Image generation error: {e}")
+        raise
