@@ -271,9 +271,16 @@ Emotion: {scene.get('emotion', 'neutral')}
 You MUST write approximately {expected_words} WORDS of dialogue to fill this duration.
 For reference: this is about {expected_words//150} minute(s) of spoken content.
 
+EXAMPLE of length expected for a 5-minute scene:
+- Each character should speak 15-20 times minimum
+- Each line should be substantial (10-30 words)
+- Include reactions, emotions, back-and-forth conversations
+- Add pauses, stage directions, emotional beats
+- Total should be around 700-850 words
+
 Write EXTENSIVE, DETAILED dialogue that will fill the entire {duration_seconds} seconds.
-Each character should speak multiple times with substantial dialogue.
-DO NOT write just 3-4 short lines - this needs {expected_words} words total!"""
+DO NOT write just 3-4 short lines - this needs {expected_words} words total!
+Make characters have FULL conversations, not just quick exchanges.""""""
 
         elif req.mode == "narrated":
             system = f"""You are a MASTER narrator/voice-over writer creating CINEMATIC storytelling.
@@ -299,9 +306,17 @@ Emotion: {scene.get('emotion', 'neutral')}
 You MUST write approximately {expected_words} WORDS of narration to fill this duration.
 For reference: this is about {expected_words//150} minute(s) of spoken content at normal speaking pace.
 
+EXAMPLE of length expected for a 5-minute narration:
+- This should be multiple paragraphs of rich, detailed narration
+- Describe actions, emotions, settings in depth
+- Create atmosphere and build tension
+- Use vivid imagery and sensory details
+- Total should be around 700-850 words
+
 Write EXTENSIVE, DETAILED narration that will fill the entire {duration_seconds} seconds.
 DO NOT write just 2-3 short sentences - this needs {expected_words} words total!
-Think of this as a {expected_words//150}-minute story segment that needs complete narration."""
+Think of this as a {expected_words//150}-minute story segment that needs complete narration.
+Write as if you're narrating a documentary or audiobook - rich, flowing, detailed text."""
 
         else:  # book
             system = f"""You are a MASTER children's book author creating LITERARY MAGIC.
@@ -327,13 +342,18 @@ Write a BEAUTIFUL storybook passage that captures this moment."""
             import litellm
             api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
             
-            # Calculate max tokens based on expected words (1 word ≈ 1.3 tokens)
-            max_tokens_needed = max(1500, int(expected_words * 1.5))
+            # For long scenes (>60s), use MUCH higher max_tokens to force longer output
+            if duration_seconds > 60:
+                max_tokens_needed = 4096  # Force maximum output
+            else:
+                max_tokens_needed = max(1500, int(expected_words * 1.5))
+            
+            logger.info(f"Using max_tokens={max_tokens_needed} for {duration_seconds}s scene")
             
             response = await litellm.acompletion(
                 model="anthropic/claude-sonnet-4-5-20250929",
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
-                api_key=api_key, max_tokens=max_tokens_needed, timeout=120,
+                api_key=api_key, max_tokens=max_tokens_needed, timeout=180,
             )
             generated = response.choices[0].message.content.strip()
         except Exception as e:
