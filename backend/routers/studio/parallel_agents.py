@@ -451,79 +451,76 @@ Format: "Narrador: 'Full narration...'"
         try:
             logger.info(f"ParallelDialogue [{project_id}]: Agent processing scene {scene_num} ({duration_secs}s, ~{expected_words} words)")
             
-            # Determine max tokens based on duration
+            # Determine max tokens based on duration and age profile
+            # Young audiences need MORE tokens (more lines, fewer words each)
             if duration_secs > 60:
-                max_tokens = 4096  # Long scenes need maximum output
+                if target_audience in ["2-5", "3-6"]:
+                    max_tokens = 6000  # Young audiences need more tokens for more lines
+                else:
+                    max_tokens = 4096
             else:
-                max_tokens = max(1500, int(expected_words * 1.5))
+                if target_audience in ["2-5", "3-6"]:
+                    max_tokens = max(2000, int(expected_words * 2))  # Double for young audiences
+                else:
+                    max_tokens = max(1500, int(expected_words * 1.5))
             
             system_prompt = f"""You are a MASTER DIALOGUE WRITER for {audio_mode} mode.
 
-EXPERTISE:
-- Academy Award-level dramatic writing
-- Expert in character voice differentiation
-- Emotional beats and story rhythm
-- Age-appropriate language adaptation
-
 TARGET AUDIENCE: {age_profile['name']}
-AGE-SPECIFIC DIALOGUE REQUIREMENTS:
 - Words per line: {age_profile['words_per_line']}
 - Vocabulary: {age_profile['vocabulary']}
-- Sentence structure: {age_profile['sentence_structure']}
 - Repetition level: {age_profile['repetition']}
 - Rhythm: {age_profile['rhythm']}
-- Emotions: {age_profile['emotions']}
-- Questions: {age_profile['questions']}
 
-TECHNIQUES FOR THIS AGE GROUP:
-{chr(10).join(['- ' + t for t in age_profile['techniques']])}
+KEY TECHNIQUES:
+{chr(10).join(['- ' + t for t in age_profile['techniques'][:3]])}
 
-EXAMPLE DIALOGUE FOR THIS AGE:
+EXAMPLE:
 {age_profile['example']}
-
-{full_script_context}
-
-TASK: Write dialogue for Scene {scene_num} ({duration_secs} seconds = approximately {expected_words} words).
-CRITICAL: Adapt word count per line to age group. For {age_profile['name']}, each character line should have {age_profile['words_per_line']}.
 
 {mode_instruction}
 
-IMPORTANT: This scene is {duration_secs} seconds long. Write dialogue that fills this duration while respecting the age-appropriate line length.
-For young audiences (2-5, 3-6): Write MORE lines with FEWER words each.
-For older audiences: Write fewer lines with more words each.
+TASK: Write dialogue for Scene {scene_num} ({duration_secs} seconds).
+For {age_profile['name']}, each character line should have {age_profile['words_per_line']}.
 
-USE THE FULL STORY CONTEXT ABOVE to ensure dialogue flows naturally from previous scenes and sets up future scenes.
+CRITICAL: This scene is {duration_secs} seconds. For young audiences (2-5, 3-6): Write MORE lines with FEWER words each.
 
 Return ONLY JSON:
 {{
   "dialogue": "The complete dialogue text for this scene",
-  "emotion_flow": "brief description of emotional progression"
+  "emotion_flow": "brief description"
 }}"""
             
-            user_prompt = f"""CHARACTERS:
+            user_prompt = f"""STORY CONTEXT (all scenes):
+{full_script_context}
+
+CHARACTERS:
 {char_context}
 
 CURRENT SCENE {scene_num}: {scene.get('title', '')}
 - Time: {scene.get('time_start', '0:00')} - {scene.get('time_end', '0:12')}
-- Characters present: {', '.join(scene.get('characters_in_scene', []))}
+- Characters: {', '.join(scene.get('characters_in_scene', []))}
 - Description: {scene.get('description', '')}
-- Emotion: {scene.get('emotion', 'neutral')}
-- Camera: {scene.get('camera', 'medium shot')}
 
-Write emotionally powerful, natural dialogue for this scene in {lang_name}.
-Remember: You know the FULL STORY from the context above. Use that knowledge to create dialogue that fits perfectly into the narrative arc."""
+Write age-appropriate dialogue in {lang_name}."""
             
             result_text = _call_claude_sync(system_prompt, user_prompt, max_tokens=max_tokens, timeout_per_attempt=180)
+            
+            # Debug: Log the raw response
+            logger.info(f"ParallelDialogue [{project_id}]: Claude raw response preview: {result_text[:300]}...")
+            
             dialogue_data = _parse_json(result_text)
             
             if not dialogue_data:
+                logger.warning(f"ParallelDialogue [{project_id}]: First JSON parse failed, trying regex extraction...")
                 import re
                 json_match = re.search(r'\{[\s\S]*\}', result_text)
                 if json_match:
                     dialogue_data = _parse_json(json_match.group(0))
+                    logger.info(f"ParallelDialogue [{project_id}]: Regex extraction {'succeeded' if dialogue_data else 'failed'}")
             
             if dialogue_data and "dialogue" in dialogue_data:
-                logger.info(f"ParallelDialogue [{project_id}]: Scene {scene_num} complete")
+                logger.info(f"ParallelDialogue [{project_id}]: Scene {scene_num} complete (dialogue length: {len(dialogue_data['dialogue'])} chars)")
                 
                 return {
                     "scene_number": scene_num,
@@ -531,6 +528,12 @@ Remember: You know the FULL STORY from the context above. Use that knowledge to 
                     "emotion_flow": dialogue_data.get("emotion_flow", "")
                 }
             else:
+                # Log the issue for debugging
+                if dialogue_data:
+                    logger.error(f"ParallelDialogue [{project_id}]: JSON parsed but missing 'dialogue' field. Keys found: {list(dialogue_data.keys())}")
+                    logger.error(f"ParallelDialogue [{project_id}]: Full parsed data: {str(dialogue_data)[:500]}...")
+                else:
+                    logger.error(f"ParallelDialogue [{project_id}]: Could not parse JSON at all. Response: {result_text[:500]}...")
                 raise Exception("Invalid JSON response - missing dialogue field")
                 
         except Exception as e:
