@@ -513,6 +513,8 @@ export default function StudioPage() {
         prompts,
         style: avatarPromptStyle,
         gender: avatarPromptGender,
+      }, {
+        timeout: 300000, // 5 minutos para criação em lote
       });
 
       console.log('Batch response:', data);
@@ -537,7 +539,13 @@ export default function StudioPage() {
 
     } catch (e) {
       console.error('Batch error:', e);
-      toast.error(e.response?.data?.detail || 'Erro ao criar personagens em lote');
+      
+      // Check if it's a timeout error
+      if (e.code === 'ECONNABORTED') {
+        toast.error('Tempo limite excedido. Verifique se os personagens foram criados na galeria.');
+      } else {
+        toast.error(e.response?.data?.detail || e.message || 'Erro ao criar personagens em lote');
+      }
     } finally {
       setGeneratingAvatar(false);
       setBatchProgress(null);
