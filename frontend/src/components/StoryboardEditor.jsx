@@ -451,15 +451,41 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         });
         console.log('✅ Generate response:', generateResponse.status, generateResponse.data);
         
-        toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
+        toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos. Aguarde...' : 'Regenerating 30 frames... This may take 5-10 minutes. Please wait...');
         
-        // Aguardar mais tempo e recarregar
-        setTimeout(() => {
-          console.log('🔄 Reloading storyboard after regeneration...');
-          loadStoryboard();
-          setLoading(false);
-          setIsRegenerating(false);
-        }, 10000); // Aumentado para 10 segundos
+        // POLLING: Verificar a cada 15 segundos se a geração terminou
+        let attempts = 0;
+        const maxAttempts = 40; // 40 x 15s = 10 minutos max
+        
+        const checkCompletion = setInterval(async () => {
+          attempts++;
+          console.log(`🔍 Checking completion... attempt ${attempts}/${maxAttempts}`);
+          
+          try {
+            const checkRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
+            
+            if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0) {
+              // ✅ Geração completa!
+              clearInterval(checkCompletion);
+              console.log(`✅ Generation complete! ${checkRes.data.total_frames} frames`);
+              toast.success(lang === 'pt' ? `${checkRes.data.total_frames} frames gerados!` : `${checkRes.data.total_frames} frames generated!`);
+              
+              loadStoryboard();
+              setLoading(false);
+              setIsRegenerating(false);
+            } else if (attempts >= maxAttempts) {
+              // ⏱️ Timeout
+              clearInterval(checkCompletion);
+              console.warn('⏱️ Timeout waiting for generation');
+              toast.warning(lang === 'pt' ? 'Geração está demorando. Recarregue a página em alguns minutos.' : 'Generation is taking longer. Reload page in a few minutes.');
+              setLoading(false);
+              setIsRegenerating(false);
+            }
+          } catch (err) {
+            console.error('Error checking completion:', err);
+          }
+        }, 15000); // Verificar a cada 15 segundos
+        
       } catch (err) {
         console.error('❌ Error regenerating:', err);
         console.error('❌ Error details:', err.response?.data);
