@@ -1129,21 +1129,25 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
 
       {/* Generate button — show when no panels exist */}
-      {panels.length === 0 && !loading && (
-        <div className="text-center py-8 space-y-3">
-          <div className="h-16 w-16 rounded-2xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center mx-auto">
-            <Image size={24} className="text-[#8B5CF6]" />
+      {displayFrames.length === 0 && !loading && (
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center">
+              <Film size={18} className="text-[#8B5CF6]" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-gray-300 mb-3">
+                {lang === 'pt'
+                  ? 'Gere automaticamente 30 frames detalhados (1 a cada 10s) para seu vídeo Kling de 5 minutos. Estilo Pixar 3D consistente com seus personagens selecionados.'
+                  : 'Automatically generate 30 detailed frames (1 every 10s) for your 5-minute Kling video. Consistent Pixar 3D style with your selected characters.'}
+              </p>
+              <button onClick={generateStoryboard} data-testid="generate-storyboard-btn"
+                className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2">
+                <Sparkles size={14} />
+                {lang === 'pt' ? 'Gerar Storyboard (30 painéis)' : 'Generate Storyboard (30 panels)'}
+              </button>
+            </div>
           </div>
-          <p className="text-[10px] text-[#666] max-w-[280px] mx-auto">
-            {lang === 'pt'
-              ? 'Gere automaticamente 30 frames detalhados (1 a cada 10s) para seu vídeo Kling de 5 minutos. Estilo Pixar 3D consistente com seus personagens selecionados.'
-              : 'Automatically generate 30 detailed frames (1 every 10s) for your 5-minute Kling video. Consistent Pixar 3D style with your selected characters.'}
-          </p>
-          <button onClick={generateStoryboard} data-testid="generate-storyboard-btn"
-            className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2 mx-auto">
-            <Sparkles size={14} />
-            {lang === 'pt' ? 'Gerar Storyboard (30 painéis)' : 'Generate Storyboard (30 panels)'}
-          </button>
         </div>
       )}
 
@@ -1312,21 +1316,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   )}
                   
                   {/* Hover overlay with actions */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); !isKlingFrame && regeneratePanel(item.scene_number); }}
-                      className="px-2 py-1 bg-[#8B5CF6] rounded text-[9px] text-white font-semibold hover:bg-[#7C4FD6] flex items-center gap-1"
-                      disabled={isKlingFrame}
-                    >
-                      <RefreshCw size={10} />
-                      {lang === 'pt' ? 'Regerar' : 'Regenerate'}
-                    </button>
-                    {!isKlingFrame && item.frames && item.frames.length > 1 && (
-                      <span className="text-[8px] text-white/70">
-                        {item.frames.length} frames
-                      </span>
-                    )}
-                  </div>
+                  {!isKlingFrame && (
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); regeneratePanel(item.scene_number); }}
+                        className="px-2 py-1 bg-[#8B5CF6] rounded text-[9px] text-white font-semibold hover:bg-[#7C4FD6] flex items-center gap-1"
+                      >
+                        <RefreshCw size={10} />
+                        {lang === 'pt' ? 'Regerar' : 'Regenerate'}
+                      </button>
+                      {item.frames && item.frames.length > 1 && (
+                        <span className="text-[8px] text-white/70">
+                          {item.frames.length} frames
+                        </span>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Expanded view indicator */}
                   {!isKlingFrame && expandedPanels.has(item.scene_number) && (
