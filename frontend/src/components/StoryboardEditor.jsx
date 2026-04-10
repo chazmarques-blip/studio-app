@@ -77,6 +77,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [zoomFrame, setZoomFrame] = useState(null);
   const [zoomFrameIndex, setZoomFrameIndex] = useState(null);
   
+  // NOVO: Confirmation modal (replaces window.confirm which is blocked by sandbox)
+  const [confirmModal, setConfirmModal] = useState(null); // {message, onConfirm}
+  
   // NOVO: Multi-select regeneration states
   const [selectedPanels, setSelectedPanels] = useState(new Set());
   const [regeneratingPanels, setRegeneratingPanels] = useState(new Map()); // panelNum -> {status, progress}
@@ -401,72 +404,66 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const regenerateAllFrames = async () => {
     console.log('🔄 regenerateAllFrames called');
     
-    // Confirmation dialog
-    const confirmed = window.confirm(
-      lang === 'pt' 
+    // Use custom confirmation modal instead of window.confirm (sandbox blocks it)
+    setConfirmModal({
+      message: lang === 'pt' 
         ? 'Tem certeza que deseja regenerar TODOS os 30 frames? Os frames atuais serão substituídos. Esta ação não pode ser desfeita.'
-        : 'Are you sure you want to regenerate ALL 30 frames? Current frames will be replaced. This action cannot be undone.'
-    );
-    
-    console.log('🔄 User confirmed:', confirmed);
-    
-    if (!confirmed) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log('🔄 Deleting existing storyboards...');
-      await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
-      
-      console.log('🔄 Generating new storyboards...');
-      await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
-      
-      toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
-      
-      // Reload after 5 seconds to show progress
-      setTimeout(() => {
-        loadStoryboard();
-        setLoading(false);
-      }, 5000);
-    } catch (err) {
-      console.error('❌ Error regenerating:', err);
-      toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
-      setLoading(false);
-    }
+        : 'Are you sure you want to regenerate ALL 30 frames? Current frames will be replaced. This action cannot be undone.',
+      onConfirm: async () => {
+        console.log('🔄 User confirmed: true');
+        setConfirmModal(null);
+        setLoading(true);
+        
+        try {
+          console.log('🔄 Deleting existing storyboards...');
+          await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
+          
+          console.log('🔄 Generating new storyboards...');
+          await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
+          
+          toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
+          
+          setTimeout(() => {
+            loadStoryboard();
+            setLoading(false);
+          }, 5000);
+        } catch (err) {
+          console.error('❌ Error regenerating:', err);
+          toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const regenerateKlingFrame = async (frameNumber) => {
     console.log('🔄 regenerateKlingFrame called for frame:', frameNumber);
     
-    const confirmed = window.confirm(
-      lang === 'pt'
+    // Use custom confirmation modal
+    setConfirmModal({
+      message: lang === 'pt'
         ? `Regenerar frame ${frameNumber}? A imagem atual será substituída.`
-        : `Regenerate frame ${frameNumber}? Current image will be replaced.`
-    );
-    
-    console.log('🔄 User confirmed:', confirmed);
-    
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      console.log('🔄 Calling API to regenerate frame', frameNumber);
-      toast.info(lang === 'pt' ? `Regenerando frame ${frameNumber}...` : `Regenerating frame ${frameNumber}...`);
-      
-      await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/regenerate-frame`, {
-        frame_number: frameNumber
-      });
-      
-      toast.success(lang === 'pt' ? 'Frame regenerado!' : 'Frame regenerated!');
-      
-      // Reload storyboards
-      setTimeout(() => loadStoryboard(), 2000);
-    } catch (err) {
-      console.error('❌ Error regenerating frame:', err);
-      toast.error(getErrorMsg(err, 'Erro ao regenerar frame'));
-    }
+        : `Regenerate frame ${frameNumber}? Current image will be replaced.`,
+      onConfirm: async () => {
+        console.log('🔄 User confirmed: true');
+        setConfirmModal(null);
+        
+        try {
+          console.log('🔄 Calling API to regenerate frame', frameNumber);
+          toast.info(lang === 'pt' ? `Regenerando frame ${frameNumber}...` : `Regenerating frame ${frameNumber}...`);
+          
+          await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/regenerate-frame`, {
+            frame_number: frameNumber
+          });
+          
+          toast.success(lang === 'pt' ? 'Frame regenerado!' : 'Frame regenerated!');
+          setTimeout(() => loadStoryboard(), 2000);
+        } catch (err) {
+          console.error('❌ Error regenerating frame:', err);
+          toast.error(getErrorMsg(err, 'Erro ao regenerar frame'));
+        }
+      }
+    });
   };
 
   const pollStoryboardProgress = () => {
@@ -1864,6 +1861,40 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         </div>,
         document.body
       )}
+
+
+      {/* Confirmation Modal (replaces window.confirm which is blocked by sandbox) */}
+      {confirmModal && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4"
+             onClick={() => setConfirmModal(null)}>
+          <div className="bg-[#0A0A0A] rounded-xl border border-[#333] p-6 max-w-md w-full"
+               onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-4">
+              {lang === 'pt' ? 'Confirmar Ação' : 'Confirm Action'}
+            </h3>
+            <p className="text-sm text-gray-300 mb-6 leading-relaxed">
+              {confirmModal.message}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  console.log('🔄 User cancelled');
+                  setConfirmModal(null);
+                }}
+                className="px-4 py-2 text-sm font-semibold text-gray-300 bg-[#1A1A1A] hover:bg-[#222] rounded-lg transition">
+                {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button
+                onClick={confirmModal.onConfirm}
+                className="px-4 py-2 text-sm font-semibold text-white bg-[#8B5CF6] hover:bg-[#7C4FD6] rounded-lg transition">
+                {lang === 'pt' ? 'Confirmar' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
 
     </div>
   );
