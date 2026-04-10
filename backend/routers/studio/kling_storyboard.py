@@ -347,7 +347,44 @@ async def regenerate_single_frame(
         target_audience = project.get("target_audience", "general")
         character_avatars = project.get("character_avatars", {})
         
-        logger.info(f"Regenerating frame {frame_number} with context: style={visual_style}, audience={target_audience}, avatars={len(character_avatars)}")
+        # CRÍTICO: Se character_avatars estiver vazio, buscar da character_library automaticamente
+        if not character_avatars or len(character_avatars) == 0:
+            character_library = project.get("character_library")
+            if character_library:
+                library_characters = character_library.get("characters", [])
+                folder_name = character_library.get("folder_name", "Unknown")
+                logger.info(f"🔍 Regenerate Frame {frame_number}: character_avatars vazio, buscando da library (pasta '{folder_name}')")
+                
+                # Mapear nomes de personagens para URLs dos avatares
+                characters = project.get("characters", [])
+                for char in characters:
+                    char_name = char.get("name", "")
+                    # Buscar na library pelo nome (exact match ou partial match)
+                    for lib_char in library_characters:
+                        lib_name = lib_char.get("name", "")
+                        lib_full_name = lib_char.get("full_name", "")
+                        
+                        # Try exact match first, then partial
+                        if lib_name == char_name or lib_full_name == char_name or char_name in lib_full_name:
+                            character_avatars[char_name] = lib_char.get("url")
+                            logger.info(f"  ✅ Vinculado '{char_name}' → {lib_char.get('url')[:60]}...")
+                            break
+                
+                # Salvar os avatares vinculados no projeto para próximas vezes
+                if character_avatars:
+                    project["character_avatars"] = character_avatars
+                    _update_project_field(tenant["id"], project_id, {
+                        "character_avatars": character_avatars
+                    })
+                    logger.info(f"💾 Regenerate: Salvos {len(character_avatars)} avatares vinculados da pasta '{folder_name}'")
+                else:
+                    logger.warning(f"⚠️ Regenerate: Nenhum avatar vinculado da library para os personagens do projeto")
+            else:
+                logger.warning(f"⚠️ Regenerate: character_avatars vazio E character_library não existe no projeto")
+        else:
+            logger.info(f"✅ Regenerate Frame {frame_number}: Usando {len(character_avatars)} character_avatars existentes")
+        
+        logger.info(f"🎨 Regenerating frame {frame_number} with context: style={visual_style}, audience={target_audience}, avatars={len(character_avatars)}")
         
         # Find the frame across all scenes
         frame_found = False
