@@ -1319,7 +1319,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   ? 'Gere automaticamente 30 frames detalhados (1 a cada 10s) para seu vídeo Kling de 5 minutos. Estilo Pixar 3D consistente com seus personagens selecionados.'
                   : 'Automatically generate 30 detailed frames (1 every 10s) for your 5-minute Kling video. Consistent Pixar 3D style with your selected characters.'}
               </p>
-              <button onClick={generateStoryboard} data-testid="generate-storyboard-btn"
+              <button onClick={regenerateAllFrames} data-testid="generate-storyboard-btn"
                 className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2">
                 <Sparkles size={14} />
                 {lang === 'pt' ? 'Gerar Storyboard (30 painéis)' : 'Generate Storyboard (30 panels)'}
