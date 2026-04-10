@@ -77,12 +77,16 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [zoomFrame, setZoomFrame] = useState(null);
   const [zoomFrameIndex, setZoomFrameIndex] = useState(null);
   
-  // NOVO: Confirmation modal (replaces window.confirm which is blocked by sandbox)
-  const [confirmModal, setConfirmModal] = useState(null); // {message, onConfirm}
+  // NOVO: Confirmation state for 2-click confirmation (no popup)
+  const [confirmRegenerateAll, setConfirmRegenerateAll] = useState(false);
+  const [confirmRegenerateFrame, setConfirmRegenerateFrame] = useState(null); // frameNumber or null
+  
+  // NOVO: Progress tracking for regeneration
+  const [regenerationProgress, setRegenerationProgress] = useState({}); // {frameNumber: percentage}
   
   // NOVO: Multi-select regeneration states
   const [selectedPanels, setSelectedPanels] = useState(new Set());
-  const [regeneratingPanels, setRegeneratingPanels] = useState(new Map()); // panelNum -> {status, progress}
+  const [regeneratingPanels, setRegeneratingPanels] = useState(new Map());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   
   // Flag to prevent reloading during drag operation
