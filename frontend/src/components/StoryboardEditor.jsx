@@ -399,21 +399,27 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   };
 
   const regenerateAllFrames = async () => {
+    console.log('🔄 regenerateAllFrames called');
+    
     // Confirmation dialog
-    if (!window.confirm(
+    const confirmed = window.confirm(
       lang === 'pt' 
         ? 'Tem certeza que deseja regenerar TODOS os 30 frames? Os frames atuais serão substituídos. Esta ação não pode ser desfeita.'
         : 'Are you sure you want to regenerate ALL 30 frames? Current frames will be replaced. This action cannot be undone.'
-    )) {
+    );
+    
+    console.log('🔄 User confirmed:', confirmed);
+    
+    if (!confirmed) {
       return;
     }
 
     setLoading(true);
     try {
-      // Delete existing storyboards
+      console.log('🔄 Deleting existing storyboards...');
       await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
       
-      // Generate new ones
+      console.log('🔄 Generating new storyboards...');
       await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
       
       toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
@@ -424,21 +430,29 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         setLoading(false);
       }, 5000);
     } catch (err) {
+      console.error('❌ Error regenerating:', err);
       toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
       setLoading(false);
     }
   };
 
   const regenerateKlingFrame = async (frameNumber) => {
-    if (!window.confirm(
+    console.log('🔄 regenerateKlingFrame called for frame:', frameNumber);
+    
+    const confirmed = window.confirm(
       lang === 'pt'
         ? `Regenerar frame ${frameNumber}? A imagem atual será substituída.`
         : `Regenerate frame ${frameNumber}? Current image will be replaced.`
-    )) {
+    );
+    
+    console.log('🔄 User confirmed:', confirmed);
+    
+    if (!confirmed) {
       return;
     }
 
     try {
+      console.log('🔄 Calling API to regenerate frame', frameNumber);
       toast.info(lang === 'pt' ? `Regenerando frame ${frameNumber}...` : `Regenerating frame ${frameNumber}...`);
       
       await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/regenerate-frame`, {
@@ -450,6 +464,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       // Reload storyboards
       setTimeout(() => loadStoryboard(), 2000);
     } catch (err) {
+      console.error('❌ Error regenerating frame:', err);
       toast.error(getErrorMsg(err, 'Erro ao regenerar frame'));
     }
   };
