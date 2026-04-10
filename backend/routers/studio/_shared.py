@@ -128,9 +128,10 @@ def _save_project(tenant_id: str, settings: dict, projects: list, flush_now: boo
     settings["studio_projects"] = projects
     _save_settings(tenant_id, settings, flush_now=flush_now)
 
-def _update_project_field(tenant_id: str, project_id: str, updates: dict):
+def _update_project_field(tenant_id: str, project_id: str, updates: dict, flush_now: bool = False):
     settings, projects, project = _get_project(tenant_id, project_id)
     if not project:
+        logger.warning(f"_update_project_field: project {project_id} not found for tenant {tenant_id}")
         return
     for k, v in updates.items():
         if isinstance(v, dict) and isinstance(project.get(k), dict):
@@ -138,7 +139,7 @@ def _update_project_field(tenant_id: str, project_id: str, updates: dict):
         else:
             project[k] = v
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
-    _save_project(tenant_id, settings, projects)
+    _save_project(tenant_id, settings, projects, flush_now=flush_now)
 
 
 def _add_milestone(project: dict, key: str, label: str):

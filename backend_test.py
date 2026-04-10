@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 # Configuration
-API_BASE = "https://seguimiento-2.preview.emergentagent.com/api"
+API_BASE = "https://studiox-kling-fix.preview.emergentagent.com/api"
 TEST_EMAIL = "test@studiox.com"
 TEST_PASSWORD = "studiox123"
 

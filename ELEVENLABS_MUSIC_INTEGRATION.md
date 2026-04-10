@@ -208,7 +208,7 @@ const MusicGeneratorModal = ({ lyrics, style, onComplete }) => {
 
 ```bash
 # 1. Gerar música
-API_URL="https://seguimiento-2.preview.emergentagent.com"
+API_URL="https://studiox-kling-fix.preview.emergentagent.com"
 
 RESPONSE=$(curl -s -X POST "$API_URL/api/music/generate" \
   -H "Content-Type: application/json" \

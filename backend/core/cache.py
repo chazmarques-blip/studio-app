@@ -253,6 +253,15 @@ class ProjectCache:
                 return
             settings = entry["settings"]
 
+        # Estimate payload size for debugging
+        import json as _json
+        try:
+            payload_size = len(_json.dumps(settings))
+            if payload_size > 500_000:
+                logger.warning(f"ProjectCache: Large payload for {tenant_id}: {payload_size/1024:.0f}KB")
+        except Exception:
+            payload_size = -1
+
         for attempt in range(3):
             try:
                 supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
@@ -260,21 +269,29 @@ class ProjectCache:
                     if self._cache.get(tenant_id):
                         self._cache[tenant_id]["dirty"] = False
                 self._dirty_tenants.discard(tenant_id)
+                logger.info(f"ProjectCache: ✅ Flushed tenant {tenant_id} ({payload_size/1024:.0f}KB)")
                 return
             except Exception as e:
                 if attempt < 2:
                     time.sleep(2 * (attempt + 1))
-                    logger.warning(f"ProjectCache flush retry {attempt+1} for {tenant_id}: {e}")
+                    logger.warning(f"ProjectCache flush retry {attempt+1} for {tenant_id} ({payload_size/1024:.0f}KB): {e}")
                 else:
-                    logger.error(f"ProjectCache flush FAILED for {tenant_id}: {e}")
+                    logger.error(f"ProjectCache flush FAILED for {tenant_id} ({payload_size/1024:.0f}KB): {e}")
+                    # Keep dirty flag so it can be retried later
+                    raise
 
     def _flush_all(self):
         """Flush all dirty tenants to DB."""
         dirty = list(self._dirty_tenants)
+        flushed = 0
         for tid in dirty:
-            self._flush_tenant(tid)
+            try:
+                self._flush_tenant(tid)
+                flushed += 1
+            except Exception as e:
+                logger.error(f"ProjectCache: _flush_all failed for tenant {tid}: {e}")
         if dirty:
-            logger.info(f"ProjectCache: flushed {len(dirty)} tenant(s)")
+            logger.info(f"ProjectCache: flushed {flushed}/{len(dirty)} tenant(s)")
 
     def get_project(self, tenant_id: str, project_id: str):
         """Cached version of _get_project."""

@@ -274,16 +274,54 @@ async def generate_kling_storyboards(
             logger.error(f"Batch processing failed: {e}")
             raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
     
-    # Save all storyboards to project
-    _update_project_field(tenant["id"], project_id, {
-        "kling_storyboards": all_scene_storyboards,
-        "kling_storyboards_generated_at": datetime.now(timezone.utc).isoformat()
-    })
-    
     # Calculate totals
     total_frames = sum(len(s.get("frames", [])) for s in all_scene_storyboards)
     
-    logger.info(f"KlingStoryboard [{project_id}]: ✅ Generated {total_frames} frames across {len(scenes)} scenes")
+    logger.info(f"KlingStoryboard [{project_id}]: Saving {total_frames} frames to DB (flush_now=True)...")
+    
+    # Save all storyboards to project with IMMEDIATE flush to Supabase
+    # flush_now=True ensures data is persisted synchronously, not via write-behind
+    _update_project_field(tenant["id"], project_id, {
+        "kling_storyboards": all_scene_storyboards,
+        "kling_storyboards_generated_at": datetime.now(timezone.utc).isoformat()
+    }, flush_now=True)
+    
+    # Verify the save actually persisted to DB
+    verify_settings, _, verify_project = _get_project(tenant["id"], project_id)
+    saved_storyboards = verify_project.get("kling_storyboards", []) if verify_project else []
+    saved_frames = sum(len(s.get("frames", [])) for s in saved_storyboards)
+    
+    if saved_frames == 0 and total_frames > 0:
+        logger.error(f"KlingStoryboard [{project_id}]: CRITICAL — {total_frames} frames generated but 0 saved! Attempting direct DB save...")
+        # Fallback: direct Supabase save bypassing cache entirely
+        try:
+            from core.deps import supabase as supa_client
+            from core.cache import project_cache
+            
+            # Force cache invalidation to prevent stale reads
+            project_cache.invalidate(tenant["id"])
+            
+            # Read fresh from DB
+            r = supa_client.table("tenants").select("settings").eq("id", tenant["id"]).single().execute()
+            db_settings = r.data.get("settings", {}) if r.data else {}
+            db_projects = db_settings.get("studio_projects", [])
+            db_project = next((p for p in db_projects if p.get("id") == project_id), None)
+            
+            if db_project:
+                db_project["kling_storyboards"] = all_scene_storyboards
+                db_project["kling_storyboards_generated_at"] = datetime.now(timezone.utc).isoformat()
+                db_project["updated_at"] = datetime.now(timezone.utc).isoformat()
+                db_settings["studio_projects"] = db_projects
+                
+                supa_client.table("tenants").update({"settings": db_settings}).eq("id", tenant["id"]).execute()
+                logger.info(f"KlingStoryboard [{project_id}]: ✅ Direct DB save successful — {total_frames} frames persisted")
+            else:
+                logger.error(f"KlingStoryboard [{project_id}]: Project not found in DB for direct save!")
+        except Exception as e:
+            logger.error(f"KlingStoryboard [{project_id}]: Direct DB save also failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save {total_frames} frames to database: {str(e)}")
+    else:
+        logger.info(f"KlingStoryboard [{project_id}]: ✅ Verified {saved_frames} frames persisted to DB")
     
     return {
         "status": "success",
@@ -307,7 +345,7 @@ async def delete_kling_storyboards(
         _update_project_field(tenant["id"], project_id, {
             "kling_storyboards": [],
             "kling_storyboards_generated_at": None
-        })
+        }, flush_now=True)
         
         logger.info(f"KlingStoryboard [{project_id}]: Deleted all storyboards")
         
@@ -390,7 +428,7 @@ async def regenerate_single_frame(
         # Save updated storyboards
         _update_project_field(tenant["id"], project_id, {
             "kling_storyboards": storyboards
-        })
+        }, flush_now=True)
         
         logger.info(f"KlingStoryboard [{project_id}]: ✅ Regenerated frame {frame_number}")
         
@@ -978,7 +1016,7 @@ async def regenerate_images(project_id: str, tenant=Depends(get_current_tenant))
             # Save progress after each batch
             _update_project_field(tenant["id"], project_id, {
                 "kling_storyboards": storyboards
-            })
+            }, flush_now=True)
             logger.info(f"  Batch complete. Progress: {total_generated} generated, {total_failed} failed")
     
     logger.info(f"RegenerateImages [{project_id}]: Complete! {total_generated} generated, {total_failed} failed")
