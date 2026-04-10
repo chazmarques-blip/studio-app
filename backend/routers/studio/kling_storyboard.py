@@ -289,6 +289,8 @@ async def delete_kling_storyboards(
             "message": "All Kling storyboards deleted"
         }
     except Exception as e:
+        logger.error(f"Error deleting storyboards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/projects/{project_id}/kling-storyboards/regenerate-frame")
