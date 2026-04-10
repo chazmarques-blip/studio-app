@@ -530,12 +530,19 @@ async def _generate_storyboards_for_single_scene(
         logger.error(f"Scene {scene_num} prompt generation failed: {e}")
         raise
     
-    # Step 2: Generate images in parallel
+    # Step 2: Download character avatars ONCE for all frames (multimodal reference)
+    avatar_images = await _download_avatar_images(character_avatars, project_id)
+    
+    # Step 3: Generate images in parallel WITH avatar references
     try:
-        frames_with_images = await _generate_images_parallel(frames_data, tenant_id, project_id)
+        frames_with_images = await _generate_images_parallel(
+            frames_data, tenant_id, project_id, 
+            avatar_images=avatar_images,
+            visual_style=project.get("visual_style", "pixar_3d"),
+            target_audience=target_audience
+        )
     except Exception as e:
         logger.error(f"Scene {scene_num} image generation failed: {e}")
-        # Continue with frames but without images
         frames_with_images = frames_data
     
     return {
@@ -811,8 +818,65 @@ async def _call_claude_for_frames(system: str, user: str) -> str:
     return response.choices[0].message.content
 
 
-async def _generate_images_parallel(frames: List[Dict], tenant_id: str, project_id: str) -> List[Dict]:
-    """Generate images for all frames in parallel batches"""
+async def _download_avatar_images(character_avatars: Dict[str, str], project_id: str) -> List[Dict]:
+    """
+    Download character avatar images ONCE and convert to base64 for multimodal Gemini input.
+    Returns list of {name, inline_data} dicts ready for Gemini API.
+    """
+    import httpx
+    import base64
+    
+    avatar_images = []
+    
+    if not character_avatars:
+        logger.info(f"KlingStoryboard [{project_id}]: No character avatars to download")
+        return avatar_images
+    
+    logger.info(f"KlingStoryboard [{project_id}]: Downloading {len(character_avatars)} avatar images for visual reference...")
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for char_name, avatar_url in character_avatars.items():
+            if not avatar_url:
+                continue
+            try:
+                response = await client.get(avatar_url)
+                if response.status_code == 200:
+                    image_bytes = response.content
+                    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                    
+                    # Detect mime type
+                    mime_type = "image/png"
+                    if avatar_url.lower().endswith(".jpg") or avatar_url.lower().endswith(".jpeg"):
+                        mime_type = "image/jpeg"
+                    elif avatar_url.lower().endswith(".webp"):
+                        mime_type = "image/webp"
+                    
+                    avatar_images.append({
+                        "name": char_name,
+                        "inline_data": {
+                            "mimeType": mime_type,
+                            "data": image_base64
+                        }
+                    })
+                    logger.info(f"  ✅ {char_name}: Avatar downloaded ({len(image_bytes)} bytes)")
+                else:
+                    logger.warning(f"  ⚠️ {char_name}: Failed to download avatar (HTTP {response.status_code})")
+            except Exception as e:
+                logger.warning(f"  ⚠️ {char_name}: Error downloading avatar: {e}")
+    
+    logger.info(f"KlingStoryboard [{project_id}]: {len(avatar_images)}/{len(character_avatars)} avatars ready for multimodal input")
+    return avatar_images
+
+
+async def _generate_images_parallel(
+    frames: List[Dict], tenant_id: str, project_id: str,
+    avatar_images: List[Dict] = None,
+    visual_style: str = "pixar_3d",
+    target_audience: str = "general"
+) -> List[Dict]:
+    """Generate images for all frames in parallel batches WITH character avatar references"""
+    
+    avatar_images = avatar_images or []
     
     # Process in 3 batches of 10 frames each
     BATCH_SIZE = 10
@@ -825,7 +889,12 @@ async def _generate_images_parallel(frames: List[Dict], tenant_id: str, project_
         
         # Generate images in parallel for this batch
         tasks = [
-            _generate_single_frame_image(frame, tenant_id, project_id)
+            _generate_single_frame_image(
+                frame, tenant_id, project_id,
+                avatar_images=avatar_images,
+                visual_style=visual_style,
+                target_audience=target_audience
+            )
             for frame in batch
         ]
         
@@ -847,13 +916,58 @@ async def _generate_images_parallel(frames: List[Dict], tenant_id: str, project_
     return all_results
 
 
-async def _generate_single_frame_image(frame: Dict, tenant_id: str, project_id: str) -> str:
-    """Generate image for a single frame using Gemini Nano Banana (gemini-2.5-flash-image)"""
+async def _generate_single_frame_image(
+    frame: Dict, tenant_id: str, project_id: str,
+    avatar_images: List[Dict] = None,
+    visual_style: str = "pixar_3d",
+    target_audience: str = "general"
+) -> str:
+    """
+    Generate image for a single frame using Gemini with MULTIMODAL avatar references.
+    Sends character avatar images alongside text prompt so Gemini replicates exact characters.
+    """
     
     image_prompt = frame.get("image_prompt", "")
     frame_num = frame.get("frame_number", 0)
+    avatar_images = avatar_images or []
     
-    # Use native GEMINI_API_KEY for Nano Banana
+    # Map visual style
+    style_descriptions = {
+        "pixar_3d": "Disney Pixar 3D animation style - cute, rounded characters, vibrant colors, cinematic lighting",
+        "disney_2d": "Disney 2D hand-drawn animation style",
+        "anime": "Anime style - Japanese animation",
+        "realistic": "Photorealistic live-action style",
+        "cartoon": "Cartoon style - simplified, colorful"
+    }
+    style_guide = style_descriptions.get(visual_style, style_descriptions["pixar_3d"])
+    
+    # Build audience context
+    audience_context = ""
+    if target_audience in ("baby", "0-2"):
+        audience_context = "Para bebês (0-2 anos): formas arredondadas, alto contraste, cores primárias."
+    elif target_audience in ("crianca", "3-6"):
+        audience_context = "Para crianças (3-6 anos): visuais coloridos, personagens amigáveis."
+    
+    # Build character reference text
+    char_refs = []
+    for av in avatar_images:
+        char_refs.append(f"PERSONAGEM {av['name']}: Use a aparência EXATA da imagem de referência acima.")
+    char_ref_text = "\n".join(char_refs) if char_refs else ""
+    
+    # Build the full text prompt
+    text_prompt = f"""ESTILO VISUAL: {style_guide}
+{audience_context}
+
+{f"REFERÊNCIAS DE PERSONAGENS (imagens acima):{chr(10)}{char_ref_text}{chr(10)}IMPORTANTE: Mantenha a aparência EXATA dos personagens mostrados nas imagens acima!" if char_refs else ""}
+
+CENA:
+{image_prompt[:1200]}
+
+REQUISITOS:
+1. DEVE usar o estilo {visual_style}
+2. DEVE manter a aparência visual dos personagens das referências
+3. NÃO criar novos designs - usar os personagens fornecidos"""
+
     try:
         gemini_key = os.environ.get("GEMINI_API_KEY", "")
         if not gemini_key:
@@ -862,7 +976,6 @@ async def _generate_single_frame_image(frame: Dict, tenant_id: str, project_id: 
         import httpx
         import base64
         
-        # Gemini Nano Banana (gemini-2.5-flash-image) endpoint
         url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
         
         headers = {
@@ -870,41 +983,47 @@ async def _generate_single_frame_image(frame: Dict, tenant_id: str, project_id: 
             "Content-Type": "application/json"
         }
         
-        # Simplify prompt for better results (keep under 1000 chars)
-        simplified_prompt = image_prompt[:1000] if len(image_prompt) > 1000 else image_prompt
+        # Build MULTIMODAL parts: avatar images first, then text prompt
+        parts = []
+        
+        # Add character avatar images as visual references
+        for av in avatar_images:
+            parts.append({"inlineData": av["inline_data"]})
+        
+        # Add text prompt
+        parts.append({"text": text_prompt})
         
         payload = {
             "contents": [{
-                "parts": [{
-                    "text": simplified_prompt
-                }]
+                "parts": parts
             }],
             "generationConfig": {
                 "responseModalities": ["IMAGE"]
             }
         }
         
-        logger.info(f"Frame {frame_num}: Calling Gemini Nano Banana API...")
+        if avatar_images:
+            logger.info(f"Frame {frame_num}: Calling Gemini with {len(avatar_images)} avatar references (multimodal)")
+        else:
+            logger.info(f"Frame {frame_num}: Calling Gemini (text-only, no avatars)")
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(url, headers=headers, json=payload)
             
             if response.status_code != 200:
-                raise Exception(f"API returned {response.status_code}: {response.text}")
+                raise Exception(f"API returned {response.status_code}: {response.text[:300]}")
             
             result = response.json()
             
-            # Extract base64 image from response (Gemini returns candidates->content->parts->inlineData)
             if "candidates" in result:
                 for candidate in result["candidates"]:
                     if "content" in candidate:
-                        parts = candidate["content"].get("parts", [])
-                        for part in parts:
+                        resp_parts = candidate["content"].get("parts", [])
+                        for part in resp_parts:
                             if "inlineData" in part:
                                 image_base64 = part["inlineData"].get("data")
                                 
                                 if image_base64:
-                                    # Upload to Supabase storage
                                     image_url = await _upload_base64_to_supabase(
                                         image_base64, 
                                         tenant_id, 
