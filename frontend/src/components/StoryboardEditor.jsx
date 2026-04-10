@@ -425,7 +425,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       }, 5000);
     } catch (err) {
       toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
-
+      setLoading(false);
+    }
+  };
 
   const regenerateKlingFrame = async (frameNumber) => {
     if (!window.confirm(
@@ -451,11 +453,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       toast.error(getErrorMsg(err, 'Erro ao regenerar frame'));
     }
   };
-
-      setLoading(false);
-    }
-  };
-
 
   const pollStoryboardProgress = () => {
     let attempts = 0;
