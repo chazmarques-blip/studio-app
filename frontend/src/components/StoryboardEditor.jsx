@@ -432,19 +432,24 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       
       try {
         console.log('🔄 Deleting existing storyboards...');
-        await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
+        const deleteResponse = await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
+        console.log('✅ Delete response:', deleteResponse.status, deleteResponse.data);
         
         console.log('🔄 Generating new storyboards...');
-        await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
+        const generateResponse = await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
+        console.log('✅ Generate response:', generateResponse.status, generateResponse.data);
         
         toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
         
         setTimeout(() => {
+          console.log('🔄 Reloading storyboard after regeneration...');
           loadStoryboard();
           setLoading(false);
         }, 5000);
       } catch (err) {
         console.error('❌ Error regenerating:', err);
+        console.error('❌ Error details:', err.response?.data);
+        console.error('❌ Error status:', err.response?.status);
         toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
         setLoading(false);
       }
