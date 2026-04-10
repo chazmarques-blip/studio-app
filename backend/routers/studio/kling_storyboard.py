@@ -136,13 +136,58 @@ async def generate_kling_storyboards(
     tenant=Depends(get_current_tenant)
 ):
     """
-    Generate ultra-detailed storyboards for 5-minute video (30 frames)
-    If project has scenes, uses them. Otherwise creates a virtual 5-minute scene.
-    Always generates exactly 30 frames for Kling video production.
+    Generate ultra-detailed storyboards for 5-minute video (30 frames).
+    Runs as a BACKGROUND TASK — returns immediately, frontend polls for completion.
     """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Mark generation as started (so frontend knows to poll)
+    _update_project_field(tenant["id"], project_id, {
+        "kling_generation_status": {
+            "phase": "generating",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "progress": 0,
+            "total_expected": 30
+        }
+    }, flush_now=True)
+    
+    # Capture tenant info for background task
+    tenant_id = tenant["id"]
+    
+    # Launch generation in background thread (won't be killed by HTTP disconnect)
+    async def _run_generation_background():
+        try:
+            await _do_generate_kling_storyboards(project_id, tenant_id)
+        except Exception as e:
+            logger.error(f"KlingStoryboard [{project_id}]: Background generation failed: {e}")
+            _update_project_field(tenant_id, project_id, {
+                "kling_generation_status": {
+                    "phase": "error",
+                    "error": str(e)[:200],
+                    "finished_at": datetime.now(timezone.utc).isoformat()
+                }
+            }, flush_now=True)
+    
+    asyncio.ensure_future(_run_generation_background())
+    
+    logger.info(f"KlingStoryboard [{project_id}]: Generation launched in background")
+    
+    return {
+        "status": "generating",
+        "message": "30-frame generation started in background. Poll GET /kling-storyboards for progress.",
+        "total_expected": 30
+    }
+
+
+async def _do_generate_kling_storyboards(project_id: str, tenant_id: str):
+    """
+    Actual generation logic — runs in background, immune to HTTP timeouts.
+    """
+    settings, projects, project = _get_project(tenant_id, project_id)
+    if not project:
+        raise Exception("Project not found")
     
     scenes = project.get("scenes", [])
     
@@ -185,7 +230,7 @@ async def generate_kling_storyboards(
             # Salvar os avatares vinculados no projeto para próximas vezes
             if character_avatars:
                 project["character_avatars"] = character_avatars
-                _update_project_field(tenant["id"], project_id, {
+                _update_project_field(tenant_id, project_id, {
                     "character_avatars": character_avatars
                 })
                 logger.info(f"KlingStoryboard [{project_id}]: ✅ {len(character_avatars)} avatares vinculados da library e salvos no projeto")
@@ -245,7 +290,7 @@ async def generate_kling_storyboards(
                 characters,
                 target_audience,
                 lang,
-                tenant["id"],
+                tenant_id,
                 project_id,
                 project,  # projeto completo
                 character_avatars  # NOVO: avatares selecionados
@@ -272,7 +317,7 @@ async def generate_kling_storyboards(
             
         except Exception as e:
             logger.error(f"Batch processing failed: {e}")
-            raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
+            raise Exception(f"Batch processing failed: {str(e)}")
     
     # Calculate totals
     total_frames = sum(len(s.get("frames", [])) for s in all_scene_storyboards)
@@ -280,29 +325,30 @@ async def generate_kling_storyboards(
     logger.info(f"KlingStoryboard [{project_id}]: Saving {total_frames} frames to DB (flush_now=True)...")
     
     # Save all storyboards to project with IMMEDIATE flush to Supabase
-    # flush_now=True ensures data is persisted synchronously, not via write-behind
-    _update_project_field(tenant["id"], project_id, {
+    _update_project_field(tenant_id, project_id, {
         "kling_storyboards": all_scene_storyboards,
-        "kling_storyboards_generated_at": datetime.now(timezone.utc).isoformat()
+        "kling_storyboards_generated_at": datetime.now(timezone.utc).isoformat(),
+        "kling_generation_status": {
+            "phase": "complete",
+            "total_frames": total_frames,
+            "finished_at": datetime.now(timezone.utc).isoformat()
+        }
     }, flush_now=True)
     
     # Verify the save actually persisted to DB
-    verify_settings, _, verify_project = _get_project(tenant["id"], project_id)
+    verify_settings, _, verify_project = _get_project(tenant_id, project_id)
     saved_storyboards = verify_project.get("kling_storyboards", []) if verify_project else []
     saved_frames = sum(len(s.get("frames", [])) for s in saved_storyboards)
     
     if saved_frames == 0 and total_frames > 0:
         logger.error(f"KlingStoryboard [{project_id}]: CRITICAL — {total_frames} frames generated but 0 saved! Attempting direct DB save...")
-        # Fallback: direct Supabase save bypassing cache entirely
         try:
             from core.deps import supabase as supa_client
             from core.cache import project_cache
             
-            # Force cache invalidation to prevent stale reads
-            project_cache.invalidate(tenant["id"])
+            project_cache.invalidate(tenant_id)
             
-            # Read fresh from DB
-            r = supa_client.table("tenants").select("settings").eq("id", tenant["id"]).single().execute()
+            r = supa_client.table("tenants").select("settings").eq("id", tenant_id).single().execute()
             db_settings = r.data.get("settings", {}) if r.data else {}
             db_projects = db_settings.get("studio_projects", [])
             db_project = next((p for p in db_projects if p.get("id") == project_id), None)
@@ -311,24 +357,18 @@ async def generate_kling_storyboards(
                 db_project["kling_storyboards"] = all_scene_storyboards
                 db_project["kling_storyboards_generated_at"] = datetime.now(timezone.utc).isoformat()
                 db_project["updated_at"] = datetime.now(timezone.utc).isoformat()
+                db_project["kling_generation_status"] = {"phase": "complete", "total_frames": total_frames, "finished_at": datetime.now(timezone.utc).isoformat()}
                 db_settings["studio_projects"] = db_projects
                 
-                supa_client.table("tenants").update({"settings": db_settings}).eq("id", tenant["id"]).execute()
+                supa_client.table("tenants").update({"settings": db_settings}).eq("id", tenant_id).execute()
                 logger.info(f"KlingStoryboard [{project_id}]: ✅ Direct DB save successful — {total_frames} frames persisted")
             else:
                 logger.error(f"KlingStoryboard [{project_id}]: Project not found in DB for direct save!")
         except Exception as e:
             logger.error(f"KlingStoryboard [{project_id}]: Direct DB save also failed: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to save {total_frames} frames to database: {str(e)}")
+            raise
     else:
         logger.info(f"KlingStoryboard [{project_id}]: ✅ Verified {saved_frames} frames persisted to DB")
-    
-    return {
-        "status": "success",
-        "total_scenes": len(scenes),
-        "total_frames": total_frames,
-        "scenes": all_scene_storyboards
-    }
 
 
 
@@ -940,12 +980,13 @@ def _parse_time_to_seconds(time_str: str) -> int:
 
 @router.get("/projects/{project_id}/kling-storyboards")
 async def get_kling_storyboards(project_id: str, tenant=Depends(get_current_tenant)):
-    """Get generated Kling storyboards"""
+    """Get generated Kling storyboards with generation status"""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
     storyboards = project.get("kling_storyboards", [])
+    generation_status = project.get("kling_generation_status", {})
     
     # Calculate total frames across all scenes (each scene has a "frames" array)
     total_frames = sum(len(s.get("frames", [])) for s in storyboards)
@@ -954,8 +995,9 @@ async def get_kling_storyboards(project_id: str, tenant=Depends(get_current_tena
         "has_storyboards": len(storyboards) > 0,
         "total_scenes": len(storyboards),
         "total_frames": total_frames,
-        "scenes": storyboards,  # Renamed from "frames" to "scenes" for clarity
-        "generated_at": project.get("kling_storyboards_generated_at")
+        "scenes": storyboards,
+        "generated_at": project.get("kling_storyboards_generated_at"),
+        "generation_status": generation_status
     }
 
 

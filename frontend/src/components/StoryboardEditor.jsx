@@ -72,6 +72,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   // NOVO: Kling storyboards (30 frames)
   const [klingStoryboards, setKlingStoryboards] = useState(null);
   const [useKlingMode, setUseKlingMode] = useState(false);
+  const [klingGenerating, setKlingGenerating] = useState(false);
   
   // NOVO: Zoom modal for frame details
   const [zoomFrame, setZoomFrame] = useState(null);
@@ -290,6 +291,42 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Auto-poll when Kling generation is in progress (handles page refresh during generation)
+  useEffect(() => {
+    if (!klingGenerating || !projectId) return;
+    
+    console.log('⏳ Starting auto-poll for Kling generation...');
+    setLoading(true);
+    setIsRegenerating(true);
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const checkRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
+        const status = checkRes.data.generation_status || {};
+        
+        if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0 && status.phase !== 'generating') {
+          clearInterval(pollInterval);
+          setKlingGenerating(false);
+          console.log(`✅ Kling generation complete: ${checkRes.data.total_frames} frames`);
+          toast.success(lang === 'pt' ? `${checkRes.data.total_frames} frames gerados com sucesso!` : `${checkRes.data.total_frames} frames generated!`);
+          await loadStoryboard();
+          setLoading(false);
+          setIsRegenerating(false);
+        } else if (status.phase === 'error') {
+          clearInterval(pollInterval);
+          setKlingGenerating(false);
+          toast.error(lang === 'pt' ? `Erro na geração: ${status.error}` : `Error: ${status.error}`);
+          setLoading(false);
+          setIsRegenerating(false);
+        }
+      } catch (err) {
+        console.error('Auto-poll error:', err);
+      }
+    }, 10000); // Check every 10s
+    
+    return () => clearInterval(pollInterval);
+  }, [klingGenerating, projectId]);
+
   // ✅ NEW: Continuous polling when panels are generating
   useEffect(() => {
     if (!projectId) return;
@@ -370,6 +407,18 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       // Try loading Kling storyboards first
       try {
         const klingRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
+        const genStatus = klingRes.data.generation_status || {};
+        
+        // Check if generation is in progress
+        if (genStatus.phase === 'generating') {
+          setKlingGenerating(true);
+          setUseKlingMode(true);
+          console.log('⏳ Kling generation in progress, polling...');
+          return; // Let the polling useEffect handle it
+        }
+        
+        setKlingGenerating(false);
+        
         if (klingRes.data.has_storyboards && klingRes.data.total_frames > 0) {
           // CACHE BUSTING: Adicionar timestamp em todas as imagens para forçar reload
           const timestamp = Date.now();
@@ -453,42 +502,51 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         });
         console.log('✅ Generate response:', generateResponse.status, generateResponse.data);
         
-        // Generation complete — data is now saved to DB (flush_now=True on backend)
-        const totalFrames = generateResponse.data?.total_frames || 0;
-        if (totalFrames > 0) {
-          toast.success(lang === 'pt' ? `${totalFrames} frames gerados com sucesso!` : `${totalFrames} frames generated successfully!`);
-          // Immediately reload storyboard since data is guaranteed in DB
-          await loadStoryboard();
-          setLoading(false);
-          setIsRegenerating(false);
-        } else {
-          // Fallback: poll for completion if POST returned 0 frames
-          toast.success(lang === 'pt' ? 'Regenerando frames... Isso pode levar alguns minutos.' : 'Regenerating frames... This may take a few minutes.');
+        // Backend runs generation in background — POST returns immediately
+        // Now poll for completion
+        toast.success(lang === 'pt' ? 'Gerando 30 frames... Isso pode levar 3-5 minutos. Aguarde.' : 'Generating 30 frames... This may take 3-5 minutes. Please wait.');
+        
+        let attempts = 0;
+        const maxAttempts = 40; // 40 x 15s = 10 min max
+        
+        const checkCompletion = setInterval(async () => {
+          attempts++;
+          console.log(`🔍 Polling progress... attempt ${attempts}/${maxAttempts}`);
           
-          let attempts = 0;
-          const maxAttempts = 40;
-          
-          const checkCompletion = setInterval(async () => {
-            attempts++;
-            try {
-              const checkRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
-              if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0) {
-                clearInterval(checkCompletion);
-                toast.success(lang === 'pt' ? `${checkRes.data.total_frames} frames gerados!` : `${checkRes.data.total_frames} frames generated!`);
-                loadStoryboard();
-                setLoading(false);
-                setIsRegenerating(false);
-              } else if (attempts >= maxAttempts) {
-                clearInterval(checkCompletion);
-                toast.warning(lang === 'pt' ? 'Geração está demorando. Recarregue a página em alguns minutos.' : 'Generation is taking longer. Reload page in a few minutes.');
-                setLoading(false);
-                setIsRegenerating(false);
+          try {
+            const checkRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
+            const status = checkRes.data.generation_status || {};
+            
+            // Check if generation completed
+            if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0 && status.phase !== 'generating') {
+              clearInterval(checkCompletion);
+              console.log(`✅ Generation complete! ${checkRes.data.total_frames} frames`);
+              toast.success(lang === 'pt' ? `${checkRes.data.total_frames} frames gerados com sucesso!` : `${checkRes.data.total_frames} frames generated successfully!`);
+              await loadStoryboard();
+              setLoading(false);
+              setIsRegenerating(false);
+            } else if (status.phase === 'error') {
+              clearInterval(checkCompletion);
+              console.error('❌ Generation failed:', status.error);
+              toast.error(lang === 'pt' ? `Erro na geração: ${status.error || 'Unknown'}` : `Generation error: ${status.error || 'Unknown'}`);
+              setLoading(false);
+              setIsRegenerating(false);
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkCompletion);
+              console.warn('⏱️ Timeout waiting for generation');
+              toast.warning(lang === 'pt' ? 'Geração está demorando. Recarregue a página em alguns minutos.' : 'Generation is taking longer. Reload page in a few minutes.');
+              setLoading(false);
+              setIsRegenerating(false);
+            } else {
+              // Show progress feedback
+              if (attempts % 2 === 0) {
+                toast.info(lang === 'pt' ? `Gerando... (verificação ${attempts})` : `Generating... (check ${attempts})`, { duration: 3000 });
               }
-            } catch (err) {
-              console.error('Error checking completion:', err);
             }
-          }, 15000);
-        }
+          } catch (err) {
+            console.error('Error checking completion:', err);
+          }
+        }, 15000); // Check every 15 seconds
         
       } catch (err) {
         console.error('❌ Error regenerating:', err);
