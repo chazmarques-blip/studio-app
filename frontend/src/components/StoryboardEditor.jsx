@@ -84,6 +84,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   // NOVO: Progress tracking for regeneration
   const [regenerationProgress, setRegenerationProgress] = useState({}); // {frameNumber: percentage}
   
+  // NOVO: Modal de confirmação customizado (necessário pois sandbox bloqueia window.confirm)
+  const [confirmModal, setConfirmModal] = useState(null);
+  
   // NOVO: Multi-select regeneration states
   const [selectedPanels, setSelectedPanels] = useState(new Set());
   const [regeneratingPanels, setRegeneratingPanels] = useState(new Map());
@@ -363,9 +366,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       try {
         const klingRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
         if (klingRes.data.has_storyboards && klingRes.data.total_frames > 0) {
-          setKlingStoryboards(klingRes.data);
+          // CACHE BUSTING: Adicionar timestamp em todas as imagens para forçar reload
+          const timestamp = Date.now();
+          const storyboardsWithCacheBusting = {
+            ...klingRes.data,
+            scenes: klingRes.data.scenes.map(scene => ({
+              ...scene,
+              frames: scene.frames.map(frame => ({
+                ...frame,
+                image_url: frame.image_url ? `${frame.image_url}?t=${timestamp}` : frame.image_url
+              }))
+            }))
+          };
+          
+          setKlingStoryboards(storyboardsWithCacheBusting);
           setUseKlingMode(true);
-          console.log('✅ Loaded Kling storyboards:', klingRes.data.total_frames, 'frames');
+          console.log('✅ Loaded Kling storyboards with cache-busting:', klingRes.data.total_frames, 'frames');
           return; // Use Kling mode
         }
       } catch (err) {
@@ -408,66 +424,104 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const regenerateAllFrames = async () => {
     console.log('🔄 regenerateAllFrames called');
     
-    // Use custom confirmation modal instead of window.confirm (sandbox blocks it)
-    setConfirmModal({
-      message: lang === 'pt' 
-        ? 'Tem certeza que deseja regenerar TODOS os 30 frames? Os frames atuais serão substituídos. Esta ação não pode ser desfeita.'
-        : 'Are you sure you want to regenerate ALL 30 frames? Current frames will be replaced. This action cannot be undone.',
-      onConfirm: async () => {
-        console.log('🔄 User confirmed: true');
-        setConfirmModal(null);
-        setLoading(true);
+    // 2-CLICK INLINE CONFIRMATION
+    if (confirmRegenerateAll) {
+      console.log('🔄 2nd click - executing bulk regeneration');
+      setConfirmRegenerateAll(false);
+      setLoading(true);
+      
+      try {
+        console.log('🔄 Deleting existing storyboards...');
+        await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
         
-        try {
-          console.log('🔄 Deleting existing storyboards...');
-          await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
-          
-          console.log('🔄 Generating new storyboards...');
-          await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
-          
-          toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
-          
-          setTimeout(() => {
-            loadStoryboard();
-            setLoading(false);
-          }, 5000);
-        } catch (err) {
-          console.error('❌ Error regenerating:', err);
-          toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
+        console.log('🔄 Generating new storyboards...');
+        await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
+        
+        toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
+        
+        setTimeout(() => {
+          loadStoryboard();
           setLoading(false);
-        }
+        }, 5000);
+      } catch (err) {
+        console.error('❌ Error regenerating:', err);
+        toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
+        setLoading(false);
       }
-    });
+    } else {
+      // 1º CLICK: Ativar confirmação
+      console.log('🔄 1st click - asking for confirmation');
+      setConfirmRegenerateAll(true);
+      
+      // Auto-cancelar após 4 segundos
+      setTimeout(() => {
+        setConfirmRegenerateAll(false);
+      }, 4000);
+    }
   };
 
   const regenerateKlingFrame = async (frameNumber) => {
     console.log('🔄 regenerateKlingFrame called for frame:', frameNumber);
     
-    // Use custom confirmation modal
-    setConfirmModal({
-      message: lang === 'pt'
-        ? `Regenerar frame ${frameNumber}? A imagem atual será substituída.`
-        : `Regenerate frame ${frameNumber}? Current image will be replaced.`,
-      onConfirm: async () => {
-        console.log('🔄 User confirmed: true');
-        setConfirmModal(null);
+    // 2-CLICK INLINE CONFIRMATION: Se já está no estado de confirmação, executar
+    if (confirmRegenerateFrame === frameNumber) {
+      console.log('🔄 2nd click - executing regeneration for frame:', frameNumber);
+      setConfirmRegenerateFrame(null); // Reset confirmation state
+      
+      try {
+        console.log('🔄 Calling API to regenerate frame', frameNumber);
+        toast.info(lang === 'pt' ? `Regenerando frame ${frameNumber}...` : `Regenerating frame ${frameNumber}...`);
         
-        try {
-          console.log('🔄 Calling API to regenerate frame', frameNumber);
-          toast.info(lang === 'pt' ? `Regenerando frame ${frameNumber}...` : `Regenerating frame ${frameNumber}...`);
-          
-          await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/regenerate-frame`, {
-            frame_number: frameNumber
+        // Simular progresso: 0% → 100% em 30 segundos
+        setRegenerationProgress(prev => ({ ...prev, [frameNumber]: 0 }));
+        const progressInterval = setInterval(() => {
+          setRegenerationProgress(prev => {
+            const current = prev[frameNumber] || 0;
+            if (current >= 100) {
+              clearInterval(progressInterval);
+              return prev;
+            }
+            return { ...prev, [frameNumber]: Math.min(current + 3, 100) }; // +3% a cada 1s = ~33s total
           });
-          
-          toast.success(lang === 'pt' ? 'Frame regenerado!' : 'Frame regenerated!');
-          setTimeout(() => loadStoryboard(), 2000);
-        } catch (err) {
-          console.error('❌ Error regenerating frame:', err);
-          toast.error(getErrorMsg(err, 'Erro ao regenerar frame'));
-        }
+        }, 1000);
+        
+        await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/regenerate-frame`, {
+          frame_number: frameNumber
+        });
+        
+        clearInterval(progressInterval);
+        setRegenerationProgress(prev => ({ ...prev, [frameNumber]: 100 }));
+        
+        toast.success(lang === 'pt' ? 'Frame regenerado!' : 'Frame regenerated!');
+        
+        // Aguardar 1s e recarregar com cache-busting
+        setTimeout(() => {
+          setRegenerationProgress(prev => {
+            const newProgress = { ...prev };
+            delete newProgress[frameNumber];
+            return newProgress;
+          });
+          loadStoryboard();
+        }, 1000);
+      } catch (err) {
+        console.error('❌ Error regenerating frame:', err);
+        setRegenerationProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[frameNumber];
+          return newProgress;
+        });
+        toast.error(getErrorMsg(err, 'Erro ao regenerar frame'));
       }
-    });
+    } else {
+      // 1º CLICK: Ativar estado de confirmação
+      console.log('🔄 1st click - asking for confirmation for frame:', frameNumber);
+      setConfirmRegenerateFrame(frameNumber);
+      
+      // Auto-cancelar após 3 segundos se não clicar novamente
+      setTimeout(() => {
+        setConfirmRegenerateFrame(prev => prev === frameNumber ? null : prev);
+      }, 3000);
+    }
   };
 
   const pollStoryboardProgress = () => {
@@ -1322,10 +1376,17 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               {useKlingMode && (
                 <button
                   onClick={regenerateAllFrames}
-                  className="text-[10px] font-semibold text-[#8B5CF6] hover:text-[#7C4FD6] flex items-center gap-1 px-2 py-1 rounded-lg border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10 transition"
+                  className={`text-[10px] font-semibold flex items-center gap-1 px-2 py-1 rounded-lg border transition ${
+                    confirmRegenerateAll 
+                      ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' 
+                      : 'text-[#8B5CF6] hover:text-[#7C4FD6] border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10'
+                  }`}
                 >
                   <RefreshCw size={11} />
-                  {lang === 'pt' ? 'Regenerar Todos (30)' : 'Regenerate All (30)'}
+                  {confirmRegenerateAll 
+                    ? (lang === 'pt' ? 'Confirmar?' : 'Confirm?')
+                    : (lang === 'pt' ? 'Regenerar Todos (30)' : 'Regenerate All (30)')
+                  }
                 </button>
               )}
             </div>
@@ -1405,10 +1466,17 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         e.stopPropagation(); 
                         isKlingFrame ? regenerateKlingFrame(item.frame_number) : regeneratePanel(item.scene_number);
                       }}
-                      className="px-2 py-1 bg-[#8B5CF6] rounded text-[9px] text-white font-semibold hover:bg-[#7C4FD6] flex items-center gap-1 pointer-events-auto"
+                      className={`px-2 py-1 rounded text-[9px] font-semibold flex items-center gap-1 pointer-events-auto transition ${
+                        confirmRegenerateFrame === frameNumber
+                          ? 'bg-red-500/90 text-white animate-pulse'
+                          : 'bg-[#8B5CF6] text-white hover:bg-[#7C4FD6]'
+                      }`}
                     >
                       <RefreshCw size={10} />
-                      {lang === 'pt' ? 'Regerar' : 'Regenerate'}
+                      {confirmRegenerateFrame === frameNumber
+                        ? (lang === 'pt' ? 'Confirmar?' : 'Confirm?')
+                        : (lang === 'pt' ? 'Regerar' : 'Regenerate')
+                      }
                     </button>
                     {!isKlingFrame && item.frames && item.frames.length > 1 && (
                       <span className="text-[8px] text-white/70">
@@ -1416,6 +1484,23 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       </span>
                     )}
                   </div>
+                  
+                  {/* NOVO: Progress indicator overlay - aparece quando está regenerando */}
+                  {regenerationProgress[frameNumber] !== undefined && (
+                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-2 pointer-events-none">
+                      <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg px-3 py-2 backdrop-blur-sm">
+                        <div className="flex items-center gap-2">
+                          <RefreshCw size={12} className="text-orange-400 animate-spin" />
+                          <span className="text-xs font-semibold text-orange-400">
+                            {lang === 'pt' ? 'Regenerando' : 'Regenerating'}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-center text-lg font-bold text-orange-300">
+                          {regenerationProgress[frameNumber]}%
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Expanded view indicator */}
                   {!isKlingFrame && expandedPanels.has(item.scene_number) && (
