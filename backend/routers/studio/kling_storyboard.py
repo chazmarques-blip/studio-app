@@ -266,6 +266,33 @@ async def generate_kling_storyboards(
     }
 
 
+
+@router.delete("/projects/{project_id}/kling-storyboards")
+async def delete_kling_storyboards(
+    project_id: str,
+    tenant=Depends(get_current_tenant)
+):
+    """
+    Delete all Kling storyboards for a project
+    Used before regenerating all frames
+    """
+    try:
+        _update_project_field(tenant["id"], project_id, {
+            "kling_storyboards": [],
+            "kling_storyboards_generated_at": None
+        })
+        
+        logger.info(f"KlingStoryboard [{project_id}]: Deleted all storyboards")
+        
+        return {
+            "status": "success",
+            "message": "All Kling storyboards deleted"
+        }
+    except Exception as e:
+        logger.error(f"Error deleting storyboards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def _generate_storyboards_for_single_scene(
     scene: Dict,
     dialogue: Optional[Dict],

@@ -398,6 +398,38 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     }
   };
 
+  const regenerateAllFrames = async () => {
+    // Confirmation dialog
+    if (!window.confirm(
+      lang === 'pt' 
+        ? 'Tem certeza que deseja regenerar TODOS os 30 frames? Os frames atuais serão substituídos. Esta ação não pode ser desfeita.'
+        : 'Are you sure you want to regenerate ALL 30 frames? Current frames will be replaced. This action cannot be undone.'
+    )) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Delete existing storyboards
+      await axios.delete(`${API}/studio/projects/${projectId}/kling-storyboards`);
+      
+      // Generate new ones
+      await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
+      
+      toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
+      
+      // Reload after 5 seconds to show progress
+      setTimeout(() => {
+        loadStoryboard();
+        setLoading(false);
+      }, 5000);
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
+      setLoading(false);
+    }
+  };
+
+
   const pollStoryboardProgress = () => {
     let attempts = 0;
     const maxAttempts = 120; // 120 * 3s = 6 minutes max
@@ -1243,9 +1275,20 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         <div className="space-y-3">
           {/* Summary bar */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#666]">
-              {doneCount}/{useKlingMode && klingStoryboards ? klingStoryboards.total_frames : panels.length} {lang === 'pt' ? 'painéis prontos' : 'panels ready'}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-[#666]">
+                {doneCount}/{useKlingMode && klingStoryboards ? klingStoryboards.total_frames : panels.length} {lang === 'pt' ? 'painéis prontos' : 'panels ready'}
+              </span>
+              {useKlingMode && (
+                <button
+                  onClick={regenerateAllFrames}
+                  className="text-[10px] font-semibold text-[#8B5CF6] hover:text-[#7C4FD6] flex items-center gap-1 px-2 py-1 rounded-lg border border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10 transition"
+                >
+                  <RefreshCw size={11} />
+                  {lang === 'pt' ? 'Regenerar Todos (30)' : 'Regenerate All (30)'}
+                </button>
+              )}
+            </div>
             {approved && (
               <span className="text-[11px] text-emerald-400 flex items-center gap-1">
                 <Check size={10} /> {lang === 'pt' ? 'Aprovado' : 'Approved'}
