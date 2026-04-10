@@ -347,30 +347,17 @@ async def regenerate_single_frame(
         target_audience = project.get("target_audience", "general")
         character_avatars = project.get("character_avatars", {})
         
-        # CRÍTICO: Buscar os PROMPTS dos avatares, não apenas URLs
-        # Gemini Imagen NÃO consegue usar URLs de referência, precisa de descrição textual
-        character_prompts = {}
+        # character_avatars já contém {nome: URL} dos avatares
+        # Vamos passar isso para a função que vai baixar e usar as imagens como referência
         
         if character_avatars:
-            # Buscar os prompts dos avatares na galeria global
-            all_avatars = settings.get("studio_avatars", [])
-            logger.info(f"🔍 Buscando prompts dos {len(character_avatars)} character_avatars na galeria ({len(all_avatars)} avatares totais)")
-            
-            for char_name, char_url in character_avatars.items():
-                # Encontrar o avatar correspondente na galeria
-                for avatar in all_avatars:
-                    if avatar.get("url") == char_url:
-                        prompt = avatar.get("prompt", "")
-                        if prompt:
-                            character_prompts[char_name] = prompt
-                            logger.info(f"  ✅ {char_name}: Prompt encontrado ({len(prompt)} chars)")
-                        else:
-                            logger.warning(f"  ⚠️ {char_name}: Avatar encontrado mas prompt está vazio")
-                        break
-                else:
-                    logger.warning(f"  ⚠️ {char_name}: Avatar não encontrado na galeria global")
+            logger.info(f"🎨 Regenerando frame {frame_number} com {len(character_avatars)} avatares como referência visual")
+            for char_name in character_avatars.keys():
+                logger.info(f"  - {char_name}")
+        else:
+            logger.warning(f"⚠️ Nenhum character_avatar vinculado ao projeto")
         
-        logger.info(f"🎨 Regenerating frame {frame_number} with context: style={visual_style}, audience={target_audience}, character_prompts={len(character_prompts)}")
+        logger.info(f"📊 Context: style={visual_style}, audience={target_audience}, avatars={len(character_avatars)}")
         
         # Find the frame across all scenes
         frame_found = False
@@ -385,7 +372,7 @@ async def regenerate_single_frame(
                         frame, 
                         project_id,
                         visual_style,
-                        character_prompts,  # Passar PROMPTS ao invés de URLs
+                        character_avatars,  # Passar URLs dos avatares para download e uso como referência
                         target_audience
                     )
                     
@@ -1008,15 +995,15 @@ async def _generate_frame_image_with_context(
     frame: Dict, 
     project_id: str,
     visual_style: str = "pixar_3d",
-    character_prompts: Dict[str, str] = None,  # Mudado de character_avatars para character_prompts
+    character_prompts: Dict[str, str] = None,  # Agora recebe URLs dos avatares, não prompts
     target_audience: str = "general"
 ) -> str:
     """
     Generate image for a frame using Gemini Nano Banana WITH PROJECT CONTEXT
-    Injects visual_style, CHARACTER PROMPTS (visual descriptions), and target_audience
+    USA AS IMAGENS DOS AVATARES como referência visual (multimodal input)
     
-    IMPORTANTE: Gemini Imagen NÃO consegue acessar URLs de referência, então usamos
-    os prompts textuais que descrevem a aparência dos personagens!
+    IMPORTANTE: Gemini suporta entrada multimodal - podemos passar as IMAGENS dos personagens
+    junto com o texto para que o modelo use os avatares já criados como referência!
     """
     base_image_prompt = frame.get("image_prompt", "")
     frame_num = frame.get("frame_number", 0)
@@ -1024,8 +1011,8 @@ async def _generate_frame_image_with_context(
     if not base_image_prompt:
         raise Exception("No image_prompt available")
     
-    # Build enriched prompt with project context
-    character_prompts = character_prompts or {}
+    # character_prompts na verdade contém as URLs dos avatares
+    character_avatar_urls = character_prompts or {}
     
     # Map visual style to description
     style_descriptions = {
@@ -1037,19 +1024,6 @@ async def _generate_frame_image_with_context(
     }
     style_guide = style_descriptions.get(visual_style, style_descriptions["pixar_3d"])
     
-    # Build character descriptions from prompts
-    character_descriptions = []
-    if character_prompts:
-        for char_name, char_prompt in character_prompts.items():
-            # Limitar cada prompt a 300 caracteres para não sobrecarregar
-            char_prompt_short = char_prompt[:300] if len(char_prompt) > 300 else char_prompt
-            character_descriptions.append(
-                f"PERSONAGEM {char_name}:\n{char_prompt_short}\n"
-                f"CRÍTICO: Sempre que {char_name} aparecer na cena, use EXATAMENTE esta descrição visual!"
-            )
-    
-    character_context = "\n\n".join(character_descriptions) if character_descriptions else ""
-    
     # Build audience-specific context
     audience_context = ""
     if target_audience == "baby" or target_audience == "0-2":
@@ -1057,22 +1031,155 @@ async def _generate_frame_image_with_context(
     elif target_audience == "crianca" or target_audience == "3-6":
         audience_context = "PÚBLICO-ALVO: Crianças (3-6 anos) - Usar visuais coloridos e envolventes com formas claras e personagens amigáveis."
     
-    # Combine all context into enriched prompt
-    enriched_prompt = f"""ESTILO VISUAL OBRIGATÓRIO: {style_guide}
-
-{character_context}
+    # Download avatar images and convert to base64 for multimodal input
+    import httpx
+    import base64
+    
+    character_images = []
+    character_references = []
+    
+    if character_avatar_urls:
+        logger.info(f"Frame {frame_num}: Baixando {len(character_avatar_urls)} imagens de avatares para referência visual...")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for char_name, avatar_url in character_avatar_urls.items():
+                try:
+                    # Download avatar image
+                    response = await client.get(avatar_url)
+                    if response.status_code == 200:
+                        # Convert to base64
+                        image_bytes = response.content
+                        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                        
+                        # Add to multimodal parts
+                        character_images.append({
+                            "inlineData": {
+                                "mimeType": "image/png",
+                                "data": image_base64
+                            }
+                        })
+                        
+                        character_references.append(
+                            f"PERSONAGEM {char_name}: Use a aparência EXATA da imagem de referência acima. "
+                            f"Sempre que {char_name} aparecer na cena, mantenha TODAS as características visuais desta imagem!"
+                        )
+                        
+                        logger.info(f"  ✅ {char_name}: Imagem carregada ({len(image_bytes)} bytes)")
+                    else:
+                        logger.warning(f"  ⚠️ {char_name}: Erro ao baixar avatar (HTTP {response.status_code})")
+                except Exception as e:
+                    logger.warning(f"  ⚠️ {char_name}: Erro ao processar avatar: {e}")
+    
+    character_context = "\n\n".join(character_references) if character_references else ""
+    
+    # Build the text prompt
+    text_prompt = f"""ESTILO VISUAL OBRIGATÓRIO: {style_guide}
 
 {audience_context}
+
+PERSONAGENS NA CENA:
+As imagens acima mostram a aparência EXATA dos personagens. Use-as como referência visual obrigatória.
+{character_context}
 
 DESCRIÇÃO DA CENA:
 {base_image_prompt}
 
 REQUISITOS CRÍTICOS:
 1. DEVE usar o estilo {visual_style} em todos os elementos
-2. DEVE manter a aparência visual EXATA dos personagens conforme descrito acima
-3. DEVE adaptar ao nível do público-alvo {target_audience}
-4. NÃO misturar estilos ou alterar aparência dos personagens
+2. DEVE manter a aparência visual EXATA dos personagens mostrados nas imagens de referência acima
+3. NÃO criar novos designs para os personagens - usar EXATAMENTE as imagens fornecidas
+4. DEVE adaptar ao nível do público-alvo {target_audience}
+5. NÃO misturar estilos ou alterar aparência dos personagens
 """
+    
+    logger.info(f"Frame {frame_num}: Gerando imagem com {len(character_images)} referências visuais de personagens")
+    
+    try:
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if not gemini_key:
+            raise Exception("GEMINI_API_KEY not found")
+        
+        from supabase import create_client
+        
+        # Gemini Nano Banana endpoint
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
+        
+        headers = {
+            "x-goog-api-key": gemini_key,
+            "Content-Type": "application/json"
+        }
+        
+        # Build multimodal parts: images first, then text prompt
+        parts = []
+        
+        # Add character reference images
+        for char_img in character_images:
+            parts.append(char_img)
+        
+        # Add text prompt
+        parts.append({"text": text_prompt})
+        
+        payload = {
+            "contents": [{
+                "parts": parts
+            }],
+            "generationConfig": {
+                "responseModalities": ["IMAGE"]
+            }
+        }
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code != 200:
+                raise Exception(f"API returned {response.status_code}: {response.text}")
+            
+            result = response.json()
+            
+            # Extract base64 image from response
+            if "candidates" in result:
+                for candidate in result["candidates"]:
+                    if "content" in candidate:
+                        parts_response = candidate["content"].get("parts", [])
+                        for part in parts_response:
+                            if "inlineData" in part:
+                                image_base64 = part["inlineData"].get("data")
+                                
+                                if image_base64:
+                                    # Decode base64 to bytes
+                                    image_bytes = base64.b64decode(image_base64)
+                                    
+                                    # Upload to Supabase
+                                    supabase_url = os.environ.get("SUPABASE_URL", "")
+                                    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+                                    
+                                    if not supabase_url or not supabase_key:
+                                        raise Exception("Supabase credentials not found")
+                                    
+                                    supabase = create_client(supabase_url, supabase_key)
+                                    
+                                    # Storage path with timestamp to force cache refresh
+                                    import time
+                                    timestamp = int(time.time())
+                                    storage_path = f"storyboards/{project_id}/frame_{frame_num}_{timestamp}.png"
+                                    
+                                    supabase.storage.from_("pipeline-assets").upload(
+                                        path=storage_path,
+                                        file=image_bytes,
+                                        file_options={"content-type": "image/png", "upsert": "true"}
+                                    )
+                                    
+                                    # Get public URL
+                                    public_url = supabase.storage.from_("pipeline-assets").get_public_url(storage_path)
+                                    
+                                    logger.info(f"Frame {frame_num}: ✅ Imagem regenerada com referências visuais dos personagens")
+                                    return public_url
+            
+            raise Exception(f"No image found in response")
+            
+    except Exception as e:
+        logger.info(f"Image regeneration error: {e}")
+        raise
     
     logger.info(f"Frame {frame_num}: Regenerating with context (style={visual_style}, audience={target_audience}, avatars={len(character_avatars)})")
     
