@@ -311,8 +311,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     return () => clearInterval(pollInterval);
   }, [projectId, panels, lang]);
 
-  const loadStoryboard = async () => {
-
   // Zoom modal functions
   const openZoomModal = (frame, index) => {
     setZoomFrame(frame);
@@ -352,6 +350,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [zoomFrame, zoomFrameIndex]);
 
+  const loadStoryboard = async () => {
     try {
       // Try loading Kling storyboards first
       try {
