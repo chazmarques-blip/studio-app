@@ -347,44 +347,30 @@ async def regenerate_single_frame(
         target_audience = project.get("target_audience", "general")
         character_avatars = project.get("character_avatars", {})
         
-        # CRÍTICO: Se character_avatars estiver vazio, buscar da character_library automaticamente
-        if not character_avatars or len(character_avatars) == 0:
-            character_library = project.get("character_library")
-            if character_library:
-                library_characters = character_library.get("characters", [])
-                folder_name = character_library.get("folder_name", "Unknown")
-                logger.info(f"🔍 Regenerate Frame {frame_number}: character_avatars vazio, buscando da library (pasta '{folder_name}')")
-                
-                # Mapear nomes de personagens para URLs dos avatares
-                characters = project.get("characters", [])
-                for char in characters:
-                    char_name = char.get("name", "")
-                    # Buscar na library pelo nome (exact match ou partial match)
-                    for lib_char in library_characters:
-                        lib_name = lib_char.get("name", "")
-                        lib_full_name = lib_char.get("full_name", "")
-                        
-                        # Try exact match first, then partial
-                        if lib_name == char_name or lib_full_name == char_name or char_name in lib_full_name:
-                            character_avatars[char_name] = lib_char.get("url")
-                            logger.info(f"  ✅ Vinculado '{char_name}' → {lib_char.get('url')[:60]}...")
-                            break
-                
-                # Salvar os avatares vinculados no projeto para próximas vezes
-                if character_avatars:
-                    project["character_avatars"] = character_avatars
-                    _update_project_field(tenant["id"], project_id, {
-                        "character_avatars": character_avatars
-                    })
-                    logger.info(f"💾 Regenerate: Salvos {len(character_avatars)} avatares vinculados da pasta '{folder_name}'")
-                else:
-                    logger.warning(f"⚠️ Regenerate: Nenhum avatar vinculado da library para os personagens do projeto")
-            else:
-                logger.warning(f"⚠️ Regenerate: character_avatars vazio E character_library não existe no projeto")
-        else:
-            logger.info(f"✅ Regenerate Frame {frame_number}: Usando {len(character_avatars)} character_avatars existentes")
+        # CRÍTICO: Buscar os PROMPTS dos avatares, não apenas URLs
+        # Gemini Imagen NÃO consegue usar URLs de referência, precisa de descrição textual
+        character_prompts = {}
         
-        logger.info(f"🎨 Regenerating frame {frame_number} with context: style={visual_style}, audience={target_audience}, avatars={len(character_avatars)}")
+        if character_avatars:
+            # Buscar os prompts dos avatares na galeria global
+            all_avatars = settings.get("studio_avatars", [])
+            logger.info(f"🔍 Buscando prompts dos {len(character_avatars)} character_avatars na galeria ({len(all_avatars)} avatares totais)")
+            
+            for char_name, char_url in character_avatars.items():
+                # Encontrar o avatar correspondente na galeria
+                for avatar in all_avatars:
+                    if avatar.get("url") == char_url:
+                        prompt = avatar.get("prompt", "")
+                        if prompt:
+                            character_prompts[char_name] = prompt
+                            logger.info(f"  ✅ {char_name}: Prompt encontrado ({len(prompt)} chars)")
+                        else:
+                            logger.warning(f"  ⚠️ {char_name}: Avatar encontrado mas prompt está vazio")
+                        break
+                else:
+                    logger.warning(f"  ⚠️ {char_name}: Avatar não encontrado na galeria global")
+        
+        logger.info(f"🎨 Regenerating frame {frame_number} with context: style={visual_style}, audience={target_audience}, character_prompts={len(character_prompts)}")
         
         # Find the frame across all scenes
         frame_found = False
@@ -399,7 +385,7 @@ async def regenerate_single_frame(
                         frame, 
                         project_id,
                         visual_style,
-                        character_avatars,
+                        character_prompts,  # Passar PROMPTS ao invés de URLs
                         target_audience
                     )
                     
@@ -1022,12 +1008,15 @@ async def _generate_frame_image_with_context(
     frame: Dict, 
     project_id: str,
     visual_style: str = "pixar_3d",
-    character_avatars: Dict[str, str] = None,
+    character_prompts: Dict[str, str] = None,  # Mudado de character_avatars para character_prompts
     target_audience: str = "general"
 ) -> str:
     """
     Generate image for a frame using Gemini Nano Banana WITH PROJECT CONTEXT
-    Injects visual_style, character_avatars, and target_audience into the prompt
+    Injects visual_style, CHARACTER PROMPTS (visual descriptions), and target_audience
+    
+    IMPORTANTE: Gemini Imagen NÃO consegue acessar URLs de referência, então usamos
+    os prompts textuais que descrevem a aparência dos personagens!
     """
     base_image_prompt = frame.get("image_prompt", "")
     frame_num = frame.get("frame_number", 0)
@@ -1036,7 +1025,7 @@ async def _generate_frame_image_with_context(
         raise Exception("No image_prompt available")
     
     # Build enriched prompt with project context
-    character_avatars = character_avatars or {}
+    character_prompts = character_prompts or {}
     
     # Map visual style to description
     style_descriptions = {
@@ -1048,39 +1037,41 @@ async def _generate_frame_image_with_context(
     }
     style_guide = style_descriptions.get(visual_style, style_descriptions["pixar_3d"])
     
-    # Build character avatar references
-    avatar_references = []
-    if character_avatars:
-        for char_name, avatar_url in character_avatars.items():
-            avatar_references.append(
-                f"CHARACTER VISUAL REFERENCE for {char_name}: {avatar_url}\n"
-                f"CRITICAL: Use this EXACT visual appearance for {char_name}!"
+    # Build character descriptions from prompts
+    character_descriptions = []
+    if character_prompts:
+        for char_name, char_prompt in character_prompts.items():
+            # Limitar cada prompt a 300 caracteres para não sobrecarregar
+            char_prompt_short = char_prompt[:300] if len(char_prompt) > 300 else char_prompt
+            character_descriptions.append(
+                f"PERSONAGEM {char_name}:\n{char_prompt_short}\n"
+                f"CRÍTICO: Sempre que {char_name} aparecer na cena, use EXATAMENTE esta descrição visual!"
             )
     
-    avatar_context = "\n".join(avatar_references) if avatar_references else ""
+    character_context = "\n\n".join(character_descriptions) if character_descriptions else ""
     
     # Build audience-specific context
     audience_context = ""
-    if target_audience == "baby":
-        audience_context = "TARGET AUDIENCE: Babies (0-2 years) - Use extremely simple, bold shapes, high contrast, bright primary colors, large objects, minimal details."
-    elif target_audience == "crianca":
-        audience_context = "TARGET AUDIENCE: Children (3-8 years) - Use colorful, engaging visuals with clear shapes and friendly characters."
+    if target_audience == "baby" or target_audience == "0-2":
+        audience_context = "PÚBLICO-ALVO: Bebês (0-2 anos) - Usar formas extremamente simples e arredondadas, alto contraste, cores primárias brilhantes, objetos grandes, detalhes mínimos."
+    elif target_audience == "crianca" or target_audience == "3-6":
+        audience_context = "PÚBLICO-ALVO: Crianças (3-6 anos) - Usar visuais coloridos e envolventes com formas claras e personagens amigáveis."
     
     # Combine all context into enriched prompt
-    enriched_prompt = f"""MANDATORY VISUAL STYLE: {style_guide}
-    
-{avatar_context}
+    enriched_prompt = f"""ESTILO VISUAL OBRIGATÓRIO: {style_guide}
+
+{character_context}
 
 {audience_context}
 
-SCENE DESCRIPTION:
+DESCRIÇÃO DA CENA:
 {base_image_prompt}
 
-CRITICAL REQUIREMENTS:
-1. MUST use {visual_style} style throughout
-2. MUST maintain character visual consistency using references above
-3. MUST adapt to {target_audience} audience level
-4. NO mixing of styles or character appearances
+REQUISITOS CRÍTICOS:
+1. DEVE usar o estilo {visual_style} em todos os elementos
+2. DEVE manter a aparência visual EXATA dos personagens conforme descrito acima
+3. DEVE adaptar ao nível do público-alvo {target_audience}
+4. NÃO misturar estilos ou alterar aparência dos personagens
 """
     
     logger.info(f"Frame {frame_num}: Regenerating with context (style={visual_style}, audience={target_audience}, avatars={len(character_avatars)})")
