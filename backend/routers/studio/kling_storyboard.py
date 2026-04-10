@@ -300,7 +300,7 @@ async def regenerate_single_frame(
     tenant=Depends(get_current_tenant)
 ):
     """
-    Regenerate a single frame by frame_number
+    Regenerate a single frame by frame_number WITH PROJECT CONTEXT
     """
     frame_number = request.get("frame_number")
     if not frame_number:
@@ -315,16 +315,29 @@ async def regenerate_single_frame(
         if not storyboards:
             raise HTTPException(status_code=404, detail="No storyboards found")
         
+        # Extract project context for regeneration
+        visual_style = project.get("visual_style", "pixar_3d")
+        target_audience = project.get("target_audience", "general")
+        character_avatars = project.get("character_avatars", {})
+        
+        logger.info(f"Regenerating frame {frame_number} with context: style={visual_style}, audience={target_audience}, avatars={len(character_avatars)}")
+        
         # Find the frame across all scenes
         frame_found = False
         for scene in storyboards:
             frames = scene.get("frames", [])
             for i, frame in enumerate(frames):
                 if frame.get("frame_number") == frame_number:
-                    # Generate new image for this frame
+                    # Generate new image for this frame WITH PROJECT CONTEXT
                     logger.info(f"Regenerating frame {frame_number}...")
                     
-                    new_image_url = await _generate_frame_image_with_tool(frame, project_id)
+                    new_image_url = await _generate_frame_image_with_context(
+                        frame, 
+                        project_id,
+                        visual_style,
+                        character_avatars,
+                        target_audience
+                    )
                     
                     # Update the frame with new image
                     frames[i]["image_url"] = new_image_url
@@ -354,9 +367,6 @@ async def regenerate_single_frame(
         raise
     except Exception as e:
         logger.error(f"Error regenerating frame: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-        logger.error(f"Error deleting storyboards: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -942,6 +952,158 @@ async def regenerate_images(project_id: str, tenant=Depends(get_current_tenant))
         "total_failed": total_failed,
         "storyboards": storyboards
     }
+
+
+async def _generate_frame_image_with_context(
+    frame: Dict, 
+    project_id: str,
+    visual_style: str = "pixar_3d",
+    character_avatars: Dict[str, str] = None,
+    target_audience: str = "general"
+) -> str:
+    """
+    Generate image for a frame using Gemini Nano Banana WITH PROJECT CONTEXT
+    Injects visual_style, character_avatars, and target_audience into the prompt
+    """
+    base_image_prompt = frame.get("image_prompt", "")
+    frame_num = frame.get("frame_number", 0)
+    
+    if not base_image_prompt:
+        raise Exception("No image_prompt available")
+    
+    # Build enriched prompt with project context
+    character_avatars = character_avatars or {}
+    
+    # Map visual style to description
+    style_descriptions = {
+        "pixar_3d": "Disney Pixar 3D animation style - cute, rounded characters, vibrant colors, cinematic lighting, high-quality CGI",
+        "disney_2d": "Disney 2D hand-drawn animation style - classic animation, smooth lines, painted backgrounds",
+        "anime": "Anime style - Japanese animation, expressive eyes, dynamic poses",
+        "realistic": "Photorealistic live-action style - real people, natural lighting, cinematic",
+        "cartoon": "Cartoon style - simplified, colorful, exaggerated features"
+    }
+    style_guide = style_descriptions.get(visual_style, style_descriptions["pixar_3d"])
+    
+    # Build character avatar references
+    avatar_references = []
+    if character_avatars:
+        for char_name, avatar_url in character_avatars.items():
+            avatar_references.append(
+                f"CHARACTER VISUAL REFERENCE for {char_name}: {avatar_url}\n"
+                f"CRITICAL: Use this EXACT visual appearance for {char_name}!"
+            )
+    
+    avatar_context = "\n".join(avatar_references) if avatar_references else ""
+    
+    # Build audience-specific context
+    audience_context = ""
+    if target_audience == "baby":
+        audience_context = "TARGET AUDIENCE: Babies (0-2 years) - Use extremely simple, bold shapes, high contrast, bright primary colors, large objects, minimal details."
+    elif target_audience == "crianca":
+        audience_context = "TARGET AUDIENCE: Children (3-8 years) - Use colorful, engaging visuals with clear shapes and friendly characters."
+    
+    # Combine all context into enriched prompt
+    enriched_prompt = f"""MANDATORY VISUAL STYLE: {style_guide}
+    
+{avatar_context}
+
+{audience_context}
+
+SCENE DESCRIPTION:
+{base_image_prompt}
+
+CRITICAL REQUIREMENTS:
+1. MUST use {visual_style} style throughout
+2. MUST maintain character visual consistency using references above
+3. MUST adapt to {target_audience} audience level
+4. NO mixing of styles or character appearances
+"""
+    
+    logger.info(f"Frame {frame_num}: Regenerating with context (style={visual_style}, audience={target_audience}, avatars={len(character_avatars)})")
+    
+    try:
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if not gemini_key:
+            raise Exception("GEMINI_API_KEY not found")
+        
+        import httpx
+        import base64
+        from supabase import create_client
+        
+        # Gemini Nano Banana endpoint
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
+        
+        headers = {
+            "x-goog-api-key": gemini_key,
+            "Content-Type": "application/json"
+        }
+        
+        # Limit prompt to 1500 chars for best results
+        final_prompt = enriched_prompt[:1500] if len(enriched_prompt) > 1500 else enriched_prompt
+        
+        payload = {
+            "contents": [{
+                "parts": [{
+                    "text": final_prompt
+                }]
+            }],
+            "generationConfig": {
+                "responseModalities": ["IMAGE"]
+            }
+        }
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code != 200:
+                raise Exception(f"API returned {response.status_code}: {response.text}")
+            
+            result = response.json()
+            
+            # Extract base64 image from response
+            if "candidates" in result:
+                for candidate in result["candidates"]:
+                    if "content" in candidate:
+                        parts = candidate["content"].get("parts", [])
+                        for part in parts:
+                            if "inlineData" in part:
+                                image_base64 = part["inlineData"].get("data")
+                                
+                                if image_base64:
+                                    # Decode base64 to bytes
+                                    image_bytes = base64.b64decode(image_base64)
+                                    
+                                    # Upload to Supabase
+                                    supabase_url = os.environ.get("SUPABASE_URL", "")
+                                    supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+                                    
+                                    if not supabase_url or not supabase_key:
+                                        raise Exception("Supabase credentials not found")
+                                    
+                                    supabase = create_client(supabase_url, supabase_key)
+                                    
+                                    # Storage path with timestamp to force cache refresh
+                                    import time
+                                    timestamp = int(time.time())
+                                    storage_path = f"storyboards/{project_id}/frame_{frame_num}_{timestamp}.png"
+                                    
+                                    supabase.storage.from_("pipeline-assets").upload(
+                                        path=storage_path,
+                                        file=image_bytes,
+                                        file_options={"content-type": "image/png", "upsert": "true"}
+                                    )
+                                    
+                                    # Get public URL
+                                    public_url = supabase.storage.from_("pipeline-assets").get_public_url(storage_path)
+                                    
+                                    logger.info(f"Frame {frame_num}: ✅ Image regenerated with context")
+                                    return public_url
+            
+            raise Exception(f"No image found in response")
+            
+    except Exception as e:
+        logger.info(f"Image regeneration error: {e}")
+        raise
 
 
 async def _generate_frame_image_with_tool(frame: Dict, project_id: str) -> str:
