@@ -77,6 +77,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [zoomFrame, setZoomFrame] = useState(null);
   const [zoomFrameIndex, setZoomFrameIndex] = useState(null);
   
+  // NOVO: Estado para travar regenerações simultâneas
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  
   // NOVO: Confirmation state for 2-click confirmation (no popup)
   const [confirmRegenerateAll, setConfirmRegenerateAll] = useState(false);
   const [confirmRegenerateFrame, setConfirmRegenerateFrame] = useState(null); // frameNumber or null
@@ -424,11 +427,18 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const regenerateAllFrames = async () => {
     console.log('🔄 regenerateAllFrames called');
     
+    // BLOQUEIO: Não permitir regeneração simultânea
+    if (isRegenerating) {
+      toast.warning(lang === 'pt' ? 'Aguarde a regeneração atual terminar' : 'Wait for current regeneration to finish');
+      return;
+    }
+    
     // 2-CLICK INLINE CONFIRMATION
     if (confirmRegenerateAll) {
       console.log('🔄 2nd click - executing bulk regeneration');
       setConfirmRegenerateAll(false);
       setLoading(true);
+      setIsRegenerating(true);
       
       try {
         console.log('🔄 Deleting existing storyboards...');
@@ -441,17 +451,20 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         
         toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
         
+        // Aguardar mais tempo e recarregar
         setTimeout(() => {
           console.log('🔄 Reloading storyboard after regeneration...');
           loadStoryboard();
           setLoading(false);
-        }, 5000);
+          setIsRegenerating(false);
+        }, 10000); // Aumentado para 10 segundos
       } catch (err) {
         console.error('❌ Error regenerating:', err);
         console.error('❌ Error details:', err.response?.data);
         console.error('❌ Error status:', err.response?.status);
         toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
         setLoading(false);
+        setIsRegenerating(false);
       }
     } else {
       // 1º CLICK: Ativar confirmação
@@ -467,6 +480,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   const regenerateKlingFrame = async (frameNumber) => {
     console.log('🔄 regenerateKlingFrame called for frame:', frameNumber);
+    
+    // BLOQUEIO: Não permitir regeneração se já estiver regenerando todos
+    if (isRegenerating) {
+      toast.warning(lang === 'pt' ? 'Aguarde a regeneração em andamento' : 'Wait for regeneration in progress');
+      return;
+    }
     
     // 2-CLICK INLINE CONFIRMATION: Se já está no estado de confirmação, executar
     if (confirmRegenerateFrame === frameNumber) {
@@ -1381,16 +1400,21 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               {useKlingMode && (
                 <button
                   onClick={regenerateAllFrames}
+                  disabled={isRegenerating}
                   className={`text-[10px] font-semibold flex items-center gap-1 px-2 py-1 rounded-lg border transition ${
-                    confirmRegenerateAll 
-                      ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' 
-                      : 'text-[#8B5CF6] hover:text-[#7C4FD6] border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10'
+                    isRegenerating
+                      ? 'bg-gray-500/20 border-gray-500 text-gray-400 cursor-not-allowed'
+                      : confirmRegenerateAll 
+                        ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' 
+                        : 'text-[#8B5CF6] hover:text-[#7C4FD6] border-[#8B5CF6]/30 hover:bg-[#8B5CF6]/10'
                   }`}
                 >
-                  <RefreshCw size={11} />
-                  {confirmRegenerateAll 
-                    ? (lang === 'pt' ? 'Confirmar?' : 'Confirm?')
-                    : (lang === 'pt' ? 'Regenerar Todos (30)' : 'Regenerate All (30)')
+                  <RefreshCw size={11} className={isRegenerating ? 'animate-spin' : ''} />
+                  {isRegenerating
+                    ? (lang === 'pt' ? 'Regenerando...' : 'Regenerating...')
+                    : confirmRegenerateAll 
+                      ? (lang === 'pt' ? 'Confirmar?' : 'Confirm?')
+                      : (lang === 'pt' ? 'Regenerar Todos (30)' : 'Regenerate All (30)')
                   }
                 </button>
               )}
