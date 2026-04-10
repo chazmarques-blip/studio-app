@@ -289,6 +289,71 @@ async def delete_kling_storyboards(
             "message": "All Kling storyboards deleted"
         }
     except Exception as e:
+
+
+@router.post("/projects/{project_id}/kling-storyboards/regenerate-frame")
+async def regenerate_single_frame(
+    project_id: str,
+    request: Dict,
+    tenant=Depends(get_current_tenant)
+):
+    """
+    Regenerate a single frame by frame_number
+    """
+    frame_number = request.get("frame_number")
+    if not frame_number:
+        raise HTTPException(status_code=400, detail="frame_number is required")
+    
+    try:
+        settings, projects, project = _get_project(tenant["id"], project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        storyboards = project.get("kling_storyboards", [])
+        if not storyboards:
+            raise HTTPException(status_code=404, detail="No storyboards found")
+        
+        # Find the frame across all scenes
+        frame_found = False
+        for scene in storyboards:
+            frames = scene.get("frames", [])
+            for i, frame in enumerate(frames):
+                if frame.get("frame_number") == frame_number:
+                    # Generate new image for this frame
+                    logger.info(f"Regenerating frame {frame_number}...")
+                    
+                    new_image_url = await _generate_frame_image_with_tool(frame, project_id)
+                    
+                    # Update the frame with new image
+                    frames[i]["image_url"] = new_image_url
+                    frame_found = True
+                    break
+            
+            if frame_found:
+                break
+        
+        if not frame_found:
+            raise HTTPException(status_code=404, detail=f"Frame {frame_number} not found")
+        
+        # Save updated storyboards
+        _update_project_field(tenant["id"], project_id, {
+            "kling_storyboards": storyboards
+        })
+        
+        logger.info(f"KlingStoryboard [{project_id}]: ✅ Regenerated frame {frame_number}")
+        
+        return {
+            "status": "success",
+            "frame_number": frame_number,
+            "message": f"Frame {frame_number} regenerated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error regenerating frame: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
         logger.error(f"Error deleting storyboards: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

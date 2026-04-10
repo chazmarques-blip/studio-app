@@ -425,6 +425,33 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       }, 5000);
     } catch (err) {
       toast.error(getErrorMsg(err, 'Erro ao regenerar frames'));
+
+
+  const regenerateKlingFrame = async (frameNumber) => {
+    if (!window.confirm(
+      lang === 'pt'
+        ? `Regenerar frame ${frameNumber}? A imagem atual será substituída.`
+        : `Regenerate frame ${frameNumber}? Current image will be replaced.`
+    )) {
+      return;
+    }
+
+    try {
+      toast.info(lang === 'pt' ? `Regenerando frame ${frameNumber}...` : `Regenerating frame ${frameNumber}...`);
+      
+      await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/regenerate-frame`, {
+        frame_number: frameNumber
+      });
+      
+      toast.success(lang === 'pt' ? 'Frame regenerado!' : 'Frame regenerated!');
+      
+      // Reload storyboards
+      setTimeout(() => loadStoryboard(), 2000);
+    } catch (err) {
+      toast.error(getErrorMsg(err, 'Erro ao regenerar frame'));
+    }
+  };
+
       setLoading(false);
     }
   };
@@ -1358,23 +1385,24 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     </div>
                   )}
                   
-                  {/* Hover overlay with actions */}
-                  {!isKlingFrame && (
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); regeneratePanel(item.scene_number); }}
-                        className="px-2 py-1 bg-[#8B5CF6] rounded text-[9px] text-white font-semibold hover:bg-[#7C4FD6] flex items-center gap-1"
-                      >
-                        <RefreshCw size={10} />
-                        {lang === 'pt' ? 'Regerar' : 'Regenerate'}
-                      </button>
-                      {item.frames && item.frames.length > 1 && (
-                        <span className="text-[8px] text-white/70">
-                          {item.frames.length} frames
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {/* Hover overlay with actions - ALWAYS show for all frames */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                    <button
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        isKlingFrame ? regenerateKlingFrame(item.frame_number) : regeneratePanel(item.scene_number);
+                      }}
+                      className="px-2 py-1 bg-[#8B5CF6] rounded text-[9px] text-white font-semibold hover:bg-[#7C4FD6] flex items-center gap-1"
+                    >
+                      <RefreshCw size={10} />
+                      {lang === 'pt' ? 'Regerar' : 'Regenerate'}
+                    </button>
+                    {!isKlingFrame && item.frames && item.frames.length > 1 && (
+                      <span className="text-[8px] text-white/70">
+                        {item.frames.length} frames
+                      </span>
+                    )}
+                  </div>
                   
                   {/* Expanded view indicator */}
                   {!isKlingFrame && expandedPanels.has(item.scene_number) && (
