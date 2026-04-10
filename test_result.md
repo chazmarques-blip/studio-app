@@ -334,14 +334,15 @@ frontend:
 
 metadata:
   created_by: "main_agent"
-  version: "1.14"
-  test_sequence: 15
+  version: "1.15"
+  test_sequence: 16
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Avatar Gallery Hover Buttons (Expand, Edit, Delete, Download)"
-  stuck_tasks: []
+    - "StoryboardEditor - Zoom Modal Functionality"
+  stuck_tasks:
+    - "StoryboardEditor - Zoom Modal Functionality"
   test_all: false
   test_priority: "high_first"
 
@@ -391,8 +392,22 @@ agent_communication:
           agent: "testing"
           comment: "✅ STORYBOARD EDITOR WORKING PERFECTLY - 30 KLING FRAMES DISPLAYED: Completed comprehensive end-to-end testing of StoryboardEditor for project 'o cumprimento da promessa e abraao' (ID: 06c877c953a3). TEST FLOW: (1) ✅ Login successful with test@studiox.com / studiox123, (2) ✅ Navigated to /studio, (3) ✅ Opened project 'o cumprimento da promessa e abraao' (first project in list), (4) ✅ Clicked STORYBOARD section via camera icon in pipeline, (5) ✅ Page loaded without any errors. CRITICAL VERIFICATION: (1) ✅ NO 'panel is not defined' ERROR - Page content and console logs clean, (2) ✅ Panel count display FOUND: '30/30 painéis prontos' - CONFIRMED 30 Kling frames detected, (3) ✅ Thumbnail grid VISIBLE with 30 images in grid layout, (4) ✅ StoryboardEditor component found via data-testid='storyboard-editor', (5) ✅ Found 67 items in StoryboardEditor (30 frames + UI elements). CODE FIX VERIFIED: The fix mentioned in review request (replacing 'panel' with 'item' in map callback at line 1231: displayFrames.map((item, idx) => {...})) is working correctly - no JavaScript errors related to undefined variables. VISUAL CONFIRMATION: Screenshots show beautiful Pixar-style animation frames with timestamps (e.g., '0:14-0:18', '1:18-1:20', '1:26-2:33'), numbered badges (1-30), and proper grid layout. All frames are rendering correctly with proper aspect ratio and quality. CONCLUSION: StoryboardEditor is 100% functional for Kling storyboards. The 'panel is not defined' bug has been successfully fixed. NO ISSUES FOUND."
 
+  - task: "StoryboardEditor - Zoom Modal Functionality"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/StoryboardEditor.jsx"
+    stuck_count: 1
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL BUG - REACT INVALID HOOK CALL ERROR PREVENTS STORYBOARD FROM LOADING: Attempted to test zoom modal functionality for project 'o cumprimento da promessa e abraao' (ID: 06c877c953a3). TEST FLOW: (1) ✅ Login successful with test@studiox.com / studiox123, (2) ✅ Navigated to /studio, (3) ✅ Opened project successfully, (4) ✅ Clicked STORYBOARD step button (data-testid='studio-step-5'), (5) ✅ StoryboardEditor component detected (data-testid='storyboard-editor' found), (6) ❌ CRITICAL ERROR: Red screen error appeared with 'Uncaught runtime errors: Invalid hook call. Hooks can only be called inside of the body of a function component.' ERROR DETAILS: Multiple React hook errors in bundle.js including: 'Object.throwInvalidHookError', 'exports.useEffect', 'loadStoryboard', 'DirectedStudio_jsx', 'AvatarModal_jsx', 'react_stack_bottom_frame'. This error prevents the StoryboardEditor from rendering any frames. ROOT CAUSE: React Hooks are being called incorrectly, likely due to: (1) Hooks being called conditionally, (2) Hooks being called in wrong order, (3) Multiple copies of React in the app, (4) Hooks being called outside function component body. IMPACT: Cannot test zoom modal functionality because storyboard frames do not render due to this React error. The component crashes before displaying any frames. RECOMMENDATION: Main agent must fix the React Hooks violation in StoryboardEditor.jsx or related components (DirectedStudio.jsx, AvatarModal.jsx) before zoom modal can be tested. This is a blocking P0 issue."
+
 
 agent_communication:
     - agent: "testing"
       message: "✅ STORYBOARD EDITOR - KLING FRAMES WORKING PERFECTLY: Completed comprehensive testing of StoryboardEditor for project 'o cumprimento da promessa e abraao'. RESULTS: (1) ✅ Login and navigation successful, (2) ✅ Project opened correctly, (3) ✅ STORYBOARD section clicked via camera icon, (4) ✅ NO 'panel is not defined' error found in page content or console, (5) ✅ Panel count display: '30/30 painéis prontos' - CONFIRMED 30 Kling frames, (6) ✅ Thumbnail grid visible with 30 images, (7) ✅ StoryboardEditor component found with 67 items. CODE FIX VERIFIED: The fix replacing 'panel' with 'item' in displayFrames.map() callback (line 1231) is working correctly. Screenshots show beautiful Pixar-style frames with timestamps and proper grid layout. NO ACTION REQUIRED from main agent - feature is working perfectly!"
+    - agent: "testing"
+      message: "❌ CRITICAL P0 BUG - STORYBOARD ZOOM MODAL BLOCKED BY REACT HOOKS ERROR: Attempted to test zoom modal functionality as requested. FINDINGS: (1) ✅ Successfully navigated to STORYBOARD step using data-testid='studio-step-5', (2) ✅ StoryboardEditor component detected in DOM, (3) ❌ CRITICAL ERROR: Red screen error 'Invalid hook call. Hooks can only be called inside of the body of a function component.' prevents StoryboardEditor from rendering frames. ERROR STACK: bundle.js errors in Object.throwInvalidHookError, exports.useEffect, loadStoryboard, DirectedStudio_jsx, AvatarModal_jsx. ROOT CAUSE: React Hooks violation - hooks being called incorrectly (conditionally, wrong order, or outside component body). IMPACT: Cannot test zoom modal because frames don't render due to React crash. BLOCKING ISSUE: This is a P0 bug that must be fixed before zoom modal testing can proceed. RECOMMENDATION: Main agent must debug and fix React Hooks violations in StoryboardEditor.jsx, DirectedStudio.jsx, or AvatarModal.jsx. Check for: (1) Conditional hook calls, (2) Hooks called in loops, (3) Multiple React instances, (4) Hooks in non-component functions."
 
