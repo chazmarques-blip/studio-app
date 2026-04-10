@@ -162,7 +162,34 @@ async def generate_kling_storyboards(
     
     # Get project metadata
     characters = project.get("characters", [])
-    character_avatars = project.get("character_avatars", {})  # NOVO: avatares selecionados
+    character_avatars = project.get("character_avatars", {})  # Avatares já vinculados
+    
+    # NOVO: Se character_avatars estiver vazio, buscar da character_library automaticamente
+    if not character_avatars or len(character_avatars) == 0:
+        character_library = project.get("character_library")
+        if character_library:
+            library_characters = character_library.get("characters", [])
+            logger.info(f"KlingStoryboard [{project_id}]: character_avatars vazio, buscando da library (pasta '{character_library.get('folder_name', 'Unknown')}')")
+            
+            # Mapear nomes de personagens para URLs dos avatares
+            for char in characters:
+                char_name = char.get("name", "")
+                # Buscar na library pelo nome
+                for lib_char in library_characters:
+                    # Tentar match exato ou parcial
+                    if lib_char.get("name") == char_name or lib_char.get("full_name") == char_name:
+                        character_avatars[char_name] = lib_char.get("url")
+                        logger.info(f"  ✅ Vinculado '{char_name}' → {lib_char.get('url')[:50]}...")
+                        break
+            
+            # Salvar os avatares vinculados no projeto para próximas vezes
+            if character_avatars:
+                project["character_avatars"] = character_avatars
+                _update_project_field(tenant["id"], project_id, {
+                    "character_avatars": character_avatars
+                })
+                logger.info(f"KlingStoryboard [{project_id}]: ✅ {len(character_avatars)} avatares vinculados da library e salvos no projeto")
+    
     dialogues_data = project.get("dialogues", {}).get("scenes", [])
     target_audience = project.get("target_audience", "all")
     lang = project.get("language", "pt")
@@ -1099,7 +1126,7 @@ CRITICAL REQUIREMENTS:
                                     logger.info(f"Frame {frame_num}: ✅ Image regenerated with context")
                                     return public_url
             
-            raise Exception(f"No image found in response")
+            raise Exception("No image found in response")
             
     except Exception as e:
         logger.info(f"Image regeneration error: {e}")
@@ -1194,7 +1221,7 @@ async def _generate_frame_image_with_tool(frame: Dict, project_id: str) -> str:
                                     logger.info(f"      Frame {frame_num}: ✅ Image generated")
                                     return public_url
             
-            raise Exception(f"No image found in response")
+            raise Exception("No image found in response")
             
     except Exception as e:
         logger.info(f"      Image generation error: {e}")
