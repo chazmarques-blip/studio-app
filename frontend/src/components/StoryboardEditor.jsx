@@ -446,7 +446,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         console.log('✅ Delete response:', deleteResponse.status, deleteResponse.data);
         
         console.log('🔄 Generating new storyboards...');
-        const generateResponse = await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`);
+        const generateResponse = await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`, {
+          scene_id: null  // Generate for all scenes / create virtual 5-min scene
+        });
         console.log('✅ Generate response:', generateResponse.status, generateResponse.data);
         
         toast.success(lang === 'pt' ? 'Regenerando 30 frames... Isso pode levar 5-10 minutos.' : 'Regenerating 30 frames... This may take 5-10 minutes.');
