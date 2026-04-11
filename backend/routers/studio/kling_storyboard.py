@@ -553,6 +553,51 @@ async def _generate_storyboards_for_single_scene(
     }
 
 
+
+def _extract_dialogue_for_timerange(dialogue_text: str, start_secs: int, end_secs: int) -> str:
+    """Extract dialogue lines relevant to a specific time range.
+    
+    Splits the full dialogue proportionally based on the time range.
+    If dialogue has timestamps, extracts matching lines.
+    """
+    if not dialogue_text:
+        return ""
+    
+    lines = dialogue_text.strip().split('\n')
+    total_lines = len(lines)
+    
+    if total_lines == 0:
+        return ""
+    
+    # Try to find timestamped lines first (format: [0:30] or (0:30))
+    import re
+    timestamped_lines = []
+    for line in lines:
+        time_match = re.search(r'[\[\(](\d+:\d+)[\]\)]', line)
+        if time_match:
+            t = time_match.group(1)
+            parts = t.split(':')
+            secs = int(parts[0]) * 60 + int(parts[1])
+            timestamped_lines.append((secs, line))
+    
+    if timestamped_lines:
+        relevant = [line for secs, line in timestamped_lines if start_secs <= secs < end_secs]
+        if relevant:
+            return '\n'.join(relevant)
+    
+    # No timestamps found — split proportionally
+    # Calculate which lines correspond to this time range
+    # Assume total dialogue covers the full scene duration
+    total_duration = max(end_secs, 300)  # default 5 min if unknown
+    line_start = int((start_secs / total_duration) * total_lines)
+    line_end = int((end_secs / total_duration) * total_lines)
+    line_start = max(0, min(line_start, total_lines - 1))
+    line_end = max(line_start + 1, min(line_end + 1, total_lines))
+    
+    extracted = lines[line_start:line_end]
+    return '\n'.join(extracted) if extracted else '\n'.join(lines[:5])
+
+
 async def _generate_frame_prompts_for_scene(
     scene: Dict,
     dialogue: Optional[Dict],
@@ -623,8 +668,17 @@ async def _generate_frame_prompts_for_scene(
         
         logger.info(f"  Mini-batch: frames {batch_start+1}-{batch_end} ({frames_in_batch} frames)")
         
+        # Calculate time range for this batch to extract relevant dialogue
+        batch_time_start_secs = batch_start * 10
+        batch_time_end_secs = batch_end * 10
+        batch_time_start_str = f"{batch_time_start_secs // 60}:{batch_time_start_secs % 60:02d}"
+        batch_time_end_str = f"{batch_time_end_secs // 60}:{batch_time_end_secs % 60:02d}"
+        
+        # Extract dialogue lines relevant to this time range
+        relevant_dialogue = _extract_dialogue_for_timerange(dialogue_text, batch_time_start_secs, batch_time_end_secs)
+        
         # Build prompt for this mini-batch
-        system_prompt = f"""You are an ELITE CINEMATOGRAPHER creating detailed storyboard frames.
+        system_prompt = f"""You are an ELITE CINEMATOGRAPHER creating detailed storyboard frames for an animated children's video.
 
 VISUAL STYLE REQUIREMENT: {style_guide}
 CRITICAL: ALL frames MUST use this exact style. No mixing of styles allowed!
@@ -633,27 +687,35 @@ TARGET AUDIENCE: {target_audience}
 {audience_guide}
 
 TASK: Generate {frames_in_batch} consecutive frames (frames {batch_start+1} to {batch_end} of {num_frames} total).
-Each frame = 10 seconds of video.
+Each frame = 10 seconds of video. Time range: {batch_time_start_str} to {batch_time_end_str}.
 
-CRITICAL RULES:
-1. image_prompt: MUST start with style description, then visual details including character appearance
-2. kling_prompt: Action description (character names only, NO physical descriptions)
-3. Ensure CONTINUITY from previous frame
-4. Return ONLY valid JSON array
+ABSOLUTE RULES:
+1. Each frame's image_prompt MUST describe EXACTLY what happens in the script at that specific moment.
+   - If the script says "Abraão caminha com Isaac", show them WALKING together
+   - If the script says "Sara prepara o leite", show Sara PREPARING milk
+   - Do NOT invent scenes that are not in the script
+   - Do NOT repeat the same action across multiple frames
+2. image_prompt: MUST start with style description, then SPECIFIC visual details matching the script action
+3. kling_prompt: Detailed 10-second action description for video generation
+4. Ensure CONTINUITY from previous frame
+5. Return ONLY valid JSON array
 
 Language: {"Portuguese" if lang == "pt" else "English"}"""
         
         user_prompt = f"""SCENE: {scene.get('title', 'Untitled')}
-Description: {scene.get('description', '')}
-Duration: {duration_secs}s (frames {batch_start+1}-{batch_end} out of {num_frames} total)
+Full Scene Description: {scene.get('description', '')[:800]}
 
 CHARACTERS:
 {char_descriptions_text}
 
 MAIN CHARACTERS IN SCENE: {', '.join(scene_characters)}
 
-DIALOGUE SNIPPET (for timing reference):
-{dialogue_text[:500] if dialogue_text else "No dialogue"}...
+===== SCRIPT/DIALOGUE FOR THIS TIME RANGE ({batch_time_start_str} to {batch_time_end_str}) =====
+{relevant_dialogue if relevant_dialogue else dialogue_text[:1000] if dialogue_text else 'No dialogue available'}
+===== END SCRIPT =====
+
+FULL DIALOGUE (for overall context):
+{dialogue_text[:2000] if dialogue_text else 'No dialogue'}
 
 PREVIOUS FRAME CONTEXT:
 {last_frame_context}
@@ -706,22 +768,38 @@ Return ONLY a JSON array of {frames_in_batch} frame objects. No markdown, no exp
 
 
 async def _call_claude_for_mini_batch(system: str, user: str, expected_frames: int) -> str:
-    """Call Claude for a mini-batch of frames"""
+    """Call LLM for a mini-batch of frames. Uses OpenAI as primary (Claude quota exhausted)."""
     import litellm
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")
     
-    response = await litellm.acompletion(
-        model="anthropic/claude-sonnet-4-20250514",
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user}
-        ],
-        max_tokens=8000,  # Enough for 5 frames
-        timeout=120,
-        api_key=api_key
-    )
+    # Try OpenAI first (Claude quota exhausted), then Claude as fallback
+    models = [
+        ("gpt-4o-mini", os.environ.get("OPENAI_API_KEY")),
+        ("anthropic/claude-sonnet-4-20250514", os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")),
+    ]
     
-    return response.choices[0].message.content
+    for model_name, api_key in models:
+        if not api_key:
+            continue
+        try:
+            response = await litellm.acompletion(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user}
+                ],
+                max_tokens=8000,
+                timeout=120,
+                api_key=api_key
+            )
+            text = response.choices[0].message.content
+            if text:
+                logger.info(f"Mini-batch LLM [{model_name}]: OK ({len(text)} chars)")
+                return text
+        except Exception as e:
+            logger.warning(f"Mini-batch LLM [{model_name}] failed: {str(e)[:100]}")
+            continue
+    
+    raise Exception("All LLM models failed for mini-batch")
 
 
 def _parse_frames_response(response: str, expected_count: int, start_index: int) -> List[Dict]:
