@@ -803,8 +803,7 @@ def _generate_scene_keyframe(sora_prompt: str, char_avatars: dict, avatar_cache:
                               character_bible: dict = None) -> str:
     """KEYFRAME-FIRST PIPELINE: Generate a starting frame image via Gemini 2.5 Flash Image to force
     correct character identity before Sora 2 animation.
-    Uses direct Gemini API with user's GEMINI_API_KEY.
-    Now passes ALL character avatars + character_bible for maximum consistency.
+    Now sends ALL character avatars as multimodal references for maximum consistency.
     """
     import tempfile
     from core.llm import generate_image_gemini_sync
@@ -822,12 +821,19 @@ def _generate_scene_keyframe(sora_prompt: str, char_avatars: dict, avatar_cache:
                 if desc:
                     char_desc_block += f"\n- {cname}: {desc}"
 
+        # Build avatar reference labels
+        avatar_labels = []
+        for i, cname in enumerate(chars_in_scene):
+            if char_avatars.get(cname):
+                avatar_labels.append(f"Imagem de referência {i+1}: {cname}")
+
         prompt_text = f"""Generate a SINGLE FRAME for an animated film. This will be used as a starting keyframe for Sora 2 video generation.
 
 {sora_prompt}
 
-CHARACTER IDENTITY (from avatar analysis — ABSOLUTE TRUTH, match EXACTLY):
-{char_desc_block if char_desc_block else 'See reference images below.'}
+CHARACTER IDENTITY (from avatar images above — ABSOLUTE TRUTH, match EXACTLY):
+{chr(10).join(avatar_labels) if avatar_labels else ''}
+{char_desc_block if char_desc_block else 'See reference images.'}
 
 CRITICAL RULES:
 - Every character MUST match the reference avatar images EXACTLY — same species, same face shape, same fur color, same clothing
@@ -836,18 +842,26 @@ CRITICAL RULES:
 - Style MUST be 3D CGI Pixar quality with volumetric lighting
 - This is ONE static frame — capture the opening moment of this scene"""
 
-        # Use first character's avatar as reference image (Gemini only accepts one input image)
-        input_image_bytes = None
+        # Collect ALL character avatar images for multimodal input
+        primary_image = None
+        extra_images = []
+        
         for char_name in chars_in_scene:
             url = char_avatars.get(char_name)
             cached_path = avatar_cache.get(url) if url else None
             if cached_path and os.path.exists(cached_path):
                 with open(cached_path, 'rb') as f:
-                    input_image_bytes = f.read()
-                break  # Use first available avatar as base
+                    img_bytes = f.read()
+                if primary_image is None:
+                    primary_image = img_bytes
+                else:
+                    extra_images.append(img_bytes)
+        
+        avatar_count = 1 + len(extra_images) if primary_image else 0
+        logger.info(f"Studio [{project_id}]: Keyframe scene {scene_num} using {avatar_count} avatar references (multimodal)")
 
-        # Generate keyframe using Gemini direct API
-        result = generate_image_gemini_sync(prompt_text, input_image_bytes)
+        # Generate keyframe using Gemini with ALL avatars
+        result = generate_image_gemini_sync(prompt_text, primary_image, extra_images=extra_images)
 
         if result:
             # Resize to match Sora 2 expected dimensions (1280x720)
@@ -855,7 +869,6 @@ CRITICAL RULES:
             import io
             
             img = Image.open(io.BytesIO(result))
-            # Resize to 1280x720 (Sora 2 default size)
             img_resized = img.resize((1280, 720), Image.Resampling.LANCZOS)
             
             keyframe_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name

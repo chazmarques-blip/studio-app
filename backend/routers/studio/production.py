@@ -41,8 +41,8 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         # Prepare generation parameters
         gen_params = {
             "model": "sora-2",
-            "prompt": prompt[:1000],
-            "size": size,  # Use size directly (e.g., "1280x720")
+            "prompt": prompt[:2500],
+            "size": size,
             "seconds": duration
         }
         
@@ -147,14 +147,15 @@ def _generate_video_unified(
             logger.error("Kling engine selected but kling_client not provided")
             return b""
         
-        logger.info(f"🎬 Using KLING AI engine (duration={duration}s)")
+        # Kling supports max 10s clips — use 10s for best quality
+        kling_duration = min(duration, 10)
+        logger.info(f"🎬 Using KLING AI engine (duration={kling_duration}s)")
         return kling_client.text_to_video(
             prompt=prompt,
             image_path=image_path,
-            duration=float(duration),
+            duration=float(kling_duration),
             resolution=size,
-            model="kling-v3",
-            generate_audio=True,  # Enable native audio (voice, music, SFX, lip-sync)
+            model="kling-v2-master",
             max_wait=max_wait
         )
     
@@ -201,7 +202,7 @@ def _update_scene_status(tenant_id: str, project_id: str, scene_num: int, status
 _save_video_lock = threading.Lock()
 
 
-def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url: str, total: int):
+def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url: str, total: int, sora_prompt: str = None, keyframe_url: str = None):
     """Save a completed scene video immediately for real-time preview (thread-safe)."""
     try:
         with _save_video_lock:
@@ -216,8 +217,19 @@ def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 })
             project["outputs"] = outputs
+            
+            # Also save to scene data for frontend access
+            for scene in project.get("scenes", []):
+                if scene.get("scene_number") == scene_num:
+                    scene["video_url"] = video_url
+                    if sora_prompt:
+                        scene["sora_prompt"] = sora_prompt
+                    if keyframe_url:
+                        scene["keyframe_url"] = keyframe_url
+                    break
+            
             _add_milestone(project, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
-            _save_project(tenant_id, settings, projects)
+            _save_project(tenant_id, settings, projects, flush_now=True)
         _update_scene_status(tenant_id, project_id, scene_num, "done", total)
     except Exception as e:
         logger.warning(f"_save_scene_video scene {scene_num}: {e}")
@@ -652,7 +664,19 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             filename = f"studio/{project_id}_scene_{scene_num}.mp4"
                             video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
                             logger.info(f"Studio [{project_id}]: Scene {scene_num} DONE {elapsed:.0f}s ({len(video_bytes)//1024}KB)")
-                            _save_scene_video(tenant_id, project_id, scene_num, video_url, total)
+                            
+                            # Upload keyframe to storage for reference
+                            keyframe_url = None
+                            if ref_path and os.path.exists(ref_path):
+                                try:
+                                    with open(ref_path, 'rb') as kf:
+                                        keyframe_bytes = kf.read()
+                                    keyframe_filename = f"studio/{project_id}_keyframe_{scene_num}.png"
+                                    keyframe_url = _upload_to_storage(keyframe_bytes, keyframe_filename, "image/png")
+                                except Exception:
+                                    pass
+                            
+                            _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt, keyframe_url=keyframe_url)
                             return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": video_duration}
                         else:
                             sz = len(video_bytes) if video_bytes else 0

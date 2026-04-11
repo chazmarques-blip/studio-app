@@ -194,16 +194,27 @@ async def generate_image_gemini(prompt: str, input_image_bytes: bytes = None, ma
     return None
 
 
-def generate_image_gemini_sync(prompt: str, input_image_bytes: bytes = None) -> bytes:
-    """Sync version of Gemini image generation for use in threads."""
+def generate_image_gemini_sync(prompt: str, input_image_bytes: bytes = None, extra_images: list = None) -> bytes:
+    """Sync version of Gemini image generation for use in threads.
+    
+    Args:
+        prompt: Text prompt
+        input_image_bytes: Primary reference image bytes (optional)
+        extra_images: List of additional reference image bytes (optional) for multi-character scenes
+    """
     from google import genai
     from google.genai import types
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
     contents = []
+    # Add all reference images first (multimodal input)
     if input_image_bytes:
         contents.append(types.Part.from_bytes(data=input_image_bytes, mime_type="image/png"))
+    if extra_images:
+        for img_bytes in extra_images:
+            if img_bytes:
+                contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/png"))
     contents.append(prompt)
 
     response = client.models.generate_content(

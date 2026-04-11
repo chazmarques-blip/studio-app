@@ -77,7 +77,7 @@ class KlingClient:
                     "model_name": model,
                     "prompt": prompt[:2500],
                     "image": img_b64,
-                    "duration": str(duration),
+                    "duration": str(int(duration)),
                     "aspect_ratio": self._resolution_to_aspect(resolution),
                     "cfg_scale": cfg_scale
                 }
@@ -87,7 +87,7 @@ class KlingClient:
                 payload = {
                     "model_name": model,
                     "prompt": prompt[:2500],
-                    "duration": str(duration),
+                    "duration": str(int(duration)),
                     "aspect_ratio": self._resolution_to_aspect(resolution),
                     "cfg_scale": cfg_scale
                 }
