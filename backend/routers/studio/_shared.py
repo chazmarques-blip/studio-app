@@ -239,66 +239,96 @@ def _upload_to_storage(file_bytes: bytes, filename: str, content_type: str = "im
 
 
 async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
-    """Call Claude via Anthropic API directly (async). 3 retries with timeout."""
-    for attempt in range(3):
-        try:
-            response = await litellm.acompletion(
-                model="anthropic/claude-sonnet-4-5-20250929",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=max_tokens,
-                timeout=120,
-                num_retries=0,
-                api_key=ANTHROPIC_API_KEY,
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            if attempt < 2 and any(code in str(e) for code in ["502", "503", "529", "timeout", "disconnected", "overloaded"]):
-                logger.warning(f"Claude async attempt {attempt+1} failed: {e}. Retrying...")
-                await asyncio.sleep(5 * (attempt + 1))
-                continue
-            raise
+    """Call LLM via litellm (async). Uses OpenAI as primary, Claude as fallback. 3 retries with timeout."""
+    # Primary: OpenAI (Claude quota exhausted)
+    models_to_try = [
+        ("gpt-4o-mini", os.environ.get("OPENAI_API_KEY")),
+        ("anthropic/claude-sonnet-4-5-20250929", ANTHROPIC_API_KEY),
+    ]
+    
+    last_error = None
+    for model_name, api_key in models_to_try:
+        if not api_key:
+            continue
+        for attempt in range(3):
+            try:
+                response = await litellm.acompletion(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    max_tokens=max_tokens,
+                    timeout=120,
+                    num_retries=0,
+                    api_key=api_key,
+                )
+                text = response.choices[0].message.content
+                if text:
+                    return text
+            except Exception as e:
+                last_error = e
+                err_str = str(e).lower()
+                retryable = any(k in err_str for k in ["502", "503", "529", "timeout", "disconnected", "overloaded", "rate"])
+                if attempt < 2 and retryable:
+                    logger.warning(f"LLM async {model_name} attempt {attempt+1} failed: {str(e)[:100]}. Retrying...")
+                    await asyncio.sleep(5 * (attempt + 1))
+                    continue
+                logger.warning(f"LLM async {model_name} failed: {str(e)[:150]}. Trying next model...")
+                break
+    
+    raise Exception(f"All LLM models failed: {last_error}")
 
 
 def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000, timeout_per_attempt: int = 300) -> str:
-    """Call Claude via Anthropic API directly (sync). 3 retries, no proxy.
-    
-    CRITICAL FIX: Increased default timeout from 120s → 300s to prevent timeouts
-    when processing multiple characters or complex prompts.
+    """Call LLM via litellm (sync). Uses OpenAI as primary, Claude as fallback.
+    3 retries per model, with timeout.
     """
     import time as _time
 
-    for attempt in range(3):
-        t_start = _time.time()
-        try:
-            response = litellm.completion(
-                model="anthropic/claude-sonnet-4-5-20250929",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=max_tokens,
-                timeout=timeout_per_attempt,
-                num_retries=0,
-                api_key=ANTHROPIC_API_KEY,
-            )
-            text = response.choices[0].message.content
-            elapsed = _time.time() - t_start
-            logger.info(f"Claude responded in {elapsed:.1f}s ({len(text)} chars)")
-            return text
-        except Exception as e:
-            elapsed = _time.time() - t_start
-            err_str = str(e).lower()
-            retryable = any(k in err_str for k in ["502", "503", "529", "timeout", "disconnected", "overloaded", "connection", "reset", "eof", "broken pipe", "server"])
-
-            logger.warning(f"Claude attempt {attempt+1}/3 failed ({elapsed:.0f}s): {str(e)[:150]}. {'Retrying...' if attempt < 2 else 'FAILED'}")
-
-            if attempt < 2 and retryable:
-                _time.sleep(5)
-                continue
-            raise Exception(f"Claude failed after 3 attempts: {e}")
+    models_to_try = [
+        ("gpt-4o-mini", os.environ.get("OPENAI_API_KEY")),
+        ("anthropic/claude-sonnet-4-5-20250929", ANTHROPIC_API_KEY),
+    ]
+    
+    last_error = None
+    for model_name, api_key in models_to_try:
+        if not api_key:
+            continue
+        for attempt in range(3):
+            t_start = _time.time()
+            try:
+                response = litellm.completion(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    max_tokens=max_tokens,
+                    timeout=timeout_per_attempt,
+                    num_retries=0,
+                    api_key=api_key,
+                )
+                text = response.choices[0].message.content
+                elapsed = _time.time() - t_start
+                if text:
+                    logger.info(f"LLM [{model_name}] responded in {elapsed:.1f}s ({len(text)} chars)")
+                    return text
+            except Exception as e:
+                elapsed = _time.time() - t_start
+                last_error = e
+                err_str = str(e).lower()
+                retryable = any(k in err_str for k in ["502", "503", "529", "timeout", "disconnected", "overloaded", "connection", "reset", "eof", "broken pipe", "server", "rate"])
+                
+                logger.warning(f"LLM [{model_name}] attempt {attempt+1}/3 failed ({elapsed:.0f}s): {str(e)[:150]}")
+                
+                if attempt < 2 and retryable:
+                    _time.sleep(5)
+                    continue
+                logger.warning(f"LLM [{model_name}] exhausted retries, trying next model...")
+                break
+    
+    raise Exception(f"All LLM models failed after retries: {last_error}")
 
 
 def _parse_json(text):
@@ -875,6 +905,7 @@ class StartProductionRequest(BaseModel):
     video_duration: int = 12
     character_avatars: dict = {}  # {character_name: avatar_url}
     visual_style: str = ""  # override style for this run
+    video_engine: str = "sora"  # "sora" or "kling"
 
 class RegenerateSceneRequest(BaseModel):
     scene_number: int

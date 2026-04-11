@@ -1053,11 +1053,12 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     if not project.get("scenes"):
         raise HTTPException(status_code=400, detail="No scenes defined. Use the Screenwriter first.")
 
-    # Persist character avatars and visual style to project
+    # Persist character avatars, visual style, and video engine
     if req.character_avatars:
         project["character_avatars"] = req.character_avatars
     if req.visual_style:
         project["visual_style"] = req.visual_style
+    project["video_engine"] = req.video_engine  # Save engine choice
 
     project["status"] = "starting"
     project["error"] = None
