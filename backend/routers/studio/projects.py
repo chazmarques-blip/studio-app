@@ -146,6 +146,7 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "continuity_status": project.get("continuity_status", {}),
         "continuity_report": project.get("continuity_report", {}),
         "error": project.get("error"),
+        "video_engine": project.get("video_engine", "sora"),
     }
 
 @router.delete("/projects/{project_id}")
@@ -212,7 +213,7 @@ async def update_project_settings(project_id: str, payload: dict = Body(...), te
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    allowed_keys = {"screenplay_approved", "audio_mode", "visual_style", "animation_sub", "continuity_mode", "language"}
+    allowed_keys = {"screenplay_approved", "audio_mode", "visual_style", "animation_sub", "continuity_mode", "language", "video_engine"}
     for k, v in payload.items():
         if k in allowed_keys:
             project[k] = v

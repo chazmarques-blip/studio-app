@@ -10,7 +10,7 @@ export function StudioProductionBanner() {
 
   if (!ctx?.activeProduction) return null;
 
-  const { projectId, projectName, agentStatus, outputs, scenes, status, startedAt } = ctx.activeProduction;
+  const { projectId, projectName, agentStatus, outputs, scenes, status, startedAt, videoEngine } = ctx.activeProduction;
   const isComplete = status === 'complete';
   const isError = status === 'error';
   const isRunning = !isComplete && !isError;
@@ -32,12 +32,14 @@ export function StudioProductionBanner() {
   else if (phase === 'pre_production_done') progress = 15;
   else if (phase) progress = Math.min(45, 15 + (agentStatus?.current_scene || 0) / Math.max(totalScenes, 1) * 30);
 
+  const engineLabel = videoEngine === 'kling' ? 'Kling AI' : 'Sora 2';
+  
   const phaseLabel = isComplete ? 'Concluído!'
     : isError ? 'Erro na produção'
     : phase === 'concatenating' ? 'Montando filme...'
-    : phase === 'generating_video' ? `Sora 2 — ${videosDone}/${totalScenes} vídeos`
+    : phase === 'generating_video' ? `${engineLabel} — ${videosDone}/${totalScenes} vídeos`
     : phase === 'directing' ? `Dirigindo cenas...`
-    : phase === 'waiting_sora' ? 'Aguardando Sora 2...'
+    : phase === 'waiting_sora' ? `Aguardando ${engineLabel}...`
     : phase === 'starting_teams' ? 'Iniciando equipas...'
     : phase === 'pre_production' ? 'Pré-produção inteligente...'
     : phase === 'pre_production_done' ? 'Design de produção pronto!'

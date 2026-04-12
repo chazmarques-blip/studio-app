@@ -626,6 +626,7 @@ export const DirectedStudio = memo(function DirectedStudio({
         setProjectLang(p.language || 'pt');
         setProjectAvatars(p.project_avatars || []);
         setChatMessages(p.chat_messages || []);
+        setVideoEngine(p.video_engine || 'sora');
         
         // Determine step based on project state
         // PRIORIDADE: Status complete ou tem vídeos = ir para resultado
@@ -3486,7 +3487,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   {agentStatus.phase === 'generating_keyframes' && `Gemini — Gerando keyframes de referência (${agentStatus.total_scenes || scenes.length} cenas)`}
                   {agentStatus.phase === 'music' && `Dir. Musical`}
                   {agentStatus.phase === 'audio' && `Dir. Áudio — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
-                  {agentStatus.phase?.startsWith('generating_video') && `Sora 2 — Gerando vídeos`}
+                  {agentStatus.phase?.startsWith('generating_video') && `${videoEngine === 'kling' ? 'Kling AI' : 'Sora 2'} — Gerando vídeos`}
                   {agentStatus.phase === 'concatenating' && `Concatenando filme final...`}
                   {agentStatus.phase === 'complete' && `Produção concluída!`}
                   {agentStatus.phase === 'starting' && `Iniciando produção...`}
@@ -3622,8 +3623,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                             <div className="text-[10px] shrink-0">
                               {videoDone && <span className="text-emerald-400 font-medium">{lang === 'pt' ? 'Pronto' : 'Done'}</span>}
                               {videoError && <span className="text-red-400">Erro</span>}
-                              {isVideoGen && <span className="text-orange-600">Sora 2...</span>}
-                              {isWaiting && <span className="text-blue-400">{lang === 'pt' ? 'Fila Sora' : 'Sora Queue'}</span>}
+                              {isVideoGen && <span className="text-orange-600">{videoEngine === 'kling' ? 'Kling...' : 'Sora 2...'}</span>}
+                              {isWaiting && <span className="text-blue-400">{lang === 'pt' ? (videoEngine === 'kling' ? 'Fila Kling' : 'Fila Sora') : (videoEngine === 'kling' ? 'Kling Queue' : 'Sora Queue')}</span>}
                               {isDirecting && <span className="text-purple-400">{lang === 'pt' ? 'Dirigindo' : 'Directing'}</span>}
                               {sceneState === 'queued' && <span className="text-[#444]">—</span>}
                             </div>
@@ -3729,7 +3730,7 @@ export const DirectedStudio = memo(function DirectedStudio({
             <div className="rounded-lg border border-orange-500/20 bg-[#8B5CF6]/5 p-2 flex items-center gap-2">
               <Film size={14} className="text-orange-600 animate-pulse" />
               <div className="flex-1">
-                <p className="text-[10px] font-semibold text-orange-600">Sora 2 — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
+                <p className="text-[10px] font-semibold text-orange-600">{videoEngine === 'kling' ? 'Kling AI' : 'Sora 2'} — {lang === 'pt' ? 'Gerando Vídeos' : 'Generating Videos'}</p>
                 <p className="text-[11px] text-gray-500">
                   {agentStatus.videos_done || 0}/{agentStatus.total_scenes || '?'} {lang === 'pt' ? 'prontos' : 'done'}.
                   {' '}{lang === 'pt' ? 'Pode navegar — avisaremos quando terminar.' : 'You can navigate away.'}
@@ -3744,8 +3745,8 @@ export const DirectedStudio = memo(function DirectedStudio({
               <Clock size={12} className="text-orange-400" />
               <p className="text-[11px] text-orange-300">
                 {lang === 'pt'
-                  ? `${agentStatus.videos_done} cenas geradas, restantes falharam. Possivelmente budget Sora 2 esgotado. Adicione saldo em Profile → Universal Key → Add Balance e retome a produção.`
-                  : `${agentStatus.videos_done} scenes generated, others failed. Likely Sora 2 budget exceeded. Top up balance and resume.`
+                  ? `${agentStatus.videos_done} cenas geradas, restantes falharam. Possivelmente budget ${videoEngine === 'kling' ? 'Kling AI' : 'Sora 2'} esgotado. Adicione saldo e retome a produção.`
+                  : `${agentStatus.videos_done} scenes generated, others failed. Likely ${videoEngine === 'kling' ? 'Kling AI' : 'Sora 2'} budget exceeded. Top up balance and resume.`
                 }
               </p>
             </div>

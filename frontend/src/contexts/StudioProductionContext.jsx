@@ -66,6 +66,7 @@ export function StudioProductionProvider({ children }) {
             status: d.status,
             narrations: d.narrations || [],
             progressMessage: d.progress_message || '', // NEW: detailed progress message
+            videoEngine: d.video_engine || prev.videoEngine || 'sora',
           };
           // Stop tracking if production is no longer active (was reset/fixed)
           if (!['starting', 'running_agents', 'generating_video'].includes(d.status)) {
