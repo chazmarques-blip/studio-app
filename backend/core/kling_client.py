@@ -147,6 +147,15 @@ class KlingClient:
                         video_response.raise_for_status()
                         elapsed = time.time() - start_time
                         logger.info(f"Kling AI: Task {task_id} DONE in {elapsed:.0f}s ({len(video_response.content)//1024}KB)")
+                        
+                        # Store the video_id for extension support
+                        video_id = None
+                        for w in works:
+                            video_id = w.get("id")
+                            if video_id:
+                                break
+                        self._last_video_id = video_id
+                        
                         return video_response.content
                     else:
                         logger.error(f"Kling AI: Completed but no video URL found in: {task_data.keys()}")
@@ -337,15 +346,16 @@ class KlingClient:
             return b""
         
         # Step 1: Generate initial 5s clip using first frame (I2V)
+        # IMPORTANT: Use kling-v1 because video extension only supports V1.0, V1.5, V1.6
         initial_prompt = frames[0].get("kling_prompt", "")
         logger.info(f"Kling AI: Generating full video ({target_duration}s target, {len(frames)} frames x 6s)")
-        logger.info(f"Kling AI: Step 1 — Initial I2V clip (5s)")
+        logger.info(f"Kling AI: Step 1 — Initial I2V clip (5s, model=kling-v1 for extension support)")
         
         initial_video = self.text_to_video(
             prompt=initial_prompt,
             image_path=initial_image_path,
             duration=5.0,
-            model="kling-v2-master",
+            model="kling-v1-6",
             max_wait=max_wait_per_step
         )
         
@@ -353,7 +363,9 @@ class KlingClient:
             logger.error("Kling AI: Initial clip generation failed")
             return b""
         
-        current_video_id = self._get_last_video_id()
+        current_video_id = getattr(self, '_last_video_id', None)
+        if not current_video_id:
+            current_video_id = self._get_last_video_id()
         if not current_video_id:
             logger.error("Kling AI: Could not retrieve video_id for initial clip")
             return initial_video

@@ -1114,6 +1114,7 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     if req.visual_style:
         project["visual_style"] = req.visual_style
     project["video_engine"] = req.video_engine  # Save engine choice
+    logger.info(f"Studio [{req.project_id}]: start_production — video_engine='{req.video_engine}' (from request)")
 
     project["status"] = "starting"
     project["error"] = None
@@ -1122,7 +1123,20 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     _add_milestone(project, "production_started", f"Produção iniciada — {total} cenas")
     if req.character_avatars:
         _add_milestone(project, "avatars_linked", f"Avatares vinculados — {len(req.character_avatars)} personagens")
-    _save_project(tenant["id"], settings, projects)
+    
+    # When re-producing, clear previous outputs so engine generates fresh
+    if project.get("outputs"):
+        logger.info(f"Studio [{req.project_id}]: Clearing {len(project.get('outputs', []))} previous outputs for fresh production")
+        project["outputs"] = []
+    
+    _save_project(tenant["id"], settings, projects, flush_now=True)
+    
+    # Invalidate cache to ensure background thread reads fresh data
+    try:
+        from core.cache import project_cache
+        project_cache.invalidate(tenant["id"])
+    except Exception as e:
+        logger.warning(f"Cache invalidation error: {e}")
 
     # Use saved character_avatars (merge request + saved)
     char_avatars = {**project.get("character_avatars", {}), **req.character_avatars}

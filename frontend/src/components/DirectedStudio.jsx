@@ -1794,16 +1794,27 @@ export const DirectedStudio = memo(function DirectedStudio({
       return;
     }
     
+    // Fetch fresh video_engine from server to avoid stale state
+    let engine = videoEngine;
+    try {
+      const statusRes = await axios.get(`${API}/studio/projects/${projectId}/status`);
+      engine = statusRes.data.video_engine || videoEngine;
+      if (engine !== videoEngine) {
+        setVideoEngine(engine);
+        console.log(`🎬 video_engine synced from server: ${engine}`);
+      }
+    } catch {}
+    
     setGenerating(true);
     setStep(6);
     
     try {
       const response = await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
-        video_duration: videoEngine === 'kling' ? 300 : 12,
+        video_duration: engine === 'kling' ? 300 : 12,
         character_avatars: characterAvatars || {},
         visual_style: visualStyle || 'animation',
-        video_engine: videoEngine,
+        video_engine: engine,
       });
       
       console.log('Production started:', response.data);
