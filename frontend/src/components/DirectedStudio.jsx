@@ -1152,8 +1152,9 @@ export const DirectedStudio = memo(function DirectedStudio({
     try {
       await axios.post(`${API}/studio/start-production`, {
         project_id: proj.id,
-        video_duration: 12,
+        video_duration: (proj.video_engine || videoEngine) === 'kling' ? 300 : 12,
         character_avatars: proj.character_avatars || {},
+        video_engine: proj.video_engine || videoEngine,
       });
       startPolling(proj.id);
       toast.success(lang === 'pt' ? 'Retomando produção...' : 'Resuming production...');
@@ -1799,9 +1800,10 @@ export const DirectedStudio = memo(function DirectedStudio({
     try {
       const response = await axios.post(`${API}/studio/start-production`, {
         project_id: projectId,
-        video_duration: 12,
+        video_duration: videoEngine === 'kling' ? 300 : 12,
         character_avatars: characterAvatars || {},
         visual_style: visualStyle || 'animation',
+        video_engine: videoEngine,
       });
       
       console.log('Production started:', response.data);
