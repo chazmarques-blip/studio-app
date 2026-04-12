@@ -1188,8 +1188,9 @@ async def _upload_base64_to_supabase(
     project_id: str, 
     filename: str
 ) -> str:
-    """Upload base64 image to Supabase storage and return public URL"""
+    """Upload base64 image to Supabase storage and return public URL with cache-busting"""
     import base64
+    import time as _time
     from supabase import create_client
     
     supabase_url = os.environ.get("SUPABASE_URL", "")
@@ -1204,18 +1205,23 @@ async def _upload_base64_to_supabase(
     # Create Supabase client
     supabase = create_client(supabase_url, supabase_key)
     
-    # Upload to storage bucket
-    storage_path = f"{tenant_id}/projects/{project_id}/storyboards/{filename}"
+    # Add timestamp to filename to bust CDN/browser cache
+    ts = int(_time.time())
+    name_parts = filename.rsplit('.', 1)
+    if len(name_parts) == 2:
+        versioned_filename = f"{name_parts[0]}_{ts}.{name_parts[1]}"
+    else:
+        versioned_filename = f"{filename}_{ts}"
+    
+    storage_path = f"{tenant_id}/projects/{project_id}/storyboards/{versioned_filename}"
     
     try:
-        # Upload file
         response = supabase.storage.from_("pipeline-assets").upload(
             path=storage_path,
             file=image_bytes,
             file_options={"content-type": "image/png", "upsert": "true"}
         )
         
-        # Get public URL
         public_url = supabase.storage.from_("pipeline-assets").get_public_url(storage_path)
         
         return public_url
