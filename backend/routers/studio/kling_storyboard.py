@@ -433,7 +433,7 @@ async def regenerate_single_frame(
             for char_name in character_avatars.keys():
                 logger.info(f"  - {char_name}")
         else:
-            logger.warning(f"⚠️ Nenhum character_avatar vinculado ao projeto")
+            logger.warning("⚠️ Nenhum character_avatar vinculado ao projeto")
         
         logger.info(f"📊 Context: style={visual_style}, audience={target_audience}, avatars={len(character_avatars)}")
         
@@ -507,6 +507,65 @@ async def regenerate_single_frame(
     except Exception as e:
         logger.error(f"Error regenerating frame: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/projects/{project_id}/kling-storyboards/update-frame")
+async def update_frame_fields(
+    project_id: str,
+    request: Dict,
+    tenant=Depends(get_current_tenant)
+):
+    """
+    Update editable fields of a single frame (image_prompt, kling_prompt, dialogue_text).
+    Does NOT regenerate the image — just saves the text fields.
+    """
+    frame_number = request.get("frame_number")
+    if not frame_number:
+        raise HTTPException(status_code=400, detail="frame_number is required")
+
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    storyboards = project.get("kling_storyboards", [])
+    if not storyboards:
+        raise HTTPException(status_code=404, detail="No storyboards found")
+
+    # Allowed editable fields
+    editable = {}
+    for key in ("image_prompt", "kling_prompt", "dialogue_text"):
+        if key in request:
+            editable[key] = request[key]
+
+    if not editable:
+        raise HTTPException(status_code=400, detail="No editable fields provided (image_prompt, kling_prompt, dialogue_text)")
+
+    # Find and update the frame
+    frame_found = False
+    for scene in storyboards:
+        for frame in scene.get("frames", []):
+            if frame.get("frame_number") == frame_number:
+                frame.update(editable)
+                frame_found = True
+                break
+        if frame_found:
+            break
+
+    if not frame_found:
+        raise HTTPException(status_code=404, detail=f"Frame {frame_number} not found")
+
+    # Persist
+    _update_project_field(tenant["id"], project_id, {
+        "kling_storyboards": storyboards
+    }, flush_now=True)
+
+    logger.info(f"KlingStoryboard [{project_id}]: Updated frame {frame_number} fields: {list(editable.keys())}")
+
+    return {
+        "status": "success",
+        "frame_number": frame_number,
+        "updated_fields": list(editable.keys())
+    }
 
 
 async def _generate_storyboards_for_single_scene(
@@ -779,6 +838,7 @@ JSON format per frame:
   "frame_number": N,
   "time_start": "M:SS",
   "time_end": "M:SS",
+  "dialogue_text": "[EXACT dialogue/narration text spoken during this 10-second window, copied verbatim from the script. If no speech, describe the sound/ambient]",
   "image_prompt": "[style]. [EXACT scene matching script]. [character positions, expressions, lighting]",
   "kling_prompt": "[10-second animation: character movements, camera moves matching script action]",
   "characters_present": ["name1", "name2"],
@@ -810,6 +870,7 @@ PREVIOUS FRAME CONTEXT:
 Generate {frames_in_batch} frames. Each frame must have:
 - frame_number: {batch_start+1} to {batch_end}
 - time_start & time_end (format "M:SS")
+- dialogue_text: The EXACT spoken dialogue or narration text for this 10-second window (copy verbatim from script). If silence, describe the ambient sound.
 - image_prompt: Detailed visual description
 - kling_prompt: Detailed 10-second action description
 - characters_present: List of character names
@@ -817,6 +878,8 @@ Generate {frames_in_batch} frames. Each frame must have:
 - key_action: Brief description
 - emotion: Emotional tone
 - lighting: Lighting description
+
+CRITICAL: dialogue_text must contain the EXACT words from the script for this time window. This is essential for syncing audio with visuals.
 
 Return ONLY a JSON array of {frames_in_batch} frame objects. No markdown, no explanation."""
         
@@ -954,6 +1017,7 @@ def _generate_fallback_frames(
             "frame_number": frame_num,
             "time_start": f"{start_sec//60}:{start_sec%60:02d}",
             "time_end": f"{end_sec//60}:{end_sec%60:02d}",
+            "dialogue_text": "(Sem diálogo específico para este intervalo)",
             "image_prompt": f"{scene.get('title', 'Scene')} - Frame {frame_num}. {scene.get('description', 'Scene continues.')}",
             "kling_prompt": f"[{start_sec//60}:{start_sec%60:02d}-{end_sec//60}:{end_sec%60:02d}] {scene.get('description', 'Action continues.')} Characters: {', '.join(characters)}. Camera static. Natural lighting.",
             "characters_present": characters,
@@ -1545,7 +1609,7 @@ REQUISITOS CRÍTICOS:
                                     logger.info(f"Frame {frame_num}: ✅ Imagem regenerada com referências visuais dos personagens")
                                     return public_url
             
-            raise Exception(f"No image found in response")
+            raise Exception("No image found in response")
             
     except Exception as e:
         logger.info(f"Image regeneration error: {e}")

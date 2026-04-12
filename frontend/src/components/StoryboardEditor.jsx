@@ -78,6 +78,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [zoomFrame, setZoomFrame] = useState(null);
   const [zoomFrameIndex, setZoomFrameIndex] = useState(null);
   
+  // NOVO: Inline editing state for zoom modal
+  const [zoomEditing, setZoomEditing] = useState(false);
+  const [zoomEditData, setZoomEditData] = useState({});
+  const [zoomSaving, setZoomSaving] = useState(false);
+  
   // NOVO: Estado para travar regenerações simultâneas
   const [isRegenerating, setIsRegenerating] = useState(false);
   
@@ -367,11 +372,15 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const openZoomModal = (frame, index) => {
     setZoomFrame(frame);
     setZoomFrameIndex(index);
+    setZoomEditing(false);
+    setZoomEditData({});
   };
 
   const closeZoomModal = () => {
     setZoomFrame(null);
     setZoomFrameIndex(null);
+    setZoomEditing(false);
+    setZoomEditData({});
   };
 
   const navigateFrame = (direction) => {
@@ -381,6 +390,50 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       : Math.max(zoomFrameIndex - 1, 0);
     setZoomFrame(displayFrames[newIndex]);
     setZoomFrameIndex(newIndex);
+    setZoomEditing(false);
+    setZoomEditData({});
+  };
+
+  const startZoomEdit = () => {
+    setZoomEditing(true);
+    setZoomEditData({
+      image_prompt: zoomFrame.image_prompt || '',
+      kling_prompt: zoomFrame.kling_prompt || '',
+      dialogue_text: zoomFrame.dialogue_text || '',
+    });
+  };
+
+  const saveZoomEdit = async () => {
+    if (!zoomFrame || !zoomEditData) return;
+    setZoomSaving(true);
+    try {
+      await axios.patch(`${API}/studio/projects/${projectId}/kling-storyboards/update-frame`, {
+        frame_number: zoomFrame.frame_number,
+        ...zoomEditData,
+      });
+      // Update local state
+      const updatedFrame = { ...zoomFrame, ...zoomEditData };
+      setZoomFrame(updatedFrame);
+      // Update displayFrames in klingStoryboards
+      setKlingStoryboards(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          scenes: prev.scenes.map(scene => ({
+            ...scene,
+            frames: scene.frames.map(f =>
+              f.frame_number === zoomFrame.frame_number ? { ...f, ...zoomEditData } : f
+            )
+          }))
+        };
+      });
+      setZoomEditing(false);
+      toast.success(lang === 'pt' ? 'Quadro atualizado!' : 'Frame updated!');
+    } catch (err) {
+      toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao salvar' : 'Save failed'));
+    } finally {
+      setZoomSaving(false);
+    }
   };
 
   const copyToClipboard = (text) => {
@@ -1544,87 +1597,101 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               const frameNumber = isKlingFrame ? item.frame_number : item.scene_number;
               const imageUrl = isKlingFrame ? item.image_url : (getSelectedFrame(item.scene_number, item.frames)?.image_url || item.image_url);
               const timeLabel = isKlingFrame ? `${item.time_start}-${item.time_end}` : null;
+              const dialogueSnippet = isKlingFrame ? (item.dialogue_text || '') : '';
               
               return (
-                <div 
+                <div
                   key={isKlingFrame ? `kling-${frameNumber}` : `scene-${item.scene_number}`}
-                  className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
-                  onClick={() => {
-                    openZoomModal(item, idx);
-                  }}
+                  className="flex flex-col"
+                  data-testid={`storyboard-frame-${frameNumber}`}
                 >
-                  {/* Image or placeholder */}
-                  {imageUrl ? (
-                    <img 
-                      src={resolveImageUrl(imageUrl)}
-                      alt={`${isKlingFrame ? 'Frame' : 'Painel'} ${frameNumber}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#111]">
-                      <Image size={20} className="text-[#333]" />
+                  <div 
+                    className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
+                    onClick={() => openZoomModal(item, idx)}
+                  >
+                    {/* Image or placeholder */}
+                    {imageUrl ? (
+                      <img 
+                        src={resolveImageUrl(imageUrl)}
+                        alt={`${isKlingFrame ? 'Frame' : 'Painel'} ${frameNumber}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#111]">
+                        <Image size={20} className="text-[#333]" />
+                      </div>
+                    )}
+                    
+                    {/* Panel/Frame number badge */}
+                    <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white font-mono">
+                      {frameNumber}
                     </div>
-                  )}
-                  
-                  {/* Panel/Frame number badge */}
-                  <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white font-mono">
-                    {frameNumber}
-                  </div>
-                  
-                  {/* Time label for Kling frames */}
-                  {isKlingFrame && timeLabel && (
-                    <div className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white/70 font-mono">
-                      {timeLabel}
+                    
+                    {/* Time label for Kling frames */}
+                    {isKlingFrame && timeLabel && (
+                      <div className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white/70 font-mono">
+                        {timeLabel}
+                      </div>
+                    )}
+                    
+                    {/* Hover overlay with actions */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 pointer-events-none group-hover:pointer-events-auto">
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          isKlingFrame ? regenerateKlingFrame(item.frame_number) : regeneratePanel(item.scene_number);
+                        }}
+                        className={`px-2 py-1 rounded text-[9px] font-semibold flex items-center gap-1 pointer-events-auto transition ${
+                          confirmRegenerateFrame === frameNumber
+                            ? 'bg-red-500/90 text-white animate-pulse'
+                            : 'bg-[#8B5CF6] text-white hover:bg-[#7C4FD6]'
+                        }`}
+                      >
+                        <RefreshCw size={10} />
+                        {confirmRegenerateFrame === frameNumber
+                          ? (lang === 'pt' ? 'Confirmar?' : 'Confirm?')
+                          : (lang === 'pt' ? 'Regerar' : 'Regenerate')
+                        }
+                      </button>
+                      {!isKlingFrame && item.frames && item.frames.length > 1 && (
+                        <span className="text-[8px] text-white/70">
+                          {item.frames.length} frames
+                        </span>
+                      )}
                     </div>
-                  )}
-                  
-                  {/* Hover overlay with actions - ALWAYS show for all frames */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 pointer-events-none group-hover:pointer-events-auto">
-                    <button
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        isKlingFrame ? regenerateKlingFrame(item.frame_number) : regeneratePanel(item.scene_number);
-                      }}
-                      className={`px-2 py-1 rounded text-[9px] font-semibold flex items-center gap-1 pointer-events-auto transition ${
-                        confirmRegenerateFrame === frameNumber
-                          ? 'bg-red-500/90 text-white animate-pulse'
-                          : 'bg-[#8B5CF6] text-white hover:bg-[#7C4FD6]'
-                      }`}
-                    >
-                      <RefreshCw size={10} />
-                      {confirmRegenerateFrame === frameNumber
-                        ? (lang === 'pt' ? 'Confirmar?' : 'Confirm?')
-                        : (lang === 'pt' ? 'Regerar' : 'Regenerate')
-                      }
-                    </button>
-                    {!isKlingFrame && item.frames && item.frames.length > 1 && (
-                      <span className="text-[8px] text-white/70">
-                        {item.frames.length} frames
-                      </span>
+                    
+                    {/* Progress indicator overlay */}
+                    {regenerationProgress[frameNumber] !== undefined && (
+                      <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-2 pointer-events-none">
+                        <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg px-3 py-2 backdrop-blur-sm">
+                          <div className="flex items-center gap-2">
+                            <RefreshCw size={12} className="text-orange-400 animate-spin" />
+                            <span className="text-xs font-semibold text-orange-400">
+                              {lang === 'pt' ? 'Regenerando' : 'Regenerating'}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-center text-lg font-bold text-orange-300">
+                            {regenerationProgress[frameNumber]}%
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Expanded view indicator */}
+                    {!isKlingFrame && expandedPanels.has(item.scene_number) && (
+                      <div className="absolute bottom-1 right-1 bg-purple-500 rounded-full p-0.5">
+                        <ChevronDown size={10} className="text-white" />
+                      </div>
                     )}
                   </div>
                   
-                  {/* NOVO: Progress indicator overlay - aparece quando está regenerando */}
-                  {regenerationProgress[frameNumber] !== undefined && (
-                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-2 pointer-events-none">
-                      <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg px-3 py-2 backdrop-blur-sm">
-                        <div className="flex items-center gap-2">
-                          <RefreshCw size={12} className="text-orange-400 animate-spin" />
-                          <span className="text-xs font-semibold text-orange-400">
-                            {lang === 'pt' ? 'Regenerando' : 'Regenerating'}
-                          </span>
-                        </div>
-                        <div className="mt-2 text-center text-lg font-bold text-orange-300">
-                          {regenerationProgress[frameNumber]}%
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Expanded view indicator */}
-                  {!isKlingFrame && expandedPanels.has(item.scene_number) && (
-                    <div className="absolute bottom-1 right-1 bg-purple-500 rounded-full p-0.5">
-                      <ChevronDown size={10} className="text-white" />
+                  {/* Dialogue text snippet below the frame */}
+                  {isKlingFrame && dialogueSnippet && (
+                    <div className="mt-1 px-0.5" data-testid={`frame-dialogue-${frameNumber}`}>
+                      <p className="text-[8px] leading-tight text-gray-400 line-clamp-2" title={dialogueSnippet}>
+                        <MessageSquare size={8} className="inline mr-0.5 text-cyan-500/70" />
+                        {dialogueSnippet.length > 60 ? dialogueSnippet.slice(0, 60) + '...' : dialogueSnippet}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1917,7 +1984,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       )}
 
 
-      {/* Zoom Modal */}
+      {/* Zoom Modal — Editable */}
       {zoomFrame && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4"
              onClick={closeZoomModal}>
@@ -1927,6 +1994,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             {/* Close button */}
             <button
               onClick={closeZoomModal}
+              data-testid="zoom-close-btn"
               className="absolute top-4 right-4 z-10 bg-black/80 hover:bg-black text-white rounded-full p-2 transition">
               <X size={20} />
             </button>
@@ -1935,6 +2003,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             {zoomFrameIndex > 0 && (
               <button
                 onClick={() => navigateFrame('prev')}
+                data-testid="zoom-prev-btn"
                 className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full p-3 transition">
                 <ChevronLeft size={24} />
               </button>
@@ -1942,6 +2011,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             {zoomFrameIndex < displayFrames.length - 1 && (
               <button
                 onClick={() => navigateFrame('next')}
+                data-testid="zoom-next-btn"
                 className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white rounded-full p-3 transition">
                 <ChevronRight size={24} />
               </button>
@@ -1961,8 +2031,37 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       </p>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {zoomFrameIndex + 1} / {displayFrames.length}
+                  <div className="flex items-center gap-3">
+                    <div className="text-xs text-gray-500">
+                      {zoomFrameIndex + 1} / {displayFrames.length}
+                    </div>
+                    {useKlingMode && !zoomEditing && (
+                      <button
+                        onClick={startZoomEdit}
+                        data-testid="zoom-edit-btn"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/25 transition">
+                        <Edit3 size={12} />
+                        {lang === 'pt' ? 'Editar' : 'Edit'}
+                      </button>
+                    )}
+                    {zoomEditing && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { setZoomEditing(false); setZoomEditData({}); }}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#222] border border-[#333] text-gray-300 hover:bg-[#333] transition">
+                          <X size={12} />
+                          {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                        </button>
+                        <button
+                          onClick={saveZoomEdit}
+                          disabled={zoomSaving}
+                          data-testid="zoom-save-btn"
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition disabled:opacity-50">
+                          {zoomSaving ? <FilmSpinner size={12} className="text-emerald-400" /> : <Save size={12} />}
+                          {lang === 'pt' ? 'Salvar' : 'Save'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1973,7 +2072,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   <img
                     src={resolveImageUrl(zoomFrame.image_url)}
                     alt={`Frame ${zoomFrame.frame_number}`}
-                    className="w-full h-auto max-h-[60vh] object-contain mx-auto"
+                    className="w-full h-auto max-h-[50vh] object-contain mx-auto"
                   />
                 ) : (
                   <div className="w-full h-64 flex items-center justify-center">
@@ -1982,9 +2081,43 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 )}
               </div>
 
-              {/* Prompts Section */}
+              {/* Editable Prompts Section */}
               {useKlingMode && (
                 <div className="p-6 space-y-4">
+                  {/* Dialogue Text */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                        <MessageSquare size={14} />
+                        {lang === 'pt' ? 'Texto / Diálogo' : 'Dialogue / Script Text'}
+                      </h4>
+                      {!zoomEditing && (
+                        <button
+                          onClick={() => copyToClipboard(zoomFrame.dialogue_text || '')}
+                          className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
+                          <Copy size={12} />
+                          {lang === 'pt' ? 'Copiar' : 'Copy'}
+                        </button>
+                      )}
+                    </div>
+                    {zoomEditing ? (
+                      <textarea
+                        value={zoomEditData.dialogue_text || ''}
+                        onChange={e => setZoomEditData(prev => ({ ...prev, dialogue_text: e.target.value }))}
+                        data-testid="zoom-edit-dialogue"
+                        rows={3}
+                        className="w-full bg-[#0D0D0D] border border-cyan-500/30 rounded-lg p-3 text-xs text-gray-200 leading-relaxed resize-y outline-none focus:border-cyan-500/60 transition"
+                        placeholder={lang === 'pt' ? 'Texto do diálogo ou narração...' : 'Dialogue or narration text...'}
+                      />
+                    ) : (
+                      <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {zoomFrame.dialogue_text || (lang === 'pt' ? '(Sem diálogo)' : '(No dialogue)')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Image Prompt */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -1992,18 +2125,30 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         <Paintbrush size={14} />
                         {lang === 'pt' ? 'Prompt de Imagem (Gemini)' : 'Image Prompt (Gemini)'}
                       </h4>
-                      <button
-                        onClick={() => copyToClipboard(zoomFrame.image_prompt)}
-                        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
-                        <Copy size={12} />
-                        {lang === 'pt' ? 'Copiar' : 'Copy'}
-                      </button>
+                      {!zoomEditing && (
+                        <button
+                          onClick={() => copyToClipboard(zoomFrame.image_prompt)}
+                          className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
+                          <Copy size={12} />
+                          {lang === 'pt' ? 'Copiar' : 'Copy'}
+                        </button>
+                      )}
                     </div>
-                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
-                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
-                        {zoomFrame.image_prompt}
-                      </p>
-                    </div>
+                    {zoomEditing ? (
+                      <textarea
+                        value={zoomEditData.image_prompt || ''}
+                        onChange={e => setZoomEditData(prev => ({ ...prev, image_prompt: e.target.value }))}
+                        data-testid="zoom-edit-image-prompt"
+                        rows={4}
+                        className="w-full bg-[#0D0D0D] border border-purple-500/30 rounded-lg p-3 text-xs text-gray-200 leading-relaxed resize-y outline-none focus:border-purple-500/60 transition"
+                      />
+                    ) : (
+                      <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {zoomFrame.image_prompt}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Kling Prompt */}
@@ -2013,21 +2158,33 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         <Film size={14} />
                         {lang === 'pt' ? 'Prompt Kling (Para Vídeo)' : 'Kling Prompt (For Video)'}
                       </h4>
-                      <button
-                        onClick={() => copyToClipboard(zoomFrame.kling_prompt)}
-                        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
-                        <Copy size={12} />
-                        {lang === 'pt' ? 'Copiar' : 'Copy'}
-                      </button>
+                      {!zoomEditing && (
+                        <button
+                          onClick={() => copyToClipboard(zoomFrame.kling_prompt)}
+                          className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
+                          <Copy size={12} />
+                          {lang === 'pt' ? 'Copiar' : 'Copy'}
+                        </button>
+                      )}
                     </div>
-                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
-                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
-                        {zoomFrame.kling_prompt}
-                      </p>
-                    </div>
+                    {zoomEditing ? (
+                      <textarea
+                        value={zoomEditData.kling_prompt || ''}
+                        onChange={e => setZoomEditData(prev => ({ ...prev, kling_prompt: e.target.value }))}
+                        data-testid="zoom-edit-kling-prompt"
+                        rows={4}
+                        className="w-full bg-[#0D0D0D] border border-orange-500/30 rounded-lg p-3 text-xs text-gray-200 leading-relaxed resize-y outline-none focus:border-orange-500/60 transition"
+                      />
+                    ) : (
+                      <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {zoomFrame.kling_prompt}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Additional Details */}
+                  {/* Additional Details (read-only) */}
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#222]">
                     {zoomFrame.characters_present && zoomFrame.characters_present.length > 0 && (
                       <div>
@@ -2062,6 +2219,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       </div>
                     )}
                   </div>
+
+                  {/* Regenerate button inside zoom */}
+                  {!zoomEditing && (
+                    <div className="pt-4 border-t border-[#222] flex gap-3">
+                      <button
+                        onClick={() => {
+                          regenerateKlingFrame(zoomFrame.frame_number);
+                          closeZoomModal();
+                        }}
+                        data-testid="zoom-regenerate-btn"
+                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/25 transition">
+                        <RefreshCw size={12} />
+                        {lang === 'pt' ? 'Regenerar Imagem' : 'Regenerate Image'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
