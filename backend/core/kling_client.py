@@ -215,6 +215,225 @@ class KlingClient:
         return duration * rate
 
 
+    def extend_video(
+        self,
+        video_id: str,
+        prompt: str = "",
+        max_wait: int = 600
+    ) -> dict:
+        """Extend an existing video by 4-5 seconds using Kling Video Extension API.
+        
+        Args:
+            video_id: ID of the video to extend (from a previous generation)
+            prompt: Optional text prompt to guide the extension direction
+            max_wait: Maximum wait time in seconds
+            
+        Returns:
+            dict with 'video_id', 'url', 'duration' or empty dict on failure
+        """
+        try:
+            token = self._get_auth_token()
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            url = f"{self.api_base}/{self.api_version}/videos/video-extend"
+            payload = {
+                "video_id": video_id,
+                "prompt": prompt[:2500] if prompt else "",
+            }
+            
+            logger.info(f"Kling AI: Extending video {video_id} (prompt={len(prompt)} chars)")
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            
+            if response.status_code != 200:
+                logger.error(f"Kling AI extend error: {response.status_code} - {response.text[:300]}")
+                return {}
+            
+            data = response.json()
+            if data.get("code") != 0:
+                logger.error(f"Kling AI extend API error: {data.get('message')}")
+                return {}
+            
+            task_id = data.get("data", {}).get("task_id")
+            if not task_id:
+                logger.error(f"Kling AI: No task_id for extend - {data}")
+                return {}
+            
+            logger.info(f"Kling AI: Extend task {task_id} submitted, polling...")
+            
+            # Poll for completion
+            start_time = time.time()
+            poll_url = f"{self.api_base}/{self.api_version}/videos/video-extend/{task_id}"
+            
+            while time.time() - start_time < max_wait:
+                time.sleep(15)
+                
+                poll_response = requests.get(poll_url, headers=headers, timeout=30)
+                poll_data = poll_response.json()
+                
+                task_data = poll_data.get("data", {})
+                status = task_data.get("task_status", "")
+                
+                if status in ("succeed", "completed"):
+                    videos = task_data.get("task_result", {}).get("videos", [])
+                    if videos:
+                        v = videos[0]
+                        result = {
+                            "video_id": v.get("id"),
+                            "url": v.get("url"),
+                            "duration": float(v.get("duration", 0)),
+                        }
+                        elapsed = time.time() - start_time
+                        logger.info(f"Kling AI: Extend DONE in {elapsed:.0f}s — new duration: {result['duration']}s")
+                        return result
+                    else:
+                        logger.error(f"Kling AI: Extend completed but no videos in result")
+                        return {}
+                
+                elif status in ("failed", "error"):
+                    error_msg = task_data.get("task_status_msg", "Unknown")
+                    logger.error(f"Kling AI: Extend task {task_id} FAILED - {error_msg}")
+                    return {}
+                
+                elif status in ("submitted", "processing"):
+                    elapsed = time.time() - start_time
+                    logger.info(f"Kling AI: Extend task {task_id} {status}... ({elapsed:.0f}s)")
+            
+            logger.error(f"Kling AI: Extend task {task_id} TIMEOUT after {max_wait}s")
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Kling AI extend failed: {e}")
+            return {}
+
+    def generate_full_video(
+        self,
+        frames: list,
+        initial_image_path: str = None,
+        target_duration: float = 180.0,
+        max_wait_per_step: int = 600
+    ) -> bytes:
+        """Generate a full-length video by creating initial clip + extending iteratively.
+        
+        Uses storyboard frames as context for each extension step.
+        Each extension adds ~4-5 seconds. Max total: 180 seconds (3 minutes).
+        
+        Args:
+            frames: List of storyboard frame dicts with 'kling_prompt', 'image_url', etc.
+            initial_image_path: Path to first frame image for I2V
+            target_duration: Target total duration in seconds (max 180)
+            max_wait_per_step: Max wait per generation/extension step
+            
+        Returns:
+            Video bytes of the final extended video, or empty bytes on failure
+        """
+        target_duration = min(target_duration, 180)  # API max is 3 minutes
+        
+        if not frames:
+            logger.error("Kling AI: No frames provided for full video generation")
+            return b""
+        
+        # Step 1: Generate initial 10s clip using first frame
+        initial_prompt = frames[0].get("kling_prompt", "")
+        logger.info(f"Kling AI: Generating full video ({target_duration}s target, {len(frames)} frames as context)")
+        logger.info(f"Kling AI: Step 1 — Initial I2V clip (10s)")
+        
+        initial_video = self.text_to_video(
+            prompt=initial_prompt,
+            image_path=initial_image_path,
+            duration=10.0,
+            model="kling-v2-master",
+            max_wait=max_wait_per_step
+        )
+        
+        if not initial_video or len(initial_video) < 1000:
+            logger.error("Kling AI: Initial clip generation failed")
+            return b""
+        
+        # Get the video_id from the most recent task
+        # We need to query the task list to find it
+        current_video_id = self._get_last_video_id()
+        if not current_video_id:
+            logger.error("Kling AI: Could not retrieve video_id for initial clip")
+            return initial_video  # Return what we have
+        
+        current_duration = 10.0
+        current_video_bytes = initial_video
+        step = 2
+        
+        # Step 2+: Extend iteratively until target duration
+        # Each extension adds ~4-5 seconds
+        frame_idx = 1  # Start from second frame for extension prompts
+        
+        while current_duration < target_duration:
+            # Build prompt from upcoming frames
+            if frame_idx < len(frames):
+                ext_prompt = frames[frame_idx].get("kling_prompt", "")
+                frame_idx += 1
+            else:
+                ext_prompt = frames[-1].get("kling_prompt", "Continue the scene naturally.")
+            
+            logger.info(f"Kling AI: Step {step} — Extending from {current_duration}s (target: {target_duration}s)")
+            
+            result = self.extend_video(
+                video_id=current_video_id,
+                prompt=ext_prompt,
+                max_wait=max_wait_per_step
+            )
+            
+            if not result or not result.get("video_id"):
+                logger.warning(f"Kling AI: Extension failed at step {step} ({current_duration}s). Returning current video.")
+                break
+            
+            # Download the extended video
+            try:
+                video_response = requests.get(result["url"], timeout=120)
+                video_response.raise_for_status()
+                current_video_bytes = video_response.content
+                current_video_id = result["video_id"]
+                current_duration = result.get("duration", current_duration + 4)
+                logger.info(f"Kling AI: Step {step} DONE — video now {current_duration}s ({len(current_video_bytes)//1024}KB)")
+            except Exception as e:
+                logger.error(f"Kling AI: Failed to download extended video: {e}")
+                break
+            
+            step += 1
+        
+        logger.info(f"Kling AI: Full video complete — {current_duration}s, {len(current_video_bytes)//1024}KB, {step-1} steps")
+        return current_video_bytes
+    
+    def _get_last_video_id(self) -> str:
+        """Get the video_id from the most recently completed text2video or image2video task."""
+        try:
+            token = self._get_auth_token()
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            # Check text2video tasks first
+            for endpoint in ["text2video", "image2video"]:
+                url = f"{self.api_base}/{self.api_version}/videos/{endpoint}?pageNum=1&pageSize=1"
+                r = requests.get(url, headers=headers, timeout=15)
+                data = r.json()
+                
+                tasks = data.get("data", [])
+                if isinstance(tasks, list) and tasks:
+                    task = tasks[0]
+                    if task.get("task_status") in ("succeed", "completed"):
+                        videos = task.get("task_result", {}).get("videos", [])
+                        if videos:
+                            vid = videos[0].get("id")
+                            if vid:
+                                logger.info(f"Kling AI: Found last video_id: {vid} from {endpoint}")
+                                return vid
+            
+            return ""
+        except Exception as e:
+            logger.error(f"Kling AI: Error getting last video_id: {e}")
+            return ""
+
+
 # Test function
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
