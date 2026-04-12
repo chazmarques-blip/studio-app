@@ -555,47 +555,76 @@ async def _generate_storyboards_for_single_scene(
 
 
 def _extract_dialogue_for_timerange(dialogue_text: str, start_secs: int, end_secs: int) -> str:
-    """Extract dialogue lines relevant to a specific time range.
+    """Extract script/dialogue lines relevant to a specific time range.
     
-    Splits the full dialogue proportionally based on the time range.
-    If dialogue has timestamps, extracts matching lines.
+    Handles multiple timestamp formats:
+    - [0:00-1:00] or [ABERTURA - 0:00-1:00] 
+    - [0:20-0:35]: 'text'
+    - ABERTURA [0:20-0:35]: text
     """
     if not dialogue_text:
         return ""
     
-    lines = dialogue_text.strip().split('\n')
-    total_lines = len(lines)
-    
-    if total_lines == 0:
-        return ""
-    
-    # Try to find timestamped lines first (format: [0:30] or (0:30))
     import re
-    timestamped_lines = []
-    for line in lines:
-        time_match = re.search(r'[\[\(](\d+:\d+)[\]\)]', line)
-        if time_match:
-            t = time_match.group(1)
-            parts = t.split(':')
-            secs = int(parts[0]) * 60 + int(parts[1])
-            timestamped_lines.append((secs, line))
+    lines = dialogue_text.strip().split('\n')
     
-    if timestamped_lines:
-        relevant = [line for secs, line in timestamped_lines if start_secs <= secs < end_secs]
+    def parse_time(t: str) -> int:
+        """Parse M:SS or MM:SS to seconds"""
+        parts = t.strip().split(':')
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        return 0
+    
+    # Collect lines with their timestamps
+    timed_blocks = []
+    current_block = {"start": -1, "end": -1, "lines": []}
+    
+    for line in lines:
+        # Match various timestamp patterns: [0:00-1:00], [TOPO - 4:00-4:45], ABERTURA [0:20-0:35]
+        time_match = re.search(r'(\d+:\d+)\s*[-–]\s*(\d+:\d+)', line)
+        
+        if time_match:
+            # Save previous block if any
+            if current_block["lines"] and current_block["start"] >= 0:
+                timed_blocks.append(current_block)
+            
+            block_start = parse_time(time_match.group(1))
+            block_end = parse_time(time_match.group(2))
+            current_block = {"start": block_start, "end": block_end, "lines": [line]}
+        elif current_block["start"] >= 0:
+            # Continue adding to current block
+            if line.strip():
+                current_block["lines"].append(line)
+    
+    # Don't forget the last block
+    if current_block["lines"] and current_block["start"] >= 0:
+        timed_blocks.append(current_block)
+    
+    # If we found timed blocks, extract those overlapping with the requested range
+    if timed_blocks:
+        relevant = []
+        for block in timed_blocks:
+            # Check if block overlaps with requested time range
+            if block["end"] > start_secs and block["start"] < end_secs:
+                relevant.extend(block["lines"])
+        
         if relevant:
             return '\n'.join(relevant)
     
-    # No timestamps found — split proportionally
-    # Calculate which lines correspond to this time range
-    # Assume total dialogue covers the full scene duration
-    total_duration = max(end_secs, 300)  # default 5 min if unknown
+    # Fallback: proportional split
+    total_lines = len([l for l in lines if l.strip()])
+    if total_lines == 0:
+        return ""
+    
+    total_duration = max(end_secs, 300)
     line_start = int((start_secs / total_duration) * total_lines)
     line_end = int((end_secs / total_duration) * total_lines)
     line_start = max(0, min(line_start, total_lines - 1))
     line_end = max(line_start + 1, min(line_end + 1, total_lines))
     
-    extracted = lines[line_start:line_end]
-    return '\n'.join(extracted) if extracted else '\n'.join(lines[:5])
+    non_empty = [l for l in lines if l.strip()]
+    extracted = non_empty[line_start:line_end]
+    return '\n'.join(extracted) if extracted else '\n'.join(non_empty[:5])
 
 
 async def _generate_frame_prompts_for_scene(
@@ -647,10 +676,33 @@ async def _generate_frame_prompts_for_scene(
     }
     style_guide = style_descriptions.get(visual_style, style_descriptions["pixar_3d"])
     
-    # Get dialogue text if available
+    # Get dialogue text if available - use FULL script from dubbed_text, narrated_text, and description
     dialogue_text = ""
     if dialogue:
         dialogue_text = dialogue.get("dialogue", "")
+    
+    # Build COMPLETE SCRIPT from all scene sources (dubbed_text has the full timestamped dialogue)
+    dubbed_text = scene.get("dubbed_text", "")
+    narrated_text = scene.get("narrated_text", "")
+    scene_description = scene.get("description", "")
+    scene_camera = scene.get("camera", "")
+    
+    # The FULL SCRIPT is the combination of all these — dubbed_text is the primary source
+    full_script = ""
+    if dubbed_text:
+        full_script += f"=== DIÁLOGO COMPLETO COM TIMESTAMPS ===\n{dubbed_text}\n\n"
+    if narrated_text:
+        full_script += f"=== NARRAÇÃO COM TIMESTAMPS ===\n{narrated_text}\n\n"
+    if scene_description:
+        full_script += f"=== DIREÇÃO DE CENA ===\n{scene_description}\n\n"
+    if scene_camera:
+        full_script += f"=== DIREÇÃO DE CÂMERA ===\n{scene_camera}\n\n"
+    
+    # Use full_script as primary source, fallback to dialogue_text
+    if not full_script.strip():
+        full_script = dialogue_text
+    
+    logger.info(f"KlingStoryboard: Full script assembled ({len(full_script)} chars from dubbed_text={len(dubbed_text)}, narrated={len(narrated_text)}, description={len(scene_description)})")
     
     # Get audience cinematography guidelines
     audience_guide = AUDIENCE_CINEMATOGRAPHY.get(lang, {}).get(target_audience, "")
@@ -674,48 +726,59 @@ async def _generate_frame_prompts_for_scene(
         batch_time_start_str = f"{batch_time_start_secs // 60}:{batch_time_start_secs % 60:02d}"
         batch_time_end_str = f"{batch_time_end_secs // 60}:{batch_time_end_secs % 60:02d}"
         
-        # Extract dialogue lines relevant to this time range
-        relevant_dialogue = _extract_dialogue_for_timerange(dialogue_text, batch_time_start_secs, batch_time_end_secs)
+        # Extract the relevant part of the FULL SCRIPT for this time range
+        relevant_script = _extract_dialogue_for_timerange(full_script, batch_time_start_secs, batch_time_end_secs)
         
         # Build prompt for this mini-batch
-        system_prompt = f"""You are an ELITE CINEMATOGRAPHER creating detailed storyboard frames for an animated children's video.
+        system_prompt = f"""You are an ELITE CINEMATOGRAPHER creating storyboard frames for a children's animated video.
 
-VISUAL STYLE REQUIREMENT: {style_guide}
-CRITICAL: ALL frames MUST use this exact style. No mixing of styles allowed!
-
+VISUAL STYLE: {style_guide}
 TARGET AUDIENCE: {target_audience}
 {audience_guide}
 
-TASK: Generate {frames_in_batch} consecutive frames (frames {batch_start+1} to {batch_end} of {num_frames} total).
-Each frame = 10 seconds of video. Time range: {batch_time_start_str} to {batch_time_end_str}.
+TASK: Generate exactly {frames_in_batch} frames (frames {batch_start+1} to {batch_end} of {num_frames} total).
+Each frame covers exactly 10 seconds. Time range: {batch_time_start_str} to {batch_time_end_str}.
 
-ABSOLUTE RULES:
-1. Each frame's image_prompt MUST describe EXACTLY what happens in the script at that specific moment.
-   - If the script says "Abraão caminha com Isaac", show them WALKING together
-   - If the script says "Sara prepara o leite", show Sara PREPARING milk
-   - Do NOT invent scenes that are not in the script
-   - Do NOT repeat the same action across multiple frames
-2. image_prompt: MUST start with style description, then SPECIFIC visual details matching the script action
-3. kling_prompt: Detailed 10-second action description for video generation
-4. Ensure CONTINUITY from previous frame
-5. Return ONLY valid JSON array
+ABSOLUTE RULES FOR SCRIPT FIDELITY:
+1. Each frame MUST show EXACTLY what the script says happens at that timestamp.
+   - Read the script segment carefully for this time range
+   - If at 0:00-0:10 Sara is singing a lullaby to Isaac, the frame MUST show Sara singing to baby Isaac
+   - If at 4:40-4:50 an Angel appears with divine light, the frame MUST show the Angel appearing
+   - NEVER invent actions not in the script. NEVER skip script actions.
+2. The image_prompt MUST describe the SPECIFIC characters, their EXACT actions, emotions and positions as written in the script
+3. Include dialogue/speech as visual context (who is speaking, their expression)
+4. The kling_prompt should describe the 10-second movement/animation for that exact moment
+5. Return ONLY a valid JSON array of {frames_in_batch} objects
+
+JSON format per frame:
+{{
+  "frame_number": N,
+  "time_start": "M:SS",
+  "time_end": "M:SS",
+  "image_prompt": "[style]. [EXACT scene matching script]. [character positions, expressions, lighting]",
+  "kling_prompt": "[10-second animation: character movements, camera moves matching script action]",
+  "characters_present": ["name1", "name2"],
+  "camera_movement": "type",
+  "key_action": "brief action summary in Portuguese",
+  "emotion": "primary emotion",
+  "lighting": "lighting description"
+}}
 
 Language: {"Portuguese" if lang == "pt" else "English"}"""
         
         user_prompt = f"""SCENE: {scene.get('title', 'Untitled')}
-Full Scene Description: {scene.get('description', '')[:800]}
+
+===== SCRIPT PARA ESTE INTERVALO ({batch_time_start_str} a {batch_time_end_str}) =====
+{relevant_script if relevant_script else '(Sem script específico para este intervalo — use o contexto geral)'}
+===== FIM DO SCRIPT DO INTERVALO =====
+
+SCRIPT COMPLETO (para contexto de continuidade):
+{full_script[:4000]}
 
 CHARACTERS:
 {char_descriptions_text}
 
 MAIN CHARACTERS IN SCENE: {', '.join(scene_characters)}
-
-===== SCRIPT/DIALOGUE FOR THIS TIME RANGE ({batch_time_start_str} to {batch_time_end_str}) =====
-{relevant_dialogue if relevant_dialogue else dialogue_text[:1000] if dialogue_text else 'No dialogue available'}
-===== END SCRIPT =====
-
-FULL DIALOGUE (for overall context):
-{dialogue_text[:2000] if dialogue_text else 'No dialogue'}
 
 PREVIOUS FRAME CONTEXT:
 {last_frame_context}
