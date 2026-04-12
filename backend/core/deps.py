@@ -17,6 +17,11 @@ supabase: Client = create_client(
     os.environ['SUPABASE_SERVICE_KEY']
 )
 
+def get_fresh_supabase() -> Client:
+    """Create a fresh Supabase client connection (for retry on disconnect)."""
+    return create_client(os.environ['SUPABASE_URL'], os.environ['SUPABASE_SERVICE_KEY'])
+
+
 # Auth
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"

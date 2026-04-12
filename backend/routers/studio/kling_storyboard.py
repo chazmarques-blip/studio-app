@@ -465,10 +465,34 @@ async def regenerate_single_frame(
         if not frame_found:
             raise HTTPException(status_code=404, detail=f"Frame {frame_number} not found")
         
-        # Save updated storyboards
-        _update_project_field(tenant["id"], project_id, {
-            "kling_storyboards": storyboards
-        }, flush_now=True)
+        # Save updated storyboards with retry
+        try:
+            _update_project_field(tenant["id"], project_id, {
+                "kling_storyboards": storyboards
+            }, flush_now=True)
+        except Exception as save_err:
+            logger.warning(f"Primary save failed: {save_err}. Trying direct DB save...")
+            # Fallback: direct Supabase save bypassing cache
+            try:
+                from core.deps import get_fresh_supabase
+                from core.cache import project_cache
+                import time as _time
+                
+                _time.sleep(2)
+                project_cache.invalidate(tenant["id"])
+                supa = get_fresh_supabase()
+                r = supa.table("tenants").select("settings").eq("id", tenant["id"]).single().execute()
+                db_settings = r.data.get("settings", {}) if r.data else {}
+                db_project = next((p for p in db_settings.get("studio_projects", []) if p.get("id") == project_id), None)
+                if db_project:
+                    db_project["kling_storyboards"] = storyboards
+                    supa.table("tenants").update({"settings": db_settings}).eq("id", tenant["id"]).execute()
+                    logger.info(f"✅ Direct DB save successful for frame {frame_number}")
+                else:
+                    raise Exception("Project not found in DB")
+            except Exception as e2:
+                logger.error(f"Direct save also failed: {e2}")
+                raise HTTPException(status_code=500, detail=f"Save failed: {e2}")
         
         logger.info(f"KlingStoryboard [{project_id}]: ✅ Regenerated frame {frame_number}")
         

@@ -262,7 +262,7 @@ class ProjectCache:
         except Exception:
             payload_size = -1
 
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
                 with lock:
@@ -272,12 +272,20 @@ class ProjectCache:
                 logger.info(f"ProjectCache: ✅ Flushed tenant {tenant_id} ({payload_size/1024:.0f}KB)")
                 return
             except Exception as e:
-                if attempt < 2:
-                    time.sleep(2 * (attempt + 1))
-                    logger.warning(f"ProjectCache flush retry {attempt+1} for {tenant_id} ({payload_size/1024:.0f}KB): {e}")
+                err_str = str(e).lower()
+                if attempt < 4:
+                    wait = 3 * (attempt + 1)
+                    logger.warning(f"ProjectCache flush retry {attempt+1}/5 for {tenant_id} ({payload_size/1024:.0f}KB): {e}. Waiting {wait}s...")
+                    time.sleep(wait)
+                    # Refresh Supabase connection on disconnect errors
+                    if "disconnect" in err_str or "reset" in err_str or "broken" in err_str:
+                        try:
+                            from core.deps import get_fresh_supabase
+                            supabase = get_fresh_supabase()
+                        except Exception:
+                            pass
                 else:
                     logger.error(f"ProjectCache flush FAILED for {tenant_id} ({payload_size/1024:.0f}KB): {e}")
-                    # Keep dirty flag so it can be retried later
                     raise
 
     def _flush_all(self):
