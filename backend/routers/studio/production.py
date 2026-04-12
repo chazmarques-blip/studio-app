@@ -618,7 +618,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     video_bytes = kling_client.generate_full_video(
                         frames=all_frames,
                         initial_image_path=ref_image_path,
-                        target_duration=180.0,  # 3 minutes max via API
+                        target_duration=180.0,  # 30 frames × 6s = 180s (3 min)
                         max_wait_per_step=600
                     )
                     elapsed = _time.time() - t_v

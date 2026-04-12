@@ -318,8 +318,8 @@ class KlingClient:
     ) -> bytes:
         """Generate a full-length video by creating initial clip + extending iteratively.
         
-        Uses storyboard frames as context for each extension step.
-        Each extension adds ~4-5 seconds. Max total: 180 seconds (3 minutes).
+        30 frames × 6 seconds = 180 seconds (3 minutes).
+        Initial clip: 5s. Each extension adds ~4-5s (~1 frame per extension).
         
         Args:
             frames: List of storyboard frame dicts with 'kling_prompt', 'image_url', etc.
@@ -336,15 +336,15 @@ class KlingClient:
             logger.error("Kling AI: No frames provided for full video generation")
             return b""
         
-        # Step 1: Generate initial 10s clip using first frame
+        # Step 1: Generate initial 5s clip using first frame (I2V)
         initial_prompt = frames[0].get("kling_prompt", "")
-        logger.info(f"Kling AI: Generating full video ({target_duration}s target, {len(frames)} frames as context)")
-        logger.info(f"Kling AI: Step 1 — Initial I2V clip (10s)")
+        logger.info(f"Kling AI: Generating full video ({target_duration}s target, {len(frames)} frames x 6s)")
+        logger.info(f"Kling AI: Step 1 — Initial I2V clip (5s)")
         
         initial_video = self.text_to_video(
             prompt=initial_prompt,
             image_path=initial_image_path,
-            duration=10.0,
+            duration=5.0,
             model="kling-v2-master",
             max_wait=max_wait_per_step
         )
@@ -353,30 +353,22 @@ class KlingClient:
             logger.error("Kling AI: Initial clip generation failed")
             return b""
         
-        # Get the video_id from the most recent task
-        # We need to query the task list to find it
         current_video_id = self._get_last_video_id()
         if not current_video_id:
             logger.error("Kling AI: Could not retrieve video_id for initial clip")
-            return initial_video  # Return what we have
+            return initial_video
         
-        current_duration = 10.0
+        current_duration = 5.0
         current_video_bytes = initial_video
         step = 2
+        frame_idx = 1
         
-        # Step 2+: Extend iteratively until target duration
-        # Each extension adds ~4-5 seconds
-        frame_idx = 1  # Start from second frame for extension prompts
-        
-        while current_duration < target_duration:
-            # Build prompt from upcoming frames
-            if frame_idx < len(frames):
-                ext_prompt = frames[frame_idx].get("kling_prompt", "")
-                frame_idx += 1
-            else:
-                ext_prompt = frames[-1].get("kling_prompt", "Continue the scene naturally.")
+        # Step 2+: Extend iteratively — each extension ~4-5s, one per frame
+        while current_duration < target_duration and frame_idx < len(frames):
+            ext_prompt = frames[frame_idx].get("kling_prompt", "")
+            frame_idx += 1
             
-            logger.info(f"Kling AI: Step {step} — Extending from {current_duration}s (target: {target_duration}s)")
+            logger.info(f"Kling AI: Step {step} — Extending from {current_duration:.0f}s, frame {frame_idx}/{len(frames)} (target: {target_duration}s)")
             
             result = self.extend_video(
                 video_id=current_video_id,
@@ -385,24 +377,23 @@ class KlingClient:
             )
             
             if not result or not result.get("video_id"):
-                logger.warning(f"Kling AI: Extension failed at step {step} ({current_duration}s). Returning current video.")
+                logger.warning(f"Kling AI: Extension failed at step {step} ({current_duration:.0f}s). Returning current video.")
                 break
             
-            # Download the extended video
             try:
                 video_response = requests.get(result["url"], timeout=120)
                 video_response.raise_for_status()
                 current_video_bytes = video_response.content
                 current_video_id = result["video_id"]
-                current_duration = result.get("duration", current_duration + 4)
-                logger.info(f"Kling AI: Step {step} DONE — video now {current_duration}s ({len(current_video_bytes)//1024}KB)")
+                current_duration = result.get("duration", current_duration + 5)
+                logger.info(f"Kling AI: Step {step} DONE — video now {current_duration:.0f}s ({len(current_video_bytes)//1024}KB)")
             except Exception as e:
                 logger.error(f"Kling AI: Failed to download extended video: {e}")
                 break
             
             step += 1
         
-        logger.info(f"Kling AI: Full video complete — {current_duration}s, {len(current_video_bytes)//1024}KB, {step-1} steps")
+        logger.info(f"Kling AI: Full video complete — {current_duration:.0f}s, {len(current_video_bytes)//1024}KB, {step-1} steps, {frame_idx} frames used")
         return current_video_bytes
     
     def _get_last_video_id(self) -> str:
