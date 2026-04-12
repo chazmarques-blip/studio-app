@@ -1,15 +1,16 @@
 # Test Credentials
 
-## StudioX User Account
+## Main Test Account
 - Email: test@studiox.com
 - Password: studiox123
 
-## Legacy AgentZZ Account (deprecated)
-- Email: test@agentflow.com
-- Password: password123
-
 ## Test Project
-- Project ID: d27afb0e79ff
-- Name: ADÃO E EVA - BIBLIZOO 2
-- Scenes: 31
-- Characters: 17
+- Project ID: 06c877c953a3
+- Name: "o cumprimento da promessa e abraao"
+- Has 30 Kling storyboard frames
+- 4 characters, 1 scene
+
+## Auth
+- Login endpoint: POST /api/auth/login
+- Token field in response: access_token
+- Header format: Authorization: Bearer {token}
