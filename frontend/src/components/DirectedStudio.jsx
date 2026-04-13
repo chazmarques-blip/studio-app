@@ -2586,8 +2586,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                             <>
                               <button onClick={() => deleteScene(s.scene_number)}
                                 data-testid={`delete-scene-${s.scene_number}`}
-                                className="text-[#555] hover:text-red-400 p-0.5 transition-colors" title={lang === 'pt' ? 'Eliminar cena' : 'Delete scene'}>
-                                <X size={12} />
+                                className="text-[#555] hover:text-red-400 hover:bg-red-500/10 p-1 rounded transition-colors" title={lang === 'pt' ? 'Eliminar cena' : 'Delete scene'}>
+                                <Trash2 size={13} />
                               </button>
                             </>
                           )}
