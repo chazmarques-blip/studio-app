@@ -600,7 +600,10 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 
                 # ── STEP 1: Download all frame images as base64 ──
                 _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Kling AI — Baixando {len(all_frames)} imagens..."
+                    "progress_message": f"Kling AI — Baixando {len(all_frames)} imagens...",
+                    "agent_status": {"phase": "generating_video", "videos_done": 0,
+                                     "total_scenes": total, "total_frames": len(all_frames),
+                                     "scene_status": {str(scene_num): "generating_video"}}
                 })
                 frame_images = {}
                 for frame in all_frames:
@@ -884,10 +887,44 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             except Exception as e:
                                 logger.warning(f"  {fmt_key} export failed: {e}")
                         
+                        # ── Upload final video BEFORE tmpdir cleanup ──
+                        final_video_bytes = None
+                        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                            with open(output_path, 'rb') as f:
+                                final_video_bytes = f.read()
+                            final_duration = sum(c.get("duration", 6) for c in clips)
+                            elapsed = _time.time() - t_v
+                            filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
+                            video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
+                            logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s")
+                            
+                            _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
+                            _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                        
                         # Cleanup tmpdir at the end
                         import shutil
                         try: shutil.rmtree(tmpdir)
                         except: pass
+                        
+                        # Cleanup clip files
+                        for c in clips:
+                            try: os.remove(c["clip_path"])
+                            except: pass
+                        
+                        # Return result
+                        if final_video_bytes:
+                            result = {"scene_number": scene_num, "url": video_url, "type": "video",
+                                      "duration": final_duration, "has_audio": bool(voice_map)}
+                            if multi_outputs:
+                                result["multi_format"] = multi_outputs
+                                # Save multi-format URLs to project
+                                _update_project_field(tenant_id, project_id, {
+                                    "multi_format_urls": multi_outputs
+                                })
+                            return result
+                        else:
+                            _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                            return {"scene_number": scene_num, "url": None, "error": "output_missing_after_audio"}
                         
                     except Exception as audio_err:
                         logger.error(f"Studio [{project_id}]: Audio pipeline error: {audio_err}")
@@ -896,7 +933,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                         try: shutil.rmtree(tmpdir)
                         except: pass
                 
-                # ── Upload final video ──
+                # ── Upload final video (fallback: no audio pipeline ran) ──
                 if os.path.exists(output_path):
                     with open(output_path, 'rb') as f:
                         final_video_bytes = f.read()
@@ -907,7 +944,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
                     video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
                     
-                    logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s")
+                    logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE (no audio) — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s")
                     
                     # Cleanup clip files
                     for c in clips:
@@ -916,14 +953,11 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     try: os.remove(output_path)
                     except: pass
                     
-                    # Save with multi-format URLs
                     _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
                     _update_scene_status(tenant_id, project_id, scene_num, "done", total)
                     
                     result = {"scene_number": scene_num, "url": video_url, "type": "video",
-                              "duration": final_duration, "has_audio": bool(voice_map)}
-                    if multi_outputs:
-                        result["multi_format"] = multi_outputs
+                              "duration": final_duration, "has_audio": False}
                     return result
                 else:
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)

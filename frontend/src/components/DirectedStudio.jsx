@@ -419,6 +419,8 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [characterAvatars, setCharacterAvatars] = useState({});
   const [generating, setGenerating] = useState(false);
   const [agentStatus, setAgentStatus] = useState({});
+  const [progressMessage, setProgressMessage] = useState('');
+  const [fullProductionPhase, setFullProductionPhase] = useState('');
   const [outputs, setOutputs] = useState([]);
   const [allProjects, setAllProjects] = useState([]);
   const [viewingProject, setViewingProject] = useState(null);
@@ -947,6 +949,8 @@ export const DirectedStudio = memo(function DirectedStudio({
         const d = res.data;
         setCurrentProjectData(d); // ✅ NEW: Save full project data
         setAgentStatus(d.agent_status || {});
+        setProgressMessage(d.progress_message || '');
+        setFullProductionPhase(d.full_production_status || '');
         setScenes(d.scenes || []);
         // Update outputs in real-time (partial videos as they complete)
         if (d.outputs?.length > 0) setOutputs(d.outputs);
@@ -3567,76 +3571,150 @@ export const DirectedStudio = memo(function DirectedStudio({
             </div>
           )}
 
-          {/* Segmented progress bar */}
+          {/* Full Production Pipeline Tracker */}
           {scenes.length > 0 && generating && (
-            <div>
+            <div data-testid="production-timeline">
+              {/* Full Production Phase Steps (Dialogues → Video → Audio → Export) */}
+              {fullProductionPhase && (
+                <div className="mb-3 p-2.5 rounded-lg bg-[#0a0a0a] border border-[#222]">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Sparkles size={12} className="text-[#8B5CF6]" />
+                    <span className="text-[10px] font-bold text-[#8B5CF6] uppercase tracking-wider">
+                      {lang === 'pt' ? 'Produção Completa' : 'Full Production'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[
+                      { key: 'dialogues', label: lang === 'pt' ? 'Diálogos' : 'Dialogues', icon: '1' },
+                      { key: 'video', label: lang === 'pt' ? 'Vídeo' : 'Video', icon: '2' },
+                      { key: 'audio', label: lang === 'pt' ? 'Áudio' : 'Audio', icon: '3' },
+                      { key: 'complete', label: lang === 'pt' ? 'Pronto' : 'Done', icon: '4' },
+                    ].map((phase, idx) => {
+                      const phaseOrder = ['starting', 'dialogues', 'video', 'audio', 'complete'];
+                      const currentIdx = phaseOrder.indexOf(fullProductionPhase);
+                      const thisIdx = phaseOrder.indexOf(phase.key);
+                      const isDone = thisIdx < currentIdx || fullProductionPhase === 'complete';
+                      const isActive = phase.key === fullProductionPhase;
+                      const isPending = thisIdx > currentIdx;
+                      return (
+                        <Fragment key={phase.key}>
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-all ${
+                            isDone ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                            isActive ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border border-[#8B5CF6]/40 animate-pulse' :
+                            'bg-[#111] text-gray-600 border border-[#222]'
+                          }`}>
+                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${
+                              isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-[#8B5CF6] text-white' : 'bg-[#222] text-gray-600'
+                            }`}>
+                              {isDone ? '✓' : phase.icon}
+                            </span>
+                            {phase.label}
+                          </div>
+                          {idx < 3 && <div className={`w-4 h-px ${isDone ? 'bg-emerald-500/50' : 'bg-[#222]'}`} />}
+                        </Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Live progress message from backend */}
+              {progressMessage && (
+                <div className="mb-2 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#0a0a0a] border border-[#222]">
+                  <div className="w-2 h-2 rounded-full bg-[#8B5CF6] animate-pulse flex-shrink-0" />
+                  <span className="text-[11px] text-gray-300 font-medium truncate" data-testid="progress-message">
+                    {progressMessage}
+                  </span>
+                </div>
+              )}
+
+              {/* Phase-specific status text + video counter */}
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-[#999]">
-                  {agentStatus.phase === 'pre_production' && `Pré-produção inteligente — Analisando avatares e design...`}
-                  {agentStatus.phase === 'pre_production_done' && `Design de produção pronto — Iniciando direção...`}
+                  {agentStatus.phase === 'pre_production' && (lang === 'pt' ? 'Pré-produção inteligente — Analisando avatares e design...' : 'Pre-production — Analyzing avatars and design...')}
+                  {agentStatus.phase === 'pre_production_done' && (lang === 'pt' ? 'Design de produção pronto — Iniciando direção...' : 'Production design ready — Starting direction...')}
                   {agentStatus.phase === 'photography' && `Dir. Fotografia — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
-                  {agentStatus.phase === 'generating_keyframes' && `Gemini — Gerando keyframes de referência (${agentStatus.total_scenes || scenes.length} cenas)`}
+                  {agentStatus.phase === 'generating_keyframes' && `Gemini — Gerando keyframes (${agentStatus.total_scenes || scenes.length} cenas)`}
                   {agentStatus.phase === 'music' && `Dir. Musical`}
                   {agentStatus.phase === 'audio' && `Dir. Áudio — Cena ${agentStatus.current_scene || 0}/${agentStatus.total_scenes || scenes.length}`}
-                  {agentStatus.phase?.startsWith('generating_video') && `${videoEngine === 'kling' ? 'Kling AI' : 'Sora 2'} — Gerando vídeos`}
-                  {agentStatus.phase === 'concatenating' && `Concatenando filme final...`}
-                  {agentStatus.phase === 'complete' && `Produção concluída!`}
-                  {agentStatus.phase === 'starting' && `Iniciando produção...`}
-                  {agentStatus.phase === 'starting_teams' && `Iniciando equipas de direção...`}
+                  {agentStatus.phase?.startsWith('generating_video') && `${videoEngine === 'kling' ? 'Kling AI' : 'Sora 2'} — ${agentStatus.videos_done || 0}/${agentStatus.total_frames || agentStatus.total_scenes || scenes.length} clips`}
+                  {agentStatus.phase === 'concatenating' && (lang === 'pt' ? 'Concatenando filme final...' : 'Concatenating final video...')}
+                  {agentStatus.phase === 'complete' && (lang === 'pt' ? 'Produção concluída!' : 'Production complete!')}
+                  {agentStatus.phase === 'starting' && (lang === 'pt' ? 'Iniciando produção...' : 'Starting production...')}
+                  {agentStatus.phase === 'starting_teams' && (lang === 'pt' ? 'Iniciando equipas de direção...' : 'Starting direction teams...')}
+                  {!agentStatus.phase && !progressMessage && (lang === 'pt' ? 'Preparando produção...' : 'Preparing production...')}
                 </span>
                 <span className="text-orange-600 font-semibold">
-                  {agentStatus.videos_done !== undefined ? `${agentStatus.videos_done}/${agentStatus.total_scenes || scenes.length} vídeos` : ''}
+                  {agentStatus.videos_done !== undefined && agentStatus.videos_done > 0
+                    ? `${agentStatus.videos_done}/${agentStatus.total_frames || agentStatus.total_scenes || scenes.length} clips`
+                    : ''}
                 </span>
               </div>
-              {/* Main segmented bar — one segment per scene */}
-              <div className="flex gap-0.5 w-full">
-                {scenes.map((s, i) => {
-                  const sn = String(s.scene_number || i + 1);
-                  const ss = agentStatus.scene_status || {};
-                  const videoDone = ss[sn] === 'done';
-                  const agentsDone = ss[sn] === 'agents_done';
-                  const videoError = ss[sn] === 'error';
-                  const isCurrentScene = agentStatus.current_scene === (s.scene_number || i + 1);
-                  const phase = agentStatus.phase || '';
 
-                  let segColor = 'bg-gray-100'; // pending
-                  if (videoDone) segColor = 'bg-emerald-500';
-                  else if (videoError) segColor = 'bg-red-500';
-                  else if (agentsDone && phase.startsWith('generating_video')) segColor = 'bg-blue-500';
-                  else if (agentsDone) segColor = 'bg-blue-500/60';
-                  else if (isCurrentScene) segColor = 'bg-[#8B5CF6] animate-pulse';
+              {/* Kling AI: Frame-level progress bar (30 clips) */}
+              {videoEngine === 'kling' && agentStatus.total_frames > 0 && (
+                <div className="mb-2">
+                  <div className="w-full h-3 bg-[#111] rounded-full overflow-hidden border border-[#222]">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] transition-all duration-1000 ease-out rounded-full"
+                      style={{ width: `${Math.round(((agentStatus.videos_done || 0) / agentStatus.total_frames) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <span className="text-[9px] text-gray-500">{agentStatus.videos_done || 0} de {agentStatus.total_frames} clips prontos</span>
+                    <span className="text-[9px] text-gray-500">
+                      {agentStatus.videos_done > 0
+                        ? `~${Math.round(((agentStatus.total_frames - agentStatus.videos_done) / agentStatus.videos_done) * 2)}min restantes`
+                        : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
 
-                  return (
-                    <div 
-                      key={i} 
-                      className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity" 
-                      title={`Cena ${sn}: ${s.title || ''} - Clique para expandir [v2.0]`}
-                      onClick={() => {
-                        console.log(`🖱️ CLICKED SCENE ${sn} - This onClick is working!`);
-                        // Scroll to scene card
-                        const sceneCard = document.querySelector(`[data-scene-number="${sn}"]`);
-                        if (sceneCard) {
-                          sceneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          // Flash highlight
-                          sceneCard.style.outline = '3px solid #8B5CF6';
-                          sceneCard.style.outlineOffset = '2px';
-                          setTimeout(() => {
-                            sceneCard.style.outline = '';
-                            sceneCard.style.outlineOffset = '';
-                          }, 2000);
-                        }
-                      }}
-                    >
-                      <div className={`w-full h-2 rounded-sm transition-all duration-500 ${segColor}`} />
-                      <span className="text-xs text-[#555]">{sn}</span>
-                    </div>
-                  );
-                })}
-              </div>
+              {/* Scene-level segmented bar (for Sora or fallback) */}
+              {(videoEngine !== 'kling' || !agentStatus.total_frames) && (
+                <div className="flex gap-0.5 w-full">
+                  {scenes.map((s, i) => {
+                    const sn = String(s.scene_number || i + 1);
+                    const ss = agentStatus.scene_status || {};
+                    const videoDone = ss[sn] === 'done';
+                    const agentsDone = ss[sn] === 'agents_done';
+                    const videoError = ss[sn] === 'error';
+                    const isCurrentScene = agentStatus.current_scene === (s.scene_number || i + 1);
+                    const phase = agentStatus.phase || '';
+
+                    let segColor = 'bg-gray-100'; // pending
+                    if (videoDone) segColor = 'bg-emerald-500';
+                    else if (videoError) segColor = 'bg-red-500';
+                    else if (agentsDone && phase.startsWith('generating_video')) segColor = 'bg-blue-500';
+                    else if (agentsDone) segColor = 'bg-blue-500/60';
+                    else if (isCurrentScene) segColor = 'bg-[#8B5CF6] animate-pulse';
+
+                    return (
+                      <div 
+                        key={i} 
+                        className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity" 
+                        title={`Cena ${sn}: ${s.title || ''}`}
+                        onClick={() => {
+                          const sceneCard = document.querySelector(`[data-scene-number="${sn}"]`);
+                          if (sceneCard) {
+                            sceneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            sceneCard.style.outline = '3px solid #8B5CF6';
+                            sceneCard.style.outlineOffset = '2px';
+                            setTimeout(() => { sceneCard.style.outline = ''; sceneCard.style.outlineOffset = ''; }, 2000);
+                          }
+                        }}
+                      >
+                        <div className={`w-full h-2 rounded-sm transition-all duration-500 ${segColor}`} />
+                        <span className="text-xs text-[#555]">{sn}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {/* Legend */}
               <div className="flex items-center gap-3 mt-1.5">
-                <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" /> {lang === 'pt' ? 'Vídeo pronto' : 'Video done'}</span>
-                <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-blue-500" /> {lang === 'pt' ? 'Agentes prontos' : 'Agents done'}</span>
+                <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500" /> {lang === 'pt' ? 'Pronto' : 'Done'}</span>
                 <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-[#8B5CF6]" /> {lang === 'pt' ? 'Processando' : 'Processing'}</span>
                 <span className="flex items-center gap-1 text-xs text-gray-500"><span className="inline-block w-2 h-2 rounded-sm bg-red-500" /> {lang === 'pt' ? 'Erro' : 'Error'}</span>
               </div>
@@ -4510,9 +4588,11 @@ export const DirectedStudio = memo(function DirectedStudio({
           </div>
           
           {/* Multi-format downloads */}
-          {outputs.some(o => o.multi_format) && (
+          {(outputs.some(o => o.multi_format) || currentProjectData?.multi_format_urls) && (
             <div className="flex gap-2 pb-1">
-              {Object.entries(outputs.find(o => o.multi_format)?.multi_format || {}).map(([key, fmt]) => (
+              {Object.entries(
+                outputs.find(o => o.multi_format)?.multi_format || currentProjectData?.multi_format_urls || {}
+              ).map(([key, fmt]) => (
                 <a key={key} href={fmt.url} target="_blank" rel="noreferrer"
                   className="flex-1 rounded-lg border border-[#222] bg-[#0A0A0A] py-1.5 text-[8px] font-mono text-gray-400 hover:text-white hover:border-[#444] transition text-center">
                   <Download size={8} className="inline mr-1" />{fmt.label}
