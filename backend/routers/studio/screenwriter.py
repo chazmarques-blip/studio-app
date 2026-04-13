@@ -309,38 +309,52 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
             logger.info(f"📚 Project {project_id}: No character library found, starting auto-sync...")
             try:
                 from services.character_library_service import CharacterLibraryService
-                # Find Biblizoo Baby folder
                 avatar_folders = settings.get("avatar_folders", [])
                 logger.info(f"📁 Found {len(avatar_folders)} avatar folders")
                 
-                biblizoo_folder = None
-                for folder in avatar_folders:
-                    folder_name = folder.get("name", "").lower()
-                    logger.info(f"🔎 Checking folder: {folder.get('name')} (biblizoo: {'biblizoo' in folder_name}, baby: {'baby' in folder_name})")
-                    if "biblizoo" in folder_name and "baby" in folder_name:
-                        biblizoo_folder = folder
-                        break
+                # ✅ Use project's character_folder_id instead of hardcoded "biblizoo baby"
+                target_folder_id = project.get("character_folder_id")
+                target_folder = None
                 
-                if biblizoo_folder:
-                    folder_id = biblizoo_folder["id"]
+                if target_folder_id:
+                    # Find the specific folder for this project
+                    for folder in avatar_folders:
+                        if folder.get("id") == target_folder_id:
+                            target_folder = folder
+                            break
+                    if target_folder:
+                        logger.info(f"📂 Using project folder: '{target_folder['name']}' (id={target_folder_id})")
+                    else:
+                        logger.warning(f"⚠️ Project folder_id {target_folder_id} not found in avatar_folders")
+                
+                if not target_folder:
+                    # Fallback: try to find any matching folder
+                    for folder in avatar_folders:
+                        folder_name = folder.get("name", "").lower()
+                        if "biblizoo" in folder_name and "baby" in folder_name:
+                            target_folder = folder
+                            break
+                
+                if target_folder:
+                    folder_id = target_folder["id"]
                     all_avatars = settings.get("studio_avatars", [])
                     folder_avatars = [a for a in all_avatars if a.get("folder_id") == folder_id]
-                    logger.info(f"📦 Found {len(folder_avatars)} avatars in folder '{biblizoo_folder['name']}'")
+                    logger.info(f"📦 Found {len(folder_avatars)} avatars in folder '{target_folder['name']}'")
                     
                     if folder_avatars:
                         service = CharacterLibraryService()
                         character_library = service.build_character_library(
                             folder_id=folder_id,
-                            folder_name=folder_name,
+                            folder_name=target_folder['name'],
                             avatars=folder_avatars
                         )
                         project["character_library"] = character_library
                         _save_project(tenant_id, settings, projects)
-                        logger.info(f"✅ Auto-synced {character_library.get('total_characters', 0)} characters from {biblizoo_folder['name']}")
+                        logger.info(f"✅ Auto-synced {character_library.get('total_characters', 0)} characters from {target_folder['name']}")
                     else:
-                        logger.warning(f"⚠️ Biblizoo Baby folder found but is empty!")
+                        logger.warning(f"⚠️ Folder '{target_folder['name']}' found but is empty!")
                 else:
-                    logger.warning(f"⚠️ No Biblizoo Baby folder found! Available folders: {[f.get('name') for f in avatar_folders]}")
+                    logger.warning(f"⚠️ No matching folder found! Available: {[f.get('name') for f in avatar_folders]}")
             except Exception as e:
                 logger.error(f"❌ Auto-sync character library failed: {e}", exc_info=True)
 
