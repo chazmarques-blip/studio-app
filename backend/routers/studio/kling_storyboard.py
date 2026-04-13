@@ -5,7 +5,9 @@ Generates ultra-detailed storyboards with Kling-optimized prompts for continuity
 from ._shared import *
 from typing import List, Dict
 import asyncio
+import requests
 from datetime import datetime, timezone
+from fastapi import BackgroundTasks
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KLING STORYBOARD SYSTEM PROMPT
@@ -566,6 +568,120 @@ async def update_frame_fields(
         "frame_number": frame_number,
         "updated_fields": list(editable.keys())
     }
+
+
+@router.post("/projects/{project_id}/kling-storyboards/generate-dialogues")
+async def generate_frame_dialogues(
+    project_id: str,
+    tenant=Depends(get_current_tenant)
+):
+    """Use LLM to generate dialogue_text for all 30 frames based on scene script.
+    
+    Reads the scene dialogue/script and distributes it across the 30 frames,
+    assigning the exact spoken text for each 6-second window.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    storyboards = project.get("kling_storyboards", [])
+    if not storyboards:
+        raise HTTPException(status_code=400, detail="No storyboard found")
+    
+    all_frames = []
+    for sb in storyboards:
+        all_frames.extend(sb.get("frames", []))
+    
+    if not all_frames:
+        raise HTTPException(status_code=400, detail="No frames found")
+    
+    # Get the scene dialogue/script
+    scenes = project.get("scenes", [])
+    scene_dialogue = scenes[0].get("dialogue", "") if scenes else ""
+    synopsis = project.get("synopsis", "")
+    characters = project.get("characters", [])
+    char_names = [c.get("name", "") for c in characters]
+    lang = project.get("language", "pt")
+    
+    # Build frame summaries for context
+    frame_context = []
+    for f in all_frames:
+        frame_context.append(f"Frame {f.get('frame_number')}: {f.get('time_start','')}-{f.get('time_end','')}: {f.get('key_action', f.get('image_prompt','')[:60])}")
+    
+    prompt = f"""You are a screenwriter for a children's animated video (Pixar-style).
+
+SYNOPSIS: {synopsis[:500]}
+
+CHARACTERS: {', '.join(char_names)}
+
+SCENE SCRIPT/DIRECTIONS:
+{scene_dialogue[:2000]}
+
+STORYBOARD FRAMES (30 frames × 6 seconds each = 3 minutes total):
+{chr(10).join(frame_context)}
+
+TASK: Write the EXACT dialogue/narration text for each of the 30 frames.
+- Each frame represents a 6-second window
+- Use the character names as speakers (e.g., "Narrador: ..." or "Abraão: ...")
+- For frames with no speech, write sound descriptions (e.g., "(Música suave)" or "(Silêncio contemplativo)")  
+- The dialogue should tell the complete story in {lang} language
+- Keep each frame's text short enough to be spoken in ~5 seconds
+- Use format: "Character: 'dialogue text'" for each frame
+
+Return ONLY a JSON array of 30 objects:
+[{{"frame_number": 1, "dialogue_text": "Narrador: 'Era uma vez...'"}}]
+
+Return ONLY valid JSON. No markdown, no explanation."""
+
+    try:
+        from litellm import completion
+        
+        response = completion(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Parse JSON
+        if result_text.startswith("```"):
+            result_text = result_text.split("```")[1]
+            if result_text.startswith("json"):
+                result_text = result_text[4:]
+        
+        import json as json_lib
+        dialogues = json_lib.loads(result_text)
+        
+        # Apply to frames
+        dialogue_map = {d["frame_number"]: d["dialogue_text"] for d in dialogues if "frame_number" in d}
+        
+        updated_count = 0
+        for sb in storyboards:
+            for frame in sb.get("frames", []):
+                fn = frame.get("frame_number")
+                if fn in dialogue_map:
+                    frame["dialogue_text"] = dialogue_map[fn]
+                    updated_count += 1
+        
+        # Persist
+        _update_project_field(tenant["id"], project_id, {
+            "kling_storyboards": storyboards
+        }, flush_now=True)
+        
+        logger.info(f"KlingStoryboard [{project_id}]: Generated dialogues for {updated_count}/{len(all_frames)} frames")
+        
+        return {
+            "status": "success",
+            "frames_updated": updated_count,
+            "total_frames": len(all_frames),
+            "sample": dialogues[:3] if dialogues else []
+        }
+        
+    except Exception as e:
+        logger.error(f"KlingStoryboard [{project_id}]: Dialogue generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 async def _generate_storyboards_for_single_scene(
@@ -1795,3 +1911,289 @@ async def _generate_frame_image_with_tool(frame: Dict, project_id: str) -> str:
     except Exception as e:
         logger.info(f"      Image generation error: {e}")
         raise
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUDIO OVERLAY: Generate dubbed audio per frame + merge with Kling video
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/projects/{project_id}/kling-storyboards/generate-audio")
+async def generate_audio_overlay(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    tenant=Depends(get_current_tenant)
+):
+    """Generate dubbed audio for all storyboard frames and merge with existing video.
+    
+    Flow:
+    1. Read dialogue_text from each of the 30 frames
+    2. Generate TTS audio per frame using ElevenLabs (character voices from voice_map)
+    3. Concatenate all audio clips into one track (with silence padding to match 6s/frame)
+    4. Download the existing Kling video
+    5. Merge audio track + video with FFmpeg
+    6. Upload final video with audio
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    storyboards = project.get("kling_storyboards", [])
+    if not storyboards:
+        raise HTTPException(status_code=400, detail="No storyboard found. Generate storyboard first.")
+    
+    # Check for existing video
+    outputs = project.get("outputs", [])
+    video_output = next((o for o in outputs if o.get("type") == "video"), None)
+    if not video_output or not video_output.get("url"):
+        raise HTTPException(status_code=400, detail="No video found. Produce the video first.")
+    
+    # Check voice_map
+    voice_map = project.get("voice_map", {})
+    if not voice_map:
+        raise HTTPException(status_code=400, detail="No voice_map configured. Run auto-assign-voices first.")
+    
+    # Mark status
+    _update_project_field(tenant["id"], project_id, {
+        "audio_generation_status": "generating",
+        "progress_message": "Gerando áudio dublado..."
+    })
+    
+    background_tasks.add_task(
+        _generate_audio_overlay_background,
+        tenant["id"], project_id
+    )
+    
+    return {"status": "generating", "message": "Audio generation started"}
+
+
+def _generate_audio_overlay_background(tenant_id: str, project_id: str):
+    """Background task: generate audio for all frames and merge with video."""
+    import subprocess
+    import tempfile
+    import shutil
+    
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+        
+        storyboards = project.get("kling_storyboards", [])
+        all_frames = []
+        for sb in storyboards:
+            all_frames.extend(sb.get("frames", []))
+        
+        voice_map = project.get("voice_map", {})
+        lang = project.get("language", "pt")
+        clip_duration = 6.0  # seconds per frame
+        
+        # Get video URL
+        outputs = project.get("outputs", [])
+        video_output = next((o for o in outputs if o.get("type") == "video"), None)
+        video_url = video_output.get("url", "") if video_output else ""
+        
+        logger.info(f"AudioOverlay [{project_id}]: Starting — {len(all_frames)} frames, {len(voice_map)} voices, lang={lang}")
+        
+        tmpdir = tempfile.mkdtemp(prefix="kling_audio_")
+        
+        try:
+            from .narration import _generate_narration_audio
+            
+            # Step 1: Generate TTS audio per frame
+            audio_segments = []  # list of (frame_number, audio_path, duration)
+            
+            for i, frame in enumerate(all_frames):
+                fn = frame.get("frame_number", i + 1)
+                dialogue = frame.get("dialogue_text", "").strip()
+                
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": f"Gerando áudio — Frame {fn}/{len(all_frames)}"
+                })
+                
+                if not dialogue or dialogue.startswith("(Sem"):
+                    # No dialogue for this frame — create silence
+                    silence_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(clip_duration),
+                        "-q:a", "9", "-acodec", "libmp3lame",
+                        silence_path
+                    ], capture_output=True, timeout=10)
+                    audio_segments.append((fn, silence_path, clip_duration))
+                    continue
+                
+                # Parse character name from dialogue (format: "Narrador: 'texto'" or just "texto")
+                char_name = "Narrador"
+                text = dialogue
+                if ":" in dialogue:
+                    parts = dialogue.split(":", 1)
+                    possible_name = parts[0].strip()
+                    # Check if it looks like a character name (not a timestamp)
+                    if len(possible_name) < 40 and not possible_name[0].isdigit():
+                        char_name = possible_name
+                        text = parts[1].strip().strip("'\"")
+                
+                # Find matching voice
+                matched_voice = None
+                for cname, vid in voice_map.items():
+                    if char_name.lower() in cname.lower() or cname.lower() in char_name.lower():
+                        matched_voice = vid
+                        break
+                
+                # Fallback: use first voice in map
+                if not matched_voice:
+                    matched_voice = list(voice_map.values())[0] if voice_map else None
+                
+                if not matched_voice or not text.strip():
+                    # Create silence for this frame
+                    silence_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(clip_duration),
+                        "-q:a", "9", "-acodec", "libmp3lame",
+                        silence_path
+                    ], capture_output=True, timeout=10)
+                    audio_segments.append((fn, silence_path, clip_duration))
+                    continue
+                
+                # Generate TTS audio
+                try:
+                    audio_bytes = _generate_narration_audio(
+                        text=text,
+                        voice_id=matched_voice,
+                        stability=0.5,
+                        similarity=0.75,
+                        style_val=0.0,
+                        language_code=lang
+                    )
+                    
+                    raw_path = f"{tmpdir}/frame_{fn:03d}_raw.mp3"
+                    with open(raw_path, "wb") as f:
+                        f.write(audio_bytes)
+                    
+                    # Pad or trim to exactly clip_duration seconds
+                    padded_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-i", raw_path,
+                        "-af", f"apad=whole_dur={clip_duration}",
+                        "-t", str(clip_duration),
+                        "-acodec", "libmp3lame", "-q:a", "4",
+                        padded_path
+                    ], capture_output=True, timeout=15)
+                    
+                    audio_segments.append((fn, padded_path, clip_duration))
+                    logger.info(f"  Frame {fn}: TTS done ({char_name}: {text[:40]}...)")
+                    
+                except Exception as e:
+                    logger.warning(f"  Frame {fn}: TTS failed ({e}), using silence")
+                    silence_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(clip_duration),
+                        "-q:a", "9", "-acodec", "libmp3lame",
+                        silence_path
+                    ], capture_output=True, timeout=10)
+                    audio_segments.append((fn, silence_path, clip_duration))
+            
+            # Step 2: Concatenate all audio segments into one track
+            audio_segments.sort(key=lambda x: x[0])
+            
+            concat_list = f"{tmpdir}/audio_concat.txt"
+            with open(concat_list, "w") as f:
+                for fn, path, dur in audio_segments:
+                    f.write(f"file '{path}'\n")
+            
+            full_audio_path = f"{tmpdir}/full_audio.mp3"
+            result = subprocess.run([
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", concat_list,
+                "-c", "copy",
+                full_audio_path
+            ], capture_output=True, timeout=60)
+            
+            if result.returncode != 0:
+                logger.error(f"AudioOverlay: Audio concat failed: {result.stderr.decode()[:200]}")
+                _update_project_field(tenant_id, project_id, {
+                    "audio_generation_status": "error",
+                    "progress_message": "Erro na concatenação do áudio"
+                })
+                return
+            
+            audio_size = os.path.getsize(full_audio_path) // 1024
+            logger.info(f"AudioOverlay [{project_id}]: Full audio track: {audio_size}KB")
+            
+            # Step 3: Download existing Kling video
+            _update_project_field(tenant_id, project_id, {
+                "progress_message": "Baixando vídeo e fazendo merge com áudio..."
+            })
+            
+            video_path = f"{tmpdir}/video.mp4"
+            video_resp = requests.get(video_url, timeout=120)
+            video_resp.raise_for_status()
+            with open(video_path, "wb") as f:
+                f.write(video_resp.content)
+            
+            logger.info(f"AudioOverlay [{project_id}]: Video downloaded ({len(video_resp.content)//1024}KB)")
+            
+            # Step 4: Merge audio + video with FFmpeg
+            final_path = f"{tmpdir}/final_with_audio.mp4"
+            merge_cmd = [
+                "ffmpeg", "-y",
+                "-i", video_path,
+                "-i", full_audio_path,
+                "-c:v", "copy",
+                "-c:a", "aac", "-b:a", "128k",
+                "-map", "0:v:0", "-map", "1:a:0",
+                "-shortest",
+                "-movflags", "+faststart",
+                final_path
+            ]
+            
+            merge_result = subprocess.run(merge_cmd, capture_output=True, timeout=120)
+            
+            if merge_result.returncode != 0:
+                logger.error(f"AudioOverlay: Merge failed: {merge_result.stderr.decode()[:300]}")
+                _update_project_field(tenant_id, project_id, {
+                    "audio_generation_status": "error",
+                    "progress_message": "Erro no merge áudio + vídeo"
+                })
+                return
+            
+            # Step 5: Upload final video
+            with open(final_path, "rb") as f:
+                final_bytes = f.read()
+            
+            filename = f"studio/{project_id}_kling_dubbed.mp4"
+            final_url = _upload_to_storage(final_bytes, filename, "video/mp4")
+            
+            logger.info(f"AudioOverlay [{project_id}]: DONE — {len(final_bytes)//1024}KB uploaded")
+            
+            # Update project: replace video output with dubbed version
+            for o in outputs:
+                if o.get("type") == "video":
+                    o["url"] = final_url
+                    o["has_audio"] = True
+                    break
+            
+            _update_project_field(tenant_id, project_id, {
+                "outputs": outputs,
+                "audio_generation_status": "complete",
+                "progress_message": "Áudio dublado aplicado ao vídeo!"
+            }, flush_now=True)
+            
+        finally:
+            try:
+                shutil.rmtree(tmpdir)
+            except:
+                pass
+    
+    except Exception as e:
+        logger.error(f"AudioOverlay [{project_id}]: Fatal error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        _update_project_field(tenant_id, project_id, {
+            "audio_generation_status": "error",
+            "progress_message": f"Erro: {str(e)[:100]}"
+        })
