@@ -99,6 +99,47 @@ This rule applies to EVERY scene, EVERY response, EVERY continuation.
 MANDATORY and NON-NEGOTIABLE.
 
 ===============================================================================
+NARRATIVE STRUCTURE — MANDATORY FOR ALL VIDEOS
+===============================================================================
+
+EVERY video script MUST follow this narrative structure regardless of content type:
+
+1. ABERTURA / INTRODUÇÃO (Primeiros 30-60 segundos da primeira cena)
+   - Os personagens SE APRESENTAM ao público (quem são, o que fazem)
+   - Estabelecem o CONTEXTO: "Hoje vamos falar sobre...", "Você sabia que..."
+   - Criam um GANCHO emocional ou de curiosidade
+   - Explicam POR QUE estão ali e o que o espectador vai ganhar assistindo
+   - Tom: Caloroso, convidativo, como se falasse diretamente com a criança
+   - NUNCA pule direto para o conteúdo sem esta introdução
+
+2. DESENVOLVIMENTO / CONTEÚDO (Meio do vídeo — 70-80% do tempo)
+   - O conteúdo principal: dicas, história, aventura, aprendizado
+   - Cada ponto/dica com transição natural ("E agora...", "Outra coisa importante...")
+   - Interação com o público: perguntas retóricas, pausas para resposta
+   - Variedade emocional: momentos engraçados, surpresas, carinho
+   - Progressão lógica: do mais simples ao mais importante
+
+3. ENCERRAMENTO / DESPEDIDA (Últimos 30-60 segundos da última cena)
+   - Recapitulação rápida do que aprenderam/viveram
+   - Mensagem emocional de fechamento
+   - OBRIGATÓRIO: Convite para o próximo vídeo ("Na próxima aventura...")
+   - OBRIGATÓRIO: Pedido de engajamento ("Se gostou, conta pra gente!")
+   - Tom: Caloroso, satisfatório, deixa saudade
+
+⚠️ REGRA DE OURO: Se o pedido é "dicas sobre X", NÃO comece direto com "Dica 1".
+   Comece com: "Olá! Eu sou [nome]... Hoje vamos descobrir [X]... Preparados?"
+
+⚠️ EXEMPLO DE ABERTURA CORRETA:
+   ERRADO: "Dica número 1: prepare-se para fofura..."
+   CORRETO: "Ash: 'Olá pessoal! Eu sou o Ash, e essa aqui é minha irmã Snow!'
+            Snow: 'Oi gente! Hoje a gente vai contar uns segredos sobre nós, os Pomerâneas!'
+            Ash: 'A Brenda, nossa mamãe, pediu pra gente dar umas dicas. Bora lá?'"
+   
+   Somente DEPOIS desta apresentação é que o conteúdo principal (dicas, história, etc.) deve começar.
+
+===============================================================================
+
+===============================================================================
 NARRATIVE STRUCTURE - 3-PART STORY ARC (MANDATORY)
 ===============================================================================
 
@@ -432,6 +473,15 @@ CONTINUATION RULES:
 
 Current request: {message}
 {audio_instruction}
+
+⚠️ REGRA OBRIGATÓRIA DE ESTRUTURA NARRATIVA:
+A PRIMEIRA CENA deve começar com uma INTRODUÇÃO onde OS PRÓPRIOS PERSONAGENS (não o narrador) se apresentam:
+- Cada personagem diz seu nome e quem é: "Ash: 'Oi gente! Eu sou o Ash!'"
+- Explicam o que vão fazer no vídeo: "Snow: 'Hoje vamos dar umas dicas!'"
+- O narrador pode complementar mas NÃO substitui a fala dos personagens
+- Somente DEPOIS desta apresentação dos personagens o conteúdo principal começa
+A ÚLTIMA CENA deve ter ENCERRAMENTO com despedida e convite ao próximo vídeo.
+PROIBIDO: Começar com "Narrador: 'Hoje temos...'" sem os personagens falarem primeiro.
 
 Create the screenplay. Generate as many scenes and characters as the story NEEDS to be rich and complete — there is NO limit. If the story needs more than 10 scenes, generate the first 10 and set "total_scenes" to the full amount. Return ONLY valid JSON."""
 
