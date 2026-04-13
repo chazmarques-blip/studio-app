@@ -3336,9 +3336,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                   }
                 </button>
                 <button onClick={() => setStep(3)} disabled={scenes.length === 0}
-                  data-testid="go-to-storyboard-btn"
+                  data-testid="go-to-dialogues-btn"
                   className="flex-1 btn-gold rounded-lg py-2 text-[10px] font-semibold disabled:opacity-30 flex items-center justify-center gap-1">
-                  <Camera size={12} /> Storyboard →
+                  <MessageSquare size={12} /> {lang === 'pt' ? 'Diálogos →' : 'Dialogues →'}
                 </button>
               </div>
             </div>
