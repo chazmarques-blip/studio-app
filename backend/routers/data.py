@@ -2,7 +2,7 @@
 Data persistence router — Companies & Avatars stored in Supabase.
 Uses the tenants table's 'settings' JSONB column for structured storage.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
@@ -307,6 +307,28 @@ async def upsert_avatar(data: AvatarIn, user=Depends(get_current_user), tenant=D
     return doc
 
 
+
+
+
+@router.patch("/avatars/{avatar_id}/rename")
+async def rename_avatar(avatar_id: str, payload: dict = Body(...), user=Depends(get_current_user), tenant=Depends(get_current_tenant)):
+    """Rename an avatar by ID."""
+    new_name = payload.get("name", "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Name is required")
+    
+    settings = _get_settings(tenant["id"])
+    avatars = settings.get("studio_avatars", [])
+    avatar = next((a for a in avatars if a.get("id") == avatar_id), None)
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    
+    avatar["name"] = new_name
+    avatar["updated_at"] = datetime.now(timezone.utc).isoformat()
+    settings["studio_avatars"] = avatars
+    _save_settings(tenant["id"], settings)
+    
+    return {"status": "ok", "id": avatar_id, "name": new_name}
 
 
 @router.delete("/avatars/{avatar_id}/history/{entry_index}")

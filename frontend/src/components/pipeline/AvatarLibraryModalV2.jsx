@@ -55,6 +55,26 @@ export function AvatarLibraryModalV2({
   const [newFolderParent, setNewFolderParent] = useState(null);
   const [moveToFolderMenuOpen, setMoveToFolderMenuOpen] = useState(false);
   
+  // Inline rename state
+  const [renamingAvatarId, setRenamingAvatarId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  
+  const handleInlineRename = async (avatarId) => {
+    if (!renameValue.trim()) {
+      setRenamingAvatarId(null);
+      return;
+    }
+    try {
+      await axios.patch(`${API}/data/avatars/${avatarId}/rename`, { name: renameValue.trim() });
+      // Update local state
+      setLibrary(prev => prev.map(a => a.id === avatarId ? { ...a, name: renameValue.trim() } : a));
+      toast.success(`Nome atualizado: "${renameValue.trim()}"`);
+    } catch (err) {
+      toast.error('Erro ao renomear');
+    }
+    setRenamingAvatarId(null);
+  };
+  
   // Debug: log when modal state changes
   useEffect(() => {
     console.log('📂 [FOLDER MODAL STATE]', folderModalOpen ? 'ABERTO ✅' : 'FECHADO ❌');
@@ -1053,9 +1073,29 @@ export function AvatarLibraryModalV2({
                         </div>
                       )}
                       
-                      {/* Name overlay */}
+                      {/* Name overlay — click to rename */}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent px-2 py-2">
-                        <p className="text-xs text-white font-semibold truncate">{av.name || 'Avatar'}</p>
+                        {renamingAvatarId === av.id ? (
+                          <input
+                            type="text"
+                            autoFocus
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onBlur={() => handleInlineRename(av.id)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleInlineRename(av.id); if (e.key === 'Escape') setRenamingAvatarId(null); }}
+                            onClick={e => e.stopPropagation()}
+                            className="w-full bg-black/60 border border-purple-500 rounded px-1 py-0.5 text-xs text-white outline-none"
+                            data-testid={`rename-input-${av.id}`}
+                          />
+                        ) : (
+                          <p
+                            className="text-xs text-white font-semibold truncate cursor-pointer hover:text-purple-300 transition"
+                            onDoubleClick={e => { e.stopPropagation(); setRenamingAvatarId(av.id); setRenameValue(av.name || ''); }}
+                            title="Duplo-clique para renomear"
+                          >
+                            {av.name || 'Avatar'}
+                          </p>
+                        )}
                         {inProject && <p className="text-[8px] text-green-400 mt-0.5">{L.alreadyIn}</p>}
                       </div>
                     </div>
