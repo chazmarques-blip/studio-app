@@ -309,6 +309,20 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         const checkRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
         const status = checkRes.data.generation_status || {};
         
+        // ✅ Always update storyboard data during generation (show frames progressively)
+        if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0) {
+          setKlingStoryboards({
+            scenes: checkRes.data.scenes || [],
+            total_frames: checkRes.data.total_frames,
+            generated_at: checkRes.data.generated_at,
+          });
+          
+          // Count frames with images
+          const allFrames = (checkRes.data.scenes || []).flatMap(s => s.frames || []);
+          const framesWithImage = allFrames.filter(f => f.image_url).length;
+          console.log(`⏳ Kling progress: ${framesWithImage}/${allFrames.length} frames with images`);
+        }
+        
         if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0 && status.phase !== 'generating') {
           clearInterval(pollInterval);
           setKlingGenerating(false);
@@ -327,7 +341,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       } catch (err) {
         console.error('Auto-poll error:', err);
       }
-    }, 10000); // Check every 10s
+    }, 5000); // Check every 5s for progressive loading
     
     return () => clearInterval(pollInterval);
   }, [klingGenerating, projectId]);

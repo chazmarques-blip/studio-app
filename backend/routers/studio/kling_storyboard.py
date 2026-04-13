@@ -265,6 +265,47 @@ async def _do_generate_kling_storyboards(project_id: str, tenant_id: str):
     
     logger.info(f"KlingStoryboard [{project_id}]: Processing {len(scenes)} scenes with {len(characters)} characters")
     
+    # ══════════════════════════════════════════════════════════════════
+    # PRE-POPULATE: Create all 30 frames with image_url=null FIRST
+    # so the frontend can show placeholders immediately
+    # ══════════════════════════════════════════════════════════════════
+    total_seconds = 300
+    frame_duration = 10  # Each frame covers 10 seconds
+    total_expected = total_seconds // frame_duration  # 30 frames
+    
+    placeholder_storyboards = [{
+        "scene_number": 1,
+        "frames": [
+            {
+                "frame_number": fn + 1,
+                "time_start": f"{(fn * frame_duration) // 60}:{(fn * frame_duration) % 60:02d}",
+                "time_end": f"{((fn + 1) * frame_duration) // 60}:{((fn + 1) * frame_duration) % 60:02d}",
+                "image_url": None,
+                "image_prompt": "",
+                "kling_prompt": "",
+                "dialogue_text": "",
+                "characters_present": [],
+                "camera_movement": "",
+                "key_action": "",
+                "emotion": "neutral",
+                "lighting": ""
+            }
+            for fn in range(total_expected)
+        ]
+    }]
+    
+    _update_project_field(tenant_id, project_id, {
+        "kling_storyboards": placeholder_storyboards,
+        "kling_generation_status": {
+            "phase": "generating",
+            "total_frames": total_expected,
+            "frames_done": 0,
+            "started_at": datetime.now(timezone.utc).isoformat()
+        }
+    }, flush_now=True)
+    
+    logger.info(f"KlingStoryboard [{project_id}]: Pre-populated {total_expected} placeholder frames")
+    
     # Process scenes in batches of 5
     BATCH_SIZE = 5
     all_scene_storyboards = []
@@ -316,6 +357,46 @@ async def _do_generate_kling_storyboards(project_id: str, tenant_id: str):
                     all_scene_storyboards.append(result)
             
             logger.info(f"✅ Batch {batch_start//BATCH_SIZE + 1} complete")
+            
+            # ✅ INCREMENTAL SAVE: Update placeholders with real frames after each batch
+            frames_done = sum(len(s.get("frames", [])) for s in all_scene_storyboards)
+            # Merge generated frames into placeholder structure
+            merged_storyboards = [{
+                "scene_number": 1,
+                "frames": []
+            }]
+            for sb in all_scene_storyboards:
+                for f in sb.get("frames", []):
+                    merged_storyboards[0]["frames"].append(f)
+            
+            # Fill remaining with placeholders up to total_expected
+            current_count = len(merged_storyboards[0]["frames"])
+            for fn in range(current_count, total_expected):
+                merged_storyboards[0]["frames"].append({
+                    "frame_number": fn + 1,
+                    "time_start": f"{(fn * frame_duration) // 60}:{(fn * frame_duration) % 60:02d}",
+                    "time_end": f"{((fn + 1) * frame_duration) // 60}:{((fn + 1) * frame_duration) % 60:02d}",
+                    "image_url": None,
+                    "image_prompt": "",
+                    "kling_prompt": "",
+                    "dialogue_text": "",
+                    "characters_present": [],
+                    "camera_movement": "",
+                    "key_action": "",
+                    "emotion": "neutral",
+                    "lighting": ""
+                })
+            
+            _update_project_field(tenant_id, project_id, {
+                "kling_storyboards": merged_storyboards,
+                "kling_generation_status": {
+                    "phase": "generating",
+                    "total_frames": total_expected,
+                    "frames_done": frames_done,
+                    "started_at": datetime.now(timezone.utc).isoformat()
+                }
+            }, flush_now=True)
+            logger.info(f"KlingStoryboard [{project_id}]: Saved {frames_done}/{total_expected} frames to DB")
             
         except Exception as e:
             logger.error(f"Batch processing failed: {e}")
