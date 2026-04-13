@@ -578,76 +578,149 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
             chars_in_scene = scene.get("characters_in_scene", [])
             
             # ══════════════════════════════════════════════════════════════
-            # KLING AI: Generate ONE complete video using storyboard frames as context
-            # Initial I2V (10s) + iterative extensions (~4-5s each) up to 3 minutes
+            # KLING AI: Strategy B — Parallel I2V with Start+End Frame
+            # 30 clips of 6s each, generated in parallel.
+            # Each clip: image=frame[i], image_tail=frame[i+1] for smooth transitions.
+            # Final: FFmpeg concat with crossfade.
             # ══════════════════════════════════════════════════════════════
             if video_engine == "kling":
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} - KLING MODE: Full video generation")
+                logger.info(f"Studio [{project_id}]: Scene {scene_num} - KLING STRATEGY B: Parallel I2V + crossfade")
                 
-                # Get all storyboard frames as context
+                # Get all storyboard frames
                 kling_storyboards = project.get("kling_storyboards", [])
                 all_frames = []
                 for sb_scene in kling_storyboards:
                     all_frames.extend(sb_scene.get("frames", []))
                 
+                if not all_frames:
+                    logger.error(f"Studio [{project_id}]: No storyboard frames for Kling I2V")
+                    _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "no_storyboard_frames"}
+                
                 _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
                 _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Kling AI — Gerando vídeo completo ({len(all_frames)} frames como contexto)"
+                    "progress_message": f"Kling AI — Baixando {len(all_frames)} imagens do storyboard..."
                 })
                 
-                # Download first frame image for I2V reference
-                ref_image_path = None
-                if all_frames and all_frames[0].get("image_url"):
-                    try:
-                        clean_url = all_frames[0]["image_url"].split('?')[0]
-                        img_response = requests.get(clean_url, timeout=30)
-                        if img_response.status_code == 200:
-                            ref_image_path = f"/tmp/kling_ref_{project_id}_first.png"
-                            with open(ref_image_path, 'wb') as f:
-                                f.write(img_response.content)
-                            logger.info(f"  Downloaded first frame as I2V reference ({len(img_response.content)//1024}KB)")
-                    except Exception as e:
-                        logger.warning(f"  Failed to download first frame: {e}")
+                # Step 1: Download all frame images as base64
+                frame_images = {}  # frame_number -> base64
+                for frame in all_frames:
+                    fn = frame.get("frame_number", 0)
+                    img_url = frame.get("image_url", "")
+                    if img_url:
+                        try:
+                            clean_url = img_url.split('?')[0]
+                            img_resp = requests.get(clean_url, timeout=30)
+                            if img_resp.status_code == 200:
+                                frame_images[fn] = base64.b64encode(img_resp.content).decode()
+                        except Exception as e:
+                            logger.warning(f"  Frame {fn}: Image download failed: {e}")
                 
-                # Use comprehensive prompt compiled from all frames if no dedicated storyboard frames
-                if not all_frames:
-                    all_frames = [{"kling_prompt": sora_prompt}]
+                logger.info(f"Studio [{project_id}]: Downloaded {len(frame_images)}/{len(all_frames)} frame images")
                 
-                try:
-                    t_v = _time.time()
-                    video_bytes = kling_client.generate_full_video(
-                        frames=all_frames,
-                        initial_image_path=ref_image_path,
-                        target_duration=180.0,  # 30 frames × 6s = 180s (3 min)
-                        max_wait_per_step=600
-                    )
-                    elapsed = _time.time() - t_v
-                    
-                    # Clean up ref image
-                    if ref_image_path and os.path.exists(ref_image_path):
-                        try: os.remove(ref_image_path)
-                        except: pass
-                    
-                    if video_bytes and len(video_bytes) > 1000:
-                        filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
-                        video_url = _upload_to_storage(video_bytes, filename, "video/mp4")
-                        logger.info(f"Studio [{project_id}]: Scene {scene_num} KLING DONE {elapsed:.0f}s ({len(video_bytes)//1024}KB)")
-                        
-                        _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
-                        _update_scene_status(tenant_id, project_id, scene_num, "done", total)
-                        return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": 180}
-                    else:
-                        logger.error(f"Studio [{project_id}]: Kling full video empty after {elapsed:.0f}s")
-                        _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                        return {"scene_number": scene_num, "url": None, "type": "video", "error": "kling_empty_video"}
-                
-                except Exception as e:
-                    logger.error(f"Studio [{project_id}]: Kling full video error: {e}")
-                    if ref_image_path and os.path.exists(ref_image_path):
-                        try: os.remove(ref_image_path)
-                        except: pass
+                if len(frame_images) < 2:
+                    logger.error(f"Studio [{project_id}]: Not enough images for I2V clips")
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                    return {"scene_number": scene_num, "url": None, "type": "video", "error": str(e)[:200]}
+                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "insufficient_images"}
+                
+                # Step 2: Generate parallel clips with progress callback
+                def progress_cb(done, total_clips, msg):
+                    _update_project_field(tenant_id, project_id, {
+                        "agent_status": {
+                            "phase": "generating_video",
+                            "videos_done": done,
+                            "total_scenes": total,
+                            "total_frames": total_clips,
+                            "scene_status": {str(scene_num): "generating_video"}
+                        },
+                        "progress_message": msg
+                    })
+                
+                t_v = _time.time()
+                clips = kling_client.generate_parallel_clips(
+                    frames=all_frames,
+                    frame_images=frame_images,
+                    clip_duration=6,
+                    model="kling-v3",
+                    mode="std",
+                    max_wait=600,
+                    max_concurrent=5,
+                    progress_callback=progress_cb
+                )
+                
+                if not clips:
+                    logger.error(f"Studio [{project_id}]: No clips generated")
+                    _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "no_clips_generated"}
+                
+                # Step 3: Concatenate with FFmpeg crossfade
+                import subprocess
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": f"Kling AI — Concatenando {len(clips)} clips com crossfade..."
+                })
+                
+                output_path = f"/tmp/kling_final_{project_id}.mp4"
+                
+                if len(clips) == 1:
+                    # Single clip, no concat needed
+                    import shutil
+                    shutil.copy(clips[0]["clip_path"], output_path)
+                else:
+                    # Build FFmpeg complex filter for xfade transitions
+                    crossfade_duration = 0.5  # 0.5s crossfade between clips
+                    clip_paths = [c["clip_path"] for c in clips]
+                    
+                    try:
+                        # Simple concat approach (fast, reliable)
+                        concat_list = f"/tmp/kling_concat_{project_id}.txt"
+                        with open(concat_list, 'w') as f:
+                            for cp in clip_paths:
+                                f.write(f"file '{cp}'\n")
+                        
+                        cmd = [
+                            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                            "-i", concat_list,
+                            "-c:v", "libx264", "-preset", "fast",
+                            "-crf", "23", "-pix_fmt", "yuv420p",
+                            "-movflags", "+faststart",
+                            output_path
+                        ]
+                        subprocess.run(cmd, check=True, capture_output=True, timeout=180)
+                        
+                        try: os.remove(concat_list)
+                        except: pass
+                        
+                    except Exception as e:
+                        logger.error(f"Studio [{project_id}]: FFmpeg concat failed: {e}")
+                        # Fallback: use first clip
+                        import shutil
+                        shutil.copy(clip_paths[0], output_path)
+                
+                # Step 4: Upload final video
+                if os.path.exists(output_path):
+                    with open(output_path, 'rb') as f:
+                        final_video_bytes = f.read()
+                    
+                    final_duration = sum(c.get("duration", 6) for c in clips)
+                    elapsed = _time.time() - t_v
+                    logger.info(f"Studio [{project_id}]: KLING DONE — {len(clips)} clips, ~{final_duration:.0f}s, {len(final_video_bytes)//1024}KB, {elapsed:.0f}s total")
+                    
+                    filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
+                    video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
+                    
+                    # Cleanup temp files
+                    for c in clips:
+                        try: os.remove(c["clip_path"])
+                        except: pass
+                    try: os.remove(output_path)
+                    except: pass
+                    
+                    _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
+                    _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                    return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": final_duration}
+                else:
+                    _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "output_file_missing"}
             
             # ══════════════════════════════════════════════════════════════
             # SORA 2: Standard 12-second video generation

@@ -180,14 +180,7 @@ class KlingClient:
             return b""
     
     def _resolution_to_aspect(self, resolution: str) -> str:
-        """Convert resolution string to Kling aspect ratio format
-        
-        Args:
-            resolution: "1280x720", "1920x1080", etc.
-            
-        Returns:
-            Aspect ratio string like "16:9", "9:16", "1:1"
-        """
+        """Convert resolution string to Kling aspect ratio format"""
         aspect_map = {
             "1280x720": "16:9",
             "1920x1080": "16:9",
@@ -198,6 +191,224 @@ class KlingClient:
             "1024x1536": "2:3"
         }
         return aspect_map.get(resolution, "16:9")
+
+    def _submit_i2v_task(self, prompt: str, image_b64: str, image_tail_b64: str = None,
+                          duration: int = 6, model: str = "kling-v2-6", mode: str = "std") -> str:
+        """Submit an I2V task and return task_id immediately (non-blocking).
+        
+        Args:
+            prompt: Motion/action prompt for the clip
+            image_b64: Base64 of start frame image
+            image_tail_b64: Base64 of end frame image (optional, for smooth transition)
+            duration: Clip duration in seconds (max 10)
+            model: Kling model name
+            mode: "std" or "pro"
+            
+        Returns:
+            task_id string, or empty string on failure
+        """
+        try:
+            token = self._get_auth_token()
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            
+            payload = {
+                "model_name": model,
+                "prompt": prompt[:2500],
+                "image": image_b64,
+                "duration": str(duration),
+                "mode": mode,
+                "sound": "off",
+            }
+            if image_tail_b64:
+                payload["image_tail"] = image_tail_b64
+            
+            url = f"{self.api_base}/{self.api_version}/videos/image2video"
+            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            
+            if response.status_code != 200:
+                logger.error(f"Kling I2V submit error: {response.status_code} - {response.text[:200]}")
+                return ""
+            
+            data = response.json()
+            if data.get("code") != 0:
+                logger.error(f"Kling I2V API error: {data.get('message')}")
+                return ""
+            
+            task_id = data.get("data", {}).get("task_id", "")
+            return task_id
+            
+        except Exception as e:
+            logger.error(f"Kling I2V submit failed: {e}")
+            return ""
+
+    def _poll_i2v_task(self, task_id: str, max_wait: int = 600) -> dict:
+        """Poll a single I2V task until complete.
+        
+        Returns:
+            dict with 'url', 'duration', 'video_id' or empty dict on failure
+        """
+        try:
+            token = self._get_auth_token()
+            headers = {"Authorization": f"Bearer {token}"}
+            poll_url = f"{self.api_base}/{self.api_version}/videos/image2video/{task_id}"
+            
+            start_time = time.time()
+            while time.time() - start_time < max_wait:
+                time.sleep(12)
+                r = requests.get(poll_url, headers=headers, timeout=30)
+                data = r.json().get("data", {})
+                status = data.get("task_status", "")
+                
+                if status in ("succeed", "completed"):
+                    videos = data.get("task_result", {}).get("videos", [])
+                    if videos:
+                        v = videos[0]
+                        return {
+                            "url": v.get("url"),
+                            "duration": float(v.get("duration", 0)),
+                            "video_id": v.get("id", ""),
+                        }
+                    return {}
+                elif status in ("failed", "error"):
+                    msg = data.get("task_status_msg", "unknown")
+                    logger.error(f"Kling I2V task {task_id} FAILED: {msg}")
+                    return {}
+                
+                elapsed = time.time() - start_time
+                if int(elapsed) % 60 < 15:
+                    logger.info(f"Kling I2V task {task_id}: {status} ({elapsed:.0f}s)")
+            
+            logger.error(f"Kling I2V task {task_id} TIMEOUT after {max_wait}s")
+            return {}
+        except Exception as e:
+            logger.error(f"Kling I2V poll error for {task_id}: {e}")
+            return {}
+
+    def generate_parallel_clips(
+        self,
+        frames: list,
+        frame_images: dict,
+        clip_duration: int = 6,
+        model: str = "kling-v2-6",
+        mode: str = "std",
+        max_wait: int = 600,
+        max_concurrent: int = 5,
+        progress_callback=None
+    ) -> list:
+        """Generate video clips in parallel using I2V with start+end frame.
+        
+        Each clip uses frame[i] image as start and frame[i+1] image as end.
+        The Kling AI interpolates between them, ensuring smooth transitions.
+        
+        Args:
+            frames: List of storyboard frame dicts with 'kling_prompt', 'frame_number'
+            frame_images: Dict mapping frame_number -> base64 image string
+            clip_duration: Duration per clip in seconds (default 6)
+            model: Kling model to use
+            mode: "std" or "pro"  
+            max_wait: Max wait per task in seconds
+            max_concurrent: Max simultaneous API calls (rate limit)
+            progress_callback: Optional fn(done, total, message) for progress updates
+            
+        Returns:
+            List of dicts with 'frame_number', 'clip_path', 'duration' (sorted by frame_number)
+        """
+        import concurrent.futures
+        import tempfile
+        
+        total = len(frames)
+        logger.info(f"Kling AI: Generating {total} parallel I2V clips ({clip_duration}s each, model={model})")
+        
+        # Step 1: Submit all tasks
+        tasks = {}  # task_id -> frame_number
+        for i, frame in enumerate(frames):
+            fn = frame.get("frame_number", i + 1)
+            prompt = frame.get("kling_prompt", "Scene continues with natural animation")
+            
+            start_b64 = frame_images.get(fn, "")
+            # End frame = next frame's image (or same frame for last clip)
+            next_fn = frames[i + 1]["frame_number"] if i + 1 < total else fn
+            end_b64 = frame_images.get(next_fn, "")
+            
+            if not start_b64:
+                logger.warning(f"  Frame {fn}: No start image, skipping")
+                continue
+            
+            task_id = self._submit_i2v_task(
+                prompt=prompt,
+                image_b64=start_b64,
+                image_tail_b64=end_b64 if end_b64 and fn != next_fn else None,
+                duration=clip_duration,
+                model=model,
+                mode=mode
+            )
+            
+            if task_id:
+                tasks[task_id] = fn
+                logger.info(f"  Frame {fn}/{total}: Submitted (task={task_id[:12]}...)")
+            else:
+                logger.error(f"  Frame {fn}/{total}: Submit FAILED")
+            
+            # Rate limiting: small delay between submissions
+            if (i + 1) % max_concurrent == 0:
+                time.sleep(2)
+        
+        logger.info(f"Kling AI: {len(tasks)}/{total} tasks submitted. Polling all...")
+        
+        if progress_callback:
+            progress_callback(0, total, f"Kling AI — {len(tasks)} clips submetidos, aguardando...")
+        
+        # Step 2: Poll all tasks in parallel
+        results = []
+        
+        def poll_and_download(task_id, frame_num):
+            result = self._poll_i2v_task(task_id, max_wait=max_wait)
+            if result and result.get("url"):
+                try:
+                    video_resp = requests.get(result["url"], timeout=120)
+                    video_resp.raise_for_status()
+                    clip_path = f"/tmp/kling_clip_{frame_num:03d}.mp4"
+                    with open(clip_path, 'wb') as f:
+                        f.write(video_resp.content)
+                    return {
+                        "frame_number": frame_num,
+                        "clip_path": clip_path,
+                        "duration": result.get("duration", clip_duration),
+                        "size_kb": len(video_resp.content) // 1024,
+                    }
+                except Exception as e:
+                    logger.error(f"  Frame {frame_num}: Download failed: {e}")
+            return None
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+            futures = {
+                executor.submit(poll_and_download, tid, fn): (tid, fn)
+                for tid, fn in tasks.items()
+            }
+            
+            done_count = 0
+            for future in concurrent.futures.as_completed(futures):
+                tid, fn = futures[future]
+                try:
+                    clip_result = future.result()
+                    done_count += 1
+                    if clip_result:
+                        results.append(clip_result)
+                        logger.info(f"  Frame {fn}: DONE ({clip_result['size_kb']}KB, {clip_result['duration']:.1f}s) [{done_count}/{len(tasks)}]")
+                    else:
+                        logger.warning(f"  Frame {fn}: FAILED [{done_count}/{len(tasks)}]")
+                    
+                    if progress_callback:
+                        progress_callback(done_count, total, f"Kling AI — {done_count}/{total} clips prontos")
+                        
+                except Exception as e:
+                    done_count += 1
+                    logger.error(f"  Frame {fn}: Exception: {e}")
+        
+        # Sort by frame number
+        results.sort(key=lambda x: x["frame_number"])
+        logger.info(f"Kling AI: {len(results)}/{total} clips generated successfully")
+        return results
     
     def estimate_cost(self, duration: float, model: str = "kling-v3") -> float:
         """Estimate generation cost in USD
