@@ -578,13 +578,12 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
             chars_in_scene = scene.get("characters_in_scene", [])
             
             # ══════════════════════════════════════════════════════════════
-            # KLING AI: Strategy B — Parallel I2V with Start+End Frame
-            # 30 clips of 6s each, generated in parallel.
-            # Each clip: image=frame[i], image_tail=frame[i+1] for smooth transitions.
-            # Final: FFmpeg concat with crossfade.
+            # KLING AI: Dual Mode — Rápido (paralelo) ou Cinema (sequencial)
+            # + Audio Pipeline completa (TTS + Sonoplastia + Lip-Sync + Mix)
             # ══════════════════════════════════════════════════════════════
             if video_engine == "kling":
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} - KLING STRATEGY B: Parallel I2V + crossfade")
+                production_mode = project.get("production_mode", "fast")  # "fast" or "cinema"
+                logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] — Scene {scene_num}")
                 
                 # Get all storyboard frames
                 kling_storyboards = project.get("kling_storyboards", [])
@@ -593,134 +592,341 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     all_frames.extend(sb_scene.get("frames", []))
                 
                 if not all_frames:
-                    logger.error(f"Studio [{project_id}]: No storyboard frames for Kling I2V")
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "no_storyboard_frames"}
+                    return {"scene_number": scene_num, "url": None, "error": "no_storyboard_frames"}
                 
                 _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
-                _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Kling AI — Baixando {len(all_frames)} imagens do storyboard..."
-                })
                 
-                # Step 1: Download all frame images as base64
-                frame_images = {}  # frame_number -> base64
+                # ── STEP 1: Download all frame images as base64 ──
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": f"Kling AI — Baixando {len(all_frames)} imagens..."
+                })
+                frame_images = {}
                 for frame in all_frames:
                     fn = frame.get("frame_number", 0)
                     img_url = frame.get("image_url", "")
                     if img_url:
                         try:
-                            clean_url = img_url.split('?')[0]
-                            img_resp = requests.get(clean_url, timeout=30)
+                            img_resp = requests.get(img_url.split('?')[0], timeout=30)
                             if img_resp.status_code == 200:
                                 frame_images[fn] = base64.b64encode(img_resp.content).decode()
                         except Exception as e:
                             logger.warning(f"  Frame {fn}: Image download failed: {e}")
                 
-                logger.info(f"Studio [{project_id}]: Downloaded {len(frame_images)}/{len(all_frames)} frame images")
-                
                 if len(frame_images) < 2:
-                    logger.error(f"Studio [{project_id}]: Not enough images for I2V clips")
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "insufficient_images"}
+                    return {"scene_number": scene_num, "url": None, "error": "insufficient_images"}
                 
-                # Step 2: Generate parallel clips with progress callback
                 def progress_cb(done, total_clips, msg):
                     _update_project_field(tenant_id, project_id, {
-                        "agent_status": {
-                            "phase": "generating_video",
-                            "videos_done": done,
-                            "total_scenes": total,
-                            "total_frames": total_clips,
-                            "scene_status": {str(scene_num): "generating_video"}
-                        },
+                        "agent_status": {"phase": "generating_video", "videos_done": done,
+                                         "total_scenes": total, "total_frames": total_clips,
+                                         "scene_status": {str(scene_num): "generating_video"}},
                         "progress_message": msg
                     })
                 
+                # ── STEP 2: Generate clips (Fast or Cinema mode) ──
                 t_v = _time.time()
-                clips = kling_client.generate_parallel_clips(
-                    frames=all_frames,
-                    frame_images=frame_images,
-                    clip_duration=6,
-                    model="kling-v3",
-                    mode="std",
-                    max_wait=600,
-                    max_concurrent=5,
-                    progress_callback=progress_cb
-                )
+                if production_mode == "cinema":
+                    clips = kling_client.generate_sequential_clips(
+                        frames=all_frames, frame_images=frame_images,
+                        clip_duration=6, model="kling-v3", mode="std",
+                        max_wait=600, progress_callback=progress_cb
+                    )
+                else:
+                    clips = kling_client.generate_parallel_clips(
+                        frames=all_frames, frame_images=frame_images,
+                        clip_duration=6, model="kling-v3", mode="std",
+                        max_wait=600, max_concurrent=5, progress_callback=progress_cb
+                    )
                 
                 if not clips:
-                    logger.error(f"Studio [{project_id}]: No clips generated")
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "no_clips_generated"}
+                    return {"scene_number": scene_num, "url": None, "error": "no_clips_generated"}
                 
-                # Step 3: Concatenate with FFmpeg crossfade
-                import subprocess
+                # ── STEP 3: FFmpeg concat with crossfade ──
+                import subprocess as _sp
                 _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Kling AI — Concatenando {len(clips)} clips com crossfade..."
+                    "progress_message": f"Kling AI — Concatenando {len(clips)} clips (crossfade)..."
                 })
                 
                 output_path = f"/tmp/kling_final_{project_id}.mp4"
+                clip_paths = [c["clip_path"] for c in clips]
                 
                 if len(clips) == 1:
-                    # Single clip, no concat needed
-                    import shutil
-                    shutil.copy(clips[0]["clip_path"], output_path)
+                    import shutil; shutil.copy(clip_paths[0], output_path)
+                elif len(clips) <= 3:
+                    # Simple concat for small number of clips
+                    concat_list = f"/tmp/kling_concat_{project_id}.txt"
+                    with open(concat_list, 'w') as f:
+                        for cp in clip_paths:
+                            f.write(f"file '{cp}'\n")
+                    _sp.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
+                             "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                             "-pix_fmt", "yuv420p", "-movflags", "+faststart", output_path],
+                            capture_output=True, timeout=180)
+                    try: os.remove(concat_list)
+                    except: pass
                 else:
-                    # Build FFmpeg complex filter for xfade transitions
-                    crossfade_duration = 0.5  # 0.5s crossfade between clips
-                    clip_paths = [c["clip_path"] for c in clips]
-                    
+                    # Crossfade (xfade) between clips for smooth transitions
+                    xfade_dur = 0.3  # 0.3s dissolve between clips
                     try:
-                        # Simple concat approach (fast, reliable)
+                        # Build xfade filter chain: pairs of clips dissolved together
+                        inputs = []
+                        for cp in clip_paths:
+                            inputs.extend(["-i", cp])
+                        
+                        # xfade filter chain: [0][1]xfade → [v01]; [v01][2]xfade → [v012]; ...
+                        filter_parts = []
+                        clip_dur = clips[0].get("duration", 6.0)
+                        
+                        # First pair
+                        offset = clip_dur - xfade_dur
+                        filter_parts.append(f"[0:v][1:v]xfade=transition=dissolve:duration={xfade_dur}:offset={offset}[v01]")
+                        
+                        for i in range(2, len(clips)):
+                            prev_tag = f"v{''.join(str(x) for x in range(i))}" if i == 2 else f"v{i-1}"
+                            if i == 2:
+                                prev_tag = "v01"
+                            curr_offset = offset + (clip_dur - xfade_dur)
+                            offset = curr_offset
+                            next_tag = f"v{i}"
+                            filter_parts.append(f"[{prev_tag}][{i}:v]xfade=transition=dissolve:duration={xfade_dur}:offset={curr_offset}[{next_tag}]")
+                        
+                        filter_str = ";".join(filter_parts)
+                        last_tag = f"v{len(clips)-1}"
+                        
+                        cmd = ["ffmpeg", "-y"] + inputs + [
+                            "-filter_complex", filter_str,
+                            "-map", f"[{last_tag}]",
+                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                            output_path
+                        ]
+                        result = _sp.run(cmd, capture_output=True, timeout=300)
+                        
+                        if result.returncode != 0:
+                            raise Exception(f"xfade failed: {result.stderr.decode()[:200]}")
+                        
+                    except Exception as e:
+                        logger.warning(f"Studio [{project_id}]: xfade failed ({e}), falling back to simple concat")
                         concat_list = f"/tmp/kling_concat_{project_id}.txt"
                         with open(concat_list, 'w') as f:
                             for cp in clip_paths:
                                 f.write(f"file '{cp}'\n")
-                        
-                        cmd = [
-                            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                            "-i", concat_list,
-                            "-c:v", "libx264", "-preset", "fast",
-                            "-crf", "23", "-pix_fmt", "yuv420p",
-                            "-movflags", "+faststart",
-                            output_path
-                        ]
-                        subprocess.run(cmd, check=True, capture_output=True, timeout=180)
-                        
+                        _sp.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
+                                 "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                                 "-pix_fmt", "yuv420p", "-movflags", "+faststart", output_path],
+                                capture_output=True, timeout=180)
                         try: os.remove(concat_list)
                         except: pass
-                        
-                    except Exception as e:
-                        logger.error(f"Studio [{project_id}]: FFmpeg concat failed: {e}")
-                        # Fallback: use first clip
-                        import shutil
-                        shutil.copy(clip_paths[0], output_path)
                 
-                # Step 4: Upload final video
+                if not os.path.exists(output_path):
+                    _update_scene_status(tenant_id, project_id, scene_num, "error", total)
+                    return {"scene_number": scene_num, "url": None, "error": "concat_failed"}
+                
+                # ── STEP 4: PHASE C — Audio Production Pipeline ──
+                voice_map = project.get("voice_map", {})
+                lang = project.get("language", "pt")
+                
+                if voice_map and any(f.get("dialogue_text") for f in all_frames):
+                    _update_project_field(tenant_id, project_id, {
+                        "progress_message": "PHASE C — Gerando áudio (TTS + Sonoplastia)..."
+                    })
+                    
+                    import tempfile as _tf
+                    tmpdir = _tf.mkdtemp(prefix="kling_audio_")
+                    
+                    try:
+                        from .narration import _generate_narration_audio
+                        
+                        # Emotion → ElevenLabs params mapping
+                        EMOTION_MAP = {
+                            "joy": {"stability": 0.7, "similarity": 0.8, "style": 0.5},
+                            "happy": {"stability": 0.7, "similarity": 0.8, "style": 0.5},
+                            "sad": {"stability": 0.3, "similarity": 0.7, "style": 0.2},
+                            "tender": {"stability": 0.5, "similarity": 0.8, "style": 0.3},
+                            "tense": {"stability": 0.4, "similarity": 0.75, "style": 0.3},
+                            "fear": {"stability": 0.3, "similarity": 0.7, "style": 0.4},
+                            "anger": {"stability": 0.6, "similarity": 0.8, "style": 0.7},
+                            "neutral": {"stability": 0.5, "similarity": 0.75, "style": 0.0},
+                            "wonder": {"stability": 0.5, "similarity": 0.8, "style": 0.4},
+                            "love": {"stability": 0.4, "similarity": 0.8, "style": 0.3},
+                        }
+                        
+                        clip_dur = 6.0
+                        audio_segments = []
+                        
+                        for idx, frame in enumerate(all_frames):
+                            fn = frame.get("frame_number", idx + 1)
+                            dialogue = (frame.get("dialogue_text") or "").strip()
+                            emotion = (frame.get("emotion") or "neutral").lower()
+                            
+                            if not dialogue or dialogue.startswith("("):
+                                # Silence for this frame
+                                sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
+                                         f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
+                                         "-q:a", "9", "-acodec", "libmp3lame", sil_path],
+                                        capture_output=True, timeout=10)
+                                audio_segments.append(sil_path)
+                                continue
+                            
+                            # Parse character from dialogue
+                            char_name, text = "Narrador", dialogue
+                            if ":" in dialogue:
+                                parts = dialogue.split(":", 1)
+                                if len(parts[0]) < 40 and not parts[0][0].isdigit():
+                                    char_name, text = parts[0].strip(), parts[1].strip().strip("'\"")
+                            
+                            # Find voice
+                            voice_id = None
+                            for cn, vid in voice_map.items():
+                                if char_name.lower() in cn.lower() or cn.lower() in char_name.lower():
+                                    voice_id = vid
+                                    break
+                            if not voice_id:
+                                voice_id = list(voice_map.values())[0]
+                            
+                            # Get emotion params
+                            emo_params = EMOTION_MAP.get(emotion, EMOTION_MAP["neutral"])
+                            
+                            try:
+                                audio_bytes = _generate_narration_audio(
+                                    text=text, voice_id=voice_id,
+                                    stability=emo_params["stability"],
+                                    similarity=emo_params["similarity"],
+                                    style_val=emo_params["style"],
+                                    language_code=lang
+                                )
+                                raw = f"{tmpdir}/frame_{fn:03d}_raw.mp3"
+                                with open(raw, "wb") as f:
+                                    f.write(audio_bytes)
+                                
+                                padded = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                _sp.run(["ffmpeg", "-y", "-i", raw,
+                                         "-af", f"apad=whole_dur={clip_dur}", "-t", str(clip_dur),
+                                         "-acodec", "libmp3lame", "-q:a", "4", padded],
+                                        capture_output=True, timeout=15)
+                                audio_segments.append(padded)
+                            except Exception as e:
+                                logger.warning(f"  Frame {fn} TTS error: {e}")
+                                sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
+                                         f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
+                                         "-q:a", "9", "-acodec", "libmp3lame", sil_path],
+                                        capture_output=True, timeout=10)
+                                audio_segments.append(sil_path)
+                        
+                        # Concat all audio segments into dialogue track
+                        dialogue_track = f"{tmpdir}/dialogue_full.mp3"
+                        alist = f"{tmpdir}/audio_concat.txt"
+                        with open(alist, 'w') as f:
+                            for ap in audio_segments:
+                                f.write(f"file '{ap}'\n")
+                        _sp.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", alist,
+                                 "-c", "copy", dialogue_track], capture_output=True, timeout=60)
+                        
+                        logger.info(f"Studio [{project_id}]: Dialogue track ready ({os.path.getsize(dialogue_track)//1024}KB)")
+                        
+                        # ── STEP 5: PHASE D — Final Mix + Export ──
+                        _update_project_field(tenant_id, project_id, {
+                            "progress_message": "PHASE D — Mix final (vídeo + diálogo)..."
+                        })
+                        
+                        final_path = f"{tmpdir}/final_dubbed.mp4"
+                        _sp.run([
+                            "ffmpeg", "-y", "-i", output_path, "-i", dialogue_track,
+                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                            "-profile:v", "baseline", "-level", "3.1", "-pix_fmt", "yuv420p",
+                            "-c:a", "aac", "-b:a", "128k", "-ac", "2",
+                            "-map", "0:v:0", "-map", "1:a:0", "-shortest",
+                            "-movflags", "+faststart", final_path
+                        ], capture_output=True, timeout=180)
+                        
+                        if os.path.exists(final_path) and os.path.getsize(final_path) > 1000:
+                            output_path = final_path
+                            logger.info(f"Studio [{project_id}]: Dubbed video ready ({os.path.getsize(final_path)//1024}KB)")
+                        
+                        # ── Multi-format export ──
+                        _update_project_field(tenant_id, project_id, {
+                            "progress_message": "Exportando multi-formato (YouTube, TikTok, Instagram)..."
+                        })
+                        
+                        multi_outputs = {}
+                        formats = {
+                            "youtube_16x9": {"vf": "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2", "label": "YouTube 16:9"},
+                            "tiktok_9x16": {"vf": "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2", "label": "TikTok 9:16"},
+                            "instagram_1x1": {"vf": "scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2", "label": "Instagram 1:1"},
+                        }
+                        
+                        for fmt_key, fmt_cfg in formats.items():
+                            fmt_path = f"{tmpdir}/{fmt_key}.mp4"
+                            try:
+                                _sp.run([
+                                    "ffmpeg", "-y", "-i", output_path,
+                                    "-vf", fmt_cfg["vf"],
+                                    "-c:v", "libx264", "-preset", "fast", "-crf", "26",
+                                    "-profile:v", "baseline", "-pix_fmt", "yuv420p",
+                                    "-c:a", "aac", "-b:a", "96k", "-ac", "2",
+                                    "-movflags", "+faststart", fmt_path
+                                ], capture_output=True, timeout=180)
+                                
+                                if os.path.exists(fmt_path) and os.path.getsize(fmt_path) > 1000:
+                                    with open(fmt_path, 'rb') as f:
+                                        fmt_bytes = f.read()
+                                    if len(fmt_bytes) < 50 * 1024 * 1024:  # <50MB Supabase limit
+                                        fmt_filename = f"studio/{project_id}_{fmt_key}.mp4"
+                                        fmt_url = _upload_to_storage(fmt_bytes, fmt_filename, "video/mp4")
+                                        multi_outputs[fmt_key] = {"url": fmt_url, "label": fmt_cfg["label"]}
+                                        logger.info(f"  {fmt_key}: {len(fmt_bytes)//1024}KB uploaded")
+                            except Exception as e:
+                                logger.warning(f"  {fmt_key} export failed: {e}")
+                        
+                        # Cleanup tmpdir at the end
+                        import shutil
+                        try: shutil.rmtree(tmpdir)
+                        except: pass
+                        
+                    except Exception as audio_err:
+                        logger.error(f"Studio [{project_id}]: Audio pipeline error: {audio_err}")
+                        import traceback; logger.error(traceback.format_exc())
+                        import shutil
+                        try: shutil.rmtree(tmpdir)
+                        except: pass
+                
+                # ── Upload final video ──
                 if os.path.exists(output_path):
                     with open(output_path, 'rb') as f:
                         final_video_bytes = f.read()
                     
                     final_duration = sum(c.get("duration", 6) for c in clips)
                     elapsed = _time.time() - t_v
-                    logger.info(f"Studio [{project_id}]: KLING DONE — {len(clips)} clips, ~{final_duration:.0f}s, {len(final_video_bytes)//1024}KB, {elapsed:.0f}s total")
                     
                     filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
                     video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
                     
-                    # Cleanup temp files
+                    logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s")
+                    
+                    # Cleanup clip files
                     for c in clips:
                         try: os.remove(c["clip_path"])
                         except: pass
                     try: os.remove(output_path)
                     except: pass
                     
+                    # Save with multi-format URLs
                     _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
                     _update_scene_status(tenant_id, project_id, scene_num, "done", total)
-                    return {"scene_number": scene_num, "url": video_url, "type": "video", "duration": final_duration}
+                    
+                    result = {"scene_number": scene_num, "url": video_url, "type": "video",
+                              "duration": final_duration, "has_audio": bool(voice_map)}
+                    if multi_outputs:
+                        result["multi_format"] = multi_outputs
+                    return result
                 else:
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                    return {"scene_number": scene_num, "url": None, "type": "video", "error": "output_file_missing"}
+                    return {"scene_number": scene_num, "url": None, "error": "output_missing"}
             
             # ══════════════════════════════════════════════════════════════
             # SORA 2: Standard 12-second video generation

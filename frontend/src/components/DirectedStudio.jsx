@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, memo, Fragment, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music, GripVertical, Search, CheckCircle2, Minus } from 'lucide-react';
+import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music, GripVertical, Search, CheckCircle2, Minus, Zap } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -3443,7 +3443,46 @@ export const DirectedStudio = memo(function DirectedStudio({
 
           {/* Start Production Button - Only show if not generating */}
           {!generating && !agentStatus.phase && scenes.length > 0 && (
-            <div className="mb-4 text-center space-y-2">
+            <div className="mb-4 text-center space-y-3">
+              {/* Production Mode Selector */}
+              {videoEngine === 'kling' && (
+                <div className="flex items-center justify-center gap-2 mb-2" data-testid="production-mode-selector">
+                  <span className="text-[10px] text-gray-400">{lang === 'pt' ? 'Modo:' : 'Mode:'}</span>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await axios.patch(`${API}/studio/projects/${projectId}/settings`, { production_mode: 'fast' });
+                        toast.success('Modo Rápido ativado');
+                      } catch {}
+                    }}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition ${
+                      (currentProjectData?.production_mode || 'fast') === 'fast'
+                        ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
+                        : 'bg-[#111] border border-[#333] text-gray-400 hover:border-emerald-500/30'
+                    }`}
+                    data-testid="mode-fast-btn">
+                    <Zap size={10} className="inline mr-1" />
+                    {lang === 'pt' ? 'Rápido (~5 min)' : 'Fast (~5 min)'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await axios.patch(`${API}/studio/projects/${projectId}/settings`, { production_mode: 'cinema' });
+                        toast.success('Modo Cinema ativado');
+                      } catch {}
+                    }}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition ${
+                      currentProjectData?.production_mode === 'cinema'
+                        ? 'bg-purple-500/20 border border-purple-500/40 text-purple-400'
+                        : 'bg-[#111] border border-[#333] text-gray-400 hover:border-purple-500/30'
+                    }`}
+                    data-testid="mode-cinema-btn">
+                    <Film size={10} className="inline mr-1" />
+                    {lang === 'pt' ? 'Cinema (~20 min)' : 'Cinema (~20 min)'}
+                  </button>
+                </div>
+              )}
+              
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={startProduction}
@@ -4396,6 +4435,50 @@ export const DirectedStudio = memo(function DirectedStudio({
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Audio & Multi-format Actions */}
+          <div className="flex gap-2 pt-2 pb-1">
+            <button
+              onClick={async () => {
+                try {
+                  toast.info(lang === 'pt' ? 'Gerando diálogos para 30 frames...' : 'Generating dialogues...');
+                  await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate-dialogues`);
+                  toast.success(lang === 'pt' ? 'Diálogos gerados!' : 'Dialogues generated!');
+                } catch (e) {
+                  toast.error(getErrorMsg(e, 'Erro'));
+                }
+              }}
+              data-testid="generate-dialogues-btn"
+              className="flex-1 rounded-lg border border-cyan-500/20 bg-cyan-500/5 py-2 text-[9px] font-semibold text-cyan-400 hover:bg-cyan-500/10 transition flex items-center justify-center gap-1">
+              <MessageSquare size={10} /> {lang === 'pt' ? 'Gerar Diálogos' : 'Generate Dialogues'}
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  toast.info(lang === 'pt' ? 'Gerando áudio dublado + merge...' : 'Generating dubbed audio...');
+                  await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate-audio`);
+                  toast.success(lang === 'pt' ? 'Áudio em processamento!' : 'Audio processing!');
+                } catch (e) {
+                  toast.error(getErrorMsg(e, 'Erro'));
+                }
+              }}
+              data-testid="generate-audio-btn"
+              className="flex-1 rounded-lg border border-orange-500/20 bg-orange-500/5 py-2 text-[9px] font-semibold text-orange-400 hover:bg-orange-500/10 transition flex items-center justify-center gap-1">
+              <Mic size={10} /> {lang === 'pt' ? 'Gerar Áudio' : 'Generate Audio'}
+            </button>
+          </div>
+          
+          {/* Multi-format downloads */}
+          {outputs.some(o => o.multi_format) && (
+            <div className="flex gap-2 pb-1">
+              {Object.entries(outputs.find(o => o.multi_format)?.multi_format || {}).map(([key, fmt]) => (
+                <a key={key} href={fmt.url} target="_blank" rel="noreferrer"
+                  className="flex-1 rounded-lg border border-[#222] bg-[#0A0A0A] py-1.5 text-[8px] font-mono text-gray-400 hover:text-white hover:border-[#444] transition text-center">
+                  <Download size={8} className="inline mr-1" />{fmt.label}
+                </a>
+              ))}
             </div>
           )}
 

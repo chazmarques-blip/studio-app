@@ -434,6 +434,338 @@ class KlingClient:
         rate = cost_per_second.get(model, 0.05)
         return duration * rate
 
+    # ══════════════════════════════════════════════════════════════
+    # MODO PERFEITO: Sequential clips with last-frame extraction
+    # ══════════════════════════════════════════════════════════════
+    
+    def generate_sequential_clips(
+        self,
+        frames: list,
+        frame_images: dict,
+        clip_duration: int = 6,
+        model: str = "kling-v3",
+        mode: str = "std",
+        max_wait: int = 600,
+        progress_callback=None
+    ) -> list:
+        """Generate clips SEQUENTIALLY — each clip starts from the last real frame of the previous.
+        
+        This gives perfect continuity at the cost of speed (~20 min vs ~5 min parallel).
+        
+        Flow per clip:
+        1. Submit I2V with image=last_real_frame, image_tail=frame[i+1]
+        2. Wait for completion
+        3. Download clip, extract last frame with FFmpeg
+        4. Use extracted frame as start of next clip
+        """
+        import subprocess
+        
+        total = len(frames)
+        results = []
+        current_start_b64 = frame_images.get(frames[0].get("frame_number", 1), "") if frames else ""
+        
+        logger.info(f"Kling AI: SEQUENTIAL mode — {total} clips ({clip_duration}s each, model={model})")
+        
+        for i, frame in enumerate(frames):
+            fn = frame.get("frame_number", i + 1)
+            prompt = frame.get("kling_prompt", "Scene continues naturally")
+            
+            # End frame = next frame's storyboard image
+            next_fn = frames[i + 1]["frame_number"] if i + 1 < total else fn
+            end_b64 = frame_images.get(next_fn, "")
+            
+            if not current_start_b64:
+                current_start_b64 = frame_images.get(fn, "")
+                if not current_start_b64:
+                    logger.warning(f"  Frame {fn}: No start image, skipping")
+                    continue
+            
+            # Add continuity instructions to prompt
+            cont_prompt = f"{prompt}. Smooth cinematic continuation, preserve character identity and lighting, seamless flow, no hard cuts."
+            
+            if progress_callback:
+                progress_callback(len(results), total, f"Modo Cinema — Frame {fn}/{total} (sequencial)")
+            
+            logger.info(f"  Frame {fn}/{total}: Submitting sequential I2V...")
+            
+            # Submit I2V
+            task_id = self._submit_i2v_task(
+                prompt=cont_prompt,
+                image_b64=current_start_b64,
+                image_tail_b64=end_b64 if end_b64 and fn != next_fn else None,
+                duration=clip_duration,
+                model=model,
+                mode=mode
+            )
+            
+            if not task_id:
+                logger.error(f"  Frame {fn}: Submit FAILED")
+                continue
+            
+            # Poll until done
+            result = self._poll_i2v_task(task_id, max_wait=max_wait)
+            
+            if not result or not result.get("url"):
+                logger.error(f"  Frame {fn}: Generation FAILED")
+                continue
+            
+            # Download clip
+            try:
+                video_resp = requests.get(result["url"], timeout=120)
+                video_resp.raise_for_status()
+                clip_path = f"/tmp/kling_seq_{fn:03d}.mp4"
+                with open(clip_path, 'wb') as f:
+                    f.write(video_resp.content)
+                
+                results.append({
+                    "frame_number": fn,
+                    "clip_path": clip_path,
+                    "duration": result.get("duration", clip_duration),
+                    "size_kb": len(video_resp.content) // 1024,
+                })
+                logger.info(f"  Frame {fn}/{total}: DONE ({len(video_resp.content)//1024}KB)")
+                
+                # Extract LAST FRAME for next clip's start
+                last_frame_path = f"/tmp/kling_lastframe_{fn:03d}.png"
+                subprocess.run([
+                    "ffmpeg", "-y", "-sseof", "-0.1", "-i", clip_path,
+                    "-frames:v", "1", "-q:v", "2", last_frame_path
+                ], capture_output=True, timeout=15)
+                
+                if os.path.exists(last_frame_path) and os.path.getsize(last_frame_path) > 1000:
+                    import base64
+                    with open(last_frame_path, 'rb') as f:
+                        current_start_b64 = base64.b64encode(f.read()).decode()
+                    os.remove(last_frame_path)
+                    logger.info(f"  Frame {fn}: Extracted last frame as next start")
+                else:
+                    # Fallback to storyboard image
+                    current_start_b64 = end_b64 or frame_images.get(next_fn, current_start_b64)
+                    
+            except Exception as e:
+                logger.error(f"  Frame {fn}: Download/extract error: {e}")
+        
+        results.sort(key=lambda x: x["frame_number"])
+        logger.info(f"Kling AI: SEQUENTIAL complete — {len(results)}/{total} clips")
+        return results
+
+    # ══════════════════════════════════════════════════════════════
+    # VIDEO-TO-AUDIO: Sonoplastia + BGM via Kling AI
+    # ══════════════════════════════════════════════════════════════
+    
+    def video_to_audio(
+        self,
+        video_url: str = None,
+        video_id: str = None,
+        sfx_prompt: str = "",
+        bgm_prompt: str = "",
+        asmr_mode: bool = False,
+        max_wait: int = 300
+    ) -> dict:
+        """Generate sound effects + BGM from video using Kling Video-to-Audio API.
+        
+        Args:
+            video_url: Public URL of video (3-20s, mp4/mov, ≤100MB)
+            video_id: OR Kling video ID (mutually exclusive with video_url)
+            sfx_prompt: Sound effect description (≤200 chars)
+            bgm_prompt: Background music description (≤200 chars)
+            asmr_mode: Enable enhanced SFX detail
+            max_wait: Timeout in seconds
+            
+        Returns:
+            dict with 'audio_mp3_url', 'audio_wav_url', 'video_url', 'duration'
+        """
+        try:
+            token = self._get_auth_token()
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            
+            payload = {}
+            if video_url:
+                payload["video_url"] = video_url
+            elif video_id:
+                payload["video_id"] = video_id
+            else:
+                logger.error("Kling V2A: No video_url or video_id provided")
+                return {}
+            
+            if sfx_prompt:
+                payload["sound_effect_prompt"] = sfx_prompt[:200]
+            if bgm_prompt:
+                payload["bgm_prompt"] = bgm_prompt[:200]
+            if asmr_mode:
+                payload["asmr_mode"] = True
+            
+            url = f"{self.api_base}/{self.api_version}/audio/video-to-audio"
+            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            
+            if response.status_code != 200:
+                logger.error(f"Kling V2A error: {response.status_code} - {response.text[:200]}")
+                return {}
+            
+            data = response.json()
+            if data.get("code") != 0:
+                logger.error(f"Kling V2A API error: {data.get('message')}")
+                return {}
+            
+            task_id = data.get("data", {}).get("task_id")
+            if not task_id:
+                return {}
+            
+            logger.info(f"Kling V2A: Task {task_id} submitted (sfx='{sfx_prompt[:30]}', bgm='{bgm_prompt[:30]}')")
+            
+            # Poll
+            poll_url = f"{self.api_base}/{self.api_version}/audio/video-to-audio/{task_id}"
+            start_time = time.time()
+            
+            while time.time() - start_time < max_wait:
+                time.sleep(10)
+                r = requests.get(poll_url, headers=headers, timeout=30)
+                task_data = r.json().get("data", {})
+                status = task_data.get("task_status", "")
+                
+                if status in ("succeed", "completed"):
+                    result = task_data.get("task_result", {})
+                    audios = result.get("audios", [])
+                    videos = result.get("videos", [])
+                    
+                    ret = {}
+                    if audios:
+                        ret["audio_mp3_url"] = audios[0].get("url_mp3", "")
+                        ret["audio_wav_url"] = audios[0].get("url_wav", "")
+                        ret["audio_duration"] = audios[0].get("duration_mp3", "")
+                    if videos:
+                        ret["video_url"] = videos[0].get("url", "")
+                        ret["video_duration"] = videos[0].get("duration", "")
+                    
+                    elapsed = time.time() - start_time
+                    logger.info(f"Kling V2A: DONE in {elapsed:.0f}s")
+                    return ret
+                
+                elif status in ("failed", "error"):
+                    logger.error(f"Kling V2A FAILED: {task_data.get('task_status_msg', '')}")
+                    return {}
+            
+            logger.error(f"Kling V2A: TIMEOUT after {max_wait}s")
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Kling V2A error: {e}")
+            return {}
+
+    # ══════════════════════════════════════════════════════════════
+    # LIP-SYNC: Identify faces + apply audio with lip movement
+    # ══════════════════════════════════════════════════════════════
+    
+    def identify_face(self, video_url: str = None, video_id: str = None, max_wait: int = 60) -> dict:
+        """Identify faces in a video clip for lip-sync.
+        
+        Returns:
+            dict with 'session_id', 'faces': [{'face_id', 'start_time', 'end_time'}]
+        """
+        try:
+            token = self._get_auth_token()
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            
+            payload = {}
+            if video_url:
+                payload["video_url"] = video_url
+            elif video_id:
+                payload["video_id"] = video_id
+            
+            url = f"{self.api_base}/{self.api_version}/videos/identify-face"
+            r = requests.post(url, json=payload, headers=headers, timeout=max_wait)
+            data = r.json()
+            
+            if data.get("code") != 0:
+                logger.warning(f"Kling identify-face: {data.get('message', '')}")
+                return {}
+            
+            d = data.get("data", {})
+            return {
+                "session_id": d.get("session_id", ""),
+                "faces": d.get("face_data", [])
+            }
+        except Exception as e:
+            logger.error(f"Kling identify-face error: {e}")
+            return {}
+
+    def lip_sync(
+        self,
+        session_id: str,
+        face_id: str,
+        audio_url: str,
+        sound_start_time: int = 0,
+        sound_end_time: int = 5000,
+        sound_insert_time: int = 0,
+        sound_volume: float = 1.5,
+        original_audio_volume: float = 0.3,
+        max_wait: int = 300
+    ) -> dict:
+        """Apply lip-sync to a video using audio.
+        
+        Returns:
+            dict with 'video_url', 'duration'
+        """
+        try:
+            token = self._get_auth_token()
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            
+            payload = {
+                "session_id": session_id,
+                "face_choose": [{
+                    "face_id": face_id,
+                    "sound_file": audio_url,
+                    "sound_start_time": sound_start_time,
+                    "sound_end_time": sound_end_time,
+                    "sound_insert_time": sound_insert_time,
+                    "sound_volume": sound_volume,
+                    "original_audio_volume": original_audio_volume,
+                }]
+            }
+            
+            url = f"{self.api_base}/{self.api_version}/videos/advanced-lip-sync"
+            r = requests.post(url, json=payload, headers=headers, timeout=60)
+            data = r.json()
+            
+            if data.get("code") != 0:
+                logger.warning(f"Kling lip-sync create: {data.get('message', '')}")
+                return {}
+            
+            task_id = data.get("data", {}).get("task_id")
+            if not task_id:
+                return {}
+            
+            logger.info(f"Kling lip-sync: Task {task_id} submitted")
+            
+            # Poll
+            poll_url = f"{self.api_base}/{self.api_version}/videos/advanced-lip-sync/{task_id}"
+            start_time = time.time()
+            
+            while time.time() - start_time < max_wait:
+                time.sleep(12)
+                r = requests.get(poll_url, headers=headers, timeout=30)
+                td = r.json().get("data", {})
+                status = td.get("task_status", "")
+                
+                if status in ("succeed", "completed"):
+                    videos = td.get("task_result", {}).get("videos", [])
+                    if videos:
+                        elapsed = time.time() - start_time
+                        logger.info(f"Kling lip-sync: DONE in {elapsed:.0f}s")
+                        return {
+                            "video_url": videos[0].get("url", ""),
+                            "duration": videos[0].get("duration", ""),
+                        }
+                    return {}
+                elif status in ("failed", "error"):
+                    logger.warning(f"Kling lip-sync FAILED: {td.get('task_status_msg', '')}")
+                    return {}
+            
+            logger.error(f"Kling lip-sync TIMEOUT after {max_wait}s")
+            return {}
+        except Exception as e:
+            logger.error(f"Kling lip-sync error: {e}")
+            return {}
 
     def extend_video(
         self,
