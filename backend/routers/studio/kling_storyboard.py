@@ -2082,6 +2082,14 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
             # Step 1: Generate TTS audio per frame
             audio_segments = []  # list of (frame_number, audio_path, duration)
             
+            # Stage direction markers — text with these should be treated as silence
+            STAGE_MARKERS = [
+                "silêncio", "beat", "câmera", "camera", "olhar", "pausa",
+                "movimento", "plano", "corte", "fade", "close-up", "wide shot",
+                "slow motion", "enquadramento", "travelling", "zoom", "som de",
+                "música", "music", "sfx", "background"
+            ]
+            
             for i, frame in enumerate(all_frames):
                 fn = frame.get("frame_number", i + 1)
                 dialogue = frame.get("dialogue_text", "").strip()
@@ -2090,7 +2098,24 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
                     "progress_message": f"Gerando áudio — Frame {fn}/{len(all_frames)}"
                 })
                 
-                if not dialogue or dialogue.startswith("(Sem"):
+                # Detect and skip non-dialogue text (stage directions, silence markers)
+                is_silence = (
+                    not dialogue 
+                    or dialogue.startswith("(") 
+                    or dialogue == "..."
+                    or dialogue.startswith("SILÊNCIO")
+                    or dialogue.startswith("BEAT")
+                )
+                
+                # Check if text is a stage direction (no character prefix + contains direction markers)
+                has_char_prefix = ":" in dialogue and len(dialogue.split(":")[0].strip()) < 30
+                if not is_silence and not has_char_prefix:
+                    is_stage_dir = any(m in dialogue.lower() for m in STAGE_MARKERS)
+                    if is_stage_dir:
+                        is_silence = True
+                        logger.info(f"  Frame {fn}: Skipped stage direction: {dialogue[:50]}...")
+                
+                if is_silence:
                     # No dialogue for this frame — create silence
                     silence_path = f"{tmpdir}/frame_{fn:03d}.mp3"
                     subprocess.run([
@@ -2109,23 +2134,18 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
                 if ":" in dialogue:
                     parts = dialogue.split(":", 1)
                     possible_name = parts[0].strip()
-                    # Check if it looks like a character name (not a timestamp)
-                    if len(possible_name) < 40 and not possible_name[0].isdigit():
+                    # Check if it looks like a character name (not a timestamp or stage direction)
+                    if len(possible_name) < 30 and not possible_name[0].isdigit():
                         char_name = possible_name
                         text = parts[1].strip().strip("'\"")
                 
-                # Find matching voice
-                matched_voice = None
-                for cname, vid in voice_map.items():
-                    if char_name.lower() in cname.lower() or cname.lower() in char_name.lower():
-                        matched_voice = vid
-                        break
+                # Clean text: remove parenthetical stage directions within dialogue
+                import re
+                text = re.sub(r'\([^)]*\)', '', text).strip()
+                # Remove any remaining direction markers
+                text = re.sub(r'\[.*?\]', '', text).strip()
                 
-                # Fallback: use first voice in map
-                if not matched_voice:
-                    matched_voice = list(voice_map.values())[0] if voice_map else None
-                
-                if not matched_voice or not text.strip():
+                if not text or len(text) < 2:
                     # Create silence for this frame
                     silence_path = f"{tmpdir}/frame_{fn:03d}.mp3"
                     subprocess.run([
@@ -2138,7 +2158,31 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
                     audio_segments.append((fn, silence_path, clip_duration))
                     continue
                 
-                # Generate TTS audio
+                # Find matching voice for this character
+                matched_voice = None
+                for cname, vid in voice_map.items():
+                    if char_name.lower() in cname.lower() or cname.lower() in char_name.lower():
+                        matched_voice = vid
+                        break
+                
+                # Fallback: use first voice in map
+                if not matched_voice:
+                    matched_voice = list(voice_map.values())[0] if voice_map else None
+                
+                if not matched_voice:
+                    # Create silence for this frame
+                    silence_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(clip_duration),
+                        "-q:a", "9", "-acodec", "libmp3lame",
+                        silence_path
+                    ], capture_output=True, timeout=10)
+                    audio_segments.append((fn, silence_path, clip_duration))
+                    continue
+                
+                # Generate TTS audio with character-specific voice
                 try:
                     audio_bytes = _generate_narration_audio(
                         text=text,
@@ -2219,36 +2263,71 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
             logger.info(f"AudioOverlay [{project_id}]: Video downloaded ({len(video_resp.content)//1024}KB)")
             
             # Step 3b: Generate Sound Effects + BGM via Kling V2A (optional)
+            # V2A accepts 3-20s videos, so extract a 20s sample from the full video
             sfx_track = None
             try:
                 from core.kling_client import KlingClient
                 kling = KlingClient()
                 
-                # Build SFX prompt from scene context
-                scenes = project.get("scenes", [])
-                scene_desc = scenes[0].get("description", "") if scenes else ""
-                sfx_prompt = scene_desc[:150] if scene_desc else "children playing, nature sounds, gentle footsteps"
-                bgm_prompt = "gentle orchestral music, Pixar style, warm emotional, children animation"
+                # Extract 20s sample for V2A analysis
+                v2a_sample = f"{tmpdir}/v2a_sample.mp4"
+                subprocess.run([
+                    "ffmpeg", "-y", "-i", video_path,
+                    "-t", "20", "-c", "copy", v2a_sample
+                ], capture_output=True, timeout=15)
                 
-                _update_project_field(tenant_id, project_id, {
-                    "progress_message": "Gerando sonoplastia e música de fundo (Kling V2A)..."
-                })
-                
-                v2a_result = kling.video_to_audio(
-                    video_url=video_url,
-                    sfx_prompt=sfx_prompt,
-                    bgm_prompt=bgm_prompt,
-                    max_wait=180
-                )
-                
-                if v2a_result and v2a_result.get("audio_mp3_url"):
-                    sfx_resp = requests.get(v2a_result["audio_mp3_url"], timeout=60)
-                    if sfx_resp.status_code == 200:
-                        sfx_track = f"{tmpdir}/sfx_bgm.mp3"
-                        with open(sfx_track, "wb") as f:
-                            f.write(sfx_resp.content)
-                        logger.info(f"AudioOverlay [{project_id}]: SFX+BGM track downloaded ({len(sfx_resp.content)//1024}KB)")
+                if os.path.exists(v2a_sample) and os.path.getsize(v2a_sample) > 1000:
+                    # Upload sample to get a public URL for V2A
+                    with open(v2a_sample, 'rb') as f:
+                        sample_bytes = f.read()
+                    sample_url = _upload_to_storage(sample_bytes, f"studio/{project_id}_v2a_sample.mp4", "video/mp4")
                     
+                    scenes = project.get("scenes", [])
+                    scene_desc = scenes[0].get("description", "") if scenes else ""
+                    sfx_prompt = scene_desc[:150] if scene_desc else "children playing, nature sounds, gentle footsteps"
+                    bgm_prompt = "gentle orchestral music, Pixar style, warm emotional, children animation"
+                    
+                    _update_project_field(tenant_id, project_id, {
+                        "progress_message": "Gerando sonoplastia e música de fundo (Kling V2A)..."
+                    })
+                    
+                    v2a_result = kling.video_to_audio(
+                        video_url=sample_url,
+                        sfx_prompt=sfx_prompt,
+                        bgm_prompt=bgm_prompt,
+                        max_wait=180
+                    )
+                    
+                    if v2a_result and v2a_result.get("audio_mp3_url"):
+                        sfx_resp = requests.get(v2a_result["audio_mp3_url"], timeout=60)
+                        if sfx_resp.status_code == 200:
+                            # V2A returns 20s audio — loop it to match full video length
+                            v2a_short = f"{tmpdir}/sfx_bgm_short.mp3"
+                            with open(v2a_short, "wb") as f:
+                                f.write(sfx_resp.content)
+                            
+                            # Get video duration
+                            probe = subprocess.run([
+                                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                "-of", "default=noprint_wrappers=1:nokey=1", video_path
+                            ], capture_output=True, text=True, timeout=10)
+                            vid_dur = float(probe.stdout.strip()) if probe.returncode == 0 else 180.0
+                            
+                            # Loop V2A audio to fill video duration
+                            sfx_track = f"{tmpdir}/sfx_bgm.mp3"
+                            subprocess.run([
+                                "ffmpeg", "-y", "-stream_loop", "-1", "-i", v2a_short,
+                                "-t", str(vid_dur), "-acodec", "libmp3lame", "-q:a", "4",
+                                sfx_track
+                            ], capture_output=True, timeout=30)
+                            
+                            if os.path.exists(sfx_track) and os.path.getsize(sfx_track) > 1000:
+                                logger.info(f"AudioOverlay [{project_id}]: SFX+BGM track: {os.path.getsize(sfx_track)//1024}KB (looped to {vid_dur:.0f}s)")
+                            else:
+                                sfx_track = None
+                    else:
+                        logger.warning(f"AudioOverlay [{project_id}]: V2A returned no audio")
+                        
             except Exception as e:
                 logger.warning(f"AudioOverlay [{project_id}]: V2A sonoplastia failed (non-fatal): {e}")
             

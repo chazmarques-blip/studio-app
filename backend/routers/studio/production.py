@@ -766,7 +766,18 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             dialogue = (frame.get("dialogue_text") or "").strip()
                             emotion = (frame.get("emotion") or "neutral").lower()
                             
-                            if not dialogue or dialogue.startswith("("):
+                            # Detect silence/stage directions
+                            is_silence = (
+                                not dialogue or dialogue.startswith("(") or dialogue == "..."
+                                or dialogue.startswith("SILÊNCIO") or dialogue.startswith("BEAT")
+                            )
+                            if not is_silence and ":" not in dialogue:
+                                # No character prefix — check for stage direction markers
+                                stage_markers = ["câmera", "camera", "olhar", "plano", "corte", "fade", "zoom", "silêncio", "beat", "movimento"]
+                                if any(m in dialogue.lower() for m in stage_markers):
+                                    is_silence = True
+                            
+                            if is_silence:
                                 # Silence for this frame
                                 sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
                                 _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
@@ -780,8 +791,22 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             char_name, text = "Narrador", dialogue
                             if ":" in dialogue:
                                 parts = dialogue.split(":", 1)
-                                if len(parts[0]) < 40 and not parts[0][0].isdigit():
+                                if len(parts[0]) < 30 and not parts[0][0].isdigit():
                                     char_name, text = parts[0].strip(), parts[1].strip().strip("'\"")
+                            
+                            # Clean text: remove parenthetical stage directions
+                            import re as _re
+                            text = _re.sub(r'\([^)]*\)', '', text).strip()
+                            text = _re.sub(r'\[.*?\]', '', text).strip()
+                            
+                            if not text or len(text) < 2:
+                                sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
+                                         f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
+                                         "-q:a", "9", "-acodec", "libmp3lame", sil_path],
+                                        capture_output=True, timeout=10)
+                                audio_segments.append(sil_path)
+                                continue
                             
                             # Find voice
                             voice_id = None
@@ -889,17 +914,46 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                         
                         # ── Upload final video BEFORE tmpdir cleanup ──
                         final_video_bytes = None
+                        video_url = None
                         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                            file_size = os.path.getsize(output_path)
+                            
+                            # If file > 48MB, re-encode with higher CRF to fit Supabase limit
+                            if file_size > 48 * 1024 * 1024:
+                                logger.info(f"Studio [{project_id}]: Video too large ({file_size//1024}KB), compressing...")
+                                compressed_path = f"{tmpdir}/compressed_main.mp4"
+                                _sp.run([
+                                    "ffmpeg", "-y", "-i", output_path,
+                                    "-c:v", "libx264", "-preset", "fast", "-crf", "28",
+                                    "-profile:v", "baseline", "-pix_fmt", "yuv420p",
+                                    "-c:a", "aac", "-b:a", "96k", "-ac", "2",
+                                    "-movflags", "+faststart", compressed_path
+                                ], capture_output=True, timeout=180)
+                                if os.path.exists(compressed_path) and os.path.getsize(compressed_path) > 1000:
+                                    output_path = compressed_path
+                                    logger.info(f"Studio [{project_id}]: Compressed to {os.path.getsize(compressed_path)//1024}KB")
+                            
                             with open(output_path, 'rb') as f:
                                 final_video_bytes = f.read()
+                            
                             final_duration = sum(c.get("duration", 6) for c in clips)
                             elapsed = _time.time() - t_v
-                            filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
-                            video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
-                            logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s")
                             
-                            _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
-                            _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                            # Try to upload, fallback to YouTube 16:9 URL if too large
+                            try:
+                                filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
+                                video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
+                                logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s ({len(final_video_bytes)//1024}KB)")
+                            except Exception as upload_err:
+                                logger.warning(f"Studio [{project_id}]: Main video upload failed ({len(final_video_bytes)//1024}KB): {upload_err}")
+                                # Fallback: use YouTube 16:9 URL as main video
+                                if multi_outputs.get("youtube_16x9", {}).get("url"):
+                                    video_url = multi_outputs["youtube_16x9"]["url"]
+                                    logger.info(f"Studio [{project_id}]: Using YouTube 16:9 as main video (fallback)")
+                            
+                            if video_url:
+                                _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
+                                _update_scene_status(tenant_id, project_id, scene_num, "done", total)
                         
                         # Cleanup tmpdir at the end
                         import shutil
@@ -912,16 +966,24 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             except: pass
                         
                         # Return result
-                        if final_video_bytes:
+                        if video_url:
                             result = {"scene_number": scene_num, "url": video_url, "type": "video",
                                       "duration": final_duration, "has_audio": bool(voice_map)}
                             if multi_outputs:
                                 result["multi_format"] = multi_outputs
-                                # Save multi-format URLs to project
                                 _update_project_field(tenant_id, project_id, {
                                     "multi_format_urls": multi_outputs
                                 })
                             return result
+                        elif multi_outputs.get("youtube_16x9", {}).get("url"):
+                            # Fallback: save YouTube format as main output
+                            yt_url = multi_outputs["youtube_16x9"]["url"]
+                            _save_scene_video(tenant_id, project_id, scene_num, yt_url, total, sora_prompt=sora_prompt)
+                            _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+                            _update_project_field(tenant_id, project_id, {"multi_format_urls": multi_outputs})
+                            return {"scene_number": scene_num, "url": yt_url, "type": "video",
+                                    "duration": sum(c.get("duration", 6) for c in clips), "has_audio": True,
+                                    "multi_format": multi_outputs}
                         else:
                             _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                             return {"scene_number": scene_num, "url": None, "error": "output_missing_after_audio"}
@@ -1513,69 +1575,102 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
         video_engine = project.get("video_engine", "kling")
         production_mode = project.get("production_mode", "fast")
         
-        # ══ PHASE 1: Generate Dialogues (if not already done) ══
+        # ══ PHASE 1: Generate Dialogues (ALWAYS regenerate for quality) ══
         storyboards = project.get("kling_storyboards", [])
         all_frames = []
         for sb in storyboards:
             all_frames.extend(sb.get("frames", []))
         
-        has_dialogues = any(f.get("dialogue_text") for f in all_frames)
+        logger.info(f"FullProd [{project_id}]: PHASE 1 — Generating clean character dialogues...")
+        _update_project_field(tenant_id, project_id, {
+            "full_production_status": "dialogues",
+            "progress_message": "Fase 1/4 — Gerando diálogos dos personagens para 30 frames..."
+        })
         
-        if not has_dialogues:
-            logger.info(f"FullProd [{project_id}]: PHASE 1 — Generating dialogues...")
-            _update_project_field(tenant_id, project_id, {
-                "full_production_status": "dialogues",
-                "progress_message": "Fase 1/4 — Gerando diálogos para 30 frames..."
-            })
+        try:
+            scenes = project.get("scenes", [])
+            scene_dialogue = scenes[0].get("dialogue", "") if scenes else ""
+            synopsis = project.get("synopsis", project.get("briefing", ""))
+            characters = project.get("characters", [])
+            char_names = [c.get("name", "") for c in characters]
+            lang = project.get("language", "pt")
             
-            try:
-                scenes = project.get("scenes", [])
-                scene_dialogue = scenes[0].get("dialogue", "") if scenes else ""
-                synopsis = project.get("synopsis", "")
-                characters = project.get("characters", [])
-                char_names = [c.get("name", "") for c in characters]
-                lang = project.get("language", "pt")
-                
-                frame_context = []
-                for f in all_frames:
-                    frame_context.append(f"Frame {f.get('frame_number')}: {f.get('time_start','')}-{f.get('time_end','')}: {f.get('key_action', f.get('image_prompt','')[:60])}")
-                
-                prompt = f"""You are a screenwriter for a children's animated video (Pixar-style).
+            frame_context = []
+            for f in all_frames:
+                frame_context.append(f"Frame {f.get('frame_number')}: {f.get('time_start','')}-{f.get('time_end','')}: {f.get('key_action', f.get('image_prompt','')[:80])}")
+            
+            prompt = f"""You are a professional dialogue writer for a children's animated video (Pixar-style).
+
 SYNOPSIS: {synopsis[:500]}
 CHARACTERS: {', '.join(char_names)}
-SCENE SCRIPT: {scene_dialogue[:2000]}
-STORYBOARD FRAMES (30 frames × 6 seconds = 3 minutes):
+ORIGINAL SCRIPT (distribute ALL of this dialogue across 30 frames evenly):
+{scene_dialogue[:3000]}
+
+STORYBOARD FRAMES (30 frames x 6 seconds = 3 minutes):
 {chr(10).join(frame_context)}
 
-Write the EXACT dialogue/narration for each frame. Use character names as speakers.
-For silent frames, use sound descriptions like "(Música suave)".
-Keep each frame's text short (~5 seconds). Language: {lang}.
-Return ONLY JSON array: [{{"frame_number": 1, "dialogue_text": "Ash: 'Oi gente!'"}}]"""
+CRITICAL RULES:
+1. Write ONLY spoken dialogue — words that characters SAY OUT LOUD
+2. Format EVERY line as: "CharacterName: 'What they say'"
+3. NEVER include stage directions, camera notes, descriptions, or actions
+4. NEVER include text like "SILÊNCIO", "BEAT", "câmera", "olhar", "pausa"
+5. If a frame truly has no dialogue, write EXACTLY: "(silêncio)"
+6. DISTRIBUTE the original script EVENLY across ALL 30 frames — do NOT front-load dialogue
+7. Each frame's dialogue should be SHORT (max 2 sentences, ~5 seconds of speech)
+8. Use the character names: {', '.join(char_names)}
+9. Language: {lang}
+10. AIM for at least 20 out of 30 frames having spoken dialogue
+11. The last frames (25-30) should have a satisfying conclusion/goodbye
 
-                from litellm import completion
-                resp = completion(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.7, max_tokens=4000)
-                result_text = resp.choices[0].message.content.strip()
-                if result_text.startswith("```"):
-                    result_text = result_text.split("```")[1]
-                    if result_text.startswith("json"):
-                        result_text = result_text[4:]
-                
-                import json as _json
-                dialogues = _json.loads(result_text)
-                dialogue_map = {d["frame_number"]: d["dialogue_text"] for d in dialogues if "frame_number" in d}
-                
-                for sb in storyboards:
-                    for frame in sb.get("frames", []):
-                        fn = frame.get("frame_number")
-                        if fn in dialogue_map:
-                            frame["dialogue_text"] = dialogue_map[fn]
-                
-                _update_project_field(tenant_id, project_id, {"kling_storyboards": storyboards}, flush_now=True)
-                logger.info(f"FullProd [{project_id}]: Dialogues generated for {len(dialogue_map)} frames")
-            except Exception as e:
-                logger.error(f"FullProd [{project_id}]: Dialogue generation failed: {e}")
-        else:
-            logger.info(f"FullProd [{project_id}]: PHASE 1 — Dialogues already exist, skipping")
+GOOD examples:
+- "Ash: 'Sabe o que descobri? Barriga pra cima é convite!'"
+- "Snow: 'Exatamente! Se fizer certinho, você garante uns bons minutos de carinho.'"
+- "(silêncio)"
+
+BAD examples (NEVER write these):
+- "SILÊNCIO. Snow olha além do quadro." (stage direction)
+- "A câmera se afasta devagar" (camera direction)
+
+Return ONLY a JSON array: [{{"frame_number": 1, "dialogue_text": "Ash: 'Oi pessoal!'"}}]"""
+
+            from litellm import completion
+            resp = completion(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.5, max_tokens=4000)
+            result_text = resp.choices[0].message.content.strip()
+            if result_text.startswith("```"):
+                result_text = result_text.split("```")[1]
+                if result_text.startswith("json"):
+                    result_text = result_text[4:]
+            
+            import json as _json
+            dialogues = _json.loads(result_text)
+            dialogue_map = {d["frame_number"]: d["dialogue_text"] for d in dialogues if "frame_number" in d}
+            
+            # Clean up any remaining stage directions that slipped through
+            STAGE_DIRECTION_MARKERS = [
+                "SILÊNCIO", "BEAT", "câmera", "Camera", "CAMERA", "olhar", "pausa",
+                "movimento", "plano", "corte", "fade", "close-up", "wide shot",
+                "slow motion", "enquadramento", "travelling", "zoom"
+            ]
+            
+            cleaned_count = 0
+            for fn, text in list(dialogue_map.items()):
+                # If text contains stage direction markers and no character name prefix, mark as silence
+                has_char_prefix = ":" in text and len(text.split(":")[0]) < 30
+                is_stage_direction = any(marker.lower() in text.lower() for marker in STAGE_DIRECTION_MARKERS)
+                if is_stage_direction and not has_char_prefix:
+                    dialogue_map[fn] = "(silêncio)"
+                    cleaned_count += 1
+            
+            for sb in storyboards:
+                for frame in sb.get("frames", []):
+                    fn = frame.get("frame_number")
+                    if fn in dialogue_map:
+                        frame["dialogue_text"] = dialogue_map[fn]
+            
+            _update_project_field(tenant_id, project_id, {"kling_storyboards": storyboards}, flush_now=True)
+            logger.info(f"FullProd [{project_id}]: Dialogues generated for {len(dialogue_map)} frames ({cleaned_count} stage directions cleaned)")
+        except Exception as e:
+            logger.error(f"FullProd [{project_id}]: Dialogue generation failed: {e}")
         
         # ══ PHASE 2: Auto-assign voices if needed ══
         if not voice_map:
