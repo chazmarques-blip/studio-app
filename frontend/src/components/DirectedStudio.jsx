@@ -3497,15 +3497,40 @@ export const DirectedStudio = memo(function DirectedStudio({
                 </div>
               )}
               
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex flex-col items-center gap-2">
+                {/* One-Click Full Production Button */}
+                <button
+                  onClick={async () => {
+                    setGenerating(true);
+                    setStep(6);
+                    try {
+                      const statusRes = await axios.get(`${API}/studio/projects/${projectId}/status`);
+                      const engine = statusRes.data.video_engine || videoEngine;
+                      
+                      await axios.post(`${API}/studio/projects/${projectId}/full-production`);
+                      toast.success(lang === 'pt' ? 'Produção completa iniciada! Diálogos → Vídeo → Áudio' : 'Full production started!');
+                      startPolling(projectId);
+                    } catch (err) {
+                      toast.error(getErrorMsg(err, 'Erro'));
+                      setGenerating(false);
+                    }
+                  }}
+                  disabled={generating}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white font-bold text-sm shadow-lg shadow-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/50 transition-all transform hover:scale-105 disabled:opacity-50"
+                  data-testid="full-production-btn">
+                  <Sparkles size={16} />
+                  {lang === 'pt' ? 'PRODUÇÃO COMPLETA (Diálogos + Vídeo + Áudio)' : 'FULL PRODUCTION'}
+                  <Zap size={16} />
+                </button>
+                
+                {/* Simple video-only production */}
                 <button
                   onClick={startProduction}
                   disabled={generating}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-gray-900 font-bold text-sm shadow-lg shadow-[#8B5CF6]/30 hover:shadow-[#8B5CF6]/50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-[#333] bg-[#111] text-gray-400 text-[10px] font-semibold hover:border-[#555] hover:text-white transition disabled:opacity-50"
                   data-testid="start-production-btn">
-                  <Film size={16} />
-                  {lang === 'pt' ? 'INICIAR PRODUÇÃO COMPLETA' : 'START FULL PRODUCTION'}
-                  <Sparkles size={16} />
+                  <Film size={12} />
+                  {lang === 'pt' ? 'Apenas Vídeo (sem áudio)' : 'Video Only (no audio)'}
                 </button>
                 
                 {/* Button to produce only missing scenes */}

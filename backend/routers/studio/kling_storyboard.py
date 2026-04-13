@@ -2207,7 +2207,7 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
             
             # Step 3: Download existing Kling video
             _update_project_field(tenant_id, project_id, {
-                "progress_message": "Baixando vídeo e fazendo merge com áudio..."
+                "progress_message": "Baixando vídeo e gerando sonoplastia..."
             })
             
             video_path = f"{tmpdir}/video.mp4"
@@ -2218,19 +2218,72 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
             
             logger.info(f"AudioOverlay [{project_id}]: Video downloaded ({len(video_resp.content)//1024}KB)")
             
-            # Step 4: Merge audio + video with FFmpeg
+            # Step 3b: Generate Sound Effects + BGM via Kling V2A (optional)
+            sfx_track = None
+            try:
+                from core.kling_client import KlingClient
+                kling = KlingClient()
+                
+                # Build SFX prompt from scene context
+                scenes = project.get("scenes", [])
+                scene_desc = scenes[0].get("description", "") if scenes else ""
+                sfx_prompt = scene_desc[:150] if scene_desc else "children playing, nature sounds, gentle footsteps"
+                bgm_prompt = "gentle orchestral music, Pixar style, warm emotional, children animation"
+                
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": "Gerando sonoplastia e música de fundo (Kling V2A)..."
+                })
+                
+                v2a_result = kling.video_to_audio(
+                    video_url=video_url,
+                    sfx_prompt=sfx_prompt,
+                    bgm_prompt=bgm_prompt,
+                    max_wait=180
+                )
+                
+                if v2a_result and v2a_result.get("audio_mp3_url"):
+                    sfx_resp = requests.get(v2a_result["audio_mp3_url"], timeout=60)
+                    if sfx_resp.status_code == 200:
+                        sfx_track = f"{tmpdir}/sfx_bgm.mp3"
+                        with open(sfx_track, "wb") as f:
+                            f.write(sfx_resp.content)
+                        logger.info(f"AudioOverlay [{project_id}]: SFX+BGM track downloaded ({len(sfx_resp.content)//1024}KB)")
+                    
+            except Exception as e:
+                logger.warning(f"AudioOverlay [{project_id}]: V2A sonoplastia failed (non-fatal): {e}")
+            
+            # Step 4: Merge audio + video with FFmpeg (dialogue + optional SFX)
             final_path = f"{tmpdir}/final_with_audio.mp4"
-            merge_cmd = [
-                "ffmpeg", "-y",
-                "-i", video_path,
-                "-i", full_audio_path,
-                "-c:v", "copy",
-                "-c:a", "aac", "-b:a", "128k",
-                "-map", "0:v:0", "-map", "1:a:0",
-                "-shortest",
-                "-movflags", "+faststart",
-                final_path
-            ]
+            
+            if sfx_track and os.path.exists(sfx_track):
+                # Mix 3 tracks: video + dialogue (vol 1.0) + SFX/BGM (vol 0.25)
+                merge_cmd = [
+                    "ffmpeg", "-y",
+                    "-i", video_path,
+                    "-i", full_audio_path,
+                    "-i", sfx_track,
+                    "-filter_complex",
+                    "[1:a]volume=1.0[dial];[2:a]volume=0.25[sfx];[dial][sfx]amix=inputs=2:duration=shortest[aout]",
+                    "-c:v", "copy",
+                    "-map", "0:v:0", "-map", "[aout]",
+                    "-c:a", "aac", "-b:a", "128k",
+                    "-shortest",
+                    "-movflags", "+faststart",
+                    final_path
+                ]
+            else:
+                # Just dialogue track
+                merge_cmd = [
+                    "ffmpeg", "-y",
+                    "-i", video_path,
+                    "-i", full_audio_path,
+                    "-c:v", "copy",
+                    "-c:a", "aac", "-b:a", "128k",
+                    "-map", "0:v:0", "-map", "1:a:0",
+                    "-shortest",
+                    "-movflags", "+faststart",
+                    final_path
+                ]
             
             merge_result = subprocess.run(merge_cmd, capture_output=True, timeout=120)
             

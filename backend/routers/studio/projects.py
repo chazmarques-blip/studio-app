@@ -154,6 +154,8 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "voice_map": project.get("voice_map", {}),
         "dialogues": project.get("dialogues", {}),
         "pipeline_phase": project.get("pipeline_phase", ""),
+        "full_production_status": project.get("full_production_status", ""),
+        "progress_message": project.get("progress_message", ""),
     }
 
 @router.delete("/projects/{project_id}")
