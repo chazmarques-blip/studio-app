@@ -542,6 +542,67 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     }
   };
 
+  // Direct generation (no confirmation needed for initial generation)
+  const generateAllFramesDirect = async () => {
+    console.log('🔄 generateAllFramesDirect called (no confirmation)');
+    if (isRegenerating) {
+      toast.warning(lang === 'pt' ? 'Aguarde a regeneração atual terminar' : 'Wait for current regeneration to finish');
+      return;
+    }
+    setLoading(true);
+    setIsRegenerating(true);
+    try {
+      console.log('🔄 Generating new storyboards...');
+      const generateResponse = await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate`, {
+        scene_id: null
+      });
+      console.log('✅ Generate response:', generateResponse.status, generateResponse.data);
+      toast.success(lang === 'pt' ? 'Gerando 30 frames... Isso pode levar 3-5 minutos. Aguarde.' : 'Generating 30 frames... This may take 3-5 minutes. Please wait.');
+      _pollStoryboardCompletion();
+    } catch (err) {
+      console.error('❌ Error generating:', err);
+      toast.error(getErrorMsg(err, 'Erro ao gerar storyboard'));
+      setLoading(false);
+      setIsRegenerating(false);
+    }
+  };
+
+  // Shared polling logic for storyboard completion
+  const _pollStoryboardCompletion = () => {
+    let attempts = 0;
+    const maxAttempts = 40;
+    const checkCompletion = setInterval(async () => {
+      attempts++;
+      console.log(`🔍 Polling progress... attempt ${attempts}/${maxAttempts}`);
+      try {
+        const checkRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
+        const status = checkRes.data.generation_status || {};
+        if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0 && status.phase !== 'generating') {
+          clearInterval(checkCompletion);
+          console.log(`✅ Generation complete! ${checkRes.data.total_frames} frames`);
+          toast.success(lang === 'pt' ? `${checkRes.data.total_frames} frames gerados com sucesso!` : `${checkRes.data.total_frames} frames generated successfully!`);
+          await loadStoryboard();
+          setLoading(false);
+          setIsRegenerating(false);
+        } else if (status.phase === 'error') {
+          clearInterval(checkCompletion);
+          toast.error(lang === 'pt' ? `Erro na geração: ${status.error || 'Unknown'}` : `Generation error: ${status.error || 'Unknown'}`);
+          setLoading(false);
+          setIsRegenerating(false);
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkCompletion);
+          toast.warning(lang === 'pt' ? 'Geração está demorando. Recarregue a página em alguns minutos.' : 'Generation is taking longer. Reload page in a few minutes.');
+          setLoading(false);
+          setIsRegenerating(false);
+        } else if (attempts % 2 === 0) {
+          toast.info(lang === 'pt' ? `Gerando... (verificação ${attempts})` : `Generating... (check ${attempts})`, { duration: 3000 });
+        }
+      } catch (err) {
+        console.error('Error checking completion:', err);
+      }
+    }, 15000);
+  };
+
   const regenerateAllFrames = async () => {
     console.log('🔄 regenerateAllFrames called');
     
@@ -572,48 +633,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
         // Backend runs generation in background — POST returns immediately
         // Now poll for completion
         toast.success(lang === 'pt' ? 'Gerando 30 frames... Isso pode levar 3-5 minutos. Aguarde.' : 'Generating 30 frames... This may take 3-5 minutes. Please wait.');
-        
-        let attempts = 0;
-        const maxAttempts = 40; // 40 x 15s = 10 min max
-        
-        const checkCompletion = setInterval(async () => {
-          attempts++;
-          console.log(`🔍 Polling progress... attempt ${attempts}/${maxAttempts}`);
-          
-          try {
-            const checkRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
-            const status = checkRes.data.generation_status || {};
-            
-            // Check if generation completed
-            if (checkRes.data.has_storyboards && checkRes.data.total_frames > 0 && status.phase !== 'generating') {
-              clearInterval(checkCompletion);
-              console.log(`✅ Generation complete! ${checkRes.data.total_frames} frames`);
-              toast.success(lang === 'pt' ? `${checkRes.data.total_frames} frames gerados com sucesso!` : `${checkRes.data.total_frames} frames generated successfully!`);
-              await loadStoryboard();
-              setLoading(false);
-              setIsRegenerating(false);
-            } else if (status.phase === 'error') {
-              clearInterval(checkCompletion);
-              console.error('❌ Generation failed:', status.error);
-              toast.error(lang === 'pt' ? `Erro na geração: ${status.error || 'Unknown'}` : `Generation error: ${status.error || 'Unknown'}`);
-              setLoading(false);
-              setIsRegenerating(false);
-            } else if (attempts >= maxAttempts) {
-              clearInterval(checkCompletion);
-              console.warn('⏱️ Timeout waiting for generation');
-              toast.warning(lang === 'pt' ? 'Geração está demorando. Recarregue a página em alguns minutos.' : 'Generation is taking longer. Reload page in a few minutes.');
-              setLoading(false);
-              setIsRegenerating(false);
-            } else {
-              // Show progress feedback
-              if (attempts % 2 === 0) {
-                toast.info(lang === 'pt' ? `Gerando... (verificação ${attempts})` : `Generating... (check ${attempts})`, { duration: 3000 });
-              }
-            }
-          } catch (err) {
-            console.error('Error checking completion:', err);
-          }
-        }, 15000); // Check every 15 seconds
+        _pollStoryboardCompletion();
         
       } catch (err) {
         console.error('❌ Error regenerating:', err);
@@ -1448,7 +1468,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   ? 'Gere automaticamente 30 frames detalhados (1 a cada 10s) para seu vídeo Kling de 5 minutos. Estilo Pixar 3D consistente com seus personagens selecionados.'
                   : 'Automatically generate 30 detailed frames (1 every 10s) for your 5-minute Kling video. Consistent Pixar 3D style with your selected characters.'}
               </p>
-              <button onClick={regenerateAllFrames} data-testid="generate-storyboard-btn"
+              <button onClick={generateAllFramesDirect} data-testid="generate-storyboard-btn"
                 className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2">
                 <Sparkles size={14} />
                 {lang === 'pt' ? 'Gerar Storyboard (30 painéis)' : 'Generate Storyboard (30 panels)'}
