@@ -108,40 +108,50 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId, project, o
     }
   }, [trackerState, projectId]);
   
-  // ✅ NEW: Get REAL progress from project data
+  // ✅ Get REAL progress from project data
   const getRealPhaseProgress = (phaseId) => {
     if (!project) return 0;
     
+    const currentPhase = project.pipeline_phase || '';
+    
     switch (phaseId) {
       case 'library_sync':
-        // Check if character_library exists and has characters
+        // Complete if character_library exists OR if we've moved past this phase
         const library = project.character_library;
-        return library && library.total_characters > 0 ? 100 : 0;
+        if (library && library.total_characters > 0) return 100;
+        if (currentPhase === 'library_sync') return 50; // In progress
+        if (['researcher_screenwriter', 'researcher', 'screenwriter', 'director'].includes(currentPhase)) return 100; // Already past
+        return 0;
       
       case 'researcher':
-        // Check if research_notes or agents_output.screenwriter exists
+        // Check if research_notes exists or if we're in screenwriter phase
         const research = project.agents_output?.screenwriter?.research_notes;
-        return research ? 100 : 0;
+        if (research) return 100;
+        if (currentPhase === 'researcher_screenwriter') return 60; // LLM is working
+        if (['screenwriter', 'director'].includes(currentPhase)) return 100;
+        if (project.chat_status === 'done' && project.scenes?.length > 0) return 100;
+        return 0;
       
       case 'screenwriter':
         // Check if scenes exist
         const scenes = project.scenes || [];
-        return scenes.length > 0 ? 100 : 0;
+        if (scenes.length > 0) return 100;
+        if (currentPhase === 'researcher_screenwriter') return 40; // LLM working on both
+        if (project.chat_status === 'thinking') return 30;
+        return 0;
       
       case 'director':
         // Check director_review and director_progress
         const directorReview = project.director_review;
         const directorProgress = project.director_progress;
         
-        if (directorReview) {
-          return 100; // Complete
-        }
-        
+        if (directorReview) return 100;
         if (directorProgress) {
           const { scenes_processed = 0, total_scenes = 1 } = directorProgress;
           return Math.min(Math.round((scenes_processed / total_scenes) * 100), 98);
         }
-        
+        // If scenes exist and chat is done, director can start
+        if (project.scenes?.length > 0 && project.chat_status === 'done') return 10;
         return 0;
       
       default:
@@ -1019,6 +1029,9 @@ export const DirectedStudio = memo(function DirectedStudio({
       axios.get(`${API}/studio/projects/${pid}/status`).then(res => {
         const d = res.data;
         console.log(`📝 [Polling] Status:`, d.chat_status, `Scenes: ${(d.scenes || []).length}, Characters: ${(d.characters || []).length}`);
+        
+        // ✅ Update project data in real-time for pipeline tracker
+        setCurrentProjectData(d);
         
         if (d.chat_status === 'done') {
           console.log('✅ [Polling] Roteiro COMPLETO! Atualizando UI...');

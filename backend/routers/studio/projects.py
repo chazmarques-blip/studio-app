@@ -148,6 +148,12 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "error": project.get("error"),
         "video_engine": project.get("video_engine", "sora"),
         "production_mode": project.get("production_mode", "fast"),
+        "character_library": project.get("character_library"),
+        "director_review": project.get("director_review"),
+        "director_progress": project.get("director_progress"),
+        "voice_map": project.get("voice_map", {}),
+        "dialogues": project.get("dialogues", {}),
+        "pipeline_phase": project.get("pipeline_phase", ""),
     }
 
 @router.delete("/projects/{project_id}")

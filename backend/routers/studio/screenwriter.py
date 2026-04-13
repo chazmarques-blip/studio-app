@@ -300,6 +300,11 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
         character_library = project.get("character_library")
         logger.info(f"🔍 Project {project_id}: Checking character_library... Exists: {character_library is not None}")
         
+        # ✅ Update pipeline progress: Library step
+        _update_project_field(tenant_id, project_id, {
+            "pipeline_phase": "library_sync"
+        })
+        
         if not character_library:
             logger.info(f"📚 Project {project_id}: No character library found, starting auto-sync...")
             try:
@@ -417,6 +422,11 @@ Current request: {message}
 Create the screenplay. Generate as many scenes and characters as the story NEEDS to be rich and complete — there is NO limit. If the story needs more than 10 scenes, generate the first 10 and set "total_scenes" to the full amount. Return ONLY valid JSON."""
 
         # Phase 1: Get first batch of scenes (up to 10)
+        # ✅ Update pipeline progress: Researcher + Screenwriter active
+        _update_project_field(tenant_id, project_id, {
+            "pipeline_phase": "researcher_screenwriter"
+        })
+        
         result = _call_claude_sync(system, user_prompt, max_tokens=8000)
         parsed = _parse_json(result)
 
