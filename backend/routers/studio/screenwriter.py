@@ -611,6 +611,7 @@ IMPORTANT:
         project["chat_history"] = chat_history[-20:]
         project["status"] = "scripting"
         project["chat_status"] = "done"
+        project["pipeline_phase"] = "screenwriter_done"
         project["updated_at"] = datetime.now(timezone.utc).isoformat()
         n_scenes = len(project.get('scenes', []))
         n_chars = len(project.get('characters', []))

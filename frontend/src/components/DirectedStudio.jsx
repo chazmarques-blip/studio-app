@@ -128,7 +128,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId, project, o
         const research = project.agents_output?.screenwriter?.research_notes;
         if (research) return 100;
         if (currentPhase === 'researcher_screenwriter') return 60; // LLM is working
-        if (['screenwriter', 'director'].includes(currentPhase)) return 100;
+        if (['screenwriter', 'director', 'screenwriter_done'].includes(currentPhase)) return 100;
         if (project.chat_status === 'done' && project.scenes?.length > 0) return 100;
         return 0;
       
@@ -137,6 +137,7 @@ const PipelineVisualTrackerInline = ({ lang, currentAgent, projectId, project, o
         const scenes = project.scenes || [];
         if (scenes.length > 0) return 100;
         if (currentPhase === 'researcher_screenwriter') return 40; // LLM working on both
+        if (currentPhase === 'screenwriter_done') return 100;
         if (project.chat_status === 'thinking') return 30;
         return 0;
       
