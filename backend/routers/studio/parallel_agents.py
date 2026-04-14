@@ -139,9 +139,20 @@ Story: {user_prompt}
 ENGINE: {video_engine.upper()} ({scene_duration} por cena)
 TARGET: {target_duration_minutes} minutos = {num_scenes_needed} cena(s)
 
+⚠️ PLANNING RULE: Before generating scenes, create a COMPLETE OUTLINE of ALL {num_scenes_needed} scenes.
+If the story is about "N tips/dicas/lições", plan them EXACTLY:
+- Scenes 1-2: Introduction (characters greet audience, explain what's coming)
+- Scenes 3 to N+2: One tip per scene, numbered sequentially (Dica 1, Dica 2... Dica N)
+- Remaining scenes: Recap, farewell, and call to next video
+
+DO NOT generate more tips than what the user asked for.
+DO NOT repeat or renumber tips.
+Include the COMPLETE outline as "scene_outline" in your JSON response.
+
 Create the screenplay structure with the first {effective_batch_size} scene(s). Set "total_scenes" to {num_scenes_needed}. Return ONLY valid JSON with:
 - title
 - total_scenes (exactly {num_scenes_needed})
+- scene_outline (array of strings: brief title for ALL {num_scenes_needed} scenes — this guides continuation agents)
 - characters (all main characters)
 - scenes (first {effective_batch_size} scene(s) only)
 - research_notes
@@ -162,11 +173,12 @@ Create the screenplay structure with the first {effective_batch_size} scene(s). 
         
         all_scenes = foundation.get("scenes", [])
         all_characters = foundation.get("characters", [])
+        scene_outline = foundation.get("scene_outline", [])
         # Cap total_scenes to what was calculated based on target_duration and engine
         total_needed = min(foundation.get("total_scenes", len(all_scenes)), num_scenes_needed)
         title = foundation.get("title", "Untitled")
         
-        logger.info(f"ParallelScreenplay [{project_id}]: Foundation complete - {len(all_scenes)}/{total_needed} scenes, {len(all_characters)} characters")
+        logger.info(f"ParallelScreenplay [{project_id}]: Foundation complete - {len(all_scenes)}/{total_needed} scenes, {len(all_characters)} characters, outline={len(scene_outline)} items")
         
         if len(all_scenes) >= total_needed:
             return {
@@ -225,6 +237,12 @@ Create the screenplay structure with the first {effective_batch_size} scene(s). 
                     f"Scene {s.get('scene_number')}: {s.get('title')}"
                     for s in all_scenes
                 ])
+                # Scene outline from Foundation (planned structure for ALL scenes)
+                outline_text = ""
+                if scene_outline:
+                    outline_text = "\nPLANNED SCENE OUTLINE (from Foundation — follow this EXACTLY):\n"
+                    for i, item in enumerate(scene_outline):
+                        outline_text += f"  Scene {i+1}: {item}\n"
                 # Last 3 scenes with details for narrative continuity
                 context_scenes = all_scenes[-3:] if len(all_scenes) >= 3 else all_scenes
                 context_summary = "\n".join([
@@ -249,16 +267,18 @@ Continue the screenplay "{title}".
 STORY CONTEXT: {user_prompt}
 
 CHARACTERS SO FAR: {char_names}
-
-ALL SCENES WRITTEN SO FAR (for numbering and topic continuity — DO NOT repeat these topics):
+{outline_text}
+ALL SCENES WRITTEN SO FAR (DO NOT repeat these topics):
 {all_scene_titles}
 
 RECENT SCENES (for narrative flow):
 {context_summary}
 
-⛔ IMPORTANT: Do NOT repeat topics/tips/themes that already exist in the scenes above.
-If the story has "Dica 1" through "Dica 7" already, your scenes must continue from "Dica 8".
-Each new scene must advance the story — NEVER go back to a topic already covered.
+⛔ CRITICAL RULES:
+- Follow the PLANNED SCENE OUTLINE above — use the exact titles/topics planned for scenes {start_num} to {end_num}
+- Do NOT repeat topics/tips/dicas that already exist in earlier scenes
+- Do NOT restart numbering — continue sequentially
+- Each new scene must advance the story
 
 Generate scenes {start_num} to {end_num}. {scene_duration_text}
 {timing_instruction}
