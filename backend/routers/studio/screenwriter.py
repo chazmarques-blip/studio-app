@@ -680,7 +680,7 @@ IMPORTANT:
         n_scenes = len(project.get('scenes', []))
         n_chars = len(project.get('characters', []))
         _add_milestone(project, "screenplay_created", f"Roteiro criado — {n_scenes} cenas, {n_chars} personagens")
-        _save_project(tenant_id, settings, projects)
+        _save_project(tenant_id, settings, projects, flush_now=True)
 
         logger.info(f"Studio [{project_id}]: Screenwriter done — {n_scenes} scenes")
 
@@ -690,7 +690,7 @@ IMPORTANT:
         if project:
             project["chat_status"] = "error"
             project["error"] = str(e)[:300]
-            _save_project(tenant_id, settings, projects)
+            _save_project(tenant_id, settings, projects, flush_now=True)
 
 
 @router.post("/chat")
