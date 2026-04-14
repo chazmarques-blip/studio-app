@@ -75,6 +75,20 @@ async def create_company(data: CompanyCreate, user = Depends(get_current_user)):
     # Update tenant
     supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
     
+    # Force cache to reload from DB (drop cached version without flushing stale data)
+    try:
+        from core.cache import project_cache
+        tenant_result = supabase.table('tenants').select('id').eq('owner_id', user['id']).single().execute()
+        if tenant_result.data:
+            tid = tenant_result.data['id']
+            # Drop cache entry WITHOUT flushing (the DB already has the correct data)
+            lock = project_cache._get_lock(tid)
+            with lock:
+                project_cache._cache.pop(tid, None)
+                project_cache._dirty_tenants.discard(tid)
+    except Exception:
+        pass
+    
     return company
 
 @router.put("/{company_id}")
@@ -130,6 +144,18 @@ async def update_company(company_id: str, data: CompanyUpdate, user = Depends(ge
     settings['companies'] = companies
     supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
     
+    # Drop cache to prevent stale data overwrite
+    try:
+        from core.cache import project_cache
+        tr = supabase.table('tenants').select('id').eq('owner_id', user['id']).single().execute()
+        if tr.data:
+            lock = project_cache._get_lock(tr.data['id'])
+            with lock:
+                project_cache._cache.pop(tr.data['id'], None)
+                project_cache._dirty_tenants.discard(tr.data['id'])
+    except Exception:
+        pass
+    
     print(f"✅ [COMPANY] Updated {company_id} with defaults: {company.get('default_settings', {})}")
     
     return {"success": True}
@@ -148,5 +174,17 @@ async def delete_company(company_id: str, user = Depends(get_current_user)):
     
     # Update tenant
     supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
+    
+    # Drop cache to prevent stale data overwrite
+    try:
+        from core.cache import project_cache
+        tr = supabase.table('tenants').select('id').eq('owner_id', user['id']).single().execute()
+        if tr.data:
+            lock = project_cache._get_lock(tr.data['id'])
+            with lock:
+                project_cache._cache.pop(tr.data['id'], None)
+                project_cache._dirty_tenants.discard(tr.data['id'])
+    except Exception:
+        pass
     
     return {"success": True}
