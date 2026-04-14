@@ -1654,6 +1654,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               const imageUrl = isKlingFrame ? item.image_url : (getSelectedFrame(item.scene_number, item.frames)?.image_url || item.image_url);
               const timeLabel = isKlingFrame ? `${item.time_start}-${item.time_end}` : null;
               const dialogueSnippet = isKlingFrame ? (item.dialogue_text || '') : '';
+              const isRegeneratingThis = generatingPanel === frameNumber || regeneratingPanels.has(frameNumber) || item.status === 'generating';
               
               return (
                 <div
@@ -1682,6 +1683,14 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] text-white font-mono">
                       {frameNumber}
                     </div>
+                    
+                    {/* Regenerating overlay */}
+                    {isRegeneratingThis && (
+                      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                        <RefreshCw size={16} className="text-[#8B5CF6] animate-spin mb-1" />
+                        <span className="text-[9px] text-white font-medium">{lang === 'pt' ? 'Regenerando...' : 'Regenerating...'}</span>
+                      </div>
+                    )}
                     
                     {/* Time label for Kling frames */}
                     {isKlingFrame && timeLabel && (
