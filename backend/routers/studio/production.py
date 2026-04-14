@@ -1785,38 +1785,34 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
 
 SYNOPSIS: {synopsis[:500]}
 CHARACTERS: {', '.join(char_names)}
-ORIGINAL SCRIPT (distribute ALL of this dialogue across 30 frames evenly):
+ORIGINAL SCRIPT (distribute ALL of this dialogue across ALL 30 frames):
 {scene_dialogue[:3000]}
 
 STORYBOARD FRAMES (30 frames x 6 seconds = 3 minutes):
 {chr(10).join(frame_context)}
 
 CRITICAL RULES:
-1. Write ONLY spoken dialogue — words that characters SAY OUT LOUD
-2. Format EVERY line as: "CharacterName: 'What they say'"
+1. EVERY SINGLE FRAME MUST have spoken dialogue — NO silent frames allowed
+2. Format EVERY line as: "CharacterName: 'What they say'" — ALWAYS include character name
 3. NEVER include stage directions, camera notes, descriptions, or actions
-4. NEVER include text like "SILÊNCIO", "BEAT", "câmera", "olhar", "pausa"
-5. If a frame truly has no dialogue, write EXACTLY: "(silêncio)"
-6. DISTRIBUTE the original script EVENLY across ALL 30 frames — do NOT front-load dialogue
-7. Each frame's dialogue should be SHORT (max 2 sentences, ~5 seconds of speech)
-8. Use the character names: {', '.join(char_names)}
-9. Language: {lang}
-10. AIM for at least 20 out of 30 frames having spoken dialogue
-11. The last frames (25-30) should have a satisfying conclusion/goodbye
+4. NEVER write "(silêncio)" — every frame needs a character speaking
+5. DISTRIBUTE the original script across ALL 30 frames evenly
+6. Each frame: SHORT dialogue (max 2 sentences, ~5 seconds of speech)
+7. Characters: {', '.join(char_names)} — alternate between them naturally
+8. Language: {lang}
+9. ALL 30 frames MUST have dialogue — if the script runs out, add natural reactions, comments, or transitions
+10. Frames 1-3: Introduction/greeting from characters
+11. Frames 4-27: Main content from the script
+12. Frames 28-30: Goodbye/conclusion from characters
 
-GOOD examples:
-- "Ash: 'Sabe o que descobri? Barriga pra cima é convite!'"
-- "Snow: 'Exatamente! Se fizer certinho, você garante uns bons minutos de carinho.'"
-- "(silêncio)"
+MANDATORY FORMAT for EVERY frame:
+"CharacterName: 'spoken words here'"
 
-BAD examples (NEVER write these):
-- "SILÊNCIO. Snow olha além do quadro." (stage direction)
-- "A câmera se afasta devagar" (camera direction)
-
-Return ONLY a JSON array: [{{"frame_number": 1, "dialogue_text": "Ash: 'Oi pessoal!'"}}]"""
+Return ONLY a JSON array with EXACTLY 30 items:
+[{{"frame_number": 1, "dialogue_text": "Ash: 'Oi pessoal!'"}}]"""
 
             from litellm import completion
-            resp = completion(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.5, max_tokens=4000)
+            resp = completion(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.5, max_tokens=6000)
             result_text = resp.choices[0].message.content.strip()
             if result_text.startswith("```"):
                 result_text = result_text.split("```")[1]
@@ -1836,12 +1832,37 @@ Return ONLY a JSON array: [{{"frame_number": 1, "dialogue_text": "Ash: 'Oi pesso
             
             cleaned_count = 0
             for fn, text in list(dialogue_map.items()):
-                # If text contains stage direction markers and no character name prefix, mark as silence
                 has_char_prefix = ":" in text and len(text.split(":")[0]) < 30
                 is_stage_direction = any(marker.lower() in text.lower() for marker in STAGE_DIRECTION_MARKERS)
+                is_silence = text.startswith("(") or not text.strip()
+                
                 if is_stage_direction and not has_char_prefix:
                     dialogue_map[fn] = "(silêncio)"
                     cleaned_count += 1
+                elif not has_char_prefix and not is_silence and text.strip():
+                    # Text without character name — add default character
+                    default_char = char_names[fn % len(char_names)] if char_names else "Narrador"
+                    dialogue_map[fn] = f"{default_char}: '{text.strip()}'"
+                    cleaned_count += 1
+            
+            # Fill missing frames — ensure ALL 30 have dialogue
+            missing_frames = []
+            for fn_check in range(1, 31):
+                text_check = dialogue_map.get(fn_check, "")
+                if not text_check or text_check.startswith("("):
+                    missing_frames.append(fn_check)
+            
+            if missing_frames and char_names:
+                logger.info(f"FullProd [{project_id}]: Filling {len(missing_frames)} empty frames with transitions")
+                transition_lines = [
+                    "Que divertido, não é?", "Vamos continuar!", "Olha só isso!",
+                    "Incrível, né?", "Adoro isso!", "Que legal!",
+                    "Pessoal, prestem atenção!", "Essa é boa!", "Concordo totalmente!",
+                ]
+                for idx, fn_miss in enumerate(missing_frames):
+                    char = char_names[idx % len(char_names)]
+                    line = transition_lines[idx % len(transition_lines)]
+                    dialogue_map[fn_miss] = f"{char}: '{line}'"
             
             for sb in storyboards:
                 for frame in sb.get("frames", []):
@@ -1850,7 +1871,10 @@ Return ONLY a JSON array: [{{"frame_number": 1, "dialogue_text": "Ash: 'Oi pesso
                         frame["dialogue_text"] = dialogue_map[fn]
             
             _update_project_field(tenant_id, project_id, {"kling_storyboards": storyboards}, flush_now=True)
-            logger.info(f"FullProd [{project_id}]: Dialogues generated for {len(dialogue_map)} frames ({cleaned_count} stage directions cleaned)")
+            
+            # Count final stats
+            with_dialogue = sum(1 for fn in range(1, 31) if dialogue_map.get(fn, "").strip() and not dialogue_map.get(fn, "").startswith("("))
+            logger.info(f"FullProd [{project_id}]: Dialogues: {with_dialogue}/30 with speech, {cleaned_count} cleaned/filled")
         except Exception as e:
             logger.error(f"FullProd [{project_id}]: Dialogue generation failed: {e}")
         
