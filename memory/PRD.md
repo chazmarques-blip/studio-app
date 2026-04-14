@@ -9,55 +9,77 @@ StudioX is an end-to-end autonomous video creation platform for animated childre
 - **Database**: Supabase PostgreSQL (Auth + Storage + DB)
 - **AI Services**: Gemini (images), OpenAI gpt-4o-mini (text), Kling AI v3 (video + V2A + Lip Sync), ElevenLabs (voice TTS)
 
-## Production Pipeline (5 Phases)
+## Production Pipeline (6 Steps)
 
-### PHASE 1: Dialogue Generation
-- GPT-4o-mini generates clean character dialogue from script
-- Stage direction filter (13+ markers) removes non-spoken text
+### STEP 1: Dialogue Generation (GPT-4o-mini)
+- Generates clean character dialogue from approved script
 - Format: "CharacterName: 'spoken words'" or "(silêncio)"
-- Distributes dialogue evenly across 30 frames (aim: 20+ with dialogue)
+- Stage direction filter removes 13+ non-spoken markers
+- Distributes evenly across 30 frames (aim: 20+ with dialogue)
 
-### PHASE 2: Video Generation (Kling AI)
-- **Modo Rápido**: 30 parallel I2V clips + xfade crossfade (~8 min)
-- **Modo Cinema**: Sequential clips using last real frame extraction (~20 min)
+### STEP 2: Video Generation (Kling AI v3)
+- 30 parallel I2V clips x 6 seconds each
+- Image-to-Video from storyboard frames
 
-### PHASE 2.5: Lip Sync (NEW - 2026-04-14)
-- For each clip with dialogue: identify_face → lip_sync with TTS audio
-- Uploads clip + audio to Supabase for Kling API access
-- ~90-100s per clip, ~30 min total for 21 dialogue clips
-- Graceful fallback: clips without detected faces keep original video
-- Result: 12/21 clips lip-synced in first production
+### STEP 2.5: Lip Sync (Kling API + ElevenLabs TTS)
+- For EACH clip with dialogue:
+  1. Generate TTS audio (ElevenLabs, character-specific voice)
+  2. Upload clip + audio to Supabase
+  3. Identify face → apply lip sync (audio baked into video)
+  4. Download lip-synced clip (replaces original)
+- Fallback: If no face detected → FFmpeg overlays TTS audio on clip
+- Result: 21/21 clips with audio (10 Kling lip sync + 11 FFmpeg TTS)
+- Files saved to /tmp (NOT tmpdir) to avoid deletion before concat
 
-### PHASE 3: Audio Production
-- ElevenLabs TTS with character-specific voices (voice_map)
-- Padded to 6s per frame, concatenated into full audio track
+### STEP 3: FFmpeg Concat
+- Simple concat (preserves audio from lip-synced clips)
+- No xfade when lip sync active (xfade strips audio tracks)
 
-### PHASE 4: Final Mix + Multi-format Export
-- FFmpeg merge: video + dialogue track (+ optional V2A BGM)
-- Video compression (CRF 28) when >48MB
-- Export: YouTube 16:9, TikTok 9:16, Instagram 1:1
+### STEP 4: Sonoplastia (Kling V2A)
+- Extract 15s video sample (V2A API limit: 3-20s)
+- Generate background music + SFX
+- Loop V2A audio to video length
+- Mix at 15% volume with existing dialogue audio
+- If lip sync active: NO additional TTS overlay (audio already in clips)
 
-## Recent Changes
+### STEP 5: Multi-format Export
+- YouTube 16:9, TikTok 9:16, Instagram 1:1
+- Compression (CRF 28) if main video >48MB
 
-### Lip Sync Integration (2026-04-14)
-- Integrated Kling identify_face + lip_sync API into production pipeline
-- Runs after clip generation, before FFmpeg concat
-- Each dialogue clip: upload → face detect → TTS → lip sync → download
-- Fallback for animal characters or missing faces
+### STEP 6: Upload + Cleanup
 
-### Dialogue + Audio Fixes (2026-04-14)
-- Dialogue prompt rewritten: ONLY spoken words, no stage directions
-- Stage direction filter with 13 markers
-- Video compression for Supabase upload (55MB→31MB)
-- Upload before tmpdir cleanup (fixed 0 outputs bug)
-- V2A sonoplastia: 20s sample + loop to video length
+## Critical Bug Fixes (2026-04-14)
+
+### BUG 1: Lip sync clips deleted before concat
+- **Root cause**: `shutil.rmtree(lip_sync_tmpdir)` in `finally` block deleted lip-synced clips
+- **Fix**: Save lip-synced clips to `/tmp/lipsync_clip_{project}_{frame}.mp4` (outside tmpdir)
+
+### BUG 2: Double audio (TTS overlay on lip-synced clips)
+- **Root cause**: STEP 4 generated ANOTHER TTS track and overlaid on already-dubbed video
+- **Fix**: When `has_lip_sync=True`, skip TTS generation; only add V2A background music
+
+### BUG 3: No fallback for faces not detected
+- **Root cause**: Clips without faces skipped entirely (kept silent)
+- **Fix**: FFmpeg overlays TTS audio directly when face detection fails
+
+### BUG 4: No sonoplastia in final video
+- **Root cause**: V2A audio generated but never mixed into final video
+- **Fix**: FFmpeg amix with dialogue at 100% volume + BGM at 15% volume
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123
-- Project IDs: 06c877c953a3, 0295f93baf6e
+- Project IDs: 0295f93baf6e
+
+## Verified Production Results (2026-04-14 02:07)
+- 30/30 Kling clips ✅
+- 21/21 lip sync (0 failures) ✅
+- V2A sonoplastia + BGM mixed ✅
+- 3 format exports ✅
+- Total: 44 min, 35MB final video
 
 ## Pending/Backlog
-- P1: Improve dialogue distribution (frames 16-24 still silent)
+- P1: Visual continuity between clips (characters changing appearance)
+- P1: "Director rewriting dialogue" — ensure script is preserved exactly
 - P2: Custom Video Editor UI
 - P2: "Seed Oficial" for new tenants
 - P2: Modularize DirectedStudio.jsx

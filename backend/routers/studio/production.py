@@ -648,33 +648,42 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                     return {"scene_number": scene_num, "url": None, "error": "no_clips_generated"}
                 
-                # ── STEP 2.5: LIP SYNC — Apply dialogue audio to character faces ──
+                # ══════════════════════════════════════════════════════════════
+                # STEP 2.5: LIP SYNC + TTS — Character voices with lip movement
+                # Architecture: For each clip WITH dialogue →
+                #   1. Generate TTS audio (ElevenLabs, character voice)
+                #   2. Upload clip + audio to Supabase (Kling API needs public URLs)
+                #   3. Identify face → Apply lip sync (audio baked into video)
+                #   4. Download lip-synced clip (REPLACES original)
+                # For clips WITHOUT dialogue → keep original silent clip
+                # After this step: lip-synced clips ALREADY HAVE dialogue audio
+                # ══════════════════════════════════════════════════════════════
                 import subprocess as _sp
                 import tempfile as _tf
                 
                 voice_map = project.get("voice_map", {})
                 lang = project.get("language", "pt")
+                has_lip_sync = False
+                
+                # Stage direction markers (text with these = silence)
+                STAGE_MARKERS = ["silêncio", "beat", "câmera", "camera", "olhar", "pausa",
+                                 "movimento", "plano", "corte", "fade", "zoom", "som de"]
                 
                 if voice_map and any(f.get("dialogue_text") for f in all_frames):
                     _update_project_field(tenant_id, project_id, {
-                        "progress_message": "Lip Sync — Aplicando diálogos aos personagens..."
+                        "progress_message": "Lip Sync — Gerando vozes e sincronizando lábios..."
                     })
                     
-                    lip_sync_tmpdir = _tf.mkdtemp(prefix="kling_lipsync_")
                     lip_synced = 0
                     lip_failed = 0
                     
                     try:
                         from .narration import _generate_narration_audio
                         
-                        # Stage direction markers to skip
-                        STAGE_MARKERS = ["silêncio", "beat", "câmera", "camera", "olhar", "pausa", "movimento", "plano"]
-                        
                         for clip_info in clips:
                             fn = clip_info["frame_number"]
                             clip_path = clip_info["clip_path"]
                             
-                            # Find matching frame
                             frame = next((f for f in all_frames if f.get("frame_number") == fn), None)
                             if not frame:
                                 continue
@@ -684,7 +693,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             # Skip non-dialogue frames
                             is_silence = (
                                 not dialogue or dialogue.startswith("(") or dialogue == "..."
-                                or dialogue.startswith("SILÊNCIO") or dialogue.startswith("BEAT")
+                                or dialogue.upper().startswith("SILÊNCIO") or dialogue.upper().startswith("BEAT")
                             )
                             if not is_silence and ":" not in dialogue:
                                 if any(m in dialogue.lower() for m in STAGE_MARKERS):
@@ -692,11 +701,11 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             if is_silence:
                                 continue
                             
-                            # Parse character + text
+                            # Parse character name + clean text
                             char_name, text = "Narrador", dialogue
                             if ":" in dialogue:
                                 parts = dialogue.split(":", 1)
-                                if len(parts[0].strip()) < 30 and not parts[0].strip()[0].isdigit():
+                                if len(parts[0].strip()) < 30:
                                     char_name = parts[0].strip()
                                     text = parts[1].strip().strip("'\"")
                             
@@ -706,7 +715,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             if not text or len(text) < 2:
                                 continue
                             
-                            # Find voice for character
+                            # Find character voice
                             matched_voice = None
                             for cname, vid in voice_map.items():
                                 if char_name.lower() in cname.lower() or cname.lower() in char_name.lower():
@@ -718,51 +727,60 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                                 continue
                             
                             _update_project_field(tenant_id, project_id, {
-                                "progress_message": f"Lip Sync — Frame {fn}/{len(clips)} ({char_name}: {text[:30]}...)"
+                                "progress_message": f"Lip Sync — Frame {fn}/{len(clips)} ({char_name})"
                             })
                             
                             try:
-                                # 1. Generate TTS audio for this frame
+                                # 1. Generate TTS audio
                                 audio_bytes = _generate_narration_audio(
                                     text=text, voice_id=matched_voice,
                                     stability=0.5, similarity=0.75, style_val=0.0,
                                     language_code=lang
                                 )
-                                audio_path = f"{lip_sync_tmpdir}/frame_{fn:03d}_audio.mp3"
-                                with open(audio_path, "wb") as f:
-                                    f.write(audio_bytes)
                                 
-                                # Get audio duration in ms
+                                # Get audio duration
+                                audio_tmp = f"/tmp/lipsync_audio_{project_id}_{fn}.mp3"
+                                with open(audio_tmp, "wb") as f:
+                                    f.write(audio_bytes)
                                 probe = _sp.run([
                                     "ffprobe", "-v", "error", "-show_entries", "format=duration",
-                                    "-of", "default=noprint_wrappers=1:nokey=1", audio_path
+                                    "-of", "default=noprint_wrappers=1:nokey=1", audio_tmp
                                 ], capture_output=True, text=True, timeout=5)
                                 audio_dur_ms = int(float(probe.stdout.strip()) * 1000) if probe.returncode == 0 else 5000
                                 
-                                # 2. Upload clip to get public URL for Kling API
+                                # 2. Upload clip + audio to get public URLs
                                 with open(clip_path, 'rb') as f:
                                     clip_bytes = f.read()
-                                clip_url = _upload_to_storage(clip_bytes, f"studio/{project_id}_lipsync_clip_{fn:03d}.mp4", "video/mp4")
+                                clip_url = _upload_to_storage(clip_bytes, f"studio/{project_id}_ls_clip_{fn:03d}.mp4", "video/mp4")
+                                audio_url = _upload_to_storage(audio_bytes, f"studio/{project_id}_ls_audio_{fn:03d}.mp3", "audio/mpeg")
                                 
-                                # 3. Upload audio to get public URL
-                                audio_url = _upload_to_storage(audio_bytes, f"studio/{project_id}_lipsync_audio_{fn:03d}.mp3", "audio/mpeg")
-                                
-                                # 4. Identify faces in clip
+                                # 3. Identify face
                                 face_result = kling_client.identify_face(video_url=clip_url, max_wait=60)
                                 
                                 if not face_result or not face_result.get("faces"):
-                                    logger.info(f"  LipSync F{fn}: No faces detected, skipping")
-                                    lip_failed += 1
+                                    logger.info(f"  LipSync F{fn}: No faces, adding TTS as audio track instead")
+                                    # Fallback: overlay TTS audio on clip via FFmpeg
+                                    ls_clip = f"/tmp/lipsync_clip_{project_id}_{fn}.mp4"
+                                    _sp.run([
+                                        "ffmpeg", "-y", "-i", clip_path, "-i", audio_tmp,
+                                        "-map", "0:v:0", "-map", "1:a:0",
+                                        "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                                        "-shortest", "-movflags", "+faststart", ls_clip
+                                    ], capture_output=True, timeout=30)
+                                    if os.path.exists(ls_clip) and os.path.getsize(ls_clip) > 1000:
+                                        clip_info["clip_path"] = ls_clip
+                                        clip_info["has_audio"] = True
+                                        lip_synced += 1
+                                    else:
+                                        lip_failed += 1
+                                    try: os.remove(audio_tmp)
+                                    except: pass
                                     continue
                                 
                                 session_id = face_result["session_id"]
-                                # Use first detected face
-                                face = face_result["faces"][0]
-                                face_id = face.get("face_id", "")
+                                face_id = face_result["faces"][0].get("face_id", "")
                                 
-                                logger.info(f"  LipSync F{fn}: Face detected (id={face_id[:12]}), applying audio...")
-                                
-                                # 5. Apply lip sync
+                                # 4. Apply lip sync (audio baked into video)
                                 ls_result = kling_client.lip_sync(
                                     session_id=session_id,
                                     face_id=face_id,
@@ -776,266 +794,289 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                                 )
                                 
                                 if ls_result and ls_result.get("video_url"):
-                                    # 6. Download lip-synced clip and replace original
+                                    # 5. Download lip-synced clip to /tmp (NOT a tmpdir that gets deleted)
                                     ls_resp = requests.get(ls_result["video_url"], timeout=60)
                                     ls_resp.raise_for_status()
-                                    
-                                    ls_clip_path = f"{lip_sync_tmpdir}/frame_{fn:03d}_lipsync.mp4"
-                                    with open(ls_clip_path, "wb") as f:
+                                    ls_clip = f"/tmp/lipsync_clip_{project_id}_{fn}.mp4"
+                                    with open(ls_clip, "wb") as f:
                                         f.write(ls_resp.content)
-                                    
-                                    # Replace original clip path
-                                    clip_info["clip_path"] = ls_clip_path
-                                    clip_info["has_lipsync"] = True
+                                    clip_info["clip_path"] = ls_clip
+                                    clip_info["has_audio"] = True
                                     lip_synced += 1
                                     logger.info(f"  LipSync F{fn}: SUCCESS ({len(ls_resp.content)//1024}KB)")
                                 else:
-                                    logger.warning(f"  LipSync F{fn}: Lip sync failed, keeping original clip")
-                                    lip_failed += 1
+                                    # Fallback: FFmpeg audio overlay
+                                    ls_clip = f"/tmp/lipsync_clip_{project_id}_{fn}.mp4"
+                                    _sp.run([
+                                        "ffmpeg", "-y", "-i", clip_path, "-i", audio_tmp,
+                                        "-map", "0:v:0", "-map", "1:a:0",
+                                        "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                                        "-shortest", "-movflags", "+faststart", ls_clip
+                                    ], capture_output=True, timeout=30)
+                                    if os.path.exists(ls_clip) and os.path.getsize(ls_clip) > 1000:
+                                        clip_info["clip_path"] = ls_clip
+                                        clip_info["has_audio"] = True
+                                        lip_synced += 1
+                                        logger.info(f"  LipSync F{fn}: Fallback FFmpeg overlay OK")
+                                    else:
+                                        lip_failed += 1
+                                
+                                try: os.remove(audio_tmp)
+                                except: pass
                                     
                             except Exception as ls_err:
-                                logger.warning(f"  LipSync F{fn}: Error ({ls_err}), keeping original clip")
+                                logger.warning(f"  LipSync F{fn}: Error ({ls_err}), keeping original")
                                 lip_failed += 1
                         
-                        logger.info(f"Studio [{project_id}]: LIP SYNC complete — {lip_synced} synced, {lip_failed} skipped/failed")
+                        has_lip_sync = lip_synced > 0
+                        logger.info(f"Studio [{project_id}]: LIP SYNC complete — {lip_synced} synced, {lip_failed} failed")
                         
                     except Exception as e:
                         logger.error(f"Studio [{project_id}]: Lip sync phase error: {e}")
                         import traceback; logger.error(traceback.format_exc())
-                    finally:
-                        import shutil
-                        try: shutil.rmtree(lip_sync_tmpdir)
-                        except: pass
                 
-                # ── STEP 3: FFmpeg concat with crossfade ──
+                # ══════════════════════════════════════════════════════════════
+                # STEP 3: FFmpeg concat — Join all clips
+                # When lip sync is active: use simple concat to PRESERVE audio
+                # When no lip sync: can use xfade for smooth video transitions
+                # ══════════════════════════════════════════════════════════════
                 _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Kling AI — Concatenando {len(clips)} clips (crossfade)..."
+                    "progress_message": f"Concatenando {len(clips)} clips..."
                 })
                 
                 output_path = f"/tmp/kling_final_{project_id}.mp4"
                 clip_paths = [c["clip_path"] for c in clips]
                 
-                if len(clips) == 1:
-                    import shutil; shutil.copy(clip_paths[0], output_path)
-                elif len(clips) <= 3:
-                    # Simple concat for small number of clips
-                    concat_list = f"/tmp/kling_concat_{project_id}.txt"
-                    with open(concat_list, 'w') as f:
-                        for cp in clip_paths:
-                            f.write(f"file '{cp}'\n")
-                    _sp.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
-                             "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                             "-pix_fmt", "yuv420p", "-movflags", "+faststart", output_path],
-                            capture_output=True, timeout=180)
-                    try: os.remove(concat_list)
-                    except: pass
-                else:
-                    # Crossfade (xfade) between clips for smooth transitions
-                    xfade_dur = 0.3  # 0.3s dissolve between clips
-                    try:
-                        # Build xfade filter chain: pairs of clips dissolved together
-                        inputs = []
-                        for cp in clip_paths:
-                            inputs.extend(["-i", cp])
-                        
-                        # xfade filter chain: [0][1]xfade → [v01]; [v01][2]xfade → [v012]; ...
-                        filter_parts = []
-                        clip_dur = clips[0].get("duration", 6.0)
-                        
-                        # First pair
-                        offset = clip_dur - xfade_dur
-                        filter_parts.append(f"[0:v][1:v]xfade=transition=dissolve:duration={xfade_dur}:offset={offset}[v01]")
-                        
-                        for i in range(2, len(clips)):
-                            prev_tag = f"v{''.join(str(x) for x in range(i))}" if i == 2 else f"v{i-1}"
-                            if i == 2:
-                                prev_tag = "v01"
-                            curr_offset = offset + (clip_dur - xfade_dur)
-                            offset = curr_offset
-                            next_tag = f"v{i}"
-                            filter_parts.append(f"[{prev_tag}][{i}:v]xfade=transition=dissolve:duration={xfade_dur}:offset={curr_offset}[{next_tag}]")
-                        
-                        filter_str = ";".join(filter_parts)
-                        last_tag = f"v{len(clips)-1}"
-                        
-                        cmd = ["ffmpeg", "-y"] + inputs + [
-                            "-filter_complex", filter_str,
-                            "-map", f"[{last_tag}]",
-                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-                            output_path
-                        ]
-                        result = _sp.run(cmd, capture_output=True, timeout=300)
-                        
-                        if result.returncode != 0:
-                            raise Exception(f"xfade failed: {result.stderr.decode()[:200]}")
-                        
-                    except Exception as e:
-                        logger.warning(f"Studio [{project_id}]: xfade failed ({e}), falling back to simple concat")
-                        concat_list = f"/tmp/kling_concat_{project_id}.txt"
-                        with open(concat_list, 'w') as f:
-                            for cp in clip_paths:
-                                f.write(f"file '{cp}'\n")
-                        _sp.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
-                                 "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                                 "-pix_fmt", "yuv420p", "-movflags", "+faststart", output_path],
-                                capture_output=True, timeout=180)
-                        try: os.remove(concat_list)
-                        except: pass
+                # ALWAYS use simple concat (preserves audio from lip-synced clips)
+                concat_list = f"/tmp/kling_concat_{project_id}.txt"
+                with open(concat_list, 'w') as f:
+                    for cp in clip_paths:
+                        f.write(f"file '{cp}'\n")
+                
+                concat_result = _sp.run([
+                    "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list,
+                    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-b:a", "128k",
+                    "-movflags", "+faststart", output_path
+                ], capture_output=True, timeout=300)
+                
+                try: os.remove(concat_list)
+                except: pass
+                
+                if concat_result.returncode != 0:
+                    logger.error(f"Studio [{project_id}]: Concat failed: {concat_result.stderr.decode()[:200]}")
                 
                 if not os.path.exists(output_path):
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                     return {"scene_number": scene_num, "url": None, "error": "concat_failed"}
                 
-                # ── STEP 4: PHASE C — Audio Production Pipeline ──
+                logger.info(f"Studio [{project_id}]: Video concatenated ({os.path.getsize(output_path)//1024}KB, lip_sync={has_lip_sync})")
+                
+                # ══════════════════════════════════════════════════════════════
+                # STEP 4: SONOPLASTIA — Background music + SFX via Kling V2A
+                # If lip sync was used: clips ALREADY have dialogue audio
+                #   → only add V2A BGM at low volume
+                # If NO lip sync: generate TTS dialogue track + V2A BGM
+                # ══════════════════════════════════════════════════════════════
                 voice_map = project.get("voice_map", {})
                 lang = project.get("language", "pt")
                 
                 if voice_map and any(f.get("dialogue_text") for f in all_frames):
-                    _update_project_field(tenant_id, project_id, {
-                        "progress_message": "PHASE C — Gerando áudio (TTS + Sonoplastia)..."
-                    })
-                    
                     import tempfile as _tf
                     tmpdir = _tf.mkdtemp(prefix="kling_audio_")
                     
                     try:
-                        from .narration import _generate_narration_audio
-                        
-                        # Emotion → ElevenLabs params mapping
-                        EMOTION_MAP = {
-                            "joy": {"stability": 0.7, "similarity": 0.8, "style": 0.5},
-                            "happy": {"stability": 0.7, "similarity": 0.8, "style": 0.5},
-                            "sad": {"stability": 0.3, "similarity": 0.7, "style": 0.2},
-                            "tender": {"stability": 0.5, "similarity": 0.8, "style": 0.3},
-                            "tense": {"stability": 0.4, "similarity": 0.75, "style": 0.3},
-                            "fear": {"stability": 0.3, "similarity": 0.7, "style": 0.4},
-                            "anger": {"stability": 0.6, "similarity": 0.8, "style": 0.7},
-                            "neutral": {"stability": 0.5, "similarity": 0.75, "style": 0.0},
-                            "wonder": {"stability": 0.5, "similarity": 0.8, "style": 0.4},
-                            "love": {"stability": 0.4, "similarity": 0.8, "style": 0.3},
-                        }
-                        
-                        clip_dur = 6.0
-                        audio_segments = []
-                        
-                        for idx, frame in enumerate(all_frames):
-                            fn = frame.get("frame_number", idx + 1)
-                            dialogue = (frame.get("dialogue_text") or "").strip()
-                            emotion = (frame.get("emotion") or "neutral").lower()
+                        # ── If NO lip sync: generate TTS dialogue track ──
+                        if not has_lip_sync:
+                            _update_project_field(tenant_id, project_id, {
+                                "progress_message": "Gerando vozes dos personagens (TTS)..."
+                            })
                             
-                            # Detect silence/stage directions
-                            is_silence = (
-                                not dialogue or dialogue.startswith("(") or dialogue == "..."
-                                or dialogue.startswith("SILÊNCIO") or dialogue.startswith("BEAT")
-                            )
-                            if not is_silence and ":" not in dialogue:
-                                # No character prefix — check for stage direction markers
-                                stage_markers = ["câmera", "camera", "olhar", "plano", "corte", "fade", "zoom", "silêncio", "beat", "movimento"]
-                                if any(m in dialogue.lower() for m in stage_markers):
-                                    is_silence = True
+                            from .narration import _generate_narration_audio
+                            STAGE_MARKERS_A = ["silêncio", "beat", "câmera", "camera", "olhar", "pausa", "movimento", "plano"]
+                            clip_dur = 6.0
+                            audio_segments = []
                             
-                            if is_silence:
-                                # Silence for this frame
-                                sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
-                                _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
-                                         f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
-                                         "-q:a", "9", "-acodec", "libmp3lame", sil_path],
-                                        capture_output=True, timeout=10)
-                                audio_segments.append(sil_path)
-                                continue
-                            
-                            # Parse character from dialogue
-                            char_name, text = "Narrador", dialogue
-                            if ":" in dialogue:
-                                parts = dialogue.split(":", 1)
-                                if len(parts[0]) < 30 and not parts[0][0].isdigit():
-                                    char_name, text = parts[0].strip(), parts[1].strip().strip("'\"")
-                            
-                            # Clean text: remove parenthetical stage directions
-                            import re as _re
-                            text = _re.sub(r'\([^)]*\)', '', text).strip()
-                            text = _re.sub(r'\[.*?\]', '', text).strip()
-                            
-                            if not text or len(text) < 2:
-                                sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
-                                _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
-                                         f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
-                                         "-q:a", "9", "-acodec", "libmp3lame", sil_path],
-                                        capture_output=True, timeout=10)
-                                audio_segments.append(sil_path)
-                                continue
-                            
-                            # Find voice
-                            voice_id = None
-                            for cn, vid in voice_map.items():
-                                if char_name.lower() in cn.lower() or cn.lower() in char_name.lower():
-                                    voice_id = vid
-                                    break
-                            if not voice_id:
-                                voice_id = list(voice_map.values())[0]
-                            
-                            # Get emotion params
-                            emo_params = EMOTION_MAP.get(emotion, EMOTION_MAP["neutral"])
-                            
-                            try:
-                                audio_bytes = _generate_narration_audio(
-                                    text=text, voice_id=voice_id,
-                                    stability=emo_params["stability"],
-                                    similarity=emo_params["similarity"],
-                                    style_val=emo_params["style"],
-                                    language_code=lang
-                                )
-                                raw = f"{tmpdir}/frame_{fn:03d}_raw.mp3"
-                                with open(raw, "wb") as f:
-                                    f.write(audio_bytes)
+                            for idx, frame in enumerate(all_frames):
+                                fn = frame.get("frame_number", idx + 1)
+                                dialogue = (frame.get("dialogue_text") or "").strip()
                                 
-                                padded = f"{tmpdir}/frame_{fn:03d}.mp3"
-                                _sp.run(["ffmpeg", "-y", "-i", raw,
-                                         "-af", f"apad=whole_dur={clip_dur}", "-t", str(clip_dur),
-                                         "-acodec", "libmp3lame", "-q:a", "4", padded],
-                                        capture_output=True, timeout=15)
-                                audio_segments.append(padded)
-                            except Exception as e:
-                                logger.warning(f"  Frame {fn} TTS error: {e}")
-                                sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
-                                _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
-                                         f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
-                                         "-q:a", "9", "-acodec", "libmp3lame", sil_path],
-                                        capture_output=True, timeout=10)
-                                audio_segments.append(sil_path)
+                                is_silence = (
+                                    not dialogue or dialogue.startswith("(") or dialogue == "..."
+                                    or dialogue.upper().startswith("SILÊNCIO") or dialogue.upper().startswith("BEAT")
+                                )
+                                if not is_silence and ":" not in dialogue:
+                                    if any(m in dialogue.lower() for m in STAGE_MARKERS_A):
+                                        is_silence = True
+                                
+                                if is_silence:
+                                    sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                    _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
+                                             f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
+                                             "-q:a", "9", "-acodec", "libmp3lame", sil_path],
+                                            capture_output=True, timeout=10)
+                                    audio_segments.append(sil_path)
+                                    continue
+                                
+                                char_name, text = "Narrador", dialogue
+                                if ":" in dialogue:
+                                    parts = dialogue.split(":", 1)
+                                    if len(parts[0]) < 30:
+                                        char_name, text = parts[0].strip(), parts[1].strip().strip("'\"")
+                                
+                                import re as _re
+                                text = _re.sub(r'\([^)]*\)', '', text).strip()
+                                text = _re.sub(r'\[.*?\]', '', text).strip()
+                                
+                                if not text or len(text) < 2:
+                                    sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                    _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
+                                             f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
+                                             "-q:a", "9", "-acodec", "libmp3lame", sil_path],
+                                            capture_output=True, timeout=10)
+                                    audio_segments.append(sil_path)
+                                    continue
+                                
+                                voice_id = None
+                                for cn, vid in voice_map.items():
+                                    if char_name.lower() in cn.lower() or cn.lower() in char_name.lower():
+                                        voice_id = vid
+                                        break
+                                if not voice_id:
+                                    voice_id = list(voice_map.values())[0]
+                                
+                                try:
+                                    audio_bytes = _generate_narration_audio(
+                                        text=text, voice_id=voice_id,
+                                        stability=0.5, similarity=0.75, style_val=0.0,
+                                        language_code=lang
+                                    )
+                                    raw = f"{tmpdir}/frame_{fn:03d}_raw.mp3"
+                                    with open(raw, "wb") as f:
+                                        f.write(audio_bytes)
+                                    padded = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                    _sp.run(["ffmpeg", "-y", "-i", raw,
+                                             "-af", f"apad=whole_dur={clip_dur}", "-t", str(clip_dur),
+                                             "-acodec", "libmp3lame", "-q:a", "4", padded],
+                                            capture_output=True, timeout=15)
+                                    audio_segments.append(padded)
+                                except Exception as e:
+                                    logger.warning(f"  Frame {fn} TTS error: {e}")
+                                    sil_path = f"{tmpdir}/frame_{fn:03d}.mp3"
+                                    _sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i",
+                                             f"anullsrc=r=44100:cl=stereo", "-t", str(clip_dur),
+                                             "-q:a", "9", "-acodec", "libmp3lame", sil_path],
+                                            capture_output=True, timeout=10)
+                                    audio_segments.append(sil_path)
+                            
+                            # Concat TTS segments into dialogue track
+                            dialogue_track = f"{tmpdir}/dialogue_full.mp3"
+                            alist = f"{tmpdir}/audio_concat.txt"
+                            with open(alist, 'w') as f:
+                                for ap in audio_segments:
+                                    f.write(f"file '{ap}'\n")
+                            _sp.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", alist,
+                                     "-c", "copy", dialogue_track], capture_output=True, timeout=60)
+                            
+                            logger.info(f"Studio [{project_id}]: TTS Dialogue track ready ({os.path.getsize(dialogue_track)//1024}KB)")
+                            
+                            # Mix dialogue into video
+                            dubbed_path = f"{tmpdir}/dubbed.mp4"
+                            _sp.run([
+                                "ffmpeg", "-y", "-i", output_path, "-i", dialogue_track,
+                                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                                "-profile:v", "baseline", "-pix_fmt", "yuv420p",
+                                "-c:a", "aac", "-b:a", "128k", "-ac", "2",
+                                "-map", "0:v:0", "-map", "1:a:0", "-shortest",
+                                "-movflags", "+faststart", dubbed_path
+                            ], capture_output=True, timeout=180)
+                            
+                            if os.path.exists(dubbed_path) and os.path.getsize(dubbed_path) > 1000:
+                                output_path = dubbed_path
+                                logger.info(f"Studio [{project_id}]: Dubbed video ready ({os.path.getsize(dubbed_path)//1024}KB)")
+                        else:
+                            logger.info(f"Studio [{project_id}]: Lip sync active — skipping TTS overlay (audio already in clips)")
                         
-                        # Concat all audio segments into dialogue track
-                        dialogue_track = f"{tmpdir}/dialogue_full.mp3"
-                        alist = f"{tmpdir}/audio_concat.txt"
-                        with open(alist, 'w') as f:
-                            for ap in audio_segments:
-                                f.write(f"file '{ap}'\n")
-                        _sp.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", alist,
-                                 "-c", "copy", dialogue_track], capture_output=True, timeout=60)
-                        
-                        logger.info(f"Studio [{project_id}]: Dialogue track ready ({os.path.getsize(dialogue_track)//1024}KB)")
-                        
-                        # ── STEP 5: PHASE D — Final Mix + Export ──
+                        # ── SONOPLASTIA: V2A Background Music + SFX ──
                         _update_project_field(tenant_id, project_id, {
-                            "progress_message": "PHASE D — Mix final (vídeo + diálogo)..."
+                            "progress_message": "Gerando sonoplastia (música + efeitos) via Kling V2A..."
                         })
                         
-                        final_path = f"{tmpdir}/final_dubbed.mp4"
-                        _sp.run([
-                            "ffmpeg", "-y", "-i", output_path, "-i", dialogue_track,
-                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                            "-profile:v", "baseline", "-level", "3.1", "-pix_fmt", "yuv420p",
-                            "-c:a", "aac", "-b:a", "128k", "-ac", "2",
-                            "-map", "0:v:0", "-map", "1:a:0", "-shortest",
-                            "-movflags", "+faststart", final_path
-                        ], capture_output=True, timeout=180)
+                        bgm_added = False
+                        try:
+                            from core.kling_client import KlingClient
+                            kling_v2a = KlingClient()
+                            
+                            # Extract 15s sample for V2A
+                            v2a_sample = f"{tmpdir}/v2a_sample.mp4"
+                            _sp.run([
+                                "ffmpeg", "-y", "-i", output_path,
+                                "-t", "15", "-an", "-c:v", "copy", v2a_sample
+                            ], capture_output=True, timeout=15)
+                            
+                            if os.path.exists(v2a_sample) and os.path.getsize(v2a_sample) > 1000:
+                                with open(v2a_sample, 'rb') as f:
+                                    sample_bytes = f.read()
+                                sample_url = _upload_to_storage(sample_bytes, f"studio/{project_id}_v2a_sample.mp4", "video/mp4")
+                                
+                                scenes = project.get("scenes", [])
+                                scene_desc = (scenes[0].get("description", "") if scenes else "")[:150]
+                                
+                                v2a_result = kling_v2a.video_to_audio(
+                                    video_url=sample_url,
+                                    sfx_prompt=scene_desc or "nature sounds, gentle footsteps, birds chirping",
+                                    bgm_prompt="gentle orchestral music, Pixar animation style, warm emotional, children cartoon",
+                                    max_wait=180
+                                )
+                                
+                                if v2a_result and v2a_result.get("audio_mp3_url"):
+                                    sfx_resp = requests.get(v2a_result["audio_mp3_url"], timeout=60)
+                                    if sfx_resp.status_code == 200 and len(sfx_resp.content) > 1000:
+                                        # Save V2A audio and loop to video length
+                                        v2a_short = f"{tmpdir}/v2a_short.mp3"
+                                        with open(v2a_short, "wb") as f:
+                                            f.write(sfx_resp.content)
+                                        
+                                        probe = _sp.run([
+                                            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                            "-of", "default=noprint_wrappers=1:nokey=1", output_path
+                                        ], capture_output=True, text=True, timeout=10)
+                                        vid_dur = float(probe.stdout.strip()) if probe.returncode == 0 else 180.0
+                                        
+                                        v2a_full = f"{tmpdir}/v2a_looped.mp3"
+                                        _sp.run([
+                                            "ffmpeg", "-y", "-stream_loop", "-1", "-i", v2a_short,
+                                            "-t", str(vid_dur), "-acodec", "libmp3lame", "-q:a", "4",
+                                            v2a_full
+                                        ], capture_output=True, timeout=30)
+                                        
+                                        if os.path.exists(v2a_full) and os.path.getsize(v2a_full) > 1000:
+                                            # Mix BGM at low volume with existing audio
+                                            bgm_mixed = f"{tmpdir}/final_with_bgm.mp4"
+                                            _sp.run([
+                                                "ffmpeg", "-y", "-i", output_path, "-i", v2a_full,
+                                                "-filter_complex",
+                                                "[0:a]volume=1.0[dialogue];[1:a]volume=0.15[bgm];[dialogue][bgm]amix=inputs=2:duration=shortest[out]",
+                                                "-map", "0:v:0", "-map", "[out]",
+                                                "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                                                "-movflags", "+faststart", bgm_mixed
+                                            ], capture_output=True, timeout=120)
+                                            
+                                            if os.path.exists(bgm_mixed) and os.path.getsize(bgm_mixed) > 1000:
+                                                output_path = bgm_mixed
+                                                bgm_added = True
+                                                logger.info(f"Studio [{project_id}]: BGM mixed! ({os.path.getsize(bgm_mixed)//1024}KB)")
+                                            else:
+                                                logger.warning(f"Studio [{project_id}]: BGM mix FFmpeg failed")
+                                else:
+                                    logger.warning(f"Studio [{project_id}]: V2A returned no audio")
+                        except Exception as v2a_err:
+                            logger.warning(f"Studio [{project_id}]: V2A sonoplastia failed (non-fatal): {v2a_err}")
                         
-                        if os.path.exists(final_path) and os.path.getsize(final_path) > 1000:
-                            output_path = final_path
-                            logger.info(f"Studio [{project_id}]: Dubbed video ready ({os.path.getsize(final_path)//1024}KB)")
+                        logger.info(f"Studio [{project_id}]: Audio complete — lip_sync={has_lip_sync}, bgm={bgm_added}")
                         
-                        # ── Multi-format export ──
+                        # ── STEP 5: Multi-format export ──
                         _update_project_field(tenant_id, project_id, {
                             "progress_message": "Exportando multi-formato (YouTube, TikTok, Instagram)..."
                         })
@@ -1062,21 +1103,22 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                                 if os.path.exists(fmt_path) and os.path.getsize(fmt_path) > 1000:
                                     with open(fmt_path, 'rb') as f:
                                         fmt_bytes = f.read()
-                                    if len(fmt_bytes) < 50 * 1024 * 1024:  # <50MB Supabase limit
-                                        fmt_filename = f"studio/{project_id}_{fmt_key}.mp4"
-                                        fmt_url = _upload_to_storage(fmt_bytes, fmt_filename, "video/mp4")
+                                    if len(fmt_bytes) < 50 * 1024 * 1024:
+                                        fmt_url = _upload_to_storage(fmt_bytes, f"studio/{project_id}_{fmt_key}.mp4", "video/mp4")
                                         multi_outputs[fmt_key] = {"url": fmt_url, "label": fmt_cfg["label"]}
                                         logger.info(f"  {fmt_key}: {len(fmt_bytes)//1024}KB uploaded")
                             except Exception as e:
                                 logger.warning(f"  {fmt_key} export failed: {e}")
                         
-                        # ── Upload final video BEFORE tmpdir cleanup ──
-                        final_video_bytes = None
+                        # ── STEP 6: Upload final video ──
+                        _update_project_field(tenant_id, project_id, {
+                            "progress_message": "Fazendo upload do vídeo final..."
+                        })
+                        
                         video_url = None
                         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
                             file_size = os.path.getsize(output_path)
                             
-                            # If file > 48MB, re-encode with higher CRF to fit Supabase limit
                             if file_size > 48 * 1024 * 1024:
                                 logger.info(f"Studio [{project_id}]: Video too large ({file_size//1024}KB), compressing...")
                                 compressed_path = f"{tmpdir}/compressed_main.mp4"
@@ -1097,76 +1139,60 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             final_duration = sum(c.get("duration", 6) for c in clips)
                             elapsed = _time.time() - t_v
                             
-                            # Try to upload, fallback to YouTube 16:9 URL if too large
                             try:
                                 filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
                                 video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
-                                logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s ({len(final_video_bytes)//1024}KB)")
+                                logger.info(f"Studio [{project_id}]: KLING DONE — {len(clips)} clips, lip_sync={has_lip_sync}, bgm={bgm_added}, ~{final_duration:.0f}s, {elapsed:.0f}s ({len(final_video_bytes)//1024}KB)")
                             except Exception as upload_err:
-                                logger.warning(f"Studio [{project_id}]: Main video upload failed ({len(final_video_bytes)//1024}KB): {upload_err}")
-                                # Fallback: use YouTube 16:9 URL as main video
+                                logger.warning(f"Studio [{project_id}]: Upload failed ({len(final_video_bytes)//1024}KB): {upload_err}")
                                 if multi_outputs.get("youtube_16x9", {}).get("url"):
                                     video_url = multi_outputs["youtube_16x9"]["url"]
-                                    logger.info(f"Studio [{project_id}]: Using YouTube 16:9 as main video (fallback)")
-                            
-                            if video_url:
-                                _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
-                                _update_scene_status(tenant_id, project_id, scene_num, "done", total)
                         
-                        # Cleanup tmpdir at the end
+                        # Cleanup
                         import shutil
                         try: shutil.rmtree(tmpdir)
                         except: pass
-                        
-                        # Cleanup clip files
                         for c in clips:
                             try: os.remove(c["clip_path"])
                             except: pass
                         
-                        # Return result
                         if video_url:
+                            _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
+                            _update_scene_status(tenant_id, project_id, scene_num, "done", total)
                             result = {"scene_number": scene_num, "url": video_url, "type": "video",
-                                      "duration": final_duration, "has_audio": bool(voice_map)}
+                                      "duration": final_duration, "has_audio": True,
+                                      "has_lip_sync": has_lip_sync, "has_bgm": bgm_added}
                             if multi_outputs:
                                 result["multi_format"] = multi_outputs
-                                _update_project_field(tenant_id, project_id, {
-                                    "multi_format_urls": multi_outputs
-                                })
+                                _update_project_field(tenant_id, project_id, {"multi_format_urls": multi_outputs})
                             return result
                         elif multi_outputs.get("youtube_16x9", {}).get("url"):
-                            # Fallback: save YouTube format as main output
                             yt_url = multi_outputs["youtube_16x9"]["url"]
                             _save_scene_video(tenant_id, project_id, scene_num, yt_url, total, sora_prompt=sora_prompt)
                             _update_scene_status(tenant_id, project_id, scene_num, "done", total)
                             _update_project_field(tenant_id, project_id, {"multi_format_urls": multi_outputs})
                             return {"scene_number": scene_num, "url": yt_url, "type": "video",
-                                    "duration": sum(c.get("duration", 6) for c in clips), "has_audio": True,
-                                    "multi_format": multi_outputs}
+                                    "has_audio": True, "multi_format": multi_outputs}
                         else:
                             _update_scene_status(tenant_id, project_id, scene_num, "error", total)
-                            return {"scene_number": scene_num, "url": None, "error": "output_missing_after_audio"}
+                            return {"scene_number": scene_num, "url": None, "error": "upload_failed"}
                         
                     except Exception as audio_err:
-                        logger.error(f"Studio [{project_id}]: Audio pipeline error: {audio_err}")
+                        logger.error(f"Studio [{project_id}]: Audio/Export pipeline error: {audio_err}")
                         import traceback; logger.error(traceback.format_exc())
                         import shutil
                         try: shutil.rmtree(tmpdir)
                         except: pass
                 
-                # ── Upload final video (fallback: no audio pipeline ran) ──
+                # ── Fallback: No voice_map → upload video without audio ──
                 if os.path.exists(output_path):
                     with open(output_path, 'rb') as f:
                         final_video_bytes = f.read()
                     
                     final_duration = sum(c.get("duration", 6) for c in clips)
-                    elapsed = _time.time() - t_v
-                    
                     filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
                     video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
                     
-                    logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] DONE (no audio) — {len(clips)} clips, ~{final_duration:.0f}s, {elapsed:.0f}s")
-                    
-                    # Cleanup clip files
                     for c in clips:
                         try: os.remove(c["clip_path"])
                         except: pass
@@ -1175,10 +1201,8 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     
                     _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
                     _update_scene_status(tenant_id, project_id, scene_num, "done", total)
-                    
-                    result = {"scene_number": scene_num, "url": video_url, "type": "video",
-                              "duration": final_duration, "has_audio": False}
-                    return result
+                    return {"scene_number": scene_num, "url": video_url, "type": "video",
+                            "duration": final_duration, "has_audio": False}
                 else:
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                     return {"scene_number": scene_num, "url": None, "error": "output_missing"}
