@@ -648,8 +648,166 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                     return {"scene_number": scene_num, "url": None, "error": "no_clips_generated"}
                 
-                # ── STEP 3: FFmpeg concat with crossfade ──
+                # ── STEP 2.5: LIP SYNC — Apply dialogue audio to character faces ──
                 import subprocess as _sp
+                import tempfile as _tf
+                
+                voice_map = project.get("voice_map", {})
+                lang = project.get("language", "pt")
+                
+                if voice_map and any(f.get("dialogue_text") for f in all_frames):
+                    _update_project_field(tenant_id, project_id, {
+                        "progress_message": "Lip Sync — Aplicando diálogos aos personagens..."
+                    })
+                    
+                    lip_sync_tmpdir = _tf.mkdtemp(prefix="kling_lipsync_")
+                    lip_synced = 0
+                    lip_failed = 0
+                    
+                    try:
+                        from .narration import _generate_narration_audio
+                        
+                        # Stage direction markers to skip
+                        STAGE_MARKERS = ["silêncio", "beat", "câmera", "camera", "olhar", "pausa", "movimento", "plano"]
+                        
+                        for clip_info in clips:
+                            fn = clip_info["frame_number"]
+                            clip_path = clip_info["clip_path"]
+                            
+                            # Find matching frame
+                            frame = next((f for f in all_frames if f.get("frame_number") == fn), None)
+                            if not frame:
+                                continue
+                            
+                            dialogue = (frame.get("dialogue_text") or "").strip()
+                            
+                            # Skip non-dialogue frames
+                            is_silence = (
+                                not dialogue or dialogue.startswith("(") or dialogue == "..."
+                                or dialogue.startswith("SILÊNCIO") or dialogue.startswith("BEAT")
+                            )
+                            if not is_silence and ":" not in dialogue:
+                                if any(m in dialogue.lower() for m in STAGE_MARKERS):
+                                    is_silence = True
+                            if is_silence:
+                                continue
+                            
+                            # Parse character + text
+                            char_name, text = "Narrador", dialogue
+                            if ":" in dialogue:
+                                parts = dialogue.split(":", 1)
+                                if len(parts[0].strip()) < 30 and not parts[0].strip()[0].isdigit():
+                                    char_name = parts[0].strip()
+                                    text = parts[1].strip().strip("'\"")
+                            
+                            import re as _re
+                            text = _re.sub(r'\([^)]*\)', '', text).strip()
+                            text = _re.sub(r'\[.*?\]', '', text).strip()
+                            if not text or len(text) < 2:
+                                continue
+                            
+                            # Find voice for character
+                            matched_voice = None
+                            for cname, vid in voice_map.items():
+                                if char_name.lower() in cname.lower() or cname.lower() in char_name.lower():
+                                    matched_voice = vid
+                                    break
+                            if not matched_voice:
+                                matched_voice = list(voice_map.values())[0] if voice_map else None
+                            if not matched_voice:
+                                continue
+                            
+                            _update_project_field(tenant_id, project_id, {
+                                "progress_message": f"Lip Sync — Frame {fn}/{len(clips)} ({char_name}: {text[:30]}...)"
+                            })
+                            
+                            try:
+                                # 1. Generate TTS audio for this frame
+                                audio_bytes = _generate_narration_audio(
+                                    text=text, voice_id=matched_voice,
+                                    stability=0.5, similarity=0.75, style_val=0.0,
+                                    language_code=lang
+                                )
+                                audio_path = f"{lip_sync_tmpdir}/frame_{fn:03d}_audio.mp3"
+                                with open(audio_path, "wb") as f:
+                                    f.write(audio_bytes)
+                                
+                                # Get audio duration in ms
+                                probe = _sp.run([
+                                    "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                    "-of", "default=noprint_wrappers=1:nokey=1", audio_path
+                                ], capture_output=True, text=True, timeout=5)
+                                audio_dur_ms = int(float(probe.stdout.strip()) * 1000) if probe.returncode == 0 else 5000
+                                
+                                # 2. Upload clip to get public URL for Kling API
+                                with open(clip_path, 'rb') as f:
+                                    clip_bytes = f.read()
+                                clip_url = _upload_to_storage(clip_bytes, f"studio/{project_id}_lipsync_clip_{fn:03d}.mp4", "video/mp4")
+                                
+                                # 3. Upload audio to get public URL
+                                audio_url = _upload_to_storage(audio_bytes, f"studio/{project_id}_lipsync_audio_{fn:03d}.mp3", "audio/mpeg")
+                                
+                                # 4. Identify faces in clip
+                                face_result = kling_client.identify_face(video_url=clip_url, max_wait=60)
+                                
+                                if not face_result or not face_result.get("faces"):
+                                    logger.info(f"  LipSync F{fn}: No faces detected, skipping")
+                                    lip_failed += 1
+                                    continue
+                                
+                                session_id = face_result["session_id"]
+                                # Use first detected face
+                                face = face_result["faces"][0]
+                                face_id = face.get("face_id", "")
+                                
+                                logger.info(f"  LipSync F{fn}: Face detected (id={face_id[:12]}), applying audio...")
+                                
+                                # 5. Apply lip sync
+                                ls_result = kling_client.lip_sync(
+                                    session_id=session_id,
+                                    face_id=face_id,
+                                    audio_url=audio_url,
+                                    sound_start_time=0,
+                                    sound_end_time=min(audio_dur_ms, 6000),
+                                    sound_insert_time=0,
+                                    sound_volume=1.5,
+                                    original_audio_volume=0.0,
+                                    max_wait=180
+                                )
+                                
+                                if ls_result and ls_result.get("video_url"):
+                                    # 6. Download lip-synced clip and replace original
+                                    ls_resp = requests.get(ls_result["video_url"], timeout=60)
+                                    ls_resp.raise_for_status()
+                                    
+                                    ls_clip_path = f"{lip_sync_tmpdir}/frame_{fn:03d}_lipsync.mp4"
+                                    with open(ls_clip_path, "wb") as f:
+                                        f.write(ls_resp.content)
+                                    
+                                    # Replace original clip path
+                                    clip_info["clip_path"] = ls_clip_path
+                                    clip_info["has_lipsync"] = True
+                                    lip_synced += 1
+                                    logger.info(f"  LipSync F{fn}: SUCCESS ({len(ls_resp.content)//1024}KB)")
+                                else:
+                                    logger.warning(f"  LipSync F{fn}: Lip sync failed, keeping original clip")
+                                    lip_failed += 1
+                                    
+                            except Exception as ls_err:
+                                logger.warning(f"  LipSync F{fn}: Error ({ls_err}), keeping original clip")
+                                lip_failed += 1
+                        
+                        logger.info(f"Studio [{project_id}]: LIP SYNC complete — {lip_synced} synced, {lip_failed} skipped/failed")
+                        
+                    except Exception as e:
+                        logger.error(f"Studio [{project_id}]: Lip sync phase error: {e}")
+                        import traceback; logger.error(traceback.format_exc())
+                    finally:
+                        import shutil
+                        try: shutil.rmtree(lip_sync_tmpdir)
+                        except: pass
+                
+                # ── STEP 3: FFmpeg concat with crossfade ──
                 _update_project_field(tenant_id, project_id, {
                     "progress_message": f"Kling AI — Concatenando {len(clips)} clips (crossfade)..."
                 })

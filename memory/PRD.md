@@ -7,59 +7,57 @@ StudioX is an end-to-end autonomous video creation platform for animated childre
 - **Frontend**: React + TailwindCSS + Shadcn UI
 - **Backend**: FastAPI + Python
 - **Database**: Supabase PostgreSQL (Auth + Storage + DB)
-- **AI Services**: Gemini (images), OpenAI gpt-4o-mini (text), Kling AI v3 (video + V2A), ElevenLabs (voice TTS)
+- **AI Services**: Gemini (images), OpenAI gpt-4o-mini (text), Kling AI v3 (video + V2A + Lip Sync), ElevenLabs (voice TTS)
 
-## Production Pipeline (4 Phases)
+## Production Pipeline (5 Phases)
 
-### PHASE A: Scene Directors (existing)
-### PHASE B: Video Generation — Dual Mode (existing)
-- **Modo Rápido**: 30 parallel I2V clips + xfade crossfade (~5 min)
+### PHASE 1: Dialogue Generation
+- GPT-4o-mini generates clean character dialogue from script
+- Stage direction filter (13+ markers) removes non-spoken text
+- Format: "CharacterName: 'spoken words'" or "(silêncio)"
+- Distributes dialogue evenly across 30 frames (aim: 20+ with dialogue)
+
+### PHASE 2: Video Generation (Kling AI)
+- **Modo Rápido**: 30 parallel I2V clips + xfade crossfade (~8 min)
 - **Modo Cinema**: Sequential clips using last real frame extraction (~20 min)
 
-### PHASE C: Audio Production (improved 2026-04-14)
-- Clean dialogue generation with character name prefixes
-- Stage direction filtering (13+ markers detected and cleaned)
-- Character-specific voice mapping via ElevenLabs TTS
-- Silence generation for non-dialogue frames
-- V2A sonoplastia with 20s video sample (looped to full length)
+### PHASE 2.5: Lip Sync (NEW - 2026-04-14)
+- For each clip with dialogue: identify_face → lip_sync with TTS audio
+- Uploads clip + audio to Supabase for Kling API access
+- ~90-100s per clip, ~30 min total for 21 dialogue clips
+- Graceful fallback: clips without detected faces keep original video
+- Result: 12/21 clips lip-synced in first production
 
-### PHASE D: Final Mix + Multi-format Export (fixed 2026-04-14)
-- Video compression (CRF 28) when >48MB for Supabase upload
-- YouTube 16:9, TikTok 9:16, Instagram 1:1
-- Fallback to YouTube format URL if main upload fails
+### PHASE 3: Audio Production
+- ElevenLabs TTS with character-specific voices (voice_map)
+- Padded to 6s per frame, concatenated into full audio track
+
+### PHASE 4: Final Mix + Multi-format Export
+- FFmpeg merge: video + dialogue track (+ optional V2A BGM)
+- Video compression (CRF 28) when >48MB
+- Export: YouTube 16:9, TikTok 9:16, Instagram 1:1
 
 ## Recent Changes
 
-### Full Production Pipeline Fix (2026-04-14)
-- **Bug Fix**: Video upload was failing because tmpdir was deleted before upload — moved upload BEFORE cleanup
-- **Bug Fix**: Payload too large (55MB > 50MB Supabase limit) — added auto-compression with CRF 28
-- **Bug Fix**: Storyboard "Gerar Storyboard" button required 2 clicks — fixed to 1-click for initial generation
-- **Improvement**: Dialogue generation prompt completely rewritten — ONLY spoken words, no stage directions
-- **Improvement**: Stage direction filter (13 markers: "SILÊNCIO", "câmera", etc.) removes non-dialogue text
-- **Improvement**: Production timeline shows real-time progress from backend (progress_message, full_production_status)
-- **Improvement**: V2A sonoplastia now extracts 20s sample (API limit) and loops audio to full video length
-- **Improvement**: Multi-format URLs saved to project and displayed in results UI
+### Lip Sync Integration (2026-04-14)
+- Integrated Kling identify_face + lip_sync API into production pipeline
+- Runs after clip generation, before FFmpeg concat
+- Each dialogue clip: upload → face detect → TTS → lip sync → download
+- Fallback for animal characters or missing faces
 
-### Pipeline Tracker Dynamic Progress (2026-04-13)
-- Backend: Added `pipeline_phase` field updated at each stage
-- Frontend: Production timeline shows 4-phase tracker (Dialogues → Video → Audio → Done)
-- Frontend: Live progress message from backend displayed
+### Dialogue + Audio Fixes (2026-04-14)
+- Dialogue prompt rewritten: ONLY spoken words, no stage directions
+- Stage direction filter with 13 markers
+- Video compression for Supabase upload (55MB→31MB)
+- Upload before tmpdir cleanup (fixed 0 outputs bug)
+- V2A sonoplastia: 20s sample + loop to video length
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123
-- Project IDs: 06c877c953a3, b5cbe7c320f6, 0295f93baf6e
+- Project IDs: 06c877c953a3, 0295f93baf6e
 
-## Pending Tasks
-
-### P0 (Critical)
-- None currently blocking
-
-### P1 (Important)  
-- Improve dialogue distribution across 30 frames (currently ~17/30 have dialogue)
-- Lip sync integration using Kling Lip-Sync API
-
-### P2 (Backlog)
-- Custom Video Editor UI (Timeline/Layers)
-- "Seed Oficial" System for new tenants
-- Modularize DirectedStudio.jsx (~4600 lines)
-- Migrate Avatar states to useAvatarManager.js hook
+## Pending/Backlog
+- P1: Improve dialogue distribution (frames 16-24 still silent)
+- P2: Custom Video Editor UI
+- P2: "Seed Oficial" for new tenants
+- P2: Modularize DirectedStudio.jsx
