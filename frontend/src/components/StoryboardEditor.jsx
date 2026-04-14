@@ -60,7 +60,7 @@ function SortablePanel({ id, children }) {
   );
 }
 
-export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, onApprove, onBack, onScenesReordered }) {
+export function StoryboardEditor({ projectId, scenes, characters, characterAvatars, lang, videoEngine, onApprove, onBack, onScenesReordered }) {
   const [panels, setPanels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generatingPanel, setGeneratingPanel] = useState(null);
@@ -471,45 +471,46 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   const loadStoryboard = async () => {
     try {
-      // Try loading Kling storyboards first
-      try {
-        const klingRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
-        const genStatus = klingRes.data.generation_status || {};
-        
-        // Check if generation is in progress
-        if (genStatus.phase === 'generating') {
-          setKlingGenerating(true);
-          setUseKlingMode(true);
-          console.log('⏳ Kling generation in progress, polling...');
-          return; // Let the polling useEffect handle it
-        }
-        
-        setKlingGenerating(false);
-        
-        if (klingRes.data.has_storyboards && klingRes.data.total_frames > 0) {
-          // CACHE BUSTING: Adicionar timestamp em todas as imagens para forçar reload
-          const timestamp = Date.now();
-          const storyboardsWithCacheBusting = {
-            ...klingRes.data,
-            scenes: klingRes.data.scenes.map(scene => ({
-              ...scene,
-              frames: scene.frames.map(frame => ({
-                ...frame,
-                image_url: frame.image_url ? `${frame.image_url}?t=${timestamp}` : frame.image_url
-              }))
-            }))
-          };
+      // PIPELINE SEPARATION: Kling uses 30-frame storyboards, Sora 2 uses scene panels
+      if (videoEngine === 'kling') {
+        // Try loading Kling storyboards (30 frames)
+        try {
+          const klingRes = await axios.get(`${API}/studio/projects/${projectId}/kling-storyboards`);
+          const genStatus = klingRes.data.generation_status || {};
           
-          setKlingStoryboards(storyboardsWithCacheBusting);
-          setUseKlingMode(true);
-          console.log('✅ Loaded Kling storyboards with cache-busting:', klingRes.data.total_frames, 'frames');
-          return; // Use Kling mode
+          if (genStatus.phase === 'generating') {
+            setKlingGenerating(true);
+            setUseKlingMode(true);
+            console.log('⏳ Kling generation in progress, polling...');
+            return;
+          }
+          
+          setKlingGenerating(false);
+          
+          if (klingRes.data.has_storyboards && klingRes.data.total_frames > 0) {
+            const timestamp = Date.now();
+            const storyboardsWithCacheBusting = {
+              ...klingRes.data,
+              scenes: klingRes.data.scenes.map(scene => ({
+                ...scene,
+                frames: scene.frames.map(frame => ({
+                  ...frame,
+                  image_url: frame.image_url ? `${frame.image_url}?t=${timestamp}` : frame.image_url
+                }))
+              }))
+            };
+            
+            setKlingStoryboards(storyboardsWithCacheBusting);
+            setUseKlingMode(true);
+            console.log('✅ Loaded Kling storyboards:', klingRes.data.total_frames, 'frames');
+            return;
+          }
+        } catch (err) {
+          console.log('No Kling storyboards yet');
         }
-      } catch (err) {
-        console.log('No Kling storyboards yet, loading regular storyboard');
       }
       
-      // Fallback to regular storyboard panels
+      // Sora 2 mode OR fallback: load regular storyboard panels (scene-based)
       const r = await axios.get(`${API}/studio/projects/${projectId}/storyboard`);
       const loadedPanels = r.data.panels || [];
       setPanels(loadedPanels);
@@ -518,7 +519,6 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       setStoryboardStatus(r.data.storyboard_status || {});
       setUseKlingMode(false);
       
-      // Pre-load all frame images for instant display
       const allUrls = loadedPanels.flatMap(p =>
         (p.frames || []).map(f => f.image_url).filter(Boolean).map(resolveImageUrl)
       );
@@ -1458,23 +1458,45 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       {/* Generate button — show when no panels exist */}
       {displayFrames.length === 0 && !loading && (
         <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center">
-              <Film size={18} className="text-[#8B5CF6]" />
+          {videoEngine === 'kling' ? (
+            /* KLING: Generate 30 storyboard frames */
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 flex items-center justify-center">
+                <Film size={18} className="text-[#8B5CF6]" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-300 mb-3">
+                  {lang === 'pt'
+                    ? 'Gere automaticamente 30 frames detalhados (1 a cada 10s) para seu vídeo Kling de 5 minutos. Estilo Pixar 3D consistente com seus personagens selecionados.'
+                    : 'Automatically generate 30 detailed frames (1 every 10s) for your 5-minute Kling video. Consistent Pixar 3D style with your selected characters.'}
+                </p>
+                <button onClick={generateAllFramesDirect} data-testid="generate-storyboard-btn"
+                  className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2">
+                  <Sparkles size={14} />
+                  {lang === 'pt' ? 'Gerar Storyboard (30 painéis)' : 'Generate Storyboard (30 panels)'}
+                </button>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-300 mb-3">
-                {lang === 'pt'
-                  ? 'Gere automaticamente 30 frames detalhados (1 a cada 10s) para seu vídeo Kling de 5 minutos. Estilo Pixar 3D consistente com seus personagens selecionados.'
-                  : 'Automatically generate 30 detailed frames (1 every 10s) for your 5-minute Kling video. Consistent Pixar 3D style with your selected characters.'}
-              </p>
-              <button onClick={generateAllFramesDirect} data-testid="generate-storyboard-btn"
-                className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2">
-                <Sparkles size={14} />
-                {lang === 'pt' ? 'Gerar Storyboard (30 painéis)' : 'Generate Storyboard (30 panels)'}
-              </button>
+          ) : (
+            /* SORA 2: Generate scene-based storyboard panels */
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                <Film size={18} className="text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-300 mb-3">
+                  {lang === 'pt'
+                    ? `Gere painéis visuais para cada uma das ${scenes.length} cenas do seu roteiro. Cada painel terá 6 variações de imagem para escolher. Sora 2 usará esses painéis como referência visual.`
+                    : `Generate visual panels for each of your ${scenes.length} script scenes. Each panel will have 6 image variations to choose from. Sora 2 will use these as visual reference.`}
+                </p>
+                <button onClick={generateStoryboard} data-testid="generate-storyboard-btn"
+                  className="btn-gold rounded-xl px-6 py-2.5 text-[11px] font-bold flex items-center gap-2">
+                  <Sparkles size={14} />
+                  {lang === 'pt' ? `Gerar Storyboard (${scenes.length} cenas)` : `Generate Storyboard (${scenes.length} scenes)`}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

@@ -3399,6 +3399,7 @@ export const DirectedStudio = memo(function DirectedStudio({
             characters={characters}
             characterAvatars={characterAvatars}
             lang={lang}
+            videoEngine={videoEngine}
             onApprove={() => {
               setStep(6);
             }}
