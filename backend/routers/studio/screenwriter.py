@@ -573,26 +573,14 @@ IMPORTANT:
             if round_num > 0:
                 logger.info(f"Studio [{project_id}]: Screenplay complete — {len(all_scenes)} scenes, {len(all_characters)} characters after {round_num} continuation rounds")
 
-            # Re-read existing scenes (project may have been re-fetched)
+            # Re-read existing scenes
             prev_scenes = project.get("scenes", [])
-            prev_scene_nums = {s.get("scene_number") for s in prev_scenes}
-            new_scene_nums = {s.get("scene_number") for s in all_scenes}
 
-            # Smart merge: if new scenes don't overlap with existing, append (continuation)
-            if prev_scenes and new_scene_nums and not prev_scene_nums.intersection(new_scene_nums):
-                merged_scenes = prev_scenes + all_scenes
-                merged_scenes.sort(key=lambda x: x.get("scene_number", 0))
-                project["scenes"] = merged_scenes
-                # Merge characters (add new ones only)
-                existing_char_names = {c.get("name") for c in project.get("characters", [])}
-                for c in all_characters:
-                    if c.get("name") not in existing_char_names:
-                        project.get("characters", []).append(c)
-                logger.info(f"Studio [{project_id}]: Merged {len(all_scenes)} new scenes with {len(prev_scenes)} existing (total: {len(merged_scenes)})")
-            else:
-                # Fresh screenplay or overlap — replace
-                project["scenes"] = all_scenes
-                project["characters"] = all_characters
+            # ALWAYS replace scenes when generating a fresh screenplay
+            # The merge logic was causing duplication (35 old + 25 new = 60 scenes)
+            project["scenes"] = all_scenes
+            project["characters"] = all_characters
+            logger.info(f"Studio [{project_id}]: Screenplay set to {len(all_scenes)} scenes (replaced {len(prev_scenes)} previous)")
 
             final_scenes = project["scenes"]
             final_characters = project.get("characters", [])
