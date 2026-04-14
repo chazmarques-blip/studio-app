@@ -1455,8 +1455,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       )}
 
 
-      {/* Generate button — show when no panels exist */}
-      {displayFrames.length === 0 && !loading && (
+      {/* Generate button — show when no panels exist AND not generating */}
+      {displayFrames.length === 0 && !loading && !panels.some(p => p.status === 'generating' || p.status === 'pending') && (
         <div className="space-y-4">
           {videoEngine === 'kling' ? (
             /* KLING: Generate 30 storyboard frames */
@@ -1501,7 +1501,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
       )}
 
       {/* Loading state with ordered generation progress */}
-      {loading && (
+      {(loading || panels.some(p => p.status === 'generating' || p.status === 'pending')) && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-[#999] flex items-center gap-1.5">
