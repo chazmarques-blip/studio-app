@@ -244,7 +244,8 @@ class ProjectCache:
         self._flush_timer.start()
 
     def _flush_tenant(self, tenant_id: str):
-        """Flush a single tenant's settings to Supabase."""
+        """Flush a single tenant's settings to Supabase.
+        CRITICAL: Preserve 'companies' from DB to prevent overwrites during production."""
         from core.deps import supabase
         lock = self._get_lock(tenant_id)
         with lock:
@@ -264,6 +265,19 @@ class ProjectCache:
 
         for attempt in range(5):
             try:
+                # CRITICAL: Read current companies from DB before flush to prevent overwrite
+                try:
+                    current = supabase.table("tenants").select("settings").eq("id", tenant_id).single().execute()
+                    if current.data:
+                        db_settings = current.data.get("settings", {})
+                        db_companies = db_settings.get("companies", [])
+                        # Preserve companies from DB (they may have been added while cache was dirty)
+                        if db_companies and len(db_companies) > len(settings.get("companies", [])):
+                            settings["companies"] = db_companies
+                            logger.info(f"ProjectCache: Preserved {len(db_companies)} companies from DB during flush")
+                except Exception:
+                    pass  # If read fails, proceed with cache version
+                
                 supabase.table("tenants").update({"settings": settings}).eq("id", tenant_id).execute()
                 with lock:
                     if self._cache.get(tenant_id):
