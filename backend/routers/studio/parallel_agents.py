@@ -218,8 +218,14 @@ Create the screenplay structure with the first {effective_batch_size} scene(s). 
         try:
             logger.info(f"ParallelScreenplay [{project_id}]: Agent starting batch {batch_id}")
             
-            # Build context from existing scenes (for continuity)
+            # Build context from ALL existing scenes (for continuity and numbering)
             with batch_lock:
+                # Full list of scene titles for numbering continuity
+                all_scene_titles = "\n".join([
+                    f"Scene {s.get('scene_number')}: {s.get('title')}"
+                    for s in all_scenes
+                ])
+                # Last 3 scenes with details for narrative continuity
                 context_scenes = all_scenes[-3:] if len(all_scenes) >= 3 else all_scenes
                 context_summary = "\n".join([
                     f"Scene {s.get('scene_number')}: {s.get('title')} - {s.get('description', '')[:100]}"
@@ -244,8 +250,15 @@ STORY CONTEXT: {user_prompt}
 
 CHARACTERS SO FAR: {char_names}
 
-RECENT SCENES (for continuity):
+ALL SCENES WRITTEN SO FAR (for numbering and topic continuity — DO NOT repeat these topics):
+{all_scene_titles}
+
+RECENT SCENES (for narrative flow):
 {context_summary}
+
+⛔ IMPORTANT: Do NOT repeat topics/tips/themes that already exist in the scenes above.
+If the story has "Dica 1" through "Dica 7" already, your scenes must continue from "Dica 8".
+Each new scene must advance the story — NEVER go back to a topic already covered.
 
 Generate scenes {start_num} to {end_num}. {scene_duration_text}
 {timing_instruction}
