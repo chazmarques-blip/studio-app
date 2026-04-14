@@ -107,8 +107,10 @@ async def generate_storyboard(project_id: str, req: StoryboardGenerateRequest = 
         frames_to_generate = list(range(1, 31))  # All 30 frames
         logger.info(f"Storyboard [{project_id}]: Kling engine detected - generating 30 frames per scene")
     else:
-        # Sora: 6 frames per 12s scene (default)
-        logger.info(f"Storyboard [{project_id}]: Sora engine - generating {len(frames_to_generate)} frames per scene")
+        # Sora 2: ALWAYS use standard (6 frames per scene) for full visual coverage
+        frames_to_generate = QUALITY_PRESETS["standard"]["frames"]  # [1, 2, 3, 4, 5, 6]
+        quality = "standard"
+        logger.info(f"Storyboard [{project_id}]: Sora 2 engine - generating 6 frames per scene (standard)")
     
     # Store quality choice in project
     project["storyboard_quality"] = quality
