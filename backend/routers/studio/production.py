@@ -507,7 +507,11 @@ CRITICAL RULES:
 - If no dialogue timeline, write a standard continuous description
 - PRESERVE the EXACT dialogue text in the lip-sync instruction — copy it WORD FOR WORD from the timeline
 
-- The sora_prompt MUST be in ENGLISH"""
+⚠️ DIALOGUE LANGUAGE RULE:
+- The sora_prompt visual descriptions should be in ENGLISH
+- BUT the DIALOGUE TEXT inside lip-sync instructions MUST stay in the ORIGINAL LANGUAGE ({language_marker}) — do NOT translate it
+- Example: "The small brown puppy says: 'Oi pessoal! Vamos brincar!' - speaking with perfectly synchronized lip movements" (dialogue stays in Portuguese)
+- This is CRITICAL because the audio track will be in {language_marker} and must match the lip movements"""
 
             # Build dialogue timeline context if available
             dialogue_timeline = scene.get("dialogue_timeline", [])
@@ -2172,8 +2176,10 @@ MANDATORY STYLE (include VERBATIM): {style_hint}
 🌐 LANGUAGE MARKER:
 - At the END of your sora_prompt, add: "Any visible text in {language_marker}."
 
+⚠️ DIALOGUE LANGUAGE: Visual descriptions in ENGLISH, but DIALOGUE TEXT in lip-sync instructions MUST stay in ORIGINAL LANGUAGE ({language_marker}) — do NOT translate dialogue.
+
 Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
-RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera. ALWAYS include exact dialogue with lip-sync instruction."""
+RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera. ALWAYS include exact dialogue (in original language) with lip-sync instruction."""
 
                 director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
@@ -2202,7 +2208,9 @@ CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}"""
 🌐 LANGUAGE MARKER:
 - At the END of your sora_prompt, add: "Any visible text in {language_marker}."
 
-Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words. ALWAYS include exact dialogue with lip-sync instruction."}}"""
+⚠️ DIALOGUE LANGUAGE: Visual descriptions in ENGLISH, but DIALOGUE TEXT in lip-sync instructions MUST stay in ORIGINAL LANGUAGE ({language_marker}) — do NOT translate dialogue.
+
+Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words. ALWAYS include exact dialogue (in original language) with lip-sync instruction."}}"""
                 director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
@@ -2226,28 +2234,36 @@ Story: {briefing[:300]}"""
                     # Extract only CHARACTER dialogue (skip narrator)
                     character_beats = [beat for beat in dialogue_timeline if beat.get('speaker', '').lower() != 'narrador' and beat.get('speaker', '').lower() != 'narrator']
                     
-                    if character_beats and "says:" not in sora_prompt_base.lower():
-                        # Build timing breakdown for Sora
+                    # ALWAYS inject original-language dialogue into prompt (even if Director already added it)
+                    # This ensures the lip sync matches the TTS audio language
+                    if character_beats:
+                        # Remove any existing "says:" sections the Director may have added (possibly translated)
+                        import re as _re
+                        clean_base = _re.sub(r"The .{5,80} says: '[^']*'[^.]*\.", "", sora_prompt_base).strip()
+                        clean_base = _re.sub(r"DIALOGUE TIMING:.*$", "", clean_base).strip()
+                        
+                        # Build timing breakdown with ORIGINAL LANGUAGE dialogue
                         timing_text = ""
                         for beat in character_beats:
                             speaker = beat.get('speaker', 'Character')
-                            text = beat.get('text', '')
+                            text = beat.get('text', '')  # Original language text
                             start = beat.get('start_time', 0)
                             end = beat.get('end_time', 0)
-                            
                             timing_text += f"[{start:.1f}s-{end:.1f}s] {speaker} says: '{text}' - "
                         
-                        # Append lip-sync instruction with timing
-                        sora_prompt = f"{sora_prompt_base} DIALOGUE TIMING: {timing_text}speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word matching the exact timing above, clear articulation."
-                        logger.info(f"Studio [{project_id}]: ✅ USED dialogue_timeline with {len(character_beats)} character beats")
-                        logger.info(f"Studio [{project_id}]: Timing breakdown: {timing_text[:200]}...")
+                        sora_prompt = f"{clean_base} DIALOGUE TIMING (ORIGINAL LANGUAGE — DO NOT TRANSLATE): {timing_text}speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word matching the exact timing above, clear articulation."
+                        logger.info(f"Studio [{project_id}]: ✅ INJECTED original-language dialogue_timeline with {len(character_beats)} character beats")
                     else:
                         sora_prompt = sora_prompt_base
-                        logger.info(f"Studio [{project_id}]: ⚠️ dialogue_timeline only has narrator or already present")
+                        logger.info(f"Studio [{project_id}]: ⚠️ dialogue_timeline only has narrator")
                 else:
                     # Fallback: try old dialogue field if timeline doesn't exist
                     dialogue_text = scene.get("dialogue", "").strip()
-                    if dialogue_text and "says:" not in sora_prompt_base.lower():
+                    if dialogue_text:
+                        # Remove any Director-added dialogue (possibly translated)
+                        import re as _re
+                        clean_base = _re.sub(r"The .{5,80} says: '[^']*'[^.]*\.", "", sora_prompt_base).strip()
+                        
                         if ":" in dialogue_text:
                             char_name = dialogue_text.split(":")[0].strip()
                             speech = dialogue_text.split(":", 1)[1].strip().strip("'\"")
@@ -2255,8 +2271,9 @@ Story: {briefing[:300]}"""
                             char_name = "Character"
                             speech = dialogue_text.strip("'\"")
                         
-                        sora_prompt = f"{sora_prompt_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements."
-                        logger.info(f"Studio [{project_id}]: ⚠️ FALLBACK to dialogue field (no timeline available)")
+                        # Keep dialogue in ORIGINAL LANGUAGE
+                        sora_prompt = f"{clean_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements in the original language."
+                        logger.info(f"Studio [{project_id}]: ⚠️ FALLBACK to dialogue field (original language preserved)")
                     else:
                         sora_prompt = sora_prompt_base
                         logger.info(f"Studio [{project_id}]: ⚠️ No dialogue timeline or text available")
