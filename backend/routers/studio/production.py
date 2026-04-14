@@ -1747,7 +1747,13 @@ async def full_production(
 
 
 def _run_full_production_pipeline(tenant_id: str, project_id: str):
-    """Background: Dialogues → Video → Audio → Export"""
+    """Background: Dialogues → Video → Audio → Export
+    
+    PIPELINE SEPARATION:
+    - KLING: Storyboard frames → 30 parallel I2V clips → Kling Lip Sync → TTS → V2A BGM → Concat → Export
+    - SORA 2: Dialogue in prompt → Sora 2 generates video WITH native lip sync → TTS audio overlay → V2A BGM → Export
+    These pipelines MUST NOT interfere with each other.
+    """
     try:
         settings, projects, project = _get_project(tenant_id, project_id)
         if not project:
@@ -1757,31 +1763,152 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
         video_engine = project.get("video_engine", "kling")
         production_mode = project.get("production_mode", "fast")
         
-        # ══ PHASE 1: Generate Dialogues (ALWAYS regenerate for quality) ══
-        storyboards = project.get("kling_storyboards", [])
-        all_frames = []
-        for sb in storyboards:
-            all_frames.extend(sb.get("frames", []))
+        logger.info(f"FullProd [{project_id}]: Starting pipeline — engine={video_engine}, mode={production_mode}")
         
-        logger.info(f"FullProd [{project_id}]: PHASE 1 — Generating clean character dialogues...")
+        # ══════════════════════════════════════════════════════════════
+        # KLING PIPELINE: Storyboard-based production
+        # ══════════════════════════════════════════════════════════════
+        if video_engine == "kling":
+            # ── PHASE 1: Generate frame dialogues for TTS + Lip Sync ──
+            storyboards = project.get("kling_storyboards", [])
+            all_frames = []
+            for sb in storyboards:
+                all_frames.extend(sb.get("frames", []))
+            
+            # Only regenerate dialogues if not locked
+            dialogue_locked = project.get("dialogue_locked", False)
+            has_dialogues = any(f.get("dialogue_text") and ":" in f.get("dialogue_text", "") for f in all_frames)
+            
+            if not dialogue_locked or not has_dialogues:
+                logger.info(f"FullProd [{project_id}]: PHASE 1 — Generating clean character dialogues...")
+                _update_project_field(tenant_id, project_id, {
+                    "full_production_status": "dialogues",
+                    "progress_message": "Fase 1/4 — Gerando diálogos dos personagens..."
+                })
+                _generate_kling_dialogues(tenant_id, project_id, project, all_frames, storyboards)
+            else:
+                logger.info(f"FullProd [{project_id}]: PHASE 1 — Dialogues locked, skipping regeneration")
+            
+            # ── PHASE 2: Auto-assign voices ──
+            if not voice_map:
+                _auto_assign_voices(tenant_id, project_id, project)
+                settings, projects, project = _get_project(tenant_id, project_id)
+                voice_map = project.get("voice_map", {})
+            
+            # ── PHASE 3: Video Production (Kling clips + Lip Sync + Concat + V2A + Export) ──
+            logger.info(f"FullProd [{project_id}]: PHASE 3 — Starting Kling video production ({production_mode})...")
+            _update_project_field(tenant_id, project_id, {
+                "full_production_status": "video",
+                "progress_message": f"Fase 2/4 — Produzindo vídeo Kling ({production_mode})..."
+            })
+            
+            project["video_engine"] = "kling"
+            project["production_mode"] = production_mode
+            project["status"] = "starting"
+            project["error"] = None
+            project["outputs"] = []
+            _save_project(tenant_id, settings, projects, flush_now=True)
+            from core.cache import project_cache
+            project_cache.invalidate(tenant_id)
+            
+            character_avatars = project.get("character_avatars", {})
+            _run_multi_scene_production(tenant_id, project_id, character_avatars)
+            
+            # Kling pipeline handles its own audio (Lip Sync + TTS + V2A + Multi-format) inside _sora_render
+            # No need for separate audio overlay phase
+            
+        # ══════════════════════════════════════════════════════════════
+        # SORA 2 PIPELINE: Prompt-based production with native lip sync
+        # ══════════════════════════════════════════════════════════════
+        else:
+            # ── PHASE 1: Sora 2 uses dialogue_timeline in the prompt for native lip sync ──
+            # Dialogues are part of scene data (dialogue, dialogue_timeline)
+            # NOT from kling_storyboards — Sora 2 has its own prompt system
+            logger.info(f"FullProd [{project_id}]: PHASE 1 — Sora 2 pipeline (lip sync via prompt)...")
+            _update_project_field(tenant_id, project_id, {
+                "full_production_status": "dialogues",
+                "progress_message": "Fase 1/3 — Preparando diálogos para Sora 2 (lip sync nativo)..."
+            })
+            
+            # ── PHASE 2: Auto-assign voices for TTS audio track ──
+            if not voice_map:
+                _auto_assign_voices(tenant_id, project_id, project)
+                settings, projects, project = _get_project(tenant_id, project_id)
+                voice_map = project.get("voice_map", {})
+            
+            # ── PHASE 3: Video Production (Sora 2 with native lip sync in prompt) ──
+            logger.info(f"FullProd [{project_id}]: PHASE 2 — Starting Sora 2 video production...")
+            _update_project_field(tenant_id, project_id, {
+                "full_production_status": "video",
+                "progress_message": "Fase 2/3 — Sora 2 gerando vídeo com lip sync nativo..."
+            })
+            
+            project["video_engine"] = "sora"
+            project["status"] = "starting"
+            project["error"] = None
+            project["outputs"] = []
+            _save_project(tenant_id, settings, projects, flush_now=True)
+            from core.cache import project_cache
+            project_cache.invalidate(tenant_id)
+            
+            character_avatars = project.get("character_avatars", {})
+            _run_multi_scene_production(tenant_id, project_id, character_avatars)
+            
+            # ── PHASE 4: Audio overlay (TTS voices + V2A BGM) ──
+            # Sora 2 generates video with visual lip sync but NO actual audio
+            # We need TTS audio for the spoken words + V2A for background music
+            settings, projects, project = _get_project(tenant_id, project_id)
+            if not project:
+                return
+            
+            outputs = project.get("outputs", [])
+            has_video = any(o.get("type") == "video" and o.get("url") for o in outputs)
+            
+            if has_video and voice_map:
+                logger.info(f"FullProd [{project_id}]: PHASE 3 — Generating Sora 2 audio overlay (TTS + V2A)...")
+                _update_project_field(tenant_id, project_id, {
+                    "full_production_status": "audio",
+                    "progress_message": "Fase 3/3 — Gerando áudio (vozes + sonoplastia)..."
+                })
+                
+                from .kling_storyboard import _generate_audio_overlay_background
+                _generate_audio_overlay_background(tenant_id, project_id)
+                
+                logger.info(f"FullProd [{project_id}]: Audio overlay complete")
+        
+        # ══ DONE ══
         _update_project_field(tenant_id, project_id, {
-            "full_production_status": "dialogues",
-            "progress_message": "Fase 1/4 — Gerando diálogos dos personagens para 30 frames..."
-        })
+            "full_production_status": "complete",
+            "progress_message": "Produção completa finalizada!"
+        }, flush_now=True)
         
-        try:
-            scenes = project.get("scenes", [])
-            scene_dialogue = scenes[0].get("dialogue", "") if scenes else ""
-            synopsis = project.get("synopsis", project.get("briefing", ""))
-            characters = project.get("characters", [])
-            char_names = [c.get("name", "") for c in characters]
-            lang = project.get("language", "pt")
-            
-            frame_context = []
-            for f in all_frames:
-                frame_context.append(f"Frame {f.get('frame_number')}: {f.get('time_start','')}-{f.get('time_end','')}: {f.get('key_action', f.get('image_prompt','')[:80])}")
-            
-            prompt = f"""You are a professional dialogue writer for a children's animated video (Pixar-style).
+        logger.info(f"FullProd [{project_id}]: ALL PHASES COMPLETE!")
+        
+    except Exception as e:
+        logger.error(f"FullProd [{project_id}]: Fatal error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        _update_project_field(tenant_id, project_id, {
+            "full_production_status": "error",
+            "progress_message": f"Erro na produção: {str(e)[:100]}"
+        })
+
+
+def _generate_kling_dialogues(tenant_id, project_id, project, all_frames, storyboards):
+    """Generate clean character dialogues for Kling storyboard frames."""
+    try:
+        scenes = project.get("scenes", [])
+        scene_dialogue = scenes[0].get("dialogue", "") if scenes else ""
+        synopsis = project.get("synopsis", project.get("briefing", ""))
+        characters = project.get("characters", [])
+        char_names = [c.get("name", "") for c in characters]
+        lang = project.get("language", "pt")
+        
+        frame_context = []
+        for f in all_frames:
+            frame_context.append(f"Frame {f.get('frame_number')}: {f.get('time_start','')}-{f.get('time_end','')}: {f.get('key_action', f.get('image_prompt','')[:80])}")
+        
+        prompt = f"""You are a professional dialogue writer for a children's animated video (Pixar-style).
 
 SYNOPSIS: {synopsis[:500]}
 CHARACTERS: {', '.join(char_names)}
@@ -1811,153 +1938,81 @@ MANDATORY FORMAT for EVERY frame:
 Return ONLY a JSON array with EXACTLY 30 items:
 [{{"frame_number": 1, "dialogue_text": "Ash: 'Oi pessoal!'"}}]"""
 
-            from litellm import completion
-            resp = completion(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.5, max_tokens=6000)
-            result_text = resp.choices[0].message.content.strip()
-            if result_text.startswith("```"):
-                result_text = result_text.split("```")[1]
-                if result_text.startswith("json"):
-                    result_text = result_text[4:]
+        from litellm import completion
+        resp = completion(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], temperature=0.5, max_tokens=6000)
+        result_text = resp.choices[0].message.content.strip()
+        if result_text.startswith("```"):
+            result_text = result_text.split("```")[1]
+            if result_text.startswith("json"):
+                result_text = result_text[4:]
+        
+        import json as _json
+        dialogues = _json.loads(result_text)
+        dialogue_map = {d["frame_number"]: d["dialogue_text"] for d in dialogues if "frame_number" in d}
+        
+        # Clean up stage directions
+        STAGE_DIRECTION_MARKERS = [
+            "SILÊNCIO", "BEAT", "câmera", "Camera", "CAMERA", "olhar", "pausa",
+            "movimento", "plano", "corte", "fade", "close-up", "wide shot",
+            "slow motion", "enquadramento", "travelling", "zoom"
+        ]
+        
+        cleaned_count = 0
+        for fn, text in list(dialogue_map.items()):
+            has_char_prefix = ":" in text and len(text.split(":")[0]) < 30
+            is_stage_direction = any(marker.lower() in text.lower() for marker in STAGE_DIRECTION_MARKERS)
+            is_silence = text.startswith("(") or not text.strip()
             
-            import json as _json
-            dialogues = _json.loads(result_text)
-            dialogue_map = {d["frame_number"]: d["dialogue_text"] for d in dialogues if "frame_number" in d}
-            
-            # Clean up any remaining stage directions that slipped through
-            STAGE_DIRECTION_MARKERS = [
-                "SILÊNCIO", "BEAT", "câmera", "Camera", "CAMERA", "olhar", "pausa",
-                "movimento", "plano", "corte", "fade", "close-up", "wide shot",
-                "slow motion", "enquadramento", "travelling", "zoom"
+            if is_stage_direction and not has_char_prefix:
+                dialogue_map[fn] = "(silêncio)"
+                cleaned_count += 1
+            elif not has_char_prefix and not is_silence and text.strip():
+                default_char = char_names[fn % len(char_names)] if char_names else "Narrador"
+                dialogue_map[fn] = f"{default_char}: '{text.strip()}'"
+                cleaned_count += 1
+        
+        # Fill missing frames
+        missing_frames = [fn for fn in range(1, 31) if not dialogue_map.get(fn, "") or dialogue_map.get(fn, "").startswith("(")]
+        if missing_frames and char_names:
+            transition_lines = [
+                "Que divertido, não é?", "Vamos continuar!", "Olha só isso!",
+                "Incrível, né?", "Adoro isso!", "Que legal!",
+                "Pessoal, prestem atenção!", "Essa é boa!", "Concordo totalmente!",
             ]
-            
-            cleaned_count = 0
-            for fn, text in list(dialogue_map.items()):
-                has_char_prefix = ":" in text and len(text.split(":")[0]) < 30
-                is_stage_direction = any(marker.lower() in text.lower() for marker in STAGE_DIRECTION_MARKERS)
-                is_silence = text.startswith("(") or not text.strip()
-                
-                if is_stage_direction and not has_char_prefix:
-                    dialogue_map[fn] = "(silêncio)"
-                    cleaned_count += 1
-                elif not has_char_prefix and not is_silence and text.strip():
-                    # Text without character name — add default character
-                    default_char = char_names[fn % len(char_names)] if char_names else "Narrador"
-                    dialogue_map[fn] = f"{default_char}: '{text.strip()}'"
-                    cleaned_count += 1
-            
-            # Fill missing frames — ensure ALL 30 have dialogue
-            missing_frames = []
-            for fn_check in range(1, 31):
-                text_check = dialogue_map.get(fn_check, "")
-                if not text_check or text_check.startswith("("):
-                    missing_frames.append(fn_check)
-            
-            if missing_frames and char_names:
-                logger.info(f"FullProd [{project_id}]: Filling {len(missing_frames)} empty frames with transitions")
-                transition_lines = [
-                    "Que divertido, não é?", "Vamos continuar!", "Olha só isso!",
-                    "Incrível, né?", "Adoro isso!", "Que legal!",
-                    "Pessoal, prestem atenção!", "Essa é boa!", "Concordo totalmente!",
-                ]
-                for idx, fn_miss in enumerate(missing_frames):
-                    char = char_names[idx % len(char_names)]
-                    line = transition_lines[idx % len(transition_lines)]
-                    dialogue_map[fn_miss] = f"{char}: '{line}'"
-            
-            for sb in storyboards:
-                for frame in sb.get("frames", []):
-                    fn = frame.get("frame_number")
-                    if fn in dialogue_map:
-                        frame["dialogue_text"] = dialogue_map[fn]
-            
-            _update_project_field(tenant_id, project_id, {"kling_storyboards": storyboards}, flush_now=True)
-            
-            # Count final stats
-            with_dialogue = sum(1 for fn in range(1, 31) if dialogue_map.get(fn, "").strip() and not dialogue_map.get(fn, "").startswith("("))
-            logger.info(f"FullProd [{project_id}]: Dialogues: {with_dialogue}/30 with speech, {cleaned_count} cleaned/filled")
-        except Exception as e:
-            logger.error(f"FullProd [{project_id}]: Dialogue generation failed: {e}")
+            for idx, fn_miss in enumerate(missing_frames):
+                char = char_names[idx % len(char_names)]
+                line = transition_lines[idx % len(transition_lines)]
+                dialogue_map[fn_miss] = f"{char}: '{line}'"
         
-        # ══ PHASE 2: Auto-assign voices if needed ══
-        if not voice_map:
-            logger.info(f"FullProd [{project_id}]: Auto-assigning voices...")
-            _update_project_field(tenant_id, project_id, {
-                "progress_message": "Atribuindo vozes aos personagens..."
-            })
-            try:
-                # Simple auto-assign using first available voices
-                from pipeline.config import ELEVENLABS_VOICES
-                characters = project.get("characters", [])
-                auto_map = {}
-                for i, char in enumerate(characters):
-                    if i < len(ELEVENLABS_VOICES):
-                        auto_map[char.get("name", f"Char{i}")] = ELEVENLABS_VOICES[i]["id"]
-                if auto_map:
-                    _update_project_field(tenant_id, project_id, {"voice_map": auto_map}, flush_now=True)
-                    voice_map = auto_map
-                    logger.info(f"FullProd [{project_id}]: Auto-assigned {len(auto_map)} voices")
-            except Exception as e:
-                logger.error(f"FullProd [{project_id}]: Voice assignment failed: {e}")
+        for sb in storyboards:
+            for frame in sb.get("frames", []):
+                fn = frame.get("frame_number")
+                if fn in dialogue_map:
+                    frame["dialogue_text"] = dialogue_map[fn]
         
-        # ══ PHASE 3: Start Video Production (Kling) ══
-        logger.info(f"FullProd [{project_id}]: PHASE 3 — Starting video production ({video_engine}/{production_mode})...")
-        _update_project_field(tenant_id, project_id, {
-            "full_production_status": "video",
-            "progress_message": f"Fase 2/4 — Produzindo vídeo ({production_mode})..."
-        })
-        
-        # Trigger standard production (which handles Kling parallel/sequential)
-        project["video_engine"] = video_engine
-        project["production_mode"] = production_mode
-        project["status"] = "starting"
-        project["error"] = None
-        project["outputs"] = []  # Clear old outputs
-        
-        # Save and invalidate cache
-        _save_project(tenant_id, settings, projects, flush_now=True)
-        from core.cache import project_cache
-        project_cache.invalidate(tenant_id)
-        
-        # Run the multi-scene production inline (not in another background task)
-        character_avatars = project.get("character_avatars", {})
-        _run_multi_scene_production(
-            tenant_id, project_id, character_avatars
-        )
-        
-        # ══ PHASE 4: Generate Audio + Merge ══
-        # Reload project to get fresh outputs
-        settings, projects, project = _get_project(tenant_id, project_id)
-        if not project:
-            return
-        
-        outputs = project.get("outputs", [])
-        has_video = any(o.get("type") == "video" and o.get("url") for o in outputs)
-        
-        if has_video and voice_map:
-            logger.info(f"FullProd [{project_id}]: PHASE 4 — Generating audio overlay...")
-            _update_project_field(tenant_id, project_id, {
-                "full_production_status": "audio",
-                "progress_message": "Fase 3/4 — Gerando áudio dublado..."
-            })
-            
-            # Trigger audio generation
-            from .kling_storyboard import _generate_audio_overlay_background
-            _generate_audio_overlay_background(tenant_id, project_id)
-            
-            logger.info(f"FullProd [{project_id}]: Audio overlay complete")
-        
-        # ══ DONE ══
-        _update_project_field(tenant_id, project_id, {
-            "full_production_status": "complete",
-            "progress_message": "Produção completa finalizada!"
-        }, flush_now=True)
-        
-        logger.info(f"FullProd [{project_id}]: ALL PHASES COMPLETE!")
-        
+        _update_project_field(tenant_id, project_id, {"kling_storyboards": storyboards}, flush_now=True)
+        with_dialogue = sum(1 for fn in range(1, 31) if dialogue_map.get(fn, "").strip() and not dialogue_map.get(fn, "").startswith("("))
+        logger.info(f"FullProd [{project_id}]: Dialogues: {with_dialogue}/30 with speech, {cleaned_count} cleaned/filled")
     except Exception as e:
-        logger.error(f"FullProd [{project_id}]: Fatal error: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
+        logger.error(f"FullProd [{project_id}]: Dialogue generation failed: {e}")
+
+
+def _auto_assign_voices(tenant_id, project_id, project):
+    """Auto-assign ElevenLabs voices to characters."""
+    logger.info(f"FullProd [{project_id}]: Auto-assigning voices...")
+    _update_project_field(tenant_id, project_id, {"progress_message": "Atribuindo vozes aos personagens..."})
+    try:
+        from pipeline.config import ELEVENLABS_VOICES
+        characters = project.get("characters", [])
+        auto_map = {}
+        for i, char in enumerate(characters):
+            if i < len(ELEVENLABS_VOICES):
+                auto_map[char.get("name", f"Char{i}")] = ELEVENLABS_VOICES[i]["id"]
+        if auto_map:
+            _update_project_field(tenant_id, project_id, {"voice_map": auto_map}, flush_now=True)
+            logger.info(f"FullProd [{project_id}]: Auto-assigned {len(auto_map)} voices")
+    except Exception as e:
+        logger.error(f"FullProd [{project_id}]: Voice assignment failed: {e}")
         _update_project_field(tenant_id, project_id, {
             "full_production_status": "error",
             "progress_message": f"Erro: {str(e)[:100]}"

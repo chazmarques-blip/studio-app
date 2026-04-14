@@ -7,79 +7,45 @@ StudioX is an end-to-end autonomous video creation platform for animated childre
 - **Frontend**: React + TailwindCSS + Shadcn UI
 - **Backend**: FastAPI + Python
 - **Database**: Supabase PostgreSQL (Auth + Storage + DB)
-- **AI Services**: Gemini (images), OpenAI gpt-4o-mini (text), Kling AI v3 (video + V2A + Lip Sync), ElevenLabs (voice TTS)
+- **AI Services**: Gemini (images), OpenAI gpt-4o-mini (text), Kling AI v3 (video + V2A + Lip Sync), Sora 2 (video + native lip sync), ElevenLabs (voice TTS)
 
-## Production Pipeline (6 Steps)
+## PIPELINE SEPARATION (2026-04-14)
 
-### STEP 1: Dialogue Generation (GPT-4o-mini)
-- Generates clean character dialogue from approved script
-- Format: "CharacterName: 'spoken words'" or "(silêncio)"
-- Stage direction filter removes 13+ non-spoken markers
-- Distributes evenly across 30 frames (aim: 20+ with dialogue)
+### KLING PIPELINE (30 storyboard frames → video)
+1. **Dialogue Generation** (GPT-4o-mini): 30 frames x character dialogue
+2. **Auto-assign Voices** (ElevenLabs)
+3. **30 Parallel I2V Clips** (Kling v3, 6s each)
+4. **Kling Lip Sync**: For each clip → TTS → identify_face → lip_sync API → download
+5. **FFmpeg Concat** (preserves lip-synced audio)
+6. **V2A Sonoplastia** (Kling V2A: BGM at 15% volume)
+7. **Multi-format Export** (YouTube 16:9, TikTok 9:16, Instagram 1:1)
+8. **Upload + Compression** (CRF 28 if >48MB)
 
-### STEP 2: Video Generation (Kling AI v3)
-- 30 parallel I2V clips x 6 seconds each
-- Image-to-Video from storyboard frames
+### SORA 2 PIPELINE (prompt-based with native lip sync)
+1. **Dialogue in Prompt**: `dialogue_timeline` with timing included in Sora 2 prompt
+2. **Sora 2 Video Generation**: Native lip sync from prompt (12s clips)
+3. **TTS Audio Overlay**: ElevenLabs voices matched to scenes
+4. **V2A Sonoplastia**: Background music via Kling V2A
+5. **Multi-format Export**
 
-### STEP 2.5: Lip Sync (Kling API + ElevenLabs TTS)
-- For EACH clip with dialogue:
-  1. Generate TTS audio (ElevenLabs, character-specific voice)
-  2. Upload clip + audio to Supabase
-  3. Identify face → apply lip sync (audio baked into video)
-  4. Download lip-synced clip (replaces original)
-- Fallback: If no face detected → FFmpeg overlays TTS audio on clip
-- Result: 21/21 clips with audio (10 Kling lip sync + 11 FFmpeg TTS)
-- Files saved to /tmp (NOT tmpdir) to avoid deletion before concat
+### KEY SEPARATION RULES
+- Kling pipeline does NOT use Sora 2 prompts
+- Sora 2 pipeline does NOT use Kling lip sync API
+- Audio overlay (_generate_audio_overlay_background) ONLY for Sora 2
+- Kling handles its own audio inside _sora_render (lip sync + TTS + V2A)
+- dialogue_locked field prevents regeneration of approved dialogues
 
-### STEP 3: FFmpeg Concat
-- Simple concat (preserves audio from lip-synced clips)
-- No xfade when lip sync active (xfade strips audio tracks)
+## Bug Fixes (2026-04-14)
 
-### STEP 4: Sonoplastia (Kling V2A)
-- Extract 15s video sample (V2A API limit: 3-20s)
-- Generate background music + SFX
-- Loop V2A audio to video length
-- Mix at 15% volume with existing dialogue audio
-- If lip sync active: NO additional TTS overlay (audio already in clips)
-
-### STEP 5: Multi-format Export
-- YouTube 16:9, TikTok 9:16, Instagram 1:1
-- Compression (CRF 28) if main video >48MB
-
-### STEP 6: Upload + Cleanup
-
-## Critical Bug Fixes (2026-04-14)
-
-### BUG 1: Lip sync clips deleted before concat
-- **Root cause**: `shutil.rmtree(lip_sync_tmpdir)` in `finally` block deleted lip-synced clips
-- **Fix**: Save lip-synced clips to `/tmp/lipsync_clip_{project}_{frame}.mp4` (outside tmpdir)
-
-### BUG 2: Double audio (TTS overlay on lip-synced clips)
-- **Root cause**: STEP 4 generated ANOTHER TTS track and overlaid on already-dubbed video
-- **Fix**: When `has_lip_sync=True`, skip TTS generation; only add V2A background music
-
-### BUG 3: No fallback for faces not detected
-- **Root cause**: Clips without faces skipped entirely (kept silent)
-- **Fix**: FFmpeg overlays TTS audio directly when face detection fails
-
-### BUG 4: No sonoplastia in final video
-- **Root cause**: V2A audio generated but never mixed into final video
-- **Fix**: FFmpeg amix with dialogue at 100% volume + BGM at 15% volume
+### Company Creation Lost by Cache
+- **Root cause**: ProjectCache._flush_tenant overwrote settings with stale cache after company creation
+- **Fix**: Drop cache entry (without flush) after direct DB writes in companies.py
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123
-- Project IDs: 0295f93baf6e
-
-## Verified Production Results (2026-04-14 02:07)
-- 30/30 Kling clips ✅
-- 21/21 lip sync (0 failures) ✅
-- V2A sonoplastia + BGM mixed ✅
-- 3 format exports ✅
-- Total: 44 min, 35MB final video
 
 ## Pending/Backlog
-- P1: Visual continuity between clips (characters changing appearance)
-- P1: "Director rewriting dialogue" — ensure script is preserved exactly
+- P1: Visual continuity (Modo Cinema as default)
+- P1: Voice selection UI (choose ElevenLabs voices per character)
 - P2: Custom Video Editor UI
-- P2: "Seed Oficial" for new tenants
 - P2: Modularize DirectedStudio.jsx
