@@ -470,6 +470,15 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
 
             director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation. Convert scene descriptions into detailed visual prompts WITH PRECISE TIMING.
 
+⛔ ABSOLUTE RULE — DO NOT MODIFY APPROVED CONTENT:
+- The scene TITLE, DESCRIPTION, DIALOGUE, and EMOTION below were APPROVED by the content creator
+- You MUST preserve the EXACT SAME story, meaning, and dialogue — do NOT rewrite, summarize, or reinterpret
+- Your job is ONLY to add VISUAL and TECHNICAL details (camera, lighting, character appearance, timing)
+- NEVER change what happens in the scene — only describe HOW it looks on screen
+- NEVER add new plot points, change character actions, or alter the narrative
+- If the scene says "Ash gives a hug", your prompt says "Ash gives a hug" — not "Ash waves goodbye"
+- The DIALOGUE TEXT must appear WORD FOR WORD in the lip-sync instruction — do NOT paraphrase
+
 MANDATORY STYLE (include VERBATIM at the start of your prompt): {pd_style}
 
 Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 400 words"}}
@@ -496,6 +505,7 @@ CRITICAL RULES:
 - Characters who are speaking must be shown ON CAMERA with MOUTH MOVING and appropriate gestures
 - Characters who are NOT speaking should be shown LISTENING or REACTING
 - If no dialogue timeline, write a standard continuous description
+- PRESERVE the EXACT dialogue text in the lip-sync instruction — copy it WORD FOR WORD from the timeline
 
 - The sora_prompt MUST be in ENGLISH"""
 
@@ -2147,6 +2157,13 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation.
 MANDATORY STYLE (include VERBATIM): {style_hint}
 
+⛔ ABSOLUTE RULE — DO NOT MODIFY APPROVED CONTENT:
+- The DESCRIPTION, DIALOGUE, and EMOTION below were APPROVED by the content creator
+- PRESERVE the EXACT story, meaning, actions, and dialogue — do NOT rewrite or reinterpret
+- Your job is ONLY to add VISUAL details (camera, lighting, character appearance, timing)
+- NEVER change what happens — only describe HOW it looks visually
+- The DIALOGUE must appear WORD FOR WORD in the lip-sync instruction
+
 🎬 CRITICAL LIP-SYNC INSTRUCTION:
 - If the scene has DIALOGUE, you MUST include the EXACT dialogue text in the sora_prompt
 - Format: "The [character description] says: '[exact dialogue text]' - speaking with perfectly synchronized lip movements, mouth moving naturally with each word"
@@ -2170,6 +2187,12 @@ CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}"""
                 # Fallback: no production design available
                 scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2. {style_hint}
+
+⛔ ABSOLUTE RULE — DO NOT MODIFY APPROVED CONTENT:
+- The DESCRIPTION, DIALOGUE, and EMOTION below were APPROVED by the content creator
+- PRESERVE the EXACT story, meaning, actions, and dialogue — do NOT rewrite or reinterpret
+- Your job is ONLY to add VISUAL details (camera, lighting, character appearance, timing)
+- NEVER change what happens — only describe HOW it looks visually
 
 🎬 CRITICAL LIP-SYNC INSTRUCTION:
 - If the scene has DIALOGUE, you MUST include the EXACT dialogue text in the sora_prompt
