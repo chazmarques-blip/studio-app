@@ -2658,7 +2658,16 @@ async def save_character_avatars(project_id: str, payload: dict = Body(...), ten
         raise HTTPException(status_code=404, detail="Project not found")
     project["character_avatars"] = payload.get("character_avatars", {})
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
-    _save_project(tenant["id"], settings, projects)
+    _save_project(tenant["id"], settings, projects, flush_now=True)
+    
+    # Force cache drop to prevent stale data overwrite
+    from core.cache import project_cache
+    lock = project_cache._get_lock(tenant["id"])
+    with lock:
+        project_cache._cache.pop(tenant["id"], None)
+        project_cache._dirty_tenants.discard(tenant["id"])
+    
+    logger.info(f"Studio [{project_id}]: Saved character avatars: {list(payload.get('character_avatars', {}).keys())}")
     return {"status": "ok"}
 
 
