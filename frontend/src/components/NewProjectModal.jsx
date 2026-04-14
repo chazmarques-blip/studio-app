@@ -424,7 +424,10 @@ export function NewProjectModal({
           default_visual_style: visualStyle,
           default_animation_sub: animationSub,
           default_format_strategy: formatStrategy,
-          default_language: projectLang
+          default_language: projectLang,
+          default_target_audience: targetAudience,
+          default_video_engine: videoEngine,
+          default_character_folder: selectedFolder,
         })
       });
       
@@ -865,7 +868,7 @@ export function NewProjectModal({
     {/* Modal: Create Company (inline) */}
     {showCreateCompany && (
       <div className="fixed inset-0 z-[80] bg-black/85 backdrop-blur-sm flex items-center justify-center p-0" onClick={() => setShowCreateCompany(false)}>
-        <div className="bg-white rounded-lg p-4 max-w-md w-[90%] space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="bg-white rounded-lg p-4 max-w-lg w-[95%] max-h-[90vh] overflow-y-auto space-y-2.5 shadow-2xl" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between">
             <h4 className="text-base font-semibold text-[#333] flex items-center gap-2">
               <Building2 size={18} className="text-[#8B5CF6]" />
@@ -878,127 +881,158 @@ export function NewProjectModal({
           
           {/* Company Name */}
           <div>
-            <label className="text-xs font-medium text-[#666] mb-1.5 block">
+            <label className="text-xs font-medium text-[#666] mb-1 block">
               {lang === 'pt' ? 'Nome da Empresa *' : 'Company Name *'}
             </label>
             <input
               value={newCompanyName}
               onChange={e => setNewCompanyName(e.target.value)}
-              placeholder={lang === 'pt' ? 'Ex: Biblizoo, Agent22...' : 'Ex: Biblizoo, Agent22...'}
+              placeholder={lang === 'pt' ? 'Ex: Biblizoo, PetzGenius...' : 'Ex: Biblizoo, PetzGenius...'}
               autoFocus
-              className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-2.5 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
+              className="w-full bg-white/80 border-2 border-[#E0E0E0] rounded-lg px-3 py-2 text-sm text-[#333] placeholder-[#999] outline-none focus:border-[#8B5CF6] transition"
             />
           </div>
           
           {/* Logo Upload */}
           <div>
-            <label className="text-xs font-medium text-[#666] mb-1.5 block">
+            <label className="text-xs font-medium text-[#666] mb-1 block">
               {lang === 'pt' ? 'Logo (PNG ou JPEG)' : 'Logo (PNG or JPEG)'}
             </label>
-            
             <div className="flex items-start gap-3">
               <div className="shrink-0">
-                <div className="w-24 h-24 rounded-lg overflow-hidden">
+                <div className="w-20 h-20 rounded-lg overflow-hidden">
                   {newCompanyLogo ? (
-                    <img 
-                      src={newCompanyLogo} 
-                      alt="Logo preview" 
-                      className="w-full h-full object-cover"
-                      style={{ objectPosition: newLogoPosition }}
-                    />
+                    <img src={newCompanyLogo} alt="Logo" className="w-full h-full object-cover" style={{ objectPosition: newLogoPosition }} />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-[#F3F0FF] to-[#E8E3FF] flex items-center justify-center border-2 border-[#E0E0E0]">
-                      <Building2 size={32} className="text-[#8B5CF6]/40" />
+                      <Building2 size={28} className="text-[#8B5CF6]/40" />
                     </div>
                   )}
                 </div>
-                
-                {newCompanyLogo && (
-                  <div className="mt-2 grid grid-cols-3 gap-0.5 bg-[#E0E0E0] rounded p-0.5">
-                    {[
-                      { id: 'top', label: '↑' },
-                      { id: 'center', label: '●' },
-                      { id: 'bottom', label: '↓' },
-                      { id: 'left', label: '←' },
-                      { id: 'center', label: '●' },
-                      { id: 'right', label: '→' },
-                    ].slice(0, 5).map((pos, idx) => {
-                      const positions = ['top', 'center', 'bottom', 'left', 'right'];
-                      const labels = ['↑', '●', '↓', '←', '→'];
-                      return (
-                        <button
-                          key={positions[idx]}
-                          type="button"
-                          onClick={() => setNewLogoPosition(positions[idx])}
-                          className={`px-2 py-1 text-xs rounded transition ${
-                            newLogoPosition === positions[idx]
-                              ? 'bg-[#8B5CF6] text-white'
-                              : 'bg-white text-[#666] hover:bg-[#F9F7FF]'
-                          }`}
-                          title={positions[idx]}>
-                          {labels[idx]}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
-              
               <label className="flex-1 cursor-pointer">
-                <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-4 py-3 text-center transition-all bg-white/50 hover:bg-[#F9F7FF] h-24 flex flex-col items-center justify-center">
+                <div className="border-2 border-dashed border-[#E0E0E0] hover:border-[#8B5CF6] rounded-lg px-3 py-2 text-center transition-all bg-white/50 hover:bg-[#F9F7FF] h-20 flex flex-col items-center justify-center">
                   {uploadingLogo ? (
-                    <span className="text-xs text-[#666]">
-                      {lang === 'pt' ? 'Fazendo upload...' : 'Uploading...'}
-                    </span>
+                    <span className="text-xs text-[#666]">{lang === 'pt' ? 'Enviando...' : 'Uploading...'}</span>
                   ) : (
                     <>
-                      <span className="text-xs text-[#666] block font-medium">
-                        {lang === 'pt' ? 'Clique para fazer upload' : 'Click to upload'}
-                      </span>
-                      <span className="text-[10px] text-[#999] mt-0.5 block">
-                        PNG, JPEG • Max 5MB
-                      </span>
+                      <span className="text-xs text-[#666] block font-medium">{lang === 'pt' ? 'Clique para upload' : 'Click to upload'}</span>
+                      <span className="text-[10px] text-[#999] mt-0.5 block">PNG, JPEG - Max 5MB</span>
                     </>
                   )}
                 </div>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg"
-                  onChange={handleLogoUpload}
-                  disabled={uploadingLogo}
-                  className="hidden"
-                />
+                <input type="file" accept="image/png,image/jpeg,image/jpg" onChange={handleLogoUpload} disabled={uploadingLogo} className="hidden" />
               </label>
             </div>
-            
-            {newCompanyLogo && (
-              <button
-                onClick={() => {
-                  setNewCompanyLogo('');
-                  setNewLogoPosition('center');
-                }}
-                className="mt-2 text-xs text-[#999] hover:text-red-500 transition">
-                {lang === 'pt' ? '✕ Remover logo' : '✕ Remove logo'}
-              </button>
-            )}
           </div>
-          
-          <p className="text-[10px] text-[#666] bg-[#F9F7FF] rounded px-2 py-1.5 border border-[#E8E3FF]">
-            💡 {lang === 'pt' 
-              ? 'As configurações atuais do projeto serão salvas como padrão para esta empresa.' 
-              : 'Current project settings will be saved as defaults for this company.'}
-          </p>
+
+          {/* Visual Style */}
+          <div>
+            <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
+              {lang === 'pt' ? 'Estilo Visual Padrão' : 'Default Visual Style'}
+            </label>
+            <div className="grid grid-cols-3 gap-0.5">
+              {[
+                { id: 'pixar_3d', label: 'Pixar 3D' },
+                { id: 'cartoon_3d', label: 'Cartoon 3D' },
+                { id: 'cartoon_2d', label: 'Cartoon 2D' },
+                { id: 'anime_2d', label: 'Anime 2D' },
+                { id: 'realistic', label: 'Realista' },
+                { id: 'watercolor', label: 'Aquarela' },
+              ].map(s => (
+                <button key={s.id} type="button"
+                  onClick={() => { setAnimationSub(s.id); setVisualStyle(s.id.includes('3d') ? 'animation' : s.id.includes('2d') ? (s.id === 'anime_2d' ? 'anime' : 'cartoon') : s.id === 'realistic' ? 'realistic' : 'watercolor'); }}
+                  className={`px-1.5 py-0.5 rounded-lg border-2 transition-all text-[10px] font-medium ${
+                    animationSub === s.id ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                  }`}>{s.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Character Folder */}
+          <div>
+            <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
+              {lang === 'pt' ? 'Pasta de Personagens Padrão' : 'Default Character Folder'}
+            </label>
+            <div className="grid grid-cols-2 gap-0.5 max-h-16 overflow-y-auto p-0.5 bg-gray-50 rounded-lg">
+              <button type="button" onClick={() => setSelectedFolder(null)}
+                className={`px-1.5 py-0.5 rounded-lg border-2 transition-all flex items-center gap-1 text-[10px] font-medium ${
+                  selectedFolder === null ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                }`}><Sparkles size={10} /><span>{lang === 'pt' ? 'Criar Novos' : 'Create New'}</span></button>
+              {!loadingFolders && folders.map(folder => (
+                <button key={folder.id} type="button" onClick={() => setSelectedFolder(folder.id)}
+                  className={`px-1.5 py-0.5 rounded-lg border-2 transition-all flex items-center gap-1 text-[10px] font-medium text-left ${
+                    selectedFolder === folder.id ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                  }`}><Users size={10} /><span className="truncate">{folder.name}</span></button>
+              ))}
+            </div>
+          </div>
+
+          {/* Target Audience */}
+          <div>
+            <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
+              {lang === 'pt' ? 'Público-Alvo Padrão' : 'Default Target Audience'}
+            </label>
+            <div className="grid grid-cols-4 gap-0.5">
+              {['3-6', '6-9', '10-13', '14-17'].map(age => (
+                <button key={age} type="button" onClick={() => setTargetAudience(age)}
+                  className={`px-1.5 py-0.5 rounded-lg border-2 transition text-[10px] font-medium ${
+                    targetAudience === age ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                  }`}>{age}</button>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-0.5 mt-0.5">
+              {[{id:'18-25',label:'18-25'},{id:'25+',label:'25+'},{id:'all',label:lang==='pt'?'Todas':'All'}].map(age => (
+                <button key={age.id} type="button" onClick={() => setTargetAudience(age.id)}
+                  className={`px-1.5 py-0.5 rounded-lg border-2 transition text-[10px] font-medium ${
+                    targetAudience === age.id ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                  }`}>{age.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Format Strategy */}
+          <div>
+            <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
+              {lang === 'pt' ? 'Formato Padrão' : 'Default Format'}
+            </label>
+            <div className="grid grid-cols-3 gap-0.5">
+              {[{id:'safe_zone',label:'Safe Zone'},{id:'dual_generation',label:'Dual'},{id:'multi_format',label:'Multi'}].map(f => (
+                <button key={f.id} type="button" onClick={() => setFormatStrategy(f.id)}
+                  className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                    formatStrategy === f.id ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                  }`}>{f.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Video Engine */}
+          <div>
+            <label className="text-[10px] font-medium text-[#666] mb-0.5 block">
+              {lang === 'pt' ? 'Engine de Vídeo Padrão' : 'Default Video Engine'}
+            </label>
+            <div className="grid grid-cols-2 gap-0.5">
+              <button type="button" onClick={() => setVideoEngine('sora')}
+                className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                  videoEngine === 'sora' ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                }`}>Sora 2 (12s)</button>
+              <button type="button" onClick={() => setVideoEngine('kling')}
+                className={`px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-medium transition ${
+                  videoEngine === 'kling' ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 text-[#8B5CF6]' : 'border-[#E0E0E0] text-[#666] hover:border-[#8B5CF6]/30'
+                }`}>Kling AI (5min)</button>
+            </div>
+          </div>
           
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => setShowCreateCompany(false)}
-              className="flex-1 px-4 py-2.5 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
+              className="flex-1 px-4 py-2 rounded-lg border-2 border-[#E0E0E0] text-xs font-medium text-[#666] hover:text-[#333] hover:border-[#8B5CF6] transition bg-white/80">
               {lang === 'pt' ? 'Cancelar' : 'Cancel'}
             </button>
             <button
               onClick={handleCreateCompany}
               disabled={!newCompanyName.trim() || creatingCompany}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
+              className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-sm font-bold text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-lg hover:shadow-[#8B5CF6]/30">
               {creatingCompany 
                 ? (lang === 'pt' ? 'Criando...' : 'Creating...') 
                 : (lang === 'pt' ? 'Criar Empresa' : 'Create Company')}
