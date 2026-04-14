@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
@@ -52,7 +52,7 @@ export function DialogueEditor({ projectId, lang, scenes: propScenes, onComplete
   const [needsDubbedGen, setNeedsDubbedGen] = useState(0);
 
   const token = localStorage.getItem('studiox_token');
-  const headers = { Authorization: `Bearer ${token}` };
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   useEffect(() => {
     const loadData = async () => {
