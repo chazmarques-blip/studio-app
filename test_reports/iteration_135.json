@@ -1,0 +1,110 @@
+{
+  "summary": "Iteration 135: Tested Sora 2 production pipeline fixes. Fixed critical bug where 'lang' variable was undefined in _scene_director function (line 484). Verified full-production endpoint correctly differentiates between Sora 2 and Kling projects - Sora 2 no longer requires kling_storyboards.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "Anthropic API",
+        "issue": "API rate limit reached - 'You have reached your specified API usage limits. You will regain access on 2026-05-01'",
+        "priority": "LOW",
+        "note": "External API issue, not a code bug"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration135_sora2_production.py",
+    "/app/test_reports/pytest/pytest_results_iteration135.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FIXED: Line 484 in production.py - Changed 'lang' to 'project_lang' to fix NameError in _scene_director function",
+    "VERIFIED: full-production endpoint (lines 1840-1854) correctly validates based on video_engine - Sora 2 only needs scenes, Kling requires storyboards",
+    "VERIFIED: Cinema Sequential keyframe generation (line 1767) only generates for scene 1 for Sora 2",
+    "VERIFIED: Project 5a12e7f93f6f has video_engine='sora' with 60 scenes and no kling_storyboards - full-production starts successfully"
+  ],
+  "updated_files": [
+    "/app/backend/routers/studio/production.py",
+    "/app/backend/tests/test_iteration135_sora2_production.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 tests passed, 1 skipped)"
+  },
+  "test_credentials": {
+    "email": "test@studiox.com",
+    "password": "studiox123",
+    "sora_project_id": "5a12e7f93f6f"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend is working correctly. The 'lang' variable bug has been fixed. Sora 2 projects can now run full-production without kling_storyboards. Anthropic API has rate limits that may cause Director failures but the pipeline handles this gracefully with fallback prompts.",
+  "verified_features": {
+    "P0_backend_running": {
+      "status": "WORKING",
+      "details": "Health endpoint returns {status: ok}"
+    },
+    "P0_sora2_no_storyboards_required": {
+      "status": "WORKING",
+      "details": "POST /api/studio/projects/5a12e7f93f6f/full-production returns {status: started} for Sora 2 project without kling_storyboards"
+    },
+    "P0_kling_requires_storyboards": {
+      "status": "SKIPPED",
+      "details": "No suitable Kling project without storyboards found for testing, but code review confirms validation logic at lines 1843-1849"
+    },
+    "P1_auth_login": {
+      "status": "WORKING",
+      "details": "POST /api/auth/login returns access_token for test@studiox.com"
+    },
+    "P1_get_projects": {
+      "status": "WORKING",
+      "details": "GET /api/studio/projects returns 57 projects including Sora 2 and Kling projects"
+    },
+    "P1_start_production_sora2": {
+      "status": "WORKING",
+      "details": "POST /api/studio/start-production with video_engine='sora' works correctly"
+    },
+    "lang_bug_fix": {
+      "status": "FIXED",
+      "details": "Changed line 484 from 'lang' to 'project_lang' - no more NameError in _scene_director"
+    }
+  },
+  "api_endpoints_tested": [
+    {
+      "endpoint": "GET /api/health",
+      "status": "200 OK",
+      "response": "{status: ok, service: studiox-api, version: 1.0.0}"
+    },
+    {
+      "endpoint": "POST /api/auth/login",
+      "status": "200 OK",
+      "response": "Returns access_token"
+    },
+    {
+      "endpoint": "GET /api/studio/projects",
+      "status": "200 OK",
+      "response": "Returns {projects: [...]} with 57 projects"
+    },
+    {
+      "endpoint": "POST /api/studio/projects/5a12e7f93f6f/full-production",
+      "status": "200 OK",
+      "response": "{status: started, message: Full production pipeline started}"
+    },
+    {
+      "endpoint": "POST /api/studio/start-production",
+      "status": "200 OK",
+      "response": "Starts production for Sora 2 projects"
+    }
+  ],
+  "bug_fix_applied": {
+    "file": "/app/backend/routers/studio/production.py",
+    "line": 484,
+    "old_code": "lang_full = {\"pt\": \"Portuguese\", \"en\": \"English\", \"es\": \"Spanish\"}.get(lang, lang)",
+    "new_code": "lang_full = {\"pt\": \"Portuguese\", \"en\": \"English\", \"es\": \"Spanish\"}.get(project_lang, project_lang)",
+    "reason": "Variable 'lang' was not defined in _scene_director function scope. 'project_lang' is defined at line 306 and accessible via closure."
+  }
+}

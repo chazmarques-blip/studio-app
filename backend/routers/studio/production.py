@@ -481,7 +481,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             # ── LAYER 2: FIXED DIALOGUE WITH LIP SYNC (from scene data) ──
             dialogue_timeline = scene.get("dialogue_timeline", [])
             scene_dialogue = scene.get("dialogue", "").strip()
-            lang_full = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, lang)
+            lang_full = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(project_lang, project_lang)
             
             fixed_dialogue_block = ""
             if dialogue_timeline and len(dialogue_timeline) > 0:
@@ -1373,9 +1373,9 @@ VISUAL DIRECTION: {visual_direction}
         scene_map = {s.get("scene_number", i+1): s for i, s in enumerate(scenes)}
 
         if continuity_mode:
-            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY PARALLEL) - Keyframe generation + parallel rendering")
+            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY) - Keyframe + rendering")
 
-            # B1: Generate ALL keyframes in parallel (Gemini, 5 concurrent)
+            # B1: Generate keyframes
             keyframe_paths = []
 
             def _generate_keyframe_for_scene(ds):
@@ -1408,17 +1408,27 @@ VISUAL DIRECTION: {visual_direction}
                                  "videos_done": 0, "scene_status": {str(ds["scene_number"]): "queued" for ds in directed_scenes}}
             })
 
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                kf_futures = {executor.submit(_generate_keyframe_for_scene, ds): ds["scene_number"] for ds in directed_scenes}
-                for future in as_completed(kf_futures):
-                    sn = kf_futures[future]
-                    future.result()  # ensures exceptions propagate
-                    logger.info(f"Studio [{project_id}]: Keyframe {sn}/{total} ready")
+            if video_engine == "sora":
+                # SORA 2 CINEMA SEQUENTIAL: Only generate keyframe for scene 1
+                # Scenes 2+ will use the last frame from the previous clip
+                first_ds = next((ds for ds in sorted(directed_scenes, key=lambda x: x["scene_number"]) if not ds.get("cached")), None)
+                if first_ds:
+                    logger.info(f"Studio [{project_id}]: Cinema Sequential - generating keyframe for scene {first_ds['scene_number']} only")
+                    _generate_keyframe_for_scene(first_ds)
+                    logger.info(f"Studio [{project_id}]: Scene 1 keyframe ready - starting sequential pipeline")
+                else:
+                    logger.info(f"Studio [{project_id}]: All scenes cached, skipping keyframe generation")
+            else:
+                # KLING: Generate ALL keyframes in parallel (Gemini, 5 concurrent)
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    kf_futures = {executor.submit(_generate_keyframe_for_scene, ds): ds["scene_number"] for ds in directed_scenes}
+                    for future in as_completed(kf_futures):
+                        sn = kf_futures[future]
+                        future.result()
+                        logger.info(f"Studio [{project_id}]: Keyframe {sn}/{total} ready")
+                logger.info(f"Studio [{project_id}]: All {total} keyframes ready")
 
-            logger.info(f"Studio [{project_id}]: All {total} keyframes ready - launching parallel Sora 2 renders")
-
-            # B2: SORA 2 CINEMA MODE - Render SEQUENTIALLY for continuity
-            # Each clip uses the LAST FRAME of the previous clip as reference image
+            # B2: Render videos
             _update_project_field(tenant_id, project_id, {
                 "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "generating_video",
                                  "videos_done": 0, "scene_status": {str(ds["scene_number"]): "waiting_sora" for ds in directed_scenes}}
@@ -1827,12 +1837,20 @@ async def full_production(
     if not project.get("scenes"):
         raise HTTPException(status_code=400, detail="No scenes defined")
     
-    storyboards = project.get("kling_storyboards", [])
-    all_frames = []
-    for sb in storyboards:
-        all_frames.extend(sb.get("frames", []))
-    if not all_frames:
-        raise HTTPException(status_code=400, detail="No storyboard frames. Generate storyboard first.")
+    video_engine = project.get("video_engine", "kling")
+    
+    # Validate based on engine
+    if video_engine == "kling":
+        storyboards = project.get("kling_storyboards", [])
+        all_frames = []
+        for sb in storyboards:
+            all_frames.extend(sb.get("frames", []))
+        if not all_frames:
+            raise HTTPException(status_code=400, detail="No storyboard frames. Generate storyboard first.")
+    else:
+        # Sora 2: only needs scenes
+        if not project.get("scenes"):
+            raise HTTPException(status_code=400, detail="No scenes defined. Use the Screenwriter first.")
     
     project["full_production_status"] = "starting"
     project["progress_message"] = "Iniciando produção completa..."
@@ -1968,11 +1986,10 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
                 logger.info(f"FullProd [{project_id}]: PHASE 3 - Generating Sora 2 audio overlay (TTS + V2A)...")
                 _update_project_field(tenant_id, project_id, {
                     "full_production_status": "audio",
-                    "progress_message": "Fase 3/3 - Gerando áudio (vozes + sonoplastia)..."
+                    "progress_message": "Fase 3/3 - Gerando audio (vozes + sonoplastia)..."
                 })
                 
-                from .kling_storyboard import _generate_audio_overlay_background
-                _generate_audio_overlay_background(tenant_id, project_id)
+                _generate_sora2_audio_overlay(tenant_id, project_id)
                 
                 logger.info(f"FullProd [{project_id}]: Audio overlay complete")
         
@@ -1991,6 +2008,363 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
         _update_project_field(tenant_id, project_id, {
             "full_production_status": "error",
             "progress_message": f"Erro na produção: {str(e)[:100]}"
+        })
+
+
+
+def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
+    """Generate TTS audio overlay for Sora 2 videos using scenes + dialogue_timeline.
+    
+    Sora 2 generates video with VISUAL lip sync but NO actual audio.
+    This function:
+    1. Reads dialogue_timeline from each scene (12s per scene)
+    2. Generates TTS audio per character beat using ElevenLabs
+    3. Places each audio segment at the correct timestamp within the scene
+    4. Concatenates all scene audio tracks
+    5. Optionally generates V2A sonoplastia (BGM + SFX)
+    6. Mixes TTS dialogue + V2A onto the video
+    """
+    import subprocess
+    import tempfile
+    import shutil
+    
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+        
+        scenes = project.get("scenes", [])
+        voice_map = project.get("voice_map", {})
+        lang = project.get("language", "pt")
+        scene_duration = 12.0  # Sora 2 scenes are 12 seconds
+        
+        # Get the concatenated video from outputs
+        outputs = project.get("outputs", [])
+        video_output = next((o for o in outputs if o.get("type") == "video" and o.get("scene_number", -1) == 0), None)
+        if not video_output:
+            video_output = next((o for o in outputs if o.get("type") == "video" and o.get("url")), None)
+        if not video_output or not video_output.get("url"):
+            logger.warning(f"Sora2Audio [{project_id}]: No video output found, skipping audio overlay")
+            return
+        
+        video_url = video_output["url"]
+        logger.info(f"Sora2Audio [{project_id}]: Starting audio overlay — {len(scenes)} scenes, {len(voice_map)} voices")
+        
+        tmpdir = tempfile.mkdtemp(prefix="sora2_audio_")
+        
+        try:
+            from .narration import _generate_narration_audio
+            
+            STAGE_MARKERS = ["silencio", "beat", "camera", "olhar", "pausa",
+                             "movimento", "plano", "corte", "fade", "zoom", "som de"]
+            
+            scene_audio_paths = []
+            
+            for scene_idx, scene in enumerate(scenes):
+                scene_num = scene.get("scene_number", scene_idx + 1)
+                dialogue_timeline = scene.get("dialogue_timeline", [])
+                scene_dialogue = scene.get("dialogue", "").strip()
+                
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": f"Gerando audio — Cena {scene_num}/{len(scenes)}"
+                })
+                
+                if not dialogue_timeline and not scene_dialogue:
+                    # Silent scene - generate 12s silence
+                    silence_path = f"{tmpdir}/scene_{scene_num:03d}.wav"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(scene_duration),
+                        "-acodec", "pcm_s16le", silence_path
+                    ], capture_output=True, timeout=10)
+                    scene_audio_paths.append(silence_path)
+                    continue
+                
+                # Parse dialogue beats with timing
+                beats = []
+                if dialogue_timeline:
+                    for beat in dialogue_timeline:
+                        speaker = beat.get("speaker", "Narrador")
+                        text = beat.get("text", "").strip()
+                        start_time = float(beat.get("start_time", 0))
+                        end_time = float(beat.get("end_time", start_time + 3))
+                        if text and len(text) > 1:
+                            is_stage = any(m in text.lower() for m in STAGE_MARKERS)
+                            if not is_stage:
+                                beats.append({"speaker": speaker, "text": text,
+                                              "start": start_time, "end": end_time})
+                elif scene_dialogue:
+                    # Fallback: parse dialogue text into beats
+                    import re as _re
+                    lines = [l.strip() for l in scene_dialogue.split('\n') if l.strip()]
+                    time_per_line = scene_duration / max(len(lines), 1)
+                    for i, line in enumerate(lines[:6]):
+                        speaker, text = "Narrador", line
+                        if ":" in line:
+                            parts = line.split(":", 1)
+                            if len(parts[0].strip()) < 30:
+                                speaker = parts[0].strip()
+                                text = parts[1].strip().strip("'\"")
+                        text = _re.sub(r'\([^)]*\)', '', text).strip()
+                        text = _re.sub(r'\[.*?\]', '', text).strip()
+                        if text and len(text) > 1:
+                            beats.append({"speaker": speaker, "text": text,
+                                          "start": i * time_per_line, "end": (i + 1) * time_per_line})
+                
+                if not beats:
+                    silence_path = f"{tmpdir}/scene_{scene_num:03d}.wav"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(scene_duration),
+                        "-acodec", "pcm_s16le", silence_path
+                    ], capture_output=True, timeout=10)
+                    scene_audio_paths.append(silence_path)
+                    continue
+                
+                # Generate TTS for each beat and place at correct timestamp
+                beat_audio_files = []
+                for bi, beat in enumerate(beats):
+                    matched_voice = None
+                    for cname, vid in voice_map.items():
+                        if beat["speaker"].lower() in cname.lower() or cname.lower() in beat["speaker"].lower():
+                            matched_voice = vid
+                            break
+                    if not matched_voice:
+                        matched_voice = list(voice_map.values())[0] if voice_map else None
+                    if not matched_voice:
+                        continue
+                    
+                    try:
+                        audio_bytes = _generate_narration_audio(
+                            text=beat["text"], voice_id=matched_voice,
+                            stability=0.5, similarity=0.75, style_val=0.0,
+                            language_code=lang
+                        )
+                        beat_path = f"{tmpdir}/scene_{scene_num:03d}_beat_{bi}.mp3"
+                        with open(beat_path, "wb") as f:
+                            f.write(audio_bytes)
+                        beat_audio_files.append({"path": beat_path, "start": beat["start"],
+                                                 "speaker": beat["speaker"]})
+                        logger.info(f"  Scene {scene_num} beat {bi}: TTS done ({beat['speaker']}: {beat['text'][:30]}...)")
+                    except Exception as e:
+                        logger.warning(f"  Scene {scene_num} beat {bi}: TTS failed ({e})")
+                
+                # Mix all beats into a single 12s audio track using FFmpeg
+                scene_audio = f"{tmpdir}/scene_{scene_num:03d}.wav"
+                
+                if not beat_audio_files:
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(scene_duration),
+                        "-acodec", "pcm_s16le", scene_audio
+                    ], capture_output=True, timeout=10)
+                else:
+                    # Build filter_complex to place each beat at its timestamp
+                    inputs = ["-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo"]
+                    for bf in beat_audio_files:
+                        inputs.extend(["-i", bf["path"]])
+                    
+                    filter_parts = []
+                    for i, bf in enumerate(beat_audio_files):
+                        delay_ms = int(bf["start"] * 1000)
+                        filter_parts.append(f"[{i+1}:a]adelay={delay_ms}|{delay_ms}[d{i}]")
+                    
+                    mix_inputs = "[0:a]" + "".join(f"[d{i}]" for i in range(len(beat_audio_files)))
+                    filter_parts.append(f"{mix_inputs}amix=inputs={len(beat_audio_files)+1}:duration=first:dropout_transition=2[out]")
+                    
+                    cmd = ["ffmpeg", "-y"] + inputs + [
+                        "-t", str(scene_duration),
+                        "-filter_complex", ";".join(filter_parts),
+                        "-map", "[out]",
+                        "-t", str(scene_duration),
+                        "-acodec", "pcm_s16le", scene_audio
+                    ]
+                    result = subprocess.run(cmd, capture_output=True, timeout=30)
+                    if result.returncode != 0:
+                        logger.warning(f"  Scene {scene_num}: Complex mix failed, falling back to simple concat")
+                        # Fallback: just concat beat audios with silence padding
+                        concat_list = f"{tmpdir}/scene_{scene_num:03d}_concat.txt"
+                        with open(concat_list, "w") as f:
+                            for bf in beat_audio_files:
+                                f.write(f"file '{bf['path']}'\n")
+                        subprocess.run([
+                            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                            "-i", concat_list,
+                            "-af", f"apad=whole_dur={scene_duration}",
+                            "-t", str(scene_duration),
+                            "-acodec", "pcm_s16le", scene_audio
+                        ], capture_output=True, timeout=15)
+                
+                if os.path.exists(scene_audio) and os.path.getsize(scene_audio) > 100:
+                    scene_audio_paths.append(scene_audio)
+                else:
+                    # Create silence as fallback
+                    subprocess.run([
+                        "ffmpeg", "-y", "-f", "lavfi",
+                        "-i", f"anullsrc=r=44100:cl=stereo",
+                        "-t", str(scene_duration),
+                        "-acodec", "pcm_s16le", scene_audio
+                    ], capture_output=True, timeout=10)
+                    scene_audio_paths.append(scene_audio)
+            
+            # Concatenate all scene audio tracks
+            concat_list = f"{tmpdir}/full_audio_concat.txt"
+            with open(concat_list, "w") as f:
+                for path in scene_audio_paths:
+                    f.write(f"file '{path}'\n")
+            
+            full_audio = f"{tmpdir}/full_dialogue.mp3"
+            subprocess.run([
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", concat_list,
+                "-acodec", "libmp3lame", "-q:a", "4",
+                full_audio
+            ], capture_output=True, timeout=60)
+            
+            if not os.path.exists(full_audio) or os.path.getsize(full_audio) < 100:
+                logger.error(f"Sora2Audio [{project_id}]: Audio concat failed")
+                return
+            
+            logger.info(f"Sora2Audio [{project_id}]: Full dialogue track: {os.path.getsize(full_audio)//1024}KB")
+            
+            # Download video
+            _update_project_field(tenant_id, project_id, {
+                "progress_message": "Baixando video e gerando sonoplastia..."
+            })
+            video_path = f"{tmpdir}/video.mp4"
+            vid_resp = requests.get(video_url, timeout=120)
+            vid_resp.raise_for_status()
+            with open(video_path, "wb") as f:
+                f.write(vid_resp.content)
+            
+            # Optional: V2A Sonoplastia (BGM + SFX)
+            sfx_track = None
+            try:
+                kling = KlingClient()
+                v2a_sample = f"{tmpdir}/v2a_sample.mp4"
+                subprocess.run([
+                    "ffmpeg", "-y", "-i", video_path,
+                    "-t", "20", "-c", "copy", v2a_sample
+                ], capture_output=True, timeout=15)
+                
+                if os.path.exists(v2a_sample) and os.path.getsize(v2a_sample) > 1000:
+                    with open(v2a_sample, 'rb') as f:
+                        sample_bytes = f.read()
+                    sample_url = _upload_to_storage(sample_bytes, f"studio/{project_id}_sora_v2a_sample.mp4", "video/mp4")
+                    
+                    scene_desc = scenes[0].get("description", "") if scenes else ""
+                    sfx_prompt = scene_desc[:150] if scene_desc else "ambient sounds, gentle atmosphere"
+                    bgm_prompt = "gentle orchestral music, Pixar style, warm emotional, children animation"
+                    
+                    _update_project_field(tenant_id, project_id, {
+                        "progress_message": "Gerando sonoplastia e musica de fundo (V2A)..."
+                    })
+                    
+                    v2a_result = kling.video_to_audio(
+                        video_url=sample_url, sfx_prompt=sfx_prompt,
+                        bgm_prompt=bgm_prompt, max_wait=180
+                    )
+                    
+                    if v2a_result and v2a_result.get("audio_mp3_url"):
+                        sfx_resp = requests.get(v2a_result["audio_mp3_url"], timeout=60)
+                        if sfx_resp.status_code == 200:
+                            v2a_short = f"{tmpdir}/sfx_bgm_short.mp3"
+                            with open(v2a_short, "wb") as f:
+                                f.write(sfx_resp.content)
+                            
+                            probe = subprocess.run([
+                                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                "-of", "default=noprint_wrappers=1:nokey=1", video_path
+                            ], capture_output=True, text=True, timeout=10)
+                            vid_dur = float(probe.stdout.strip()) if probe.returncode == 0 else len(scenes) * 12.0
+                            
+                            sfx_track = f"{tmpdir}/sfx_bgm.mp3"
+                            subprocess.run([
+                                "ffmpeg", "-y", "-stream_loop", "-1", "-i", v2a_short,
+                                "-t", str(vid_dur), "-acodec", "libmp3lame", "-q:a", "4",
+                                sfx_track
+                            ], capture_output=True, timeout=30)
+                            
+                            if not (os.path.exists(sfx_track) and os.path.getsize(sfx_track) > 1000):
+                                sfx_track = None
+                            else:
+                                logger.info(f"Sora2Audio [{project_id}]: V2A SFX+BGM track ready ({os.path.getsize(sfx_track)//1024}KB)")
+            except Exception as e:
+                logger.warning(f"Sora2Audio [{project_id}]: V2A sonoplastia failed (non-fatal): {e}")
+            
+            # Mix: video + dialogue (vol 1.0) + optional SFX/BGM (vol 0.15)
+            _update_project_field(tenant_id, project_id, {
+                "progress_message": "Mixando audio com video..."
+            })
+            final_path = f"{tmpdir}/final_dubbed.mp4"
+            
+            if sfx_track and os.path.exists(sfx_track):
+                merge_cmd = [
+                    "ffmpeg", "-y",
+                    "-i", video_path, "-i", full_audio, "-i", sfx_track,
+                    "-filter_complex",
+                    "[1:a]volume=1.0[dial];[2:a]volume=0.15[sfx];[dial][sfx]amix=inputs=2:duration=shortest[aout]",
+                    "-c:v", "copy", "-map", "0:v:0", "-map", "[aout]",
+                    "-c:a", "aac", "-b:a", "128k", "-shortest",
+                    "-movflags", "+faststart", final_path
+                ]
+            else:
+                merge_cmd = [
+                    "ffmpeg", "-y",
+                    "-i", video_path, "-i", full_audio,
+                    "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
+                    "-map", "0:v:0", "-map", "1:a:0", "-shortest",
+                    "-movflags", "+faststart", final_path
+                ]
+            
+            merge_result = subprocess.run(merge_cmd, capture_output=True, timeout=120)
+            
+            if merge_result.returncode != 0:
+                logger.error(f"Sora2Audio: Merge failed: {merge_result.stderr.decode()[:300]}")
+                _update_project_field(tenant_id, project_id, {
+                    "audio_generation_status": "error",
+                    "progress_message": "Erro no merge audio + video"
+                })
+                return
+            
+            # Upload final dubbed video
+            with open(final_path, "rb") as f:
+                final_bytes = f.read()
+            
+            filename = f"studio/{project_id}_sora2_dubbed.mp4"
+            final_url = _upload_to_storage(final_bytes, filename, "video/mp4")
+            
+            logger.info(f"Sora2Audio [{project_id}]: DONE — {len(final_bytes)//1024}KB uploaded")
+            
+            # Update outputs with dubbed version
+            for o in outputs:
+                if o.get("type") == "video":
+                    o["url"] = final_url
+                    o["has_audio"] = True
+                    break
+            
+            _update_project_field(tenant_id, project_id, {
+                "outputs": outputs,
+                "audio_generation_status": "complete",
+                "progress_message": "Audio dublado aplicado ao video!"
+            }, flush_now=True)
+            
+        finally:
+            try:
+                shutil.rmtree(tmpdir)
+            except Exception:
+                pass
+    
+    except Exception as e:
+        logger.error(f"Sora2Audio [{project_id}]: Fatal error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        _update_project_field(tenant_id, project_id, {
+            "audio_generation_status": "error",
+            "progress_message": f"Erro audio: {str(e)[:100]}"
         })
 
 
