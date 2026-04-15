@@ -606,6 +606,11 @@ IMPORTANT:
             project["characters"] = all_characters
             logger.info(f"Studio [{project_id}]: Screenplay set to {len(all_scenes)} scenes (replaced {len(prev_scenes)} previous)")
 
+            # Unify dialogue: dubbed_text is the canonical dialogue source
+            for scene in all_scenes:
+                if scene.get("dubbed_text"):
+                    scene["dialogue"] = scene["dubbed_text"]
+
             final_scenes = project["scenes"]
             final_characters = project.get("characters", [])
 

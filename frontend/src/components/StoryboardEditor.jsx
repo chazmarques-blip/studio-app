@@ -2307,7 +2307,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               {!useKlingMode && (() => {
                 // Cross-reference panel with scene data to get dialogue, sora_prompt, etc.
                 const matchedScene = scenes.find(s => s.scene_number === zoomFrame.scene_number) || {};
-                const sceneDialogue = matchedScene.dialogue || zoomFrame.dialogue || '';
+                const sceneDialogue = matchedScene.dubbed_text || matchedScene.dialogue || zoomFrame.dialogue || '';
                 const soraPrompt = matchedScene.sora_prompt || zoomFrame.sora_prompt || '';
                 const sceneEmotion = matchedScene.emotion || zoomFrame.emotion || '';
                 const sceneChars = matchedScene.characters_in_scene || zoomFrame.characters_in_scene || [];

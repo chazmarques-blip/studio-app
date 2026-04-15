@@ -372,6 +372,11 @@ Return ONLY JSON:
     
     logger.info(f"ParallelScreenplay [{project_id}]: COMPLETE - {len(all_scenes)} scenes, {len(all_characters)} characters")
     
+    # Unify dialogue: dubbed_text is the canonical dialogue source
+    for scene in all_scenes:
+        if scene.get("dubbed_text"):
+            scene["dialogue"] = scene["dubbed_text"]
+    
     return {
         "title": title,
         "scenes": all_scenes,
