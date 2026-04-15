@@ -149,9 +149,9 @@ def _generate_video_unified(
             logger.error("Kling engine selected but kling_client not provided")
             return b""
         
-        # Kling supports max 10s clips — use 10s for best quality
+        # Kling supports max 10s clips - use 10s for best quality
         kling_duration = min(duration, 10)
-        logger.info(f"🎬 Using KLING AI engine (duration={kling_duration}s)")
+        logger.info(f"[FILM] Using KLING AI engine (duration={kling_duration}s)")
         return kling_client.text_to_video(
             prompt=prompt,
             image_path=image_path,
@@ -166,7 +166,7 @@ def _generate_video_unified(
             logger.error("Sora engine selected but openai_client not provided")
             return b""
         
-        logger.info(f"🎬 Using SORA 2 engine (duration={duration}s)")
+        logger.info(f"[FILM] Using SORA 2 engine (duration={duration}s)")
         return _generate_video_with_openai_direct(
             client=openai_client,
             prompt=prompt,
@@ -176,7 +176,7 @@ def _generate_video_unified(
             max_wait=max_wait
         )
 
-# ── STEP 3: Multi-Scene Production Pipeline (v3 — Per-Scene Parallel Teams) ──
+# ── STEP 3: Multi-Scene Production Pipeline (v3 - Per-Scene Parallel Teams) ──
 
 def _update_scene_status(tenant_id: str, project_id: str, scene_num: int, status: str, total: int):
     """Thread-safe scene status update. Reads current state, merges, writes."""
@@ -238,20 +238,20 @@ def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url
 
 
 def _run_multi_scene_production(tenant_id: str, project_id: str, character_avatars: dict = None):
-    """v4 — Decoupled Pipeline: ALL Directors first (parallel) → ALL Sora jobs queued.
+    """v4 - Decoupled Pipeline: ALL Directors first (parallel) -> ALL Sora jobs queued.
 
     Architecture:
-    PHASE A (Preparation — ~5s):
+    PHASE A (Preparation - ~5s):
     ┌─ Director(Claude) Scene 1  ─┐
-    ├─ Director(Claude) Scene 2  ─┤  ALL PARALLEL → 15 Sora prompts ready
+    ├─ Director(Claude) Scene 2  ─┤  ALL PARALLEL -> 15 Sora prompts ready
     ├─ Director(Claude) Scene N  ─┤
     └─ MusicDirector              ┘
 
-    PHASE B (Production — priority queue):
-    Sora Queue → [1,2,3,4,5] → [6,7,8,9,10] → [11,12,13,14,15]
+    PHASE B (Production - priority queue):
+    Sora Queue -> [1,2,3,4,5] -> [6,7,8,9,10] -> [11,12,13,14,15]
                   5 slots simultaneous
 
-    → FFmpeg concat → Complete
+    -> FFmpeg concat -> Complete
     """
     import json as json_mod
     import tempfile
@@ -334,7 +334,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                     logger.warning(f"Studio [{project_id}]: Avatar download failed for {name}: {e}")
                     avatar_cache[url] = None
 
-        # ── Resume support — find already completed videos ──
+        # ── Resume support - find already completed videos ──
         _, _, proj_check = _get_project(tenant_id, project_id)
         existing_outputs = proj_check.get("outputs", []) if proj_check else []
         completed_videos = {}
@@ -343,7 +343,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             if sn and o.get("url") and o.get("type") == "video" and sn > 0:
                 completed_videos[sn] = o["url"]
         if completed_videos:
-            logger.info(f"Studio [{project_id}]: Resuming — {len(completed_videos)} scenes already cached: {sorted(completed_videos.keys())}")
+            logger.info(f"Studio [{project_id}]: Resuming - {len(completed_videos)} scenes already cached: {sorted(completed_videos.keys())}")
 
         # ══ PRE-PRODUCTION: Avatar Analysis + Production Design Document ══
         # Check if pre-production was already done via Preview Board
@@ -351,7 +351,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         existing_ad = project.get("agents_output", {}).get("avatar_descriptions")
 
         if existing_pd and isinstance(existing_pd, dict) and existing_pd.get("character_bible"):
-            logger.info(f"Studio [{project_id}]: PRE-PRODUCTION already done via Preview Board — skipping")
+            logger.info(f"Studio [{project_id}]: PRE-PRODUCTION already done via Preview Board - skipping")
             production_design = existing_pd
             avatar_descriptions = existing_ad or {}
         else:
@@ -359,14 +359,14 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                 "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production",
                                  "scene_status": {str(i+1): "queued" for i in range(total)}}
             })
-            logger.info(f"Studio [{project_id}]: PRE-PRODUCTION — Analyzing avatars and building production design")
+            logger.info(f"Studio [{project_id}]: PRE-PRODUCTION - Analyzing avatars and building production design")
 
             # Step 1: Analyze avatars with Claude Vision (ONE call for all avatars)
             avatar_descriptions = _run_async_in_thread(
                 _analyze_avatars_with_vision(characters, char_avatars, avatar_cache, project_id)
             )
 
-            # Step 2: Build Production Design Document (ONE call — replaces music, style, location, continuity planning)
+            # Step 2: Build Production Design Document (ONE call - replaces music, style, location, continuity planning)
             production_design = _build_production_design(
                 briefing, characters, scenes, avatar_descriptions, visual_style,
                 project.get("language", "pt"), project_id
@@ -385,7 +385,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         if continuity_mode:
             style_dna = _build_style_dna(animation_sub, production_design)
             pd_style = f"{style_dna} {pd_style}"
-            logger.info(f"Studio [{project_id}]: CONTINUITY ENGINE ON — Style DNA injected ({len(style_dna)} chars)")
+            logger.info(f"Studio [{project_id}]: CONTINUITY ENGINE ON - Style DNA injected ({len(style_dna)} chars)")
         pd_chars = production_design.get("character_bible", {})
         pd_locations = production_design.get("location_bible", {})
         pd_scene_dirs = {d.get("scene", 0): d for d in production_design.get("scene_directions", [])}
@@ -393,9 +393,9 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         pd_music = production_design.get("music_plan", [])
 
         t_preproduction = _time.time() - t_start
-        logger.info(f"Studio [{project_id}]: PRE-PRODUCTION complete in {t_preproduction:.1f}s — {len(pd_chars)} characters, {len(pd_locations)} locations")
+        logger.info(f"Studio [{project_id}]: PRE-PRODUCTION complete in {t_preproduction:.1f}s - {len(pd_chars)} characters, {len(pd_locations)} locations")
 
-        _add_milestone(project, "preproduction_done", f"Pré-produção — {t_preproduction:.0f}s")
+        _add_milestone(project, "preproduction_done", f"Pré-produção - {t_preproduction:.0f}s")
         _update_project_field(tenant_id, project_id, {
             "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "pre_production_done",
                              "scene_status": {str(i+1): "queued" for i in range(total)}}
@@ -444,22 +444,69 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         budget_exhausted = threading.Event()
 
         def _scene_director(scene, scene_num):
-            """PHASE A — Scene Director: generates Sora prompt using Production Design Bible.
-            Uses pre-computed character_bible, location_bible, and style_anchors for consistency.
-            Token-efficient: creative decisions pre-made by Production Designer.
+            """PHASE A - Scene Director: generates Sora prompt using Production Design Bible.
+            
+            NEW ARCHITECTURE: The prompt is built in layers:
+            1. FIXED: Style DNA (never changes)
+            2. FIXED: Character identity prompts (from avatar analysis - never changes)
+            3. FIXED: Original dialogue with lip sync instruction (from scene data - never changes)
+            4. VARIABLE: Visual scene direction (camera, lighting, action) ← only this comes from Director
             """
             if scene_num in completed_videos:
                 return {"scene_number": scene_num, "sora_prompt": None, "cached": True}
 
             chars_in_scene = scene.get("characters_in_scene", [])
 
-            # Canonical character descriptions from Production Design Bible
-            char_descs = "\n".join([
-                f"- {name}: {pd_chars.get(name, next((ch.get('description','') for ch in characters if ch.get('name')==name), 'Unknown character'))}"
-                for name in chars_in_scene
-            ])
+            # ── LAYER 1: FIXED CHARACTER PROMPTS (from avatar analysis) ──
+            # These are IMMUTABLE identity cards that NEVER change between scenes
+            char_identity_blocks = []
+            for name in chars_in_scene:
+                # Priority: production_design character_bible > avatar_descriptions > character description
+                identity = pd_chars.get(name, "")
+                if not identity and avatar_descriptions:
+                    av_desc = avatar_descriptions.get(name, {})
+                    if isinstance(av_desc, dict):
+                        identity = av_desc.get("description", "")
+                        immutable = av_desc.get("immutable_traits", [])
+                        if immutable:
+                            identity += " IMMUTABLE TRAITS: " + ", ".join(immutable)
+                    elif isinstance(av_desc, str):
+                        identity = av_desc
+                if not identity:
+                    identity = next((ch.get('description','') for ch in characters if ch.get('name')==name), 'Unknown')
+                char_identity_blocks.append(f"CHARACTER [{name}]: {identity}")
+            
+            char_identity_text = "\n".join(char_identity_blocks)
 
-            # Scene-specific direction from Production Design
+            # ── LAYER 2: FIXED DIALOGUE WITH LIP SYNC (from scene data) ──
+            dialogue_timeline = scene.get("dialogue_timeline", [])
+            scene_dialogue = scene.get("dialogue", "").strip()
+            lang_full = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(lang, lang)
+            
+            fixed_dialogue_block = ""
+            if dialogue_timeline and len(dialogue_timeline) > 0:
+                character_beats = [b for b in dialogue_timeline if b.get('speaker','').lower() not in ('narrador','narrator')]
+                if character_beats:
+                    timing_parts = []
+                    for beat in character_beats:
+                        timing_parts.append(f"[{beat['start_time']:.1f}s-{beat['end_time']:.1f}s] The character [{beat['speaker']}] says: '{beat['text']}' - speaking with perfectly synchronized lip movements")
+                    fixed_dialogue_block = f"\n\nDIALOGUE LIP-SYNC TIMING (ORIGINAL {lang_full.upper()} - DO NOT TRANSLATE):\n" + "\n".join(timing_parts)
+            elif scene_dialogue:
+                # Parse character dialogue
+                import re as _re
+                lines = [l.strip() for l in scene_dialogue.split('\n') if l.strip()]
+                lip_parts = []
+                for line in lines[:4]:  # Max 4 dialogue lines per 12s scene
+                    if ':' in line:
+                        char_name = line.split(':')[0].strip()
+                        speech = line.split(':', 1)[1].strip().strip("'\"")
+                        lip_parts.append(f"The character [{char_name}] says: '{speech}' - speaking with perfectly synchronized lip movements")
+                    else:
+                        lip_parts.append(f"A character says: '{line}' - speaking with perfectly synchronized lip movements")
+                if lip_parts:
+                    fixed_dialogue_block = f"\n\nDIALOGUE LIP-SYNC (ORIGINAL {lang_full.upper()} - DO NOT TRANSLATE):\n" + "\n".join(lip_parts)
+
+            # ── LAYER 3: Scene-specific direction from Production Design ──
             scene_dir = pd_scene_dirs.get(scene_num, {})
             loc_key = scene_dir.get("location_key", "")
             loc_desc = pd_locations.get(loc_key, "")
@@ -468,106 +515,81 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             cam_flow = scene_dir.get("camera_flow", scene.get("camera", ""))
             trans_note = scene_dir.get("transition_note", "")
 
-            director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation. Convert scene descriptions into detailed visual prompts WITH PRECISE TIMING.
+            # ── LAYER 4: Director generates ONLY the visual action description ──
+            director_system = f"""You are a VISUAL SCENE DIRECTOR. Your ONLY job is to describe the VISUAL ACTION of the scene.
 
-⛔ ABSOLUTE RULE — DO NOT MODIFY APPROVED CONTENT:
-- The scene TITLE, DESCRIPTION, DIALOGUE, and EMOTION below were APPROVED by the content creator
-- You MUST preserve the EXACT SAME story, meaning, and dialogue — do NOT rewrite, summarize, or reinterpret
-- Your job is ONLY to add VISUAL and TECHNICAL details (camera, lighting, character appearance, timing)
-- NEVER change what happens in the scene — only describe HOW it looks on screen
-- NEVER add new plot points, change character actions, or alter the narrative
-- If the scene says "Ash gives a hug", your prompt says "Ash gives a hug" — not "Ash waves goodbye"
-- The DIALOGUE TEXT must appear WORD FOR WORD in the lip-sync instruction — do NOT paraphrase
+[RULE] RULES:
+- DO NOT describe character appearances - they are already defined in CHARACTER IDENTITY blocks
+- DO NOT write dialogue - it is already defined in DIALOGUE LIP-SYNC blocks
+- DO NOT modify, translate, or paraphrase the dialogue text
+- ONLY describe: camera movement, lighting, character positioning, gestures, expressions, environment details, timing of actions
 
-MANDATORY STYLE (include VERBATIM at the start of your prompt): {pd_style}
+OUTPUT: Return ONLY JSON: {{"visual_direction": "Visual action description in English, max 200 words"}}
 
-Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 400 words"}}
+TIMING FORMAT: Structure as 2-second intervals:
+"0-2s: [visual action]. 2-4s: [visual action]. 4-6s: [visual action]. 6-8s: [visual action]. 8-10s: [visual action]. 10-12s: [visual action]."
 
-CRITICAL RULES:
-- START your prompt with the exact mandatory style text above — copy it word for word
-- IMMEDIATELY AFTER the style, add this CRITICAL INSTRUCTION: "[CRITICAL: All visible text, signs, letters, and written words must be in {language_marker}]"
-- Describe EVERY character by their EXACT PHYSICAL APPEARANCE from the character descriptions below — these descriptions come from analyzing the actual avatar images, so they are the ABSOLUTE SOURCE OF TRUTH
-- For EACH character appearing in the scene, copy their FULL character_bible description into the prompt — DO NOT summarize or abbreviate
-- SPECIES LOCK: If a character is described as an "anthropomorphic camel", they are ALWAYS a camel in EVERY scene — NEVER a lion, bear, or any other animal
-- POSTURE LOCK: If a character is described as "bipedal/standing upright", they MUST be shown standing on two legs — NEVER as a quadruped walking on four legs
-- NEVER add extra animals or characters that are NOT in the CHARACTER IDENTITY SHEET below — if only Abraão and Isaac are in the scene, ONLY those two characters appear
-- NEVER use character names in the prompt — only physical descriptions
-- If a scene describes a "birth" or "baby", the young character MUST be a tiny newborn infant of the SAME SPECIES as the parents — NOT a teenager or adult
-- If a scene says "child" or "young", the character must be visibly SMALL and childlike — NOT adult-sized
-- Include: specific environment details, lighting matching the time of day, atmospheric elements, character actions/expressions, camera movement
-- Each scene must look like it belongs to the SAME FILM — same art technique, same 3D rendering quality, same color grading
-- MATCH THE CHARACTER REFERENCE IMAGE EXACTLY FOR ALL CHARACTERS — the image shows the absolute truth of how characters must look
+LOCATION: {loc_desc or 'As described in scene'}
+TIME OF DAY: {time_day}
+LIGHTING: {time_light or 'Match scene emotion'}
+CAMERA: {cam_flow or 'Medium shot, gentle movement'}
+TRANSITION: {trans_note or 'Smooth cut'}
+"""
 
-🆕 TIMING BREAKDOWN (NEW):
-- If DIALOGUE TIMELINE is provided, structure your prompt as a TIMING BREAKDOWN
-- Format: "TIMING: 0-2s: [action]. 2-4s: [character speaking, mouth moving]. 4-6s: [reaction]. 6-8s: [movement]. 8-10s: [transition]. 10-12s: [final pose]."
-- Match visual actions PRECISELY to dialogue timing — if Jonas speaks at 4.2-7.5s, show him SPEAKING during 4-6s and 6-8s frames
-- Characters who are speaking must be shown ON CAMERA with MOUTH MOVING and appropriate gestures
-- Characters who are NOT speaking should be shown LISTENING or REACTING
-- If no dialogue timeline, write a standard continuous description
-- PRESERVE the EXACT dialogue text in the lip-sync instruction — copy it WORD FOR WORD from the timeline
+            director_user = f"""SCENE {scene_num}: "{scene.get('title', '')}"
+DESCRIPTION: {scene.get('description', '')}
+EMOTION: {scene.get('emotion', 'neutral')}
+CHARACTERS IN SCENE: {', '.join(chars_in_scene)}
 
-⚠️ DIALOGUE LANGUAGE RULE:
-- The sora_prompt visual descriptions should be in ENGLISH
-- BUT the DIALOGUE TEXT inside lip-sync instructions MUST stay in the ORIGINAL LANGUAGE ({language_marker}) — do NOT translate it
-- Example: "The small brown puppy says: 'Oi pessoal! Vamos brincar!' - speaking with perfectly synchronized lip movements" (dialogue stays in Portuguese)
-- This is CRITICAL because the audio track will be in {language_marker} and must match the lip movements"""
+Describe ONLY the visual action and camera work for this scene. Do NOT describe characters or dialogue."""
 
-            # Build dialogue timeline context if available
-            dialogue_timeline = scene.get("dialogue_timeline", [])
-            dialogue_ctx = ""
-            if dialogue_timeline and len(dialogue_timeline) > 0:
-                dialogue_ctx = "\n\n═══ DIALOGUE TIMELINE (PRECISE TIMING FOR 12-SECOND SCENE) ═══\n"
-                dialogue_ctx += "Use this to create a TIMING BREAKDOWN in your Sora prompt:\n\n"
-                for beat in dialogue_timeline:
-                    dialogue_ctx += f"[{beat['start_time']:.1f}s - {beat['end_time']:.1f}s] {beat['speaker']}: \"{beat['text']}\"\n"
-                    dialogue_ctx += f"  └─ Tone: {beat.get('tone', 'neutral')}\n"
-                    dialogue_ctx += f"  └─ Suggested action: {beat.get('action_note', 'N/A')}\n\n"
-                dialogue_ctx += """CRITICAL: Structure your Sora prompt as a TIMING BREAKDOWN.
-Example format:
-"TIMING: 0-2s: Wide shot of beach, character standing alone. 2-4s: Camera dolly in, character looks up suddenly. 4-6s: Character speaking with mouth moving, hand on chest gesturing. 6-8s: Character continues speaking, pointing upward to sky. 8-10s: Character finishes speaking, expression shifts to determination. 10-12s: Camera dolly out revealing environment."
-
-Match every 2-second interval to the dialogue timeline above."""
-            
-            # Add language marker to enforce text language in generated videos
-            lang_instruction = f"\n\n🌐 LANGUAGE ENFORCEMENT:\n- If ANY text appears in this scene (signs, letters, captions, written words), it MUST be in {language_marker}\n- Example: If a sign shows 'WARNING', it should show the {language_marker} equivalent\n- This applies to ALL visible text elements in the frame"
-            
-            director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
-Description: {scene.get('description','')}
-Dialogue: {scene.get('dialogue','')}
-Emotion: {scene.get('emotion','')}
-{dialogue_ctx}{lang_instruction}
-
-CHARACTER IDENTITY SHEET (from avatar image analysis — ABSOLUTE SOURCE OF TRUTH, DO NOT DEVIATE):
-{char_descs}
-
-AGE/LIFE STAGE CONTEXT FOR THIS SCENE: Based on the scene description above, determine the correct age of each character.
-- If the scene describes a "birth" or "newborn", the baby character is a TINY INFANT of the same species — small enough to be held in arms.
-- If the scene describes "growing up" or "childhood", the young character is a SMALL CHILD — about half the height of the adults.
-
-LOCATION: {loc_desc}
-TIME OF DAY: {time_day} — Light/Colors: {time_light}
-CAMERA: {cam_flow}
-CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
-
-            _update_scene_status(tenant_id, project_id, scene_num, "directing", total)
             try:
-                t_p = _time.time()
-                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
-                data = _parse_json(result_text) or {}
-                sora_prompt = data.get("sora_prompt", scene.get("description", ""))
-                elapsed = _time.time() - t_p
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} directed in {elapsed:.1f}s")
-                return {"scene_number": scene_num, "sora_prompt": sora_prompt, "cached": False}
+                from litellm import completion
+                resp = completion(
+                    model="claude-sonnet-4-5-20250929",
+                    messages=[
+                        {"role": "system", "content": director_system},
+                        {"role": "user", "content": director_user}
+                    ],
+                    temperature=0.5, max_tokens=600
+                )
+                raw = resp.choices[0].message.content.strip()
+                
+                import json as _json
+                if raw.startswith("```"):
+                    raw = raw.split("```")[1]
+                    if raw.startswith("json"):
+                        raw = raw[4:]
+                
+                visual_direction = _json.loads(raw).get("visual_direction", raw)
+                
             except Exception as e:
-                logger.warning(f"Studio [{project_id}]: Scene {scene_num} director error: {e}")
-                # Fallback: construct prompt directly from production design elements
-                char_desc_text = ". ".join([pd_chars.get(n, '') for n in chars_in_scene if pd_chars.get(n)])
-                fallback = f"{pd_style}. {loc_desc}. {time_day}, {time_light}. {char_desc_text}. {scene.get('description', '')}."
-                return {"scene_number": scene_num, "sora_prompt": fallback[:1000], "cached": False}
+                logger.warning(f"Studio [{project_id}]: Director failed for scene {scene_num}: {e}")
+                visual_direction = f"Camera slowly reveals the scene. Characters interact naturally. {cam_flow or ''}"
+
+            # ══ ASSEMBLE FINAL SORA PROMPT (Layered Architecture) ══
+            sora_prompt = f"""{pd_style}
+
+[CRITICAL: All visible text, signs, letters, and written words must be in {language_marker}]
+
+{char_identity_text}
+
+VISUAL DIRECTION: {visual_direction}
+
+{fixed_dialogue_block}
+"""
+
+            logger.info(f"Studio [{project_id}]: Scene {scene_num} prompt assembled - {len(char_identity_blocks)} chars, {len(fixed_dialogue_block)} dialogue chars")
+
+            return {
+                "scene_number": scene_num,
+                "title": scene.get("title", ""),
+                "sora_prompt": sora_prompt.strip(),
+                "cached": False
+            }
 
         def _sora_render(directed_scene, scene):
-            """PHASE B — Video render with Sora 2 or Kling AI.
+            """PHASE B - Video render with Sora 2 or Kling AI.
             
             For KLING AI (5-minute scenes):
             - Calls Cinematographer to generate ultra-detailed 5-minute description
@@ -593,12 +615,12 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
             chars_in_scene = scene.get("characters_in_scene", [])
             
             # ══════════════════════════════════════════════════════════════
-            # KLING AI: Dual Mode — Rápido (paralelo) ou Cinema (sequencial)
+            # KLING AI: Dual Mode - Rápido (paralelo) ou Cinema (sequencial)
             # + Audio Pipeline completa (TTS + Sonoplastia + Lip-Sync + Mix)
             # ══════════════════════════════════════════════════════════════
             if video_engine == "kling":
                 production_mode = project.get("production_mode", "fast")  # "fast" or "cinema"
-                logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] — Scene {scene_num}")
+                logger.info(f"Studio [{project_id}]: KLING [{production_mode.upper()}] - Scene {scene_num}")
                 
                 # Get all storyboard frames
                 kling_storyboards = project.get("kling_storyboards", [])
@@ -614,7 +636,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 
                 # ── STEP 1: Download all frame images as base64 ──
                 _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Kling AI — Baixando {len(all_frames)} imagens...",
+                    "progress_message": f"Kling AI - Baixando {len(all_frames)} imagens...",
                     "agent_status": {"phase": "generating_video", "videos_done": 0,
                                      "total_scenes": total, "total_frames": len(all_frames),
                                      "scene_status": {str(scene_num): "generating_video"}}
@@ -663,13 +685,13 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     return {"scene_number": scene_num, "url": None, "error": "no_clips_generated"}
                 
                 # ══════════════════════════════════════════════════════════════
-                # STEP 2.5: LIP SYNC + TTS — Character voices with lip movement
-                # Architecture: For each clip WITH dialogue →
+                # STEP 2.5: LIP SYNC + TTS - Character voices with lip movement
+                # Architecture: For each clip WITH dialogue ->
                 #   1. Generate TTS audio (ElevenLabs, character voice)
                 #   2. Upload clip + audio to Supabase (Kling API needs public URLs)
-                #   3. Identify face → Apply lip sync (audio baked into video)
+                #   3. Identify face -> Apply lip sync (audio baked into video)
                 #   4. Download lip-synced clip (REPLACES original)
-                # For clips WITHOUT dialogue → keep original silent clip
+                # For clips WITHOUT dialogue -> keep original silent clip
                 # After this step: lip-synced clips ALREADY HAVE dialogue audio
                 # ══════════════════════════════════════════════════════════════
                 import subprocess as _sp
@@ -685,7 +707,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 
                 if voice_map and any(f.get("dialogue_text") for f in all_frames):
                     _update_project_field(tenant_id, project_id, {
-                        "progress_message": "Lip Sync — Gerando vozes e sincronizando lábios..."
+                        "progress_message": "Lip Sync - Gerando vozes e sincronizando lábios..."
                     })
                     
                     lip_synced = 0
@@ -741,7 +763,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                                 continue
                             
                             _update_project_field(tenant_id, project_id, {
-                                "progress_message": f"Lip Sync — Frame {fn}/{len(clips)} ({char_name})"
+                                "progress_message": f"Lip Sync - Frame {fn}/{len(clips)} ({char_name})"
                             })
                             
                             try:
@@ -843,14 +865,14 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                                 lip_failed += 1
                         
                         has_lip_sync = lip_synced > 0
-                        logger.info(f"Studio [{project_id}]: LIP SYNC complete — {lip_synced} synced, {lip_failed} failed")
+                        logger.info(f"Studio [{project_id}]: LIP SYNC complete - {lip_synced} synced, {lip_failed} failed")
                         
                     except Exception as e:
                         logger.error(f"Studio [{project_id}]: Lip sync phase error: {e}")
                         import traceback; logger.error(traceback.format_exc())
                 
                 # ══════════════════════════════════════════════════════════════
-                # STEP 3: FFmpeg concat — Join all clips
+                # STEP 3: FFmpeg concat - Join all clips
                 # When lip sync is active: use simple concat to PRESERVE audio
                 # When no lip sync: can use xfade for smooth video transitions
                 # ══════════════════════════════════════════════════════════════
@@ -888,9 +910,9 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 logger.info(f"Studio [{project_id}]: Video concatenated ({os.path.getsize(output_path)//1024}KB, lip_sync={has_lip_sync})")
                 
                 # ══════════════════════════════════════════════════════════════
-                # STEP 4: SONOPLASTIA — Background music + SFX via Kling V2A
+                # STEP 4: SONOPLASTIA - Background music + SFX via Kling V2A
                 # If lip sync was used: clips ALREADY have dialogue audio
-                #   → only add V2A BGM at low volume
+                #   -> only add V2A BGM at low volume
                 # If NO lip sync: generate TTS dialogue track + V2A BGM
                 # ══════════════════════════════════════════════════════════════
                 voice_map = project.get("voice_map", {})
@@ -1010,7 +1032,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                                 output_path = dubbed_path
                                 logger.info(f"Studio [{project_id}]: Dubbed video ready ({os.path.getsize(dubbed_path)//1024}KB)")
                         else:
-                            logger.info(f"Studio [{project_id}]: Lip sync active — skipping TTS overlay (audio already in clips)")
+                            logger.info(f"Studio [{project_id}]: Lip sync active - skipping TTS overlay (audio already in clips)")
                         
                         # ── SONOPLASTIA: V2A Background Music + SFX ──
                         _update_project_field(tenant_id, project_id, {
@@ -1088,7 +1110,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                         except Exception as v2a_err:
                             logger.warning(f"Studio [{project_id}]: V2A sonoplastia failed (non-fatal): {v2a_err}")
                         
-                        logger.info(f"Studio [{project_id}]: Audio complete — lip_sync={has_lip_sync}, bgm={bgm_added}")
+                        logger.info(f"Studio [{project_id}]: Audio complete - lip_sync={has_lip_sync}, bgm={bgm_added}")
                         
                         # ── STEP 5: Multi-format export ──
                         _update_project_field(tenant_id, project_id, {
@@ -1156,7 +1178,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                             try:
                                 filename = f"studio/{project_id}_scene_{scene_num}_kling.mp4"
                                 video_url = _upload_to_storage(final_video_bytes, filename, "video/mp4")
-                                logger.info(f"Studio [{project_id}]: KLING DONE — {len(clips)} clips, lip_sync={has_lip_sync}, bgm={bgm_added}, ~{final_duration:.0f}s, {elapsed:.0f}s ({len(final_video_bytes)//1024}KB)")
+                                logger.info(f"Studio [{project_id}]: KLING DONE - {len(clips)} clips, lip_sync={has_lip_sync}, bgm={bgm_added}, ~{final_duration:.0f}s, {elapsed:.0f}s ({len(final_video_bytes)//1024}KB)")
                             except Exception as upload_err:
                                 logger.warning(f"Studio [{project_id}]: Upload failed ({len(final_video_bytes)//1024}KB): {upload_err}")
                                 if multi_outputs.get("youtube_16x9", {}).get("url"):
@@ -1198,7 +1220,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                         try: shutil.rmtree(tmpdir)
                         except: pass
                 
-                # ── Fallback: No voice_map → upload video without audio ──
+                # ── Fallback: No voice_map -> upload video without audio ──
                 if os.path.exists(output_path):
                     with open(output_path, 'rb') as f:
                         final_video_bytes = f.read()
@@ -1320,7 +1342,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
         # ══ PHASE A: ALL DIRECTORS IN PARALLEL (Production-Design-guided) ══
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        logger.info(f"Studio [{project_id}]: PHASE A — Launching {total} Scene Directors (parallel, PD-guided)")
+        logger.info(f"Studio [{project_id}]: PHASE A - Launching {total} Scene Directors (parallel, PD-guided)")
 
         directed_scenes = []
         with ThreadPoolExecutor(max_workers=total) as executor:
@@ -1338,7 +1360,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
         music_data = {"plan": pd_music, "mood": "cinematic"}
 
         t_phase_a = _time.time() - t_start
-        logger.info(f"Studio [{project_id}]: PHASE A complete in {t_phase_a:.1f}s — {len(directed_scenes)} prompts ready")
+        logger.info(f"Studio [{project_id}]: PHASE A complete in {t_phase_a:.1f}s - {len(directed_scenes)} prompts ready")
 
         # Sort by scene number for ordered Sora queue
         directed_scenes.sort(key=lambda x: x["scene_number"])
@@ -1351,7 +1373,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
         scene_map = {s.get("scene_number", i+1): s for i, s in enumerate(scenes)}
 
         if continuity_mode:
-            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY PARALLEL) — Keyframe generation + parallel rendering")
+            logger.info(f"Studio [{project_id}]: PHASE B (CONTINUITY PARALLEL) - Keyframe generation + parallel rendering")
 
             # B1: Generate ALL keyframes in parallel (Gemini, 5 concurrent)
             keyframe_paths = []
@@ -1378,7 +1400,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     ds["_keyframe_path"] = kf_path
                     keyframe_paths.append(kf_path)
                 else:
-                    logger.warning(f"Studio [{project_id}]: Keyframe FAILED all retries for scene {sn} — using avatar fallback")
+                    logger.warning(f"Studio [{project_id}]: Keyframe FAILED all retries for scene {sn} - using avatar fallback")
                 return ds
 
             _update_project_field(tenant_id, project_id, {
@@ -1393,29 +1415,93 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                     future.result()  # ensures exceptions propagate
                     logger.info(f"Studio [{project_id}]: Keyframe {sn}/{total} ready")
 
-            logger.info(f"Studio [{project_id}]: All {total} keyframes ready — launching parallel Sora 2 renders")
+            logger.info(f"Studio [{project_id}]: All {total} keyframes ready - launching parallel Sora 2 renders")
 
-            # B2: Render ALL videos in parallel (Sora 2, controlled by sora_semaphore=5)
+            # B2: SORA 2 CINEMA MODE - Render SEQUENTIALLY for continuity
+            # Each clip uses the LAST FRAME of the previous clip as reference image
             _update_project_field(tenant_id, project_id, {
                 "agent_status": {"current_scene": 0, "total_scenes": total, "phase": "generating_video",
                                  "videos_done": 0, "scene_status": {str(ds["scene_number"]): "waiting_sora" for ds in directed_scenes}}
             })
-
-            with ThreadPoolExecutor(max_workers=total) as executor:
-                sora_futures = {
-                    executor.submit(_sora_render, ds, scene_map.get(ds["scene_number"], scenes[0])): ds["scene_number"]
-                    for ds in directed_scenes
-                }
-                for future in as_completed(sora_futures):
-                    result = future.result()
+            
+            if video_engine == "sora":
+                # SEQUENTIAL rendering for Sora 2 Cinema Mode
+                logger.info(f"Studio [{project_id}]: SORA 2 CINEMA MODE - Rendering {total} scenes SEQUENTIALLY for continuity")
+                last_frame_path = None
+                
+                for ds in sorted(directed_scenes, key=lambda x: x["scene_number"]):
+                    sn = ds["scene_number"]
+                    sc = scene_map.get(sn, scenes[0])
+                    
+                    # Override keyframe with last frame from previous clip (Cinema continuity)
+                    if last_frame_path and os.path.exists(last_frame_path):
+                        ds["_keyframe_path"] = last_frame_path
+                        logger.info(f"Studio [{project_id}]: Scene {sn} using last frame from scene {sn-1} for continuity")
+                    
+                    _update_project_field(tenant_id, project_id, {
+                        "progress_message": f"Cinema Mode - Gerando cena {sn}/{total}..."
+                    })
+                    
+                    result = _sora_render(ds, sc)
                     scene_videos.append(result)
+                    
+                    # Extract last frame from generated video for next scene
+                    if result.get("url"):
+                        try:
+                            import tempfile as _tf
+                            vid_resp = requests.get(result["url"], timeout=60)
+                            if vid_resp.status_code == 200:
+                                tmp_vid = _tf.mktemp(suffix=".mp4")
+                                with open(tmp_vid, 'wb') as f:
+                                    f.write(vid_resp.content)
+                                
+                                last_frame_path = f"/tmp/cinema_lastframe_{project_id}_{sn}.jpg"
+                                import subprocess as _sp
+                                _sp.run([
+                                    "ffmpeg", "-y", "-sseof", "-0.1", "-i", tmp_vid,
+                                    "-frames:v", "1", "-q:v", "2", last_frame_path
+                                ], capture_output=True, timeout=15)
+                                
+                                try: os.remove(tmp_vid)
+                                except: pass
+                                
+                                if os.path.exists(last_frame_path) and os.path.getsize(last_frame_path) > 1000:
+                                    logger.info(f"Studio [{project_id}]: Extracted last frame from scene {sn} ({os.path.getsize(last_frame_path)//1024}KB)")
+                                else:
+                                    last_frame_path = None
+                        except Exception as e:
+                            logger.warning(f"Studio [{project_id}]: Failed to extract last frame from scene {sn}: {e}")
+                            last_frame_path = None
+                    
                     done = len([v for v in scene_videos if v.get("url")])
                     _update_project_field(tenant_id, project_id, {
-                        "agent_status": {"current_scene": result["scene_number"], "total_scenes": total,
+                        "agent_status": {"current_scene": sn, "total_scenes": total,
                                          "phase": "generating_video", "videos_done": done,
                                          "scene_status": {str(v["scene_number"]): ("done" if v.get("url") else "error") for v in scene_videos}}
                     })
-                    logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {result['scene_number']})")
+                    logger.info(f"Studio [{project_id}]: Cinema Progress {done}/{total} (scene {sn})")
+                
+                # Cleanup cinema frames
+                for i in range(1, total + 1):
+                    try: os.remove(f"/tmp/cinema_lastframe_{project_id}_{i}.jpg")
+                    except: pass
+            else:
+                # PARALLEL rendering for Kling (no continuity needed)
+                with ThreadPoolExecutor(max_workers=total) as executor:
+                    sora_futures = {
+                        executor.submit(_sora_render, ds, scene_map.get(ds["scene_number"], scenes[0])): ds["scene_number"]
+                        for ds in directed_scenes
+                    }
+                    for future in as_completed(sora_futures):
+                        result = future.result()
+                        scene_videos.append(result)
+                        done = len([v for v in scene_videos if v.get("url")])
+                        _update_project_field(tenant_id, project_id, {
+                            "agent_status": {"current_scene": result["scene_number"], "total_scenes": total,
+                                             "phase": "generating_video", "videos_done": done,
+                                             "scene_status": {str(v["scene_number"]): ("done" if v.get("url") else "error") for v in scene_videos}}
+                        })
+                        logger.info(f"Studio [{project_id}]: Progress {done}/{total} (scene {result['scene_number']})")
 
             # Cleanup keyframe files
             for kf in keyframe_paths:
@@ -1424,7 +1510,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 except OSError:
                     pass
         else:
-            logger.info(f"Studio [{project_id}]: PHASE B — Queueing {total} Sora 2 renders (5 slots, parallel)")
+            logger.info(f"Studio [{project_id}]: PHASE B - Queueing {total} Sora 2 renders (5 slots, parallel)")
 
             with ThreadPoolExecutor(max_workers=total) as executor:
                 sora_futures = {
@@ -1445,7 +1531,7 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
         t_prod = _time.time() - t_start
         successful = len([v for v in scene_videos if v.get("url")])
         budget_errors = len([v for v in scene_videos if "budget" in (v.get("error") or "")])
-        logger.info(f"Studio [{project_id}]: ALL SCENES done in {t_prod:.0f}s ({t_prod/60:.1f}min) — {successful}/{total} OK, {budget_errors} budget errors")
+        logger.info(f"Studio [{project_id}]: ALL SCENES done in {t_prod:.0f}s ({t_prod/60:.1f}min) - {successful}/{total} OK, {budget_errors} budget errors")
 
         # Save production data
         settings, projects, project = _get_project(tenant_id, project_id)
@@ -1454,8 +1540,8 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                                         "music_director": music_data,
                                         "production_design": production_design,
                                         "avatar_descriptions": avatar_descriptions}
-            _add_milestone(project, "preproduction_complete", f"Pré-produção inteligente — {t_preproduction:.0f}s")
-            _add_milestone(project, "agents_complete", f"Produção paralela — {t_prod:.0f}s")
+            _add_milestone(project, "preproduction_complete", f"Pré-produção inteligente - {t_preproduction:.0f}s")
+            _add_milestone(project, "agents_complete", f"Produção paralela - {t_prod:.0f}s")
             _save_project(tenant_id, settings, projects)
 
         # Cleanup avatars
@@ -1514,9 +1600,9 @@ CONTINUITY WITH PREVIOUS SCENE: {trans_note}"""
                 "videos_done": len(successful_videos),
                 "scene_status": {str(sv["scene_number"]): ("done" if sv.get("url") else "error") for sv in scene_videos},
             }
-            _add_milestone(project, "videos_generated", f"Vídeos gerados — {len(successful_videos)} cenas")
+            _add_milestone(project, "videos_generated", f"Vídeos gerados - {len(successful_videos)} cenas")
             if final_url:
-                _add_milestone(project, "film_complete", f"Filme completo — {len(successful_videos)*12}s")
+                _add_milestone(project, "film_complete", f"Filme completo - {len(successful_videos)*12}s")
             _save_project(tenant_id, settings, projects)
 
         t_total = _time.time() - t_start
@@ -1598,7 +1684,7 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
         ]
         subprocess.run(cmd_reencode, capture_output=True, timeout=600)
 
-    # Check file size — if > 45MB, apply aggressive compression
+    # Check file size - if > 45MB, apply aggressive compression
     file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
     logger.info(f"Studio [{project_id}]: Concatenated video size: {file_size//1024//1024}MB ({file_size//1024}KB)")
 
@@ -1686,15 +1772,15 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     if req.visual_style:
         project["visual_style"] = req.visual_style
     project["video_engine"] = req.video_engine  # Save engine choice
-    logger.info(f"Studio [{req.project_id}]: start_production — video_engine='{req.video_engine}' (from request)")
+    logger.info(f"Studio [{req.project_id}]: start_production - video_engine='{req.video_engine}' (from request)")
 
     project["status"] = "starting"
     project["error"] = None
     total = len(project.get("scenes", []))
     project["agent_status"] = {"current_scene": 0, "total_scenes": total, "phase": "starting"}
-    _add_milestone(project, "production_started", f"Produção iniciada — {total} cenas")
+    _add_milestone(project, "production_started", f"Produção iniciada - {total} cenas")
     if req.character_avatars:
-        _add_milestone(project, "avatars_linked", f"Avatares vinculados — {len(req.character_avatars)} personagens")
+        _add_milestone(project, "avatars_linked", f"Avatares vinculados - {len(req.character_avatars)} personagens")
     
     # When re-producing, clear previous outputs so engine generates fresh
     if project.get("outputs"):
@@ -1730,7 +1816,7 @@ async def full_production(
     background_tasks: BackgroundTasks,
     tenant=Depends(get_current_tenant)
 ):
-    """One-click full production: Dialogues → Video (Kling) → Audio (TTS) → Multi-format export.
+    """One-click full production: Dialogues -> Video (Kling) -> Audio (TTS) -> Multi-format export.
     
     Orchestrates all phases automatically in background.
     """
@@ -1761,11 +1847,11 @@ async def full_production(
 
 
 def _run_full_production_pipeline(tenant_id: str, project_id: str):
-    """Background: Dialogues → Video → Audio → Export
+    """Background: Dialogues -> Video -> Audio -> Export
     
     PIPELINE SEPARATION:
-    - KLING: Storyboard frames → 30 parallel I2V clips → Kling Lip Sync → TTS → V2A BGM → Concat → Export
-    - SORA 2: Dialogue in prompt → Sora 2 generates video WITH native lip sync → TTS audio overlay → V2A BGM → Export
+    - KLING: Storyboard frames -> 30 parallel I2V clips -> Kling Lip Sync -> TTS -> V2A BGM -> Concat -> Export
+    - SORA 2: Dialogue in prompt -> Sora 2 generates video WITH native lip sync -> TTS audio overlay -> V2A BGM -> Export
     These pipelines MUST NOT interfere with each other.
     """
     try:
@@ -1777,7 +1863,7 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
         video_engine = project.get("video_engine", "kling")
         production_mode = project.get("production_mode", "fast")
         
-        logger.info(f"FullProd [{project_id}]: Starting pipeline — engine={video_engine}, mode={production_mode}")
+        logger.info(f"FullProd [{project_id}]: Starting pipeline - engine={video_engine}, mode={production_mode}")
         
         # ══════════════════════════════════════════════════════════════
         # KLING PIPELINE: Storyboard-based production
@@ -1794,14 +1880,14 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
             has_dialogues = any(f.get("dialogue_text") and ":" in f.get("dialogue_text", "") for f in all_frames)
             
             if not dialogue_locked or not has_dialogues:
-                logger.info(f"FullProd [{project_id}]: PHASE 1 — Generating clean character dialogues...")
+                logger.info(f"FullProd [{project_id}]: PHASE 1 - Generating clean character dialogues...")
                 _update_project_field(tenant_id, project_id, {
                     "full_production_status": "dialogues",
-                    "progress_message": "Fase 1/4 — Gerando diálogos dos personagens..."
+                    "progress_message": "Fase 1/4 - Gerando diálogos dos personagens..."
                 })
                 _generate_kling_dialogues(tenant_id, project_id, project, all_frames, storyboards)
             else:
-                logger.info(f"FullProd [{project_id}]: PHASE 1 — Dialogues locked, skipping regeneration")
+                logger.info(f"FullProd [{project_id}]: PHASE 1 - Dialogues locked, skipping regeneration")
             
             # ── PHASE 2: Auto-assign voices ──
             if not voice_map:
@@ -1810,10 +1896,10 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
                 voice_map = project.get("voice_map", {})
             
             # ── PHASE 3: Video Production (Kling clips + Lip Sync + Concat + V2A + Export) ──
-            logger.info(f"FullProd [{project_id}]: PHASE 3 — Starting Kling video production ({production_mode})...")
+            logger.info(f"FullProd [{project_id}]: PHASE 3 - Starting Kling video production ({production_mode})...")
             _update_project_field(tenant_id, project_id, {
                 "full_production_status": "video",
-                "progress_message": f"Fase 2/4 — Produzindo vídeo Kling ({production_mode})..."
+                "progress_message": f"Fase 2/4 - Produzindo vídeo Kling ({production_mode})..."
             })
             
             project["video_engine"] = "kling"
@@ -1837,11 +1923,11 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
         else:
             # ── PHASE 1: Sora 2 uses dialogue_timeline in the prompt for native lip sync ──
             # Dialogues are part of scene data (dialogue, dialogue_timeline)
-            # NOT from kling_storyboards — Sora 2 has its own prompt system
-            logger.info(f"FullProd [{project_id}]: PHASE 1 — Sora 2 pipeline (lip sync via prompt)...")
+            # NOT from kling_storyboards - Sora 2 has its own prompt system
+            logger.info(f"FullProd [{project_id}]: PHASE 1 - Sora 2 pipeline (lip sync via prompt)...")
             _update_project_field(tenant_id, project_id, {
                 "full_production_status": "dialogues",
-                "progress_message": "Fase 1/3 — Preparando diálogos para Sora 2 (lip sync nativo)..."
+                "progress_message": "Fase 1/3 - Preparando diálogos para Sora 2 (lip sync nativo)..."
             })
             
             # ── PHASE 2: Auto-assign voices for TTS audio track ──
@@ -1851,10 +1937,10 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
                 voice_map = project.get("voice_map", {})
             
             # ── PHASE 3: Video Production (Sora 2 with native lip sync in prompt) ──
-            logger.info(f"FullProd [{project_id}]: PHASE 2 — Starting Sora 2 video production...")
+            logger.info(f"FullProd [{project_id}]: PHASE 2 - Starting Sora 2 video production...")
             _update_project_field(tenant_id, project_id, {
                 "full_production_status": "video",
-                "progress_message": "Fase 2/3 — Sora 2 gerando vídeo com lip sync nativo..."
+                "progress_message": "Fase 2/3 - Sora 2 gerando vídeo com lip sync nativo..."
             })
             
             project["video_engine"] = "sora"
@@ -1879,10 +1965,10 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
             has_video = any(o.get("type") == "video" and o.get("url") for o in outputs)
             
             if has_video and voice_map:
-                logger.info(f"FullProd [{project_id}]: PHASE 3 — Generating Sora 2 audio overlay (TTS + V2A)...")
+                logger.info(f"FullProd [{project_id}]: PHASE 3 - Generating Sora 2 audio overlay (TTS + V2A)...")
                 _update_project_field(tenant_id, project_id, {
                     "full_production_status": "audio",
-                    "progress_message": "Fase 3/3 — Gerando áudio (vozes + sonoplastia)..."
+                    "progress_message": "Fase 3/3 - Gerando áudio (vozes + sonoplastia)..."
                 })
                 
                 from .kling_storyboard import _generate_audio_overlay_background
@@ -1922,7 +2008,7 @@ def _generate_kling_dialogues(tenant_id, project_id, project, all_frames, storyb
         for f in all_frames:
             frame_context.append(f"Frame {f.get('frame_number')}: {f.get('time_start','')}-{f.get('time_end','')}: {f.get('key_action', f.get('image_prompt','')[:80])}")
         
-        prompt = f"""You are a professional dialogue writer for a children's animated video (Pixar-style).
+        prompt = f"""You are a professional dialogue writer for an animated video for children (Pixar-style).
 
 SYNOPSIS: {synopsis[:500]}
 CHARACTERS: {', '.join(char_names)}
@@ -1933,15 +2019,15 @@ STORYBOARD FRAMES (30 frames x 6 seconds = 3 minutes):
 {chr(10).join(frame_context)}
 
 CRITICAL RULES:
-1. EVERY SINGLE FRAME MUST have spoken dialogue — NO silent frames allowed
-2. Format EVERY line as: "CharacterName: 'What they say'" — ALWAYS include character name
+1. EVERY SINGLE FRAME MUST have spoken dialogue - NO silent frames allowed
+2. Format EVERY line as: "CharacterName: 'What they say'" - ALWAYS include character name
 3. NEVER include stage directions, camera notes, descriptions, or actions
-4. NEVER write "(silêncio)" — every frame needs a character speaking
+4. NEVER write "(silêncio)" - every frame needs a character speaking
 5. DISTRIBUTE the original script across ALL 30 frames evenly
 6. Each frame: SHORT dialogue (max 2 sentences, ~5 seconds of speech)
-7. Characters: {', '.join(char_names)} — alternate between them naturally
+7. Characters: {', '.join(char_names)} - alternate between them naturally
 8. Language: {lang}
-9. ALL 30 frames MUST have dialogue — if the script runs out, add natural reactions, comments, or transitions
+9. ALL 30 frames MUST have dialogue - if the script runs out, add natural reactions, comments, or transitions
 10. Frames 1-3: Introduction/greeting from characters
 11. Frames 4-27: Main content from the script
 12. Frames 28-30: Goodbye/conclusion from characters
@@ -2161,22 +2247,22 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation.
 MANDATORY STYLE (include VERBATIM): {style_hint}
 
-⛔ ABSOLUTE RULE — DO NOT MODIFY APPROVED CONTENT:
+[RULE] ABSOLUTE RULE - DO NOT MODIFY APPROVED CONTENT:
 - The DESCRIPTION, DIALOGUE, and EMOTION below were APPROVED by the content creator
-- PRESERVE the EXACT story, meaning, actions, and dialogue — do NOT rewrite or reinterpret
+- PRESERVE the EXACT story, meaning, actions, and dialogue - do NOT rewrite or reinterpret
 - Your job is ONLY to add VISUAL details (camera, lighting, character appearance, timing)
-- NEVER change what happens — only describe HOW it looks visually
+- NEVER change what happens - only describe HOW it looks visually
 - The DIALOGUE must appear WORD FOR WORD in the lip-sync instruction
 
-🎬 CRITICAL LIP-SYNC INSTRUCTION:
+[FILM] CRITICAL LIP-SYNC INSTRUCTION:
 - If the scene has DIALOGUE, you MUST include the EXACT dialogue text in the sora_prompt
 - Format: "The [character description] says: '[exact dialogue text]' - speaking with perfectly synchronized lip movements, mouth moving naturally with each word"
 - This ensures Sora 2 generates video WITH audio AND lip-sync matching the spoken text
 
-🌐 LANGUAGE MARKER:
+[LANG] LANGUAGE MARKER:
 - At the END of your sora_prompt, add: "Any visible text in {language_marker}."
 
-⚠️ DIALOGUE LANGUAGE: Visual descriptions in ENGLISH, but DIALOGUE TEXT in lip-sync instructions MUST stay in ORIGINAL LANGUAGE ({language_marker}) — do NOT translate dialogue.
+[WARNING] DIALOGUE LANGUAGE: Visual descriptions in ENGLISH, but DIALOGUE TEXT in lip-sync instructions MUST stay in ORIGINAL LANGUAGE ({language_marker}) - do NOT translate dialogue.
 
 Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
 RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera. ALWAYS include exact dialogue (in original language) with lip-sync instruction."""
@@ -2187,36 +2273,39 @@ Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')}
 CHARACTERS (by appearance): {char_descs}
 LOCATION: {loc_desc}
-TIME: {time_day} — {time_light}
-CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}"""
+TIME: {time_day} - {time_light}
+CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}
+"""
             else:
                 # Fallback: no production design available
                 scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
                 director_system = f"""You are a SCENE DIRECTOR for Sora 2. {style_hint}
 
-⛔ ABSOLUTE RULE — DO NOT MODIFY APPROVED CONTENT:
+[RULE] ABSOLUTE RULE - DO NOT MODIFY APPROVED CONTENT:
 - The DESCRIPTION, DIALOGUE, and EMOTION below were APPROVED by the content creator
-- PRESERVE the EXACT story, meaning, actions, and dialogue — do NOT rewrite or reinterpret
+- PRESERVE the EXACT story, meaning, actions, and dialogue - do NOT rewrite or reinterpret
 - Your job is ONLY to add VISUAL details (camera, lighting, character appearance, timing)
-- NEVER change what happens — only describe HOW it looks visually
+- NEVER change what happens - only describe HOW it looks visually
 
-🎬 CRITICAL LIP-SYNC INSTRUCTION:
+[FILM] CRITICAL LIP-SYNC INSTRUCTION:
 - If the scene has DIALOGUE, you MUST include the EXACT dialogue text in the sora_prompt
 - Format: "The [character description] says: '[exact dialogue text]' - speaking with perfectly synchronized lip movements, mouth moving naturally with each word"
 - This ensures Sora 2 generates video WITH audio AND lip-sync matching the spoken text
 
-🌐 LANGUAGE MARKER:
+[LANG] LANGUAGE MARKER:
 - At the END of your sora_prompt, add: "Any visible text in {language_marker}."
 
-⚠️ DIALOGUE LANGUAGE: Visual descriptions in ENGLISH, but DIALOGUE TEXT in lip-sync instructions MUST stay in ORIGINAL LANGUAGE ({language_marker}) — do NOT translate dialogue.
+[WARNING] DIALOGUE LANGUAGE: Visual descriptions in ENGLISH, but DIALOGUE TEXT in lip-sync instructions MUST stay in ORIGINAL LANGUAGE ({language_marker}) - do NOT translate dialogue.
 
-Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words. ALWAYS include exact dialogue (in original language) with lip-sync instruction."}}"""
+Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words. ALWAYS include exact dialogue (in original language) with lip-sync instruction."}}
+"""
                 director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')} | Camera: {scene.get('camera','')}
 Characters: {scene_chars}
-Story: {briefing[:300]}"""
+Story: {briefing[:300]}
+"""
 
             try:
                 result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
@@ -2251,11 +2340,11 @@ Story: {briefing[:300]}"""
                             end = beat.get('end_time', 0)
                             timing_text += f"[{start:.1f}s-{end:.1f}s] {speaker} says: '{text}' - "
                         
-                        sora_prompt = f"{clean_base} DIALOGUE TIMING (ORIGINAL LANGUAGE — DO NOT TRANSLATE): {timing_text}speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word matching the exact timing above, clear articulation."
+                        sora_prompt = f"{clean_base} DIALOGUE TIMING (ORIGINAL LANGUAGE - DO NOT TRANSLATE): {timing_text}speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word matching the exact timing above, clear articulation."
                         logger.info(f"Studio [{project_id}]: ✅ INJECTED original-language dialogue_timeline with {len(character_beats)} character beats")
                     else:
                         sora_prompt = sora_prompt_base
-                        logger.info(f"Studio [{project_id}]: ⚠️ dialogue_timeline only has narrator")
+                        logger.info(f"Studio [{project_id}]: [WARNING] dialogue_timeline only has narrator")
                 else:
                     # Fallback: try old dialogue field if timeline doesn't exist
                     dialogue_text = scene.get("dialogue", "").strip()
@@ -2273,10 +2362,10 @@ Story: {briefing[:300]}"""
                         
                         # Keep dialogue in ORIGINAL LANGUAGE
                         sora_prompt = f"{clean_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements in the original language."
-                        logger.info(f"Studio [{project_id}]: ⚠️ FALLBACK to dialogue field (original language preserved)")
+                        logger.info(f"Studio [{project_id}]: [WARNING] FALLBACK to dialogue field (original language preserved)")
                     else:
                         sora_prompt = sora_prompt_base
-                        logger.info(f"Studio [{project_id}]: ⚠️ No dialogue timeline or text available")
+                        logger.info(f"Studio [{project_id}]: [WARNING] No dialogue timeline or text available")
                 
                 # Log the final prompt  
                 logger.info(f"Studio [{project_id}]: Scene {scene_num} FINAL Sora prompt (COMPLETE): {sora_prompt}")
@@ -2697,7 +2786,7 @@ async def update_language(project_id: str, payload: dict = Body(...), tenant=Dep
 
 @router.post("/projects/{project_id}/update-scene")
 async def update_scene(project_id: str, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
-    """Update a single scene's description, dialogue, etc."""
+    """Update a single scene description, dialogue, etc."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -2867,9 +2956,9 @@ async def generate_scene_ai(project_id: str, payload: dict = Body(...), tenant=D
 
     context_parts = []
     if prev_scene:
-        context_parts.append(f"CENA ANTERIOR ({prev_scene['scene_number']}): {prev_scene.get('title','')} — {prev_scene.get('description','')}")
+        context_parts.append(f"CENA ANTERIOR ({prev_scene['scene_number']}): {prev_scene.get('title','')} - {prev_scene.get('description','')}")
     if next_scene:
-        context_parts.append(f"CENA SEGUINTE ({next_scene['scene_number']}): {next_scene.get('title','')} — {next_scene.get('description','')}")
+        context_parts.append(f"CENA SEGUINTE ({next_scene['scene_number']}): {next_scene.get('title','')} - {next_scene.get('description','')}")
     if characters:
         char_names = [c.get("name", "") for c in characters]
         context_parts.append(f"PERSONAGENS DISPONÍVEIS: {', '.join(char_names)}")
@@ -2896,7 +2985,8 @@ Retorne APENAS JSON válido:
   "emotion": "emoção dominante",
   "camera": "tipo de câmera (ex: close-up, wide shot)",
   "characters_in_scene": ["nomes dos personagens presentes"]
-}}"""
+}}
+"""
 
     try:
         system = "Você é um roteirista profissional especializado em criar cenas narrativas detalhadas."
