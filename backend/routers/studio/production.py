@@ -1807,42 +1807,42 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
             for fp in files:
                 f.write(f"file '{fp}'\n")
 
-    # For small total inputs (<40MB), try stream copy first
-    if total_input_mb < 40:
-        cmd = [
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-            "-i", concat_file,
-            "-c", "copy",
-            "-movflags", "+faststart",
-            output_path
-        ]
-        result = subprocess.run(cmd, capture_output=True, timeout=120)
-
-        if result.returncode != 0:
-            cmd_reencode = [
+        # For small total inputs (<40MB), try stream copy first
+        if total_input_mb < 40:
+            cmd = [
                 "ffmpeg", "-y", "-f", "concat", "-safe", "0",
                 "-i", concat_file,
-                "-c:v", "libx264", "-preset", "fast", "-crf", "28",
-                "-c:a", "aac", "-b:a", "128k",
+                "-c", "copy",
                 "-movflags", "+faststart",
                 output_path
             ]
-            subprocess.run(cmd_reencode, capture_output=True, timeout=300)
-    else:
-        # For large inputs, re-encode with adaptive CRF based on scene count
-        crf = min(35, 26 + num_scenes)  # More scenes = more compression
-        resolution = "1280:720" if num_scenes <= 10 else "960:540"
-        audio_bitrate = "128k" if num_scenes <= 10 else "96k"
-        cmd_reencode = [
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-            "-i", concat_file,
-            "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
-            "-vf", f"scale={resolution}",
-            "-c:a", "aac", "-b:a", audio_bitrate,
-            "-movflags", "+faststart",
-            output_path
-        ]
-        subprocess.run(cmd_reencode, capture_output=True, timeout=600)
+            result = subprocess.run(cmd, capture_output=True, timeout=120)
+
+            if result.returncode != 0:
+                cmd_reencode = [
+                    "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                    "-i", concat_file,
+                    "-c:v", "libx264", "-preset", "fast", "-crf", "28",
+                    "-c:a", "aac", "-b:a", "128k",
+                    "-movflags", "+faststart",
+                    output_path
+                ]
+                subprocess.run(cmd_reencode, capture_output=True, timeout=300)
+        else:
+            # For large inputs, re-encode with adaptive CRF based on scene count
+            crf = min(35, 26 + num_scenes)  # More scenes = more compression
+            resolution = "1280:720" if num_scenes <= 10 else "960:540"
+            audio_bitrate = "128k" if num_scenes <= 10 else "96k"
+            cmd_reencode = [
+                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                "-i", concat_file,
+                "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
+                "-vf", f"scale={resolution}",
+                "-c:a", "aac", "-b:a", audio_bitrate,
+                "-movflags", "+faststart",
+                output_path
+            ]
+            subprocess.run(cmd_reencode, capture_output=True, timeout=600)
 
     # Check file size - if > 45MB, apply aggressive compression
     file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
@@ -2195,6 +2195,10 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
             return
         
         scenes = project.get("scenes", [])
+        # Limit to max_scenes if set (match video production)
+        max_scenes = project.get("max_scenes")
+        if max_scenes and max_scenes > 0:
+            scenes = scenes[:max_scenes]
         voice_map = project.get("voice_map", {})
         lang = project.get("language", "pt")
         scene_duration = 12.0  # Sora 2 scenes are 12 seconds
