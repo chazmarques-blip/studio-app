@@ -2146,7 +2146,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                 )}
               </div>
 
-              {/* Editable Prompts Section */}
+              {/* Editable Prompts Section — Kling Mode */}
               {useKlingMode && (
                 <div className="p-6 space-y-4">
                   {/* Dialogue Text */}
@@ -2300,6 +2300,101 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Scene Details Section — Sora 2 Mode */}
+              {!useKlingMode && (
+                <div className="p-6 space-y-4">
+                  {/* Scene Title */}
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Film size={14} className="text-[#8B5CF6]" />
+                      {zoomFrame.title || `Cena ${zoomFrame.scene_number}`}
+                    </h4>
+                  </div>
+
+                  {/* Scene Description */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-purple-400 flex items-center gap-2">
+                      <Paintbrush size={14} />
+                      {lang === 'pt' ? 'Descrição da Cena' : 'Scene Description'}
+                    </h4>
+                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        {zoomFrame.description || (lang === 'pt' ? '(Sem descrição)' : '(No description)')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dialogue */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                      <MessageSquare size={14} />
+                      {lang === 'pt' ? 'Diálogo' : 'Dialogue'}
+                    </h4>
+                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        {zoomFrame.dialogue || (lang === 'pt' ? '(Sem diálogo)' : '(No dialogue)')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sora Prompt (if available from Director Preview) */}
+                  {zoomFrame.sora_prompt && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-orange-400 flex items-center gap-2">
+                          <Sparkles size={14} />
+                          {lang === 'pt' ? 'Prompt Sora 2 (Director)' : 'Sora 2 Prompt (Director)'}
+                        </h4>
+                        <button
+                          onClick={() => copyToClipboard(zoomFrame.sora_prompt)}
+                          className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
+                          <Copy size={12} />
+                          {lang === 'pt' ? 'Copiar' : 'Copy'}
+                        </button>
+                      </div>
+                      <div className="bg-[#0D0D0D] border border-orange-500/20 rounded-lg p-3">
+                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {zoomFrame.sora_prompt}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Characters */}
+                  {zoomFrame.characters_in_scene && zoomFrame.characters_in_scene.length > 0 && (
+                    <div className="space-y-1">
+                      <h5 className="text-xs font-semibold text-gray-400">
+                        {lang === 'pt' ? 'Personagens na Cena' : 'Characters in Scene'}
+                      </h5>
+                      <p className="text-xs text-gray-300">{zoomFrame.characters_in_scene.join(', ')}</p>
+                    </div>
+                  )}
+
+                  {/* Emotion */}
+                  {zoomFrame.emotion && (
+                    <div className="space-y-1">
+                      <h5 className="text-xs font-semibold text-gray-400">
+                        {lang === 'pt' ? 'Emoção' : 'Emotion'}
+                      </h5>
+                      <p className="text-xs text-gray-300">{zoomFrame.emotion}</p>
+                    </div>
+                  )}
+
+                  {/* Regenerate button */}
+                  <div className="pt-4 border-t border-[#222] flex gap-3">
+                    <button
+                      onClick={() => {
+                        regeneratePanel(zoomFrame.scene_number);
+                        closeZoomModal();
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/25 transition">
+                      <RefreshCw size={12} />
+                      {lang === 'pt' ? 'Regenerar Painel' : 'Regenerate Panel'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

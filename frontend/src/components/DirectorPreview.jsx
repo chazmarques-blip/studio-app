@@ -196,19 +196,31 @@ export function DirectorPreview({ projectId, lang, scenes, onApprove, onBack }) 
         }, 3000);
       }
     } catch (err) {
-      // ✅ NEVER GIVE UP - Auto-retry on error
-      const errorMsg = getErrorMsg(err, 'Review failed');
-      console.error('Director review failed:', errorMsg);
+      // Check if it's a timeout/network error (proxy cut connection but backend continues)
+      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout') || err.message?.includes('Network Error') || !err.response;
       
-      toast.error(lang === 'pt' 
-        ? `❌ Erro: ${errorMsg} — Retentando em 5 segundos...` 
-        : `❌ Error: ${errorMsg} — Retrying in 5 seconds...`
-      );
-      
-      // Auto-retry after 5 seconds
-      setTimeout(() => {
-        runReview();
-      }, 5000);
+      if (isTimeout) {
+        // Proxy timeout is expected for large projects — the review continues in background
+        console.log('Director review: proxy timeout (expected) — polling will catch result');
+        toast.info(lang === 'pt' 
+          ? '⏳ Review em andamento — acompanhando progresso...' 
+          : '⏳ Review in progress — tracking progress...'
+        );
+        // Don't retry — polling will detect when it's done
+      } else {
+        const errorMsg = getErrorMsg(err, 'Review failed');
+        console.error('Director review failed:', errorMsg);
+        
+        toast.error(lang === 'pt' 
+          ? `❌ Erro: ${errorMsg} — Retentando em 5 segundos...` 
+          : `❌ Error: ${errorMsg} — Retrying in 5 seconds...`
+        );
+        
+        // Auto-retry after 5 seconds
+        setTimeout(() => {
+          runReview();
+        }, 5000);
+      }
     } finally {
       // Don't set reviewing to false here - let it continue retrying
     }
