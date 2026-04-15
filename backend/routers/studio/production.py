@@ -43,10 +43,12 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         # Prepare generation parameters
         gen_params = {
             "model": "sora-2",
-            "prompt": prompt[:2500],
+            "prompt": prompt,  # Full prompt - dialogue + characters + direction
             "size": size,
             "seconds": duration
         }
+        
+        logger.info(f"Sora 2: Prompt length={len(prompt)} chars. First 200: {prompt[:200]}")
         
         # Use input_reference if image path provided (Project Bible keyframe or character reference)
         # CRITICAL FIX (2026-04-03): Resize image to match video dimensions to avoid 400 error
@@ -486,7 +488,8 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
 
             # ── LAYER 2: FIXED DIALOGUE WITH LIP SYNC (from scene data) ──
             dialogue_timeline = scene.get("dialogue_timeline", [])
-            scene_dialogue = scene.get("dialogue", "").strip()
+            # Prefer dubbed_text (richest) > dialogue (original)
+            scene_dialogue = (scene.get("dubbed_text") or scene.get("dialogue", "")).strip()
             lang_full = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(project_lang, project_lang)
             
             fixed_dialogue_block = ""
@@ -497,18 +500,29 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                     for beat in character_beats:
                         timing_parts.append(f"[{beat['start_time']:.1f}s-{beat['end_time']:.1f}s] The character [{beat['speaker']}] says: '{beat['text']}' - speaking with perfectly synchronized lip movements")
                     fixed_dialogue_block = f"\n\nDIALOGUE LIP-SYNC TIMING (ORIGINAL {lang_full.upper()} - DO NOT TRANSLATE):\n" + "\n".join(timing_parts)
-            elif scene_dialogue:
-                # Parse character dialogue
+            
+            if not fixed_dialogue_block and scene_dialogue:
+                # Parse character dialogue from dubbed_text or dialogue field
                 import re as _re
-                lines = [l.strip() for l in scene_dialogue.split('\n') if l.strip()]
+                # Split by | (dubbed_text separator) or newlines
+                raw_lines = scene_dialogue.replace('|', '\n').split('\n')
+                lines = [l.strip() for l in raw_lines if l.strip()]
                 lip_parts = []
-                for line in lines[:4]:  # Max 4 dialogue lines per 12s scene
-                    if ':' in line:
-                        char_name = line.split(':')[0].strip()
-                        speech = line.split(':', 1)[1].strip().strip("'\"")
-                        lip_parts.append(f"The character [{char_name}] says: '{speech}' - speaking with perfectly synchronized lip movements")
-                    else:
-                        lip_parts.append(f"A character says: '{line}' - speaking with perfectly synchronized lip movements")
+                for line in lines[:6]:  # Max 6 dialogue lines per 12s scene
+                    # Remove stage directions in parentheses/brackets at start
+                    clean = _re.sub(r'^\[.*?\]\s*', '', line).strip()
+                    if ':' in clean:
+                        char_name = clean.split(':')[0].strip()
+                        # Remove parenthetical actions from character name
+                        char_name = _re.sub(r'\s*\(.*?\)\s*', '', char_name).strip()
+                        speech = clean.split(':', 1)[1].strip().strip("'\"")
+                        # Remove inline stage directions from speech
+                        speech = _re.sub(r'\[.*?\]', '', speech).strip()
+                        speech = _re.sub(r'\(.*?\)', '', speech).strip()
+                        if speech and len(speech) > 2 and len(char_name) < 30:
+                            lip_parts.append(f"The character [{char_name}] says: '{speech}' - speaking with perfectly synchronized lip movements")
+                    elif clean and len(clean) > 5 and not clean.startswith('[') and not clean.startswith('('):
+                        lip_parts.append(f"A character says: '{clean}' - speaking with perfectly synchronized lip movements")
                 if lip_parts:
                     fixed_dialogue_block = f"\n\nDIALOGUE LIP-SYNC (ORIGINAL {lang_full.upper()} - DO NOT TRANSLATE):\n" + "\n".join(lip_parts)
 
@@ -606,7 +620,9 @@ Describe ONLY the visual action and camera work for this scene. Do NOT describe 
                 visual_direction = f"Camera slowly reveals the scene. Characters interact naturally. {cam_flow or ''}"
 
             # ══ ASSEMBLE FINAL SORA PROMPT (Layered Architecture) ══
-            # Build continuity bridge for the video prompt
+            # PRIORITY ORDER: Dialogue FIRST (most important for lip sync),
+            # then characters, then visual direction, then style
+            # This ensures dialogue is NEVER truncated
             continuity_prompt = ""
             if prev_scene:
                 transition_from = scene.get("transition_from", "")
@@ -615,18 +631,18 @@ Describe ONLY the visual action and camera work for this scene. Do NOT describe 
                 else:
                     continuity_prompt = f"\n[SCENE CONTINUITY] This scene continues directly from the previous scene. Maintain the same visual style, environment, and character appearances.\n"
 
-            sora_prompt = f"""{pd_style}
-
-[CRITICAL: All visible text, signs, letters, and written words must be in {language_marker}]
+            sora_prompt = f"""{fixed_dialogue_block}
 
 {char_identity_text}
 {continuity_prompt}
 VISUAL DIRECTION: {visual_direction}
 
-{fixed_dialogue_block}
+{pd_style}
+
+[CRITICAL: All visible text, signs, letters, and written words must be in {language_marker}]
 """
 
-            logger.info(f"Studio [{project_id}]: Scene {scene_num} prompt assembled - {len(char_identity_blocks)} chars, {len(fixed_dialogue_block)} dialogue chars")
+            logger.info(f"Studio [{project_id}]: Scene {scene_num} prompt assembled - total={len(sora_prompt)} chars, style={len(pd_style)} chars, identity={len(char_identity_text)} chars, direction={len(visual_direction)} chars, dialogue={len(fixed_dialogue_block)} chars")
 
             return {
                 "scene_number": scene_num,
@@ -1321,7 +1337,7 @@ VISUAL DIRECTION: {visual_direction}
                         
                         # Unified video generation supporting Sora 2 and Kling AI
                         video_bytes = _generate_video_unified(
-                            prompt=sora_prompt[:2500] if video_engine == "sora" else sora_prompt,  # Kling can handle longer prompts
+                            prompt=sora_prompt,  # No truncation - dialogue must reach Sora 2 intact
                             engine=video_engine,
                             size="1280x720",
                             duration=video_duration,  # 12s for Sora, 300s for Kling
@@ -2929,7 +2945,7 @@ Story: {briefing[:300]}
                 
                 video_bytes = _generate_video_with_openai_direct(
                     client=openai_client,
-                    prompt=sora_prompt[:1000],
+                    prompt=sora_prompt,
                     size="1280x720",
                     duration=12,
                     image_path=ref_path,
