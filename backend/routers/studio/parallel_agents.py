@@ -243,7 +243,27 @@ Create the screenplay structure with the first {effective_batch_size} scene(s). 
                     outline_text = "\nPLANNED SCENE OUTLINE (from Foundation — follow this EXACTLY):\n"
                     for i, item in enumerate(scene_outline):
                         outline_text += f"  Scene {i+1}: {item}\n"
-                # Last 3 scenes with details for narrative continuity
+                # Last scene with FULL details for narrative + visual + audio continuity
+                last_scene = all_scenes[-1] if all_scenes else None
+                continuity_bridge = ""
+                if last_scene:
+                    continuity_bridge = f"""
+LAST SCENE (Scene {last_scene.get('scene_number')}) - YOU MUST CONTINUE FROM HERE:
+  Title: {last_scene.get('title', '')}
+  Description (ending): {last_scene.get('description', '')[-300:]}
+  Last dialogue: {last_scene.get('dialogue', '')[-200:]}
+  Transition to next: {last_scene.get('transition_to', '')}
+  Music mood: {last_scene.get('music_mood', '')}
+  Camera: {last_scene.get('camera', '')}
+  Emotion: {last_scene.get('emotion', '')}
+
+YOUR FIRST SCENE (Scene {start_num}) MUST:
+- Start visually where Scene {last_scene.get('scene_number')} ended
+- Reference what just happened in the dialogue
+- Use compatible camera angle and music mood
+- Fill "transition_from" explaining how it connects from scene {last_scene.get('scene_number')}
+"""
+                # Last 3 scenes for broader context
                 context_scenes = all_scenes[-3:] if len(all_scenes) >= 3 else all_scenes
                 context_summary = "\n".join([
                     f"Scene {s.get('scene_number')}: {s.get('title')} - {s.get('description', '')[:100]}"
@@ -273,12 +293,14 @@ ALL SCENES WRITTEN SO FAR (DO NOT repeat these topics):
 
 RECENT SCENES (for narrative flow):
 {context_summary}
-
+{continuity_bridge}
 ⛔ CRITICAL RULES:
 - Follow the PLANNED SCENE OUTLINE above — use the exact titles/topics planned for scenes {start_num} to {end_num}
 - Do NOT repeat topics/tips/dicas that already exist in earlier scenes
 - Do NOT restart numbering — continue sequentially
 - Each new scene must advance the story
+- EVERY scene MUST include: transition_from, transition_to, music_mood, sfx_notes
+- Scene {start_num} MUST connect visually and narratively to the previous scene
 
 Generate scenes {start_num} to {end_num}. {scene_duration_text}
 {timing_instruction}

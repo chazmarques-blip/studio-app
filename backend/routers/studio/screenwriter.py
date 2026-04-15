@@ -78,7 +78,31 @@ TASK: Create a screenplay structure. Return ONLY valid JSON:
 }}
 
 Each scene:
-{{"scene_number": N, "time_start": "M:SS", "time_end": "M:SS", "title": "Title", "description": "RICH visual", "dialogue": "Text", "characters_in_scene": ["Name"], "emotion": "mood", "camera": "shot", "transition": "fade/cut"}}
+{{"scene_number": N, "time_start": "M:SS", "time_end": "M:SS", "title": "Title", "description": "RICH visual", "dialogue": "Text", "characters_in_scene": ["Name"], "emotion": "mood", "camera": "shot", "transition": "fade/cut", "transition_from": "How this scene CONNECTS from the previous (visual bridge)", "transition_to": "How this scene ENDS leading into the next", "music_mood": "Music mood for this scene (e.g. alegre, tenso, calmo, épico)", "sfx_notes": "Key sound effects (e.g. sons de natureza, passos na grama, vento)"}}
+
+===============================================================================
+SCENE CONTINUITY RULES (CRITICAL FOR CINEMA QUALITY)
+===============================================================================
+
+1. VISUAL BRIDGE: Each scene MUST start by connecting to the previous scene's ending.
+   - Scene 1 ends with Brenda kneeling in the garden → Scene 2 MUST start in the same garden
+   - NEVER teleport characters to new locations without transition
+   - Use "transition_from" to describe the visual bridge
+
+2. DIALOGUE FLOW: The last line of dialogue in scene N should naturally lead to scene N+1.
+   - End scene: "E agora vamos ver o habitat deles!" → Next scene starts at the habitat
+   - Characters should reference what just happened
+
+3. AUDIO CONTINUITY: Use "music_mood" and "sfx_notes" to create sonic flow.
+   - Music mood should evolve gradually (not jump from "alegre" to "tenso" without reason)
+   - Environmental sounds should match the location
+   - If scenes share the same location, share similar sfx_notes
+
+4. CAMERA CONTINUITY: End one scene and start the next with compatible camera angles.
+   - End with wide shot → Start next with wide shot of same space
+   - End with close-up on character → Start next from same character's perspective
+
+===============================================================================
 
 RULES FOR SORA:
 - Each scene = EXACTLY 12 seconds

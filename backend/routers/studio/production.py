@@ -448,14 +448,15 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
         # Track budget state across threads
         budget_exhausted = threading.Event()
 
-        def _scene_director(scene, scene_num):
+        def _scene_director(scene, scene_num, prev_scene=None):
             """PHASE A - Scene Director: generates Sora prompt using Production Design Bible.
             
             NEW ARCHITECTURE: The prompt is built in layers:
             1. FIXED: Style DNA (never changes)
             2. FIXED: Character identity prompts (from avatar analysis - never changes)
             3. FIXED: Original dialogue with lip sync instruction (from scene data - never changes)
-            4. VARIABLE: Visual scene direction (camera, lighting, action) ← only this comes from Director
+            4. CONTINUITY: Previous scene context (transition_from, last dialogue)
+            5. VARIABLE: Visual scene direction (camera, lighting, action) ← only this comes from Director
             """
             if scene_num in completed_videos:
                 return {"scene_number": scene_num, "sora_prompt": None, "cached": True}
@@ -521,6 +522,36 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             trans_note = scene_dir.get("transition_note", "")
 
             # ── LAYER 4: Director generates ONLY the visual action description ──
+            # Build continuity context from previous scene
+            continuity_ctx = ""
+            if prev_scene:
+                prev_title = prev_scene.get("title", "")
+                prev_desc_end = prev_scene.get("description", "")[-200:]
+                prev_dialogue_end = prev_scene.get("dialogue", "").strip().split("\n")[-1] if prev_scene.get("dialogue") else ""
+                prev_transition_to = prev_scene.get("transition_to", "")
+                transition_from = scene.get("transition_from", "")
+                prev_camera = prev_scene.get("camera", "")
+                continuity_ctx = f"""
+[CONTINUITY FROM PREVIOUS SCENE]
+Previous scene ({prev_scene.get('scene_number', '?')}): "{prev_title}"
+How it ended: {prev_desc_end}
+Last dialogue: {prev_dialogue_end}
+Transition note: {prev_transition_to}
+Connection to this scene: {transition_from}
+Previous camera: {prev_camera}
+
+RULE: The FIRST 2 seconds (0-2s) MUST visually connect to the end of the previous scene.
+- Same location/environment unless the transition explicitly changes it
+- Compatible camera angle (if prev ended wide, start wide)
+- Characters should be in positions consistent with where they were"""
+
+            # Build audio/sfx context
+            music_mood = scene.get("music_mood", "")
+            sfx_notes = scene.get("sfx_notes", "")
+            audio_ctx = ""
+            if music_mood or sfx_notes:
+                audio_ctx = f"\n[AUDIO ATMOSPHERE] Music: {music_mood}. SFX: {sfx_notes}. Reflect this mood in the visual direction."
+
             director_system = f"""You are a VISUAL SCENE DIRECTOR. Your ONLY job is to describe the VISUAL ACTION of the scene.
 
 [RULE] RULES:
@@ -528,6 +559,7 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
 - DO NOT write dialogue - it is already defined in DIALOGUE LIP-SYNC blocks
 - DO NOT modify, translate, or paraphrase the dialogue text
 - ONLY describe: camera movement, lighting, character positioning, gestures, expressions, environment details, timing of actions
+- If CONTINUITY context is provided, the first 2 seconds MUST connect to the previous scene
 
 OUTPUT: Return ONLY JSON: {{"visual_direction": "Visual action description in English, max 200 words"}}
 
@@ -539,6 +571,7 @@ TIME OF DAY: {time_day}
 LIGHTING: {time_light or 'Match scene emotion'}
 CAMERA: {cam_flow or 'Medium shot, gentle movement'}
 TRANSITION: {trans_note or 'Smooth cut'}
+{continuity_ctx}{audio_ctx}
 """
 
             director_user = f"""SCENE {scene_num}: "{scene.get('title', '')}"
@@ -573,12 +606,21 @@ Describe ONLY the visual action and camera work for this scene. Do NOT describe 
                 visual_direction = f"Camera slowly reveals the scene. Characters interact naturally. {cam_flow or ''}"
 
             # ══ ASSEMBLE FINAL SORA PROMPT (Layered Architecture) ══
+            # Build continuity bridge for the video prompt
+            continuity_prompt = ""
+            if prev_scene:
+                transition_from = scene.get("transition_from", "")
+                if transition_from:
+                    continuity_prompt = f"\n[SCENE CONTINUITY] This scene continues directly from the previous. Visual bridge: {transition_from}\n"
+                else:
+                    continuity_prompt = f"\n[SCENE CONTINUITY] This scene continues directly from the previous scene. Maintain the same visual style, environment, and character appearances.\n"
+
             sora_prompt = f"""{pd_style}
 
 [CRITICAL: All visible text, signs, letters, and written words must be in {language_marker}]
 
 {char_identity_text}
-
+{continuity_prompt}
 VISUAL DIRECTION: {visual_direction}
 
 {fixed_dialogue_block}
@@ -1344,23 +1386,37 @@ VISUAL DIRECTION: {visual_direction}
                 _update_scene_status(tenant_id, project_id, scene_num, "error", total)
                 return {"scene_number": scene_num, "url": None, "type": "video", "error": last_error or "unknown"}
 
-        # ══ PHASE A: ALL DIRECTORS IN PARALLEL (Production-Design-guided) ══
+        # ══ PHASE A: DIRECTORS (Production-Design-guided) ══
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        logger.info(f"Studio [{project_id}]: PHASE A - Launching {total} Scene Directors (parallel, PD-guided)")
-
         directed_scenes = []
-        with ThreadPoolExecutor(max_workers=total) as executor:
-            director_futures = {
-                executor.submit(_scene_director, s, s.get("scene_number", i+1)): (i, s)
-                for i, s in enumerate(scenes)
-            }
+        scene_map = {s.get("scene_number", i+1): s for i, s in enumerate(scenes)}
 
-            for future in as_completed(director_futures):
-                result = future.result()
+        if video_engine == "sora" and continuity_mode:
+            # SORA 2 CINEMA: Directors run SEQUENTIALLY so each gets prev_scene context
+            logger.info(f"Studio [{project_id}]: PHASE A - Launching {total} Scene Directors SEQUENTIALLY (continuity mode)")
+            sorted_scenes = sorted(scenes, key=lambda s: s.get("scene_number", 0))
+            prev_s = None
+            for s in sorted_scenes:
+                sn = s.get("scene_number", 0)
+                result = _scene_director(s, sn, prev_scene=prev_s)
                 directed_scenes.append(result)
                 cached = result.get("cached", False)
                 logger.info(f"Studio [{project_id}]: Director {result['scene_number']}/{total} done {'(CACHED)' if cached else ''}")
+                prev_s = s  # Current scene becomes prev for next iteration
+        else:
+            # KLING / Non-continuity: Directors run in PARALLEL (no prev_scene needed)
+            logger.info(f"Studio [{project_id}]: PHASE A - Launching {total} Scene Directors (parallel, PD-guided)")
+            with ThreadPoolExecutor(max_workers=total) as executor:
+                director_futures = {
+                    executor.submit(_scene_director, s, s.get("scene_number", i+1)): (i, s)
+                    for i, s in enumerate(scenes)
+                }
+                for future in as_completed(director_futures):
+                    result = future.result()
+                    directed_scenes.append(result)
+                    cached = result.get("cached", False)
+                    logger.info(f"Studio [{project_id}]: Director {result['scene_number']}/{total} done {'(CACHED)' if cached else ''}")
 
         music_data = {"plan": pd_music, "mood": "cinematic"}
 
@@ -1630,8 +1686,14 @@ VISUAL DIRECTION: {visual_direction}
         })
 
 
-def _concatenate_videos(scene_videos: list, project_id: str) -> str:
-    """Download scene videos, concatenate with FFmpeg, compress for upload, upload result."""
+def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration: float = 1.0) -> str:
+    """Download scene videos, concatenate with FFmpeg crossfade, compress for upload, upload result.
+    
+    Args:
+        scene_videos: List of {scene_number, url} dicts
+        project_id: Project ID for logging
+        crossfade_duration: Seconds of crossfade between clips (0 = hard cut)
+    """
     import tempfile
 
     # Ensure FFmpeg is available
@@ -1648,19 +1710,86 @@ def _concatenate_videos(scene_videos: list, project_id: str) -> str:
         files.append(local_path)
         logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB)")
 
-    # Create concat file
-    concat_file = f"{tmpdir}/concat.txt"
-    with open(concat_file, 'w') as f:
-        for fp in files:
-            f.write(f"file '{fp}'\n")
-
     output_path = f"{tmpdir}/final_{project_id}.mp4"
 
     # Calculate total input size to decide compression strategy
     total_input_size = sum(os.path.getsize(fp) for fp in files)
     total_input_mb = total_input_size / (1024 * 1024)
     num_scenes = len(files)
-    logger.info(f"Studio [{project_id}]: Concat {num_scenes} scenes, total input {total_input_mb:.1f}MB")
+    logger.info(f"Studio [{project_id}]: Concat {num_scenes} scenes, total input {total_input_mb:.1f}MB, crossfade={crossfade_duration}s")
+
+    # ── CROSSFADE CONCATENATION ──
+    # Uses xfade filter for smooth video transitions + acrossfade for audio
+    use_crossfade = crossfade_duration > 0 and num_scenes >= 2 and num_scenes <= 30
+    
+    if use_crossfade:
+        try:
+            # Get duration of each clip
+            clip_durations = []
+            for fp in files:
+                probe = subprocess.run([
+                    "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1", fp
+                ], capture_output=True, text=True, timeout=10)
+                dur = float(probe.stdout.strip()) if probe.returncode == 0 else 12.0
+                clip_durations.append(dur)
+            
+            # Build xfade filter chain
+            # For N clips: N-1 xfade transitions
+            # Each transition: offset = sum of previous durations - (crossfade_count * crossfade_duration)
+            inputs = []
+            for fp in files:
+                inputs.extend(["-i", fp])
+            
+            # Video xfade chain
+            v_filters = []
+            a_filters = []
+            cumulative_offset = 0
+            
+            for i in range(num_scenes - 1):
+                cumulative_offset += clip_durations[i] - crossfade_duration
+                
+                if i == 0:
+                    v_in = "[0:v]"
+                    a_in = "[0:a]"
+                else:
+                    v_in = f"[vx{i-1}]"
+                    a_in = f"[ax{i-1}]"
+                
+                v_out = f"[vx{i}]" if i < num_scenes - 2 else "[vout]"
+                a_out = f"[ax{i}]" if i < num_scenes - 2 else "[aout]"
+                
+                v_filters.append(f"{v_in}[{i+1}:v]xfade=transition=fade:duration={crossfade_duration}:offset={cumulative_offset:.2f}{v_out}")
+                a_filters.append(f"{a_in}[{i+1}:a]acrossfade=d={crossfade_duration}:c1=tri:c2=tri{a_out}")
+            
+            filter_complex = ";".join(v_filters + a_filters)
+            
+            cmd_xfade = ["ffmpeg", "-y"] + inputs + [
+                "-filter_complex", filter_complex,
+                "-map", "[vout]", "-map", "[aout]",
+                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
+                output_path
+            ]
+            
+            result = subprocess.run(cmd_xfade, capture_output=True, timeout=600)
+            
+            if result.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                logger.info(f"Studio [{project_id}]: Crossfade concat successful ({num_scenes - 1} transitions)")
+            else:
+                logger.warning(f"Studio [{project_id}]: Crossfade failed, falling back to simple concat. Error: {result.stderr.decode()[:200]}")
+                use_crossfade = False
+        except Exception as e:
+            logger.warning(f"Studio [{project_id}]: Crossfade error: {e}, falling back to simple concat")
+            use_crossfade = False
+    
+    if not use_crossfade:
+        # ── SIMPLE CONCATENATION (fallback or >30 scenes) ──
+        concat_file = f"{tmpdir}/concat.txt"
+        with open(concat_file, 'w') as f:
+            for fp in files:
+                f.write(f"file '{fp}'\n")
 
     # For small total inputs (<40MB), try stream copy first
     if total_input_mb < 40:
@@ -2272,8 +2401,11 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
                     sample_url = _upload_to_storage(sample_bytes, f"studio/{project_id}_sora_v2a_sample.mp4", "video/mp4")
                     
                     scene_desc = scenes[0].get("description", "") if scenes else ""
-                    sfx_prompt = scene_desc[:150] if scene_desc else "ambient sounds, gentle atmosphere"
-                    bgm_prompt = "gentle orchestral music, Pixar style, warm emotional, children animation"
+                    # Build sfx/bgm prompts from scene metadata
+                    all_sfx = [s.get("sfx_notes", "") for s in scenes[:5] if s.get("sfx_notes")]
+                    all_moods = [s.get("music_mood", "") for s in scenes[:5] if s.get("music_mood")]
+                    sfx_prompt = "; ".join(all_sfx)[:150] if all_sfx else (scene_desc[:150] if scene_desc else "ambient sounds, gentle atmosphere")
+                    bgm_prompt = f"Music mood: {', '.join(all_moods)}. Pixar-style orchestral, warm emotional, children animation" if all_moods else "gentle orchestral music, Pixar style, warm emotional, children animation"
                     
                     _update_project_field(tenant_id, project_id, {
                         "progress_message": "Gerando sonoplastia e musica de fundo (V2A)..."
