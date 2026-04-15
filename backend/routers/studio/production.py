@@ -264,6 +264,11 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
             return
 
         scenes = project.get("scenes", [])
+        # Limit scenes if max_scenes is set
+        max_scenes = project.get("max_scenes")
+        if max_scenes and max_scenes > 0:
+            scenes = scenes[:max_scenes]
+            logger.info(f"Studio [{project_id}]: Limiting production to {len(scenes)}/{len(project.get('scenes', []))} scenes (max_scenes={max_scenes})")
         characters = project.get("characters", [])
         total = len(scenes)
         char_avatars = character_avatars or project.get("character_avatars", {})
@@ -1782,7 +1787,9 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
     if req.visual_style:
         project["visual_style"] = req.visual_style
     project["video_engine"] = req.video_engine  # Save engine choice
-    logger.info(f"Studio [{req.project_id}]: start_production - video_engine='{req.video_engine}' (from request)")
+    if req.max_scenes:
+        project["max_scenes"] = req.max_scenes
+    logger.info(f"Studio [{req.project_id}]: start_production - video_engine='{req.video_engine}', max_scenes={req.max_scenes} (from request)")
 
     project["status"] = "starting"
     project["error"] = None
@@ -1824,11 +1831,13 @@ async def start_production(req: StartProductionRequest, tenant=Depends(get_curre
 async def full_production(
     project_id: str,
     background_tasks: BackgroundTasks,
-    tenant=Depends(get_current_tenant)
+    tenant=Depends(get_current_tenant),
+    max_scenes: int = None
 ):
     """One-click full production: Dialogues -> Video (Kling) -> Audio (TTS) -> Multi-format export.
     
     Orchestrates all phases automatically in background.
+    Optional: ?max_scenes=15 to limit number of scenes produced.
     """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
@@ -1851,6 +1860,13 @@ async def full_production(
         # Sora 2: only needs scenes
         if not project.get("scenes"):
             raise HTTPException(status_code=400, detail="No scenes defined. Use the Screenwriter first.")
+    
+    # Save max_scenes limit if provided
+    if max_scenes and max_scenes > 0:
+        project["max_scenes"] = max_scenes
+        logger.info(f"Studio [{project_id}]: full-production limited to {max_scenes} scenes")
+    else:
+        project.pop("max_scenes", None)  # Remove limit if not specified
     
     project["full_production_status"] = "starting"
     project["progress_message"] = "Iniciando produção completa..."

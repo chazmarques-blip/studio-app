@@ -919,6 +919,7 @@ class StartProductionRequest(BaseModel):
     character_avatars: dict = {}  # {character_name: avatar_url}
     visual_style: str = ""  # override style for this run
     video_engine: str = "sora"  # "sora" or "kling"
+    max_scenes: Optional[int] = None  # limit number of scenes to produce
 
 class RegenerateSceneRequest(BaseModel):
     scene_number: int
