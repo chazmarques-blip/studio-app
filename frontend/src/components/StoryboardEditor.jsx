@@ -2304,13 +2304,22 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               )}
 
               {/* Scene Details Section — Sora 2 Mode */}
-              {!useKlingMode && (
+              {!useKlingMode && (() => {
+                // Cross-reference panel with scene data to get dialogue, sora_prompt, etc.
+                const matchedScene = scenes.find(s => s.scene_number === zoomFrame.scene_number) || {};
+                const sceneDialogue = matchedScene.dialogue || zoomFrame.dialogue || '';
+                const soraPrompt = matchedScene.sora_prompt || zoomFrame.sora_prompt || '';
+                const sceneEmotion = matchedScene.emotion || zoomFrame.emotion || '';
+                const sceneChars = matchedScene.characters_in_scene || zoomFrame.characters_in_scene || [];
+                const sceneDescription = zoomFrame.description || matchedScene.description || '';
+                
+                return (
                 <div className="p-6 space-y-4">
                   {/* Scene Title */}
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                       <Film size={14} className="text-[#8B5CF6]" />
-                      {zoomFrame.title || `Cena ${zoomFrame.scene_number}`}
+                      {zoomFrame.title || matchedScene.title || `Cena ${zoomFrame.scene_number}`}
                     </h4>
                   </div>
 
@@ -2322,7 +2331,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     </h4>
                     <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
                       <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
-                        {zoomFrame.description || (lang === 'pt' ? '(Sem descrição)' : '(No description)')}
+                        {sceneDescription || (lang === 'pt' ? '(Sem descrição)' : '(No description)')}
                       </p>
                     </div>
                   </div>
@@ -2335,13 +2344,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     </h4>
                     <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
                       <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
-                        {zoomFrame.dialogue || (lang === 'pt' ? '(Sem diálogo)' : '(No dialogue)')}
+                        {sceneDialogue || (lang === 'pt' ? '(Sem diálogo)' : '(No dialogue)')}
                       </p>
                     </div>
                   </div>
 
                   {/* Sora Prompt (if available from Director Preview) */}
-                  {zoomFrame.sora_prompt && (
+                  {soraPrompt && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-orange-400 flex items-center gap-2">
@@ -2349,7 +2358,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                           {lang === 'pt' ? 'Prompt Sora 2 (Director)' : 'Sora 2 Prompt (Director)'}
                         </h4>
                         <button
-                          onClick={() => copyToClipboard(zoomFrame.sora_prompt)}
+                          onClick={() => copyToClipboard(soraPrompt)}
                           className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-[#111] hover:bg-[#222] transition">
                           <Copy size={12} />
                           {lang === 'pt' ? 'Copiar' : 'Copy'}
@@ -2357,29 +2366,29 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       </div>
                       <div className="bg-[#0D0D0D] border border-orange-500/20 rounded-lg p-3">
                         <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
-                          {zoomFrame.sora_prompt}
+                          {soraPrompt}
                         </p>
                       </div>
                     </div>
                   )}
 
                   {/* Characters */}
-                  {zoomFrame.characters_in_scene && zoomFrame.characters_in_scene.length > 0 && (
+                  {sceneChars.length > 0 && (
                     <div className="space-y-1">
                       <h5 className="text-xs font-semibold text-gray-400">
                         {lang === 'pt' ? 'Personagens na Cena' : 'Characters in Scene'}
                       </h5>
-                      <p className="text-xs text-gray-300">{zoomFrame.characters_in_scene.join(', ')}</p>
+                      <p className="text-xs text-gray-300">{sceneChars.join(', ')}</p>
                     </div>
                   )}
 
                   {/* Emotion */}
-                  {zoomFrame.emotion && (
+                  {sceneEmotion && (
                     <div className="space-y-1">
                       <h5 className="text-xs font-semibold text-gray-400">
                         {lang === 'pt' ? 'Emoção' : 'Emotion'}
                       </h5>
-                      <p className="text-xs text-gray-300">{zoomFrame.emotion}</p>
+                      <p className="text-xs text-gray-300">{sceneEmotion}</p>
                     </div>
                   )}
 
@@ -2396,7 +2405,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     </button>
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         </div>,
