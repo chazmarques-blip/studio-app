@@ -545,19 +545,31 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                 prev_transition_to = prev_scene.get("transition_to", "")
                 transition_from = scene.get("transition_from", "")
                 prev_camera = prev_scene.get("camera", "")
+                # Get the visual_direction from prev scene if available (has EXIT ZONE info)
+                prev_visual = prev_scene.get("_visual_direction", "")
+                prev_exit = ""
+                if prev_visual:
+                    # Extract the 10-12s segment (EXIT ZONE)
+                    import re as _re
+                    exit_match = _re.search(r'10-12s?:(.+?)(?:\.|$)', prev_visual)
+                    if exit_match:
+                        prev_exit = exit_match.group(1).strip()
+                
                 continuity_ctx = f"""
-[CONTINUITY FROM PREVIOUS SCENE]
+[CONTINUITY FROM PREVIOUS SCENE - EDGE MIRRORING]
 Previous scene ({prev_scene.get('scene_number', '?')}): "{prev_title}"
-How it ended: {prev_desc_end}
-Last dialogue: {prev_dialogue_end}
-Transition note: {prev_transition_to}
-Connection to this scene: {transition_from}
-Previous camera: {prev_camera}
+How it ended visually: {prev_desc_end}
+EXIT ZONE action (last 2s): {prev_exit or prev_transition_to or 'Characters in resting position'}
+Last dialogue line: {prev_dialogue_end}
+Previous camera angle: {prev_camera}
+How this scene connects: {transition_from}
 
-RULE: The FIRST 2 seconds (0-2s) MUST visually connect to the end of the previous scene.
-- Same location/environment unless the transition explicitly changes it
-- Compatible camera angle (if prev ended wide, start wide)
-- Characters should be in positions consistent with where they were"""
+YOUR ENTRY ZONE (0-2s) MUST:
+- Show characters in the EXACT same positions as the EXIT ZONE above
+- Use the SAME camera angle as previous scene ended
+- Same lighting, same environment
+- Characters complete the gesture/look that was starting in the EXIT ZONE
+- Then SMOOTHLY transition into this scene's new action (2-4s onward)"""
 
             # Build audio/sfx context
             music_mood = scene.get("music_mood", "")
@@ -566,19 +578,39 @@ RULE: The FIRST 2 seconds (0-2s) MUST visually connect to the end of the previou
             if music_mood or sfx_notes:
                 audio_ctx = f"\n[AUDIO ATMOSPHERE] Music: {music_mood}. SFX: {sfx_notes}. Reflect this mood in the visual direction."
 
-            director_system = f"""You are a VISUAL SCENE DIRECTOR. Your ONLY job is to describe the VISUAL ACTION of the scene.
+            director_system = f"""You are a VISUAL SCENE DIRECTOR for a continuous animated film. Your ONLY job is to describe the VISUAL ACTION of each 12-second scene.
 
-[RULE] RULES:
+[RULES]
 - DO NOT describe character appearances - they are already defined in CHARACTER IDENTITY blocks
-- DO NOT write dialogue - it is already defined in DIALOGUE LIP-SYNC blocks
+- DO NOT write dialogue - it is already defined in DIALOGUE LIP-SYNC blocks  
 - DO NOT modify, translate, or paraphrase the dialogue text
 - ONLY describe: camera movement, lighting, character positioning, gestures, expressions, environment details, timing of actions
-- If CONTINUITY context is provided, the first 2 seconds MUST connect to the previous scene
+
+[EDGE MIRRORING RULE - CRITICAL FOR SCENE CONTINUITY]
+This is a CONTINUOUS FILM. Scenes must flow like one uninterrupted take:
+
+EXIT ZONE (10-12s): Describe a CLEAR transition action:
+- Characters shift position, look in a direction, or start a gesture
+- Camera begins a slow movement (pan, dolly, or zoom)
+- This becomes the ANCHOR for the next scene
+
+ENTRY ZONE (0-2s): If CONTINUITY context is provided:
+- Start with EXACTLY the same character positions as the previous scene ended
+- Same camera angle (within 15 degrees)
+- Same lighting and environment
+- Characters complete the gesture/action that started in the previous scene's exit
+- Think of it as if the camera just KEPT ROLLING
+
+FORBIDDEN BETWEEN SCENES:
+- NEVER teleport characters to new positions
+- NEVER change camera angle more than 15 degrees
+- NEVER change lighting abruptly
+- NEVER have characters face a different direction than they ended
 
 OUTPUT: Return ONLY JSON: {{"visual_direction": "Visual action description in English, max 200 words"}}
 
 TIMING FORMAT: Structure as 2-second intervals:
-"0-2s: [visual action]. 2-4s: [visual action]. 4-6s: [visual action]. 6-8s: [visual action]. 8-10s: [visual action]. 10-12s: [visual action]."
+"0-2s: [ENTRY - connect to previous]. 2-4s: [action]. 4-6s: [action]. 6-8s: [action]. 8-10s: [action]. 10-12s: [EXIT - prepare transition to next]."
 
 LOCATION: {loc_desc or 'As described in scene'}
 TIME OF DAY: {time_day}
@@ -619,22 +651,31 @@ Describe ONLY the visual action and camera work for this scene. Do NOT describe 
                 logger.warning(f"Studio [{project_id}]: Director failed for scene {scene_num}: {e}")
                 visual_direction = f"Camera slowly reveals the scene. Characters interact naturally. {cam_flow or ''}"
 
+            # Save visual_direction on the scene so the NEXT scene's director can read the EXIT ZONE
+            scene["_visual_direction"] = visual_direction
+
             # ══ ASSEMBLE FINAL SORA PROMPT (Layered Architecture) ══
-            # PRIORITY ORDER: Dialogue FIRST (most important for lip sync),
-            # then characters, then visual direction, then style
-            # This ensures dialogue is NEVER truncated
             continuity_prompt = ""
             if prev_scene:
                 transition_from = scene.get("transition_from", "")
-                if transition_from:
-                    continuity_prompt = f"\n[SCENE CONTINUITY] This scene continues directly from the previous. Visual bridge: {transition_from}\n"
-                else:
-                    continuity_prompt = f"\n[SCENE CONTINUITY] This scene continues directly from the previous scene. Maintain the same visual style, environment, and character appearances.\n"
+                prev_exit = prev_scene.get("_visual_direction", "")
+                import re as _re2
+                exit_match = _re2.search(r'10-12s?:(.+?)(?:\.|$)', prev_exit) if prev_exit else None
+                exit_text = exit_match.group(1).strip() if exit_match else ""
+                
+                continuity_prompt = f"""
+[SCENE CONTINUITY - EDGE MIRRORING]
+This scene continues DIRECTLY from the previous. The first 2 seconds must match the last 2 seconds of the previous scene.
+Previous scene EXIT action: {exit_text or transition_from or 'Characters in resting position'}
+Visual bridge: {transition_from}
+RULE: Same character positions, same camera angle, same lighting. NO visual jumps."""
+
+            voice_prompt = "\n[VOICE CONSISTENCY] Each character has a FIXED voice throughout the entire film. Lip movements must match the same speaking style, pace, and mouth movement pattern in every scene.\n"
 
             sora_prompt = f"""{fixed_dialogue_block}
 
 {char_identity_text}
-{continuity_prompt}
+{continuity_prompt}{voice_prompt}
 VISUAL DIRECTION: {visual_direction}
 
 {pd_style}
@@ -1723,8 +1764,23 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
     for i, sv in enumerate(scene_videos):
         local_path = f"{tmpdir}/scene_{i:03d}.mp4"
         urllib.request.urlretrieve(sv["url"], local_path)
+        
+        # Strip Sora 2 native audio (inconsistent voices) - keep only video
+        # TTS from ElevenLabs will be added later with consistent voices
+        silent_path = f"{tmpdir}/scene_{i:03d}_silent.mp4"
+        strip_result = subprocess.run([
+            "ffmpeg", "-y", "-i", local_path,
+            "-c:v", "copy", "-an",  # Remove audio, keep video
+            silent_path
+        ], capture_output=True, timeout=30)
+        
+        if strip_result.returncode == 0 and os.path.exists(silent_path):
+            os.replace(silent_path, local_path)  # Replace with silent version
+            logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB) - native audio stripped")
+        else:
+            logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB) - keeping native audio")
+        
         files.append(local_path)
-        logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB)")
 
     output_path = f"{tmpdir}/final_{project_id}.mp4"
 
@@ -1757,9 +1813,8 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
             for fp in files:
                 inputs.extend(["-i", fp])
             
-            # Video xfade chain
+            # Video xfade chain (video-only since native audio was stripped)
             v_filters = []
-            a_filters = []
             cumulative_offset = 0
             
             for i in range(num_scenes - 1):
@@ -1767,24 +1822,20 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
                 
                 if i == 0:
                     v_in = "[0:v]"
-                    a_in = "[0:a]"
                 else:
                     v_in = f"[vx{i-1}]"
-                    a_in = f"[ax{i-1}]"
                 
                 v_out = f"[vx{i}]" if i < num_scenes - 2 else "[vout]"
-                a_out = f"[ax{i}]" if i < num_scenes - 2 else "[aout]"
                 
                 v_filters.append(f"{v_in}[{i+1}:v]xfade=transition=fade:duration={crossfade_duration}:offset={cumulative_offset:.2f}{v_out}")
-                a_filters.append(f"{a_in}[{i+1}:a]acrossfade=d={crossfade_duration}:c1=tri:c2=tri{a_out}")
             
-            filter_complex = ";".join(v_filters + a_filters)
+            filter_complex = ";".join(v_filters)
             
             cmd_xfade = ["ffmpeg", "-y"] + inputs + [
                 "-filter_complex", filter_complex,
-                "-map", "[vout]", "-map", "[aout]",
+                "-map", "[vout]",
                 "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                "-c:a", "aac", "-b:a", "128k",
+                "-an",  # No audio - TTS will be added later
                 "-movflags", "+faststart",
                 output_path
             ]
