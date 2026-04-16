@@ -278,7 +278,7 @@ YOUR FIRST SCENE (Scene {start_num}) MUST:
                 timing_instruction = f"- Start time from {last_time}\n- Each scene is EXACTLY 5 minutes long\n- Scene transitions happen at 5-minute intervals"
             else:
                 scene_duration_text = "Each scene = 12 seconds"
-                timing_instruction = f"- Start time from {last_time}\n- Each scene is EXACTLY 12 seconds long"
+                timing_instruction = f"- Start time from {last_time}\n- Each scene is EXACTLY 12 seconds long\n- DIALOGUE LIMIT: Max 20-25 words of spoken dialogue per scene (must fit in 10 seconds of speech at 2.5 words/sec). Short punchy lines only."
             
             batch_prompt = f"""⚠️ CRITICAL: ALL text MUST be in {LANG_FULL_NAMES.get(lang, lang)}. DO NOT use English.
 
