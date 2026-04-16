@@ -2768,25 +2768,26 @@ def _regenerate_single_scene(tenant_id: str, project_id: str, scene_num: int, cu
         }
         language_marker = LANGUAGE_MARKERS.get(project_lang, f"{project_lang.upper()} TEXT")
 
-        # Use custom prompt or generate via Claude with Production Design
+        # Use custom prompt instruction if provided (injected into scene, not replacement)
         if custom_prompt:
-            sora_prompt = custom_prompt
-        else:
-            chars_in_scene = scene.get("characters_in_scene", [])
+            scene = {**scene, "description": f"{scene.get('description', '')}\n\n[USER INSTRUCTION - MUST FOLLOW]: {custom_prompt}"}
+            logger.info(f"Studio [{project_id}]: Scene {scene_num} regen with instruction: {custom_prompt[:100]}")
 
-            # Use canonical descriptions from Production Design if available
-            if pd_chars:
-                char_descs = "\n".join([
-                    f"- {name}: {pd_chars.get(name, next((ch.get('description','') for ch in characters if ch.get('name')==name), ''))}"
-                    for name in chars_in_scene
-                ])
-                scene_dir = pd_scene_dirs.get(scene_num, {})
-                loc_key = scene_dir.get("location_key", "")
-                loc_desc = pd_locations.get(loc_key, "")
-                time_day = scene_dir.get("time_of_day", "afternoon")
-                time_light = pd_color.get(time_day, pd_color.get("global", ""))
+        chars_in_scene = scene.get("characters_in_scene", [])
 
-                director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation.
+        # Use canonical descriptions from Production Design if available
+        if pd_chars:
+            char_descs = "\n".join([
+                f"- {name}: {pd_chars.get(name, next((ch.get('description','') for ch in characters if ch.get('name')==name), ''))}"
+                for name in chars_in_scene
+            ])
+            scene_dir = pd_scene_dirs.get(scene_num, {})
+            loc_key = scene_dir.get("location_key", "")
+            loc_desc = pd_locations.get(loc_key, "")
+            time_day = scene_dir.get("time_of_day", "afternoon")
+            time_light = pd_color.get(time_day, pd_color.get("global", ""))
+
+            director_system = f"""You are a SCENE DIRECTOR for Sora 2 video generation.
 MANDATORY STYLE (include VERBATIM): {style_hint}
 
 [RULE] ABSOLUTE RULE - DO NOT MODIFY APPROVED CONTENT:
@@ -2809,7 +2810,7 @@ MANDATORY STYLE (include VERBATIM): {style_hint}
 Return ONLY JSON: {{"sora_prompt": "ONE detailed English paragraph for Sora 2, max 250 words"}}
 RULES: Describe characters by EXACT PHYSICAL APPEARANCE, NEVER by name. Include environment, lighting, atmosphere, actions, camera. ALWAYS include exact dialogue (in original language) with lip-sync instruction."""
 
-                director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
+            director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')}
@@ -2818,10 +2819,10 @@ LOCATION: {loc_desc}
 TIME: {time_day} - {time_light}
 CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}
 """
-            else:
-                # Fallback: no production design available
-                scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
-                director_system = f"""You are a SCENE DIRECTOR for Sora 2. {style_hint}
+        else:
+            # Fallback: no production design available
+            scene_chars = "; ".join([f"{ch['name']}: {ch.get('description','')}" for ch in characters if ch.get("name") in chars_in_scene])
+            director_system = f"""You are a SCENE DIRECTOR for Sora 2. {style_hint}
 
 [RULE] ABSOLUTE RULE - DO NOT MODIFY APPROVED CONTENT:
 - The DESCRIPTION, DIALOGUE, and EMOTION below were APPROVED by the content creator
@@ -2841,7 +2842,7 @@ CAMERA: {scene_dir.get('camera_flow', scene.get('camera', ''))}
 
 Return ONLY JSON: {{"sora_prompt": "Detailed English paragraph for Sora 2. Max 250 words. ALWAYS include exact dialogue (in original language) with lip-sync instruction."}}
 """
-                director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
+            director_prompt = f"""Scene {scene_num}/{total}: "{scene.get('title','')}"
 Description: {scene.get('description','')}
 Dialogue: {scene.get('dialogue','')}
 Emotion: {scene.get('emotion','')} | Camera: {scene.get('camera','')}
@@ -2849,73 +2850,65 @@ Characters: {scene_chars}
 Story: {briefing[:300]}
 """
 
-            try:
-                result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
-                data = _parse_json(result_text) or {}
-                sora_prompt_base = data.get("sora_prompt", scene.get("description", ""))
+        try:
+            result_text = _call_claude_sync(director_system, director_prompt, max_tokens=1000)
+            data = _parse_json(result_text) or {}
+            sora_prompt_base = data.get("sora_prompt", scene.get("description", ""))
+            
+            dialogue_timeline = scene.get("dialogue_timeline", [])
+            logger.info(f"Studio [{project_id}]: DEBUG - dialogue_timeline beats: {len(dialogue_timeline)}")
+            
+            if dialogue_timeline and len(dialogue_timeline) > 0:
+                character_beats = [beat for beat in dialogue_timeline if beat.get('speaker', '').lower() not in ('narrador', 'narrator')]
                 
-                # CRITICAL FIX (2026-04-04): Use dialogue_timeline instead of dialogue field
-                # The dialogue field can have narration mixed in, multiple characters, wrong format
-                # dialogue_timeline has proper structure with timing, speaker, text separated
-                dialogue_timeline = scene.get("dialogue_timeline", [])
-                
-                logger.info(f"Studio [{project_id}]: DEBUG - dialogue_timeline beats: {len(dialogue_timeline)}")
-                
-                if dialogue_timeline and len(dialogue_timeline) > 0:
-                    # Extract only CHARACTER dialogue (skip narrator)
-                    character_beats = [beat for beat in dialogue_timeline if beat.get('speaker', '').lower() != 'narrador' and beat.get('speaker', '').lower() != 'narrator']
+                if character_beats:
+                    import re as _re
+                    clean_base = _re.sub(r"The .{5,80} says: '[^']*'[^.]*\.", "", sora_prompt_base).strip()
+                    clean_base = _re.sub(r"DIALOGUE TIMING:.*$", "", clean_base).strip()
                     
-                    # ALWAYS inject original-language dialogue into prompt (even if Director already added it)
-                    # This ensures the lip sync matches the TTS audio language
-                    if character_beats:
-                        # Remove any existing "says:" sections the Director may have added (possibly translated)
-                        import re as _re
-                        clean_base = _re.sub(r"The .{5,80} says: '[^']*'[^.]*\.", "", sora_prompt_base).strip()
-                        clean_base = _re.sub(r"DIALOGUE TIMING:.*$", "", clean_base).strip()
-                        
-                        # Build timing breakdown with ORIGINAL LANGUAGE dialogue
-                        timing_text = ""
-                        for beat in character_beats:
-                            speaker = beat.get('speaker', 'Character')
-                            text = beat.get('text', '')  # Original language text
-                            start = beat.get('start_time', 0)
-                            end = beat.get('end_time', 0)
-                            timing_text += f"[{start:.1f}s-{end:.1f}s] {speaker} says: '{text}' - "
-                        
-                        sora_prompt = f"{clean_base} DIALOGUE TIMING (ORIGINAL LANGUAGE - DO NOT TRANSLATE): {timing_text}speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word matching the exact timing above, clear articulation."
-                        logger.info(f"Studio [{project_id}]: ✅ INJECTED original-language dialogue_timeline with {len(character_beats)} character beats")
-                    else:
-                        sora_prompt = sora_prompt_base
-                        logger.info(f"Studio [{project_id}]: [WARNING] dialogue_timeline only has narrator")
+                    timing_text = ""
+                    for beat in character_beats:
+                        speaker = beat.get('speaker', 'Character')
+                        text = beat.get('text', '')
+                        start = beat.get('start_time', 0)
+                        end = beat.get('end_time', 0)
+                        timing_text += f"[{start:.1f}s-{end:.1f}s] {speaker} says: '{text}' - "
+                    
+                    sora_prompt = f"{clean_base} DIALOGUE TIMING (ORIGINAL LANGUAGE - DO NOT TRANSLATE): {timing_text}speaking with perfectly synchronized lip movements, mouth moving naturally and expressively with each word matching the exact timing above, clear articulation."
+                    logger.info(f"Studio [{project_id}]: INJECTED original-language dialogue_timeline with {len(character_beats)} character beats")
                 else:
-                    # Fallback: try old dialogue field if timeline doesn't exist
-                    dialogue_text = scene.get("dialogue", "").strip()
-                    if dialogue_text:
-                        # Remove any Director-added dialogue (possibly translated)
-                        import re as _re
-                        clean_base = _re.sub(r"The .{5,80} says: '[^']*'[^.]*\.", "", sora_prompt_base).strip()
-                        
-                        if ":" in dialogue_text:
-                            char_name = dialogue_text.split(":")[0].strip()
-                            speech = dialogue_text.split(":", 1)[1].strip().strip("'\"")
-                        else:
-                            char_name = "Character"
-                            speech = dialogue_text.strip("'\"")
-                        
-                        # Keep dialogue in ORIGINAL LANGUAGE
-                        sora_prompt = f"{clean_base} The character says: '{speech}' - speaking with perfectly synchronized lip movements in the original language."
-                        logger.info(f"Studio [{project_id}]: [WARNING] FALLBACK to dialogue field (original language preserved)")
+                    sora_prompt = sora_prompt_base
+                    logger.info(f"Studio [{project_id}]: dialogue_timeline only has narrator - using dubbed_text fallback")
+            
+            if not dialogue_timeline or (dialogue_timeline and not [b for b in dialogue_timeline if b.get('speaker','').lower() not in ('narrador','narrator')]):
+                # Fallback: use dubbed_text/dialogue field
+                dialogue_text = (scene.get("dubbed_text") or scene.get("dialogue", "")).strip()
+                if dialogue_text:
+                    import re as _re
+                    clean_base = _re.sub(r"The .{5,80} says: '[^']*'[^.]*\.", "", sora_prompt_base).strip()
+                    
+                    lines = dialogue_text.replace('|', '\n').split('\n')
+                    lip_parts = []
+                    for line in [l.strip() for l in lines if l.strip()][:6]:
+                        clean = _re.sub(r'^\[.*?\]\s*', '', line).strip()
+                        if ':' in clean:
+                            char_name = _re.sub(r'\s*\(.*?\)\s*', '', clean.split(':')[0].strip()).strip()
+                            speech = _re.sub(r'\[.*?\]', '', _re.sub(r'\(.*?\)', '', clean.split(':', 1)[1].strip().strip("'\""))).strip()
+                            if speech and len(speech) > 2 and len(char_name) < 30:
+                                lip_parts.append(f"The character [{char_name}] says: '{speech}' - speaking with perfectly synchronized lip movements")
+                    
+                    if lip_parts:
+                        sora_prompt = f"{clean_base}\nDIALOGUE LIP-SYNC (ORIGINAL LANGUAGE - DO NOT TRANSLATE):\n" + "\n".join(lip_parts)
                     else:
                         sora_prompt = sora_prompt_base
-                        logger.info(f"Studio [{project_id}]: [WARNING] No dialogue timeline or text available")
-                
-                # Log the final prompt  
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} FINAL Sora prompt (COMPLETE): {sora_prompt}")
-                logger.info(f"Studio [{project_id}]: Scene {scene_num} prompt LENGTH: {len(sora_prompt)} chars")
-                
-            except Exception as e:
-                logger.warning(f"Studio [{project_id}]: Scene {scene_num} regen director error: {e}")
-                sora_prompt = f"{style_hint} {scene.get('description', '')}"
+                elif 'sora_prompt' not in dir():
+                    sora_prompt = sora_prompt_base
+            
+            logger.info(f"Studio [{project_id}]: Scene {scene_num} FINAL Sora prompt LENGTH: {len(sora_prompt)} chars")
+            
+        except Exception as e:
+            logger.warning(f"Studio [{project_id}]: Scene {scene_num} regen director error: {e}")
+            sora_prompt = f"{style_hint} {scene.get('description', '')}"
 
         # Build composite avatar for all characters in scene
         chars_in_scene = scene.get("characters_in_scene", [])

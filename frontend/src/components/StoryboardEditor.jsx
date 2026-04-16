@@ -82,6 +82,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   const [zoomEditing, setZoomEditing] = useState(false);
   const [zoomEditData, setZoomEditData] = useState({});
   const [zoomSaving, setZoomSaving] = useState(false);
+  const [regenInstruction, setRegenInstruction] = useState('');
   
   // NOVO: Estado para travar regenerações simultâneas
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -395,6 +396,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
     setZoomFrameIndex(null);
     setZoomEditing(false);
     setZoomEditData({});
+    setRegenInstruction('');
   };
 
   const navigateFrame = (direction) => {
@@ -962,15 +964,17 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   // ORIGINAL REGENERATE PANEL (Single)
   // ══════════════════════════════════════════════════════════════
   
-  const regeneratePanel = async (panelNum) => {
+  const regeneratePanel = async (panelNum, customPrompt = '') => {
     setGeneratingPanel(panelNum);
     try {
       const panel = panels.find(p => p.scene_number === panelNum);
       await axios.post(`${API}/studio/projects/${projectId}/storyboard/regenerate-panel`, {
         panel_number: panelNum,
         description: panel?.description || '',
+        custom_prompt: customPrompt || '',
       });
-      toast.success(lang === 'pt' ? `Regenerando painel ${panelNum}...` : `Regenerating panel ${panelNum}...`);
+      const instruction = customPrompt ? ` (${customPrompt.slice(0, 40)}...)` : '';
+      toast.success(lang === 'pt' ? `Regenerando painel ${panelNum}${instruction}` : `Regenerating panel ${panelNum}${instruction}`);
       // Poll for this panel specifically
       const pollPanel = () => {
         axios.get(`${API}/studio/projects/${projectId}/storyboard`).then(r => {
@@ -2392,17 +2396,36 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     </div>
                   )}
 
-                  {/* Regenerate button */}
-                  <div className="pt-4 border-t border-[#222] flex gap-3">
-                    <button
-                      onClick={() => {
-                        regeneratePanel(zoomFrame.scene_number);
-                        closeZoomModal();
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/25 transition">
-                      <RefreshCw size={12} />
-                      {lang === 'pt' ? 'Regenerar Painel' : 'Regenerate Panel'}
-                    </button>
+                  {/* Instruction + Regenerate */}
+                  <div className="pt-4 border-t border-[#222] space-y-2">
+                    <textarea
+                      value={regenInstruction}
+                      onChange={(e) => setRegenInstruction(e.target.value)}
+                      placeholder={lang === 'pt' 
+                        ? 'Descreva o que ajustar nesta cena... (opcional)' 
+                        : 'Describe what to adjust in this scene... (optional)'}
+                      className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2 text-xs text-white/80 placeholder-white/30 resize-none focus:outline-none focus:border-[#8B5CF6]/50"
+                      rows={2}
+                      data-testid="regen-instruction-input"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          regeneratePanel(zoomFrame.scene_number, regenInstruction);
+                          setRegenInstruction('');
+                          closeZoomModal();
+                        }}
+                        disabled={generatingPanel === zoomFrame.scene_number}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/25 disabled:opacity-40 transition"
+                        data-testid="regen-panel-btn"
+                      >
+                        <RefreshCw size={12} className={generatingPanel === zoomFrame.scene_number ? 'animate-spin' : ''} />
+                        {regenInstruction.trim()
+                          ? (lang === 'pt' ? 'Regenerar com Ajuste' : 'Regenerate with Instruction')
+                          : (lang === 'pt' ? 'Regenerar Painel' : 'Regenerate Panel')
+                        }
+                      </button>
+                    </div>
                   </div>
                 </div>
                 );

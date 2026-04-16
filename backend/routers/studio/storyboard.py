@@ -10,6 +10,7 @@ class StoryboardGenerateRequest(BaseModel):
 class StoryboardRegeneratePanelRequest(BaseModel):
     panel_number: int
     description: str = ""
+    custom_prompt: str = ""  # User instruction for what to change in this scene
 
 class StoryboardEditPanelRequest(BaseModel):
     panel_number: int
@@ -610,6 +611,12 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
     # Use updated description if provided
     if req.description:
         scene = {**scene, "description": req.description}
+
+    # Inject custom_prompt as additional instruction for scene generation
+    custom_prompt = req.custom_prompt.strip() if req.custom_prompt else ""
+    if custom_prompt:
+        scene = {**scene, "description": f"{scene.get('description', '')}\n\n[USER INSTRUCTION - MUST FOLLOW]: {custom_prompt}"}
+        logger.info(f"Panel {req.panel_number}: Custom instruction: {custom_prompt[:100]}")
 
     # Mark as generating
     panel["status"] = "generating"
