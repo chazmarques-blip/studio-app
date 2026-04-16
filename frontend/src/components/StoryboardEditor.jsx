@@ -2081,13 +2081,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto"
                onClick={(e) => e.stopPropagation()}>
             
-            {/* Close button - positioned higher to avoid overlapping edit button */}
-            <button
-              onClick={closeZoomModal}
-              data-testid="zoom-close-btn"
-              className="absolute top-2 right-2 z-20 bg-black/80 hover:bg-red-600 text-white rounded-full p-1.5 transition">
-              <X size={16} />
-            </button>
+            {/* Close button removed from floating position - now in header */}
 
             {/* Navigation buttons */}
             {zoomFrameIndex > 0 && (
@@ -2152,6 +2146,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                         </button>
                       </div>
                     )}
+                    {/* Close button - inside header */}
+                    <button
+                      onClick={closeZoomModal}
+                      data-testid="zoom-close-btn"
+                      className="flex items-center justify-center w-8 h-8 rounded-full bg-[#222] hover:bg-red-600 text-gray-400 hover:text-white transition">
+                      <X size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
