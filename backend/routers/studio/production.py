@@ -1773,23 +1773,8 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
     for i, sv in enumerate(scene_videos):
         local_path = f"{tmpdir}/scene_{i:03d}.mp4"
         urllib.request.urlretrieve(sv["url"], local_path)
-        
-        # Strip Sora 2 native audio (inconsistent voices) - keep only video
-        # TTS from ElevenLabs will be added later with consistent voices
-        silent_path = f"{tmpdir}/scene_{i:03d}_silent.mp4"
-        strip_result = subprocess.run([
-            "ffmpeg", "-y", "-i", local_path,
-            "-c:v", "copy", "-an",  # Remove audio, keep video
-            silent_path
-        ], capture_output=True, timeout=30)
-        
-        if strip_result.returncode == 0 and os.path.exists(silent_path):
-            os.replace(silent_path, local_path)  # Replace with silent version
-            logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB) - native audio stripped")
-        else:
-            logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB) - keeping native audio")
-        
         files.append(local_path)
+        logger.info(f"Studio [{project_id}]: Downloaded scene {sv.get('scene_number')} ({os.path.getsize(local_path)//1024}KB)")
 
     output_path = f"{tmpdir}/final_{project_id}.mp4"
 
@@ -1822,8 +1807,9 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
             for fp in files:
                 inputs.extend(["-i", fp])
             
-            # Video xfade chain (video-only since native audio was stripped)
+            # Video xfade + audio crossfade (keeps Sora 2 native audio)
             v_filters = []
+            a_filters = []
             cumulative_offset = 0
             
             for i in range(num_scenes - 1):
@@ -1831,20 +1817,24 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
                 
                 if i == 0:
                     v_in = "[0:v]"
+                    a_in = "[0:a]"
                 else:
                     v_in = f"[vx{i-1}]"
+                    a_in = f"[ax{i-1}]"
                 
                 v_out = f"[vx{i}]" if i < num_scenes - 2 else "[vout]"
+                a_out = f"[ax{i}]" if i < num_scenes - 2 else "[aout]"
                 
                 v_filters.append(f"{v_in}[{i+1}:v]xfade=transition=fade:duration={crossfade_duration}:offset={cumulative_offset:.2f}{v_out}")
+                a_filters.append(f"{a_in}[{i+1}:a]acrossfade=d={crossfade_duration}:c1=tri:c2=tri{a_out}")
             
-            filter_complex = ";".join(v_filters)
+            filter_complex = ";".join(v_filters + a_filters)
             
             cmd_xfade = ["ffmpeg", "-y"] + inputs + [
                 "-filter_complex", filter_complex,
-                "-map", "[vout]",
+                "-map", "[vout]", "-map", "[aout]",
                 "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                "-an",  # No audio - TTS will be added later
+                "-c:a", "aac", "-b:a", "128k",
                 "-movflags", "+faststart",
                 output_path
             ]
@@ -2234,16 +2224,11 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
 
 
 def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
-    """Generate TTS audio overlay for Sora 2 videos using scenes + dialogue_timeline.
+    """Add V2A sonoplastia (BGM + SFX) on top of Sora 2 native audio.
     
-    Sora 2 generates video with VISUAL lip sync but NO actual audio.
-    This function:
-    1. Reads dialogue_timeline from each scene (12s per scene)
-    2. Generates TTS audio per character beat using ElevenLabs
-    3. Places each audio segment at the correct timestamp within the scene
-    4. Concatenates all scene audio tracks
-    5. Optionally generates V2A sonoplastia (BGM + SFX)
-    6. Mixes TTS dialogue + V2A onto the video
+    Sora 2 already generates video WITH native audio (voice + lip sync).
+    This function ONLY adds background music and sound effects via Kling V2A,
+    keeping the native Sora 2 audio intact (more dynamic and expressive).
     """
     import subprocess
     import tempfile
@@ -2255,209 +2240,27 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
             return
         
         scenes = project.get("scenes", [])
-        # Limit to max_scenes if set (match video production)
         max_scenes = project.get("max_scenes")
         if max_scenes and max_scenes > 0:
             scenes = scenes[:max_scenes]
-        voice_map = project.get("voice_map", {})
-        lang = project.get("language", "pt")
-        scene_duration = 12.0  # Sora 2 scenes are 12 seconds
         
-        # Get the concatenated video from outputs
         outputs = project.get("outputs", [])
         video_output = next((o for o in outputs if o.get("type") == "video" and o.get("scene_number", -1) == 0), None)
         if not video_output:
             video_output = next((o for o in outputs if o.get("type") == "video" and o.get("url")), None)
         if not video_output or not video_output.get("url"):
-            logger.warning(f"Sora2Audio [{project_id}]: No video output found, skipping audio overlay")
+            logger.warning(f"Sora2Audio [{project_id}]: No video output found, skipping")
             return
         
         video_url = video_output["url"]
-        logger.info(f"Sora2Audio [{project_id}]: Starting audio overlay — {len(scenes)} scenes, {len(voice_map)} voices")
+        logger.info(f"Sora2Audio [{project_id}]: Adding V2A sonoplastia to native Sora 2 audio — {len(scenes)} scenes")
         
         tmpdir = tempfile.mkdtemp(prefix="sora2_audio_")
         
         try:
-            from .narration import _generate_narration_audio
-            
-            STAGE_MARKERS = ["silencio", "beat", "camera", "olhar", "pausa",
-                             "movimento", "plano", "corte", "fade", "zoom", "som de"]
-            
-            scene_audio_paths = []
-            
-            for scene_idx, scene in enumerate(scenes):
-                scene_num = scene.get("scene_number", scene_idx + 1)
-                dialogue_timeline = scene.get("dialogue_timeline", [])
-                scene_dialogue = scene.get("dialogue", "").strip()
-                
-                _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Gerando audio — Cena {scene_num}/{len(scenes)}"
-                })
-                
-                if not dialogue_timeline and not scene_dialogue:
-                    # Silent scene - generate 12s silence
-                    silence_path = f"{tmpdir}/scene_{scene_num:03d}.wav"
-                    subprocess.run([
-                        "ffmpeg", "-y", "-f", "lavfi",
-                        "-i", f"anullsrc=r=44100:cl=stereo",
-                        "-t", str(scene_duration),
-                        "-acodec", "pcm_s16le", silence_path
-                    ], capture_output=True, timeout=10)
-                    scene_audio_paths.append(silence_path)
-                    continue
-                
-                # Parse dialogue beats with timing
-                beats = []
-                if dialogue_timeline:
-                    for beat in dialogue_timeline:
-                        speaker = beat.get("speaker", "Narrador")
-                        text = beat.get("text", "").strip()
-                        start_time = float(beat.get("start_time", 0))
-                        end_time = float(beat.get("end_time", start_time + 3))
-                        if text and len(text) > 1:
-                            is_stage = any(m in text.lower() for m in STAGE_MARKERS)
-                            if not is_stage:
-                                beats.append({"speaker": speaker, "text": text,
-                                              "start": start_time, "end": end_time})
-                elif scene_dialogue:
-                    # Fallback: parse dialogue text into beats
-                    import re as _re
-                    lines = [l.strip() for l in scene_dialogue.split('\n') if l.strip()]
-                    time_per_line = scene_duration / max(len(lines), 1)
-                    for i, line in enumerate(lines[:6]):
-                        speaker, text = "Narrador", line
-                        if ":" in line:
-                            parts = line.split(":", 1)
-                            if len(parts[0].strip()) < 30:
-                                speaker = parts[0].strip()
-                                text = parts[1].strip().strip("'\"")
-                        text = _re.sub(r'\([^)]*\)', '', text).strip()
-                        text = _re.sub(r'\[.*?\]', '', text).strip()
-                        if text and len(text) > 1:
-                            beats.append({"speaker": speaker, "text": text,
-                                          "start": i * time_per_line, "end": (i + 1) * time_per_line})
-                
-                if not beats:
-                    silence_path = f"{tmpdir}/scene_{scene_num:03d}.wav"
-                    subprocess.run([
-                        "ffmpeg", "-y", "-f", "lavfi",
-                        "-i", f"anullsrc=r=44100:cl=stereo",
-                        "-t", str(scene_duration),
-                        "-acodec", "pcm_s16le", silence_path
-                    ], capture_output=True, timeout=10)
-                    scene_audio_paths.append(silence_path)
-                    continue
-                
-                # Generate TTS for each beat and place at correct timestamp
-                beat_audio_files = []
-                for bi, beat in enumerate(beats):
-                    matched_voice = None
-                    for cname, vid in voice_map.items():
-                        if beat["speaker"].lower() in cname.lower() or cname.lower() in beat["speaker"].lower():
-                            matched_voice = vid
-                            break
-                    if not matched_voice:
-                        matched_voice = list(voice_map.values())[0] if voice_map else None
-                    if not matched_voice:
-                        continue
-                    
-                    try:
-                        audio_bytes = _generate_narration_audio(
-                            text=beat["text"], voice_id=matched_voice,
-                            stability=0.5, similarity=0.75, style_val=0.0,
-                            language_code=lang
-                        )
-                        beat_path = f"{tmpdir}/scene_{scene_num:03d}_beat_{bi}.mp3"
-                        with open(beat_path, "wb") as f:
-                            f.write(audio_bytes)
-                        beat_audio_files.append({"path": beat_path, "start": beat["start"],
-                                                 "speaker": beat["speaker"]})
-                        logger.info(f"  Scene {scene_num} beat {bi}: TTS done ({beat['speaker']}: {beat['text'][:30]}...)")
-                    except Exception as e:
-                        logger.warning(f"  Scene {scene_num} beat {bi}: TTS failed ({e})")
-                
-                # Mix all beats into a single 12s audio track using FFmpeg
-                scene_audio = f"{tmpdir}/scene_{scene_num:03d}.wav"
-                
-                if not beat_audio_files:
-                    subprocess.run([
-                        "ffmpeg", "-y", "-f", "lavfi",
-                        "-i", f"anullsrc=r=44100:cl=stereo",
-                        "-t", str(scene_duration),
-                        "-acodec", "pcm_s16le", scene_audio
-                    ], capture_output=True, timeout=10)
-                else:
-                    # Build filter_complex to place each beat at its timestamp
-                    inputs = ["-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo"]
-                    for bf in beat_audio_files:
-                        inputs.extend(["-i", bf["path"]])
-                    
-                    filter_parts = []
-                    for i, bf in enumerate(beat_audio_files):
-                        delay_ms = int(bf["start"] * 1000)
-                        filter_parts.append(f"[{i+1}:a]adelay={delay_ms}|{delay_ms}[d{i}]")
-                    
-                    mix_inputs = "[0:a]" + "".join(f"[d{i}]" for i in range(len(beat_audio_files)))
-                    filter_parts.append(f"{mix_inputs}amix=inputs={len(beat_audio_files)+1}:duration=first:dropout_transition=2[out]")
-                    
-                    cmd = ["ffmpeg", "-y"] + inputs + [
-                        "-t", str(scene_duration),
-                        "-filter_complex", ";".join(filter_parts),
-                        "-map", "[out]",
-                        "-t", str(scene_duration),
-                        "-acodec", "pcm_s16le", scene_audio
-                    ]
-                    result = subprocess.run(cmd, capture_output=True, timeout=30)
-                    if result.returncode != 0:
-                        logger.warning(f"  Scene {scene_num}: Complex mix failed, falling back to simple concat")
-                        # Fallback: just concat beat audios with silence padding
-                        concat_list = f"{tmpdir}/scene_{scene_num:03d}_concat.txt"
-                        with open(concat_list, "w") as f:
-                            for bf in beat_audio_files:
-                                f.write(f"file '{bf['path']}'\n")
-                        subprocess.run([
-                            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                            "-i", concat_list,
-                            "-af", f"apad=whole_dur={scene_duration}",
-                            "-t", str(scene_duration),
-                            "-acodec", "pcm_s16le", scene_audio
-                        ], capture_output=True, timeout=15)
-                
-                if os.path.exists(scene_audio) and os.path.getsize(scene_audio) > 100:
-                    scene_audio_paths.append(scene_audio)
-                else:
-                    # Create silence as fallback
-                    subprocess.run([
-                        "ffmpeg", "-y", "-f", "lavfi",
-                        "-i", f"anullsrc=r=44100:cl=stereo",
-                        "-t", str(scene_duration),
-                        "-acodec", "pcm_s16le", scene_audio
-                    ], capture_output=True, timeout=10)
-                    scene_audio_paths.append(scene_audio)
-            
-            # Concatenate all scene audio tracks
-            concat_list = f"{tmpdir}/full_audio_concat.txt"
-            with open(concat_list, "w") as f:
-                for path in scene_audio_paths:
-                    f.write(f"file '{path}'\n")
-            
-            full_audio = f"{tmpdir}/full_dialogue.mp3"
-            subprocess.run([
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                "-i", concat_list,
-                "-acodec", "libmp3lame", "-q:a", "4",
-                full_audio
-            ], capture_output=True, timeout=60)
-            
-            if not os.path.exists(full_audio) or os.path.getsize(full_audio) < 100:
-                logger.error(f"Sora2Audio [{project_id}]: Audio concat failed")
-                return
-            
-            logger.info(f"Sora2Audio [{project_id}]: Full dialogue track: {os.path.getsize(full_audio)//1024}KB")
-            
-            # Download video
+            # Download video (already has native Sora 2 audio)
             _update_project_field(tenant_id, project_id, {
-                "progress_message": "Baixando video e gerando sonoplastia..."
+                "progress_message": "Gerando sonoplastia e música de fundo..."
             })
             video_path = f"{tmpdir}/video.mp4"
             vid_resp = requests.get(video_url, timeout=120)
@@ -2465,7 +2268,7 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
             with open(video_path, "wb") as f:
                 f.write(vid_resp.content)
             
-            # Optional: V2A Sonoplastia (BGM + SFX)
+            # Generate V2A Sonoplastia (BGM + SFX)
             sfx_track = None
             try:
                 kling = KlingClient()
@@ -2480,15 +2283,13 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
                         sample_bytes = f.read()
                     sample_url = _upload_to_storage(sample_bytes, f"studio/{project_id}_sora_v2a_sample.mp4", "video/mp4")
                     
-                    scene_desc = scenes[0].get("description", "") if scenes else ""
-                    # Build sfx/bgm prompts from scene metadata
                     all_sfx = [s.get("sfx_notes", "") for s in scenes[:5] if s.get("sfx_notes")]
                     all_moods = [s.get("music_mood", "") for s in scenes[:5] if s.get("music_mood")]
-                    sfx_prompt = "; ".join(all_sfx)[:150] if all_sfx else (scene_desc[:150] if scene_desc else "ambient sounds, gentle atmosphere")
-                    bgm_prompt = f"Music mood: {', '.join(all_moods)}. Pixar-style orchestral, warm emotional, children animation" if all_moods else "gentle orchestral music, Pixar style, warm emotional, children animation"
+                    sfx_prompt = "; ".join(all_sfx)[:150] if all_sfx else "ambient sounds, gentle atmosphere"
+                    bgm_prompt = f"Music mood: {', '.join(all_moods)}. Pixar-style orchestral, warm emotional, children animation" if all_moods else "gentle orchestral music, Pixar style, warm emotional"
                     
                     _update_project_field(tenant_id, project_id, {
-                        "progress_message": "Gerando sonoplastia e musica de fundo (V2A)..."
+                        "progress_message": "Gerando sonoplastia e música de fundo (V2A)..."
                     })
                     
                     v2a_result = kling.video_to_audio(
@@ -2523,62 +2324,59 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
             except Exception as e:
                 logger.warning(f"Sora2Audio [{project_id}]: V2A sonoplastia failed (non-fatal): {e}")
             
-            # Mix: video + dialogue (vol 1.0) + optional SFX/BGM (vol 0.15)
-            _update_project_field(tenant_id, project_id, {
-                "progress_message": "Mixando audio com video..."
-            })
-            final_path = f"{tmpdir}/final_dubbed.mp4"
-            
+            # Mix: keep native Sora 2 audio (vol 1.0) + add V2A SFX/BGM (vol 0.12)
             if sfx_track and os.path.exists(sfx_track):
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": "Mixando sonoplastia com áudio nativo..."
+                })
+                final_path = f"{tmpdir}/final_mixed.mp4"
+                
                 merge_cmd = [
                     "ffmpeg", "-y",
-                    "-i", video_path, "-i", full_audio, "-i", sfx_track,
+                    "-i", video_path, "-i", sfx_track,
                     "-filter_complex",
-                    "[1:a]volume=1.0[dial];[2:a]volume=0.15[sfx];[dial][sfx]amix=inputs=2:duration=shortest[aout]",
+                    "[0:a]volume=1.0[native];[1:a]volume=0.12[sfx];[native][sfx]amix=inputs=2:duration=shortest[aout]",
                     "-c:v", "copy", "-map", "0:v:0", "-map", "[aout]",
                     "-c:a", "aac", "-b:a", "128k", "-shortest",
                     "-movflags", "+faststart", final_path
                 ]
-            else:
-                merge_cmd = [
-                    "ffmpeg", "-y",
-                    "-i", video_path, "-i", full_audio,
-                    "-c:v", "copy", "-c:a", "aac", "-b:a", "128k",
-                    "-map", "0:v:0", "-map", "1:a:0", "-shortest",
-                    "-movflags", "+faststart", final_path
-                ]
-            
-            merge_result = subprocess.run(merge_cmd, capture_output=True, timeout=120)
-            
-            if merge_result.returncode != 0:
-                logger.error(f"Sora2Audio: Merge failed: {merge_result.stderr.decode()[:300]}")
+                
+                merge_result = subprocess.run(merge_cmd, capture_output=True, timeout=120)
+                
+                if merge_result.returncode != 0:
+                    logger.error(f"Sora2Audio: V2A mix failed: {merge_result.stderr.decode()[:200]}")
+                    _update_project_field(tenant_id, project_id, {
+                        "audio_generation_status": "complete",
+                        "progress_message": "Vídeo pronto (sem sonoplastia extra)"
+                    })
+                    return
+                
+                # Upload final
+                with open(final_path, "rb") as f:
+                    final_bytes = f.read()
+                
+                filename = f"studio/{project_id}_sora2_final.mp4"
+                final_url = _upload_to_storage(final_bytes, filename, "video/mp4")
+                
+                logger.info(f"Sora2Audio [{project_id}]: DONE — {len(final_bytes)//1024}KB (native audio + V2A sonoplastia)")
+                
+                for o in outputs:
+                    if o.get("type") == "video":
+                        o["url"] = final_url
+                        o["has_audio"] = True
+                        break
+                
                 _update_project_field(tenant_id, project_id, {
-                    "audio_generation_status": "error",
-                    "progress_message": "Erro no merge audio + video"
+                    "outputs": outputs,
+                    "audio_generation_status": "complete",
+                    "progress_message": "Áudio nativo Sora 2 + sonoplastia V2A aplicados!"
+                }, flush_now=True)
+            else:
+                logger.info(f"Sora2Audio [{project_id}]: No V2A track — keeping native Sora 2 audio only")
+                _update_project_field(tenant_id, project_id, {
+                    "audio_generation_status": "complete",
+                    "progress_message": "Vídeo pronto com áudio nativo Sora 2!"
                 })
-                return
-            
-            # Upload final dubbed video
-            with open(final_path, "rb") as f:
-                final_bytes = f.read()
-            
-            filename = f"studio/{project_id}_sora2_dubbed.mp4"
-            final_url = _upload_to_storage(final_bytes, filename, "video/mp4")
-            
-            logger.info(f"Sora2Audio [{project_id}]: DONE — {len(final_bytes)//1024}KB uploaded")
-            
-            # Update outputs with dubbed version
-            for o in outputs:
-                if o.get("type") == "video":
-                    o["url"] = final_url
-                    o["has_audio"] = True
-                    break
-            
-            _update_project_field(tenant_id, project_id, {
-                "outputs": outputs,
-                "audio_generation_status": "complete",
-                "progress_message": "Audio dublado aplicado ao video!"
-            }, flush_now=True)
             
         finally:
             try:
@@ -2594,7 +2392,7 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
             "audio_generation_status": "error",
             "progress_message": f"Erro audio: {str(e)[:100]}"
         })
-
+        
 
 def _generate_kling_dialogues(tenant_id, project_id, project, all_frames, storyboards):
     """Generate clean character dialogues for Kling storyboard frames."""
