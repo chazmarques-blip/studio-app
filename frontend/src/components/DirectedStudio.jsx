@@ -3576,27 +3576,36 @@ export const DirectedStudio = memo(function DirectedStudio({
                 </button>
                 
                 {/* Button to produce only missing scenes */}
-                {outputs.length > 0 && outputs.length < scenes.length && (
+                {outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length > 0 && 
+                 outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length < scenes.length && (
                   <button
-                    onClick={() => {
-                      const missingScenes = scenes.filter(s => {
-                        const sceneNum = s.scene_number || scenes.indexOf(s) + 1;
-                        return !outputs.find(o => o.scene_number === sceneNum && o.type === 'video' && o.url);
-                      });
-                      if (missingScenes.length === 0) {
+                    onClick={async () => {
+                      const existingVideos = outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url);
+                      const missingCount = scenes.length - existingVideos.length;
+                      if (missingCount <= 0) {
                         toast.info(lang === 'pt' ? 'Todas as cenas já foram geradas!' : 'All scenes already generated!');
                         return;
                       }
                       if (window.confirm(lang === 'pt' 
-                        ? `Produzir ${missingScenes.length} cena(s) faltante(s)?`
-                        : `Produce ${missingScenes.length} missing scene(s)?`
+                        ? `Produzir ${missingCount} cena(s) faltante(s)? As ${existingVideos.length} já geradas serão mantidas.`
+                        : `Produce ${missingCount} missing scene(s)? The ${existingVideos.length} already generated will be kept.`
                       )) {
-                        startProduction();
+                        setGenerating(true);
+                        setStep(6);
+                        try {
+                          await axios.post(`${API}/studio/projects/${projectId}/full-production`);
+                          toast.success(lang === 'pt' ? `Produzindo ${missingCount} cenas faltantes...` : `Producing ${missingCount} missing scenes...`);
+                          startPolling(projectId);
+                        } catch (err) {
+                          toast.error(getErrorMsg(err, 'Erro ao produzir'));
+                          setGenerating(false);
+                        }
                       }
                     }}
-                    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-orange-500/10 border-2 border-orange-500/30 text-orange-600 font-bold text-sm hover:bg-orange-500/20 transition-all transform hover:scale-105">
+                    disabled={generating}
+                    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-orange-500/10 border-2 border-orange-500/30 text-orange-600 font-bold text-sm hover:bg-orange-500/20 transition-all transform hover:scale-105 disabled:opacity-40">
                     <Plus size={16} />
-                    {lang === 'pt' ? `Produzir ${scenes.length - outputs.filter(o => o.type === 'video' && o.url).length} Faltantes` : `Produce ${scenes.length - outputs.filter(o => o.type === 'video' && o.url).length} Missing`}
+                    {lang === 'pt' ? `Produzir ${scenes.length - outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length} Faltantes` : `Produce ${scenes.length - outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length} Missing`}
                   </button>
                 )}
               </div>

@@ -1582,9 +1582,42 @@ VISUAL DIRECTION: {visual_direction}
                 logger.info(f"Studio [{project_id}]: SORA 2 CINEMA MODE - Rendering {total} scenes SEQUENTIALLY for continuity")
                 last_frame_path = None
                 
+                # Check which scenes already have videos (for "produce missing" mode)
+                existing_videos = {o["scene_number"]: o for o in project.get("outputs", []) 
+                                   if o.get("type") == "video" and o.get("scene_number", 0) > 0 and o.get("url")}
+                
                 for ds in sorted(directed_scenes, key=lambda x: x["scene_number"]):
                     sn = ds["scene_number"]
                     sc = scene_map.get(sn, scenes[0])
+                    
+                    # Skip scenes that already have a video (reuse existing)
+                    if sn in existing_videos:
+                        existing = existing_videos[sn]
+                        scene_videos.append({"scene_number": sn, "url": existing["url"]})
+                        logger.info(f"Studio [{project_id}]: Scene {sn} CACHED (already has video)")
+                        
+                        # Extract last frame from existing video for continuity
+                        try:
+                            import tempfile as _tf
+                            vid_resp = requests.get(existing["url"], timeout=60)
+                            if vid_resp.status_code == 200:
+                                tmp_vid = _tf.mktemp(suffix=".mp4")
+                                with open(tmp_vid, 'wb') as f:
+                                    f.write(vid_resp.content)
+                                last_frame_path = f"/tmp/cinema_lastframe_{project_id}_{sn}.jpg"
+                                import subprocess as _sp
+                                _sp.run([
+                                    "ffmpeg", "-y", "-sseof", "-0.1", "-i", tmp_vid,
+                                    "-frames:v", "1", "-q:v", "2", last_frame_path
+                                ], capture_output=True, timeout=15)
+                                try: os.remove(tmp_vid)
+                                except: pass
+                        except Exception as e:
+                            logger.warning(f"Studio [{project_id}]: Failed to extract last frame from cached scene {sn}: {e}")
+                        
+                        _update_scene_status(tenant_id, project_id, sn, "done", total)
+                        videos_done += 1
+                        continue
                     
                     # Override keyframe with last frame from previous clip (Cinema continuity)
                     if last_frame_path and os.path.exists(last_frame_path):
