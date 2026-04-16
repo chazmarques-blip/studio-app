@@ -3545,3 +3545,91 @@ async def generate_directed_image(req: StartProductionRequest, tenant=Depends(ge
     return {"image_url": public_url}
 
 
+
+
+@router.post("/projects/{project_id}/rebuild-film")
+async def rebuild_film(project_id: str, tenant=Depends(get_current_tenant)):
+    """Re-concatenate all scene videos into final film with crossfade.
+    Used after regenerating individual scenes to update the complete film."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    outputs = project.get("outputs", [])
+    scene_videos = sorted(
+        [o for o in outputs if o.get("type") == "video" and o.get("scene_number", 0) > 0 and o.get("url")],
+        key=lambda x: x["scene_number"]
+    )
+    
+    if len(scene_videos) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 scene videos to rebuild film")
+    
+    _update_project_field(tenant["id"], project_id, {
+        "full_production_status": "rebuilding",
+        "progress_message": f"Re-concatenando {len(scene_videos)} cenas com crossfade..."
+    })
+    
+    import threading
+    thread = threading.Thread(
+        target=_rebuild_film_background,
+        args=(tenant["id"], project_id),
+        daemon=True
+    )
+    thread.start()
+    
+    return {"status": "started", "message": f"Rebuilding film with {len(scene_videos)} scenes"}
+
+
+def _rebuild_film_background(tenant_id: str, project_id: str):
+    """Background task to re-concatenate all scene videos."""
+    try:
+        settings, projects, project = _get_project(tenant_id, project_id)
+        outputs = project.get("outputs", [])
+        
+        scene_videos = sorted(
+            [o for o in outputs if o.get("type") == "video" and o.get("scene_number", 0) > 0 and o.get("url")],
+            key=lambda x: x["scene_number"]
+        )
+        
+        logger.info(f"RebuildFilm [{project_id}]: Concatenating {len(scene_videos)} scenes with crossfade")
+        
+        final_url = _concatenate_videos(scene_videos, project_id, crossfade_duration=1.0)
+        
+        if final_url:
+            # Update or create the main video output (scene_number=0)
+            main_output = next((o for o in outputs if o.get("type") == "video" and o.get("scene_number", -1) == 0), None)
+            if main_output:
+                main_output["url"] = final_url
+                main_output["has_audio"] = True
+            else:
+                outputs.append({"type": "video", "scene_number": 0, "url": final_url, "has_audio": True})
+            
+            # Now add V2A sonoplastia on top
+            _update_project_field(tenant_id, project_id, {
+                "outputs": outputs,
+                "progress_message": "Filme atualizado! Adicionando sonoplastia..."
+            }, flush_now=True)
+            
+            _generate_sora2_audio_overlay(tenant_id, project_id)
+            
+            _update_project_field(tenant_id, project_id, {
+                "full_production_status": "complete",
+                "progress_message": "Filme atualizado com sucesso!"
+            }, flush_now=True)
+            
+            logger.info(f"RebuildFilm [{project_id}]: COMPLETE - film updated with crossfade + V2A")
+        else:
+            _update_project_field(tenant_id, project_id, {
+                "full_production_status": "error",
+                "progress_message": "Erro ao re-concatenar o filme"
+            })
+            logger.error(f"RebuildFilm [{project_id}]: Concatenation failed")
+    
+    except Exception as e:
+        logger.error(f"RebuildFilm [{project_id}]: Error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        _update_project_field(tenant_id, project_id, {
+            "full_production_status": "error",
+            "progress_message": f"Erro: {str(e)[:100]}"
+        })

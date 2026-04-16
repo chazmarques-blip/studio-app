@@ -4500,6 +4500,31 @@ export const DirectedStudio = memo(function DirectedStudio({
             );
           })()}
 
+          {/* Rebuild Film Button */}
+          {outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length >= 2 && (
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={async () => {
+                  try {
+                    setGenerating(true);
+                    toast.success(lang === 'pt' ? 'Atualizando filme completo...' : 'Rebuilding complete film...');
+                    await axios.post(`${API}/studio/projects/${projectId}/rebuild-film`);
+                    startPolling(projectId);
+                  } catch (err) {
+                    toast.error(lang === 'pt' ? 'Erro ao atualizar filme' : 'Error rebuilding film');
+                    setGenerating(false);
+                  }
+                }}
+                disabled={generating}
+                data-testid="rebuild-film-btn"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all disabled:opacity-40"
+              >
+                <RefreshCw size={16} className={generating ? 'animate-spin' : ''} />
+                {lang === 'pt' ? 'Atualizar Filme Completo' : 'Rebuild Complete Film'}
+              </button>
+            </div>
+          )}
+
           {/* Failed scenes */}
           {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).length > 0 && (
             <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-3 space-y-2">
