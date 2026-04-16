@@ -1026,7 +1026,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   const pollChatResult = (pid) => {
     let pollCount = 0;
-    const MAX_POLLS = 60; // ~3 min (3s each) - increased from 40
+    const MAX_POLLS = 200; // ~10 min (3s each) - generous for parallel screenplay generation
     const poll = () => {
       pollCount++;
       console.log(`📝 [Polling] Attempt ${pollCount}/${MAX_POLLS} - checking project ${pid} status...`);
@@ -1056,9 +1056,17 @@ export const DirectedStudio = memo(function DirectedStudio({
           
           // Show success toast
           toast.success(lang === 'pt' 
-            ? `✅ Roteiro pronto! ${d.scenes?.length || 0} cenas criadas.` 
-            : `✅ Script ready! ${d.scenes?.length || 0} scenes created.`
+            ? `✅ Roteiro pronto! ${d.scenes?.length || 0} cenas criadas. Iniciando Director's Preview...` 
+            : `✅ Script ready! ${d.scenes?.length || 0} scenes created. Starting Director's Preview...`
           );
+          
+          // ═══ AUTO-ADVANCE: Start Director Review automatically ═══
+          console.log('🎬 [AUTONOMOUS] Screenwriter done → auto-starting Director Review...');
+          axios.post(`${API}/studio/projects/${pid}/director/review`, { focus: 'full' })
+            .then(() => console.log('🎬 [AUTONOMOUS] Director Review started in background'))
+            .catch(dirErr => console.warn('⚠️ [AUTONOMOUS] Director auto-start failed (non-blocking):', dirErr.message));
+          // Navigate to Director's Preview step
+          setStep(4);
           
           console.log('✅ [Polling] UI atualizada com sucesso!');
           return;

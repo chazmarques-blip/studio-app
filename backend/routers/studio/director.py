@@ -4,6 +4,7 @@ Reviews the entire script + dialogues with the standards of world-class director
 (Spielberg, Miyazaki, Pixar) before sending to storyboard production.
 """
 from ._shared import *
+from fastapi import BackgroundTasks
 import json
 
 # Use the shared router from _shared.py (do NOT create a new router)
@@ -217,9 +218,9 @@ async def _review_scene_batch_with_progress(batch_scenes, characters, project_me
     
     return result
 @router.post("/projects/{project_id}/director/review")
-async def director_review(project_id: str, req: DirectorReviewRequest, tenant=Depends(get_current_tenant)):
+async def director_review(project_id: str, req: DirectorReviewRequest, background_tasks: BackgroundTasks, tenant=Depends(get_current_tenant)):
     """The Director Agent reviews the entire project with elite professional standards.
-    Uses PARALLEL BATCHING for faster reviews of large projects."""
+    Runs in background to avoid K8s proxy timeout. Poll GET /director/review for results."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -229,132 +230,152 @@ async def director_review(project_id: str, req: DirectorReviewRequest, tenant=De
     if not scenes:
         raise HTTPException(status_code=400, detail="No scenes to review")
 
-    lang = project.get("language", "pt")
-    LANG_MAP = {"pt": "Portuguese", "en": "English", "es": "Spanish"}
-    
-    # ═══ OPTIMIZED BATCHING STRATEGY ═══
-    # Smaller batches (4 scenes) + limited parallelism (2 concurrent) = Fast + Reliable
-    BATCH_SIZE = 4  # Reduced from 7 → faster per-batch completion
-    batches = []
-    for i in range(0, len(scenes), BATCH_SIZE):
-        batches.append(scenes[i:i + BATCH_SIZE])
-    
-    logger.info(f"Director review: {len(scenes)} scenes → {len(batches)} batches (size={BATCH_SIZE})")
-    
-    # Process all batches in parallel
-    import asyncio
-    project_meta = {
-        "name": project.get("name", "Untitled"),
-        "briefing": project.get("briefing", "")
-    }
-    
     # Initialize progress tracking
     _update_project_field(tenant["id"], project_id, {
         "director_progress": {
             "status": "reviewing",
             "current_batch": 0,
-            "total_batches": len(batches),
+            "total_batches": 0,
             "current_score": 0,
             "scenes_processed": 0,
             "total_scenes": len(scenes),
             "batch_scores": []
         }
     })
+
+    # Run in background thread to avoid 60s K8s proxy timeout
+    import threading
+    thread = threading.Thread(
+        target=_run_director_review_background,
+        args=(tenant["id"], project_id),
+        daemon=True
+    )
+    thread.start()
     
-    # Process batches with LIMITED PARALLELISM (2 concurrent max)
-    # This balances speed vs reliability - 2x faster than sequential, 100% reliable
-    batch_results = []
+    return {"status": "started", "message": f"Director review started for {len(scenes)} scenes"}
+
+
+def _run_director_review_background(tenant_id: str, project_id: str):
+    """Background task for Director Review."""
+    import asyncio
+    
     try:
-        # Process in pairs (2 at a time)
-        for i in range(0, len(batches), 2):
-            batch_pair = batches[i:i+2]
-            logger.info(f"Processing batches {i+1}-{min(i+2, len(batches))}/{len(batches)}...")
-            
-            # Run 2 batches in parallel
-            tasks = [
-                _review_scene_batch_with_progress(
-                    batch, characters, project_meta, lang, batch_idx + 1,
-                    tenant["id"], project_id, len(batches)
-                )
-                for batch_idx, batch in enumerate(batch_pair, start=i)
-            ]
-            
-            pair_results = await asyncio.gather(*tasks, return_exceptions=False)
-            batch_results.extend(pair_results)
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+
+        scenes = project.get("scenes", [])
+        characters = project.get("characters", [])
+        lang = project.get("language", "pt")
+
+        # Batching strategy
+        BATCH_SIZE = 4
+        batches = []
+        for i in range(0, len(scenes), BATCH_SIZE):
+            batches.append(scenes[i:i + BATCH_SIZE])
+        
+        logger.info(f"Director review [{project_id}]: {len(scenes)} scenes -> {len(batches)} batches")
+        
+        project_meta = {
+            "name": project.get("name", "Untitled"),
+            "briefing": project.get("briefing", "")
+        }
+        
+        _update_project_field(tenant_id, project_id, {
+            "director_progress": {
+                "status": "reviewing",
+                "current_batch": 0,
+                "total_batches": len(batches),
+                "scenes_processed": 0,
+                "total_scenes": len(scenes),
+            }
+        })
+        
+        # Process batches in pairs (2 concurrent)
+        batch_results = []
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            for i in range(0, len(batches), 2):
+                batch_pair = batches[i:i+2]
+                logger.info(f"Director [{project_id}]: Processing batches {i+1}-{min(i+2, len(batches))}/{len(batches)}...")
+                
+                tasks = [
+                    _review_scene_batch_with_progress(
+                        batch, characters, project_meta, lang, batch_idx + 1,
+                        tenant_id, project_id, len(batches)
+                    )
+                    for batch_idx, batch in enumerate(batch_pair, start=i)
+                ]
+                
+                pair_results = loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+                batch_results.extend(pair_results)
+        finally:
+            loop.close()
+            _update_project_field(tenant_id, project_id, {"director_progress": None})
+        
+        # Merge all scene reviews
+        all_scene_reviews = []
+        for result in batch_results:
+            if isinstance(result, Exception):
+                logger.error(f"Batch failed: {result}")
+                continue
+            if isinstance(result, list):
+                all_scene_reviews.extend(result)
+        
+        # Calculate overall metrics
+        avg_score = sum(sr.get("score", 0) for sr in all_scene_reviews) / len(all_scene_reviews) if all_scene_reviews else 0
+        needs_work_count = len([sr for sr in all_scene_reviews if sr.get("score", 0) < 80])
+        verdict = "APPROVED" if avg_score >= 90 and needs_work_count == 0 else "NEEDS_REVISION"
+        
+        director_notes = f"Revisao paralela concluida.\nSCORE GERAL: {avg_score:.0f}/100\n"
+        if verdict == "APPROVED":
+            director_notes += "APROVADO - Qualidade cinematografica excepcional!"
+        else:
+            director_notes += f"REVISAO NECESSARIA - {needs_work_count} cena(s) abaixo de 80%"
+        
+        excellent_scenes = [sr for sr in all_scene_reviews if sr.get("score", 0) >= 90]
+        top_strengths = []
+        if excellent_scenes:
+            top_strengths.append(f"{len(excellent_scenes)} cenas com qualidade EXCELENTE (90+)")
+        top_strengths.append("Revisao paralela permitiu analise mais rapida")
+        
+        top_improvements = []
+        if needs_work_count > 0:
+            top_improvements.append(f"{needs_work_count} cenas precisam atingir pelo menos 80%")
+        
+        review_result = {
+            "overall_score": round(avg_score),
+            "verdict": verdict,
+            "director_notes": director_notes,
+            "scene_reviews": all_scene_reviews,
+            "pacing_notes": f"Projeto com {len(scenes)} cenas revisadas em {len(batches)} lotes",
+            "emotional_arc": f"Score medio: {avg_score:.0f}%",
+            "top_3_strengths": top_strengths[:3],
+            "top_3_improvements": top_improvements[:3] if top_improvements else ["Nenhuma melhoria critica necessaria"],
+            "reviewed_at": datetime.now(timezone.utc).isoformat(),
+            "review_method": "parallel_batch",
+            "batch_count": len(batches),
+            "batch_size": BATCH_SIZE
+        }
+        
+        _update_project_field(tenant_id, project_id, {
+            "director_review": review_result,
+            "director_review_at": review_result["reviewed_at"],
+            "pipeline_phase": "director_done"
+        })
+        
+        logger.info(f"Director review [{project_id}] complete: {avg_score:.0f}% avg, {needs_work_count} scenes need work")
+        
     except Exception as e:
-        logger.error(f"Sequential batching failed: {e}")
-        raise HTTPException(500, f"Director review failed: {str(e)}")
-    finally:
-        # Clear progress after completion
-        _update_project_field(tenant["id"], project_id, {"director_progress": None})
-    
-    # Merge all scene reviews from batches
-    all_scene_reviews = []
-    for result in batch_results:
-        if isinstance(result, Exception):
-            logger.error(f"Batch failed: {result}")
-            continue
-        if isinstance(result, list):
-            all_scene_reviews.extend(result)
-    
-    # Calculate overall metrics
-    avg_score = sum(sr.get("score", 0) for sr in all_scene_reviews) / len(all_scene_reviews) if all_scene_reviews else 0
-    needs_work_count = len([sr for sr in all_scene_reviews if sr.get("score", 0) < 80])
-    
-    # Overall verdict based on new 90% standard
-    verdict = "APPROVED" if avg_score >= 90 and needs_work_count == 0 else "NEEDS_REVISION"
-    
-    director_notes = f"""Revisão paralela concluída por equipe de diretores.
-
-📊 SCORE GERAL: {avg_score:.0f}/100
-{'✅ APROVADO — Qualidade cinematográfica excepcional!' if verdict == 'APPROVED' else f'⚠️ REVISÃO NECESSÁRIA — {needs_work_count} cena(s) abaixo de 80%'}
-
-PADRÃO DE QUALIDADE:
-- 90-100: EXCELENTE (pronto para produção)
-- 80-89: BOM (pequenos ajustes recomendados)  
-- <80: PRECISA MELHORAR (correções necessárias)
-
-{f'Cenas que precisam de atenção: {", ".join([str(sr.get("scene_number")) for sr in all_scene_reviews if sr.get("score", 0) < 80])}' if needs_work_count > 0 else 'Todas as cenas atingiram o padrão de qualidade!'}"""
-    
-    # Identify strengths and improvements
-    excellent_scenes = [sr for sr in all_scene_reviews if sr.get("score", 0) >= 90]
-    weak_scenes = [sr for sr in all_scene_reviews if sr.get("score", 0) < 70]
-    
-    top_strengths = []
-    if excellent_scenes:
-        top_strengths.append(f"{len(excellent_scenes)} cenas com qualidade EXCELENTE (90+)")
-    top_strengths.append("Revisão paralela permitiu análise mais rápida e detalhada")
-    
-    top_improvements = []
-    if needs_work_count > 0:
-        top_improvements.append(f"{needs_work_count} cenas precisam atingir pelo menos 80%")
-    if weak_scenes:
-        top_improvements.append(f"{len(weak_scenes)} cenas críticas (<70%) requerem atenção imediata")
-    
-    review_result = {
-        "overall_score": round(avg_score),
-        "verdict": verdict,
-        "director_notes": director_notes,
-        "scene_reviews": all_scene_reviews,
-        "pacing_notes": f"Projeto com {len(scenes)} cenas revisadas em {len(batches)} lotes paralelos",
-        "emotional_arc": f"Score médio: {avg_score:.0f}% — {'Pronto para storyboard' if verdict == 'APPROVED' else 'Aplicar correções e re-avaliar'}",
-        "top_3_strengths": top_strengths[:3] if top_strengths else ["Review completed"],
-        "top_3_improvements": top_improvements[:3] if top_improvements else ["Nenhuma melhoria crítica necessária"],
-        "reviewed_at": datetime.now(timezone.utc).isoformat(),
-        "review_method": "parallel_batch",
-        "batch_count": len(batches),
-        "batch_size": BATCH_SIZE
-    }
-    
-    # Save review to project
-    _update_project_field(tenant["id"], project_id, {
-        "director_review": review_result,
-        "director_review_at": review_result["reviewed_at"]
-    })
-    
-    logger.info(f"Director review complete: {avg_score:.0f}% avg, {needs_work_count} scenes need work")
-    
-    return review_result
+        logger.error(f"Director review [{project_id}] error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        _update_project_field(tenant_id, project_id, {
+            "director_progress": None,
+            "director_review_error": str(e)[:300]
+        })
 
 
 # Removed old single-threaded review code - now using parallel batching
