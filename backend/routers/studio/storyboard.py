@@ -434,8 +434,31 @@ async def get_storyboard(project_id: str, tenant=Depends(get_current_tenant)):
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Auto-fix stuck panels (generating for > 5 min)
+    panels = project.get("storyboard_panels", [])
+    fixed = False
+    for p in panels:
+        if p.get("status") == "generating":
+            gen_at = p.get("generated_at", "")
+            if gen_at:
+                try:
+                    gen_time = datetime.fromisoformat(gen_at.replace("Z", "+00:00"))
+                    age = (datetime.now(timezone.utc) - gen_time).total_seconds()
+                    if age > 300:  # 5 minutes
+                        p["status"] = "done" if p.get("image_url") else "error"
+                        fixed = True
+                except Exception:
+                    pass
+            elif p.get("image_url"):
+                # Has image but stuck generating — fix it
+                p["status"] = "done"
+                fixed = True
+    if fixed:
+        _save_project(tenant["id"], settings, projects)
+    
     return {
-        "panels": project.get("storyboard_panels", []),
+        "panels": panels,
         "storyboard_status": project.get("storyboard_status", {}),
         "storyboard_approved": project.get("storyboard_approved", False),
         "storyboard_chat_history": project.get("storyboard_chat_history", []),
