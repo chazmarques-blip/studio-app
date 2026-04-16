@@ -599,8 +599,8 @@ Every scene MUST be visually dynamic and full of life:
 This is a CONTINUOUS FILM. Scenes must flow like one uninterrupted take:
 
 ENTRY ZONE (0-1s): If CONTINUITY context is provided:
-- Start with EXACTLY the same character positions as the previous scene ended
-- Same camera angle, lighting, environment — as if the camera just KEPT ROLLING
+- SAME ENVIRONMENT: Start with EXACTLY the same character positions as the previous scene ended
+- ENVIRONMENT CHANGE: Use a MOTIVATED transition — character walks through a door, camera follows character from one room to another, or a visual element (window, doorway, path) connects both spaces. NEVER hard-cut to a completely different location.
 
 ACTION ZONE (1-11s): The main scene action with constant movement and interaction
 
@@ -608,10 +608,19 @@ EXIT ZONE (11-12s): Describe a CLEAR transition action:
 - A character looks toward something, starts walking, or reaches for an object
 - Camera begins a slow movement toward the next scene's focus
 - The LAST LINE of dialogue should naturally LEAD INTO the next scene's topic
+- If the NEXT SCENE is in a DIFFERENT location: character starts walking toward the exit/door/path, camera follows them, creating a natural visual bridge
+
+[ENVIRONMENT TRANSITION RULES]
+When scenes change location:
+- The EXIT of scene N must MOTIVATE the move (character says "let's go outside!", stands up, walks toward door)
+- The ENTRY of scene N+1 must show the CHARACTER ARRIVING (walking through door, stepping outside, entering room)
+- The camera must FOLLOW the character through the transition — never just cut to a new place
+- Lighting should shift GRADUALLY to match new environment (indoor warm → outdoor bright should take 2-3s)
+- At least ONE visual element should be shared between both scenes (same character, same prop being carried, same clothing)
 
 FORBIDDEN BETWEEN SCENES:
-- NEVER teleport characters to new positions
-- NEVER change camera angle more than 15 degrees
+- NEVER teleport characters to new positions or locations
+- NEVER hard-cut to a completely different environment without motivated movement
 - NEVER change lighting abruptly
 
 OUTPUT: Return ONLY JSON: {{"visual_direction": "Visual action description in English, max 250 words"}}

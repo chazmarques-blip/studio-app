@@ -102,6 +102,14 @@ SCENE CONTINUITY RULES (CRITICAL FOR CINEMA QUALITY)
    - End with wide shot → Start next with wide shot of same space
    - End with close-up on character → Start next from same character's perspective
 
+5. ENVIRONMENT TRANSITION: When scenes change location:
+   - The EXIT dialogue of scene N must MOTIVATE the move (e.g. "Vamos lá pra fora!")
+   - The description of scene N must end with characters MOVING toward the new location
+   - The description of scene N+1 must start with characters ARRIVING at the new location
+   - Use "transition_to" to describe the character walking/moving to the new place
+   - Use "transition_from" to describe the character arriving from the previous place
+   - NEVER just change location without showing the journey between them
+
 ===============================================================================
 
 RULES FOR SORA:
