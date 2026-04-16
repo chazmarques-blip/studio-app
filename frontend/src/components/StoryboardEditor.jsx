@@ -1544,7 +1544,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           </div>
           
           {/* Grid preview during generation - shows panels as they become ready */}
-          {panels.length > 0 && (
+          {panels.length > 0 && panels.some(p => p.status === 'generating') && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] text-gray-400">
