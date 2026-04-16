@@ -890,3 +890,36 @@ async def retry_chat(project_id: str, tenant=Depends(get_current_tenant)):
 
 
 
+
+
+@router.patch("/projects/{project_id}/scenes/{scene_number}")
+async def update_scene(project_id: str, scene_number: int, payload: dict = Body(...), tenant=Depends(get_current_tenant)):
+    """Update individual scene fields (dialogue, description, title, etc.)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    scenes = project.get("scenes", [])
+    scene = next((s for s in scenes if s.get("scene_number") == scene_number), None)
+    if not scene:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_number} not found")
+    
+    # Update allowed fields
+    allowed = {"dialogue", "dubbed_text", "description", "title", "emotion", "camera", 
+               "transition", "transition_from", "transition_to", "music_mood", "sfx_notes"}
+    updated = []
+    for key, value in payload.items():
+        if key in allowed:
+            scene[key] = value
+            updated.append(key)
+    
+    # Keep dialogue and dubbed_text in sync
+    if "dialogue" in payload:
+        scene["dubbed_text"] = payload["dialogue"]
+    elif "dubbed_text" in payload:
+        scene["dialogue"] = payload["dubbed_text"]
+    
+    _save_project(tenant["id"], settings, projects, flush_now=True)
+    logger.info(f"Scene {scene_number} updated: {updated}")
+    
+    return {"status": "ok", "scene_number": scene_number, "updated": updated}

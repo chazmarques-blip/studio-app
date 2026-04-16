@@ -412,39 +412,60 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
 
   const startZoomEdit = () => {
     setZoomEditing(true);
-    setZoomEditData({
-      image_prompt: zoomFrame.image_prompt || '',
-      kling_prompt: zoomFrame.kling_prompt || '',
-      dialogue_text: zoomFrame.dialogue_text || '',
-    });
+    if (useKlingMode) {
+      setZoomEditData({
+        image_prompt: zoomFrame.image_prompt || '',
+        kling_prompt: zoomFrame.kling_prompt || '',
+        dialogue_text: zoomFrame.dialogue_text || '',
+      });
+    } else {
+      const matchedScene = scenes.find(s => s.scene_number === zoomFrame.scene_number) || {};
+      setZoomEditData({
+        dialogue: matchedScene.dubbed_text || matchedScene.dialogue || '',
+        description: matchedScene.description || '',
+        title: matchedScene.title || '',
+      });
+    }
   };
 
   const saveZoomEdit = async () => {
     if (!zoomFrame || !zoomEditData) return;
     setZoomSaving(true);
     try {
-      await axios.patch(`${API}/studio/projects/${projectId}/kling-storyboards/update-frame`, {
-        frame_number: zoomFrame.frame_number,
-        ...zoomEditData,
-      });
-      // Update local state
-      const updatedFrame = { ...zoomFrame, ...zoomEditData };
-      setZoomFrame(updatedFrame);
-      // Update displayFrames in klingStoryboards
-      setKlingStoryboards(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          scenes: prev.scenes.map(scene => ({
-            ...scene,
-            frames: scene.frames.map(f =>
-              f.frame_number === zoomFrame.frame_number ? { ...f, ...zoomEditData } : f
-            )
-          }))
-        };
-      });
+      if (useKlingMode) {
+        await axios.patch(`${API}/studio/projects/${projectId}/kling-storyboards/update-frame`, {
+          frame_number: zoomFrame.frame_number,
+          ...zoomEditData,
+        });
+        const updatedFrame = { ...zoomFrame, ...zoomEditData };
+        setZoomFrame(updatedFrame);
+        setKlingStoryboards(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            scenes: prev.scenes.map(scene => ({
+              ...scene,
+              frames: scene.frames.map(f =>
+                f.frame_number === zoomFrame.frame_number ? { ...f, ...zoomEditData } : f
+              )
+            }))
+          };
+        });
+      } else {
+        await axios.patch(`${API}/studio/projects/${projectId}/scenes/${zoomFrame.scene_number}`, {
+          dialogue: zoomEditData.dialogue,
+          dubbed_text: zoomEditData.dialogue,
+          description: zoomEditData.description,
+          title: zoomEditData.title,
+        });
+        setScenes(prev => prev.map(s =>
+          s.scene_number === zoomFrame.scene_number
+            ? { ...s, dialogue: zoomEditData.dialogue, dubbed_text: zoomEditData.dialogue, description: zoomEditData.description, title: zoomEditData.title }
+            : s
+        ));
+      }
       setZoomEditing(false);
-      toast.success(lang === 'pt' ? 'Quadro atualizado!' : 'Frame updated!');
+      toast.success(lang === 'pt' ? 'Salvo!' : 'Saved!');
     } catch (err) {
       toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao salvar' : 'Save failed'));
     } finally {
@@ -2060,12 +2081,12 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto"
                onClick={(e) => e.stopPropagation()}>
             
-            {/* Close button */}
+            {/* Close button - positioned higher to avoid overlapping edit button */}
             <button
               onClick={closeZoomModal}
               data-testid="zoom-close-btn"
-              className="absolute top-4 right-4 z-10 bg-black/80 hover:bg-black text-white rounded-full p-2 transition">
-              <X size={20} />
+              className="absolute top-2 right-2 z-20 bg-black/80 hover:bg-red-600 text-white rounded-full p-1.5 transition">
+              <X size={16} />
             </button>
 
             {/* Navigation buttons */}
@@ -2104,7 +2125,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     <div className="text-xs text-gray-500">
                       {zoomFrameIndex + 1} / {displayFrames.length}
                     </div>
-                    {useKlingMode && !zoomEditing && (
+                    {!zoomEditing && (
                       <button
                         onClick={startZoomEdit}
                         data-testid="zoom-edit-btn"
@@ -2323,7 +2344,16 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                       <Film size={14} className="text-[#8B5CF6]" />
-                      {zoomFrame.title || matchedScene.title || `Cena ${zoomFrame.scene_number}`}
+                      {zoomEditing ? (
+                        <input
+                          value={zoomEditData.title || ''}
+                          onChange={e => setZoomEditData(prev => ({ ...prev, title: e.target.value }))}
+                          className="flex-1 bg-[#0D0D0D] border border-[#8B5CF6]/30 rounded px-2 py-1 text-sm text-white outline-none focus:border-[#8B5CF6]/60"
+                          data-testid="zoom-edit-title"
+                        />
+                      ) : (
+                        <span>{zoomFrame.title || matchedScene.title || `Cena ${zoomFrame.scene_number}`}</span>
+                      )}
                     </h4>
                   </div>
 
@@ -2333,24 +2363,52 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                       <Paintbrush size={14} />
                       {lang === 'pt' ? 'Descrição da Cena' : 'Scene Description'}
                     </h4>
-                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
-                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
-                        {sceneDescription || (lang === 'pt' ? '(Sem descrição)' : '(No description)')}
-                      </p>
-                    </div>
+                    {zoomEditing ? (
+                      <textarea
+                        value={zoomEditData.description || ''}
+                        onChange={e => setZoomEditData(prev => ({ ...prev, description: e.target.value }))}
+                        rows={4}
+                        className="w-full bg-[#0D0D0D] border border-purple-500/30 rounded-lg p-3 text-xs text-gray-200 leading-relaxed resize-y outline-none focus:border-purple-500/60 transition"
+                        data-testid="zoom-edit-description"
+                      />
+                    ) : (
+                      <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {sceneDescription || (lang === 'pt' ? '(Sem descrição)' : '(No description)')}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Dialogue */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
-                      <MessageSquare size={14} />
-                      {lang === 'pt' ? 'Diálogo' : 'Dialogue'}
-                    </h4>
-                    <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
-                      <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
-                        {sceneDialogue || (lang === 'pt' ? '(Sem diálogo)' : '(No dialogue)')}
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                        <MessageSquare size={14} />
+                        {lang === 'pt' ? 'Diálogo' : 'Dialogue'}
+                      </h4>
+                      {zoomEditing && (
+                        <span className="text-[10px] text-gray-500">
+                          {(zoomEditData.dialogue || '').split(/\s+/).filter(Boolean).length} palavras (~{((zoomEditData.dialogue || '').split(/\s+/).filter(Boolean).length / 2.5).toFixed(1)}s)
+                        </span>
+                      )}
                     </div>
+                    {zoomEditing ? (
+                      <textarea
+                        value={zoomEditData.dialogue || ''}
+                        onChange={e => setZoomEditData(prev => ({ ...prev, dialogue: e.target.value }))}
+                        rows={3}
+                        className="w-full bg-[#0D0D0D] border border-cyan-500/30 rounded-lg p-3 text-xs text-gray-200 leading-relaxed resize-y outline-none focus:border-cyan-500/60 transition"
+                        placeholder={lang === 'pt' ? 'Diálogo da cena (max ~25 palavras para 12s)...' : 'Scene dialogue (max ~25 words for 12s)...'}
+                        data-testid="zoom-edit-dialogue"
+                      />
+                    ) : (
+                      <div className="bg-[#0D0D0D] border border-[#222] rounded-lg p-3">
+                        <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {sceneDialogue || (lang === 'pt' ? '(Sem diálogo)' : '(No dialogue)')}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Sora Prompt (if available from Director Preview) */}
