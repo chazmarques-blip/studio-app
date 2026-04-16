@@ -4521,9 +4521,9 @@ export const DirectedStudio = memo(function DirectedStudio({
             );
           })()}
 
-          {/* Rebuild Film Button */}
-          {outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length >= 2 && (
-            <div className="flex justify-center pt-2">
+          {/* Rebuild Film Button - visible whenever there are scene videos */}
+          {outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length >= 2 && !generating && (
+            <div className="flex justify-center pt-4 pb-2">
               <button
                 onClick={async () => {
                   try {
