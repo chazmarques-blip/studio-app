@@ -620,12 +620,21 @@ TRANSITION: {trans_note or 'Smooth cut'}
 {continuity_ctx}{audio_ctx}
 """
 
+            # Build personality context for visual direction
+            personality_visual = ""
+            for cname in chars_in_scene:
+                char_data = next((c for c in characters if c.get("name") == cname), None)
+                if char_data and char_data.get("personality"):
+                    personality_visual += f"\n- {cname}: {char_data['personality']}"
+            if personality_visual:
+                personality_visual = f"\n[CHARACTER PERSONALITIES - reflect in gestures, expressions, body language]{personality_visual}\n"
+
             director_user = f"""SCENE {scene_num}: "{scene.get('title', '')}"
 DESCRIPTION: {scene.get('description', '')}
 EMOTION: {scene.get('emotion', 'neutral')}
 CHARACTERS IN SCENE: {', '.join(chars_in_scene)}
-
-Describe ONLY the visual action and camera work for this scene. Do NOT describe characters or dialogue."""
+{personality_visual}
+Describe ONLY the visual action and camera work for this scene. Do NOT describe characters or dialogue. Make it DYNAMIC and EXPRESSIVE - characters should move, react, and show personality through body language."""
 
             try:
                 from litellm import completion

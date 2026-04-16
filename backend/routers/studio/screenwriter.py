@@ -466,6 +466,26 @@ Format: "dialogue": "Narrador: 'Descrição do que acontece nesta cena...'"
 - Keep narration concise (2-3 sentences per scene)
 - ALL narration MUST be in {lang_name}"""
 
+        # Build character personality context
+        characters_list = project.get("characters", [])
+        personality_ctx = ""
+        chars_with_personality = [c for c in characters_list if c.get("personality")]
+        if chars_with_personality:
+            personality_lines = []
+            for c in chars_with_personality:
+                personality_lines.append(f"- {c['name']}: {c['personality']}")
+            personality_ctx = f"""
+
+CHARACTER PERSONALITIES (MUST be reflected in dialogue and actions):
+{chr(10).join(personality_lines)}
+
+RULES FOR PERSONALITY:
+- Each character's dialogue MUST match their personality
+- Use their catchphrases/bordões naturally in dialogue
+- Their humor style must be consistent across ALL scenes
+- Body language in descriptions should match personality (e.g. hyper character = always moving)
+"""
+
         # Detect if project already has scenes (continuation vs new screenplay)
         existing_scenes = project.get("scenes", [])
         is_continuation = len(existing_scenes) > 0
@@ -484,7 +504,7 @@ EXISTING SCREENPLAY (already written — DO NOT rewrite these, only ADD new scen
 {existing_summary}
 
 {character_library_instructions}
-
+{personality_ctx}
 The user now says: {message}
 {audio_instruction}
 
@@ -503,7 +523,7 @@ CONTINUATION RULES:
 {history_text}
 
 {character_library_instructions}
-
+{personality_ctx}
 Current request: {message}
 {audio_instruction}
 

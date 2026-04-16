@@ -426,7 +426,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [viewingProject, setViewingProject] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [editingChar, setEditingChar] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', description: '', age: '', role: '' });
+  const [editForm, setEditForm] = useState({ name: '', description: '', age: '', role: '', personality: '' });
   const [showNewProject, setShowNewProject] = useState(false);
   const [visualStyle, setVisualStyle] = useState('animation');
   const [projectLang, setProjectLang] = useState('pt');
@@ -1130,7 +1130,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   // Start editing a character
   const startEditChar = (idx) => {
     const c = characters[idx];
-    setEditForm({ name: c.name || '', description: c.description || '', age: c.age || '', role: c.role || '' });
+    setEditForm({ name: c.name || '', description: c.description || '', age: c.age || '', role: c.role || '', personality: c.personality || '' });
     setEditingChar(idx);
   };
 
@@ -2874,6 +2874,11 @@ export const DirectedStudio = memo(function DirectedStudio({
                       data-testid={`edit-char-desc-${ci}`}
                       rows={2}
                       className="w-full bg-gray-50 border border-[#333] rounded px-2 py-1.5 text-xs text-gray-900 outline-none focus:border-orange-500/50 resize-none" />
+                    <textarea value={editForm.personality || ''} onChange={e => setEditForm(p => ({ ...p, personality: e.target.value }))}
+                      placeholder={lang === 'pt' ? 'Personalidade: temperamento, humor, jeito de falar, bordões... Ex: "Brincalhão e impulsivo, faz piadas sem querer. Bordão: Bora lá!"' : 'Personality: temperament, humor, catchphrases...'}
+                      data-testid={`edit-char-personality-${ci}`}
+                      rows={2}
+                      className="w-full bg-gray-50 border border-purple-500/30 rounded px-2 py-1.5 text-xs text-gray-900 outline-none focus:border-purple-500/50 resize-none" />
                     <div className="flex gap-1.5">
                       <button onClick={saveEditChar} data-testid={`save-char-${ci}`}
                         className="flex items-center gap-1 bg-[#8B5CF6]/15 border border-orange-500/30 text-orange-600 rounded px-2 py-1 text-[11px] font-medium hover:bg-[#8B5CF6]/25 transition">
@@ -2905,6 +2910,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                         )}
                       </div>
                       <p className="text-[11px] text-gray-600 leading-relaxed mt-0.5">{char.description}</p>
+                      {char.personality && (
+                        <p className="text-[10px] text-purple-600 leading-relaxed mt-0.5 italic">{char.personality}</p>
+                      )}
                       <p className="text-[10px] text-[#555] mt-0.5">{char.age} • {char.role}</p>
                     </div>
                     {/* Action buttons */}
