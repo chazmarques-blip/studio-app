@@ -643,6 +643,8 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
 
     # Mark as generating
     panel["status"] = "generating"
+    # Sync panel description with scene (scene is always the source of truth)
+    panel["description"] = scene.get("description", panel.get("description", ""))
     _save_project(tenant["id"], settings, projects)
 
     def _bg_regen():
