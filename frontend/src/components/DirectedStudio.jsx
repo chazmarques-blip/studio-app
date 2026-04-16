@@ -960,6 +960,26 @@ export const DirectedStudio = memo(function DirectedStudio({
         if (d.visual_style) setVisualStyle(d.visual_style);
         if (d.language) setProjectLang(d.language);
 
+        // Check if a scene regeneration completed
+        setRegenScene(prev => {
+          if (prev !== null && d.agent_status) {
+            const sceneState = d.agent_status?.scene_status?.[String(prev)];
+            if (sceneState === 'done' || sceneState === 'complete' || sceneState === 'error') {
+              if (sceneState === 'done' || sceneState === 'complete') {
+                toast.success(`Cena ${prev} regenerada com sucesso!`);
+              }
+              return null; // Clear regenScene
+            }
+            // Also check if scene video appeared in outputs
+            const sceneOutput = d.outputs?.find(o => o.scene_number === prev && o.url);
+            if (sceneOutput) {
+              toast.success(`Cena ${prev} regenerada com sucesso!`);
+              return null;
+            }
+          }
+          return prev;
+        });
+
         if (d.status === 'complete') {
           setOutputs(d.outputs || []);
           setGenerating(false);
@@ -1419,12 +1439,13 @@ export const DirectedStudio = memo(function DirectedStudio({
         custom_prompt: customPrompt,
       });
       toast.success(`Regenerando cena ${sceneNum}...`);
+      // Start polling - regenScene stays active until polling detects completion
       startPolling(projectId);
     } catch (err) {
       toast.error(getErrorMsg(err, 'Erro ao regenerar'));
-    } finally {
-      setRegenScene(null);
+      setRegenScene(null); // Only clear on error
     }
+    // NOTE: Do NOT clear regenScene here - polling will clear it when scene is done
   };
 
   // Update a scene's description

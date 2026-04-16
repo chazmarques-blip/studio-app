@@ -2785,7 +2785,10 @@ Story: {briefing[:300]}
         ref_path = _create_composite_avatar(chars_in_scene, char_avatars, avatar_cache)
 
         # Generate video with Sora 2 (3 retries)
-        _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
+        _update_scene_status(tenant_id, project_id, scene_num, "waiting_sora", total)
+        _update_project_field(tenant_id, project_id, {
+            "progress_message": f"Cena {scene_num}: Enviando para Sora 2..."
+        })
 
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -2793,9 +2796,9 @@ Story: {briefing[:300]}
             try:
                 logger.info(f"Studio [{project_id}]: Regen scene {scene_num} attempt {attempt+1}/3")
                 
-                # Update progress message
+                _update_scene_status(tenant_id, project_id, scene_num, "generating_video", total)
                 _update_project_field(tenant_id, project_id, {
-                    "progress_message": f"Cena {scene_num}: Sora 2 gerando vídeo (tentativa {attempt+1}/3)... Isso pode levar 2-5 minutos."
+                    "progress_message": f"Cena {scene_num}: Sora 2 gerando vídeo ({attempt+1}/3)... ~3-5 min"
                 })
                 
                 video_bytes = _generate_video_with_openai_direct(
