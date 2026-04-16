@@ -113,12 +113,13 @@ RULES FOR SORA:
 
 DIALOGUE TIMING RULE (CRITICAL FOR LIP SYNC):
 - Each scene has ONLY 12 seconds of video
-- Dialogue MUST fit within 10 seconds of speech (2s for visual transition)
-- MAXIMUM: 20-25 words of dialogue per scene (Portuguese ~2.5 words/sec)
-- If 2 characters speak, split: Character A ~12 words + Character B ~12 words
-- Short, punchy lines work best: "Olha isso, Snow!" instead of long sentences
-- Leave 2 seconds of silence for visual storytelling and transitions
-- NEVER exceed 25 words of spoken dialogue per scene
+- Dialogue MUST fill 9-10 seconds of speech (leaving only 1-2s for visual transition)
+- TARGET: 35-40 words of dialogue per scene (Portuguese ~2.5 words/sec = ~14-16s reading, but spoken faster ~4 words/sec)
+- ALL 3 characters should speak in EVERY scene — dynamic back-and-forth conversation
+- Short punchy exchanges: Character A says something → Character B reacts → Character C comments
+- The LAST line of dialogue must LEAD INTO the next scene's topic naturally
+- Example flow: "Snow: 'E agora?' → Ash: 'Agora vamos falar sobre...' → Brenda: 'Vem, meninos!'"
+- NEVER leave more than 1 second of silence in a scene
 
 RICHNESS GUIDELINES:
 - Simple story → 15-20 scenes

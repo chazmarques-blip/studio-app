@@ -578,7 +578,7 @@ YOUR ENTRY ZONE (0-2s) MUST:
             if music_mood or sfx_notes:
                 audio_ctx = f"\n[AUDIO ATMOSPHERE] Music: {music_mood}. SFX: {sfx_notes}. Reflect this mood in the visual direction."
 
-            director_system = f"""You are a VISUAL SCENE DIRECTOR for a continuous animated film. Your ONLY job is to describe the VISUAL ACTION of each 12-second scene.
+            director_system = f"""You are a VISUAL SCENE DIRECTOR for a continuous animated film (Pixar/DreamWorks quality). Your ONLY job is to describe the VISUAL ACTION of each 12-second scene.
 
 [RULES]
 - DO NOT describe character appearances - they are already defined in CHARACTER IDENTITY blocks
@@ -586,36 +586,43 @@ YOUR ENTRY ZONE (0-2s) MUST:
 - DO NOT modify, translate, or paraphrase the dialogue text
 - ONLY describe: camera movement, lighting, character positioning, gestures, expressions, environment details, timing of actions
 
+[DYNAMICS RULE - CRITICAL FOR ENGAGEMENT]
+Every scene MUST be visually dynamic and full of life:
+- Characters must be CONSTANTLY MOVING: shifting weight, tilting heads, wagging tails, fidgeting, gesturing
+- At least ONE physical comedy moment per scene (stumble, slip, exaggerated reaction, double-take)
+- Facial expressions change EVERY 2 seconds (surprise, joy, concern, mischief)
+- Camera NEVER stays static — always subtle dolly, pan, or zoom during dialogue
+- Background elements should have life too (curtain moving, light shifting, toys wobbling)
+- Characters REACT to each other physically (nudge, lean in, step back, point)
+
 [EDGE MIRRORING RULE - CRITICAL FOR SCENE CONTINUITY]
 This is a CONTINUOUS FILM. Scenes must flow like one uninterrupted take:
 
-EXIT ZONE (10-12s): Describe a CLEAR transition action:
-- Characters shift position, look in a direction, or start a gesture
-- Camera begins a slow movement (pan, dolly, or zoom)
-- This becomes the ANCHOR for the next scene
-
-ENTRY ZONE (0-2s): If CONTINUITY context is provided:
+ENTRY ZONE (0-1s): If CONTINUITY context is provided:
 - Start with EXACTLY the same character positions as the previous scene ended
-- Same camera angle (within 15 degrees)
-- Same lighting and environment
-- Characters complete the gesture/action that started in the previous scene's exit
-- Think of it as if the camera just KEPT ROLLING
+- Same camera angle, lighting, environment — as if the camera just KEPT ROLLING
+
+ACTION ZONE (1-11s): The main scene action with constant movement and interaction
+
+EXIT ZONE (11-12s): Describe a CLEAR transition action:
+- A character looks toward something, starts walking, or reaches for an object
+- Camera begins a slow movement toward the next scene's focus
+- The LAST LINE of dialogue should naturally LEAD INTO the next scene's topic
 
 FORBIDDEN BETWEEN SCENES:
 - NEVER teleport characters to new positions
 - NEVER change camera angle more than 15 degrees
 - NEVER change lighting abruptly
-- NEVER have characters face a different direction than they ended
 
-OUTPUT: Return ONLY JSON: {{"visual_direction": "Visual action description in English, max 200 words"}}
+OUTPUT: Return ONLY JSON: {{"visual_direction": "Visual action description in English, max 250 words"}}
 
-TIMING FORMAT: Structure as 2-second intervals:
-"0-2s: [ENTRY - connect to previous]. 2-4s: [action]. 4-6s: [action]. 6-8s: [action]. 8-10s: [action]. 10-12s: [EXIT - prepare transition to next]."
+TIMING FORMAT (2-second intervals — EVERY interval must have CHARACTER MOVEMENT):
+"0-1s: [ENTRY - connect to previous, characters in motion]. 1-3s: [action + reaction]. 3-5s: [physical comedy beat]. 5-7s: [interaction + gesture]. 7-9s: [dynamic action]. 9-11s: [climax of scene]. 11-12s: [EXIT - prepare transition]."
 
 LOCATION: {loc_desc or 'As described in scene'}
 TIME OF DAY: {time_day}
 LIGHTING: {time_light or 'Match scene emotion'}
-CAMERA: {cam_flow or 'Medium shot, gentle movement'}
+CAMERA: {cam_flow or 'Medium shot with gentle tracking movement'}
 TRANSITION: {trans_note or 'Smooth cut'}
 {continuity_ctx}{audio_ctx}
 """
