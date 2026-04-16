@@ -366,6 +366,19 @@ def _run_director_review_background(tenant_id: str, project_id: str):
             "pipeline_phase": "director_done"
         })
         
+        # Unify dialogue = dubbed_text after Director creates revised dialogues
+        settings2, projects2, project2 = _get_project(tenant_id, project_id)
+        if project2:
+            unified = 0
+            for s in project2.get("scenes", []):
+                dubbed = s.get("dubbed_text", "")
+                if dubbed and dubbed != s.get("dialogue", ""):
+                    s["dialogue"] = dubbed
+                    unified += 1
+            if unified > 0:
+                _save_project(tenant_id, settings2, projects2, flush_now=True)
+                logger.info(f"Director [{project_id}]: Unified dialogue = dubbed_text for {unified} scenes")
+        
         logger.info(f"Director review [{project_id}] complete: {avg_score:.0f}% avg, {needs_work_count} scenes need work")
         
     except Exception as e:
@@ -423,6 +436,11 @@ async def director_apply_fixes(project_id: str, payload: dict = Body(default=Non
                 applied += 1
 
         if applied > 0:
+            # Unify dialogue = dubbed_text after Director revisions
+            for s in scenes:
+                dubbed = s.get("dubbed_text", "")
+                if dubbed:
+                    s["dialogue"] = dubbed
             _update_project_field(tenant["id"], project_id, {"scenes": scenes})
 
         logger.info(f"Studio [{project_id}]: Director fixes applied to {applied}/{len(scene_reviews)} scenes")
