@@ -4171,7 +4171,8 @@ export const DirectedStudio = memo(function DirectedStudio({
           {(() => {
             const finalVideo = outputs.find(o => o.type === 'final_video' && o.url);
             const heroVideo = outputs.find(o => o.label === 'complete' && o.url);
-            const heroOut = finalVideo || heroVideo;
+            const concatenatedVideo = outputs.find(o => o.type === 'video' && o.scene_number === 0 && o.url);
+            const heroOut = finalVideo || heroVideo || concatenatedVideo;
             if (!heroOut) return null;
             return (
               <div className="relative rounded-xl overflow-hidden border border-orange-500/20 group" data-testid="deliverable-filme-completo">
@@ -4368,7 +4369,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
               {/* Card: Pós-Produção */}
               {(() => {
-                const hasFinal = outputs.some(o => o.type === 'final_video' && o.url);
+                const hasFinal = outputs.some(o => (o.type === 'final_video' || (o.type === 'video' && o.scene_number === 0)) && o.url);
                 return (
               <button
                 onClick={() => setShowPostProd(true)}
