@@ -693,17 +693,20 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
 
                 image_url = None
                 frames = []
+                cache_bust = int(datetime.now(timezone.utc).timestamp())
                 for fi, (ft, img_bytes) in enumerate(frame_results):
                     if img_bytes:
                         frame_fname = f"storyboard/{project_id}/panel_{req.panel_number}_frame_{fi+1}.png"
                         frame_url = _upload_to_storage(img_bytes, frame_fname, "image/png")
+                        # Add cache-buster to force browser to reload new image
+                        frame_url_bust = f"{frame_url}?t={cache_bust}"
                         frames.append({
                             "frame_number": fi + 1,
-                            "image_url": frame_url,
+                            "image_url": frame_url_bust,
                             "label": ft["label"],
                         })
                         if image_url is None:
-                            image_url = frame_url
+                            image_url = frame_url_bust
 
                 if image_url:
                     _s, _p, _proj = _get_project(tenant["id"], project_id)
@@ -721,9 +724,9 @@ async def regenerate_storyboard_panel(project_id: str, req: StoryboardRegenerate
                         outputs.append({
                             "type": "storyboard",
                             "scene_number": req.panel_number,
-                            "url": image_url,
+                            "url": image_url,  # Already has cache-buster
                             "status": "done",
-                            "frames": frames,
+                            "frames": frames,  # Already have cache-buster
                             "created_at": datetime.now(timezone.utc).isoformat(),
                         })
                         _proj["outputs"] = outputs
