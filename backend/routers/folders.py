@@ -105,3 +105,28 @@ async def assign_avatars_to_folder(data: AssignAvatarsToFolder, user = Depends(g
     supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
     
     return {"success": True, "assigned_count": len(data.avatar_ids)}
+
+
+class UpdateFolderAvatars(BaseModel):
+    folder_id: str
+    avatar_ids: List[str]
+
+@router.put("/update-avatars")
+async def update_folder_avatars(data: UpdateFolderAvatars, user = Depends(get_current_user)):
+    """Replace folder's avatar_ids entirely (used to clean stale IDs)"""
+    result = supabase.table('tenants').select('settings').eq('owner_id', user['id']).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    settings = result.data.get('settings', {})
+    folders = settings.get('avatar_folders', [])
+    
+    for folder in folders:
+        if folder['id'] == data.folder_id:
+            folder['avatar_ids'] = data.avatar_ids
+            break
+    
+    settings['avatar_folders'] = folders
+    supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
+    
+    return {"success": True, "count": len(data.avatar_ids)}

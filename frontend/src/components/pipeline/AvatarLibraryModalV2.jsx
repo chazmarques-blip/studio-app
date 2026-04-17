@@ -258,6 +258,32 @@ export function AvatarLibraryModalV2({
       .catch(err => console.error('Error loading folders:', err));
   }, [open]);
 
+  // Auto-clean stale avatar IDs from folders when library finishes loading
+  useEffect(() => {
+    if (!library.length || !folders.length) return;
+    const existingIds = new Set(library.map(a => a.id));
+    let needsClean = false;
+    const cleaned = folders.map(f => {
+      const valid = (f.avatar_ids || []).filter(id => existingIds.has(id));
+      if (valid.length !== (f.avatar_ids || []).length) {
+        needsClean = true;
+        return { ...f, avatar_ids: valid };
+      }
+      return f;
+    });
+    if (needsClean) {
+      setFolders(cleaned);
+      // Persist cleaned folders to backend (replace stale IDs)
+      cleaned.forEach(f => {
+        const origFolder = folders.find(o => o.id === f.id);
+        if (origFolder && (origFolder.avatar_ids || []).length !== (f.avatar_ids || []).length) {
+          axios.put(`${API}/folders/update-avatars`, { folder_id: f.id, avatar_ids: f.avatar_ids })
+            .catch(() => {});
+        }
+      });
+    }
+  }, [library.length, folders.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Folder management functions
   const createFolder = async () => {
     if (!newFolderName.trim()) {
@@ -897,45 +923,47 @@ export function AvatarLibraryModalV2({
               
               {/* Folder List */}
               {folders.map(folder => {
-                const count = folder.avatar_ids?.length || 0;
+                // Count only avatar IDs that actually exist in library
+                const existingIds = new Set(library.map(a => a.id));
+                const validCount = (folder.avatar_ids || []).filter(id => existingIds.has(id)).length;
                 const isActive = currentFolder === folder.id;
                 
                 return (
-                  <div key={folder.id} className="relative group">
+                  <div key={folder.id} className="flex items-center gap-1">
                     <button
                       onClick={() => setCurrentFolder(folder.id)}
-                      className={`w-full text-left px-3 py-2 pr-8 rounded-lg text-xs transition flex items-center gap-2 ${
+                      className={`flex-1 text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
                         isActive 
                           ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
                           : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
                       }`}
                     >
                       <div 
-                        className="w-3 h-3 rounded-full" 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
                         style={{ backgroundColor: folder.color || '#8B5CF6' }}
                       />
                       <span className="flex-1 truncate">{folder.name}</span>
-                      <span className="text-[10px] text-[#666]">({count})</span>
+                      <span className="text-[10px] text-[#666]">({validCount})</span>
                     </button>
                     
-                    {/* Delete folder button (on hover or confirming) */}
+                    {/* Delete folder button - always visible */}
                     <button
                       data-testid={`delete-folder-${folder.id}`}
-                      onClick={(e) => {
+                      onMouseDown={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
                         deleteFolder(folder.id);
                       }}
-                      className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 transition-all rounded ${
+                      className={`flex-shrink-0 p-1.5 rounded transition-colors ${
                         confirmingDelete === folder.id
-                          ? 'opacity-100 bg-red-600 px-2 py-1'
-                          : 'opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20'
+                          ? 'bg-red-600'
+                          : 'text-[#555] hover:text-red-400 hover:bg-red-500/10'
                       }`}
-                      title={confirmingDelete === folder.id ? 'Clique novamente para confirmar' : 'Deletar pasta'}
+                      title={confirmingDelete === folder.id ? 'Clique para confirmar' : 'Deletar pasta'}
                     >
                       {confirmingDelete === folder.id 
-                        ? <span className="text-[9px] text-white font-bold whitespace-nowrap">Confirmar?</span>
-                        : <Trash2 size={12} className="text-red-400" />
+                        ? <span className="text-[9px] text-white font-bold px-1">X</span>
+                        : <Trash2 size={11} />
                       }
                     </button>
                   </div>
