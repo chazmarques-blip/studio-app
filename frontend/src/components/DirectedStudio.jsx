@@ -4476,7 +4476,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                             setGeneratingSong(true);
                             try {
                               const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
-                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
+                              setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
                               toast.success('Música gerada com sucesso!');
                             } catch (err) {
                               toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
@@ -4550,7 +4550,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                                 adjustment: songAdjustment,
                                 edited_lyrics: songData.lyrics
                               });
-                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
+                              console.log('ADJUST response:', r.data);
+                              const newUrl = r.data.music_url ? `${r.data.music_url}?t=${Date.now()}` : songData.url;
+                              setSongData({ url: newUrl, lyrics: r.data.lyrics || songData.lyrics, duration_seconds: r.data.duration_seconds });
                               setSongAdjustment('');
                               toast.success(lang === 'pt' ? 'Música ajustada!' : 'Music adjusted!');
                             } catch (err) {
@@ -4579,7 +4581,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                 prompt: `Children's song with vocals. Sing these EXACT lyrics with a warm, friendly, expressive voice perfect for children:\n\n${songData.lyrics}`,
                                 edited_lyrics: songData.lyrics
                               });
-                              setSongData(prev => ({ ...prev, url: r.data.music_url, duration_seconds: r.data.duration_seconds }));
+                              setSongData(prev => ({ ...prev, url: `${r.data.music_url}?t=${Date.now()}`, duration_seconds: r.data.duration_seconds }));
                               toast.success(lang === 'pt' ? 'Música regenerada com a letra editada!' : 'Music regenerated with edited lyrics!');
                             } catch (err) {
                               toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
@@ -4600,7 +4602,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                             setGeneratingSong(true);
                             try {
                               const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
-                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
+                              setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
                               toast.success(lang === 'pt' ? 'Nova letra e música geradas!' : 'New lyrics and music generated!');
                             } catch (err) {
                               toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
