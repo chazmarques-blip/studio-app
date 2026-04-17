@@ -118,7 +118,8 @@ Return ONLY the lyrics, nothing else. No annotations, no [Verse 1] markers."""
 
     # Generate lyrics via Claude
     try:
-        lyrics = _call_claude_sync(lyrics_prompt, max_tokens=800)
+        system = "You are a legendary children's songwriter. Write song lyrics in the requested language. Return ONLY the lyrics."
+        lyrics = _call_claude_sync(system, lyrics_prompt, max_tokens=800)
         lyrics = lyrics.strip()
         logger.info(f"MusicGen [{project_id}]: Lyrics generated ({len(lyrics)} chars, {len(lyrics.splitlines())} lines)")
     except Exception as e:
