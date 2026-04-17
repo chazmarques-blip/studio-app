@@ -41,6 +41,93 @@ async def get_music_library(user=Depends(get_current_user)):
     return {"tracks": tracks}
 
 
+class GenerateMusicRequest(BaseModel):
+    project_id: str
+    prompt: Optional[str] = None
+    duration_seconds: Optional[int] = None
+
+
+@router.post("/projects/{project_id}/generate-music")
+async def generate_music(project_id: str, req: GenerateMusicRequest = None, tenant=Depends(get_current_tenant)):
+    """Generate original background music for a project using ElevenLabs Music API.
+    
+    If no prompt provided, auto-generates based on project briefing and scene moods.
+    Duration auto-calculated from video length if not specified.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    elevenlabs_key = ELEVENLABS_API_KEY
+    if not elevenlabs_key:
+        raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
+    
+    # Build music prompt
+    if req and req.prompt:
+        music_prompt = req.prompt
+    else:
+        briefing = project.get("briefing", "")[:200]
+        scenes = project.get("scenes", [])
+        all_moods = [s.get("music_mood", "") for s in scenes if s.get("music_mood")]
+        mood_text = ", ".join(set(all_moods))[:100] if all_moods else "warm, hopeful, adventurous"
+        
+        music_prompt = (
+            f"Instrumental orchestral soundtrack for a children's animated story (Pixar/DreamWorks quality). "
+            f"Story: {briefing}. "
+            f"Mood: {mood_text}. "
+            f"Style: Warm orchestral with playful woodwinds, gentle strings, soft percussion. "
+            f"For ages 3-8. No vocals, no lyrics. Cinematic, emotional, family-friendly."
+        )
+    
+    # Calculate duration
+    if req and req.duration_seconds:
+        duration_ms = req.duration_seconds * 1000
+    else:
+        outputs = project.get("outputs", [])
+        scenes = project.get("scenes", [])
+        duration_ms = len(scenes) * 12 * 1000  # 12s per scene estimate
+    
+    duration_ms = max(3000, min(duration_ms, 300000))  # 3s min, 5min max
+    
+    try:
+        from elevenlabs import ElevenLabs as ElevenLabsClient
+        client = ElevenLabsClient(api_key=elevenlabs_key)
+        
+        logger.info(f"MusicGen [{project_id}]: Generating {duration_ms//1000}s track")
+        
+        track_stream = client.music.compose(
+            prompt=music_prompt,
+            music_length_ms=duration_ms
+        )
+        
+        audio_data = b""
+        for chunk in track_stream:
+            audio_data += chunk
+        
+        if len(audio_data) < 1000:
+            raise HTTPException(status_code=500, detail="Music generation returned empty audio")
+        
+        # Upload to storage
+        filename = f"studio/{project_id}_music.mp3"
+        music_url = _upload_to_storage(audio_data, filename, "audio/mpeg")
+        
+        logger.info(f"MusicGen [{project_id}]: Generated {len(audio_data)//1024}KB music track")
+        
+        return {
+            "status": "success",
+            "music_url": music_url,
+            "duration_seconds": duration_ms // 1000,
+            "size_kb": len(audio_data) // 1024,
+            "prompt": music_prompt[:200]
+        }
+        
+    except Exception as e:
+        logger.error(f"MusicGen [{project_id}]: Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Music generation failed: {str(e)[:100]}")
+
+
+
+
 # ── Intelligent Voice Assignment (Claude) ──
 
 class AutoAssignVoicesRequest(BaseModel):

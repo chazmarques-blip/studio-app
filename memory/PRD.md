@@ -52,7 +52,9 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - V2A sonoplastia using scene music_mood/sfx_notes
 - Produce Missing Scenes (skip cached scenes in full production)
 - Large project support (32+ scenes concat with adaptive compression)
-- Folder delete with inline two-click confirmation (replaces broken window.confirm)
+- Folder delete with inline two-click confirmation
+- Hierarchical folder system (subpastas with parent_id)
+- ElevenLabs Music API integration (original soundtrack generation per project)
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123

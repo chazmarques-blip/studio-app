@@ -2273,11 +2273,11 @@ def _run_full_production_pipeline(tenant_id: str, project_id: str):
 
 
 def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
-    """Add V2A sonoplastia (BGM + SFX) on top of Sora 2 native audio.
+    """Add background music on top of Sora 2 native audio.
     
-    Sora 2 already generates video WITH native audio (voice + lip sync).
-    This function ONLY adds background music and sound effects via Kling V2A,
-    keeping the native Sora 2 audio intact (more dynamic and expressive).
+    Uses ElevenLabs Music API to generate an original soundtrack matching the story,
+    then mixes it at low volume with the native Sora 2 audio (voices + lip sync).
+    Falls back to Kling V2A if ElevenLabs Music fails.
     """
     import subprocess
     import tempfile
@@ -2302,14 +2302,14 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
             return
         
         video_url = video_output["url"]
-        logger.info(f"Sora2Audio [{project_id}]: Adding V2A sonoplastia to native Sora 2 audio — {len(scenes)} scenes")
+        logger.info(f"Sora2Audio [{project_id}]: Adding music overlay to native Sora 2 audio — {len(scenes)} scenes")
         
         tmpdir = tempfile.mkdtemp(prefix="sora2_audio_")
         
         try:
             # Download video (already has native Sora 2 audio)
             _update_project_field(tenant_id, project_id, {
-                "progress_message": "Gerando sonoplastia e música de fundo..."
+                "progress_message": "Baixando vídeo para adicionar trilha sonora..."
             })
             video_path = f"{tmpdir}/video.mp4"
             vid_resp = requests.get(video_url, timeout=120)
@@ -2317,74 +2317,126 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
             with open(video_path, "wb") as f:
                 f.write(vid_resp.content)
             
-            # Generate V2A Sonoplastia (BGM + SFX)
-            sfx_track = None
-            try:
-                kling = KlingClient()
-                v2a_sample = f"{tmpdir}/v2a_sample.mp4"
-                subprocess.run([
-                    "ffmpeg", "-y", "-i", video_path,
-                    "-t", "20", "-c", "copy", v2a_sample
-                ], capture_output=True, timeout=15)
-                
-                if os.path.exists(v2a_sample) and os.path.getsize(v2a_sample) > 1000:
-                    with open(v2a_sample, 'rb') as f:
-                        sample_bytes = f.read()
-                    sample_url = _upload_to_storage(sample_bytes, f"studio/{project_id}_sora_v2a_sample.mp4", "video/mp4")
-                    
-                    all_sfx = [s.get("sfx_notes", "") for s in scenes[:5] if s.get("sfx_notes")]
-                    all_moods = [s.get("music_mood", "") for s in scenes[:5] if s.get("music_mood")]
-                    sfx_prompt = "; ".join(all_sfx)[:150] if all_sfx else "ambient sounds, gentle atmosphere"
-                    bgm_prompt = f"Music mood: {', '.join(all_moods)}. Pixar-style orchestral, warm emotional, children animation" if all_moods else "gentle orchestral music, Pixar style, warm emotional"
-                    
-                    _update_project_field(tenant_id, project_id, {
-                        "progress_message": "Gerando sonoplastia e música de fundo (V2A)..."
-                    })
-                    
-                    v2a_result = kling.video_to_audio(
-                        video_url=sample_url, sfx_prompt=sfx_prompt,
-                        bgm_prompt=bgm_prompt, max_wait=180
-                    )
-                    
-                    if v2a_result and v2a_result.get("audio_mp3_url"):
-                        sfx_resp = requests.get(v2a_result["audio_mp3_url"], timeout=60)
-                        if sfx_resp.status_code == 200:
-                            v2a_short = f"{tmpdir}/sfx_bgm_short.mp3"
-                            with open(v2a_short, "wb") as f:
-                                f.write(sfx_resp.content)
-                            
-                            probe = subprocess.run([
-                                "ffprobe", "-v", "error", "-show_entries", "format=duration",
-                                "-of", "default=noprint_wrappers=1:nokey=1", video_path
-                            ], capture_output=True, text=True, timeout=10)
-                            vid_dur = float(probe.stdout.strip()) if probe.returncode == 0 else len(scenes) * 12.0
-                            
-                            sfx_track = f"{tmpdir}/sfx_bgm.mp3"
-                            subprocess.run([
-                                "ffmpeg", "-y", "-stream_loop", "-1", "-i", v2a_short,
-                                "-t", str(vid_dur), "-acodec", "libmp3lame", "-q:a", "4",
-                                sfx_track
-                            ], capture_output=True, timeout=30)
-                            
-                            if not (os.path.exists(sfx_track) and os.path.getsize(sfx_track) > 1000):
-                                sfx_track = None
-                            else:
-                                logger.info(f"Sora2Audio [{project_id}]: V2A SFX+BGM track ready ({os.path.getsize(sfx_track)//1024}KB)")
-            except Exception as e:
-                logger.warning(f"Sora2Audio [{project_id}]: V2A sonoplastia failed (non-fatal): {e}")
+            # Get video duration
+            probe = subprocess.run([
+                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1", video_path
+            ], capture_output=True, text=True, timeout=10)
+            vid_dur = float(probe.stdout.strip()) if probe.returncode == 0 else len(scenes) * 12.0
+            logger.info(f"Sora2Audio [{project_id}]: Video duration: {vid_dur:.1f}s")
             
-            # Mix: keep native Sora 2 audio (vol 1.0) + add V2A SFX/BGM (vol 0.12)
-            if sfx_track and os.path.exists(sfx_track):
+            # ══ STEP 1: Generate original soundtrack via ElevenLabs Music ══
+            music_track = None
+            try:
                 _update_project_field(tenant_id, project_id, {
-                    "progress_message": "Mixando sonoplastia com áudio nativo..."
+                    "progress_message": "Compondo trilha sonora original (ElevenLabs Music)..."
+                })
+                
+                # Build music prompt from project context
+                briefing = project.get("briefing", "")[:200]
+                all_moods = [s.get("music_mood", "") for s in scenes if s.get("music_mood")]
+                mood_text = ", ".join(set(all_moods))[:100] if all_moods else "warm, hopeful, adventurous"
+                lang = project.get("language", "pt")
+                
+                music_prompt = (
+                    f"Instrumental orchestral soundtrack for a children's animated story (Pixar/DreamWorks quality). "
+                    f"Story: {briefing}. "
+                    f"Mood: {mood_text}. "
+                    f"Style: Warm orchestral with playful woodwinds, gentle strings, soft percussion. "
+                    f"For ages 3-8. No vocals, no lyrics. Cinematic, emotional, family-friendly."
+                )
+                
+                # ElevenLabs Music: max 5 minutes (300000ms)
+                music_length_ms = min(int(vid_dur * 1000), 300000)
+                # Minimum 3 seconds
+                music_length_ms = max(music_length_ms, 3000)
+                
+                logger.info(f"Sora2Audio [{project_id}]: ElevenLabs Music — generating {music_length_ms//1000}s track")
+                logger.info(f"Sora2Audio [{project_id}]: Music prompt: {music_prompt[:150]}...")
+                
+                from elevenlabs import ElevenLabs as ElevenLabsClient
+                el_client = ElevenLabsClient(api_key=ELEVENLABS_API_KEY)
+                
+                track_stream = el_client.music.compose(
+                    prompt=music_prompt,
+                    music_length_ms=music_length_ms
+                )
+                
+                music_data = b""
+                for chunk in track_stream:
+                    music_data += chunk
+                
+                if len(music_data) > 1000:
+                    music_track = f"{tmpdir}/elevenlabs_music.mp3"
+                    with open(music_track, "wb") as f:
+                        f.write(music_data)
+                    logger.info(f"Sora2Audio [{project_id}]: ElevenLabs Music generated — {len(music_data)//1024}KB")
+                else:
+                    logger.warning(f"Sora2Audio [{project_id}]: ElevenLabs Music returned empty audio")
+                    
+            except Exception as e:
+                logger.warning(f"Sora2Audio [{project_id}]: ElevenLabs Music failed: {e}")
+            
+            # ══ STEP 1b: Fallback to Kling V2A if ElevenLabs Music failed ══
+            if not music_track:
+                try:
+                    _update_project_field(tenant_id, project_id, {
+                        "progress_message": "Gerando sonoplastia (V2A fallback)..."
+                    })
+                    kling = KlingClient()
+                    v2a_sample = f"{tmpdir}/v2a_sample.mp4"
+                    subprocess.run([
+                        "ffmpeg", "-y", "-i", video_path,
+                        "-t", "20", "-c", "copy", v2a_sample
+                    ], capture_output=True, timeout=15)
+                    
+                    if os.path.exists(v2a_sample) and os.path.getsize(v2a_sample) > 1000:
+                        with open(v2a_sample, 'rb') as f:
+                            sample_bytes = f.read()
+                        sample_url = _upload_to_storage(sample_bytes, f"studio/{project_id}_sora_v2a_sample.mp4", "video/mp4")
+                        
+                        all_sfx = [s.get("sfx_notes", "") for s in scenes[:5] if s.get("sfx_notes")]
+                        sfx_prompt = "; ".join(all_sfx)[:150] if all_sfx else "ambient sounds, gentle atmosphere"
+                        bgm_prompt = f"Music mood: {mood_text}. Pixar-style orchestral, warm emotional, children animation"
+                        
+                        v2a_result = kling.video_to_audio(
+                            video_url=sample_url, sfx_prompt=sfx_prompt,
+                            bgm_prompt=bgm_prompt, max_wait=180
+                        )
+                        
+                        if v2a_result and v2a_result.get("audio_mp3_url"):
+                            sfx_resp = requests.get(v2a_result["audio_mp3_url"], timeout=60)
+                            if sfx_resp.status_code == 200:
+                                v2a_short = f"{tmpdir}/sfx_bgm_short.mp3"
+                                with open(v2a_short, "wb") as f:
+                                    f.write(sfx_resp.content)
+                                
+                                music_track = f"{tmpdir}/v2a_looped.mp3"
+                                subprocess.run([
+                                    "ffmpeg", "-y", "-stream_loop", "-1", "-i", v2a_short,
+                                    "-t", str(vid_dur), "-acodec", "libmp3lame", "-q:a", "4",
+                                    music_track
+                                ], capture_output=True, timeout=30)
+                                
+                                if not (os.path.exists(music_track) and os.path.getsize(music_track) > 1000):
+                                    music_track = None
+                                else:
+                                    logger.info(f"Sora2Audio [{project_id}]: V2A fallback track ready ({os.path.getsize(music_track)//1024}KB)")
+                except Exception as e:
+                    logger.warning(f"Sora2Audio [{project_id}]: V2A fallback also failed: {e}")
+            
+            # ══ STEP 2: Mix music with native Sora 2 audio ══
+            if music_track and os.path.exists(music_track):
+                _update_project_field(tenant_id, project_id, {
+                    "progress_message": "Mixando trilha sonora com áudio do vídeo..."
                 })
                 final_path = f"{tmpdir}/final_mixed.mp4"
                 
                 merge_cmd = [
                     "ffmpeg", "-y",
-                    "-i", video_path, "-i", sfx_track,
+                    "-i", video_path, "-i", music_track,
                     "-filter_complex",
-                    "[0:a]volume=1.0[native];[1:a]volume=0.12[sfx];[native][sfx]amix=inputs=2:duration=shortest[aout]",
+                    "[0:a]volume=1.0[native];[1:a]volume=0.15[bgm];[native][bgm]amix=inputs=2:duration=shortest[aout]",
                     "-c:v", "copy", "-map", "0:v:0", "-map", "[aout]",
                     "-c:a", "aac", "-b:a", "128k", "-shortest",
                     "-movflags", "+faststart", final_path
@@ -2393,10 +2445,10 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
                 merge_result = subprocess.run(merge_cmd, capture_output=True, timeout=120)
                 
                 if merge_result.returncode != 0:
-                    logger.error(f"Sora2Audio: V2A mix failed: {merge_result.stderr.decode()[:200]}")
+                    logger.error(f"Sora2Audio: Music mix failed: {merge_result.stderr.decode()[:200]}")
                     _update_project_field(tenant_id, project_id, {
                         "audio_generation_status": "complete",
-                        "progress_message": "Vídeo pronto (sem sonoplastia extra)"
+                        "progress_message": "Vídeo pronto (sem trilha sonora extra)"
                     })
                     return
                 
@@ -2407,21 +2459,22 @@ def _generate_sora2_audio_overlay(tenant_id: str, project_id: str):
                 filename = f"studio/{project_id}_sora2_final.mp4"
                 final_url = _upload_to_storage(final_bytes, filename, "video/mp4")
                 
-                logger.info(f"Sora2Audio [{project_id}]: DONE — {len(final_bytes)//1024}KB (native audio + V2A sonoplastia)")
+                logger.info(f"Sora2Audio [{project_id}]: DONE — {len(final_bytes)//1024}KB (native audio + music)")
                 
                 for o in outputs:
                     if o.get("type") == "video":
                         o["url"] = final_url
                         o["has_audio"] = True
+                        o["has_music"] = True
                         break
                 
                 _update_project_field(tenant_id, project_id, {
                     "outputs": outputs,
                     "audio_generation_status": "complete",
-                    "progress_message": "Áudio nativo Sora 2 + sonoplastia V2A aplicados!"
+                    "progress_message": "Trilha sonora original aplicada ao filme!"
                 }, flush_now=True)
             else:
-                logger.info(f"Sora2Audio [{project_id}]: No V2A track — keeping native Sora 2 audio only")
+                logger.info(f"Sora2Audio [{project_id}]: No music track generated — keeping native Sora 2 audio only")
                 _update_project_field(tenant_id, project_id, {
                     "audio_generation_status": "complete",
                     "progress_message": "Vídeo pronto com áudio nativo Sora 2!"

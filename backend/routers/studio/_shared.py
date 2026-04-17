@@ -11,7 +11,7 @@ __all__ = [
     # Pipeline config
     "STORAGE_BUCKET", "EMERGENT_PROXY_URL", "ELEVENLABS_VOICES", "MUSIC_LIBRARY",
     # API Keys
-    "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+    "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "ELEVENLABS_API_KEY",
     # Helper functions
     "_ensure_ffmpeg", "_ffmpeg_checked", "_run_async_in_thread",
     "_get_settings", "_save_settings", "_get_project", "_save_project",
@@ -55,6 +55,7 @@ router = APIRouter(prefix="/api/studio", tags=["studio"])
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 
 
 # ── Ensure FFmpeg is available (runs once at module load) ──
