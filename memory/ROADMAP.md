@@ -7,15 +7,16 @@
 - [x] Single dialogue source (dubbed_text = dialogue)
 - [x] Crossfade concatenation
 - [x] Audio overlay for Sora 2
+- [x] Film rebuild for large projects (32+ scenes)
 
 ## P1 - High Priority
-- [ ] Test with new shorter project (5-10 scenes) for optimal continuity
 - [ ] Voice selection UI (choose ElevenLabs voices per character)
 - [ ] End-to-end test of full Sora 2 pipeline with regenerated screenplay (new continuity fields)
+- [ ] Personality field UI (textarea in character editor)
 
 ## P2 - Medium Priority
 - [ ] Custom Video Editor UI (timeline/editor in frontend)
-- [ ] Modularize DirectedStudio.jsx (~4600 lines)
+- [ ] Modularize DirectedStudio.jsx (~4700 lines)
 - [ ] Migrate Avatar states to useAvatarManager.js
 - [ ] Multi-format export (YouTube 16:9, TikTok 9:16, Instagram 1:1)
 

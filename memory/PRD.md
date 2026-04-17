@@ -15,7 +15,7 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 3. **Keyframe**: Only scene 1 gets Gemini keyframe; scenes 2+ use last frame
 4. **Sora 2 Video**: Full prompt (dialogue FIRST, no truncation), native audio kept
 5. **Cinema Sequential**: Each clip sequential, last frame extracted for next
-6. **FFmpeg Crossfade**: 1s xfade + acrossfade between clips
+6. **FFmpeg Crossfade**: 1s xfade + acrossfade between clips (max 15 scenes; >15 uses simple concat)
 7. **V2A Sonoplastia**: BGM + SFX added ON TOP of native Sora 2 audio (12% vol)
 
 ## Agent Intelligence (Current Rules)
@@ -50,13 +50,22 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - Cache-buster on regenerated storyboard images
 - max_scenes parameter for partial production
 - V2A sonoplastia using scene music_mood/sfx_notes
+- Produce Missing Scenes (skip cached scenes in full production)
+- Large project support (32+ scenes concat with adaptive compression)
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123
+- Project JONAS E O PEIXE GRANDE: 1f26f1649bcf (32 scenes, COMPLETE)
 - Project Pulmeranea 2: ae9c7307ac53
 
+## Active Projects
+- **JONAS E O PEIXE GRANDE** (1f26f1649bcf): 32 scenes, all videos generated, final movie concatenated with V2A sonoplastia. Status: COMPLETE
+- **Jonas e a Baleia** (fd7e965d42f8): 35 scenes, 0 videos generated
+
 ## Backlog
-- P1: Create new project from scratch with all improvements active
 - P1: Personality field UI (textarea in character editor)
 - P2: Custom Video Editor UI (timeline)
 - P2: Modularize DirectedStudio.jsx (~4700 lines)
+- P2: Multi-format export
+- P3: Voice selection UI per character
+- P3: WebSocket for real-time progress

@@ -1835,7 +1835,7 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
 
     # ── CROSSFADE CONCATENATION ──
     # Uses xfade filter for smooth video transitions + acrossfade for audio
-    use_crossfade = crossfade_duration > 0 and num_scenes >= 2 and num_scenes <= 30
+    use_crossfade = crossfade_duration > 0 and num_scenes >= 2 and num_scenes <= 15
     
     if use_crossfade:
         try:
@@ -1941,7 +1941,7 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
                 "-movflags", "+faststart",
                 output_path
             ]
-            subprocess.run(cmd_reencode, capture_output=True, timeout=600)
+            subprocess.run(cmd_reencode, capture_output=True, timeout=900)
 
     # Check file size - if > 45MB, apply aggressive compression
     file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
@@ -3656,20 +3656,25 @@ def _rebuild_film_background(tenant_id: str, project_id: str):
             else:
                 outputs.append({"type": "video", "scene_number": 0, "url": final_url, "has_audio": True})
             
-            # Now add V2A sonoplastia on top
+            # Save film immediately (before V2A attempt)
             _update_project_field(tenant_id, project_id, {
                 "outputs": outputs,
-                "progress_message": "Filme atualizado! Adicionando sonoplastia..."
+                "progress_message": "Filme concatenado! Adicionando sonoplastia..."
             }, flush_now=True)
             
-            _generate_sora2_audio_overlay(tenant_id, project_id)
+            # V2A sonoplastia is optional - don't let it block the film
+            try:
+                _generate_sora2_audio_overlay(tenant_id, project_id)
+                logger.info(f"RebuildFilm [{project_id}]: V2A overlay applied successfully")
+            except Exception as v2a_err:
+                logger.warning(f"RebuildFilm [{project_id}]: V2A overlay failed (non-blocking): {v2a_err}")
             
             _update_project_field(tenant_id, project_id, {
                 "full_production_status": "complete",
                 "progress_message": "Filme atualizado com sucesso!"
             }, flush_now=True)
             
-            logger.info(f"RebuildFilm [{project_id}]: COMPLETE - film updated with crossfade + V2A")
+            logger.info(f"RebuildFilm [{project_id}]: COMPLETE - film updated")
         else:
             _update_project_field(tenant_id, project_id, {
                 "full_production_status": "error",

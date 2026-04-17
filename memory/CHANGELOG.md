@@ -1,5 +1,16 @@
 # StudioX Changelog
 
+## 2026-04-17 (Session 3)
+
+### Film Rebuild - JONAS E O PEIXE GRANDE (32 scenes)
+- FIXED: Previous rebuild attempt (26 scenes with crossfade) crashed silently due to FFmpeg memory exhaustion
+- Reduced crossfade scene limit from 30 → 15 to prevent FFmpeg crashes on large projects
+- Made V2A sonoplastia overlay non-blocking in rebuild (film saves even if V2A fails)
+- Increased concat re-encode timeout 600s → 900s for large projects
+- Successfully concatenated 32 scenes (276.8MB input → 17MB output at CRF 35, 960:540)
+- V2A sonoplastia applied successfully (18.9MB final)
+- Final movie URL: accessible and valid MP4
+
 ## 2026-04-15 (Session 2)
 
 ### Cinema Sequential Mode - Complete Pipeline
