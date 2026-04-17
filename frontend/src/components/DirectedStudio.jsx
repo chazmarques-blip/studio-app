@@ -423,6 +423,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [songAdjustment, setSongAdjustment] = useState('');
   const [songStyle, setSongStyle] = useState('auto');
   const [songAge, setSongAge] = useState('3-5');
+  const [resultTab, setResultTab] = useState('filme');
   const [agentStatus, setAgentStatus] = useState({});
   const [progressMessage, setProgressMessage] = useState('');
   const [fullProductionPhase, setFullProductionPhase] = useState('');
@@ -4155,9 +4156,9 @@ export const DirectedStudio = memo(function DirectedStudio({
         </div>
       )}
 
-      {/* ═══ STEP 7: Resultado — Deliverables Showcase ═══ */}
+      {/* ═══ STEP 7: Resultado — Tabbed Deliverables ═══ */}
       {step === 7 && !viewingProject && (
-        <div className="space-y-4" data-testid="studio-step-results">
+        <div className="space-y-0" data-testid="studio-step-results">
           {/* Section Header */}
           <div className="text-center py-2">
             <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-orange-600/60 mb-1">
@@ -4183,648 +4184,327 @@ export const DirectedStudio = memo(function DirectedStudio({
             return null;
           })()}
 
-          {/* ── HERO: Vídeo Final Pós-Produzido ── */}
-          {(() => {
-            const finalVideo = outputs.find(o => o.type === 'final_video' && o.url);
-            const heroVideo = outputs.find(o => o.label === 'complete' && o.url);
-            const concatenatedVideo = outputs.find(o => o.type === 'video' && o.scene_number === 0 && o.url);
-            const heroOut = finalVideo || heroVideo || concatenatedVideo;
-            if (!heroOut) return null;
-            return (
-              <div className="relative rounded-xl overflow-hidden border border-orange-500/20 group" data-testid="deliverable-filme-completo">
-                <div className="relative bg-white aspect-video cursor-pointer"
-                  onClick={() => setPreviewModal({ type: 'video', data: { url: heroOut.url, scene_number: 0, allVideos: [] } })}>
-                  <video className="w-full h-full object-contain" data-testid="result-video-complete" src={heroOut.url} poster="" preload="metadata" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute top-3 left-3 flex items-center gap-2">
-                    <span className="text-[11px] font-mono tracking-[0.2em] uppercase bg-[#8B5CF6] text-black px-2 py-0.5 rounded-sm font-semibold">
-                      {lang === 'pt' ? 'Filme Final' : 'Final Film'}
-                    </span>
-                    {heroOut.has_narration && (
-                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-gray-900/80 px-1.5 py-0.5 rounded-sm">
-                        {lang === 'pt' ? 'Dublado' : 'Dubbed'}
-                      </span>
-                    )}
-                    {heroOut.has_music && (
-                      <span className="text-[10px] font-mono tracking-wider uppercase bg-white/10 backdrop-blur-sm text-gray-900/80 px-1.5 py-0.5 rounded-sm">
-                        {lang === 'pt' ? 'Trilha Sonora' : 'Soundtrack'}
-                      </span>
-                    )}
-                  </div>
-                  {/* Play overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-16 h-16 rounded-full bg-white/60 backdrop-blur-sm border border-orange-500/40 flex items-center justify-center">
-                      <Play size={24} className="text-orange-600 ml-1" fill="#8B5CF6" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 flex items-center justify-between bg-gray-50">
-                  <div>
-                    <p className="text-xs font-medium text-gray-900">{projectName}</p>
-                    <p className="text-xs font-mono text-[#555]">
-                      {scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'}
-                      {heroOut.duration ? ` \u2022 ${Math.round(heroOut.duration)}s` : ''}
-                      {heroOut.file_size_mb ? ` \u2022 ${heroOut.file_size_mb}MB` : ''}
-                      {heroOut.language ? ` \u2022 ${heroOut.language.toUpperCase()}` : ''}
-                    </p>
-                  </div>
-                  <a href={heroOut.url} download data-testid="download-filme-completo"
-                    className="bg-[#8B5CF6] text-black font-semibold text-[10px] tracking-wide uppercase px-4 py-2 rounded-sm hover:bg-white transition-colors duration-300 flex items-center gap-1.5">
-                    <Download size={12} strokeWidth={1.5} /> Download
-                  </a>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* ── BENTO GRID: Produtos Secundários ── */}
+          {/* ── TAB BAR ── */}
           {(() => {
             const thumbs = storyboardThumbs;
             const sceneCount = scenes.length;
             const frameCount = sceneCount * 6;
-            const sceneVideos = outputs.filter(o => o.label !== 'complete' && o.url);
+            const sceneVideos = outputs.filter(o => o.type === 'video' && o.url && o.label !== 'complete');
+            const heroOut = outputs.find(o => o.type === 'final_video' && o.url) || outputs.find(o => o.label === 'complete' && o.url) || outputs.find(o => o.type === 'video' && o.scene_number === 0 && o.url);
+            const hasFinal = outputs.some(o => (o.type === 'final_video' || (o.type === 'video' && o.scene_number === 0)) && o.url);
+
+            const TABS = [
+              { id: 'filme', label: lang === 'pt' ? 'Filme' : 'Film', icon: Film, show: !!heroOut },
+              { id: 'livro', label: lang === 'pt' ? 'Livro Animado' : 'Animated Book', icon: BookOpen, show: thumbs.length > 0 },
+              { id: 'ilustracoes', label: lang === 'pt' ? 'Ilustrações' : 'Illustrations', icon: Download, show: thumbs.length >= 2 },
+              { id: 'videos', label: lang === 'pt' ? 'Vídeos' : 'Videos', icon: Film, show: sceneVideos.length > 0, count: sceneVideos.length },
+              { id: 'pos', label: lang === 'pt' ? 'Pós-Produção' : 'Post-Production', icon: Clapperboard, show: true },
+              { id: 'musica', label: lang === 'pt' ? 'Música' : 'Music', icon: Music, show: true },
+            ].filter(t => t.show);
 
             return (
-            <div className="grid grid-cols-2 gap-2" data-testid="deliverables-grid">
-              {/* Card: Livro Interativo — with cover thumbnail */}
-              <button
-                onClick={() => setPreviewModal({ type: 'book' })}
-                data-testid="deliverable-livro-interativo"
-                className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500"
-              >
-                {/* Thumbnail background */}
-                {thumbs[0] && (
-                  <div className="relative h-24 overflow-hidden">
-                    <img src={thumbs[0]} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent" />
-                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                      <Check size={10} className="text-emerald-400" />
-                    </div>
-                    <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
-                      <BookOpen size={14} className="text-orange-600" strokeWidth={1.5} />
-                      <span className="text-xs font-medium text-gray-900 drop-shadow-lg">
-                        {lang === 'pt' ? 'Livro Animado' : 'Animated Book'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                <div className="p-2.5">
-                  {!thumbs[0] && (
-                    <>
-                      <BookOpen size={18} className="text-orange-600 mb-1.5" strokeWidth={1.2} />
-                      <p className="text-xs font-medium text-gray-900 mb-0.5">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
-                    </>
-                  )}
-                  <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
-                    {sceneCount} {lang === 'pt' ? 'paginas' : 'pages'} • {lang === 'pt' ? 'interativo' : 'interactive'}
-                  </p>
-                  <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-orange-600 group-hover:underline">
-                    <Eye size={8} className="inline mr-1" />{lang === 'pt' ? 'Visualizar' : 'Preview'}
-                  </span>
-                </div>
-              </button>
-
-              {/* Card: Storyboard PDF — with collage */}
-              <button
-                onClick={() => {
-                  if (allPanelFrames.length > 0) {
-                    setPreviewModal({ type: 'pdf' });
-                  } else {
-                    // Fallback: direct download if no frames available
-                    (async () => {
-                      try {
-                        const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' });
-                        const url = URL.createObjectURL(r.data);
-                        const a = document.createElement('a'); a.href = url; a.download = `${projectName || 'storyboard'}.pdf`; a.click();
-                        toast.success('PDF baixado!');
-                      } catch { toast.error('Erro ao baixar PDF'); }
-                    })();
-                  }
-                }}
-                data-testid="deliverable-storyboard-pdf"
-                className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500"
-              >
-                {/* Collage of 4 thumbnails */}
-                {thumbs.length >= 2 && (
-                  <div className="relative h-24 overflow-hidden">
-                    <div className="grid grid-cols-2 gap-px h-full">
-                      {thumbs.slice(0, 4).map((t, ti) => (
-                        <img key={ti} src={t} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
-                      ))}
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
-                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                      <Check size={10} className="text-emerald-400" />
-                    </div>
-                    <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
-                      <Download size={14} className="text-purple-400" strokeWidth={1.5} />
-                      <span className="text-xs font-medium text-gray-900 drop-shadow-lg">Storyboard PDF</span>
-                    </div>
-                  </div>
-                )}
-                <div className="p-2.5">
-                  {thumbs.length < 2 && (
-                    <>
-                      <Download size={18} className="text-purple-400 mb-1.5" strokeWidth={1.2} />
-                      <p className="text-xs font-medium text-gray-900 mb-0.5">Storyboard PDF</p>
-                    </>
-                  )}
-                  <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
-                    {frameCount} {lang === 'pt' ? 'ilustracoes' : 'illustrations'} • PDF
-                  </p>
-                  <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-purple-400 group-hover:underline">
-                    <Eye size={8} className="inline mr-1" />{lang === 'pt' ? 'Visualizar' : 'Preview'}
-                  </span>
-                </div>
-              </button>
-
-              {/* Card: Vídeos por Cena — with scene count and mini thumbnails */}
-              {sceneVideos.length > 0 && (
-                <button
-                  onClick={() => {
-                    if (sceneVideos.length > 0) {
-                      setPreviewModal({
-                        type: 'video',
-                        data: { ...sceneVideos[0], allVideos: sceneVideos }
-                      });
-                    }
-                  }}
-                  data-testid="deliverable-cenas-card"
-                  className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500"
-                >
-                  {/* Film strip preview */}
-                  <div className="relative h-24 overflow-hidden">
-                    <div className="flex h-full">
-                      {thumbs.slice(0, 3).map((t, ti) => (
-                        <div key={ti} className="flex-1 relative">
-                          <img src={t} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
-                    <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
-                      <Film size={14} className="text-emerald-400" strokeWidth={1.5} />
-                      <span className="text-xs font-medium text-gray-900 drop-shadow-lg">
-                        {lang === 'pt' ? 'Videos por Cena' : 'Scene Videos'}
-                      </span>
-                    </div>
-                    <div className="absolute top-2 right-2 bg-white/60 rounded-sm px-1.5 py-0.5">
-                      <span className="text-[11px] font-mono text-emerald-400">{sceneVideos.length}</span>
-                    </div>
-                  </div>
-                  <div className="p-2.5">
-                    <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
-                      {sceneVideos.length} {lang === 'pt' ? 'videos individuais' : 'individual videos'}
-                    </p>
-                    <span className="inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase text-emerald-400 group-hover:underline">
-                      <Play size={8} className="inline mr-1" />{lang === 'pt' ? 'Assistir' : 'Watch'}
-                    </span>
-                  </div>
-                </button>
-              )}
-
-              {/* Card: Pós-Produção */}
-              {(() => {
-                const hasFinal = outputs.some(o => (o.type === 'final_video' || (o.type === 'video' && o.scene_number === 0)) && o.url);
-                return (
-              <button
-                onClick={() => setShowPostProd(true)}
-                data-testid="deliverable-pos-producao"
-                className={`relative bg-gray-50 border rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 transition-all duration-500 ${
-                  hasFinal ? 'border-green-500/20 hover:border-green-500/40' : 'border-white/5 hover:border-orange-500/20'
-                }`}
-              >
-                <div className="relative h-24 overflow-hidden bg-gradient-to-br from-blue-900/20 to-[#0A0A0A]">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex gap-3">
-                      <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <Mic size={12} className="text-blue-400" />
-                      </div>
-                      <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <Music size={12} className="text-blue-400" />
-                      </div>
-                      <div className="w-7 h-7 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                        <Globe size={12} className="text-blue-400" />
-                      </div>
-                    </div>
-                  </div>
-                  {hasFinal && (
-                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <Check size={10} className="text-green-400" />
-                    </div>
-                  )}
-                  <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
-                    <Clapperboard size={14} className="text-blue-400" strokeWidth={1.5} />
-                    <span className="text-xs font-medium text-gray-900 drop-shadow-lg">
-                      {lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-2.5">
-                  <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
-                    {hasFinal
-                      ? (lang === 'pt' ? 'Narração + Trilha Sonora + Transições' : 'Narration + Soundtrack + Transitions')
-                      : (lang === 'pt' ? 'Narração IA ou Manual, Trilha, Legendas' : 'AI or Manual Narration, Music, Subtitles')
-                    }
-                  </p>
-                  <span className={`inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase group-hover:underline ${hasFinal ? 'text-green-400' : 'text-blue-400'}`}>
-                    {hasFinal
-                      ? (lang === 'pt' ? 'Concluído — Reconfigurar' : 'Complete — Reconfigure')
-                      : (lang === 'pt' ? 'Configurar >' : 'Configure >')}
-                  </span>
-                </div>
-              </button>
-                );
-              })()}
-
-              {/* Card: Música Cantada */}
-              <div
-                data-testid="deliverable-musica-cantada"
-                className={`relative bg-gray-50 border rounded-xl overflow-hidden text-left col-span-2 ${
-                  (songData?.url || songData?.music_url) ? 'border-pink-500/20' : 'border-white/5'
-                }`}
-              >
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
-                        <Music size={16} className="text-pink-400" strokeWidth={1.5} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-900">{lang === 'pt' ? 'Música Cantada' : 'Theme Song'}</p>
-                        <p className="text-[10px] font-mono text-[#555]">
-                          {(songData?.url || songData?.music_url)
-                            ? `${songData.duration_seconds || '?'}s • ${lang === 'pt' ? 'Com vocal e letra' : 'With vocals & lyrics'}`
-                            : (lang === 'pt' ? 'Música-tema original com letra' : 'Original theme song with lyrics')
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(songData?.url || songData?.music_url) && (
-                        <a 
-                          href={songData.url || songData.music_url} 
-                          download 
-                          className="text-[10px] font-mono text-pink-400 hover:underline flex items-center gap-1 px-2 py-1 rounded bg-pink-500/5"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <Download size={10} />MP3
-                        </a>
-                      )}
-                      {!songData?.lyrics && (
-                        <button
-                          onClick={async () => {
-                            if (generatingSong) return;
-                            setGeneratingSong(true);
-                            try {
-                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
-                              setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
-                              toast.success('Música gerada com sucesso!');
-                            } catch (err) {
-                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
-                            } finally {
-                              setGeneratingSong(false);
-                            }
-                          }}
-                          disabled={generatingSong}
-                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                          {generatingSong ? (
-                            <><RefreshCw size={10} className="animate-spin" />{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
-                          ) : (
-                            <><Music size={10} />{lang === 'pt' ? 'Gerar Música' : 'Generate'}</>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Style & Age selectors */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <select
-                      value={songStyle}
-                      onChange={e => setSongStyle(e.target.value)}
-                      className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50"
-                      data-testid="song-style-select"
-                    >
-                      <option value="auto">Estilo: Automático</option>
-                      <option value="galinha_pintadinha">Galinha Pintadinha</option>
-                      <option value="mundo_bita">Mundo Bita</option>
-                      <option value="disney">Disney</option>
-                      <option value="pixar">Pixar</option>
-                      <option value="pop_infantil">Pop Infantil</option>
-                      <option value="mpb_infantil">MPB Infantil</option>
-                      <option value="forrozinho">Forrozinho</option>
-                      <option value="reggae_infantil">Reggae Infantil</option>
-                      <option value="rock_infantil">Rock Infantil</option>
-                      <option value="sertanejo_infantil">Sertanejo Infantil</option>
-                      <option value="hip_hop_infantil">Hip-Hop Infantil</option>
-                      <option value="lullaby">Canção de Ninar</option>
-                    </select>
-                    <select
-                      value={songAge}
-                      onChange={e => setSongAge(e.target.value)}
-                      className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50"
-                      data-testid="song-age-select"
-                    >
-                      <option value="0-3">0-3 anos</option>
-                      <option value="3-5">3-5 anos</option>
-                      <option value="5-8">5-8 anos</option>
-                      <option value="8-12">8-12 anos</option>
-                    </select>
-                  </div>
-                  
-                  {/* Audio Player */}
-                  {(songData?.url || songData?.music_url) && (
-                    <audio 
-                      controls 
-                      className="w-full h-10 mt-2" 
-                      src={songData.url || songData.music_url}
-                      data-testid="song-audio-player"
-                    />
-                  )}
-                  
-                  {/* Lyrics Editor */}
-                  {songData?.lyrics != null && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-mono tracking-wider uppercase text-pink-400/60">
-                          {lang === 'pt' ? 'Letra da Música (editável)' : 'Song Lyrics (editable)'}
-                        </p>
-                      </div>
-                      <textarea
-                        value={songData.lyrics || ''}
-                        onChange={e => setSongData(prev => ({ ...prev, lyrics: e.target.value }))}
-                        className="w-full text-xs text-gray-700 font-sans leading-relaxed bg-white border border-gray-200 rounded-lg p-3 resize-y min-h-[120px] max-h-[300px] focus:outline-none focus:border-pink-400/50 focus:ring-1 focus:ring-pink-400/20"
-                        data-testid="song-lyrics-editor"
-                        placeholder={lang === 'pt' ? 'Edite a letra aqui...' : 'Edit lyrics here...'}
-                      />
-                      
-                      {/* Adjustment instruction */}
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={songAdjustment || ''}
-                          onChange={e => setSongAdjustment(e.target.value)}
-                          placeholder={lang === 'pt' ? 'Peça ajustes: ex. "mais animado", "incluir o nome do peixe", "refrão diferente"...' : 'Request adjustments...'}
-                          className="flex-1 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-pink-400/50 focus:ring-1 focus:ring-pink-400/20 placeholder:text-gray-400"
-                          data-testid="song-adjustment-input"
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && songAdjustment?.trim()) {
-                              e.preventDefault();
-                              document.querySelector('[data-testid="song-adjust-btn"]')?.click();
-                            }
-                          }}
-                        />
-                        <button
-                          data-testid="song-adjust-btn"
-                          onClick={async () => {
-                            if (generatingSong || !songAdjustment?.trim()) return;
-                            setGeneratingSong(true);
-                            try {
-                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, {
-                                project_id: projectId,
-                                adjustment: songAdjustment,
-                                edited_lyrics: songData.lyrics,
-                                style: songStyle !== 'auto' ? songStyle : undefined,
-                                age_range: songAge
-                              });
-                              console.log('ADJUST response:', r.data);
-                              const newUrl = r.data.music_url ? `${r.data.music_url}?t=${Date.now()}` : songData.url;
-                              setSongData({ url: newUrl, lyrics: r.data.lyrics || songData.lyrics, duration_seconds: r.data.duration_seconds });
-                              setSongAdjustment('');
-                              toast.success(lang === 'pt' ? 'Música ajustada!' : 'Music adjusted!');
-                            } catch (err) {
-                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
-                            } finally {
-                              setGeneratingSong(false);
-                            }
-                          }}
-                          disabled={generatingSong || !songAdjustment?.trim()}
-                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-2 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-30 whitespace-nowrap"
-                        >
-                          {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Edit3 size={10} />}
-                          {lang === 'pt' ? 'Ajustar' : 'Adjust'}
-                        </button>
-                      </div>
-                      
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          onClick={async () => {
-                            if (generatingSong) return;
-                            setGeneratingSong(true);
-                            try {
-                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, {
-                                project_id: projectId,
-                                prompt: `Children's song with vocals. Sing these EXACT lyrics with a warm, friendly, expressive voice perfect for children:\n\n${songData.lyrics}`,
-                                edited_lyrics: songData.lyrics,
-                                style: songStyle !== 'auto' ? songStyle : undefined,
-                                age_range: songAge
-                              });
-                              setSongData(prev => ({ ...prev, url: `${r.data.music_url}?t=${Date.now()}`, duration_seconds: r.data.duration_seconds }));
-                              toast.success(lang === 'pt' ? 'Música regenerada com a letra editada!' : 'Music regenerated with edited lyrics!');
-                            } catch (err) {
-                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
-                            } finally {
-                              setGeneratingSong(false);
-                            }
-                          }}
-                          disabled={generatingSong}
-                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50"
-                          data-testid="song-regenerate-btn"
-                        >
-                          {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Music size={10} />}
-                          {lang === 'pt' ? 'Regenerar com esta Letra' : 'Regenerate with this Lyrics'}
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (generatingSong) return;
-                            setGeneratingSong(true);
-                            try {
-                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
-                              setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
-                              toast.success(lang === 'pt' ? 'Nova letra e música geradas!' : 'New lyrics and music generated!');
-                            } catch (err) {
-                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
-                            } finally {
-                              setGeneratingSong(false);
-                            }
-                          }}
-                          disabled={generatingSong}
-                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg border border-pink-400/20 text-pink-400 hover:bg-pink-500/5 transition flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                          <RefreshCw size={10} />
-                          {lang === 'pt' ? 'Nova Letra + Música' : 'New Lyrics + Music'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <>
+              <div className="flex gap-1 overflow-x-auto pb-1 px-1 scrollbar-hide border-b border-gray-200 mb-3">
+                {TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setResultTab(tab.id)}
+                    data-testid={`result-tab-${tab.id}`}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[10px] font-mono tracking-wider uppercase whitespace-nowrap transition-all ${
+                      resultTab === tab.id
+                        ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-b-2 border-[#8B5CF6] font-semibold'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <tab.icon size={12} />
+                    {tab.label}
+                    {tab.count && <span className="text-[9px] bg-gray-200 rounded px-1">{tab.count}</span>}
+                  </button>
+                ))}
               </div>
 
-              <button
-                onClick={loadAnalytics}
-                disabled={analyticsLoading}
-                data-testid="deliverable-analytics"
-                className="relative bg-gray-50 border border-white/5 rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 hover:border-orange-500/20 transition-all duration-500 col-span-2"
-              >
-                <div className="p-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                    <BarChart3 size={20} className="text-amber-400" strokeWidth={1.2} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-900">{lang === 'pt' ? 'Analytics do Projeto' : 'Project Analytics'}</p>
-                    <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
-                      {sceneCount} {lang === 'pt' ? 'cenas' : 'scenes'} • {frameCount} frames • {sceneVideos.length} {lang === 'pt' ? 'videos' : 'videos'}
-                    </p>
-                  </div>
-                  <span className="text-[11px] font-mono tracking-wider uppercase text-amber-400 flex-shrink-0 group-hover:underline">
-                    {lang === 'pt' ? 'Ver >' : 'View >'}
-                  </span>
-                </div>
-              </button>
-            </div>
-            );
-          })()}
+              {/* ── TAB CONTENT ── */}
+              <div className="min-h-[400px]">
 
-          {/* ── HORIZONTAL SCROLL: Cenas Individuais ── */}
-          {(() => {
-            // Filtrar vídeos válidos (type='video' e tem URL)
-            const sceneVideos = outputs.filter(o => o.type === 'video' && o.url && o.label !== 'complete');
-            console.log('🎬 Scene videos found:', sceneVideos.length, 'out of', outputs.length, 'total outputs');
-            
-            return sceneVideos.length > 0 && (
-            <div data-testid="deliverables-cenas">
-              <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#555] mb-2">
-                {lang === 'pt' ? 'Cenas Individuais' : 'Individual Scenes'} ({sceneVideos.length})
-              </p>
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-                {sceneVideos.map((out, i) => {
-                  const sceneState = (agentStatus.scene_status || {})[String(out.scene_number)] || '';
-                  const isRegenerating = regenScene === out.scene_number;
-                  const allSceneVids = sceneVideos; // Usar a lista já filtrada
-                  return (
-                    <div key={out.id || i} className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden border border-white/5 bg-gray-50 group hover:border-orange-500/20 transition-all duration-300 cursor-pointer"
-                      data-testid={`deliverable-cena-${out.scene_number}`}
-                      onClick={() => setPreviewModal({ type: 'video', data: { ...out, allVideos: allSceneVids } })}>
-                      <div className="relative aspect-video bg-white">
-                        <video src={out.url} preload="metadata" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          data-testid={`result-video-${i}`}
-                          onMouseEnter={e => { e.target.play().catch(() => {}); }} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
-                        <span className="absolute bottom-1.5 left-1.5 text-[11px] font-mono text-gray-900/80 tracking-wider">
-                          {lang === 'pt' ? 'CENA' : 'SCENE'} {out.scene_number}
-                        </span>
-                        {/* Play overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          <div className="w-8 h-8 rounded-full bg-white/60 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                            <Play size={12} className="text-gray-900 ml-0.5" fill="white" />
+                {/* TAB: Filme */}
+                {resultTab === 'filme' && heroOut && (
+                  <div className="space-y-3">
+                    <div className="relative rounded-xl overflow-hidden border border-orange-500/20 group" data-testid="deliverable-filme-completo">
+                      <div className="relative bg-white aspect-video cursor-pointer"
+                        onClick={() => setPreviewModal({ type: 'video', data: { url: heroOut.url, scene_number: 0, allVideos: [] } })}>
+                        <video className="w-full h-full object-contain" data-testid="result-video-complete" src={heroOut.url} poster="" preload="metadata" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                        <div className="absolute top-3 left-3 flex items-center gap-2">
+                          <span className="text-[11px] font-mono tracking-[0.2em] uppercase bg-[#8B5CF6] text-black px-2 py-0.5 rounded-sm font-semibold">
+                            {lang === 'pt' ? 'Filme Final' : 'Final Film'}
+                          </span>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-16 h-16 rounded-full bg-white/60 backdrop-blur-sm border border-orange-500/40 flex items-center justify-center">
+                            <Play size={24} className="text-orange-600 ml-1" fill="#8B5CF6" />
                           </div>
                         </div>
                       </div>
-                      <div className="p-2 flex items-center gap-1">
-                        <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[10px] font-mono tracking-wider uppercase text-gray-600 hover:text-orange-600 transition py-1">
-                          <Download size={10} className="inline mr-1" />DL
+                      <div className="p-3 flex items-center justify-between bg-gray-50">
+                        <div>
+                          <p className="text-xs font-medium text-gray-900">{projectName}</p>
+                          <p className="text-xs font-mono text-[#555]">{scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'}</p>
+                        </div>
+                        <a href={heroOut.url} download data-testid="download-filme-completo"
+                          className="bg-[#8B5CF6] text-black font-semibold text-[10px] tracking-wide uppercase px-4 py-2 rounded-sm hover:bg-white transition-colors duration-300 flex items-center gap-1.5">
+                          <Download size={12} strokeWidth={1.5} /> Download
                         </a>
-                        <button onClick={e => { 
-                          e.stopPropagation(); 
-                          const scene = scenes.find(s => s.scene_number === out.scene_number);
-                          if (scene) {
-                            setEditingScene(out.scene_number); 
-                            setEditSceneForm({ 
-                              title: scene.title, 
-                              description: scene.description, 
-                              dialogue: scene.dialogue, 
-                              emotion: scene.emotion, 
-                              camera: scene.camera,
-                              characters_in_scene: scene.characters_in_scene || []
-                            });
-                            setActiveTab(5); // Switch to Production tab
-                          }
-                        }}
-                          data-testid={`result-edit-${out.scene_number}`}
-                          className="text-[10px] text-[#555] hover:text-blue-600 transition p-1"
-                          title={lang === 'pt' ? 'Editar cena' : 'Edit scene'}>
-                          <Edit3 size={10} />
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); regenerateScene(out.scene_number); }} disabled={isRegenerating}
-                          data-testid={`result-regen-${out.scene_number}`}
-                          className="text-[10px] text-[#555] hover:text-orange-600 transition p-1 disabled:opacity-40"
-                          title={lang === 'pt' ? 'Regenerar vídeo' : 'Regenerate video'}>
-                          <RefreshCw size={10} className={isRegenerating ? 'animate-spin' : ''} />
-                        </button>
                       </div>
                     </div>
-                  );
-                })}
+                    {/* Rebuild button */}
+                    {outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length >= 2 && !generating && (
+                      <div className="flex justify-center">
+                        <button onClick={async () => { try { setGenerating(true); toast.success(lang === 'pt' ? 'Atualizando filme...' : 'Rebuilding...'); await axios.post(`${API}/studio/projects/${projectId}/rebuild-film`); startPolling(projectId); } catch { toast.error('Erro'); setGenerating(false); } }}
+                          disabled={generating} data-testid="rebuild-film-btn"
+                          className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg transition-all disabled:opacity-40">
+                          <RefreshCw size={14} className={generating ? 'animate-spin' : ''} />
+                          {lang === 'pt' ? 'Atualizar Filme Completo' : 'Rebuild Complete Film'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB: Livro Animado */}
+                {resultTab === 'livro' && (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-orange-500/20 overflow-hidden bg-gray-50 p-4 text-center">
+                      {thumbs[0] && <img src={thumbs[0]} alt="" className="w-full max-h-[400px] object-contain rounded-lg mb-3" />}
+                      <p className="text-xs font-mono text-[#555] mb-3">{sceneCount} {lang === 'pt' ? 'páginas interativas' : 'interactive pages'}</p>
+                      <button onClick={() => setPreviewModal({ type: 'book' })} data-testid="open-book-preview"
+                        className="bg-[#8B5CF6] text-black font-semibold text-[10px] tracking-wide uppercase px-6 py-2.5 rounded-sm hover:bg-white transition-colors duration-300 inline-flex items-center gap-1.5">
+                        <BookOpen size={12} /> {lang === 'pt' ? 'Abrir Livro Interativo' : 'Open Interactive Book'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: Ilustrações / Storyboard PDF */}
+                {resultTab === 'ilustracoes' && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {allPanelFrames.slice(0, 24).map((frame, i) => (
+                        <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-gray-200 cursor-pointer group"
+                          onClick={() => setPreviewModal({ type: 'pdf' })}>
+                          <img src={frame.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                          <div className="absolute bottom-1 left-1 text-[8px] font-mono bg-black/60 text-white px-1 rounded">
+                            {lang === 'pt' ? 'Cena' : 'Scene'} {frame.scene}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-center gap-2">
+                      <button onClick={() => setPreviewModal({ type: 'pdf' })}
+                        className="text-[10px] font-mono tracking-wider uppercase px-4 py-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition inline-flex items-center gap-1.5">
+                        <Eye size={10} /> {lang === 'pt' ? 'Ver Todas' : 'View All'} ({frameCount})
+                      </button>
+                      <button onClick={async () => { try { const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' }); const url = URL.createObjectURL(r.data); const a = document.createElement('a'); a.href = url; a.download = `${projectName}.pdf`; a.click(); toast.success('PDF!'); } catch { toast.error('Erro'); } }}
+                        className="text-[10px] font-mono tracking-wider uppercase px-4 py-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition inline-flex items-center gap-1.5">
+                        <Download size={10} /> PDF
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: Vídeos por Cena */}
+                {resultTab === 'videos' && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {sceneVideos.map((out, i) => {
+                        const isRegenerating = regenScene === out.scene_number;
+                        return (
+                          <div key={out.id || i} className="rounded-xl overflow-hidden border border-white/5 bg-gray-50 group hover:border-orange-500/20 transition-all cursor-pointer"
+                            data-testid={`deliverable-cena-${out.scene_number}`}
+                            onClick={() => setPreviewModal({ type: 'video', data: { ...out, allVideos: sceneVideos } })}>
+                            <div className="relative aspect-video bg-white">
+                              <video src={out.url} preload="metadata" className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                onMouseEnter={e => { e.target.play().catch(() => {}); }} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+                              <span className="absolute bottom-1.5 left-1.5 text-[11px] font-mono text-white/80 tracking-wider">
+                                {lang === 'pt' ? 'CENA' : 'SCENE'} {out.scene_number}
+                              </span>
+                            </div>
+                            <div className="p-1.5 flex items-center gap-1">
+                              <a href={out.url} download onClick={e => e.stopPropagation()} className="flex-1 text-center text-[9px] font-mono text-gray-500 hover:text-orange-600 transition py-0.5">
+                                <Download size={9} className="inline mr-0.5" />DL
+                              </a>
+                              <button onClick={e => { e.stopPropagation(); regenerateScene(out.scene_number); }} disabled={isRegenerating}
+                                className="text-[9px] text-gray-500 hover:text-orange-600 transition p-0.5 disabled:opacity-40">
+                                <RefreshCw size={9} className={isRegenerating ? 'animate-spin' : ''} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: Pós-Produção */}
+                {resultTab === 'pos' && (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-blue-500/20 bg-gray-50 p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Clapperboard size={20} className="text-blue-400" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</p>
+                          <p className="text-[10px] font-mono text-[#555]">{lang === 'pt' ? 'Narração + Trilha Sonora + Transições' : 'Narration + Soundtrack + Transitions'}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setShowPostProd(true)}
+                        className="w-full bg-[#8B5CF6] text-black font-semibold text-[10px] tracking-wide uppercase px-4 py-2.5 rounded-sm hover:bg-white transition-colors duration-300 flex items-center justify-center gap-1.5">
+                        <Settings size={12} /> {hasFinal ? (lang === 'pt' ? 'Reconfigurar' : 'Reconfigure') : (lang === 'pt' ? 'Configurar' : 'Configure')}
+                      </button>
+                    </div>
+                    {/* Generate dialogues + multi-format */}
+                    <div className="flex gap-2">
+                      <button onClick={async () => { try { toast.info('Gerando diálogos...'); await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate-dialogues`); toast.success('Diálogos gerados!'); } catch (e) { toast.error(getErrorMsg(e, 'Erro')); } }}
+                        className="flex-1 rounded-lg border border-cyan-500/20 bg-cyan-500/5 py-2 text-[9px] font-semibold text-cyan-400 hover:bg-cyan-500/10 transition flex items-center justify-center gap-1">
+                        <MessageSquare size={10} /> {lang === 'pt' ? 'Gerar Diálogos' : 'Generate Dialogues'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: Música Cantada */}
+                {resultTab === 'musica' && (
+                  <div data-testid="deliverable-musica-cantada" className="space-y-3">
+                    <div className="rounded-xl border border-pink-500/20 bg-gray-50 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                            <Music size={16} className="text-pink-400" strokeWidth={1.5} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{lang === 'pt' ? 'Música Cantada' : 'Theme Song'}</p>
+                            <p className="text-[10px] font-mono text-[#555]">
+                              {(songData?.url || songData?.music_url)
+                                ? `${songData.duration_seconds || '?'}s • ${lang === 'pt' ? 'Com vocal e letra' : 'With vocals & lyrics'}`
+                                : (lang === 'pt' ? 'Música-tema original com letra' : 'Original theme song with lyrics')
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {(songData?.url || songData?.music_url) && (
+                            <a href={songData.url || songData.music_url} download onClick={e => e.stopPropagation()}
+                              className="text-[10px] font-mono text-pink-400 hover:underline flex items-center gap-1 px-2 py-1 rounded bg-pink-500/5">
+                              <Download size={10} />MP3
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Style & Age selectors */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <select value={songStyle} onChange={e => setSongStyle(e.target.value)} data-testid="song-style-select"
+                          className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50">
+                          <option value="auto">Estilo: Automático</option>
+                          <option value="galinha_pintadinha">Galinha Pintadinha</option>
+                          <option value="mundo_bita">Mundo Bita</option>
+                          <option value="disney">Disney</option>
+                          <option value="pixar">Pixar</option>
+                          <option value="pop_infantil">Pop Infantil</option>
+                          <option value="mpb_infantil">MPB Infantil</option>
+                          <option value="forrozinho">Forrozinho</option>
+                          <option value="reggae_infantil">Reggae Infantil</option>
+                          <option value="rock_infantil">Rock Infantil</option>
+                          <option value="sertanejo_infantil">Sertanejo Infantil</option>
+                          <option value="hip_hop_infantil">Hip-Hop Infantil</option>
+                          <option value="lullaby">Canção de Ninar</option>
+                        </select>
+                        <select value={songAge} onChange={e => setSongAge(e.target.value)} data-testid="song-age-select"
+                          className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50">
+                          <option value="0-3">0-3 anos</option>
+                          <option value="3-5">3-5 anos</option>
+                          <option value="5-8">5-8 anos</option>
+                          <option value="8-12">8-12 anos</option>
+                        </select>
+                        {!songData?.lyrics && (
+                          <button onClick={async () => {
+                              if (generatingSong) return; setGeneratingSong(true);
+                              try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds }); toast.success('Música gerada!');
+                              } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
+                            }} disabled={generatingSong}
+                            className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50">
+                            {generatingSong ? <><RefreshCw size={10} className="animate-spin" />Gerando...</> : <><Music size={10} />Gerar Música</>}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Audio Player */}
+                      {(songData?.url || songData?.music_url) && (
+                        <audio controls className="w-full h-10 mb-3" src={songData.url || songData.music_url} data-testid="song-audio-player" />
+                      )}
+
+                      {/* Lyrics Editor */}
+                      {songData?.lyrics != null && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-mono tracking-wider uppercase text-pink-400/60">
+                            {lang === 'pt' ? 'Letra da Música (editável)' : 'Song Lyrics (editable)'}
+                          </p>
+                          <textarea value={songData.lyrics || ''} onChange={e => setSongData(prev => ({ ...prev, lyrics: e.target.value }))}
+                            className="w-full text-xs text-gray-700 font-sans leading-relaxed bg-white border border-gray-200 rounded-lg p-3 resize-y min-h-[150px] max-h-[300px] focus:outline-none focus:border-pink-400/50 focus:ring-1 focus:ring-pink-400/20"
+                            data-testid="song-lyrics-editor" />
+
+                          {/* Adjustment field */}
+                          <div className="flex gap-2">
+                            <input type="text" value={songAdjustment || ''} onChange={e => setSongAdjustment(e.target.value)}
+                              placeholder={lang === 'pt' ? 'Peça ajustes: "mais animado", "incluir nome do peixe"...' : 'Request adjustments...'}
+                              className="flex-1 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-pink-400/50"
+                              data-testid="song-adjustment-input"
+                              onKeyDown={e => { if (e.key === 'Enter' && songAdjustment?.trim()) { e.preventDefault(); document.querySelector('[data-testid="song-adjust-btn"]')?.click(); } }} />
+                            <button data-testid="song-adjust-btn" onClick={async () => {
+                                if (generatingSong || !songAdjustment?.trim()) return; setGeneratingSong(true);
+                                try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, adjustment: songAdjustment, edited_lyrics: songData.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                  const newUrl = r.data.music_url ? `${r.data.music_url}?t=${Date.now()}` : songData.url;
+                                  setSongData({ url: newUrl, lyrics: r.data.lyrics || songData.lyrics, duration_seconds: r.data.duration_seconds }); setSongAdjustment(''); toast.success('Música ajustada!');
+                                } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
+                              }} disabled={generatingSong || !songAdjustment?.trim()}
+                              className="text-[10px] font-mono tracking-wider uppercase px-3 py-2 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-30 whitespace-nowrap">
+                              {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Edit3 size={10} />}
+                              {lang === 'pt' ? 'Ajustar' : 'Adjust'}
+                            </button>
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex items-center gap-2 pt-1">
+                            <button onClick={async () => {
+                                if (generatingSong) return; setGeneratingSong(true);
+                                try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, prompt: `Children's song with vocals. Sing these EXACT lyrics:\n\n${songData.lyrics}`, edited_lyrics: songData.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                  setSongData(prev => ({ ...prev, url: `${r.data.music_url}?t=${Date.now()}`, duration_seconds: r.data.duration_seconds })); toast.success('Música regenerada!');
+                                } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
+                              }} disabled={generatingSong} data-testid="song-regenerate-btn"
+                              className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50">
+                              {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Music size={10} />}
+                              {lang === 'pt' ? 'Regenerar com esta Letra' : 'Regenerate with Lyrics'}
+                            </button>
+                            <button onClick={async () => {
+                                if (generatingSong) return; setGeneratingSong(true);
+                                try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                  setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds }); toast.success('Nova letra e música!');
+                                } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
+                              }} disabled={generatingSong}
+                              className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg border border-pink-400/20 text-pink-400 hover:bg-pink-500/5 transition flex items-center gap-1.5 disabled:opacity-50">
+                              <RefreshCw size={10} /> {lang === 'pt' ? 'Nova Letra + Música' : 'New Lyrics + Music'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
               </div>
-            </div>
+            </>
             );
           })()}
-
-          {/* Rebuild Film Button - visible whenever there are scene videos */}
-          {outputs.filter(o => o.type === 'video' && o.scene_number > 0 && o.url).length >= 2 && !generating && (
-            <div className="flex justify-center pt-4 pb-2">
-              <button
-                onClick={async () => {
-                  try {
-                    setGenerating(true);
-                    toast.success(lang === 'pt' ? 'Atualizando filme completo...' : 'Rebuilding complete film...');
-                    await axios.post(`${API}/studio/projects/${projectId}/rebuild-film`);
-                    startPolling(projectId);
-                  } catch (err) {
-                    toast.error(lang === 'pt' ? 'Erro ao atualizar filme' : 'Error rebuilding film');
-                    setGenerating(false);
-                  }
-                }}
-                disabled={generating}
-                data-testid="rebuild-film-btn"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all disabled:opacity-40"
-              >
-                <RefreshCw size={16} className={generating ? 'animate-spin' : ''} />
-                {lang === 'pt' ? 'Atualizar Filme Completo' : 'Rebuild Complete Film'}
-              </button>
-            </div>
-          )}
-
-          {/* Failed scenes */}
-          {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).length > 0 && (
-            <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-3 space-y-2">
-              <p className="text-[10px] font-mono tracking-wider uppercase text-red-400">
-                {lang === 'pt' ? 'Cenas Pendentes' : 'Pending Scenes'}
-              </p>
-              {scenes.filter(s => !outputs.find(o => o.scene_number === s.scene_number && o.url)).map(s => (
-                <div key={s.scene_number} className="flex items-center gap-2">
-                  <span className="text-xs text-red-300/70 flex-1 font-sans">Cena {s.scene_number}: {s.title}</span>
-                  <button onClick={e => { 
-                    e.stopPropagation(); 
-                    setEditingScene(s.scene_number); 
-                    setEditSceneForm({ 
-                      title: s.title, 
-                      description: s.description, 
-                      dialogue: s.dialogue, 
-                      emotion: s.emotion, 
-                      camera: s.camera,
-                      characters_in_scene: s.characters_in_scene || []
-                    });
-                    setActiveTab(5); // Switch to Production tab
-                  }}
-                    data-testid={`failed-edit-${s.scene_number}`}
-                    className="rounded-sm px-2 py-1 text-[11px] font-mono tracking-wider uppercase bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 flex items-center gap-1 transition">
-                    <Edit3 size={8} />
-                    {lang === 'pt' ? 'Editar' : 'Edit'}
-                  </button>
-                  <button onClick={() => regenerateScene(s.scene_number)} disabled={regenScene === s.scene_number}
-                    data-testid={`failed-regen-${s.scene_number}`}
-                    className="rounded-sm px-2 py-1 text-[11px] font-mono tracking-wider uppercase bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 flex items-center gap-1 disabled:opacity-50 transition">
-                    <RefreshCw size={8} className={regenScene === s.scene_number ? 'animate-spin' : ''} />
-                    {lang === 'pt' ? 'Tentar' : 'Retry'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Post-Production Sheet (Drawer) */}
           {showPostProd && outputs.length > 0 && (
@@ -4860,54 +4540,8 @@ export const DirectedStudio = memo(function DirectedStudio({
             </div>
           )}
 
-          {/* Audio & Multi-format Actions */}
-          <div className="flex gap-2 pt-2 pb-1">
-            <button
-              onClick={async () => {
-                try {
-                  toast.info(lang === 'pt' ? 'Gerando diálogos para 30 frames...' : 'Generating dialogues...');
-                  await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate-dialogues`);
-                  toast.success(lang === 'pt' ? 'Diálogos gerados!' : 'Dialogues generated!');
-                } catch (e) {
-                  toast.error(getErrorMsg(e, 'Erro'));
-                }
-              }}
-              data-testid="generate-dialogues-btn"
-              className="flex-1 rounded-lg border border-cyan-500/20 bg-cyan-500/5 py-2 text-[9px] font-semibold text-cyan-400 hover:bg-cyan-500/10 transition flex items-center justify-center gap-1">
-              <MessageSquare size={10} /> {lang === 'pt' ? 'Gerar Diálogos' : 'Generate Dialogues'}
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  toast.info(lang === 'pt' ? 'Gerando áudio dublado + merge...' : 'Generating dubbed audio...');
-                  await axios.post(`${API}/studio/projects/${projectId}/kling-storyboards/generate-audio`);
-                  toast.success(lang === 'pt' ? 'Áudio em processamento!' : 'Audio processing!');
-                } catch (e) {
-                  toast.error(getErrorMsg(e, 'Erro'));
-                }
-              }}
-              data-testid="generate-audio-btn"
-              className="flex-1 rounded-lg border border-orange-500/20 bg-orange-500/5 py-2 text-[9px] font-semibold text-orange-400 hover:bg-orange-500/10 transition flex items-center justify-center gap-1">
-              <Mic size={10} /> {lang === 'pt' ? 'Gerar Áudio' : 'Generate Audio'}
-            </button>
-          </div>
-          
-          {/* Multi-format downloads */}
-          {(outputs.some(o => o.multi_format) || currentProjectData?.multi_format_urls) && (
-            <div className="flex gap-2 pb-1">
-              {Object.entries(
-                outputs.find(o => o.multi_format)?.multi_format || currentProjectData?.multi_format_urls || {}
-              ).map(([key, fmt]) => (
-                <a key={key} href={fmt.url} target="_blank" rel="noreferrer"
-                  className="flex-1 rounded-lg border border-[#222] bg-[#0A0A0A] py-1.5 text-[8px] font-mono text-gray-400 hover:text-white hover:border-[#444] transition text-center">
-                  <Download size={8} className="inline mr-1" />{fmt.label}
-                </a>
-              ))}
-            </div>
-          )}
-
           {/* Bottom navigation */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-3">
             <button onClick={() => {
               skipAutoResume.current = true;
               setStep(0); setProjectId(null); setChatMessages([]); setScenes([]);
