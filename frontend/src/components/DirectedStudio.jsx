@@ -421,6 +421,8 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [generatingSong, setGeneratingSong] = useState(false);
   const [songData, setSongData] = useState(null);
   const [songAdjustment, setSongAdjustment] = useState('');
+  const [songStyle, setSongStyle] = useState('auto');
+  const [songAge, setSongAge] = useState('3-5');
   const [agentStatus, setAgentStatus] = useState({});
   const [progressMessage, setProgressMessage] = useState('');
   const [fullProductionPhase, setFullProductionPhase] = useState('');
@@ -4475,7 +4477,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                             if (generatingSong) return;
                             setGeneratingSong(true);
                             try {
-                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
                               setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
                               toast.success('Música gerada com sucesso!');
                             } catch (err) {
@@ -4495,6 +4497,41 @@ export const DirectedStudio = memo(function DirectedStudio({
                         </button>
                       )}
                     </div>
+                  </div>
+                  
+                  {/* Style & Age selectors */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <select
+                      value={songStyle}
+                      onChange={e => setSongStyle(e.target.value)}
+                      className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50"
+                      data-testid="song-style-select"
+                    >
+                      <option value="auto">Estilo: Automático</option>
+                      <option value="galinha_pintadinha">Galinha Pintadinha</option>
+                      <option value="mundo_bita">Mundo Bita</option>
+                      <option value="disney">Disney</option>
+                      <option value="pixar">Pixar</option>
+                      <option value="pop_infantil">Pop Infantil</option>
+                      <option value="mpb_infantil">MPB Infantil</option>
+                      <option value="forrozinho">Forrozinho</option>
+                      <option value="reggae_infantil">Reggae Infantil</option>
+                      <option value="rock_infantil">Rock Infantil</option>
+                      <option value="sertanejo_infantil">Sertanejo Infantil</option>
+                      <option value="hip_hop_infantil">Hip-Hop Infantil</option>
+                      <option value="lullaby">Canção de Ninar</option>
+                    </select>
+                    <select
+                      value={songAge}
+                      onChange={e => setSongAge(e.target.value)}
+                      className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50"
+                      data-testid="song-age-select"
+                    >
+                      <option value="0-3">0-3 anos</option>
+                      <option value="3-5">3-5 anos</option>
+                      <option value="5-8">5-8 anos</option>
+                      <option value="8-12">8-12 anos</option>
+                    </select>
                   </div>
                   
                   {/* Audio Player */}
@@ -4548,7 +4585,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                               const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, {
                                 project_id: projectId,
                                 adjustment: songAdjustment,
-                                edited_lyrics: songData.lyrics
+                                edited_lyrics: songData.lyrics,
+                                style: songStyle !== 'auto' ? songStyle : undefined,
+                                age_range: songAge
                               });
                               console.log('ADJUST response:', r.data);
                               const newUrl = r.data.music_url ? `${r.data.music_url}?t=${Date.now()}` : songData.url;
@@ -4579,7 +4618,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                               const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, {
                                 project_id: projectId,
                                 prompt: `Children's song with vocals. Sing these EXACT lyrics with a warm, friendly, expressive voice perfect for children:\n\n${songData.lyrics}`,
-                                edited_lyrics: songData.lyrics
+                                edited_lyrics: songData.lyrics,
+                                style: songStyle !== 'auto' ? songStyle : undefined,
+                                age_range: songAge
                               });
                               setSongData(prev => ({ ...prev, url: `${r.data.music_url}?t=${Date.now()}`, duration_seconds: r.data.duration_seconds }));
                               toast.success(lang === 'pt' ? 'Música regenerada com a letra editada!' : 'Music regenerated with edited lyrics!');
@@ -4601,7 +4642,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                             if (generatingSong) return;
                             setGeneratingSong(true);
                             try {
-                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
                               setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
                               toast.success(lang === 'pt' ? 'Nova letra e música geradas!' : 'New lyrics and music generated!');
                             } catch (err) {

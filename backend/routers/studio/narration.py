@@ -51,6 +51,35 @@ class GenerateMusicRequest(BaseModel):
     adjustment: Optional[str] = None  # User instruction to adjust lyrics
 
 
+@router.get("/music-styles")
+async def get_music_styles():
+    """Return available music styles for children's songs."""
+    return {
+        "styles": [
+            {"id": "auto", "name": "Automático (por idade)", "emoji": "🎯"},
+            {"id": "galinha_pintadinha", "name": "Galinha Pintadinha", "emoji": "🐔"},
+            {"id": "mundo_bita", "name": "Mundo Bita", "emoji": "🌍"},
+            {"id": "disney", "name": "Disney", "emoji": "🏰"},
+            {"id": "pixar", "name": "Pixar", "emoji": "🎬"},
+            {"id": "pop_infantil", "name": "Pop Infantil", "emoji": "🎤"},
+            {"id": "mpb_infantil", "name": "MPB Infantil", "emoji": "🎸"},
+            {"id": "forrozinho", "name": "Forrozinho", "emoji": "🪗"},
+            {"id": "reggae_infantil", "name": "Reggae Infantil", "emoji": "🌴"},
+            {"id": "rock_infantil", "name": "Rock Infantil", "emoji": "🎸"},
+            {"id": "sertanejo_infantil", "name": "Sertanejo Infantil", "emoji": "🤠"},
+            {"id": "hip_hop_infantil", "name": "Hip-Hop Infantil", "emoji": "🎧"},
+            {"id": "lullaby", "name": "Canção de Ninar", "emoji": "🌙"},
+        ],
+        "age_ranges": [
+            {"id": "0-3", "name": "0-3 anos"},
+            {"id": "3-5", "name": "3-5 anos"},
+            {"id": "5-8", "name": "5-8 anos"},
+            {"id": "8-12", "name": "8-12 anos"},
+        ]
+    }
+
+
+
 @router.post("/projects/{project_id}/generate-music")
 async def generate_music(project_id: str, req: GenerateMusicRequest = None, tenant=Depends(get_current_tenant)):
     """Generate an original children's song with vocals and lyrics for a project.
@@ -91,7 +120,28 @@ async def generate_music(project_id: str, req: GenerateMusicRequest = None, tena
         "5-8": "Energetic and fun, tempo 110-130 BPM, adventure-style like Disney Junior songs. Clear vocals with character, sing-along chorus. Full band: guitar, bass, drums, synth pads.",
         "8-12": "Modern pop/rock for kids, tempo 120-140 BPM, inspirational Disney/Pixar movie soundtrack style. Powerful chorus, emotional bridge. Full orchestral + pop arrangement.",
     }
-    style_hint = AGE_STYLES.get(age_range, AGE_STYLES["3-5"])
+    
+    # Musical style override
+    MUSIC_STYLES = {
+        "galinha_pintadinha": "Galinha Pintadinha style: very catchy, repetitive chorus, clap-along, simple acoustic instruments (ukulele, acoustic guitar, tambourine), cheerful female/male vocals, tempo 100-110 BPM.",
+        "mundo_bita": "Mundo Bita style: warm, gentle, educational, acoustic guitar and piano, soft male vocals, tempo 95-110 BPM, sweet and comforting.",
+        "disney": "Disney animated movie style: orchestral, emotional, cinematic, powerful chorus with harmonies, full orchestra (strings, brass, woodwinds), dramatic bridges, tempo 110-130 BPM.",
+        "pixar": "Pixar movie soundtrack style: whimsical, emotional, piano-driven with orchestral swells, intimate vocals, bittersweet beauty, tempo 100-120 BPM.",
+        "reggae_infantil": "Children's reggae: laid-back rhythm, offbeat guitar, bass groove, cheerful vocals, tropical feel, tempo 85-100 BPM, sunny and happy.",
+        "pop_infantil": "Modern children's pop: electronic beats, synth pads, catchy hook, auto-tune light, energetic, tempo 115-130 BPM, like modern YouTube kids music.",
+        "mpb_infantil": "Brazilian MPB for kids: bossa nova influence, acoustic guitar, gentle percussion, warm vocals, poetic, tempo 90-110 BPM.",
+        "forrozinho": "Children's forró: accordion (sanfona), triangle, zabumba, upbeat dance rhythm, joyful, tempo 110-130 BPM, northeastern Brazilian feel.",
+        "rock_infantil": "Children's rock: electric guitar, drums, bass, energetic, fun, sing-along chorus, tempo 120-140 BPM, like school of rock for kids.",
+        "lullaby": "Gentle lullaby: very soft, calming, music box feel, soft piano or harp, whispery vocals, tempo 60-80 BPM, perfect for bedtime.",
+        "hip_hop_infantil": "Children's hip-hop: rhythmic, fun beats, rap verses with sung chorus, boom-bap or trap-lite, tempo 90-110 BPM, educational and fun.",
+        "sertanejo_infantil": "Children's sertanejo: acoustic guitar, viola caipira, gentle country feel, romantic melody, tempo 100-120 BPM, Brazilian countryside warmth.",
+    }
+    
+    chosen_style = (req.style if req and req.style else None)
+    if chosen_style and chosen_style in MUSIC_STYLES:
+        style_hint = MUSIC_STYLES[chosen_style]
+    else:
+        style_hint = AGE_STYLES.get(age_range, AGE_STYLES["3-5"])
     
     LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
     lang_name = LANG_NAMES.get(lang, "Portuguese")
