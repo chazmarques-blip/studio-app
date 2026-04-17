@@ -299,12 +299,15 @@ export function AvatarLibraryModalV2({
     if (!window.confirm('Deletar esta pasta? Os personagens não serão deletados.')) return;
     
     try {
-      await axios.delete(`${API}/folders/${folderId}`);
+      console.log('🗑️ [DELETE FOLDER] Deleting folder:', folderId);
+      const res = await axios.delete(`${API}/folders/${folderId}`);
+      console.log('🗑️ [DELETE FOLDER] Response:', res.data);
       setFolders(prev => prev.filter(f => f.id !== folderId));
       if (currentFolder === folderId) setCurrentFolder(null);
-      toast.success('Pasta deletada');
+      toast.success('Pasta deletada com sucesso');
     } catch (err) {
-      toast.error('Erro ao deletar pasta');
+      console.error('❌ [DELETE FOLDER] Error:', err.response?.data || err.message);
+      toast.error(`Erro ao deletar pasta: ${err.response?.data?.detail || err.message}`);
     }
   };
 
@@ -892,7 +895,7 @@ export function AvatarLibraryModalV2({
                   <div key={folder.id} className="relative group">
                     <button
                       onClick={() => setCurrentFolder(folder.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
+                      className={`w-full text-left px-3 py-2 pr-8 rounded-lg text-xs transition flex items-center gap-2 ${
                         isActive 
                           ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
                           : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
@@ -908,14 +911,16 @@ export function AvatarLibraryModalV2({
                     
                     {/* Delete folder button (on hover) */}
                     <button
+                      data-testid={`delete-folder-${folder.id}`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         deleteFolder(folder.id);
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-red-500/20"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-red-500/20"
                       title="Deletar pasta"
                     >
-                      <Trash2 size={10} className="text-red-400" />
+                      <Trash2 size={12} className="text-red-400" />
                     </button>
                   </div>
                 );
