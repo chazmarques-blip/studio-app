@@ -419,7 +419,8 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [characterAvatars, setCharacterAvatars] = useState({});
   const [generating, setGenerating] = useState(false);
   const [generatingSong, setGeneratingSong] = useState(false);
-  const [songData, setSongData] = useState(null); // { url, lyrics, duration_seconds }
+  const [songData, setSongData] = useState(null);
+  const [songAdjustment, setSongAdjustment] = useState('');
   const [agentStatus, setAgentStatus] = useState({});
   const [progressMessage, setProgressMessage] = useState('');
   const [fullProductionPhase, setFullProductionPhase] = useState('');
@@ -4468,32 +4469,31 @@ export const DirectedStudio = memo(function DirectedStudio({
                           <Download size={10} />MP3
                         </a>
                       )}
-                      <button
-                        onClick={async () => {
-                          if (generatingSong) return;
-                          setGeneratingSong(true);
-                          try {
-                            const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
-                            const newSong = { url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds };
-                            setSongData(newSong);
-                            toast.success('Música gerada com sucesso!');
-                          } catch (err) {
-                            toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
-                          } finally {
-                            setGeneratingSong(false);
-                          }
-                        }}
-                        disabled={generatingSong}
-                        className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-50"
-                      >
-                        {generatingSong ? (
-                          <><RefreshCw size={10} className="animate-spin" />{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
-                        ) : (songData?.url || songData?.music_url) ? (
-                          <><RefreshCw size={10} />{lang === 'pt' ? 'Regenerar' : 'Regenerate'}</>
-                        ) : (
-                          <><Music size={10} />{lang === 'pt' ? 'Gerar Música' : 'Generate'}</>
-                        )}
-                      </button>
+                      {!songData?.lyrics && (
+                        <button
+                          onClick={async () => {
+                            if (generatingSong) return;
+                            setGeneratingSong(true);
+                            try {
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
+                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
+                              toast.success('Música gerada com sucesso!');
+                            } catch (err) {
+                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
+                            } finally {
+                              setGeneratingSong(false);
+                            }
+                          }}
+                          disabled={generatingSong}
+                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          {generatingSong ? (
+                            <><RefreshCw size={10} className="animate-spin" />{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
+                          ) : (
+                            <><Music size={10} />{lang === 'pt' ? 'Gerar Música' : 'Generate'}</>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                   
@@ -4507,16 +4507,115 @@ export const DirectedStudio = memo(function DirectedStudio({
                     />
                   )}
                   
-                  {/* Lyrics */}
-                  {songData?.lyrics && (
-                    <details className="mt-2">
-                      <summary className="text-[10px] font-mono tracking-wider uppercase text-pink-400/60 cursor-pointer hover:text-pink-400">
-                        {lang === 'pt' ? 'Ver Letra' : 'View Lyrics'}
-                      </summary>
-                      <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed mt-2 max-h-40 overflow-y-auto bg-white/50 rounded-lg p-2">
-                        {songData.lyrics}
-                      </pre>
-                    </details>
+                  {/* Lyrics Editor */}
+                  {songData?.lyrics != null && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-mono tracking-wider uppercase text-pink-400/60">
+                          {lang === 'pt' ? 'Letra da Música (editável)' : 'Song Lyrics (editable)'}
+                        </p>
+                      </div>
+                      <textarea
+                        value={songData.lyrics || ''}
+                        onChange={e => setSongData(prev => ({ ...prev, lyrics: e.target.value }))}
+                        className="w-full text-xs text-gray-700 font-sans leading-relaxed bg-white border border-gray-200 rounded-lg p-3 resize-y min-h-[120px] max-h-[300px] focus:outline-none focus:border-pink-400/50 focus:ring-1 focus:ring-pink-400/20"
+                        data-testid="song-lyrics-editor"
+                        placeholder={lang === 'pt' ? 'Edite a letra aqui...' : 'Edit lyrics here...'}
+                      />
+                      
+                      {/* Adjustment instruction */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={songAdjustment || ''}
+                          onChange={e => setSongAdjustment(e.target.value)}
+                          placeholder={lang === 'pt' ? 'Peça ajustes: ex. "mais animado", "incluir o nome do peixe", "refrão diferente"...' : 'Request adjustments...'}
+                          className="flex-1 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-pink-400/50 focus:ring-1 focus:ring-pink-400/20 placeholder:text-gray-400"
+                          data-testid="song-adjustment-input"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && songAdjustment?.trim()) {
+                              e.preventDefault();
+                              document.querySelector('[data-testid="song-adjust-btn"]')?.click();
+                            }
+                          }}
+                        />
+                        <button
+                          data-testid="song-adjust-btn"
+                          onClick={async () => {
+                            if (generatingSong || !songAdjustment?.trim()) return;
+                            setGeneratingSong(true);
+                            try {
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, {
+                                project_id: projectId,
+                                prompt: `Children's song. Current lyrics to ADJUST:\n${songData.lyrics}\n\nADJUSTMENT REQUESTED: ${songAdjustment}\n\nSing the adjusted version with warm, friendly vocals.`,
+                                edited_lyrics: songData.lyrics
+                              });
+                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics || songData.lyrics, duration_seconds: r.data.duration_seconds });
+                              setSongAdjustment('');
+                              toast.success(lang === 'pt' ? 'Música ajustada!' : 'Music adjusted!');
+                            } catch (err) {
+                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
+                            } finally {
+                              setGeneratingSong(false);
+                            }
+                          }}
+                          disabled={generatingSong || !songAdjustment?.trim()}
+                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-2 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-30 whitespace-nowrap"
+                        >
+                          {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Edit3 size={10} />}
+                          {lang === 'pt' ? 'Ajustar' : 'Adjust'}
+                        </button>
+                      </div>
+                      
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={async () => {
+                            if (generatingSong) return;
+                            setGeneratingSong(true);
+                            try {
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, {
+                                project_id: projectId,
+                                prompt: `Children's song with vocals. Sing these EXACT lyrics with a warm, friendly, expressive voice perfect for children:\n\n${songData.lyrics}`,
+                                edited_lyrics: songData.lyrics
+                              });
+                              setSongData(prev => ({ ...prev, url: r.data.music_url, duration_seconds: r.data.duration_seconds }));
+                              toast.success(lang === 'pt' ? 'Música regenerada com a letra editada!' : 'Music regenerated with edited lyrics!');
+                            } catch (err) {
+                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
+                            } finally {
+                              setGeneratingSong(false);
+                            }
+                          }}
+                          disabled={generatingSong}
+                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50"
+                          data-testid="song-regenerate-btn"
+                        >
+                          {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Music size={10} />}
+                          {lang === 'pt' ? 'Regenerar com esta Letra' : 'Regenerate with this Lyrics'}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (generatingSong) return;
+                            setGeneratingSong(true);
+                            try {
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
+                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
+                              toast.success(lang === 'pt' ? 'Nova letra e música geradas!' : 'New lyrics and music generated!');
+                            } catch (err) {
+                              toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
+                            } finally {
+                              setGeneratingSong(false);
+                            }
+                          }}
+                          disabled={generatingSong}
+                          className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg border border-pink-400/20 text-pink-400 hover:bg-pink-500/5 transition flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <RefreshCw size={10} />
+                          {lang === 'pt' ? 'Nova Letra + Música' : 'New Lyrics + Music'}
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

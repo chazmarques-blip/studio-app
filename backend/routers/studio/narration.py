@@ -45,8 +45,9 @@ class GenerateMusicRequest(BaseModel):
     project_id: str
     prompt: Optional[str] = None
     duration_seconds: Optional[int] = None
-    style: Optional[str] = None  # "galinha_pintadinha", "disney", "lullaby", etc.
-    age_range: Optional[str] = None  # "0-3", "3-5", "5-8", "8-12"
+    style: Optional[str] = None
+    age_range: Optional[str] = None
+    edited_lyrics: Optional[str] = None  # Preserve edited lyrics when using custom prompt
 
 
 @router.post("/projects/{project_id}/generate-music")
@@ -179,9 +180,12 @@ Return ONLY the lyrics, nothing else. No annotations, no [Verse 1] markers."""
         music_url = _upload_to_storage(audio_data, filename, "audio/mpeg")
         
         # Save to project
+        # Preserve edited lyrics if provided, otherwise use generated lyrics
+        final_lyrics = (req.edited_lyrics if req and req.edited_lyrics else lyrics) or ""
+        
         project["generated_song"] = {
             "url": music_url,
-            "lyrics": lyrics or "",
+            "lyrics": final_lyrics,
             "duration_seconds": duration_ms // 1000,
             "age_range": age_range,
             "prompt_used": music_prompt[:300]
@@ -193,7 +197,7 @@ Return ONLY the lyrics, nothing else. No annotations, no [Verse 1] markers."""
         return {
             "status": "success",
             "music_url": music_url,
-            "lyrics": lyrics or "",
+            "lyrics": final_lyrics,
             "duration_seconds": duration_ms // 1000,
             "size_kb": len(audio_data) // 1024,
             "age_range": age_range
