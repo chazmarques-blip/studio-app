@@ -47,7 +47,8 @@ class GenerateMusicRequest(BaseModel):
     duration_seconds: Optional[int] = None
     style: Optional[str] = None
     age_range: Optional[str] = None
-    edited_lyrics: Optional[str] = None  # Preserve edited lyrics when using custom prompt
+    edited_lyrics: Optional[str] = None
+    adjustment: Optional[str] = None  # User instruction to adjust lyrics
 
 
 @router.post("/projects/{project_id}/generate-music")
@@ -119,17 +120,47 @@ Return ONLY the lyrics, nothing else. No annotations, no [Verse 1] markers."""
 
     # Generate lyrics via Claude
     try:
-        system = "You are a legendary children's songwriter. Write song lyrics in the requested language. Return ONLY the lyrics."
-        lyrics = _call_claude_sync(system, lyrics_prompt, max_tokens=800)
-        lyrics = lyrics.strip()
-        logger.info(f"MusicGen [{project_id}]: Lyrics generated ({len(lyrics)} chars, {len(lyrics.splitlines())} lines)")
+        # If user requested an adjustment to existing lyrics
+        if req and req.adjustment and req.edited_lyrics:
+            system = "You are a legendary children's songwriter. Adjust the given lyrics based on the user's instructions. Return ONLY the adjusted lyrics, nothing else."
+            adjust_prompt = f"""Here are the current lyrics of a children's song:
+
+{req.edited_lyrics}
+
+ADJUSTMENT REQUESTED: {req.adjustment}
+
+Rewrite the lyrics applying the requested adjustment. Keep the same structure (verses, chorus) but apply the changes. Language must stay the same. Return ONLY the new lyrics."""
+            lyrics = _call_claude_sync(system, adjust_prompt, max_tokens=800)
+            lyrics = lyrics.strip()
+            logger.info(f"MusicGen [{project_id}]: Lyrics ADJUSTED ({len(lyrics)} chars) based on: {req.adjustment[:80]}")
+        
+        # If user provided edited lyrics directly (regenerate with edited text)
+        elif req and req.edited_lyrics and req.prompt:
+            lyrics = req.edited_lyrics
+            logger.info(f"MusicGen [{project_id}]: Using user-edited lyrics ({len(lyrics)} chars)")
+        
+        # Generate new lyrics from scratch
+        else:
+            system = "You are a legendary children's songwriter. Write song lyrics in the requested language. Return ONLY the lyrics."
+            lyrics = _call_claude_sync(system, lyrics_prompt, max_tokens=800)
+            lyrics = lyrics.strip()
+            logger.info(f"MusicGen [{project_id}]: Lyrics generated ({len(lyrics)} chars, {len(lyrics.splitlines())} lines)")
     except Exception as e:
         logger.warning(f"MusicGen [{project_id}]: LLM lyrics failed: {e}, using generic")
-        lyrics = None
+        lyrics = req.edited_lyrics if (req and req.edited_lyrics) else None
     
     # ── STEP 2: Build ElevenLabs Music prompt with lyrics ──
-    if req and req.prompt:
-        music_prompt = req.prompt
+    if req and req.prompt and not req.adjustment:
+        # Custom prompt from "Regenerar com esta Letra" — use prompt directly but include lyrics
+        if lyrics:
+            music_prompt = (
+                f"Children's song with vocals singing in {lang_name}. "
+                f"{style_hint} "
+                f"The singer should have a warm, friendly, expressive voice perfect for children's content. "
+                f"LYRICS TO SING:\n{lyrics}"
+            )
+        else:
+            music_prompt = req.prompt
     else:
         custom_style = req.style if req and req.style else None
         
@@ -180,8 +211,8 @@ Return ONLY the lyrics, nothing else. No annotations, no [Verse 1] markers."""
         music_url = _upload_to_storage(audio_data, filename, "audio/mpeg")
         
         # Save to project
-        # Preserve edited lyrics if provided, otherwise use generated lyrics
-        final_lyrics = (req.edited_lyrics if req and req.edited_lyrics else lyrics) or ""
+        # Always use the latest lyrics (adjusted, edited, or freshly generated)
+        final_lyrics = lyrics or (req.edited_lyrics if req else None) or ""
         
         project["generated_song"] = {
             "url": music_url,

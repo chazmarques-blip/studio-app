@@ -4547,10 +4547,10 @@ export const DirectedStudio = memo(function DirectedStudio({
                             try {
                               const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, {
                                 project_id: projectId,
-                                prompt: `Children's song. Current lyrics to ADJUST:\n${songData.lyrics}\n\nADJUSTMENT REQUESTED: ${songAdjustment}\n\nSing the adjusted version with warm, friendly vocals.`,
+                                adjustment: songAdjustment,
                                 edited_lyrics: songData.lyrics
                               });
-                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics || songData.lyrics, duration_seconds: r.data.duration_seconds });
+                              setSongData({ url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds });
                               setSongAdjustment('');
                               toast.success(lang === 'pt' ? 'Música ajustada!' : 'Music adjusted!');
                             } catch (err) {
