@@ -731,6 +731,7 @@ export const DirectedStudio = memo(function DirectedStudio({
           });
           setAllPanelFrames(allFrames);
         }
+        if (full.generated_song) setSongData(full.generated_song);
       }).catch(() => {});
     }
   }, [step, projectId]);
@@ -4433,88 +4434,92 @@ export const DirectedStudio = memo(function DirectedStudio({
                 );
               })()}
 
-              {/* Card: Analytics */}
               {/* Card: Música Cantada */}
-              <button
-                onClick={async () => {
-                  if (songData?.url) {
-                    setPreviewModal({ type: 'video', data: { url: songData.url, scene_number: -1, allVideos: [] } });
-                    return;
-                  }
-                  if (generatingSong) return;
-                  setGeneratingSong(true);
-                  try {
-                    const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
-                    setSongData(r.data);
-                    toast.success('Música gerada com sucesso!');
-                  } catch (err) {
-                    toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
-                  } finally {
-                    setGeneratingSong(false);
-                  }
-                }}
-                disabled={generatingSong}
+              <div
                 data-testid="deliverable-musica-cantada"
-                className={`relative bg-gray-50 border rounded-xl overflow-hidden text-left group hover:-translate-y-0.5 transition-all duration-500 ${
-                  songData?.url ? 'border-pink-500/20 hover:border-pink-500/40' : 'border-white/5 hover:border-pink-500/20'
+                className={`relative bg-gray-50 border rounded-xl overflow-hidden text-left col-span-2 ${
+                  (songData?.url || songData?.music_url) ? 'border-pink-500/20' : 'border-white/5'
                 }`}
               >
-                <div className="relative h-24 overflow-hidden bg-gradient-to-br from-pink-900/20 to-[#0A0A0A]">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {generatingSong ? (
-                      <RefreshCw size={20} className="text-pink-400 animate-spin" />
-                    ) : (
-                      <Music size={24} className="text-pink-400" strokeWidth={1.2} />
-                    )}
-                  </div>
-                  {songData?.url && (
-                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-pink-500/10 flex items-center justify-center">
-                      <Check size={10} className="text-pink-400" />
-                    </div>
-                  )}
-                  <div className="absolute bottom-2 left-2.5 flex items-center gap-1.5">
-                    <Mic size={14} className="text-pink-400" strokeWidth={1.5} />
-                    <span className="text-xs font-medium text-gray-900 drop-shadow-lg">
-                      {lang === 'pt' ? 'Música Cantada' : 'Sung Music'}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-2.5">
-                  <p className="text-[11px] font-mono text-[#555] tracking-wider uppercase">
-                    {generatingSong
-                      ? (lang === 'pt' ? 'Compondo música...' : 'Composing music...')
-                      : songData?.url
-                        ? `${songData.duration_seconds || '?'}s • ${lang === 'pt' ? 'Com vocal e letra' : 'With vocals & lyrics'}`
-                        : (lang === 'pt' ? 'Gerar música-tema com letra' : 'Generate theme song with lyrics')
-                    }
-                  </p>
-                  <span className={`inline-block mt-1.5 text-[11px] font-mono tracking-wider uppercase group-hover:underline ${songData?.url ? 'text-pink-400' : 'text-pink-400/60'}`}>
-                    {songData?.url
-                      ? (<><Play size={8} className="inline mr-1" />{lang === 'pt' ? 'Ouvir' : 'Listen'}</>)
-                      : (<><Music size={8} className="inline mr-1" />{lang === 'pt' ? 'Gerar Música' : 'Generate Music'}</>)
-                    }
-                  </span>
-                </div>
-              </button>
-
-              {/* Song Lyrics Display */}
-              {songData?.lyrics && (
-                <div className="col-span-2 bg-gray-50 border border-pink-500/10 rounded-xl p-3">
+                <div className="p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-pink-400/60">
-                      {lang === 'pt' ? 'Letra da Música' : 'Song Lyrics'}
-                    </p>
-                    {songData.url && (
-                      <a href={songData.url} download className="text-[10px] font-mono text-pink-400 hover:underline flex items-center gap-1">
-                        <Download size={10} />MP3
-                      </a>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                        <Music size={16} className="text-pink-400" strokeWidth={1.5} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-900">{lang === 'pt' ? 'Música Cantada' : 'Theme Song'}</p>
+                        <p className="text-[10px] font-mono text-[#555]">
+                          {(songData?.url || songData?.music_url)
+                            ? `${songData.duration_seconds || '?'}s • ${lang === 'pt' ? 'Com vocal e letra' : 'With vocals & lyrics'}`
+                            : (lang === 'pt' ? 'Música-tema original com letra' : 'Original theme song with lyrics')
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(songData?.url || songData?.music_url) && (
+                        <a 
+                          href={songData.url || songData.music_url} 
+                          download 
+                          className="text-[10px] font-mono text-pink-400 hover:underline flex items-center gap-1 px-2 py-1 rounded bg-pink-500/5"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <Download size={10} />MP3
+                        </a>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (generatingSong) return;
+                          setGeneratingSong(true);
+                          try {
+                            const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId });
+                            const newSong = { url: r.data.music_url, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds };
+                            setSongData(newSong);
+                            toast.success('Música gerada com sucesso!');
+                          } catch (err) {
+                            toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
+                          } finally {
+                            setGeneratingSong(false);
+                          }
+                        }}
+                        disabled={generatingSong}
+                        className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {generatingSong ? (
+                          <><RefreshCw size={10} className="animate-spin" />{lang === 'pt' ? 'Gerando...' : 'Generating...'}</>
+                        ) : (songData?.url || songData?.music_url) ? (
+                          <><RefreshCw size={10} />{lang === 'pt' ? 'Regenerar' : 'Regenerate'}</>
+                        ) : (
+                          <><Music size={10} />{lang === 'pt' ? 'Gerar Música' : 'Generate'}</>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <pre className="text-xs text-gray-700 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
-                    {songData.lyrics}
-                  </pre>
+                  
+                  {/* Audio Player */}
+                  {(songData?.url || songData?.music_url) && (
+                    <audio 
+                      controls 
+                      className="w-full h-10 mt-2" 
+                      src={songData.url || songData.music_url}
+                      data-testid="song-audio-player"
+                    />
+                  )}
+                  
+                  {/* Lyrics */}
+                  {songData?.lyrics && (
+                    <details className="mt-2">
+                      <summary className="text-[10px] font-mono tracking-wider uppercase text-pink-400/60 cursor-pointer hover:text-pink-400">
+                        {lang === 'pt' ? 'Ver Letra' : 'View Lyrics'}
+                      </summary>
+                      <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed mt-2 max-h-40 overflow-y-auto bg-white/50 rounded-lg p-2">
+                        {songData.lyrics}
+                      </pre>
+                    </details>
+                  )}
                 </div>
-              )}
+              </div>
 
               <button
                 onClick={loadAnalytics}
