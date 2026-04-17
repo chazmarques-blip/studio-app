@@ -48,6 +48,7 @@ export function AvatarLibraryModalV2({
   // Folders system
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null); // null = all avatars
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState(null);
   const [newFolderName, setNewFolderName] = useState('');
@@ -948,13 +949,26 @@ export function AvatarLibraryModalV2({
                   const hasChildren = children.length > 0;
                   const allIds = getDescendantAvatarIds(folder.id);
                   const isActive = currentFolder === folder.id;
-                  const isExpanded = currentFolder === folder.id || children.some(c => currentFolder === c.id);
+                  const isExpanded = expandedFolders.has(folder.id);
+                  
+                  const handleClick = () => {
+                    if (hasChildren) {
+                      // Toggle expand/collapse without changing filter
+                      setExpandedFolders(prev => {
+                        const next = new Set(prev);
+                        if (next.has(folder.id)) next.delete(folder.id);
+                        else next.add(folder.id);
+                        return next;
+                      });
+                    }
+                    setCurrentFolder(folder.id);
+                  };
                   
                   return (
                     <div key={folder.id}>
                       <div className="flex items-center gap-0.5" style={{ paddingLeft: depth * 10 }}>
                         <button
-                          onClick={() => setCurrentFolder(folder.id)}
+                          onClick={handleClick}
                           className={`flex-1 text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 min-w-0 ${
                             isActive 
                               ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
