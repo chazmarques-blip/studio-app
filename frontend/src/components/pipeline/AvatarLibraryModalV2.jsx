@@ -445,13 +445,19 @@ export function AvatarLibraryModalV2({
       return url.trim() !== '';
     });
     
-    // 0. Folder filter (if a folder is selected)
+    // 0. Folder filter (if a folder is selected - includes children)
     if (currentFolder) {
       const folder = folders.find(f => f.id === currentFolder);
-      if (folder && folder.avatar_ids) {
-        result = result.filter(a => folder.avatar_ids.includes(a.id));
+      if (folder) {
+        // Collect IDs from this folder + all child folders
+        const allIds = new Set(folder.avatar_ids || []);
+        const children = folders.filter(f => f.parent_id === currentFolder);
+        children.forEach(child => {
+          (child.avatar_ids || []).forEach(id => allIds.add(id));
+        });
+        result = result.filter(a => allIds.has(a.id));
       } else {
-        result = []; // Folder not found or empty
+        result = [];
       }
     }
     
@@ -902,9 +908,9 @@ export function AvatarLibraryModalV2({
           {/* Main Content Area with Sidebar */}
           <div className="flex-1 flex overflow-hidden">
             {/* Folders Sidebar */}
-            <div className="w-56 border-r border-[#151515] bg-[#0A0A0A] overflow-y-auto p-4 space-y-2">
+            <div className="w-56 border-r border-[#151515] bg-[#0A0A0A] overflow-y-auto p-4 space-y-1">
               <div className="text-xs font-bold text-[#666] uppercase mb-2">
-                Pastas ({folders.length})
+                Pastas ({folders.filter(f => !f.parent_id).length})
                 {folders.length === 0 && <span className="text-[#999] normal-case"> - Nenhuma pasta criada</span>}
               </div>
               
@@ -921,54 +927,80 @@ export function AvatarLibraryModalV2({
                 <span className="flex-1">Todos ({library.length})</span>
               </button>
               
-              {/* Folder List */}
-              {folders.map(folder => {
-                // Count only avatar IDs that actually exist in library
+              {/* Hierarchical Folder List */}
+              {(() => {
                 const existingIds = new Set(library.map(a => a.id));
-                const validCount = (folder.avatar_ids || []).filter(id => existingIds.has(id)).length;
-                const isActive = currentFolder === folder.id;
+                const rootFolders = folders.filter(f => !f.parent_id);
                 
-                return (
-                  <div key={folder.id} className="flex items-center gap-1">
-                    <button
-                      onClick={() => setCurrentFolder(folder.id)}
-                      className={`flex-1 text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
-                        isActive 
-                          ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
-                          : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
-                      }`}
-                    >
-                      <div 
-                        className="w-3 h-3 rounded-full flex-shrink-0" 
-                        style={{ backgroundColor: folder.color || '#8B5CF6' }}
-                      />
-                      <span className="flex-1 truncate">{folder.name}</span>
-                      <span className="text-[10px] text-[#666]">({validCount})</span>
-                    </button>
-                    
-                    {/* Delete folder button - always visible */}
-                    <button
-                      data-testid={`delete-folder-${folder.id}`}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        deleteFolder(folder.id);
-                      }}
-                      className={`flex-shrink-0 p-1.5 rounded transition-colors ${
-                        confirmingDelete === folder.id
-                          ? 'bg-red-600'
-                          : 'text-[#555] hover:text-red-400 hover:bg-red-500/10'
-                      }`}
-                      title={confirmingDelete === folder.id ? 'Clique para confirmar' : 'Deletar pasta'}
-                    >
-                      {confirmingDelete === folder.id 
-                        ? <span className="text-[9px] text-white font-bold px-1">X</span>
-                        : <Trash2 size={11} />
-                      }
-                    </button>
-                  </div>
-                );
-              })}
+                // Get all descendant avatar IDs for a folder (self + children)
+                const getDescendantAvatarIds = (folderId) => {
+                  const folder = folders.find(f => f.id === folderId);
+                  const ids = new Set((folder?.avatar_ids || []).filter(id => existingIds.has(id)));
+                  const children = folders.filter(f => f.parent_id === folderId);
+                  children.forEach(child => {
+                    (child.avatar_ids || []).filter(id => existingIds.has(id)).forEach(id => ids.add(id));
+                  });
+                  return ids;
+                };
+                
+                const renderFolder = (folder, depth = 0) => {
+                  const children = folders.filter(f => f.parent_id === folder.id);
+                  const hasChildren = children.length > 0;
+                  const allIds = getDescendantAvatarIds(folder.id);
+                  const isActive = currentFolder === folder.id;
+                  const isExpanded = currentFolder === folder.id || children.some(c => currentFolder === c.id);
+                  
+                  return (
+                    <div key={folder.id}>
+                      <div className="flex items-center gap-1" style={{ paddingLeft: depth * 12 }}>
+                        <button
+                          onClick={() => setCurrentFolder(folder.id)}
+                          className={`flex-1 text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
+                            isActive 
+                              ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
+                              : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
+                          }`}
+                        >
+                          {hasChildren && (
+                            <ChevronRight size={10} className={`flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                          )}
+                          <div 
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: folder.color || '#8B5CF6' }}
+                          />
+                          <span className="flex-1 truncate">{folder.name}</span>
+                          <span className="text-[10px] text-[#666]">({allIds.size})</span>
+                        </button>
+                        
+                        <button
+                          data-testid={`delete-folder-${folder.id}`}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            deleteFolder(folder.id);
+                          }}
+                          className={`flex-shrink-0 p-1.5 rounded transition-colors ${
+                            confirmingDelete === folder.id
+                              ? 'bg-red-600'
+                              : 'text-[#555] hover:text-red-400 hover:bg-red-500/10'
+                          }`}
+                          title={confirmingDelete === folder.id ? 'Clique para confirmar' : 'Deletar pasta'}
+                        >
+                          {confirmingDelete === folder.id 
+                            ? <span className="text-[9px] text-white font-bold px-1">X</span>
+                            : <Trash2 size={11} />
+                          }
+                        </button>
+                      </div>
+                      
+                      {/* Render children when expanded */}
+                      {isExpanded && children.map(child => renderFolder(child, depth + 1))}
+                    </div>
+                  );
+                };
+                
+                return rootFolders.map(folder => renderFolder(folder));
+              })()}
             </div>
             
             {/* Grid with custom scrollbar */}
