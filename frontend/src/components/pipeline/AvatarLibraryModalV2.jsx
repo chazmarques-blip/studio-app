@@ -260,31 +260,8 @@ export function AvatarLibraryModalV2({
       .catch(err => console.error('Error loading folders:', err));
   }, [open]);
 
-  // Auto-clean stale avatar IDs from folders when library finishes loading
-  useEffect(() => {
-    if (!library.length || !folders.length) return;
-    const existingIds = new Set(library.map(a => a.id));
-    let needsClean = false;
-    const cleaned = folders.map(f => {
-      const valid = (f.avatar_ids || []).filter(id => existingIds.has(id));
-      if (valid.length !== (f.avatar_ids || []).length) {
-        needsClean = true;
-        return { ...f, avatar_ids: valid };
-      }
-      return f;
-    });
-    if (needsClean) {
-      setFolders(cleaned);
-      // Persist cleaned folders to backend (replace stale IDs)
-      cleaned.forEach(f => {
-        const origFolder = folders.find(o => o.id === f.id);
-        if (origFolder && (origFolder.avatar_ids || []).length !== (f.avatar_ids || []).length) {
-          axios.put(`${API}/folders/update-avatars`, { folder_id: f.id, avatar_ids: f.avatar_ids })
-            .catch(() => {});
-        }
-      });
-    }
-  }, [library.length, folders.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: Stale avatar IDs are handled visually (count shows only existing ones)
+  // No auto-cleanup needed - preserves user assignments
 
   // Folder management functions
   const createFolder = async () => {
