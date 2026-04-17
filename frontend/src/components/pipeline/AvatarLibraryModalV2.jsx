@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, Check, Download, Users, RefreshCw, Edit3, Maximize2, Eye, ChevronLeft, ChevronRight, Plus, Trash2, Palette, Calendar, RotateCw, Mic } from 'lucide-react';
 import axios from 'axios';
@@ -49,6 +49,7 @@ export function AvatarLibraryModalV2({
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null); // null = all avatars
   const [expandedFolders, setExpandedFolders] = useState(new Set());
+  const [, startTransition] = useTransition();
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState(null);
   const [newFolderName, setNewFolderName] = useState('');
@@ -339,7 +340,7 @@ export function AvatarLibraryModalV2({
       console.log('[DELETE FOLDER] Deleting folder:', folderId);
       await axios.delete(`${API}/folders/${folderId}`);
       setFolders(prev => prev.filter(f => f.id !== folderId));
-      if (currentFolder === folderId) setCurrentFolder(null);
+      if (currentFolder === folderId) startTransition(() => setCurrentFolder(null));
       toast.success('Pasta deletada com sucesso');
     } catch (err) {
       console.error('[DELETE FOLDER] Error:', err.response?.data || err.message);
@@ -710,7 +711,7 @@ export function AvatarLibraryModalV2({
             {currentFolder && (
               <div className="flex items-center gap-2 text-xs">
                 <button
-                  onClick={() => setCurrentFolder(null)}
+                  onClick={() => startTransition(() => setCurrentFolder(null))}
                   className="text-[#8B5CF6] hover:text-[#A78BFA] transition"
                 >
                   Todas as Pastas
@@ -917,7 +918,7 @@ export function AvatarLibraryModalV2({
               
               {/* All Avatars (default view) */}
               <button
-                onClick={() => setCurrentFolder(null)}
+                onClick={() => startTransition(() => setCurrentFolder(null))}
                 className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 ${
                   currentFolder === null 
                     ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] font-semibold border border-[#8B5CF6]/40' 
@@ -961,7 +962,7 @@ export function AvatarLibraryModalV2({
                         return next;
                       });
                     } else {
-                      setCurrentFolder(folder.id);
+                      startTransition(() => setCurrentFolder(folder.id));
                     }
                   };
                   
