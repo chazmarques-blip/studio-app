@@ -25,6 +25,10 @@ class AssignAvatarsToFolder(BaseModel):
     avatar_ids: List[str]
     folder_id: str
 
+
+class BulkFoldersUpdate(BaseModel):
+    folders: List[dict]
+
 @router.get("")
 async def get_folders(user = Depends(get_current_user)):
     """Get all folders for current user"""
@@ -81,6 +85,21 @@ async def delete_folder(folder_id: str, user = Depends(get_current_user)):
     supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
     
     return {"success": True}
+
+@router.put("/bulk-update")
+async def bulk_update_folders(data: BulkFoldersUpdate, user = Depends(get_current_user)):
+    """Replace ALL folders atomically (avoids race conditions)"""
+    result = supabase.table('tenants').select('settings').eq('owner_id', user['id']).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    settings = result.data.get('settings', {})
+    settings['avatar_folders'] = data.folders
+    supabase.table('tenants').update({'settings': settings}).eq('owner_id', user['id']).execute()
+    
+    return {"success": True, "count": len(data.folders)}
+
+
 
 @router.post("/assign-avatars")
 async def assign_avatars_to_folder(data: AssignAvatarsToFolder, user = Depends(get_current_user)):
