@@ -961,14 +961,14 @@ export function AvatarLibraryModalV2({
                               : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
                           }`}
                         >
-                          {hasChildren && (
-                            <ChevronRight size={8} className={`flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                          )}
                           <div 
                             className="w-2 h-2 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: folder.color || '#8B5CF6' }}
                           />
                           <span className="flex-1 truncate">{folder.name}</span>
+                          {hasChildren && (
+                            <ChevronRight size={8} className={`flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                          )}
                           <span className="text-[9px] text-[#555]">({allIds.size})</span>
                         </button>
                         
