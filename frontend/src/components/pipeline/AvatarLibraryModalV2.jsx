@@ -295,18 +295,27 @@ export function AvatarLibraryModalV2({
     }
   };
 
+  // Track which folder is in "confirm delete" state
+  const [confirmingDelete, setConfirmingDelete] = useState(null);
+
   const deleteFolder = async (folderId) => {
-    if (!window.confirm('Deletar esta pasta? Os personagens não serão deletados.')) return;
+    // Two-click pattern: first click shows confirmation, second click deletes
+    if (confirmingDelete !== folderId) {
+      setConfirmingDelete(folderId);
+      // Auto-reset after 3 seconds
+      setTimeout(() => setConfirmingDelete(prev => prev === folderId ? null : prev), 3000);
+      return;
+    }
     
+    setConfirmingDelete(null);
     try {
-      console.log('🗑️ [DELETE FOLDER] Deleting folder:', folderId);
-      const res = await axios.delete(`${API}/folders/${folderId}`);
-      console.log('🗑️ [DELETE FOLDER] Response:', res.data);
+      console.log('[DELETE FOLDER] Deleting folder:', folderId);
+      await axios.delete(`${API}/folders/${folderId}`);
       setFolders(prev => prev.filter(f => f.id !== folderId));
       if (currentFolder === folderId) setCurrentFolder(null);
       toast.success('Pasta deletada com sucesso');
     } catch (err) {
-      console.error('❌ [DELETE FOLDER] Error:', err.response?.data || err.message);
+      console.error('[DELETE FOLDER] Error:', err.response?.data || err.message);
       toast.error(`Erro ao deletar pasta: ${err.response?.data?.detail || err.message}`);
     }
   };
@@ -909,7 +918,7 @@ export function AvatarLibraryModalV2({
                       <span className="text-[10px] text-[#666]">({count})</span>
                     </button>
                     
-                    {/* Delete folder button (on hover) */}
+                    {/* Delete folder button (on hover or confirming) */}
                     <button
                       data-testid={`delete-folder-${folder.id}`}
                       onClick={(e) => {
@@ -917,10 +926,17 @@ export function AvatarLibraryModalV2({
                         e.preventDefault();
                         deleteFolder(folder.id);
                       }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-red-500/20"
-                      title="Deletar pasta"
+                      className={`absolute right-1 top-1/2 -translate-y-1/2 z-10 transition-all rounded ${
+                        confirmingDelete === folder.id
+                          ? 'opacity-100 bg-red-600 px-2 py-1'
+                          : 'opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/20'
+                      }`}
+                      title={confirmingDelete === folder.id ? 'Clique novamente para confirmar' : 'Deletar pasta'}
                     >
-                      <Trash2 size={12} className="text-red-400" />
+                      {confirmingDelete === folder.id 
+                        ? <span className="text-[9px] text-white font-bold whitespace-nowrap">Confirmar?</span>
+                        : <Trash2 size={12} className="text-red-400" />
+                      }
                     </button>
                   </div>
                 );
