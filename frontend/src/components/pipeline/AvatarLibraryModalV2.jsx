@@ -953,15 +953,16 @@ export function AvatarLibraryModalV2({
                   
                   const handleClick = () => {
                     if (hasChildren) {
-                      // Toggle expand/collapse without changing filter
+                      // Only toggle expand/collapse - don't change filter
                       setExpandedFolders(prev => {
                         const next = new Set(prev);
                         if (next.has(folder.id)) next.delete(folder.id);
                         else next.add(folder.id);
                         return next;
                       });
+                    } else {
+                      setCurrentFolder(folder.id);
                     }
-                    setCurrentFolder(folder.id);
                   };
                   
                   return (
