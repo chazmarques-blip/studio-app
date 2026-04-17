@@ -45,14 +45,18 @@ class GenerateMusicRequest(BaseModel):
     project_id: str
     prompt: Optional[str] = None
     duration_seconds: Optional[int] = None
+    style: Optional[str] = None  # "galinha_pintadinha", "disney", "lullaby", etc.
+    age_range: Optional[str] = None  # "0-3", "3-5", "5-8", "8-12"
 
 
 @router.post("/projects/{project_id}/generate-music")
 async def generate_music(project_id: str, req: GenerateMusicRequest = None, tenant=Depends(get_current_tenant)):
-    """Generate original background music for a project using ElevenLabs Music API.
+    """Generate an original children's song with vocals and lyrics for a project.
     
-    If no prompt provided, auto-generates based on project briefing and scene moods.
-    Duration auto-calculated from video length if not specified.
+    Flow:
+    1. LLM generates lyrics based on the story (briefing + scenes)
+    2. ElevenLabs Music composes and sings the song with those lyrics
+    3. Returns music URL + lyrics text
     """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
@@ -62,38 +66,100 @@ async def generate_music(project_id: str, req: GenerateMusicRequest = None, tena
     if not elevenlabs_key:
         raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
     
-    # Build music prompt
+    # ── STEP 1: Generate lyrics via LLM ──
+    briefing = project.get("briefing", "")[:500]
+    scenes = project.get("scenes", [])
+    characters = project.get("characters", [])
+    char_names = [c.get("name", "") for c in characters[:5]]
+    lang = project.get("language", "pt")
+    
+    # Scene summaries for context
+    scene_summaries = []
+    for s in scenes[:10]:
+        title = s.get("title", "")
+        desc = s.get("description", "")[:80]
+        scene_summaries.append(f"- {title}: {desc}")
+    scenes_text = "\n".join(scene_summaries) if scene_summaries else "No scenes available"
+    
+    # Age-based style
+    age_range = (req.age_range if req and req.age_range else project.get("age_range", "3-5"))
+    AGE_STYLES = {
+        "0-3": "Very simple melody, slow tempo (80-100 BPM), gentle lullaby style, soft female voice, repetitive chorus, like Galinha Pintadinha or nursery rhymes. Ukulele, xylophone, soft percussion.",
+        "3-5": "Catchy upbeat melody, moderate tempo (100-120 BPM), playful children's pop style like Mundo Bita or Galinha Pintadinha. Cheerful vocals, simple repetitive lyrics, clap-along rhythm. Acoustic guitar, piano, light drums.",
+        "5-8": "Energetic and fun, tempo 110-130 BPM, adventure-style like Disney Junior songs. Clear vocals with character, sing-along chorus. Full band: guitar, bass, drums, synth pads.",
+        "8-12": "Modern pop/rock for kids, tempo 120-140 BPM, inspirational Disney/Pixar movie soundtrack style. Powerful chorus, emotional bridge. Full orchestral + pop arrangement.",
+    }
+    style_hint = AGE_STYLES.get(age_range, AGE_STYLES["3-5"])
+    
+    LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
+    lang_name = LANG_NAMES.get(lang, "Portuguese")
+    
+    lyrics_prompt = f"""You are a LEGENDARY children's songwriter (like the creators of Galinha Pintadinha, Mundo Bita, and Disney songs).
+
+Write a COMPLETE song lyrics for a children's animated story.
+
+STORY: {briefing}
+CHARACTERS: {', '.join(char_names) if char_names else 'Various characters'}
+KEY SCENES:
+{scenes_text}
+
+RULES:
+- Language: {lang_name} ONLY (every word must be in {lang_name})
+- Age target: {age_range} years old
+- Structure: Intro (2 lines) → Verse 1 (4 lines) → Chorus (4 lines) → Verse 2 (4 lines) → Chorus → Bridge (2 lines) → Final Chorus
+- The chorus must be EXTREMELY catchy and repetitive — kids will sing along
+- Use the character names in the lyrics
+- Tell the story through the song
+- Keep words simple and age-appropriate
+- Include onomatopoeia and fun sounds (la la la, hey hey, clap clap, etc.)
+- Total: 20-30 lines maximum
+
+Return ONLY the lyrics, nothing else. No annotations, no [Verse 1] markers."""
+
+    # Generate lyrics via Claude
+    try:
+        lyrics = _call_claude_sync(lyrics_prompt, max_tokens=800)
+        lyrics = lyrics.strip()
+        logger.info(f"MusicGen [{project_id}]: Lyrics generated ({len(lyrics)} chars, {len(lyrics.splitlines())} lines)")
+    except Exception as e:
+        logger.warning(f"MusicGen [{project_id}]: LLM lyrics failed: {e}, using generic")
+        lyrics = None
+    
+    # ── STEP 2: Build ElevenLabs Music prompt with lyrics ──
     if req and req.prompt:
         music_prompt = req.prompt
     else:
-        briefing = project.get("briefing", "")[:200]
-        scenes = project.get("scenes", [])
-        all_moods = [s.get("music_mood", "") for s in scenes if s.get("music_mood")]
-        mood_text = ", ".join(set(all_moods))[:100] if all_moods else "warm, hopeful, adventurous"
+        custom_style = req.style if req and req.style else None
         
-        music_prompt = (
-            f"Instrumental orchestral soundtrack for a children's animated story (Pixar/DreamWorks quality). "
-            f"Story: {briefing}. "
-            f"Mood: {mood_text}. "
-            f"Style: Warm orchestral with playful woodwinds, gentle strings, soft percussion. "
-            f"For ages 3-8. No vocals, no lyrics. Cinematic, emotional, family-friendly."
-        )
+        if lyrics:
+            music_prompt = (
+                f"Children's song with vocals singing in {lang_name}. "
+                f"{style_hint} "
+                f"The singer should have a warm, friendly, expressive voice perfect for children's content. "
+                f"LYRICS TO SING:\n{lyrics}"
+            )
+        else:
+            music_prompt = (
+                f"Instrumental children's soundtrack in {lang_name} style. "
+                f"Story: {briefing[:200]}. "
+                f"{style_hint} "
+                f"Family-friendly, cinematic, emotional."
+            )
     
-    # Calculate duration
+    # ── STEP 3: Generate music via ElevenLabs ──
     if req and req.duration_seconds:
         duration_ms = req.duration_seconds * 1000
     else:
-        outputs = project.get("outputs", [])
-        scenes = project.get("scenes", [])
-        duration_ms = len(scenes) * 12 * 1000  # 12s per scene estimate
+        # Estimate: ~60-90 seconds for a children's song
+        duration_ms = 60000 if len(scenes) <= 15 else 90000
     
-    duration_ms = max(3000, min(duration_ms, 300000))  # 3s min, 5min max
+    duration_ms = max(10000, min(duration_ms, 300000))
     
     try:
         from elevenlabs import ElevenLabs as ElevenLabsClient
         client = ElevenLabsClient(api_key=elevenlabs_key)
         
-        logger.info(f"MusicGen [{project_id}]: Generating {duration_ms//1000}s track")
+        logger.info(f"MusicGen [{project_id}]: Composing {duration_ms//1000}s song with vocals")
         
         track_stream = client.music.compose(
             prompt=music_prompt,
@@ -107,22 +173,35 @@ async def generate_music(project_id: str, req: GenerateMusicRequest = None, tena
         if len(audio_data) < 1000:
             raise HTTPException(status_code=500, detail="Music generation returned empty audio")
         
-        # Upload to storage
-        filename = f"studio/{project_id}_music.mp3"
+        # Upload music
+        filename = f"studio/{project_id}_song.mp3"
         music_url = _upload_to_storage(audio_data, filename, "audio/mpeg")
         
-        logger.info(f"MusicGen [{project_id}]: Generated {len(audio_data)//1024}KB music track")
+        # Save to project
+        project["generated_song"] = {
+            "url": music_url,
+            "lyrics": lyrics or "",
+            "duration_seconds": duration_ms // 1000,
+            "age_range": age_range,
+            "prompt_used": music_prompt[:300]
+        }
+        _save_project(tenant["id"], settings, projects, flush_now=True)
+        
+        logger.info(f"MusicGen [{project_id}]: Song generated — {len(audio_data)//1024}KB")
         
         return {
             "status": "success",
             "music_url": music_url,
+            "lyrics": lyrics or "",
             "duration_seconds": duration_ms // 1000,
             "size_kb": len(audio_data) // 1024,
-            "prompt": music_prompt[:200]
+            "age_range": age_range
         }
         
     except Exception as e:
         logger.error(f"MusicGen [{project_id}]: Error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Music generation failed: {str(e)[:100]}")
 
 
