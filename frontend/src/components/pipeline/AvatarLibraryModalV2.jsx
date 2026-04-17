@@ -908,22 +908,22 @@ export function AvatarLibraryModalV2({
           {/* Main Content Area with Sidebar */}
           <div className="flex-1 flex overflow-hidden">
             {/* Folders Sidebar */}
-            <div className="w-56 border-r border-[#151515] bg-[#0A0A0A] overflow-y-auto p-4 space-y-1">
-              <div className="text-xs font-bold text-[#666] uppercase mb-2">
+            <div className="w-48 border-r border-[#151515] bg-[#0A0A0A] overflow-y-auto p-3 space-y-0.5">
+              <div className="text-[10px] font-bold text-[#666] uppercase mb-1.5">
                 Pastas ({folders.filter(f => !f.parent_id).length})
-                {folders.length === 0 && <span className="text-[#999] normal-case"> - Nenhuma pasta criada</span>}
+                {folders.length === 0 && <span className="text-[#999] normal-case"> - Nenhuma</span>}
               </div>
               
               {/* All Avatars (default view) */}
               <button
                 onClick={() => setCurrentFolder(null)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
+                className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 ${
                   currentFolder === null 
                     ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] font-semibold border border-[#8B5CF6]/40' 
                     : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
                 }`}
               >
-                <Users size={14} />
+                <Users size={11} />
                 <span className="flex-1">Todos ({library.length})</span>
               </button>
               
@@ -952,24 +952,24 @@ export function AvatarLibraryModalV2({
                   
                   return (
                     <div key={folder.id}>
-                      <div className="flex items-center gap-1" style={{ paddingLeft: depth * 12 }}>
+                      <div className="flex items-center gap-0.5" style={{ paddingLeft: depth * 10 }}>
                         <button
                           onClick={() => setCurrentFolder(folder.id)}
-                          className={`flex-1 text-left px-3 py-2 rounded-lg text-xs transition flex items-center gap-2 ${
+                          className={`flex-1 text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 min-w-0 ${
                             isActive 
                               ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
                               : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
                           }`}
                         >
                           {hasChildren && (
-                            <ChevronRight size={10} className={`flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            <ChevronRight size={8} className={`flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                           )}
                           <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0" 
+                            className="w-2 h-2 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: folder.color || '#8B5CF6' }}
                           />
                           <span className="flex-1 truncate">{folder.name}</span>
-                          <span className="text-[10px] text-[#666]">({allIds.size})</span>
+                          <span className="text-[9px] text-[#555]">({allIds.size})</span>
                         </button>
                         
                         <button
@@ -979,16 +979,16 @@ export function AvatarLibraryModalV2({
                             e.preventDefault();
                             deleteFolder(folder.id);
                           }}
-                          className={`flex-shrink-0 p-1.5 rounded transition-colors ${
+                          className={`flex-shrink-0 p-1 rounded transition-colors ${
                             confirmingDelete === folder.id
                               ? 'bg-red-600'
                               : 'text-[#555] hover:text-red-400 hover:bg-red-500/10'
                           }`}
-                          title={confirmingDelete === folder.id ? 'Clique para confirmar' : 'Deletar pasta'}
+                          title={confirmingDelete === folder.id ? 'Confirmar' : 'Deletar'}
                         >
                           {confirmingDelete === folder.id 
-                            ? <span className="text-[9px] text-white font-bold px-1">X</span>
-                            : <Trash2 size={11} />
+                            ? <span className="text-[8px] text-white font-bold px-0.5">X</span>
+                            : <Trash2 size={9} />
                           }
                         </button>
                       </div>
