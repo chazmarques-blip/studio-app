@@ -1622,7 +1622,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
             </div>
           )}
 
-          {/* Grid 6 colunas - Formato compacto permanente */}
+          {/* Grid 6 colunas - Formato compacto permanente (only when no panels are generating) */}
+          {!(panels.length > 0 && panels.some(p => p.status === 'generating')) && (
+          <>
           {reorderedFrames && (
             <div className="flex items-center justify-between bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-lg px-3 py-2 mb-2">
               <span className="text-xs text-[#8B5CF6] font-medium flex items-center gap-1.5">
@@ -1771,6 +1773,8 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               </div>
             </SortableContext>
           </DndContext>
+          </>
+          )}
         </div>
       )}
 
