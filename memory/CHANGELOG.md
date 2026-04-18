@@ -1,5 +1,43 @@
 # StudioX Changelog
 
+## 2026-04-18 (Session 4 — continuação)
+
+### Video Quality Upgrade — Sprints P0+P1 completos
+**Problema identificado**: Prompts Sora 2 estavam 10x maiores que o recomendado pelo guia oficial OpenAI 2026 (>5000 chars, guia pede <150 palavras). Sora ignorava silenciosamente metade do prompt.
+
+**Implementado**:
+
+1. **Toggle Production Quality** (`fast` vs `cinema`)
+   - Campo novo `production_quality` em `StudioProject` (default `fast` para backward compat).
+   - UI: radio no modal de novo projeto (só aparece quando `videoEngine=sora`). Badge visual "⚡ Rápida" vs "🎬 Cinema".
+   - `fast`: Sora 2 @ 1280×720, prompt legacy (longo), FFmpeg CRF 23 / AAC 128k — comportamento anterior.
+   - `cinema`: Sora 2 Pro @ 1792×1024 HD, prompt compacto (<200 palavras) cinema-style, FFmpeg CRF 18 / preset medium / AAC 256k.
+
+2. **Prompt Sora cinema-style (P0)**
+   - Prompt novo em formato `[SHOT] / [ACTION] / [DIALOGUE] / [STYLE] / [VOICES] / [TEXT]`.
+   - Identidade visual movida integralmente para o `input_reference` (keyframe Gemini).
+   - Só ativa quando `production_quality=cinema`. Modo `fast` mantém o prompt longo original.
+
+3. **Sora 2 Pro @ 1792×1024 (P0)**
+   - `_generate_video_with_openai_direct` e `_generate_video_unified` agora aceitam `model` e `sora_model` parâmetros.
+   - Auto-seleciona `sora-2-pro` + `1792x1024` quando `production_quality=cinema`.
+
+4. **Gemini 3 Pro Image (Nano Banana Pro) via env var (P0)**
+   - `core/llm.py` agora lê `GEMINI_IMAGE_MODEL` (default `gemini-2.5-flash-image`).
+   - Para ativar consistência de personagens top-tier, basta setar `GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview` no `.env`.
+
+5. **FFmpeg cinema preset (P1)**
+   - `_concatenate_videos` agora aceita `cinema_quality: bool`.
+   - Cinema: `-crf 18 -preset medium -c:a aac -b:a 256k -pix_fmt yuv420p`.
+
+6. **Emotion markers no diálogo (P1)**
+   - `dialogue_timeline` beats agora suportam campo opcional `emotion` que é injetado como `[whispers]`, `[laughing]`, `[tense]` etc. no prompt Sora.
+
+**Backward compatibility**: Todas as mudanças são condicionais. Projetos existentes sem `production_quality` rodam em modo `fast` e se comportam exatamente como antes.
+
+**Testing**: 13/13 testes backend passaram via testing_agent_v3_fork (iteration_136.json).
+
+
 ## 2026-04-18 (Session 4)
 
 ### Sora 2 Character Voice Lock (NEW)
