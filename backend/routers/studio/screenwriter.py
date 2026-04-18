@@ -867,10 +867,17 @@ def _merge_screenplay_results(tenant_id: str, project_id: str, result: dict):
     chat_history = project.get("chat_history", [])
     chat_history.append({"role": "agent", "text": f"✅ {len(new_scenes)} cenas geradas!"})
     project["chat_history"] = chat_history[-20:]
-    project["chat_status"] = "idle"
+    project["chat_status"] = "done"
+    project["pipeline_phase"] = "screenwriter_done"
+    project["status"] = "scripting"
     project["updated_at"] = datetime.now(timezone.utc).isoformat()
     
-    _save_project(tenant_id, settings, projects)
+    n_scenes = len(existing_scenes)
+    n_chars = len(existing_chars)
+    _add_milestone(project, "screenplay_created", f"Roteiro criado — {n_scenes} cenas, {n_chars} personagens")
+    _save_project(tenant_id, settings, projects, flush_now=True)
+    
+    logger.info(f"ParallelScreenplay [{project_id}]: DONE — set chat_status=done, pipeline_phase=screenwriter_done")
 
 
 
