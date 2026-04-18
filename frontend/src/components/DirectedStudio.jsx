@@ -423,6 +423,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [songAdjustment, setSongAdjustment] = useState('');
   const [songStyle, setSongStyle] = useState('auto');
   const [songAge, setSongAge] = useState('3-5');
+  const [songLang, setSongLang] = useState('pt');
   const [resultTab, setResultTab] = useState('filme');
   const [bookPage, setBookPage] = useState(0);
   const [ilIdx, setIlIdx] = useState(null);   // null = grid, number = full view
@@ -4555,10 +4556,25 @@ export const DirectedStudio = memo(function DirectedStudio({
                           <option value="5-8">5-8 anos</option>
                           <option value="8-12">8-12 anos</option>
                         </select>
+                        <select value={songLang} onChange={e => setSongLang(e.target.value)} data-testid="song-lang-select"
+                          className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50">
+                          <option value="pt">Português</option>
+                          <option value="en">English</option>
+                          <option value="es">Español</option>
+                          <option value="fr">Français</option>
+                          <option value="de">Deutsch</option>
+                          <option value="it">Italiano</option>
+                          <option value="ja">日本語</option>
+                          <option value="ko">한국어</option>
+                          <option value="zh">中文</option>
+                          <option value="ar">العربية</option>
+                          <option value="hi">हिन्दी</option>
+                          <option value="he">עברית</option>
+                        </select>
                         <button onClick={async () => {
                             if (generatingSong) return; setGeneratingSong(true);
                             try {
-                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge, language: songLang });
                               const newSong = { id: r.data.song_id, url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds, style: r.data.style || songStyle, created_at: new Date().toISOString() };
                               setSongsList(prev => [...prev, newSong]);
                               setEditingSongId(r.data.song_id);
@@ -4595,7 +4611,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                 {lang === 'pt' ? 'Música' : 'Song'} #{idx + 1}
                                 {song.style && song.style !== 'auto' && <span className="ml-1.5 text-[9px] font-mono bg-pink-500/10 text-pink-400 px-1.5 py-0.5 rounded">{STYLE_NAMES[song.style] || song.style}</span>}
                               </p>
-                              <p className="text-[10px] font-mono text-[#555]">{song.duration_seconds || '?'}s • {song.age_range || '?'}</p>
+                              <p className="text-[10px] font-mono text-[#555]">{song.duration_seconds || '?'}s • {song.age_range || '?'} • {({'pt':'PT','en':'EN','es':'ES','fr':'FR','de':'DE','it':'IT','ja':'JP','ko':'KR','zh':'CN','ar':'AR','hi':'HI','he':'HE'})[song.language] || song.language || 'PT'}</p>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <a href={song.url?.split('?')[0] || song.url} download onClick={e => e.stopPropagation()}
@@ -4642,7 +4658,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                 <button onClick={async () => {
                                     if (generatingSong || !songAdjustment?.trim()) return; setGeneratingSong(true);
                                     try {
-                                      const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, adjustment: songAdjustment, edited_lyrics: song.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                      const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, adjustment: songAdjustment, edited_lyrics: song.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge, language: songLang });
                                       const newSong2 = { id: r.data.song_id, url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds, style: r.data.style, created_at: new Date().toISOString() };
                                       setSongsList(prev => [...prev, newSong2]);
                                       setEditingSongId(r.data.song_id);
@@ -4659,7 +4675,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                                 <button onClick={async () => {
                                     if (generatingSong) return; setGeneratingSong(true);
                                     try {
-                                      const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, prompt: `Children's song. Sing these EXACT lyrics:\n\n${song.lyrics}`, edited_lyrics: song.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                      const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, prompt: `Children's song. Sing these EXACT lyrics:\n\n${song.lyrics}`, edited_lyrics: song.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge, language: songLang });
                                       const newSong3 = { id: r.data.song_id, url: `${r.data.music_url}?t=${Date.now()}`, lyrics: song.lyrics, duration_seconds: r.data.duration_seconds, style: r.data.style, created_at: new Date().toISOString() };
                                       setSongsList(prev => [...prev, newSong3]);
                                       setEditingSongId(r.data.song_id);

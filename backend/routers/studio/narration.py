@@ -48,7 +48,8 @@ class GenerateMusicRequest(BaseModel):
     style: Optional[str] = None
     age_range: Optional[str] = None
     edited_lyrics: Optional[str] = None
-    adjustment: Optional[str] = None  # User instruction to adjust lyrics
+    adjustment: Optional[str] = None
+    language: Optional[str] = None  # pt, en, es, fr, de, it, ja, ko, zh, ar, hi, he
 
 
 @router.get("/music-styles")
@@ -143,8 +144,14 @@ async def generate_music(project_id: str, req: GenerateMusicRequest = None, tena
     else:
         style_hint = AGE_STYLES.get(age_range, AGE_STYLES["3-5"])
     
-    LANG_NAMES = {"pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French"}
-    lang_name = LANG_NAMES.get(lang, "Portuguese")
+    LANG_NAMES = {
+        "pt": "Portuguese", "en": "English", "es": "Spanish", "fr": "French",
+        "de": "German", "it": "Italian", "ja": "Japanese", "ko": "Korean",
+        "zh": "Chinese (Mandarin)", "ar": "Arabic", "hi": "Hindi", "he": "Hebrew",
+        "ru": "Russian", "tr": "Turkish", "nl": "Dutch", "sv": "Swedish",
+    }
+    music_lang = (req.language if req and req.language else lang) or "pt"
+    lang_name = LANG_NAMES.get(music_lang, "Portuguese")
     
     lyrics_prompt = f"""You are a LEGENDARY children's songwriter (like the creators of Galinha Pintadinha, Mundo Bita, and Disney songs).
 
@@ -292,6 +299,7 @@ Rewrite the lyrics applying the requested adjustment. Keep the same structure (v
             "duration_seconds": duration_ms // 1000,
             "age_range": age_range,
             "style": chosen_style or "auto",
+            "language": music_lang,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         
