@@ -240,18 +240,36 @@ Rewrite the lyrics applying the requested adjustment. Keep the same structure (v
     
     try:
         from elevenlabs import ElevenLabs as ElevenLabsClient
+        from elevenlabs.core.api_error import ApiError
         client = ElevenLabsClient(api_key=elevenlabs_key)
         
         logger.info(f"MusicGen [{project_id}]: Composing {duration_ms//1000}s song with vocals")
         
-        track_stream = client.music.compose(
-            prompt=music_prompt,
-            music_length_ms=duration_ms
-        )
-        
-        audio_data = b""
-        for chunk in track_stream:
-            audio_data += chunk
+        # Try with original prompt, retry with ElevenLabs suggestion if rejected
+        current_prompt = music_prompt
+        for attempt in range(3):
+            try:
+                track_stream = client.music.compose(
+                    prompt=current_prompt,
+                    music_length_ms=duration_ms
+                )
+                
+                audio_data = b""
+                for chunk in track_stream:
+                    audio_data += chunk
+                break  # Success
+            except ApiError as api_err:
+                body = getattr(api_err, 'body', {}) or {}
+                detail = body.get('detail', {}) if isinstance(body, dict) else {}
+                suggestion = detail.get('data', {}).get('prompt_suggestion', '') if isinstance(detail, dict) else ''
+                
+                if suggestion and attempt < 2:
+                    logger.warning(f"MusicGen [{project_id}]: Prompt rejected (attempt {attempt+1}), retrying with ElevenLabs suggestion")
+                    current_prompt = suggestion
+                    audio_data = b""
+                    continue
+                else:
+                    raise
         
         if len(audio_data) < 1000:
             raise HTTPException(status_code=500, detail="Music generation returned empty audio")
@@ -308,7 +326,17 @@ Rewrite the lyrics applying the requested adjustment. Keep the same structure (v
         logger.error(f"MusicGen [{project_id}]: Error: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Music generation failed: {str(e)[:100]}")
+        # Clean error message for the user
+        err_str = str(e)
+        if 'violated' in err_str.lower() or 'bad_prompt' in err_str.lower():
+            msg = "O conteúdo da letra foi rejeitado pelo filtro. Tente editar a letra e regenerar."
+        elif 'billing' in err_str.lower() or 'quota' in err_str.lower():
+            msg = "Limite de créditos ElevenLabs atingido. Verifique sua conta."
+        elif 'timeout' in err_str.lower():
+            msg = "Timeout na geração. Tente novamente."
+        else:
+            msg = "Erro ao gerar música. Tente novamente."
+        raise HTTPException(status_code=500, detail=msg)
 
 
 @router.delete("/projects/{project_id}/songs/{song_id}")
