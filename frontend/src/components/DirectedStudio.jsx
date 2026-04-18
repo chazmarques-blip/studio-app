@@ -4273,16 +4273,22 @@ export const DirectedStudio = memo(function DirectedStudio({
                   </div>
                 )}
 
-                {/* TAB: Livro Animado */}
+                {/* TAB: Livro Animado — inline iframe */}
                 {resultTab === 'livro' && (
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-orange-500/20 overflow-hidden bg-gray-50 p-4 text-center">
-                      {thumbs[0] && <img src={thumbs[0]} alt="" className="w-full max-h-[400px] object-contain rounded-lg mb-3" />}
-                      <p className="text-xs font-mono text-[#555] mb-3">{sceneCount} {lang === 'pt' ? 'páginas interativas' : 'interactive pages'}</p>
-                      <button onClick={() => setPreviewModal({ type: 'book' })} data-testid="open-book-preview"
-                        className="bg-[#8B5CF6] text-black font-semibold text-[10px] tracking-wide uppercase px-6 py-2.5 rounded-sm hover:bg-white transition-colors duration-300 inline-flex items-center gap-1.5">
-                        <BookOpen size={12} /> {lang === 'pt' ? 'Abrir Livro Interativo' : 'Open Interactive Book'}
-                      </button>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BookOpen size={16} className="text-orange-600" />
+                        <span className="text-sm font-medium text-gray-900">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</span>
+                        <span className="text-[10px] font-mono text-[#555]">{sceneCount} {lang === 'pt' ? 'páginas' : 'pages'}</span>
+                      </div>
+                      <a href={`/book/${projectId}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] font-mono text-orange-600 hover:underline">
+                        <Maximize2 size={10} /> {lang === 'pt' ? 'Tela cheia' : 'Full screen'}
+                      </a>
+                    </div>
+                    <div className="rounded-xl overflow-hidden border border-orange-500/20" style={{ height: '65vh' }}>
+                      <iframe src={`/book/${projectId}`} className="w-full h-full border-0" title="Interactive Book" data-testid="inline-book-iframe" />
                     </div>
                   </div>
                 )}
@@ -4577,26 +4583,7 @@ export const DirectedStudio = memo(function DirectedStudio({
             </div>
           )}
 
-          {/* Bottom navigation */}
-          <div className="flex gap-2 pt-3">
-            <button onClick={() => {
-              skipAutoResume.current = true;
-              setStep(0); setProjectId(null); setChatMessages([]); setScenes([]);
-              setCharacters([]); setOutputs([]); setAgentStatus({});
-              loadProjects();
-            }} data-testid="back-to-projects"
-              className="flex-1 rounded-sm border border-[#222] py-2.5 text-[10px] font-mono tracking-wider uppercase text-gray-500 hover:text-gray-900 hover:border-[#444] transition">
-              {lang === 'pt' ? 'Projectos' : 'Projects'}
-            </button>
-            <button onClick={() => setStep(4)} data-testid="go-to-storyboard"
-              className="flex-1 rounded-sm border border-orange-500/20 bg-[#8B5CF6]/5 py-2.5 text-[10px] font-mono tracking-wider uppercase text-orange-600 hover:bg-[#8B5CF6]/10 transition flex items-center justify-center gap-1.5">
-              <Camera size={10} /> Storyboard
-            </button>
-            <button onClick={() => setStep(6)} data-testid="go-to-config-btn"
-              className="flex-1 bg-[#8B5CF6] text-black rounded-sm py-2.5 text-[10px] font-mono tracking-wider uppercase font-semibold hover:bg-white transition-colors duration-300 flex items-center justify-center gap-1.5">
-              <RefreshCw size={10} /> {lang === 'pt' ? 'Re-produzir' : 'Re-produce'}
-            </button>
-          </div>
+          {/* Bottom navigation removed - tabs replace it */}
         </div>
       )}
 
