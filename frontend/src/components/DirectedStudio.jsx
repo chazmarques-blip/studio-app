@@ -4161,13 +4161,13 @@ export const DirectedStudio = memo(function DirectedStudio({
 
       {/* ═══ STEP 7: Resultado — Tabbed Deliverables ═══ */}
       {step === 7 && !viewingProject && (
-        <div className="space-y-0" data-testid="studio-step-results">
+        <div className="max-w-3xl mx-auto space-y-0" data-testid="studio-step-results">
           {/* Section Header */}
-          <div className="text-center py-2">
-            <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-orange-600/60 mb-1">
+          <div className="text-center py-1">
+            <p className="text-[9px] font-mono tracking-[0.3em] uppercase text-orange-600/60 mb-0.5">
               {lang === 'pt' ? 'Entrega Final' : 'Final Delivery'}
             </p>
-            <h2 className="text-xl sm:text-2xl font-medium text-gray-900 tracking-tight">
+            <h2 className="text-base font-medium text-gray-900 tracking-tight">
               {lang === 'pt' ? 'Seus Produtos' : 'Your Products'}
             </h2>
           </div>
@@ -4207,35 +4207,35 @@ export const DirectedStudio = memo(function DirectedStudio({
 
             return (
             <>
-              <div className="flex gap-1 overflow-x-auto pb-1 px-1 scrollbar-hide border-b border-gray-200 mb-3">
+              <div className="flex gap-0.5 overflow-x-auto pb-0.5 scrollbar-hide border-b border-gray-200 mb-2">
                 {TABS.map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setResultTab(tab.id)}
                     data-testid={`result-tab-${tab.id}`}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-[10px] font-mono tracking-wider uppercase whitespace-nowrap transition-all ${
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-t-md text-[9px] font-mono tracking-wider uppercase whitespace-nowrap transition-all ${
                       resultTab === tab.id
                         ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-b-2 border-[#8B5CF6] font-semibold'
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
-                    <tab.icon size={12} />
+                    <tab.icon size={10} />
                     {tab.label}
-                    {tab.count && <span className="text-[9px] bg-gray-200 rounded px-1">{tab.count}</span>}
+                    {tab.count && <span className="text-[8px] bg-gray-200 rounded px-0.5">{tab.count}</span>}
                   </button>
                 ))}
               </div>
 
               {/* ── TAB CONTENT ── */}
-              <div className="min-h-[400px]">
+              <div className="min-h-[300px]">
 
                 {/* TAB: Filme */}
                 {resultTab === 'filme' && heroOut && (
-                  <div className="space-y-3">
-                    <div className="relative rounded-xl overflow-hidden border border-orange-500/20 group" data-testid="deliverable-filme-completo">
-                      <div className="relative bg-white aspect-video cursor-pointer"
+                  <div className="space-y-2">
+                    <div className="relative rounded-lg overflow-hidden border border-orange-500/20 group" data-testid="deliverable-filme-completo">
+                      <div className="relative bg-white cursor-pointer" style={{ maxHeight: '400px' }}
                         onClick={() => setPreviewModal({ type: 'video', data: { url: heroOut.url, scene_number: 0, allVideos: [] } })}>
-                        <video className="w-full h-full object-contain" data-testid="result-video-complete" src={heroOut.url} poster="" preload="metadata" />
+                        <video className="w-full h-full object-contain" style={{ maxHeight: '400px' }} data-testid="result-video-complete" src={heroOut.url} poster="" preload="metadata" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                         <div className="absolute top-3 left-3 flex items-center gap-2">
                           <span className="text-[11px] font-mono tracking-[0.2em] uppercase bg-[#8B5CF6] text-black px-2 py-0.5 rounded-sm font-semibold">
@@ -4248,14 +4248,14 @@ export const DirectedStudio = memo(function DirectedStudio({
                           </div>
                         </div>
                       </div>
-                      <div className="p-3 flex items-center justify-between bg-gray-50">
+                      <div className="p-2 flex items-center justify-between bg-gray-50">
                         <div>
-                          <p className="text-xs font-medium text-gray-900">{projectName}</p>
-                          <p className="text-xs font-mono text-[#555]">{scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'}</p>
+                          <p className="text-[11px] font-medium text-gray-900">{projectName}</p>
+                          <p className="text-[10px] font-mono text-[#555]">{scenes.length} {lang === 'pt' ? 'cenas' : 'scenes'}</p>
                         </div>
                         <a href={heroOut.url} download data-testid="download-filme-completo"
-                          className="bg-[#8B5CF6] text-black font-semibold text-[10px] tracking-wide uppercase px-4 py-2 rounded-sm hover:bg-white transition-colors duration-300 flex items-center gap-1.5">
-                          <Download size={12} strokeWidth={1.5} /> Download
+                          className="bg-[#8B5CF6] text-black font-semibold text-[9px] tracking-wide uppercase px-3 py-1.5 rounded-sm hover:bg-white transition-colors duration-300 flex items-center gap-1">
+                          <Download size={10} strokeWidth={1.5} /> Download
                         </a>
                       </div>
                     </div>
@@ -4264,9 +4264,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <div className="flex justify-center">
                         <button onClick={async () => { try { setGenerating(true); toast.success(lang === 'pt' ? 'Atualizando filme...' : 'Rebuilding...'); await axios.post(`${API}/studio/projects/${projectId}/rebuild-film`); startPolling(projectId); } catch { toast.error('Erro'); setGenerating(false); } }}
                           disabled={generating} data-testid="rebuild-film-btn"
-                          className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg transition-all disabled:opacity-40">
-                          <RefreshCw size={14} className={generating ? 'animate-spin' : ''} />
-                          {lang === 'pt' ? 'Atualizar Filme Completo' : 'Rebuild Complete Film'}
+                          className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-[10px] shadow transition-all disabled:opacity-40">
+                          <RefreshCw size={12} className={generating ? 'animate-spin' : ''} />
+                          {lang === 'pt' ? 'Atualizar Filme' : 'Rebuild Film'}
                         </button>
                       </div>
                     )}
@@ -4287,7 +4287,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         <Maximize2 size={10} /> {lang === 'pt' ? 'Tela cheia' : 'Full screen'}
                       </a>
                     </div>
-                    <div className="rounded-xl overflow-hidden border border-orange-500/20" style={{ height: '65vh' }}>
+                    <div className="rounded-lg overflow-hidden border border-orange-500/20" style={{ height: '50vh' }}>
                       <iframe src={`/book/${projectId}`} className="w-full h-full border-0" title="Interactive Book" data-testid="inline-book-iframe" />
                     </div>
                   </div>
@@ -4295,8 +4295,8 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* TAB: Ilustrações / Storyboard PDF */}
                 {resultTab === 'ilustracoes' && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
                       {allPanelFrames.slice(0, 24).map((frame, i) => (
                         <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-gray-200 cursor-pointer group"
                           onClick={() => setPreviewModal({ type: 'pdf' })}>
@@ -4322,8 +4322,8 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* TAB: Vídeos por Cena */}
                 {resultTab === 'videos' && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
                       {sceneVideos.map((out, i) => {
                         const isRegenerating = regenScene === out.scene_number;
                         return (
@@ -4356,8 +4356,8 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* TAB: Pós-Produção */}
                 {resultTab === 'pos' && (
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-blue-500/20 bg-gray-50 p-4">
+                  <div className="space-y-2">
+                    <div className="rounded-lg border border-blue-500/20 bg-gray-50 p-3">
                       <div className="flex items-center gap-3 mb-3">
                         <Clapperboard size={20} className="text-blue-400" />
                         <div>
@@ -4382,9 +4382,9 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* TAB: Música Cantada */}
                 {resultTab === 'musica' && (
-                  <div data-testid="deliverable-musica-cantada" className="space-y-3">
+                  <div data-testid="deliverable-musica-cantada" className="space-y-2">
                     {/* Generate new song controls */}
-                    <div className="rounded-xl border border-pink-500/20 bg-gray-50 p-4">
+                    <div className="rounded-lg border border-pink-500/20 bg-gray-50 p-3">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
