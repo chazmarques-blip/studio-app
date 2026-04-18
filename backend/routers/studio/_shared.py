@@ -907,6 +907,7 @@ class StudioProject(BaseModel):
     format_strategy: str = "safe_zone"
     formats_requested: list = ["16:9"]
     video_engine: str = "sora"  # ✅ CRITICAL: "sora" or "kling"
+    production_quality: str = "fast"  # "fast" (sora-2 720p, CRF 23) | "cinema" (sora-2-pro 1792x1024, CRF 18, 256k audio)
     target_duration_minutes: int = 5  # ✅ CRITICAL: duration in minutes
 
 class ChatMessage(BaseModel):

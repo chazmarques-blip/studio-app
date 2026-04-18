@@ -153,12 +153,16 @@ async def generate_image_gemini(prompt: str, input_image_bytes: bytes = None, ma
         contents.append(types.Part.from_bytes(data=input_image_bytes, mime_type="image/png"))
     contents.append(prompt)
 
+    # Feature flag: use Gemini 3 Pro Image (Nano Banana Pro) for max character consistency
+    # when GEMINI_IMAGE_MODEL env is set. Defaults to gemini-2.5-flash-image for stability.
+    model_name = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+
     last_error = None
     for attempt in range(max_retries):
         try:
             response = await asyncio.to_thread(
                 client.models.generate_content,
-                model="gemini-2.5-flash-image",
+                model=model_name,
                 contents=contents,
                 config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
             )
@@ -217,8 +221,10 @@ def generate_image_gemini_sync(prompt: str, input_image_bytes: bytes = None, ext
                 contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/png"))
     contents.append(prompt)
 
+    model_name = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+
     response = client.models.generate_content(
-        model="gemini-2.5-flash-image",
+        model=model_name,
         contents=contents,
         config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
     )

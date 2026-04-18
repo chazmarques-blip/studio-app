@@ -50,6 +50,7 @@ async def create_project(req: StudioProject, tenant=Depends(get_current_tenant))
         "target_audience": getattr(req, 'target_audience', 'all'),  # NEW: Age range
         "character_folder_id": getattr(req, 'character_folder_id', None),  # NEW: Folder for characters
         "video_engine": getattr(req, 'video_engine', 'sora'),  # Video engine (sora/kling)
+        "production_quality": getattr(req, 'production_quality', 'fast'),  # "fast" (sora-2 720p) | "cinema" (sora-2-pro 1792x1024)
         "target_duration_minutes": getattr(req, 'target_duration_minutes', 5),  # Duration in minutes
         "created_at": now,
         "updated_at": now,
@@ -148,6 +149,7 @@ async def get_project_status(project_id: str, tenant=Depends(get_current_tenant)
         "error": project.get("error"),
         "video_engine": project.get("video_engine", "sora"),
         "production_mode": project.get("production_mode", "fast"),
+        "production_quality": project.get("production_quality", "fast"),
         "character_library": project.get("character_library"),
         "director_review": project.get("director_review"),
         "director_progress": project.get("director_progress"),
@@ -225,7 +227,7 @@ async def update_project_settings(project_id: str, payload: dict = Body(...), te
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    allowed_keys = {"screenplay_approved", "audio_mode", "visual_style", "animation_sub", "continuity_mode", "language", "video_engine", "production_mode"}
+    allowed_keys = {"screenplay_approved", "audio_mode", "visual_style", "animation_sub", "continuity_mode", "language", "video_engine", "production_mode", "production_quality"}
     for k, v in payload.items():
         if k in allowed_keys:
             project[k] = v

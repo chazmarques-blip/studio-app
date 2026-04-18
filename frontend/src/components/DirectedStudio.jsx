@@ -445,6 +445,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [audioMode, setAudioMode] = useState('narrated');
   const [animationSub, setAnimationSub] = useState('pixar_3d');
   const [videoEngine, setVideoEngine] = useState('sora'); // NEW: Sora 2 or Kling AI
+  const [productionQuality, setProductionQuality] = useState('fast'); // "fast" (Sora 2 720p) | "cinema" (Sora 2 Pro 1792x1024)
   // Continuity Mode removed - now using QC Team for continuity checks
   const [regenScene, setRegenScene] = useState(null);
   const [editingScene, setEditingScene] = useState(null);
@@ -654,6 +655,7 @@ export const DirectedStudio = memo(function DirectedStudio({
         setProjectAvatars(p.project_avatars || []);
         setChatMessages(p.chat_messages || []);
         setVideoEngine(p.video_engine || 'sora');
+        setProductionQuality(p.production_quality || 'fast');
         
         // Determine step based on project state
         // PRIORIDADE: Status complete ou tem vídeos = ir para resultado
@@ -2251,6 +2253,52 @@ export const DirectedStudio = memo(function DirectedStudio({
                   </button>
                 </div>
               </div>
+
+              {/* Production Quality toggle (Sora only) */}
+              {videoEngine === 'sora' && (
+                <div>
+                  <label className="text-[11px] text-gray-500 uppercase tracking-wider mb-1 block">
+                    {lang === 'pt' ? '🎞️ Qualidade de Produção' : '🎞️ Production Quality'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button"
+                      onClick={() => setProductionQuality('fast')}
+                      data-testid="quality-fast"
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        productionQuality === 'fast'
+                          ? 'border-gray-500/60 bg-gray-500/10 shadow-sm'
+                          : 'border-[#222] bg-gray-50 hover:border-[#444]'
+                      }`}>
+                      <div className={`font-semibold text-xs mb-1 ${productionQuality === 'fast' ? 'text-gray-900' : 'text-gray-700'}`}>
+                        ⚡ {lang === 'pt' ? 'Rápida' : 'Fast'}
+                      </div>
+                      <div className="text-[10px] text-gray-600 space-y-0.5">
+                        <div>Sora 2 · 1280×720</div>
+                        <div>{lang === 'pt' ? 'Prompts longos' : 'Long prompts'}</div>
+                        <div>💰 ~$0.12/s</div>
+                      </div>
+                    </button>
+                    <button type="button"
+                      onClick={() => setProductionQuality('cinema')}
+                      data-testid="quality-cinema"
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        productionQuality === 'cinema'
+                          ? 'border-amber-500/60 bg-amber-500/10 shadow-sm'
+                          : 'border-[#222] bg-gray-50 hover:border-[#444]'
+                      }`}>
+                      <div className={`font-semibold text-xs mb-1 ${productionQuality === 'cinema' ? 'text-amber-700' : 'text-gray-700'}`}>
+                        🎬 Cinema
+                      </div>
+                      <div className="text-[10px] text-gray-600 space-y-0.5">
+                        <div>Sora 2 Pro · 1792×1024 HD</div>
+                        <div>{lang === 'pt' ? 'Prompts enxutos <200 palavras' : 'Tight prompts <200 words'}</div>
+                        <div>{lang === 'pt' ? 'FFmpeg CRF 18, AAC 256k' : 'FFmpeg CRF 18, AAC 256k'}</div>
+                        <div>💰 ~$0.30-0.70/s</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
               
               {/* Continuity Engine section removed - now using QC Team instead */}
               <div className="flex gap-2">
@@ -2265,7 +2313,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                     audio_mode: audioMode,
                     animation_sub: animationSub,
                     visual_style: animationSub.includes('3d') ? 'animation' : animationSub.includes('2d') ? (animationSub === 'anime_2d' ? 'anime' : 'cartoon') : animationSub === 'realistic' ? 'realistic' : 'watercolor',
-                    video_engine: videoEngine // NEW: Pass selected video engine
+                    video_engine: videoEngine, // NEW: Pass selected video engine
+                    production_quality: productionQuality, // NEW: fast or cinema (Sora 2 Pro HD)
                   })} 
                   disabled={!projectName.trim()} 
                   data-testid="create-project-btn"

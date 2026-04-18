@@ -22,7 +22,7 @@ def _run_async_in_thread(coro):
         asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
 
-def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = "1280x720", duration: int = 12, image_path: str = None, max_wait: int = 600, sora_character_ids: Optional[list] = None) -> bytes:
+def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = "1280x720", duration: int = 12, image_path: str = None, max_wait: int = 600, sora_character_ids: Optional[list] = None, model: str = "sora-2") -> bytes:
     """Generate video using OpenAI SDK directly (not emergentintegrations).
     
     Args:
@@ -35,6 +35,7 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         sora_character_ids: Optional list of pre-registered Sora character_ids
             (POST /v1/sora/characters) to lock voice+appearance across scenes.
             Max 2 per Sora 2 limit. Safe when empty/None.
+        model: "sora-2" (default, 720p) or "sora-2-pro" (1792x1024 HD support).
     
     Returns:
         Video bytes if successful, empty bytes if failed
@@ -46,7 +47,7 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
     try:
         # Prepare generation parameters
         gen_params = {
-            "model": "sora-2",
+            "model": model,
             "prompt": prompt,  # Full prompt - dialogue + characters + direction
             "size": size,
             "seconds": duration
@@ -143,7 +144,8 @@ def _generate_video_unified(
     max_wait: int = 600,
     openai_client: Optional[OpenAI] = None,
     kling_client: Optional[KlingClient] = None,
-    sora_character_ids: Optional[list] = None
+    sora_character_ids: Optional[list] = None,
+    sora_model: str = "sora-2"
 ) -> bytes:
     """Unified video generation supporting both Sora 2 and Kling AI
     
@@ -193,6 +195,7 @@ def _generate_video_unified(
             image_path=image_path,
             max_wait=max_wait,
             sora_character_ids=sora_character_ids,
+            model=sora_model,
         )
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 - Per-Scene Parallel Teams) ──
@@ -515,7 +518,9 @@ def _run_multi_scene_production(tenant_id: str, project_id: str, character_avata
                 if character_beats:
                     timing_parts = []
                     for beat in character_beats:
-                        timing_parts.append(f"[{beat['start_time']:.1f}s-{beat['end_time']:.1f}s] The character [{beat['speaker']}] says: '{beat['text']}' - speaking with perfectly synchronized lip movements")
+                        # Optional emotion marker (e.g. [whispers], [tense]) from beat.emotion
+                        emotion_tag = f"[{beat['emotion']}] " if beat.get('emotion') else ""
+                        timing_parts.append(f"[{beat['start_time']:.1f}s-{beat['end_time']:.1f}s] The character [{beat['speaker']}] says: '{emotion_tag}{beat['text']}' - speaking with perfectly synchronized lip movements")
                     fixed_dialogue_block = f"\n\nDIALOGUE LIP-SYNC TIMING (ORIGINAL {lang_full.upper()} - DO NOT TRANSLATE):\n" + "\n".join(timing_parts)
             
             if not fixed_dialogue_block and scene_dialogue:
@@ -714,7 +719,33 @@ RULE: Same character positions, same camera angle, same lighting. NO visual jump
 
             voice_prompt = "\n[VOICE CONSISTENCY] Each character has a FIXED voice throughout the entire film. Lip movements must match the same speaking style, pace, and mouth movement pattern in every scene.\n"
 
-            sora_prompt = f"""{fixed_dialogue_block}
+            # ── LAYER 6: Cinema-style prompt (SHORT, <200 words) vs Legacy (long, all-in-one) ──
+            # Official OpenAI Sora 2 guide (Feb 2026): Sora 2 ignores half of prompts >150 words.
+            # When `production_quality=cinema`, we emit a compressed prompt and rely on the
+            # keyframe image + Sora character_id for identity/style. Long prompt is kept for
+            # backward compatibility when quality=fast (default = legacy to avoid breaking
+            # existing projects mid-production).
+            prod_quality = project.get("production_quality", "fast")  # "fast" (legacy) | "cinema" (compressed)
+
+            if prod_quality == "cinema":
+                # Extract only the lighting/mood line from pd_style (first sentence typically)
+                pd_style_short = (pd_style.split(".")[0] + ".") if pd_style else ""
+                pd_style_short = pd_style_short[:220]
+                visual_short = visual_direction[:600]  # cap at ~100 words
+                continuity_short = ""
+                if prev_scene:
+                    exit_match2 = _re2.search(r'10-12s?:(.+?)(?:\.|$)', prev_scene.get("_visual_direction", "") or "") if prev_scene.get("_visual_direction") else None
+                    if exit_match2:
+                        continuity_short = f"\n[CONTINUITY] First 2s match previous scene's final pose: {exit_match2.group(1).strip()[:120]}."
+
+                sora_prompt = f"""[SHOT] Cinematic scene, 12 seconds.
+[ACTION] {visual_short}{continuity_short}
+{fixed_dialogue_block}
+[STYLE] {pd_style_short}
+[VOICES] Same character voices as previous scenes.
+[TEXT] All visible text in {language_marker}."""
+            else:
+                sora_prompt = f"""{fixed_dialogue_block}
 
 {char_identity_text}
 {continuity_prompt}{voice_prompt}
@@ -725,7 +756,7 @@ VISUAL DIRECTION: {visual_direction}
 [CRITICAL: All visible text, signs, letters, and written words must be in {language_marker}]
 """
 
-            logger.info(f"Studio [{project_id}]: Scene {scene_num} prompt assembled - total={len(sora_prompt)} chars, style={len(pd_style)} chars, identity={len(char_identity_text)} chars, direction={len(visual_direction)} chars, dialogue={len(fixed_dialogue_block)} chars")
+            logger.info(f"Studio [{project_id}]: Scene {scene_num} prompt assembled [{prod_quality}] - total={len(sora_prompt)} chars, style={len(pd_style)} chars, identity={len(char_identity_text)} chars, direction={len(visual_direction)} chars, dialogue={len(fixed_dialogue_block)} chars")
 
             return {
                 "scene_number": scene_num,
@@ -1420,6 +1451,8 @@ VISUAL DIRECTION: {visual_direction}
                         
                         # Sora 2 Character Lock: pick up to 2 registered character_ids for this scene
                         _sora_char_ids = []
+                        _sora_model = "sora-2"
+                        _sora_size = "1280x720"
                         if video_engine == "sora":
                             try:
                                 from .sora_characters import _sora_character_ids_for_scene
@@ -1428,18 +1461,26 @@ VISUAL DIRECTION: {visual_direction}
                                     logger.info(f"Studio [{project_id}]: Scene {scene_num} using Sora character_ids: {_sora_char_ids}")
                             except Exception as _ce:
                                 logger.warning(f"Studio [{project_id}]: character_ids lookup failed (non-fatal): {_ce}")
+
+                            # Cinema quality → Sora 2 Pro HD (1792x1024)
+                            _prod_q = project.get("production_quality", "fast")
+                            if _prod_q == "cinema":
+                                _sora_model = "sora-2-pro"
+                                _sora_size = "1792x1024"
+                                logger.info(f"Studio [{project_id}]: Scene {scene_num} CINEMA quality → sora-2-pro @ 1792x1024")
                         
                         # Unified video generation supporting Sora 2 and Kling AI
                         video_bytes = _generate_video_unified(
                             prompt=sora_prompt,  # No truncation - dialogue must reach Sora 2 intact
                             engine=video_engine,
-                            size="1280x720",
+                            size=_sora_size if video_engine == "sora" else "1280x720",
                             duration=video_duration,  # 12s for Sora, 300s for Kling
                             image_path=ref_path,
                             max_wait=600,
                             openai_client=openai_client,
                             kling_client=kling_client,
                             sora_character_ids=_sora_char_ids or None,
+                            sora_model=_sora_model,
                         )
                         elapsed = _time.time() - t_v
 
@@ -1781,7 +1822,8 @@ VISUAL DIRECTION: {visual_direction}
             })
             logger.info(f"Studio [{project_id}]: Concatenating {len(successful_videos)} videos...")
             try:
-                final_url = _concatenate_videos(successful_videos, project_id)
+                _cinema = project.get("production_quality", "fast") == "cinema"
+                final_url = _concatenate_videos(successful_videos, project_id, cinema_quality=_cinema)
             except Exception as ce:
                 logger.error(f"Studio [{project_id}]: Concat error: {ce}")
         elif len(successful_videos) == 1:
@@ -1830,7 +1872,7 @@ VISUAL DIRECTION: {visual_direction}
         })
 
 
-def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration: float = 1.0) -> str:
+def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration: float = 1.0, cinema_quality: bool = False) -> str:
     """Download scene videos, concatenate with FFmpeg crossfade, compress for upload, upload result.
     
     Args:
@@ -1908,11 +1950,17 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
             
             filter_complex = ";".join(v_filters + a_filters)
             
+            # Cinema preset: CRF 18, medium preset, 256k audio (vs fast CRF 23, 128k)
+            _crf = "18" if cinema_quality else "23"
+            _preset = "medium" if cinema_quality else "fast"
+            _abr = "256k" if cinema_quality else "128k"
+
             cmd_xfade = ["ffmpeg", "-y"] + inputs + [
                 "-filter_complex", filter_complex,
                 "-map", "[vout]", "-map", "[aout]",
-                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-                "-c:a", "aac", "-b:a", "128k",
+                "-c:v", "libx264", "-preset", _preset, "-crf", _crf,
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac", "-b:a", _abr,
                 "-movflags", "+faststart",
                 output_path
             ]
@@ -2932,10 +2980,15 @@ Story: {briefing[:300]}
                     "progress_message": f"Cena {scene_num}: Sora 2 gerando vídeo ({attempt+1}/3)... ~3-5 min"
                 })
                 
+                # Cinema quality → Sora 2 Pro HD
+                _regen_q = project.get("production_quality", "fast")
+                _regen_model = "sora-2-pro" if _regen_q == "cinema" else "sora-2"
+                _regen_size = "1792x1024" if _regen_q == "cinema" else "1280x720"
+
                 video_bytes = _generate_video_with_openai_direct(
                     client=openai_client,
                     prompt=sora_prompt,
-                    size="1280x720",
+                    size=_regen_size,
                     duration=12,
                     image_path=ref_path,
                     max_wait=600,
@@ -2943,6 +2996,7 @@ Story: {briefing[:300]}
                         _sora_character_ids_for_scene(project, scene, max_refs=2)
                         if True else None
                     ),
+                    model=_regen_model,
                 )
                 if video_bytes and len(video_bytes) > 1000:
                     # Video generated successfully - Sora 2 includes audio with lip-sync!
@@ -3731,7 +3785,8 @@ def _rebuild_film_background(tenant_id: str, project_id: str):
         
         logger.info(f"RebuildFilm [{project_id}]: Concatenating {len(scene_videos)} scenes with crossfade")
         
-        final_url = _concatenate_videos(scene_videos, project_id, crossfade_duration=1.0)
+        _cinema = project.get("production_quality", "fast") == "cinema"
+        final_url = _concatenate_videos(scene_videos, project_id, crossfade_duration=1.0, cinema_quality=_cinema)
         
         if final_url:
             # Update or create the main video output (scene_number=0)
