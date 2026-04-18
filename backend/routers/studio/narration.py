@@ -256,32 +256,52 @@ Rewrite the lyrics applying the requested adjustment. Keep the same structure (v
         if len(audio_data) < 1000:
             raise HTTPException(status_code=500, detail="Music generation returned empty audio")
         
-        # Upload music
-        filename = f"studio/{project_id}_song.mp3"
+        # Upload music with unique filename
+        import uuid as _uuid
+        song_id = str(_uuid.uuid4())[:8]
+        filename = f"studio/{project_id}_song_{song_id}.mp3"
         music_url = _upload_to_storage(audio_data, filename, "audio/mpeg")
         
-        # Save to project
-        # Always use the latest lyrics (adjusted, edited, or freshly generated)
+        # Always use the latest lyrics
         final_lyrics = lyrics or (req.edited_lyrics if req else None) or ""
         
-        project["generated_song"] = {
+        # Build song entry
+        from datetime import datetime, timezone
+        new_song = {
+            "id": song_id,
             "url": music_url,
             "lyrics": final_lyrics,
             "duration_seconds": duration_ms // 1000,
             "age_range": age_range,
-            "prompt_used": music_prompt[:300]
+            "style": chosen_style or "auto",
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
+        
+        # Append to playlist (keep backwards compat with old generated_song)
+        songs_list = project.get("generated_songs", [])
+        # Migrate old single song if exists
+        if not songs_list and project.get("generated_song"):
+            old = project["generated_song"]
+            old["id"] = old.get("id", "legacy")
+            old["created_at"] = old.get("created_at", "")
+            old["style"] = old.get("style", "auto")
+            songs_list.append(old)
+        songs_list.append(new_song)
+        project["generated_songs"] = songs_list
+        project["generated_song"] = new_song  # Keep for backwards compat
         _save_project(tenant["id"], settings, projects, flush_now=True)
         
         logger.info(f"MusicGen [{project_id}]: Song generated — {len(audio_data)//1024}KB")
         
         return {
             "status": "success",
+            "song_id": song_id,
             "music_url": music_url,
             "lyrics": final_lyrics,
             "duration_seconds": duration_ms // 1000,
             "size_kb": len(audio_data) // 1024,
-            "age_range": age_range
+            "age_range": age_range,
+            "style": chosen_style or "auto",
         }
         
     except Exception as e:
@@ -289,6 +309,27 @@ Rewrite the lyrics applying the requested adjustment. Keep the same structure (v
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Music generation failed: {str(e)[:100]}")
+
+
+@router.delete("/projects/{project_id}/songs/{song_id}")
+async def delete_song(project_id: str, song_id: str, tenant=Depends(get_current_tenant)):
+    """Delete a song from the project's playlist."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    songs = project.get("generated_songs", [])
+    project["generated_songs"] = [s for s in songs if s.get("id") != song_id]
+    
+    # Update generated_song to latest remaining or None
+    if project["generated_songs"]:
+        project["generated_song"] = project["generated_songs"][-1]
+    else:
+        project["generated_song"] = None
+    
+    _save_project(tenant["id"], settings, projects, flush_now=True)
+    return {"success": True, "remaining": len(project["generated_songs"])}
+
 
 
 

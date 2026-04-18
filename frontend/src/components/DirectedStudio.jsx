@@ -419,11 +419,12 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [characterAvatars, setCharacterAvatars] = useState({});
   const [generating, setGenerating] = useState(false);
   const [generatingSong, setGeneratingSong] = useState(false);
-  const [songData, setSongData] = useState(null);
+  const [songsList, setSongsList] = useState([]); // Array of songs
   const [songAdjustment, setSongAdjustment] = useState('');
   const [songStyle, setSongStyle] = useState('auto');
   const [songAge, setSongAge] = useState('3-5');
   const [resultTab, setResultTab] = useState('filme');
+  const [editingSongId, setEditingSongId] = useState(null); // Which song is being edited
   const [agentStatus, setAgentStatus] = useState({});
   const [progressMessage, setProgressMessage] = useState('');
   const [fullProductionPhase, setFullProductionPhase] = useState('');
@@ -637,7 +638,8 @@ export const DirectedStudio = memo(function DirectedStudio({
         setCharacterAvatars(p.character_avatars || {});
         setOutputs(p.outputs || []);
         setNarrations(p.narrations || []);
-        if (p.generated_song) setSongData(p.generated_song);
+        if (p.generated_songs?.length) setSongsList(p.generated_songs);
+        else if (p.generated_song) setSongsList([{ ...p.generated_song, id: p.generated_song.id || 'legacy' }]);
         setScreenplayApproved(p.screenplay_approved || false);
         setAudioMode(p.audio_mode || 'narrated');
         setVisualStyle(p.visual_style || 'animation');
@@ -735,7 +737,8 @@ export const DirectedStudio = memo(function DirectedStudio({
           });
           setAllPanelFrames(allFrames);
         }
-        if (full.generated_song) setSongData(full.generated_song);
+        if (full.generated_songs?.length) setSongsList(full.generated_songs);
+        else if (full.generated_song) setSongsList([{ ...full.generated_song, id: full.generated_song.id || 'legacy' }]);
       }).catch(() => {});
     }
   }, [step, projectId]);
@@ -4374,6 +4377,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                 {/* TAB: Música Cantada */}
                 {resultTab === 'musica' && (
                   <div data-testid="deliverable-musica-cantada" className="space-y-3">
+                    {/* Generate new song controls */}
                     <div className="rounded-xl border border-pink-500/20 bg-gray-50 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -4381,27 +4385,12 @@ export const DirectedStudio = memo(function DirectedStudio({
                             <Music size={16} className="text-pink-400" strokeWidth={1.5} />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{lang === 'pt' ? 'Música Cantada' : 'Theme Song'}</p>
-                            <p className="text-[10px] font-mono text-[#555]">
-                              {(songData?.url || songData?.music_url)
-                                ? `${songData.duration_seconds || '?'}s • ${lang === 'pt' ? 'Com vocal e letra' : 'With vocals & lyrics'}`
-                                : (lang === 'pt' ? 'Música-tema original com letra' : 'Original theme song with lyrics')
-                              }
-                            </p>
+                            <p className="text-sm font-medium text-gray-900">{lang === 'pt' ? 'Gerar Nova Música' : 'Generate New Song'}</p>
+                            <p className="text-[10px] font-mono text-[#555]">{songsList.length} {lang === 'pt' ? 'música(s) na playlist' : 'song(s) in playlist'}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {(songData?.url || songData?.music_url) && (
-                            <a href={songData.url || songData.music_url} download onClick={e => e.stopPropagation()}
-                              className="text-[10px] font-mono text-pink-400 hover:underline flex items-center gap-1 px-2 py-1 rounded bg-pink-500/5">
-                              <Download size={10} />MP3
-                            </a>
-                          )}
-                        </div>
                       </div>
-
-                      {/* Style & Age selectors */}
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2">
                         <select value={songStyle} onChange={e => setSongStyle(e.target.value)} data-testid="song-style-select"
                           className="text-[10px] bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none focus:border-pink-400/50">
                           <option value="auto">Estilo: Automático</option>
@@ -4425,79 +4414,127 @@ export const DirectedStudio = memo(function DirectedStudio({
                           <option value="5-8">5-8 anos</option>
                           <option value="8-12">8-12 anos</option>
                         </select>
-                        {!songData?.lyrics && (
-                          <button onClick={async () => {
-                              if (generatingSong) return; setGeneratingSong(true);
-                              try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
-                                setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds }); toast.success('Música gerada!');
-                              } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
-                            }} disabled={generatingSong}
-                            className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50">
-                            {generatingSong ? <><RefreshCw size={10} className="animate-spin" />Gerando...</> : <><Music size={10} />Gerar Música</>}
-                          </button>
-                        )}
+                        <button onClick={async () => {
+                            if (generatingSong) return; setGeneratingSong(true);
+                            try {
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                              const newSong = { id: r.data.song_id, url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds, style: r.data.style || songStyle, created_at: new Date().toISOString() };
+                              setSongsList(prev => [...prev, newSong]);
+                              setEditingSongId(r.data.song_id);
+                              toast.success(lang === 'pt' ? 'Nova música adicionada à playlist!' : 'New song added!');
+                            } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); }
+                            finally { setGeneratingSong(false); }
+                          }} disabled={generatingSong}
+                          className="text-[10px] font-mono tracking-wider uppercase px-4 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap">
+                          {generatingSong ? <><RefreshCw size={10} className="animate-spin" />{lang === 'pt' ? 'Gerando...' : 'Generating...'}</> : <><Music size={10} />{lang === 'pt' ? 'Gerar Música' : 'Generate'}</>}
+                        </button>
                       </div>
-
-                      {/* Audio Player */}
-                      {(songData?.url || songData?.music_url) && (
-                        <audio controls className="w-full h-10 mb-3" src={songData.url || songData.music_url} data-testid="song-audio-player" />
-                      )}
-
-                      {/* Lyrics Editor */}
-                      {songData?.lyrics != null && (
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-mono tracking-wider uppercase text-pink-400/60">
-                            {lang === 'pt' ? 'Letra da Música (editável)' : 'Song Lyrics (editable)'}
-                          </p>
-                          <textarea value={songData.lyrics || ''} onChange={e => setSongData(prev => ({ ...prev, lyrics: e.target.value }))}
-                            className="w-full text-xs text-gray-700 font-sans leading-relaxed bg-white border border-gray-200 rounded-lg p-3 resize-y min-h-[150px] max-h-[300px] focus:outline-none focus:border-pink-400/50 focus:ring-1 focus:ring-pink-400/20"
-                            data-testid="song-lyrics-editor" />
-
-                          {/* Adjustment field */}
-                          <div className="flex gap-2">
-                            <input type="text" value={songAdjustment || ''} onChange={e => setSongAdjustment(e.target.value)}
-                              placeholder={lang === 'pt' ? 'Peça ajustes: "mais animado", "incluir nome do peixe"...' : 'Request adjustments...'}
-                              className="flex-1 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-pink-400/50"
-                              data-testid="song-adjustment-input"
-                              onKeyDown={e => { if (e.key === 'Enter' && songAdjustment?.trim()) { e.preventDefault(); document.querySelector('[data-testid="song-adjust-btn"]')?.click(); } }} />
-                            <button data-testid="song-adjust-btn" onClick={async () => {
-                                if (generatingSong || !songAdjustment?.trim()) return; setGeneratingSong(true);
-                                try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, adjustment: songAdjustment, edited_lyrics: songData.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
-                                  const newUrl = r.data.music_url ? `${r.data.music_url}?t=${Date.now()}` : songData.url;
-                                  setSongData({ url: newUrl, lyrics: r.data.lyrics || songData.lyrics, duration_seconds: r.data.duration_seconds }); setSongAdjustment(''); toast.success('Música ajustada!');
-                                } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
-                              }} disabled={generatingSong || !songAdjustment?.trim()}
-                              className="text-[10px] font-mono tracking-wider uppercase px-3 py-2 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-30 whitespace-nowrap">
-                              {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Edit3 size={10} />}
-                              {lang === 'pt' ? 'Ajustar' : 'Adjust'}
-                            </button>
-                          </div>
-
-                          {/* Action buttons */}
-                          <div className="flex items-center gap-2 pt-1">
-                            <button onClick={async () => {
-                                if (generatingSong) return; setGeneratingSong(true);
-                                try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, prompt: `Children's song with vocals. Sing these EXACT lyrics:\n\n${songData.lyrics}`, edited_lyrics: songData.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
-                                  setSongData(prev => ({ ...prev, url: `${r.data.music_url}?t=${Date.now()}`, duration_seconds: r.data.duration_seconds })); toast.success('Música regenerada!');
-                                } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
-                              }} disabled={generatingSong} data-testid="song-regenerate-btn"
-                              className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50">
-                              {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Music size={10} />}
-                              {lang === 'pt' ? 'Regenerar com esta Letra' : 'Regenerate with Lyrics'}
-                            </button>
-                            <button onClick={async () => {
-                                if (generatingSong) return; setGeneratingSong(true);
-                                try { const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
-                                  setSongData({ url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds }); toast.success('Nova letra e música!');
-                                } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
-                              }} disabled={generatingSong}
-                              className="text-[10px] font-mono tracking-wider uppercase px-3 py-1.5 rounded-lg border border-pink-400/20 text-pink-400 hover:bg-pink-500/5 transition flex items-center gap-1.5 disabled:opacity-50">
-                              <RefreshCw size={10} /> {lang === 'pt' ? 'Nova Letra + Música' : 'New Lyrics + Music'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
+
+                    {/* Playlist */}
+                    {songsList.length === 0 && !generatingSong && (
+                      <div className="text-center py-8 text-gray-400">
+                        <Music size={24} className="mx-auto mb-2 opacity-30" />
+                        <p className="text-xs">{lang === 'pt' ? 'Nenhuma música gerada ainda. Clique em "Gerar Música" acima.' : 'No songs yet. Click "Generate" above.'}</p>
+                      </div>
+                    )}
+
+                    {songsList.map((song, idx) => {
+                      const isEditing = editingSongId === song.id;
+                      const STYLE_NAMES = { auto: 'Auto', galinha_pintadinha: 'Galinha Pintadinha', mundo_bita: 'Mundo Bita', disney: 'Disney', pixar: 'Pixar', pop_infantil: 'Pop', mpb_infantil: 'MPB', forrozinho: 'Forró', reggae_infantil: 'Reggae', rock_infantil: 'Rock', sertanejo_infantil: 'Sertanejo', hip_hop_infantil: 'Hip-Hop', lullaby: 'Ninar' };
+                      return (
+                        <div key={song.id || idx} className={`rounded-xl border bg-gray-50 overflow-hidden transition-all ${isEditing ? 'border-pink-500/30' : 'border-gray-200'}`}>
+                          {/* Song header */}
+                          <div className="p-3 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-pink-500/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-pink-400">
+                              {idx + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-900 truncate">
+                                {lang === 'pt' ? 'Música' : 'Song'} #{idx + 1}
+                                {song.style && song.style !== 'auto' && <span className="ml-1.5 text-[9px] font-mono bg-pink-500/10 text-pink-400 px-1.5 py-0.5 rounded">{STYLE_NAMES[song.style] || song.style}</span>}
+                              </p>
+                              <p className="text-[10px] font-mono text-[#555]">{song.duration_seconds || '?'}s • {song.age_range || '?'}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <a href={song.url?.split('?')[0] || song.url} download onClick={e => e.stopPropagation()}
+                                className="text-[9px] font-mono text-pink-400 hover:underline px-1.5 py-1 rounded bg-pink-500/5 flex items-center gap-1">
+                                <Download size={9} />MP3
+                              </a>
+                              <button onClick={() => setEditingSongId(isEditing ? null : song.id)}
+                                className={`text-[9px] font-mono px-1.5 py-1 rounded flex items-center gap-1 transition ${isEditing ? 'bg-pink-500/20 text-pink-500' : 'text-gray-500 hover:text-pink-400 bg-gray-100'}`}>
+                                <Edit3 size={9} />{isEditing ? (lang === 'pt' ? 'Fechar' : 'Close') : (lang === 'pt' ? 'Editar' : 'Edit')}
+                              </button>
+                              <button onClick={async () => {
+                                  if (!window.confirm(lang === 'pt' ? 'Deletar esta música?' : 'Delete this song?')) return;
+                                  try {
+                                    await axios.delete(`${API}/studio/projects/${projectId}/songs/${song.id}`);
+                                    setSongsList(prev => prev.filter(s => s.id !== song.id));
+                                    if (editingSongId === song.id) setEditingSongId(null);
+                                    toast.success(lang === 'pt' ? 'Música removida' : 'Song removed');
+                                  } catch { toast.error('Erro'); }
+                                }}
+                                className="text-[9px] text-gray-400 hover:text-red-400 p-1 rounded hover:bg-red-500/5 transition">
+                                <Trash2 size={9} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Audio player */}
+                          <div className="px-3 pb-2">
+                            <audio controls className="w-full h-9" src={song.url} />
+                          </div>
+
+                          {/* Expandable editor */}
+                          {isEditing && song.lyrics != null && (
+                            <div className="px-3 pb-3 space-y-2 border-t border-gray-200 pt-2">
+                              <p className="text-[10px] font-mono tracking-wider uppercase text-pink-400/60">
+                                {lang === 'pt' ? 'Letra (editável)' : 'Lyrics (editable)'}
+                              </p>
+                              <textarea value={song.lyrics || ''} onChange={e => setSongsList(prev => prev.map(s => s.id === song.id ? { ...s, lyrics: e.target.value } : s))}
+                                className="w-full text-xs text-gray-700 font-sans leading-relaxed bg-white border border-gray-200 rounded-lg p-3 resize-y min-h-[120px] max-h-[250px] focus:outline-none focus:border-pink-400/50" />
+                              <div className="flex gap-2">
+                                <input type="text" value={songAdjustment || ''} onChange={e => setSongAdjustment(e.target.value)}
+                                  placeholder={lang === 'pt' ? 'Peça ajustes: "mais animado", "incluir nome"...' : 'Request adjustments...'}
+                                  className="flex-1 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-pink-400/50"
+                                  onKeyDown={e => { if (e.key === 'Enter' && songAdjustment?.trim()) e.target.nextSibling?.click(); }} />
+                                <button onClick={async () => {
+                                    if (generatingSong || !songAdjustment?.trim()) return; setGeneratingSong(true);
+                                    try {
+                                      const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, adjustment: songAdjustment, edited_lyrics: song.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                      const newSong2 = { id: r.data.song_id, url: `${r.data.music_url}?t=${Date.now()}`, lyrics: r.data.lyrics, duration_seconds: r.data.duration_seconds, style: r.data.style, created_at: new Date().toISOString() };
+                                      setSongsList(prev => [...prev, newSong2]);
+                                      setEditingSongId(r.data.song_id);
+                                      setSongAdjustment('');
+                                      toast.success(lang === 'pt' ? 'Versão ajustada adicionada!' : 'Adjusted version added!');
+                                    } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
+                                  }} disabled={generatingSong || !songAdjustment?.trim()}
+                                  className="text-[10px] font-mono uppercase px-3 py-2 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition flex items-center gap-1.5 disabled:opacity-30 whitespace-nowrap">
+                                  {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Edit3 size={10} />}
+                                  {lang === 'pt' ? 'Ajustar' : 'Adjust'}
+                                </button>
+                              </div>
+                              <div className="flex gap-2">
+                                <button onClick={async () => {
+                                    if (generatingSong) return; setGeneratingSong(true);
+                                    try {
+                                      const r = await axios.post(`${API}/studio/projects/${projectId}/generate-music`, { project_id: projectId, prompt: `Children's song. Sing these EXACT lyrics:\n\n${song.lyrics}`, edited_lyrics: song.lyrics, style: songStyle !== 'auto' ? songStyle : undefined, age_range: songAge });
+                                      const newSong3 = { id: r.data.song_id, url: `${r.data.music_url}?t=${Date.now()}`, lyrics: song.lyrics, duration_seconds: r.data.duration_seconds, style: r.data.style, created_at: new Date().toISOString() };
+                                      setSongsList(prev => [...prev, newSong3]);
+                                      setEditingSongId(r.data.song_id);
+                                      toast.success(lang === 'pt' ? 'Nova versão com letra editada!' : 'New version with edited lyrics!');
+                                    } catch (err) { toast.error(`Erro: ${err.response?.data?.detail || err.message}`); } finally { setGeneratingSong(false); }
+                                  }} disabled={generatingSong}
+                                  className="text-[10px] font-mono uppercase px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition flex items-center gap-1.5 disabled:opacity-50">
+                                  {generatingSong ? <RefreshCw size={10} className="animate-spin" /> : <Music size={10} />}
+                                  {lang === 'pt' ? 'Regenerar com esta Letra' : 'Regenerate'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
