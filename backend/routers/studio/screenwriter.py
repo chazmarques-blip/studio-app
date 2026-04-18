@@ -811,10 +811,11 @@ async def screenwriter_chat(req: ChatMessage, tenant=Depends(get_current_tenant)
                 max_scenes=50,
                 batch_size=10,
                 max_workers=3,
-                character_folder_id=character_folder_id,  # NEW
-                target_audience=target_audience,  # NEW
-                video_engine=video_engine,  # NEW: Pass video engine
-                target_duration_minutes=target_duration  # FIXED: Pass target duration
+                character_folder_id=character_folder_id,
+                target_audience=target_audience,
+                video_engine=video_engine,
+                target_duration_minutes=target_duration,
+                project=project
             )
             _merge_screenplay_results(tenant["id"], project["id"], result)
         except Exception as e:

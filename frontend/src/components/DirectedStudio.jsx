@@ -1940,7 +1940,18 @@ export const DirectedStudio = memo(function DirectedStudio({
             const isDone = step > s.n;
             return (
               <div key={s.n} className="flex-1 flex flex-col items-center relative z-10">
-                <button onClick={() => { if (!generating) { setViewingProject(null); setStep(s.n); }}}
+                <button onClick={() => { 
+                  if (!generating) { 
+                    // Validate: characters required before screenwriter (step 3)
+                    if (s.n === 3 && characters.length === 0) {
+                      toast.error(lang === 'pt' ? 'Adicione personagens antes de escrever o roteiro!' : 'Add characters before writing the script!');
+                      setStep(2);
+                      return;
+                    }
+                    setViewingProject(null); 
+                    setStep(s.n); 
+                  }
+                }}
                   data-testid={`studio-step-${s.n}`}
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isActive ? 'bg-[#8B5CF6] text-black shadow-[0_0_16px_rgba(201,168,76,0.3)]' :

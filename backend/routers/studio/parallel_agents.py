@@ -35,10 +35,11 @@ def generate_screenplay_parallel(
     max_scenes: int = 50,
     batch_size: int = 10,
     max_workers: int = 3,
-    character_folder_id: str = None,  # NEW: Folder ID for character library
-    target_audience: str = "all",  # NEW: Target audience age range
-    video_engine: str = "sora",  # NEW: Video engine (sora/kling)
-    target_duration_minutes: int = 5  # FIXED: Target duration in minutes
+    character_folder_id: str = None,
+    target_audience: str = "all",
+    video_engine: str = "sora",
+    target_duration_minutes: int = 5,
+    project: dict = None
 ) -> Dict:
     """
     Generate screenplay using parallel agents
@@ -108,6 +109,29 @@ def generate_screenplay_parallel(
     
     # ── NEW: Get audience guidelines ──
     audience_guideline = _get_audience_guideline(target_audience, lang)
+    
+    # ── Inject project characters with personalities ──
+    project_chars = project.get("characters", []) if project else []
+    if project_chars and not character_library_text:
+        character_library_text = "\n\n" + "="*80 + "\n"
+        character_library_text += f"📚 PERSONAGENS DO PROJETO - {len(project_chars)} PERSONAGENS\n"
+        character_library_text += "="*80 + "\n"
+        character_library_text += "Você DEVE usar SOMENTE estes personagens:\n\n"
+        for pc in project_chars:
+            character_library_text += f"- Nome: {pc.get('name', '?')}\n"
+            if pc.get('description'):
+                character_library_text += f"  Descrição: {pc['description']}\n"
+            if pc.get('personality'):
+                character_library_text += f"  Personalidade: {pc['personality']}\n"
+            if pc.get('age'):
+                character_library_text += f"  Idade: {pc['age']}\n"
+            character_library_text += "\n"
+        character_library_text += "⚠️ REGRA CRÍTICA:\n"
+        character_library_text += "- Use o NOME COMPLETO exatamente como fornecido\n"
+        character_library_text += "- Respeite a PERSONALIDADE na escrita dos diálogos\n"
+        character_library_text += "- NÃO invente personagens novos (exceto figurantes)\n"
+        character_library_text += "="*80 + "\n"
+        logger.info(f"ParallelScreenplay [{project_id}]: Injected {len(project_chars)} project characters into prompt")
     
     # ── Phase 1: Foundation Agent (First Batch) ──
     logger.info(f"ParallelScreenplay [{project_id}]: Phase 1 - Foundation agent generating structure")
