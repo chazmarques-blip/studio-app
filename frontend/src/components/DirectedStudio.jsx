@@ -4341,37 +4341,86 @@ export const DirectedStudio = memo(function DirectedStudio({
                 })()}
 
                 {/* TAB: Ilustrações */}
-                {resultTab === 'ilustracoes' && (
-                  <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                    <div className="p-3 grid grid-cols-4 sm:grid-cols-5 gap-1.5 max-h-[50vh] overflow-y-auto">
-                      {allPanelFrames.slice(0, 30).map((frame, i) => (
-                        <div key={i} className="relative aspect-video rounded overflow-hidden cursor-pointer group"
-                          onClick={() => setPreviewModal({ type: 'pdf' })}>
-                          <img src={frame.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
-                          <div className="absolute bottom-0.5 left-0.5 text-[7px] font-mono bg-black/60 text-white px-0.5 rounded">
-                            {lang === 'pt' ? 'C' : 'S'}{frame.scene}
+                {resultTab === 'ilustracoes' && (() => {
+                  const frames = allPanelFrames.length > 0 ? allPanelFrames : [];
+                  const selectedIdx = window.__ilIdx ?? null;
+                  const selected = selectedIdx !== null ? frames[selectedIdx] : null;
+
+                  if (selected) {
+                    // Full view mode - single image with nav
+                    return (
+                      <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                        <div className="relative bg-black" style={{ height: '50vh' }}>
+                          <img src={selected.url} alt="" className="w-full h-full object-contain" />
+                          <span className="absolute top-2 right-2 text-[9px] font-mono bg-black/60 text-white/80 px-1.5 py-0.5 rounded">
+                            {selectedIdx + 1}/{frames.length}
+                          </span>
+                          <span className="absolute top-2 left-2 text-[9px] font-mono bg-black/60 text-white/80 px-1.5 py-0.5 rounded">
+                            {lang === 'pt' ? 'Cena' : 'Scene'} {selected.scene}
+                          </span>
+                          {/* Back to grid */}
+                          <button onClick={() => { window.__ilIdx = null; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}
+                            className="absolute top-2 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-black/60 text-white/80 px-2 py-1 rounded hover:bg-black/80 transition flex items-center gap-1">
+                            <Eye size={9} /> {lang === 'pt' ? 'Ver Grid' : 'Grid'}
+                          </button>
+                          {/* Nav */}
+                          {selectedIdx > 0 && (
+                            <button onClick={() => { window.__ilIdx = selectedIdx - 1; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition">
+                              <ChevronLeft size={16} />
+                            </button>
+                          )}
+                          {selectedIdx < frames.length - 1 && (
+                            <button onClick={() => { window.__ilIdx = selectedIdx + 1; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition">
+                              <ChevronRight size={16} />
+                            </button>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-800">
+                            <div className="h-full bg-[#8B5CF6] transition-all" style={{ width: `${((selectedIdx + 1) / frames.length) * 100}%` }} />
                           </div>
                         </div>
-                      ))}
-                    </div>
-                    <div className="p-3 flex items-center justify-between border-t border-gray-100">
-                      <div>
-                        <p className="text-[11px] font-medium text-gray-900">{lang === 'pt' ? 'Ilustrações' : 'Illustrations'}</p>
-                        <p className="text-[10px] font-mono text-gray-500">{frameCount} frames</p>
+                        <div className="p-3 flex items-center justify-between border-t border-gray-100">
+                          <p className="text-[10px] font-mono text-gray-500">{lang === 'pt' ? 'Cena' : 'Scene'} {selected.scene} — {selectedIdx + 1}/{frames.length}</p>
+                          <div className="flex items-center gap-2">
+                            <a href={selected.url} download className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 text-[9px] font-mono uppercase tracking-wider transition">
+                              <Download size={10} /> {lang === 'pt' ? 'Imagem' : 'Image'}
+                            </a>
+                            <button onClick={async () => { try { const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' }); const url = URL.createObjectURL(r.data); const a = document.createElement('a'); a.href = url; a.download = `${projectName}.pdf`; a.click(); toast.success('PDF!'); } catch { toast.error('Erro'); } }}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#8B5CF6] text-white text-[9px] font-mono uppercase tracking-wider hover:bg-[#7C3AED] transition">
+                              <Download size={10} /> PDF
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setPreviewModal({ type: 'pdf' })}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 text-[9px] font-mono uppercase tracking-wider transition">
-                          <Eye size={10} /> {lang === 'pt' ? 'Ver Todas' : 'View All'} ({frameCount})
-                        </button>
+                    );
+                  }
+
+                  // Grid view
+                  return (
+                    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                      <div className="p-2 grid grid-cols-4 sm:grid-cols-5 gap-1 max-h-[50vh] overflow-y-auto">
+                        {frames.map((frame, i) => (
+                          <div key={i} className="relative aspect-video rounded overflow-hidden cursor-pointer group"
+                            onClick={() => { window.__ilIdx = i; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}>
+                            <img src={frame.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                            <div className="absolute bottom-0.5 left-0.5 text-[7px] font-mono bg-black/60 text-white px-0.5 rounded">C{frame.scene}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-3 flex items-center justify-between border-t border-gray-100">
+                        <div>
+                          <p className="text-[11px] font-medium text-gray-900">{lang === 'pt' ? 'Ilustrações' : 'Illustrations'}</p>
+                          <p className="text-[10px] font-mono text-gray-500">{frames.length} frames</p>
+                        </div>
                         <button onClick={async () => { try { const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' }); const url = URL.createObjectURL(r.data); const a = document.createElement('a'); a.href = url; a.download = `${projectName}.pdf`; a.click(); toast.success('PDF!'); } catch { toast.error('Erro'); } }}
                           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#8B5CF6] text-white text-[9px] font-mono uppercase tracking-wider hover:bg-[#7C3AED] transition">
                           <Download size={10} /> PDF
                         </button>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* TAB: Vídeos por Cena */}
                 {resultTab === 'videos' && (
