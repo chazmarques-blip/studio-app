@@ -4268,24 +4268,77 @@ export const DirectedStudio = memo(function DirectedStudio({
                   </div>
                 )}
 
-                {/* TAB: Livro Animado — inline iframe */}
-                {resultTab === 'livro' && (
+                {/* TAB: Livro Animado — inline viewer */}
+                {resultTab === 'livro' && (() => {
+                  const bookPages = allPanelFrames.length > 0
+                    ? allPanelFrames.map((f, i) => ({ url: f.url, scene: f.scene, idx: i }))
+                    : thumbs.map((t, i) => ({ url: t, scene: i + 1, idx: i }));
+                  const totalPages = bookPages.length;
+                  const currentBookPage = window.__bookPage || 0;
+                  const page = bookPages[currentBookPage];
+                  const sceneObj = scenes[page?.scene - 1];
+
+                  return (
                   <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                    <div style={{ height: '50vh' }}>
-                      <iframe src={`/book/${projectId}`} className="w-full h-full border-0" title="Interactive Book" data-testid="inline-book-iframe" />
+                    {/* Book viewer */}
+                    <div className="relative bg-black" style={{ height: '50vh' }}>
+                      {page ? (
+                        <>
+                          <img src={page.url} alt={`Page ${currentBookPage + 1}`} className="w-full h-full object-contain" />
+                          {/* Narration overlay */}
+                          {sceneObj?.dialogue && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-3">
+                              <p className="text-xs text-white/90 text-center italic leading-relaxed">{sceneObj.dialogue}</p>
+                            </div>
+                          )}
+                          {/* Nav arrows */}
+                          {currentBookPage > 0 && (
+                            <button onClick={() => { window.__bookPage = currentBookPage - 1; setResultTab('_'); setTimeout(() => setResultTab('livro'), 0); }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition">
+                              <ChevronLeft size={16} />
+                            </button>
+                          )}
+                          {currentBookPage < totalPages - 1 && (
+                            <button onClick={() => { window.__bookPage = currentBookPage + 1; setResultTab('_'); setTimeout(() => setResultTab('livro'), 0); }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition">
+                              <ChevronRight size={16} />
+                            </button>
+                          )}
+                          {/* Page counter */}
+                          <span className="absolute top-2 right-2 text-[9px] font-mono bg-black/60 text-white/80 px-1.5 py-0.5 rounded">
+                            {currentBookPage + 1}/{totalPages}
+                          </span>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-500 text-xs">
+                          {lang === 'pt' ? 'Nenhuma página disponível' : 'No pages available'}
+                        </div>
+                      )}
+                      {/* Progress bar */}
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-800">
+                        <div className="h-full bg-[#8B5CF6] transition-all" style={{ width: totalPages ? `${((currentBookPage + 1) / totalPages) * 100}%` : '0%' }} />
+                      </div>
                     </div>
+                    {/* Footer */}
                     <div className="p-3 flex items-center justify-between border-t border-gray-100">
                       <div>
                         <p className="text-[11px] font-medium text-gray-900">{lang === 'pt' ? 'Livro Animado' : 'Animated Book'}</p>
-                        <p className="text-[10px] font-mono text-gray-500">{sceneCount} {lang === 'pt' ? 'páginas' : 'pages'}</p>
+                        <p className="text-[10px] font-mono text-gray-500">{totalPages} {lang === 'pt' ? 'páginas' : 'pages'}</p>
                       </div>
-                      <a href={`/book/${projectId}`} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#8B5CF6] text-white text-[9px] font-mono uppercase tracking-wider hover:bg-[#7C3AED] transition">
-                        <Maximize2 size={10} /> {lang === 'pt' ? 'Tela Cheia' : 'Full Screen'}
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <button onClick={async () => { try { const r = await axios.get(`${API}/studio/projects/${projectId}/book/pdf`, { responseType: 'blob' }); const url = URL.createObjectURL(r.data); const a = document.createElement('a'); a.href = url; a.download = `${projectName || 'livro'}.pdf`; a.click(); toast.success('PDF!'); } catch { toast.error('Erro'); } }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 text-[9px] font-mono uppercase tracking-wider transition">
+                          <Download size={10} /> PDF
+                        </button>
+                        <a href={`/book/${projectId}`} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#8B5CF6] text-white text-[9px] font-mono uppercase tracking-wider hover:bg-[#7C3AED] transition">
+                          <Maximize2 size={10} /> {lang === 'pt' ? 'Tela Cheia' : 'Full Screen'}
+                        </a>
+                      </div>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* TAB: Ilustrações */}
                 {resultTab === 'ilustracoes' && (
