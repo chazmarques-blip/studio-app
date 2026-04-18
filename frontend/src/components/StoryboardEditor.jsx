@@ -15,8 +15,8 @@ import { preloadImages, useImagePreloader } from '../hooks/useProjectCache';
 import {
   DndContext,
   closestCenter,
-  MouseSensor,
-  TouchSensor,
+  PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -24,6 +24,8 @@ import {
   SortableContext,
   rectSortingStrategy,
   useSortable,
+  arrayMove,
+  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -104,11 +106,63 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   
   // Flag to prevent reloading during drag operation
   const isDraggingRef = useRef(false);
+  const [reorderedFrames, setReorderedFrames] = useState(null); // null = original order, array = reordered
+  const [savingOrder, setSavingOrder] = useState(false);
   
-  // Use Kling frames if available (flatten all scenes into one list), otherwise use regular panels
-  const displayFrames = useKlingMode && klingStoryboards 
+  // Use Kling frames if available, otherwise regular panels. If reordered, use that.
+  const rawFrames = useKlingMode && klingStoryboards 
     ? (klingStoryboards.scenes || []).flatMap(scene => scene.frames || [])
-    : panels;
+    : panels.map(p => ({ ...p, _original_scene: p.scene_number }));
+  const displayFrames = reorderedFrames || rawFrames;
+  
+  // Reset reordered when raw data changes
+  useEffect(() => { setReorderedFrames(null); }, [panels.length, klingStoryboards]);
+  
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  
+  const handleDragEnd = (event) => {
+    isDraggingRef.current = false;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    
+    const oldIdx = displayFrames.findIndex((_, i) => `frame-${i}` === active.id);
+    const newIdx = displayFrames.findIndex((_, i) => `frame-${i}` === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+    
+    const newOrder = arrayMove([...displayFrames], oldIdx, newIdx);
+    // Renumber scene_number / frame_number
+    newOrder.forEach((frame, i) => {
+      if (useKlingMode) {
+        frame.frame_number = i + 1;
+      } else {
+        frame.scene_number = i + 1;
+      }
+    });
+    setReorderedFrames(newOrder);
+  };
+  
+  const saveReorderedScenes = async () => {
+    if (!reorderedFrames) return;
+    setSavingOrder(true);
+    try {
+      // Build the new order: list of original scene_numbers in their new positions
+      const order = reorderedFrames.map(f => f._original_scene || f.scene_number);
+      await axios.post(`${API}/studio/projects/${projectId}/reorder-scenes`, { order });
+      // Update panels locally with new scene numbers
+      setPanels(reorderedFrames.map((f, i) => ({ ...f, scene_number: i + 1 })));
+      setReorderedFrames(null);
+      if (onScenesReordered) onScenesReordered(reorderedFrames);
+      toast.success(lang === 'pt' ? 'Ordem salva!' : 'Order saved!');
+    } catch (err) {
+      toast.error(`Erro: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setSavingOrder(false);
+    }
+  };
   
   console.log('📦 StoryboardEditor - panels:', panels.length, 'kling frames:', klingStoryboards?.total_frames || 0, 'useKlingMode:', useKlingMode, 'projectId:', projectId);
 
@@ -181,109 +235,7 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
   // ══════════════════════════════════════════════════════════════
   const [reordering, setReordering] = useState(false);
   
-  // Configure sensors with delay to require "click and hold" (250ms)
-  // This prevents conflicts with normal clicks/taps
-  const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    })
-  );
-
-  const handleDragStart = () => {
-    isDraggingRef.current = true;
-    console.log('🎬 Drag started no Storyboard');
-  };
-
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    
-    console.log('🎯 DragEnd no Storyboard:', { active: active?.id, over: over?.id });
-    
-    if (!over || active.id === over.id) {
-      console.log('⚠️ No drop target or same position');
-      isDraggingRef.current = false;
-      return;
-    }
-    
-    // Find by ID (which is panel-0, panel-1, etc)
-    const oldIndex = panels.findIndex((_, idx) => `panel-${idx}` === active.id);
-    const newIndex = panels.findIndex((_, idx) => `panel-${idx}` === over.id);
-    
-    console.log('📊 Indexes:', { oldIndex, newIndex, totalPanels: panels.length });
-    
-    if (oldIndex === -1 || newIndex === -1) {
-      console.log('❌ Invalid indexes');
-      isDraggingRef.current = false;
-      return;
-    }
-    
-    // Create new array with reordered items
-    const reorderedPanels = [...panels];
-    const [movedItem] = reorderedPanels.splice(oldIndex, 1);
-    reorderedPanels.splice(newIndex, 0, movedItem);
-    
-    console.log('📦 New order (scene_numbers):', reorderedPanels.map(p => p.scene_number));
-    
-    // Update UI immediately
-    setPanels(reorderedPanels);
-    
-    // Send new order to backend
-    setReordering(true);
-    try {
-      const newOrder = reorderedPanels.map(p => p.scene_number);
-      
-      console.log('🚀 Calling API /scenes/reorder with:', newOrder);
-      
-      const response = await axios.post(`${API}/studio/projects/${projectId}/scenes/reorder`, {
-        scene_order: newOrder
-      });
-      
-      console.log('✅ API Response:', response.data);
-      
-      // Recarregar panels do backend para obter os scene_numbers renumerados
-      console.log('🔄 Recarregando panels do backend...');
-      await loadStoryboard();
-      
-      // Notificar o componente pai para sincronizar com screenplay
-      if (onScenesReordered) {
-        await onScenesReordered();
-      }
-      
-      // Mostrar aviso detalhado do que foi atualizado
-      const data = response.data;
-      const updates = [];
-      
-      if (data.scenes_updated) updates.push(`${data.scenes_updated} cenas`);
-      if (data.panels_updated) updates.push('storyboard');
-      if (data.camera_plan_updated) updates.push('plano de câmera');
-      if (data.screenplay_updated !== false) updates.push('roteiro');
-      
-      const message = lang === 'pt'
-        ? `✅ Cenas renumeradas!\n\n📝 Atualizado em: ${updates.join(', ')}`
-        : `✅ Scenes renumbered!\n\n📝 Updated in: ${updates.join(', ')}`;
-      
-      toast.success(message, { duration: 5000 });
-      
-      console.log('✅ Reorder complete - tudo sincronizado (storyboard + roteiro)');
-    } catch (err) {
-      console.error('❌ Reorder failed:', err);
-      toast.error(getErrorMsg(err, lang === 'pt' ? 'Erro ao reordenar cenas' : 'Failed to reorder scenes'));
-      // Revert on error
-      setPanels(panels);
-    } finally {
-      setReordering(false);
-      isDraggingRef.current = false;
-    }
-  };
+  // Old DnD handlers removed — using new implementation above
 
   // Load existing storyboard on mount
   useEffect(() => {
@@ -1671,8 +1623,29 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
           )}
 
           {/* Grid 6 colunas - Formato compacto permanente */}
-          <div className="grid grid-cols-6 gap-3">
-            {displayFrames.map((item, idx) => {
+          {reorderedFrames && (
+            <div className="flex items-center justify-between bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-lg px-3 py-2 mb-2">
+              <span className="text-xs text-[#8B5CF6] font-medium flex items-center gap-1.5">
+                <GripVertical size={12} />
+                {lang === 'pt' ? 'Ordem alterada — salve para aplicar' : 'Order changed — save to apply'}
+              </span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setReorderedFrames(null)}
+                  className="text-[9px] font-mono uppercase px-2 py-1 rounded text-gray-500 hover:text-white transition">
+                  {lang === 'pt' ? 'Desfazer' : 'Undo'}
+                </button>
+                <button onClick={saveReorderedScenes} disabled={savingOrder}
+                  className="text-[9px] font-mono uppercase px-3 py-1 rounded bg-[#8B5CF6] text-white hover:bg-[#7C3AED] transition disabled:opacity-50 flex items-center gap-1">
+                  {savingOrder ? <RefreshCw size={9} className="animate-spin" /> : <Check size={9} />}
+                  {lang === 'pt' ? 'Salvar Ordem' : 'Save Order'}
+                </button>
+              </div>
+            </div>
+          )}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => { isDraggingRef.current = true; }} onDragEnd={handleDragEnd}>
+            <SortableContext items={displayFrames.map((_, i) => `frame-${i}`)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-6 gap-3">
+                {displayFrames.map((item, idx) => {
               // Handle both Kling frames and regular panels
               const isKlingFrame = useKlingMode;
               const frameNumber = isKlingFrame ? item.frame_number : item.scene_number;
@@ -1682,8 +1655,9 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
               const isRegeneratingThis = generatingPanel === frameNumber || regeneratingPanels.has(frameNumber) || item.status === 'generating';
               
               return (
+                <SortablePanel key={isKlingFrame ? `kling-${frameNumber}` : `scene-${item.scene_number}`} id={`frame-${idx}`}>
+                  {({ dragHandleProps }) => (
                 <div
-                  key={isKlingFrame ? `kling-${frameNumber}` : `scene-${item.scene_number}`}
                   className="flex flex-col"
                   data-testid={`storyboard-frame-${frameNumber}`}
                 >
@@ -1691,6 +1665,11 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     className="group relative aspect-video rounded-lg border border-[#222] overflow-hidden bg-[#0D0D0D] hover:border-[#8B5CF6] transition-all cursor-pointer"
                     onClick={() => openZoomModal(item, idx)}
                   >
+                    {/* Drag handle */}
+                    <div {...dragHandleProps} className="absolute top-1 right-1 z-20 cursor-grab active:cursor-grabbing p-0.5 rounded bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={e => e.stopPropagation()}>
+                      <GripVertical size={10} className="text-white/70" />
+                    </div>
                     {/* Image or placeholder */}
                     {imageUrl ? (
                       <img 
@@ -1785,9 +1764,13 @@ export function StoryboardEditor({ projectId, scenes, characters, characterAvata
                     </div>
                   )}
                 </div>
+                  )}
+                </SortablePanel>
               );
             })}
-          </div>
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 
