@@ -4207,7 +4207,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
             return (
             <>
-              <div className="flex gap-0.5 overflow-x-auto pb-0.5 scrollbar-hide border-b border-gray-200 mb-2">
+              <div className="flex gap-0.5 overflow-x-auto pb-0.5 scrollbar-hide mb-2">
                 {TABS.map(tab => (
                   <button
                     key={tab.id}
@@ -4215,8 +4215,8 @@ export const DirectedStudio = memo(function DirectedStudio({
                     data-testid={`result-tab-${tab.id}`}
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-t-md text-[9px] font-mono tracking-wider uppercase whitespace-nowrap transition-all ${
                       resultTab === tab.id
-                        ? 'bg-[#8B5CF6]/10 text-[#8B5CF6] border-b-2 border-[#8B5CF6] font-semibold'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                        ? 'bg-gray-100 text-[#8B5CF6] font-semibold border-b-2 border-[#8B5CF6]'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                   >
                     <tab.icon size={10} />
@@ -4231,7 +4231,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* TAB: Filme */}
                 {resultTab === 'filme' && heroOut && (
-                  <div className="rounded-lg border border-gray-200 overflow-hidden bg-white" data-testid="deliverable-filme-completo">
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm" data-testid="deliverable-filme-completo">
                     <div className="relative cursor-pointer" onClick={() => setPreviewModal({ type: 'video', data: { url: heroOut.url, scene_number: 0, allVideos: [] } })}>
                       <video className="w-full aspect-video object-contain bg-black" data-testid="result-video-complete" src={heroOut.url} preload="metadata" />
                       <div className="absolute top-2 left-2">
@@ -4279,7 +4279,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   const sceneObj = scenes[page?.scene - 1];
 
                   return (
-                  <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
                     {/* Book viewer */}
                     <div className="relative bg-black" style={{ height: '50vh' }}>
                       {page ? (
@@ -4349,7 +4349,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                   if (selected) {
                     // Full view mode - single image with nav
                     return (
-                      <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                      <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
                         <div className="relative bg-black" style={{ height: '50vh' }}>
                           <img src={selected.url} alt="" className="w-full h-full object-contain" />
                           <span className="absolute top-2 right-2 text-[9px] font-mono bg-black/60 text-white/80 px-1.5 py-0.5 rounded">
@@ -4398,7 +4398,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                   // Grid view
                   return (
-                    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                    <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
                       <div className="p-2 grid grid-cols-4 sm:grid-cols-5 gap-1 max-h-[50vh] overflow-y-auto">
                         {frames.map((frame, i) => (
                           <div key={i} className="relative aspect-video rounded overflow-hidden cursor-pointer group"
@@ -4423,47 +4423,89 @@ export const DirectedStudio = memo(function DirectedStudio({
                 })()}
 
                 {/* TAB: Vídeos por Cena */}
-                {resultTab === 'videos' && (
-                  <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-                    <div className="p-3 grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-[50vh] overflow-y-auto">
-                      {sceneVideos.map((out, i) => {
-                        const isRegenerating = regenScene === out.scene_number;
-                        return (
+                {resultTab === 'videos' && (() => {
+                  const vids = sceneVideos;
+                  const selVidIdx = window.__vidIdx ?? null;
+                  const selVid = selVidIdx !== null ? vids[selVidIdx] : null;
+
+                  if (selVid) {
+                    // Full view - single video with nav
+                    return (
+                      <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+                        <div className="relative bg-black" style={{ height: '50vh' }}>
+                          <video src={selVid.url} controls className="w-full h-full object-contain" data-testid="video-full-player" />
+                          <span className="absolute top-2 right-2 text-[9px] font-mono bg-black/60 text-white/80 px-1.5 py-0.5 rounded z-10">
+                            {selVidIdx + 1}/{vids.length}
+                          </span>
+                          <span className="absolute top-2 left-2 text-[9px] font-mono bg-black/60 text-white/80 px-1.5 py-0.5 rounded z-10">
+                            {lang === 'pt' ? 'Cena' : 'Scene'} {selVid.scene_number}
+                          </span>
+                          <button onClick={() => { window.__vidIdx = null; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}
+                            className="absolute top-2 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-black/60 text-white/80 px-2 py-1 rounded hover:bg-black/80 transition flex items-center gap-1 z-10">
+                            <Eye size={9} /> {lang === 'pt' ? 'Ver Grid' : 'Grid'}
+                          </button>
+                          {selVidIdx > 0 && (
+                            <button onClick={() => { window.__vidIdx = selVidIdx - 1; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition z-10">
+                              <ChevronLeft size={16} />
+                            </button>
+                          )}
+                          {selVidIdx < vids.length - 1 && (
+                            <button onClick={() => { window.__vidIdx = selVidIdx + 1; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition z-10">
+                              <ChevronRight size={16} />
+                            </button>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-800 z-10">
+                            <div className="h-full bg-[#8B5CF6] transition-all" style={{ width: `${((selVidIdx + 1) / vids.length) * 100}%` }} />
+                          </div>
+                        </div>
+                        <div className="p-3 flex items-center justify-between border-t border-gray-100">
+                          <p className="text-[10px] font-mono text-gray-500">{lang === 'pt' ? 'Cena' : 'Scene'} {selVid.scene_number} — {selVidIdx + 1}/{vids.length}</p>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => regenerateScene(selVid.scene_number)} disabled={regenScene === selVid.scene_number}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 text-[9px] font-mono uppercase tracking-wider transition disabled:opacity-40">
+                              <RefreshCw size={10} className={regenScene === selVid.scene_number ? 'animate-spin' : ''} /> {lang === 'pt' ? 'Regenerar' : 'Regen'}
+                            </button>
+                            <a href={selVid.url} download
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#8B5CF6] text-white text-[9px] font-mono uppercase tracking-wider hover:bg-[#7C3AED] transition">
+                              <Download size={10} /> Download
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Grid view
+                  return (
+                    <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+                      <div className="p-2 grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-[50vh] overflow-y-auto">
+                        {vids.map((out, i) => (
                           <div key={out.id || i} className="rounded overflow-hidden border border-gray-100 group hover:border-[#8B5CF6]/30 transition cursor-pointer"
                             data-testid={`deliverable-cena-${out.scene_number}`}
-                            onClick={() => setPreviewModal({ type: 'video', data: { ...out, allVideos: sceneVideos } })}>
+                            onClick={() => { window.__vidIdx = i; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}>
                             <div className="relative aspect-video bg-gray-100">
                               <video src={out.url} preload="metadata" className="w-full h-full object-cover"
                                 onMouseEnter={e => { e.target.play().catch(() => {}); }} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
-                              <span className="absolute bottom-0.5 left-0.5 text-[8px] font-mono text-white/90 bg-black/50 px-0.5 rounded">
-                                {out.scene_number}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-center gap-2 py-1">
-                              <a href={out.url} download onClick={e => e.stopPropagation()} className="text-[8px] text-gray-400 hover:text-[#8B5CF6]">
-                                <Download size={8} />
-                              </a>
-                              <button onClick={e => { e.stopPropagation(); regenerateScene(out.scene_number); }} disabled={isRegenerating}
-                                className="text-[8px] text-gray-400 hover:text-[#8B5CF6] disabled:opacity-40">
-                                <RefreshCw size={8} className={isRegenerating ? 'animate-spin' : ''} />
-                              </button>
+                              <span className="absolute bottom-0.5 left-0.5 text-[8px] font-mono text-white/90 bg-black/50 px-0.5 rounded">{out.scene_number}</span>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                    <div className="p-3 flex items-center justify-between border-t border-gray-100">
-                      <div>
-                        <p className="text-[11px] font-medium text-gray-900">{lang === 'pt' ? 'Vídeos por Cena' : 'Scene Videos'}</p>
-                        <p className="text-[10px] font-mono text-gray-500">{sceneVideos.length} {lang === 'pt' ? 'vídeos' : 'videos'}</p>
+                        ))}
+                      </div>
+                      <div className="p-3 flex items-center justify-between border-t border-gray-100">
+                        <div>
+                          <p className="text-[11px] font-medium text-gray-900">{lang === 'pt' ? 'Vídeos por Cena' : 'Scene Videos'}</p>
+                          <p className="text-[10px] font-mono text-gray-500">{vids.length} {lang === 'pt' ? 'vídeos' : 'videos'}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* TAB: Pós-Produção */}
                 {resultTab === 'pos' && (
-                  <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
                     <div className="p-4 text-center">
                       <Clapperboard size={28} className="mx-auto text-blue-400 mb-2" strokeWidth={1.2} />
                       <p className="text-sm font-medium text-gray-900 mb-1">{lang === 'pt' ? 'Pós-Produção' : 'Post-Production'}</p>
@@ -4484,7 +4526,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* TAB: Música Cantada */}
                 {resultTab === 'musica' && (
-                  <div className="rounded-lg border border-gray-200 overflow-hidden bg-white" data-testid="deliverable-musica-cantada">
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm" data-testid="deliverable-musica-cantada">
                     {/* Generate controls */}
                     <div className="p-3 flex items-center gap-2 border-b border-gray-100">
                         <select value={songStyle} onChange={e => setSongStyle(e.target.value)} data-testid="song-style-select"
