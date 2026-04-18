@@ -1,5 +1,23 @@
 # StudioX Changelog
 
+## 2026-04-18 (Session 4)
+
+### Sora 2 Character Voice Lock (NEW)
+- **Problem**: Sora 2 generates a different voice for each scene even for the same character (stochastic sampling).
+- **Solution**: Integrated OpenAI's official Sora 2 Characters API (`POST /v1/sora/characters`) that creates a reusable `character_id` from an anchor scene. Reusing the ID in subsequent generations locks **voice + appearance** natively.
+- New module: `/app/backend/routers/studio/sora_characters.py`
+- Auto-detects first rendered scene per character to use as voice anchor.
+- Supports Sora 2 2-character-per-generation limit (March 2026).
+- Endpoints:
+  - `POST /api/studio/projects/{id}/auto-register-sora-characters` (auto, idempotent)
+  - `POST /api/studio/projects/{id}/register-sora-character` (manual with specific scene)
+  - `GET  /api/studio/projects/{id}/sora-characters`
+  - `DELETE /api/studio/projects/{id}/sora-characters/{character_name}`
+- `production.py`: `_generate_video_with_openai_direct` and `_generate_video_unified` accept optional `sora_character_ids`. Character lookup is per-scene from `project.characters[].sora_character_id`.
+- **Backward compatible**: zero impact on existing/in-flight projects (fallback is empty list → payload identical to before).
+- UI: "🎤 Travar Vozes" button on the Vídeos tab of `DirectedStudio.jsx` + badge showing locked characters count.
+
+
 ## 2026-04-17 (Session 3)
 
 ### ElevenLabs Music - Children's Song Generator

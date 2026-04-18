@@ -23,5 +23,6 @@ from . import migration  # NEW
 from . import scene_reorder  # NEW
 from . import scene_regenerate  # NEW - Scene regeneration
 from . import kling_storyboard  # NEW - Kling 30-frame storyboards
+from . import sora_characters  # NEW - Sora 2 Characters API for voice/appearance consistency
 
 __all__ = ["router", "_cleanup_stale_storyboards"]

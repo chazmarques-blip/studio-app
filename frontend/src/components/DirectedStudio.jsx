@@ -428,6 +428,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [bookPage, setBookPage] = useState(0);
   const [ilIdx, setIlIdx] = useState(null);   // null = grid, number = full view
   const [vidIdx, setVidIdx] = useState(null);  // null = grid, number = full view
+  const [soraVoiceLock, setSoraVoiceLock] = useState({ loading: false, registered: [] });
   const [editingSongId, setEditingSongId] = useState(null); // Which song is being edited
   const [agentStatus, setAgentStatus] = useState({});
   const [progressMessage, setProgressMessage] = useState('');
@@ -744,6 +745,18 @@ export const DirectedStudio = memo(function DirectedStudio({
         if (full.generated_songs?.length) setSongsList(full.generated_songs);
         else if (full.generated_song) setSongsList([{ ...full.generated_song, id: full.generated_song.id || 'legacy' }]);
       }).catch(() => {});
+    }
+  }, [step, projectId]);
+
+  // Load existing Sora character voice locks when entering results
+  useEffect(() => {
+    if (step === 7 && projectId) {
+      axios.get(`${API}/studio/projects/${projectId}/sora-characters`)
+        .then(r => {
+          const locked = (r.data?.characters || []).filter(c => c.sora_character_id);
+          setSoraVoiceLock({ loading: false, registered: locked });
+        })
+        .catch(() => {});
     }
   }, [step, projectId]);
 
@@ -4511,8 +4524,45 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <div className="p-3 flex items-center justify-between border-t border-gray-100">
                         <div>
                           <p className="text-[11px] font-medium text-gray-900">{lang === 'pt' ? 'Vídeos por Cena' : 'Scene Videos'}</p>
-                          <p className="text-[10px] font-mono text-gray-500">{vids.length} {lang === 'pt' ? 'vídeos' : 'videos'}</p>
+                          <p className="text-[10px] font-mono text-gray-500">
+                            {vids.length} {lang === 'pt' ? 'vídeos' : 'videos'}
+                            {soraVoiceLock.registered.length > 0 && (
+                              <span className="ml-2 text-[#10B981]" data-testid="sora-voice-lock-badge">
+                                · {soraVoiceLock.registered.length} {lang === 'pt' ? 'vozes travadas' : 'voices locked'}
+                              </span>
+                            )}
+                          </p>
                         </div>
+                        <button
+                          data-testid="sora-voice-lock-btn"
+                          disabled={soraVoiceLock.loading || vids.length === 0}
+                          onClick={async () => {
+                            setSoraVoiceLock(s => ({ ...s, loading: true }));
+                            try {
+                              const r = await axios.post(`${API}/studio/projects/${projectId}/auto-register-sora-characters`);
+                              const { registered = [], skipped = [], failed = [], total_registered = 0 } = r.data || {};
+                              setSoraVoiceLock({ loading: false, registered });
+                              if (total_registered > 0) {
+                                toast.success(lang === 'pt'
+                                  ? `🎤 ${total_registered} voz(es) travada(s)! Próximas cenas usarão a mesma voz.`
+                                  : `🎤 ${total_registered} voice(s) locked! Next scenes will use the same voice.`);
+                              } else if (skipped.length > 0) {
+                                toast.info(lang === 'pt' ? `Vozes já travadas (${skipped.length})` : `Voices already locked (${skipped.length})`);
+                              } else if (failed.length > 0) {
+                                toast.error(lang === 'pt' ? `Falha: ${failed[0]?.reason || 'erro'}` : `Failed: ${failed[0]?.reason || 'error'}`);
+                              } else {
+                                toast.info(lang === 'pt' ? 'Nenhum personagem para travar.' : 'No characters to lock.');
+                              }
+                            } catch (e) {
+                              setSoraVoiceLock(s => ({ ...s, loading: false }));
+                              toast.error(getErrorMsg(e, lang === 'pt' ? 'Erro ao travar vozes' : 'Voice lock failed'));
+                            }
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#8B5CF6] text-white text-[9px] font-mono uppercase tracking-wider hover:bg-[#7C3AED] transition disabled:opacity-40"
+                          title={lang === 'pt' ? 'Fixa a voz nativa do Sora 2 dos personagens nas próximas cenas' : 'Lock Sora 2 native character voices for next scenes'}
+                        >
+                          <Mic size={10} /> {soraVoiceLock.loading ? (lang === 'pt' ? 'Travando...' : 'Locking...') : (lang === 'pt' ? 'Travar Vozes' : 'Lock Voices')}
+                        </button>
                       </div>
                     </div>
                   );

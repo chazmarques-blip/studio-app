@@ -11,6 +11,7 @@ import os
 # Add backend root to path for kling_client import
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from core.kling_client import KlingClient
+from .sora_characters import _sora_character_ids_for_scene
 
 def _run_async_in_thread(coro):
     """Execute async function in sync thread context"""
@@ -21,7 +22,7 @@ def _run_async_in_thread(coro):
         asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
 
-def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = "1280x720", duration: int = 12, image_path: str = None, max_wait: int = 600) -> bytes:
+def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = "1280x720", duration: int = 12, image_path: str = None, max_wait: int = 600, sora_character_ids: Optional[list] = None) -> bytes:
     """Generate video using OpenAI SDK directly (not emergentintegrations).
     
     Args:
@@ -31,6 +32,9 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         duration: Video length in seconds (4, 8, or 12)
         image_path: Optional path to reference image (from Project Bible or keyframe)
         max_wait: Maximum time to wait for generation (seconds)
+        sora_character_ids: Optional list of pre-registered Sora character_ids
+            (POST /v1/sora/characters) to lock voice+appearance across scenes.
+            Max 2 per Sora 2 limit. Safe when empty/None.
     
     Returns:
         Video bytes if successful, empty bytes if failed
@@ -49,6 +53,15 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         }
         
         logger.info(f"Sora 2: Prompt length={len(prompt)} chars. First 200: {prompt[:200]}")
+        
+        # CHARACTER LOCK (aditive, safe): If pre-registered character_ids are provided,
+        # pass them to Sora 2 so voice + appearance stay consistent across scenes.
+        # Max 2 per Sora 2 limit (March 2026). Skipped when list is empty.
+        if sora_character_ids:
+            ids = [cid for cid in sora_character_ids if cid][:2]
+            if ids:
+                gen_params["characters"] = [{"id": cid} for cid in ids]
+                logger.info(f"Sora 2: Character lock active — {len(ids)} character_id(s): {ids}")
         
         # Use input_reference if image path provided (Project Bible keyframe or character reference)
         # CRITICAL FIX (2026-04-03): Resize image to match video dimensions to avoid 400 error
@@ -129,7 +142,8 @@ def _generate_video_unified(
     image_path: str = None,
     max_wait: int = 600,
     openai_client: Optional[OpenAI] = None,
-    kling_client: Optional[KlingClient] = None
+    kling_client: Optional[KlingClient] = None,
+    sora_character_ids: Optional[list] = None
 ) -> bytes:
     """Unified video generation supporting both Sora 2 and Kling AI
     
@@ -142,6 +156,8 @@ def _generate_video_unified(
         max_wait: Maximum wait time in seconds
         openai_client: OpenAI client instance (required if engine="sora")
         kling_client: Kling client instance (required if engine="kling")
+        sora_character_ids: Optional list of Sora 2 character_ids for voice lock
+            (Sora engine only; ignored for Kling). Max 2.
         
     Returns:
         Video bytes if successful, empty bytes if failed
@@ -175,7 +191,8 @@ def _generate_video_unified(
             size=size,
             duration=duration,
             image_path=image_path,
-            max_wait=max_wait
+            max_wait=max_wait,
+            sora_character_ids=sora_character_ids,
         )
 
 # ── STEP 3: Multi-Scene Production Pipeline (v3 - Per-Scene Parallel Teams) ──
@@ -1401,6 +1418,17 @@ VISUAL DIRECTION: {visual_direction}
                         engine_name = video_engine.upper()
                         logger.info(f"Studio [{project_id}]: Scene {scene_num} {engine_name} attempt {attempt+1}/{max_retries} (dur={video_duration}s, ref_image={'Y' if ref_path else 'N'})")
                         
+                        # Sora 2 Character Lock: pick up to 2 registered character_ids for this scene
+                        _sora_char_ids = []
+                        if video_engine == "sora":
+                            try:
+                                from .sora_characters import _sora_character_ids_for_scene
+                                _sora_char_ids = _sora_character_ids_for_scene(project, scene, max_refs=2)
+                                if _sora_char_ids:
+                                    logger.info(f"Studio [{project_id}]: Scene {scene_num} using Sora character_ids: {_sora_char_ids}")
+                            except Exception as _ce:
+                                logger.warning(f"Studio [{project_id}]: character_ids lookup failed (non-fatal): {_ce}")
+                        
                         # Unified video generation supporting Sora 2 and Kling AI
                         video_bytes = _generate_video_unified(
                             prompt=sora_prompt,  # No truncation - dialogue must reach Sora 2 intact
@@ -1410,7 +1438,8 @@ VISUAL DIRECTION: {visual_direction}
                             image_path=ref_path,
                             max_wait=600,
                             openai_client=openai_client,
-                            kling_client=kling_client
+                            kling_client=kling_client,
+                            sora_character_ids=_sora_char_ids or None,
                         )
                         elapsed = _time.time() - t_v
 
@@ -2909,7 +2938,11 @@ Story: {briefing[:300]}
                     size="1280x720",
                     duration=12,
                     image_path=ref_path,
-                    max_wait=600
+                    max_wait=600,
+                    sora_character_ids=(
+                        _sora_character_ids_for_scene(project, scene, max_refs=2)
+                        if True else None
+                    ),
                 )
                 if video_bytes and len(video_bytes) > 1000:
                     # Video generated successfully - Sora 2 includes audio with lip-sync!
