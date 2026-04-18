@@ -424,6 +424,9 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [songStyle, setSongStyle] = useState('auto');
   const [songAge, setSongAge] = useState('3-5');
   const [resultTab, setResultTab] = useState('filme');
+  const [bookPage, setBookPage] = useState(0);
+  const [ilIdx, setIlIdx] = useState(null);   // null = grid, number = full view
+  const [vidIdx, setVidIdx] = useState(null);  // null = grid, number = full view
   const [editingSongId, setEditingSongId] = useState(null); // Which song is being edited
   const [agentStatus, setAgentStatus] = useState({});
   const [progressMessage, setProgressMessage] = useState('');
@@ -4274,7 +4277,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                     ? allPanelFrames.map((f, i) => ({ url: f.url, scene: f.scene, idx: i }))
                     : thumbs.map((t, i) => ({ url: t, scene: i + 1, idx: i }));
                   const totalPages = bookPages.length;
-                  const currentBookPage = window.__bookPage || 0;
+                  const currentBookPage = bookPage;
                   const page = bookPages[currentBookPage];
                   const sceneObj = scenes[page?.scene - 1];
 
@@ -4293,13 +4296,13 @@ export const DirectedStudio = memo(function DirectedStudio({
                           )}
                           {/* Nav arrows */}
                           {currentBookPage > 0 && (
-                            <button onClick={() => { window.__bookPage = currentBookPage - 1; setResultTab('_'); setTimeout(() => setResultTab('livro'), 0); }}
+                            <button onClick={() => setBookPage(currentBookPage - 1)}
                               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition">
                               <ChevronLeft size={16} />
                             </button>
                           )}
                           {currentBookPage < totalPages - 1 && (
-                            <button onClick={() => { window.__bookPage = currentBookPage + 1; setResultTab('_'); setTimeout(() => setResultTab('livro'), 0); }}
+                            <button onClick={() => setBookPage(currentBookPage + 1)}
                               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition">
                               <ChevronRight size={16} />
                             </button>
@@ -4343,7 +4346,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                 {/* TAB: Ilustrações */}
                 {resultTab === 'ilustracoes' && (() => {
                   const frames = allPanelFrames.length > 0 ? allPanelFrames : [];
-                  const selectedIdx = window.__ilIdx ?? null;
+                  const selectedIdx = ilIdx;
                   const selected = selectedIdx !== null ? frames[selectedIdx] : null;
 
                   if (selected) {
@@ -4359,19 +4362,19 @@ export const DirectedStudio = memo(function DirectedStudio({
                             {lang === 'pt' ? 'Cena' : 'Scene'} {selected.scene}
                           </span>
                           {/* Back to grid */}
-                          <button onClick={() => { window.__ilIdx = null; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}
+                          <button onClick={() => setIlIdx(null)}
                             className="absolute top-2 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-black/60 text-white/80 px-2 py-1 rounded hover:bg-black/80 transition flex items-center gap-1">
                             <Eye size={9} /> {lang === 'pt' ? 'Ver Grid' : 'Grid'}
                           </button>
                           {/* Nav */}
                           {selectedIdx > 0 && (
-                            <button onClick={() => { window.__ilIdx = selectedIdx - 1; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}
+                            <button onClick={() => setIlIdx(selectedIdx - 1)}
                               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition">
                               <ChevronLeft size={16} />
                             </button>
                           )}
                           {selectedIdx < frames.length - 1 && (
-                            <button onClick={() => { window.__ilIdx = selectedIdx + 1; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}
+                            <button onClick={() => setIlIdx(selectedIdx + 1)}
                               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition">
                               <ChevronRight size={16} />
                             </button>
@@ -4402,7 +4405,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                       <div className="p-2 grid grid-cols-4 sm:grid-cols-5 gap-1 max-h-[50vh] overflow-y-auto">
                         {frames.map((frame, i) => (
                           <div key={i} className="relative aspect-video rounded overflow-hidden cursor-pointer group"
-                            onClick={() => { window.__ilIdx = i; setResultTab('_'); setTimeout(() => setResultTab('ilustracoes'), 0); }}>
+                            onClick={() => setIlIdx(i)}>
                             <img src={frame.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
                             <div className="absolute bottom-0.5 left-0.5 text-[7px] font-mono bg-black/60 text-white px-0.5 rounded">C{frame.scene}</div>
                           </div>
@@ -4425,7 +4428,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                 {/* TAB: Vídeos por Cena */}
                 {resultTab === 'videos' && (() => {
                   const vids = sceneVideos;
-                  const selVidIdx = window.__vidIdx ?? null;
+                  const selVidIdx = vidIdx;
                   const selVid = selVidIdx !== null ? vids[selVidIdx] : null;
 
                   if (selVid) {
@@ -4440,18 +4443,18 @@ export const DirectedStudio = memo(function DirectedStudio({
                           <span className="absolute top-2 left-2 text-[9px] font-mono bg-black/60 text-white/80 px-1.5 py-0.5 rounded z-10">
                             {lang === 'pt' ? 'Cena' : 'Scene'} {selVid.scene_number}
                           </span>
-                          <button onClick={() => { window.__vidIdx = null; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}
+                          <button onClick={() => setVidIdx(null)}
                             className="absolute top-2 left-1/2 -translate-x-1/2 text-[9px] font-mono bg-black/60 text-white/80 px-2 py-1 rounded hover:bg-black/80 transition flex items-center gap-1 z-10">
                             <Eye size={9} /> {lang === 'pt' ? 'Ver Grid' : 'Grid'}
                           </button>
                           {selVidIdx > 0 && (
-                            <button onClick={() => { window.__vidIdx = selVidIdx - 1; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}
+                            <button onClick={() => setVidIdx(selVidIdx - 1)}
                               className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition z-10">
                               <ChevronLeft size={16} />
                             </button>
                           )}
                           {selVidIdx < vids.length - 1 && (
-                            <button onClick={() => { window.__vidIdx = selVidIdx + 1; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}
+                            <button onClick={() => setVidIdx(selVidIdx + 1)}
                               className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white transition z-10">
                               <ChevronRight size={16} />
                             </button>
@@ -4484,7 +4487,7 @@ export const DirectedStudio = memo(function DirectedStudio({
                         {vids.map((out, i) => (
                           <div key={out.id || i} className="rounded overflow-hidden border border-gray-100 group hover:border-[#8B5CF6]/30 transition cursor-pointer"
                             data-testid={`deliverable-cena-${out.scene_number}`}
-                            onClick={() => { window.__vidIdx = i; setResultTab('_'); setTimeout(() => setResultTab('videos'), 0); }}>
+                            onClick={() => setVidIdx(i)}>
                             <div className="relative aspect-video bg-gray-100">
                               <video src={out.url} preload="metadata" className="w-full h-full object-cover"
                                 onMouseEnter={e => { e.target.play().catch(() => {}); }} onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }} muted />
