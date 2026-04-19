@@ -19,6 +19,7 @@ Adds:
     - RAG stub interface (class with in-memory fallback; swap to ChromaDB/pgvector later)
 """
 from ._shared import *
+from fastapi import BackgroundTasks
 import json
 import io
 import re as _re
@@ -1050,6 +1051,138 @@ async def book_state(project_id: str, tenant=Depends(get_current_tenant)):
 async def list_compositions(user=Depends(get_current_user)):
     """Expose available meeting room compositions for the UI."""
     return _load_compositions()
+
+
+@router.post("/projects/{project_id}/book/run-pipeline")
+async def book_run_pipeline(project_id: str, background_tasks: BackgroundTasks, tenant=Depends(get_current_tenant)):
+    """Runs the complete BookFactory pipeline in background:
+    outline → approve → art-direct → meeting-room-review → illustrate all spreads → cover → render → preflight.
+
+    Returns immediately; progress is tracked in book_bible.pipeline_status.
+    Frontend should poll GET /book/state every 2-5s.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    if not book_bible.get("brief"):
+        raise HTTPException(status_code=400, detail="No brief — call /book/start first")
+    if book_bible.get("pipeline_running"):
+        return {"status": "already_running", "current_step": book_bible.get("pipeline_step")}
+
+    # Mark running
+    book_bible["pipeline_running"] = True
+    book_bible["pipeline_step"] = "starting"
+    book_bible["pipeline_started_at"] = datetime.now(timezone.utc).isoformat()
+    book_bible["pipeline_log"] = []
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+
+    background_tasks.add_task(_run_book_pipeline_background, tenant, project_id)
+    return {"status": "started", "project_id": project_id}
+
+
+async def _run_book_pipeline_background(tenant: dict, project_id: str):
+    """Background worker — runs all BookFactory steps sequentially."""
+    def _log(msg, step=None):
+        try:
+            s, p, pr = _get_project(tenant["id"], project_id)
+            bb = (pr.get("project_bible") or {}).get("book_bible") or {}
+            lg = bb.get("pipeline_log") or []
+            lg.append({"ts": datetime.now(timezone.utc).isoformat(), "step": step, "msg": msg})
+            bb["pipeline_log"] = lg[-40:]
+            if step:
+                bb["pipeline_step"] = step
+            pb_ = pr.get("project_bible", {}) or {}
+            pb_["book_bible"] = bb
+            pr["project_bible"] = pb_
+            _save_project(tenant["id"], s, p)
+        except Exception as e:
+            logger.warning(f"BookFactory pipeline log save failed: {e}")
+
+    def _mark_done(ok: bool, err: Optional[str] = None):
+        try:
+            s, p, pr = _get_project(tenant["id"], project_id)
+            bb = (pr.get("project_bible") or {}).get("book_bible") or {}
+            bb["pipeline_running"] = False
+            bb["pipeline_step"] = "done" if ok else "error"
+            bb["pipeline_finished_at"] = datetime.now(timezone.utc).isoformat()
+            if err:
+                bb["pipeline_error"] = err
+            pb_ = pr.get("project_bible", {}) or {}
+            pb_["book_bible"] = bb
+            pr["project_bible"] = pb_
+            _save_project(tenant["id"], s, p)
+        except Exception as e:
+            logger.error(f"BookFactory pipeline mark_done failed: {e}")
+
+    try:
+        _log("Pipeline iniciada", "starting")
+
+        # 1) Outline
+        _log("Gerando outline", "outline")
+        await book_generate_outline(project_id, tenant)
+
+        # 2) Approve outline
+        _log("Aprovando outline", "approve_outline")
+        await book_approve_outline(project_id, tenant)
+
+        # 3) Art direction
+        _log("Definindo direção de arte", "art_direction")
+        from types import SimpleNamespace
+        await book_art_direct(project_id, ArtDirectRequest(extra_instructions=""), tenant)
+
+        # 4) Meeting room review
+        _log("Meeting Room: revisando", "review")
+        try:
+            await book_meeting_room_review(project_id, tenant)
+        except Exception as e:
+            _log(f"Review falhou (ignorando): {str(e)[:150]}", "review")
+
+        # 5) Illustrate all spreads
+        s, p, pr = _get_project(tenant["id"], project_id)
+        bb = (pr.get("project_bible") or {}).get("book_bible") or {}
+        spreads = bb.get("spreads") or []
+        _log(f"Gerando {len(spreads)} ilustrações", "illustrate")
+        for sp in spreads:
+            idx = sp.get("index")
+            if not idx:
+                continue
+            try:
+                await book_illustrate_spread(project_id, IllustrateSpreadRequest(spread_index=idx), tenant)
+                _log(f"Spread {idx} ilustrado", f"illustrate_{idx}")
+            except Exception as e:
+                _log(f"Spread {idx} falhou: {str(e)[:150]}", f"illustrate_{idx}_error")
+
+        # 6) Cover
+        _log("Gerando capa", "cover")
+        try:
+            await book_generate_cover_v2(project_id, tenant)
+        except Exception as e:
+            _log(f"Capa falhou (seguindo): {str(e)[:150]}", "cover_error")
+
+        # 7) Render picturebook PDF
+        _log("Renderizando PDF", "render")
+        await book_render_picturebook(project_id, tenant)
+
+        # 8) Preflight
+        _log("Validando preflight", "preflight")
+        try:
+            await book_preflight(project_id, tenant)
+        except Exception as e:
+            _log(f"Preflight falhou: {str(e)[:150]}", "preflight_error")
+
+        _log("Pipeline concluído com sucesso", "done")
+        _mark_done(True)
+    except Exception as e:
+        logger.error(f"BookFactory pipeline background error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        _log(f"Erro fatal: {str(e)[:200]}", "error")
+        _mark_done(False, err=str(e)[:300])
 
 
 @router.get("/book/trim-sizes")

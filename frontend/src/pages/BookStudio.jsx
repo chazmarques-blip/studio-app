@@ -51,6 +51,7 @@ export default function BookStudio() {
   // state fetched from backend
   const [bookState, setBookState] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [autoRunning, setAutoRunning] = useState(false);
 
   const loadProjects = useCallback(async () => {
     try {
@@ -72,12 +73,46 @@ export default function BookStudio() {
       else if (data?.meeting_room_review) setStep('review');
       else if (data?.theme) setStep('art');
       else if (data?.outline) setStep('outline');
-      else if (data?.brief) setStep('brief');
+      else if (data?.brief) setStep('ready'); // NEW: brief received, show CTA
+      else setStep('brief');
     } catch (e) { /* noop */ }
   }, []);
 
   useEffect(() => { loadProjects(); }, [loadProjects]);
   useEffect(() => { if (projectId) loadState(projectId); }, [projectId, loadState]);
+
+  // Polling ativo quando pipeline está rodando
+  useEffect(() => {
+    if (!projectId || !bookState?.pipeline_running) return;
+    setAutoRunning(true);
+    const iv = setInterval(() => { loadState(projectId); }, 3000);
+    return () => clearInterval(iv);
+  }, [projectId, bookState?.pipeline_running, loadState]);
+
+  useEffect(() => {
+    // Quando pipeline termina, desliga o autoRunning
+    if (bookState && !bookState.pipeline_running && autoRunning) {
+      setAutoRunning(false);
+      if (bookState.pipeline_step === 'done') {
+        toast.success('🎉 Livro pronto!');
+      } else if (bookState.pipeline_step === 'error') {
+        toast.error(`Pipeline falhou: ${bookState.pipeline_error || 'erro'}`);
+      }
+    }
+  }, [bookState?.pipeline_running, bookState?.pipeline_step, autoRunning, bookState]);
+
+  const runFullPipeline = async () => {
+    if (!projectId) return;
+    try {
+      await axios.post(`${API}/api/studio/projects/${projectId}/book/run-pipeline`, {}, authHeaders());
+      setAutoRunning(true);
+      toast.success('🚀 Pipeline iniciada! Acompanhe o progresso abaixo.');
+      // Imediatamente atualiza pra pegar status running
+      setTimeout(() => loadState(projectId), 800);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Erro ao iniciar pipeline');
+    }
+  };
 
   // ── actions ─────────────────────────────────────────────────────
   const callApi = async (method, path, body, okMsg) => {
@@ -194,6 +229,21 @@ export default function BookStudio() {
             <BookOpen className="text-amber-700" size={22} />
             <h1 className="text-lg font-bold text-amber-900">BookFactory</h1>
             {projectId && <span className="text-xs text-amber-600 font-mono">#{projectId.slice(0, 8)}</span>}
+            {projectId && bookState?.brief && !bookState?.pipeline_running && !bookState?.pdf_url && (
+              <button
+                onClick={runFullPipeline}
+                data-testid="btn-run-full-pipeline"
+                className="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs font-bold hover:from-amber-600 hover:to-orange-700 shadow-sm transition"
+                title="Gera outline → arte → revisão → ilustrações → capa → PDF automaticamente"
+              >
+                <Sparkles size={13} /> 🚀 Gerar tudo
+              </button>
+            )}
+            {bookState?.pipeline_running && (
+              <span className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md bg-amber-100 text-amber-700 text-[10px] font-mono" data-testid="pipeline-running-pill">
+                <Loader2 className="animate-spin" size={10} /> {bookState.pipeline_step || 'running'}
+              </span>
+            )}
           </div>
 
           {/* Stepper */}
@@ -221,6 +271,100 @@ export default function BookStudio() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Auto-pipeline progress banner */}
+        {bookState?.pipeline_running && (
+          <div className="mb-6 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl p-5 shadow-lg" data-testid="pipeline-banner">
+            <div className="flex items-center gap-3 mb-3">
+              <Loader2 className="animate-spin" size={20} />
+              <div className="flex-1">
+                <h3 className="font-bold">Pipeline rodando automaticamente...</h3>
+                <p className="text-xs opacity-90">Passo atual: <strong>{bookState.pipeline_step || '...'}</strong></p>
+              </div>
+            </div>
+            {(bookState.pipeline_log || []).length > 0 && (
+              <div className="bg-white/10 rounded-lg p-3 max-h-32 overflow-y-auto font-mono text-[10px] space-y-0.5">
+                {(bookState.pipeline_log || []).slice(-8).map((entry, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span className="opacity-60">{(entry.ts || '').slice(11, 19)}</span>
+                    <span className="opacity-80">[{entry.step || '—'}]</span>
+                    <span>{entry.msg}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {bookState?.pipeline_step === 'done' && !bookState?.pipeline_running && bookState?.pdf_url && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3" data-testid="pipeline-done-banner">
+            <Check className="text-emerald-600" size={20} />
+            <div className="flex-1">
+              <p className="font-semibold text-emerald-900">Livro pronto! Pipeline completa.</p>
+              <p className="text-xs text-emerald-700">Baixe o PDF abaixo ou navegue pelos passos.</p>
+            </div>
+            <a href={bookState.pdf_url} target="_blank" rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-emerald-700">
+              <Download size={12} /> Baixar
+            </a>
+          </div>
+        )}
+        {/* STEP: READY (brief recebido, pipeline ainda não rodou) */}
+        {step === 'ready' && bookState?.brief && (
+          <div className="bg-white rounded-2xl shadow-lg p-10 max-w-3xl mx-auto text-center" data-testid="ready-panel">
+            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-6">
+              <BookOpen className="text-white" size={36} />
+            </div>
+            <h2 className="text-3xl font-bold text-amber-900 mb-2">
+              {bookState.brief.title || 'Seu livro'}
+            </h2>
+            <p className="text-sm text-gray-600 mb-1">Briefing recebido ✅</p>
+            <p className="text-xs text-gray-500 mb-8 max-w-md mx-auto">{bookState.brief.briefing}</p>
+
+            <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+              <button
+                onClick={runFullPipeline}
+                disabled={bookState?.pipeline_running}
+                data-testid="btn-start-pipeline-auto"
+                className="group p-6 rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 hover:border-amber-500 transition text-left relative overflow-hidden"
+              >
+                <div className="absolute top-2 right-2 text-[9px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">
+                  RECOMENDADO
+                </div>
+                <Sparkles className="text-amber-600 mb-2" size={28} />
+                <h3 className="font-bold text-amber-900 mb-1">🚀 Gerar tudo automaticamente</h3>
+                <p className="text-xs text-amber-800">
+                  Executa outline → arte → revisão → ilustrações → capa → PDF sem intervenção.
+                </p>
+                <p className="text-[10px] text-amber-700 mt-2 font-mono">~5-8 minutos</p>
+              </button>
+
+              <button
+                onClick={genOutline}
+                disabled={busyAction}
+                data-testid="btn-start-pipeline-manual"
+                className="p-6 rounded-2xl border-2 border-gray-200 hover:border-amber-300 transition text-left"
+              >
+                <Edit3 className="text-gray-500 mb-2" size={28} />
+                <h3 className="font-bold text-gray-800 mb-1">Modo manual</h3>
+                <p className="text-xs text-gray-600">
+                  Gere e aprove cada passo individualmente. Ideal pra ter controle total.
+                </p>
+                <p className="text-[10px] text-gray-500 mt-2 font-mono">Passo a passo</p>
+              </button>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <p className="text-xs text-gray-500 mb-2">Detalhes do projeto</p>
+              <div className="flex flex-wrap justify-center gap-2 text-[11px]">
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">📖 {bookState.brief.format_preset}</span>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">{bookState.brief.trim_size}</span>
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">{bookState.brief.target_spreads || '?'} spreads</span>
+                <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full">{bookState.brief.audience}</span>
+                <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full">{bookState.brief.illustration_track}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* STEP: BRIEF */}
         {step === 'brief' && (
           <div className="bg-white rounded-2xl shadow-lg p-8 max-w-3xl mx-auto" data-testid="brief-form">
@@ -372,9 +516,13 @@ export default function BookStudio() {
                   className="px-3 py-2 text-xs border rounded-lg hover:bg-amber-50 flex items-center gap-1">
                   <RefreshCw size={12} /> Regerar
                 </button>
+                <button onClick={runFullPipeline} disabled={busyAction || bookState?.pipeline_running} data-testid="btn-run-pipeline-from-outline"
+                  className="px-4 py-2 text-xs bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-bold hover:from-amber-600 hover:to-orange-700 flex items-center gap-1 shadow-sm">
+                  <Sparkles size={12} /> 🚀 Gerar tudo automaticamente
+                </button>
                 <button onClick={() => genArt()} disabled={busyAction} data-testid="btn-go-art"
-                  className="px-4 py-2 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-1">
-                  Direção de Arte <ChevronRight size={12} />
+                  className="px-3 py-2 text-xs border border-amber-200 text-amber-700 rounded-lg hover:bg-amber-50 flex items-center gap-1">
+                  Manual <ChevronRight size={12} />
                 </button>
               </div>
             </div>
