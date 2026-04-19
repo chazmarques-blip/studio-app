@@ -1,5 +1,78 @@
 # StudioX Changelog
 
+## 2026-04-18 → 2026-04-19 (Session 4 — BookFactory MVP)
+
+### BookFactory — Pipeline Paralela de Livros Físicos (NEW)
+
+**Objetivo**: Criar uma segunda pipeline ao lado do gerador de vídeos para produzir **livros físicos prontos para impressão** (PDF com sangria, fontes embutidas, layout profissional), reusando a Character Universe, Project Bible e agentes já existentes do StudioX.
+
+**Decisões arquiteturais aprovadas pelo usuário**:
+- Motor de diagramação: **WeasyPrint** (Python puro, CSS Paged Media) — descartado LaTeX por limitação de disco (2.2 GB livres vs ~1.5 GB do TeX Live)
+- RAG: **stub in-memory** com interface pronta (Bíblia + Machado de Assis) — ChromaDB/pgvector em Fase 2
+- 3 formatos via templates: **6×9** (infantil/romance), **5×8** (romance), **A4** (técnico/histórico) + A5 bonus
+- Universo compartilhado: usuário escolhe no briefing entre `book` | `video` | `both` (meeting room adaptativa)
+- Branding: **BookFactory**
+
+**O que foi implementado**:
+
+1. **8 novos agent specs** em `/app/memory/agents/book/`:
+   - `author_agent` (Autor Profissional)
+   - `art_director_editorial_agent`
+   - `illustrator_interior_agent`
+   - `cover_designer_agent`
+   - `book_editor_agent` (consistência narrativa)
+   - `proofreader_agent`
+   - `layout_designer_agent` (decide tipografia/grid)
+   - `preflight_agent` (valida PDF final)
+
+2. **Meeting Room adaptativa**: `agent_compositions.json` com 7 composições dinâmicas resolvidas por `(output_mode, format_preset, autoria_mode)`. Modo `video_only` preservado idêntico ao fluxo atual.
+
+3. **Novo módulo backend**: `/app/backend/routers/studio/book_factory.py` (~540 linhas) com 10 endpoints sob `/api/studio/`:
+   - `GET /book/trim-sizes`, `GET /book/compositions`
+   - `POST /projects/{id}/book/start` (grava brief + resolve composition)
+   - `POST /book/generate-outline` (Autor — Claude)
+   - `POST /book/approve-outline`
+   - `POST /book/generate-chapter` (Autor — Claude, com continuidade)
+   - `POST /book/plan-illustrations` (Art Director)
+   - `POST /book/generate-illustration` (Ilustrador — Gemini 3 Image com character refs)
+   - `POST /book/generate-cover-v2` (Designer de Capa, calcula lombada pelo page count)
+   - `POST /book/proofread` (Revisor)
+   - `POST /book/render-pdf` (Diagramador + WeasyPrint)
+   - `POST /book/preflight` (Preflight Agent — pypdf)
+   - `GET /book/state`
+
+4. **Template Jinja2 + CSS Paged Media** em `/app/backend/templates/book/book_base.html.j2`:
+   - `@page` com `bleed: 3mm` e `marks: crop cross`
+   - Running headers, footer com número de página
+   - Drop cap (opcional por preset)
+   - Capítulo começa em página ímpar (recto) quando preset pede
+   - `widows: 3, orphans: 3, hyphens: auto, text-align: justify`
+   - 3 presets: infantil_ilustrado / romance_adulto / tecnico_historico
+
+5. **RAG stub**: classe `_RAGStub` com API idêntica a um retriever real (`.search(query, top_k)`). Interface pronta para trocar por ChromaDB/pgvector sem mexer no resto.
+
+6. **LLM integration**: usa o pattern oficial do projeto — `_call_claude_async` em `_shared.py` (litellm + `anthropic/claude-sonnet-4-5-20250929`). Migrei de `emergentintegrations.LlmChat` (que tem bug reportado pelo testing agent) para o padrão que já funciona no pipeline de vídeo.
+
+**Testing**:
+- Testing Agent v3 rodou 26 testes (21 passaram, 5 bloqueados pelo bug da emergentintegrations).
+- Depois de migrar para `_call_claude_async`, rodei **fluxo end-to-end real** via curl: criou livro "A Raposinha Generosa" com 8 capítulos, escreveu capítulo 1 em português (200 palavras), renderizou PDF de 17KB, preflight passou com 0 blockers.
+- Backward compat: pipeline de vídeo 100% preservado (endpoints antigos continuam funcionando).
+
+**Pendente para próxima sessão** (UI):
+- Componente `BookStudio.jsx` (nova rota `/studio/book/:id`)
+- Page-flip preview com PDF.js
+- Editor de outline inline (drag-reorder de capítulos)
+- Preview de ilustrações por página
+- Botão unificado "Criar Livro" na home do Studio X
+
+**Fase 2 (roadmap)**:
+- Substituir RAG stub por ChromaDB com ingestão real (Bíblia PT, Gutenberg)
+- Pós-processamento CMYK + PDF/X via ghostscript
+- Integração Amazon KDP, Uiclap, Lulu APIs
+- Book+Video paralelo (Universe Bible bifurcando)
+- Multi-language (EN/ES no template)
+
+
 ## 2026-04-18 (Session 4 — continuação)
 
 ### Video Quality Upgrade — Sprints P0+P1 completos

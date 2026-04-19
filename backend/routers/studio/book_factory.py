@@ -242,23 +242,14 @@ RETURN ONLY VALID JSON:
 """
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        if not api_key:
-            raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
-
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"book-outline-{project_id}",
-            system_message="You are a professional literary author. Return only valid JSON."
-        ).with_model("anthropic", "claude-sonnet-4-20250514")
-
-        resp = await chat.send_message(UserMessage(text=prompt))
-        raw = resp.strip()
+        raw = (await _call_claude_async(
+            "You are a professional literary author. Return only valid JSON.",
+            prompt,
+            max_tokens=4000,
+        )).strip()
         # Strip fences if present
         if raw.startswith("```"):
             raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
-
         outline = json.loads(raw)
     except json.JSONDecodeError as je:
         logger.error(f"BookFactory outline JSON parse failed: {je} — raw: {raw[:300]}")
@@ -351,14 +342,11 @@ Begin with "## {ch_meta.get('title')}" on the first line.
 """
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"book-chapter-{project_id}-{req.chapter_index}",
-            system_message=f"You are a professional literary author writing in {lang_full}."
-        ).with_model("anthropic", "claude-sonnet-4-20250514")
-        prose = (await chat.send_message(UserMessage(text=prompt))).strip()
+        prose = (await _call_claude_async(
+            f"You are a professional literary author writing in {lang_full}.",
+            prompt,
+            max_tokens=8000,
+        )).strip()
     except Exception as e:
         logger.error(f"BookFactory chapter generation failed: {e}")
         raise HTTPException(status_code=502, detail=str(e))
@@ -430,13 +418,11 @@ Rules:
 """
 
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        chat = LlmChat(
-            api_key=api_key, session_id=f"book-artdir-{project_id}",
-            system_message="You are an Editorial Art Director. Return only valid JSON."
-        ).with_model("anthropic", "claude-sonnet-4-20250514")
-        raw = (await chat.send_message(UserMessage(text=prompt))).strip()
+        raw = (await _call_claude_async(
+            "You are an Editorial Art Director. Return only valid JSON.",
+            prompt,
+            max_tokens=4000,
+        )).strip()
         if raw.startswith("```"):
             raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
         plan = json.loads(raw)
@@ -618,14 +604,11 @@ async def book_proofread(project_id: str, tenant=Depends(get_current_tenant)):
         ch = chapters_dict[idx]
         prose = ch.get("prose", "")
         try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
-            api_key = os.environ.get("EMERGENT_LLM_KEY", "")
-            chat = LlmChat(
-                api_key=api_key, session_id=f"book-proof-{project_id}-{idx}",
-                system_message=f"Professional proofreader for {lang_full}. Fix orthography, typography, grammar. Preserve author's voice."
-            ).with_model("anthropic", "claude-sonnet-4-20250514")
-            msg = UserMessage(text=f"Proofread the following chapter. Return ONLY the corrected prose in Markdown, no commentary:\n\n{prose}")
-            fixed = (await chat.send_message(msg)).strip()
+            fixed = (await _call_claude_async(
+                f"Professional proofreader for {lang_full}. Fix orthography, typography, grammar. Preserve author's voice.",
+                f"Proofread the following chapter. Return ONLY the corrected prose in Markdown, no commentary:\n\n{prose}",
+                max_tokens=8000,
+            )).strip()
             corrected[idx] = {**ch, "prose": fixed, "proofread_at": datetime.now(timezone.utc).isoformat()}
         except Exception as e:
             logger.warning(f"BookFactory proofread ch{idx} failed: {e} — keeping original")
