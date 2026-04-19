@@ -333,7 +333,7 @@ export default function BookStudio() {
                   className="w-full px-3 py-2 border rounded-lg text-sm">
                   <option value="">— Nenhum (criar personagens novos) —</option>
                   {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name} ({(p.characters || []).length} personagens)</option>
+                    <option key={p.id} value={p.id}>{p.name} — {(p.characters || []).length} personagens</option>
                   ))}
                 </select>
                 {brief.source_project_id && (

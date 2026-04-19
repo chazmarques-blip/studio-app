@@ -1,5 +1,43 @@
 # StudioX Changelog
 
+## 2026-04-19 (Session 4 — BookFactory P0+P1 completo)
+
+### P0 — UI BookStudio (nova rota `/studio/book/:projectId`)
+Nova página React (`/app/frontend/src/pages/BookStudio.jsx`, ~560 linhas) com wizard de 7 passos navegável:
+
+1. **Briefing** — formulário com todos os campos (name, title, author, idioma, briefing, format picturebook/chapter/romance/técnico, trim 6x9/5x8/A4/A5, target_spreads, audience, visual track, modo autoria, herdar personagens de outro projeto via `source_project_id`, reference_work quando public_domain).
+2. **Outline** — exibe title, subtitle, blurb, badges dos RAG sources (Bíblia), lista de spreads com texto + scene description + characters + botão rewrite individual.
+3. **Arte** — editor visual de tema: inputs de fonte (título e corpo), tamanho pt, 5 color pickers ao vivo (page_bg, text_box_bg, title_color, body_color, accent) + preview da fonte renderizado na hora. PATCH direto para `/book/theme`.
+4. **Revisão (Meeting Room)** — mostra consistency_score em destaque, overall_assessment, lista colorida de issues por severity (critical vermelho, major âmbar, minor cinza), botão "Aplicar fixes críticos".
+5. **Ilustrações** — grid responsivo com thumbnails, botão "Gerar todas faltantes" em lote, botão regenerar por spread.
+6. **Capa** — preview com overlay de título + lombada calculada, botões regenerar e "Renderizar PDF final".
+7. **PDF** — tela "Livro Pronto!" com page_count, preflight status verde/amber, botão Baixar PDF.
+
+Auto-detecta o passo correto ao carregar projeto existente (usa `pdf_url`, `cover`, spreads com `illustration_url`, `meeting_room_review`, `theme`, `outline` pra decidir).
+
+Botão "📖 Livro" adicionado no header do `StudioPage.jsx` com `data-testid="nav-bookfactory"`.
+
+### P1 — Extensões backend
+
+**Novas composições no `agent_compositions.json`**:
+- `book_picturebook_user_author`
+- `book_picturebook_public_domain` (lidera com Pesquisador + RAG)
+- `book_picturebook_free` (lidera com Art Director)
+
+**Novos endpoints em `book_factory.py`**:
+- `PATCH /api/studio/projects/{id}/book/theme` — merge partial de theme/palette/style_rules; permite UI editar fontes/cores.
+- `POST /book/rewrite-spread` — Author Agent reescreve UM spread via Claude preservando `illustration_url`.
+- `POST /book/apply-review-fixes` — varre `meeting_room_review.issues` e auto-aplica critical/major via rewrite-spread; retorna `{applied, skipped, total_applied}`.
+
+### Testing
+- Testing agent iteration 138: **18/20 backend (90%) + 100% frontend UI verificada**.
+- 2 issues minor: intermittent 500 em criação rápida (Supabase race) + React warning de `<span>` dentro de `<option>` — ambos LOW priority.
+- Smoke test visual via Playwright: tela de briefing + tela de render carregam corretamente no preview environment.
+
+### Arquitetura agora
+Agentes **ativos** no fluxo picturebook: Orchestrator + Author + Art Director Editorial + Illustrator Interior + Cover Designer + Book Editor + Proofreader + Layout Designer + Preflight (8 agentes). Meeting Room em loop de debate simples via Editor review + apply-fixes. RAG Bíblia PT-BR com 5 passagens ARA (Gênesis 12, 21, 22 + Hebreus 11).
+
+
 ## 2026-04-18 → 2026-04-19 (Session 4 — BookFactory MVP)
 
 ### BookFactory — Pipeline Paralela de Livros Físicos (NEW)
