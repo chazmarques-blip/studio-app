@@ -1111,11 +1111,12 @@ async def book_state(project_id: str, tenant=Depends(get_current_tenant)):
 
 
 @router.get("/projects/{project_id}/book/download-pdf")
-async def book_download_pdf(project_id: str, tenant=Depends(get_current_tenant)):
+async def book_download_pdf(project_id: str, inline: bool = False, tenant=Depends(get_current_tenant)):
     """Proxy download of the rendered PDF. Avoids browser/ad-blocker rules that block
     direct hits to the Supabase storage domain (ERR_BLOCKED_BY_CLIENT).
 
     Streams the file with a friendly filename so the browser treats it as a download.
+    Pass `?inline=1` to serve with Content-Disposition: inline (for "open in new tab").
     """
     from fastapi.responses import StreamingResponse
 
@@ -1146,11 +1147,12 @@ async def book_download_pdf(project_id: str, tenant=Depends(get_current_tenant))
         logger.error(f"BookFactory download proxy failed: {e}")
         raise HTTPException(status_code=502, detail=f"Download failed: {str(e)[:200]}")
 
+    disposition = "inline" if inline else "attachment"
     return StreamingResponse(
         io.BytesIO(data),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": f'{disposition}; filename="{filename}"',
             "Content-Length": str(len(data)),
             "Cache-Control": "no-store",
         },

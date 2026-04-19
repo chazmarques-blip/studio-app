@@ -281,29 +281,60 @@ export default function BookStudio() {
     return url + (url.includes('?') ? '&' : '?') + 'v=' + v;
   };
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
   // Download PDF via backend proxy (avoids ad-blocker blocking Supabase domain)
-  const downloadPdf = () => {
+  const downloadPdf = async () => {
     if (!projectId) return;
     const token = localStorage.getItem(TOKEN_KEY) || '';
-    // Use fetch with auth so we stream the blob, then trigger a download click.
-    fetch(`${API}/api/studio/projects/${projectId}/book/download-pdf`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.blob();
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${(bookState?.outline?.title || bookState?.brief?.title || 'livro').replace(/[^\w\-\. ]+/g, '_')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      })
-      .catch((e) => toast.error(`Download falhou: ${e.message || e}`));
+    setDownloadingPdf(true);
+    const t = toast.loading('Baixando PDF... (pode levar alguns segundos)');
+    try {
+      const r = await fetch(`${API}/api/studio/projects/${projectId}/book/download-pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text().catch(() => '')}`);
+      const blob = await r.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(bookState?.outline?.title || bookState?.brief?.title || 'livro').replace(/[^\w\-\. ]+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Revoke after a tick so the download actually starts
+      setTimeout(() => window.URL.revokeObjectURL(url), 2000);
+      toast.success('PDF baixado!', { id: t });
+    } catch (e) {
+      toast.error(`Download falhou: ${e.message || e}`, { id: t });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Open PDF inline in a new tab via proxy (blob URL bypasses ad-blocker + supabase block)
+  const openPdfInTab = async () => {
+    if (!projectId) return;
+    const token = localStorage.getItem(TOKEN_KEY) || '';
+    setDownloadingPdf(true);
+    const t = toast.loading('Abrindo PDF...');
+    try {
+      const r = await fetch(`${API}/api/studio/projects/${projectId}/book/download-pdf?inline=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const blob = await r.blob();
+      const url = window.URL.createObjectURL(blob);
+      const w = window.open(url, '_blank');
+      if (!w) throw new Error('Pop-up bloqueado. Libere pop-ups para este site.');
+      toast.success('PDF aberto em nova aba', { id: t });
+      // Revoke later; tab needs it alive
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      toast.error(`Falha ao abrir: ${e.message || e}`, { id: t });
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   return (
@@ -390,11 +421,14 @@ export default function BookStudio() {
               <p className="font-semibold text-emerald-900">Livro pronto! Pipeline completa.</p>
               <p className="text-xs text-emerald-700">Baixe o PDF abaixo ou navegue pelos passos.</p>
             </div>
-            <a href={bookState.pdf_url} target="_blank" rel="noopener noreferrer"
-              onClick={(e) => { e.preventDefault(); downloadPdf(); }}
-              className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-emerald-700">
-              <Download size={12} /> Baixar
-            </a>
+            <button
+              onClick={downloadPdf}
+              disabled={downloadingPdf}
+              data-testid="btn-download-pdf-banner"
+              className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-emerald-700 disabled:opacity-60">
+              {downloadingPdf ? <Loader2 className="animate-spin" size={12} /> : <Download size={12} />}
+              {downloadingPdf ? 'Baixando...' : 'Baixar'}
+            </button>
           </div>
         )}
         {/* STEP: READY (brief recebido, pipeline ainda não rodou) */}
@@ -1025,15 +1059,20 @@ export default function BookStudio() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
                   onClick={downloadPdf}
+                  disabled={downloadingPdf}
                   data-testid="btn-download-pdf"
-                  className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-amber-700 hover:to-orange-700">
-                  <Download size={16} /> Baixar PDF
+                  className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-amber-700 hover:to-orange-700 disabled:opacity-60">
+                  {downloadingPdf ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                  {downloadingPdf ? 'Baixando...' : 'Baixar PDF'}
                 </button>
-                <a href={bookState.pdf_url} target="_blank" rel="noopener noreferrer"
+                <button
+                  onClick={openPdfInTab}
+                  disabled={downloadingPdf}
                   data-testid="btn-open-pdf"
-                  className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2">
-                  <Eye size={16} /> Abrir em nova aba
-                </a>
+                  className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-60">
+                  {downloadingPdf ? <Loader2 className="animate-spin" size={16} /> : <Eye size={16} />}
+                  Abrir em nova aba
+                </button>
                 <button onClick={renderPDF} disabled={busyAction} data-testid="btn-rerender"
                   className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2">
                   <RefreshCw size={16} /> Renderizar de novo
