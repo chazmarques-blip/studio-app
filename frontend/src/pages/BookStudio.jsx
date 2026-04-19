@@ -255,6 +255,14 @@ export default function BookStudio() {
   const cover = bookState?.cover || {};
   const review = bookState?.meeting_room_review || null;
 
+  // Cache-bust: appends ?v=<generated_at> (or now) to force browser to refetch.
+  // Backend overwrites the same storage path so URL alone doesn't change.
+  const cacheBust = (url, stamp) => {
+    if (!url) return url;
+    const v = stamp ? new Date(stamp).getTime() : Date.now();
+    return url + (url.includes('?') ? '&' : '?') + 'v=' + v;
+  };
+
   // Download PDF via backend proxy (avoids ad-blocker blocking Supabase domain)
   const downloadPdf = () => {
     if (!projectId) return;
@@ -833,7 +841,7 @@ export default function BookStudio() {
               {isPicturebook ? spreads.map((s) => (
                 <div key={s.index} data-testid={`illus-${s.index}`} className="border rounded-lg overflow-hidden group">
                   {s.illustration_url ? (
-                    <img src={s.illustration_url} alt="" className="w-full aspect-[4/3] object-cover" />
+                    <img src={cacheBust(s.illustration_url, s.generated_at)} alt="" className="w-full aspect-[4/3] object-cover" />
                   ) : (
                     <div className="w-full aspect-[4/3] bg-gray-100 flex items-center justify-center">
                       <ImageIcon size={32} className="text-gray-300" />
@@ -854,7 +862,7 @@ export default function BookStudio() {
               )) : illustrationPlan.filter((p) => p.type !== 'none').map((p) => (
                 <div key={p.page_number} data-testid={`illus-page-${p.page_number}`} className="border rounded-lg overflow-hidden group">
                   {p.illustration_url ? (
-                    <img src={p.illustration_url} alt="" className="w-full aspect-[4/3] object-cover" />
+                    <img src={cacheBust(p.illustration_url, p.generated_at)} alt="" className="w-full aspect-[4/3] object-cover" />
                   ) : (
                     <div className="w-full aspect-[4/3] bg-gray-100 flex items-center justify-center">
                       <ImageIcon size={32} className="text-gray-300" />
@@ -916,7 +924,7 @@ export default function BookStudio() {
             </div>
             <div className="max-w-md mx-auto">
               {cover.front_url ? (
-                <div className="aspect-[6/9] rounded-lg overflow-hidden shadow-2xl relative" style={{ backgroundImage: `url(${cover.front_url})`, backgroundSize: 'cover' }}>
+                <div className="aspect-[6/9] rounded-lg overflow-hidden shadow-2xl relative" style={{ backgroundImage: `url(${cacheBust(cover.front_url, bookState?.cover_generated_at)})`, backgroundSize: 'cover' }}>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                   <div className="absolute bottom-6 inset-x-0 text-center text-white p-4">
                     <h3 className="text-2xl font-black drop-shadow-lg">{cover.title || bookState?.outline?.title}</h3>
