@@ -887,6 +887,38 @@ export default function StudioPage() {
       const { data } = await axios.post(`${API}/studio/projects`, projectData);
       toast.success(l.created);
       setShowNewProjectModal(false);
+
+      // BookFactory: quando output_mode=book, ativa book/start e redireciona pro BookStudio
+      if (projectData.output_mode === 'book' || projectData.output_mode === 'both') {
+        try {
+          await axios.post(`${API}/studio/projects/${data.id}/book/start`, {
+            output_mode: projectData.output_mode,
+            autoria_mode: 'user_author',
+            format_preset: 'picturebook',
+            trim_size: '6x9',
+            target_spreads: 14,
+            audience: projectData.target_audience === 'all' ? 'children_4_8' : 'children_4_8',
+            illustration_track: 'storybook',
+            title: projectData.name,
+            author_name: '',
+            briefing: projectData.briefing || '',
+            language: projectData.language || 'pt',
+            character_ids: [],
+            source_project_id: null,
+          });
+        } catch (e) {
+          console.warn('book/start failed (non-fatal):', e?.response?.data);
+        }
+
+        if (projectData.output_mode === 'book') {
+          // Livro puro → abre BookStudio direto
+          await fetchProjects();
+          navigate(`/studio/book/${data.id}`);
+          return;
+        }
+        // Both: segue para fluxo de vídeo mas já tem book_bible armado
+      }
+
       await fetchProjects();
       setSelectedProject(data);
       setSearchParams({ project: data.id });

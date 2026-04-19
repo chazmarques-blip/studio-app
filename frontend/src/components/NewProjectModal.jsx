@@ -1,4 +1,4 @@
-import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users, Building2, Plus, Trash2, Edit2 } from 'lucide-react';
+import { X, Sparkles, Check, ChevronRight, Clapperboard, Film, Palette, Pencil, CircleDot, Camera, Brush, Users, Building2, Plus, Trash2, Edit2, BookOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -26,6 +26,7 @@ export function NewProjectModal({
   const [videoEngine, setVideoEngine] = useState('sora'); // NEW: Sora 2 or Kling AI
   const [targetDuration, setTargetDuration] = useState(5); // NEW: Duration in minutes (5, 10, 15, 20, 25)
   const [targetAudience, setTargetAudience] = useState('all'); // NEW: Target audience age range
+  const [outputMode, setOutputMode] = useState('video'); // NEW: "video" | "book" | "both"
   
   // NEW: Character folder selection for continuity
   const [selectedFolder, setSelectedFolder] = useState(null); // null = criar novos personagens
@@ -454,7 +455,9 @@ export function NewProjectModal({
   };
 
   const handleCreate = () => {
-    if (!projectName.trim() || !animationSub) return;
+    // Para modo "book" — não exige animationSub (é do fluxo de vídeo)
+    if (!projectName.trim()) return;
+    if (outputMode === 'video' && !animationSub) return;
     
     onCreate({
       name: projectName.trim(),
@@ -462,7 +465,7 @@ export function NewProjectModal({
       language: projectLang,
       visual_style: visualStyle,
       audio_mode: audioMode,
-      animation_sub: animationSub,
+      animation_sub: animationSub || null,
       continuity_mode: continuityMode,
       format_strategy: formatStrategy,
       formats_requested: formatsRequested,
@@ -471,10 +474,11 @@ export function NewProjectModal({
       video_engine: videoEngine, // NEW: Pass selected video engine
       target_duration_minutes: targetDuration, // NEW: Pass target duration
       target_audience: targetAudience, // NEW: Pass target audience
+      output_mode: outputMode, // NEW: "video" | "book" | "both"
     });
   };
 
-  const isValid = projectName.trim() && animationSub;
+  const isValid = projectName.trim() && (outputMode !== 'video' || animationSub);
 
   return (
     <>
@@ -489,6 +493,86 @@ export function NewProjectModal({
           <button onClick={onClose} className="text-[#999] hover:text-[#333] transition">
             <X size={18} />
           </button>
+        </div>
+
+        {/* OUTPUT MODE — primeira decisão: vídeo, livro ou ambos */}
+        <div className="mb-2">
+          <label className="text-xs font-semibold text-[#333] mb-1 block">
+            {lang === 'pt' ? 'Tipo de Projeto' : 'Project Type'}
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              data-testid="output-mode-video"
+              onClick={() => setOutputMode('video')}
+              className={`p-2.5 rounded-lg border-2 text-left transition ${
+                outputMode === 'video'
+                  ? 'border-[#8B5CF6] bg-[#8B5CF6]/5 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="text-lg mb-0.5">🎬</div>
+              <div className="text-[11px] font-bold text-gray-900">
+                {lang === 'pt' ? 'Vídeo' : 'Video'}
+              </div>
+              <div className="text-[9px] text-gray-500 leading-tight mt-0.5">
+                {lang === 'pt' ? 'Filme animado com Sora/Kling' : 'Animated film with Sora/Kling'}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              data-testid="output-mode-book"
+              onClick={() => setOutputMode('book')}
+              className={`p-2.5 rounded-lg border-2 text-left transition ${
+                outputMode === 'book'
+                  ? 'border-amber-500 bg-amber-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="text-lg mb-0.5">📖</div>
+              <div className="text-[11px] font-bold text-gray-900">
+                {lang === 'pt' ? 'Livro' : 'Book'}
+              </div>
+              <div className="text-[9px] text-gray-500 leading-tight mt-0.5">
+                {lang === 'pt' ? 'Picturebook/PDF para impressão' : 'Printable picturebook/PDF'}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              data-testid="output-mode-both"
+              onClick={() => setOutputMode('both')}
+              className={`p-2.5 rounded-lg border-2 text-left transition ${
+                outputMode === 'both'
+                  ? 'border-gradient-to-r border-indigo-500 bg-gradient-to-br from-indigo-50 to-amber-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="text-lg mb-0.5">🎬📖</div>
+              <div className="text-[11px] font-bold text-gray-900">
+                {lang === 'pt' ? 'Ambos' : 'Both'}
+              </div>
+              <div className="text-[9px] text-gray-500 leading-tight mt-0.5">
+                {lang === 'pt' ? 'Universo compartilhado' : 'Shared universe'}
+              </div>
+            </button>
+          </div>
+          {outputMode === 'book' && (
+            <p className="text-[10px] text-amber-700 mt-1.5 flex items-center gap-1">
+              <BookOpen size={11} />
+              {lang === 'pt'
+                ? 'Você será levado ao BookFactory após criar o projeto.'
+                : "You'll be taken to BookFactory after creating."}
+            </p>
+          )}
+          {outputMode === 'both' && (
+            <p className="text-[10px] text-indigo-700 mt-1.5">
+              ✨ {lang === 'pt'
+                ? 'Universe Bible compartilhada: mesmos personagens no livro e no filme.'
+                : 'Shared Universe Bible: same characters in book and film.'}
+            </p>
+          )}
         </div>
 
         {/* Step 0: Empresa/Projeto Master - COMPACTO */}
