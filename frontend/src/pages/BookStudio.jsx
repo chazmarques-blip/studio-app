@@ -241,12 +241,26 @@ export default function BookStudio() {
     await loadState(projectId); setStep('cover');
   };
 
+  const [renderingPdf, setRenderingPdf] = useState(false);
+
   const renderPDF = async () => {
+    if (renderingPdf) return;
     const fmt = bookState?.brief?.format_preset || 'picturebook';
     const endpoint = fmt === 'picturebook' ? 'render-picturebook' : 'render-pdf';
-    await callApi('post', `/api/studio/projects/${projectId}/book/${endpoint}`, null, 'PDF renderizado');
-    await callApi('post', `/api/studio/projects/${projectId}/book/preflight`, null, 'Preflight concluído');
-    await loadState(projectId); setStep('render');
+    setRenderingPdf(true);
+    const t = toast.loading('Renderizando PDF... (pode levar ~20s)');
+    try {
+      await axios.post(`${API}/api/studio/projects/${projectId}/book/${endpoint}`, null, authHeaders());
+      toast.loading('Validando pré-impressão...', { id: t });
+      await axios.post(`${API}/api/studio/projects/${projectId}/book/preflight`, null, authHeaders());
+      toast.success('PDF renderizado!', { id: t });
+      await loadState(projectId);
+      setStep('render');
+    } catch (e) {
+      toast.error(`Render falhou: ${e?.response?.data?.detail || e.message}`, { id: t });
+    } finally {
+      setRenderingPdf(false);
+    }
   };
 
   const rewriteSpread = async (idx) => {
@@ -1017,9 +1031,10 @@ export default function BookStudio() {
                   className="px-3 py-2 text-xs border rounded-lg hover:bg-amber-50 flex items-center gap-1">
                   <RefreshCw size={12} /> {cover.front_url ? 'Regerar' : 'Gerar'}
                 </button>
-                <button onClick={renderPDF} disabled={busyAction} data-testid="btn-render-pdf"
-                  className="px-4 py-2 text-xs bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg flex items-center gap-1 disabled:opacity-50">
-                  <FileCheck size={12} /> Renderizar PDF final
+                <button onClick={renderPDF} disabled={renderingPdf} data-testid="btn-render-pdf"
+                  className="px-4 py-2 text-xs bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg flex items-center gap-1 disabled:opacity-60">
+                  {renderingPdf ? <Loader2 className="animate-spin" size={12} /> : <FileCheck size={12} />}
+                  {renderingPdf ? 'Renderizando...' : 'Renderizar PDF final'}
                 </button>
               </div>
             </div>
@@ -1097,9 +1112,10 @@ export default function BookStudio() {
                   {downloadingPdf ? <Loader2 className="animate-spin" size={16} /> : <Eye size={16} />}
                   Abrir em nova aba
                 </button>
-                <button onClick={renderPDF} disabled={busyAction} data-testid="btn-rerender"
-                  className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2">
-                  <RefreshCw size={16} /> Renderizar de novo
+                <button onClick={renderPDF} disabled={renderingPdf} data-testid="btn-rerender"
+                  className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-60">
+                  {renderingPdf ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+                  {renderingPdf ? 'Renderizando...' : 'Renderizar de novo'}
                 </button>
               </div>
             )}
