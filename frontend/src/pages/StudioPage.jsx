@@ -68,11 +68,18 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
   // Corrigir: Buscar thumbnail do primeiro vídeo ou primeiro output
   const firstVideo = project.outputs?.find(o => o.type === 'video');
   const firstImage = project.outputs?.find(o => o.type === 'keyframe' || o.type === 'image');
-  const thumbnail = firstVideo?.url || firstImage?.url || project.book_cover_url;
+  const thumbnail = project?.project_bible?.book_bible?.cover?.front_url || firstVideo?.url || firstImage?.url || project.book_cover_url;
   const progress = getProjectProgress(project);
   const updatedAt = project.updated_at ? new Date(project.updated_at) : null;
   const scenesCount = project.scenes?.length || 0;
   const charactersCount = project.characters?.length || 0;
+  // BookFactory detection
+  const bookBible = project?.project_bible?.book_bible || null;
+  const isBookProject = project?.output_mode === 'book' || !!bookBible;
+  const bookStatus = bookBible?.status || null;
+  const bookPdfUrl = bookBible?.pdf_url || null;
+  const bookCoverUrl = bookBible?.cover?.front_url || null;
+  const bookSpreadsCount = (bookBible?.spreads || []).length;
   
   // Extrair thumbnail do vídeo (primeiro frame)
   useEffect(() => {
@@ -194,26 +201,55 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
         
         {/* Stats Row - CORES MAIS CLARAS */}
         <div className="flex items-center gap-4 text-xs text-gray-900/70 mb-3">
-          <span className="flex items-center gap-1.5">
-            <Layers size={13} className="text-gray-900/60" /> {scenesCount} cenas
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Users size={13} className="text-gray-900/60" /> {charactersCount} personagens
-          </span>
+          {isBookProject ? (
+            <>
+              <span className="flex items-center gap-1.5 text-amber-700 font-semibold" data-testid={`book-badge-${project.id}`}>
+                <BookOpen size={13} /> 📖 Livro
+              </span>
+              {bookSpreadsCount > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <Layers size={13} className="text-gray-900/60" /> {bookSpreadsCount} spreads
+                </span>
+              )}
+              <span className="flex items-center gap-1.5">
+                <Users size={13} className="text-gray-900/60" /> {charactersCount} personagens
+              </span>
+              {bookPdfUrl && (
+                <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                  ✅ PDF pronto
+                </span>
+              )}
+              {bookStatus && !bookPdfUrl && (
+                <span className="flex items-center gap-1.5 text-blue-600">
+                  {bookStatus.replace(/_/g, ' ')}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="flex items-center gap-1.5">
+                <Layers size={13} className="text-gray-900/60" /> {scenesCount} cenas
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users size={13} className="text-gray-900/60" /> {charactersCount} personagens
+              </span>
+            </>
+          )}
           {updatedAt && (
             <span className="flex items-center gap-1.5">
               <Clock size={13} className="text-gray-900/60" /> {formatDate(updatedAt)}
             </span>
           )}
           {/* Character Library Status */}
-          {project.character_library && (
+          {!isBookProject && project.character_library && (
             <span className="flex items-center gap-1.5 text-emerald-600">
               <BookOpen size={13} /> {project.character_library.total_characters} disponíveis
             </span>
           )}
         </div>
 
-        {/* Progress Steps - Mini - CORES MAIS CLARAS */}
+        {/* Progress Steps - Mini - apenas para projetos de vídeo */}
+        {!isBookProject && (
         <div className="flex items-center gap-1.5">
           {progress.steps.map((step, i) => (
             <div 
@@ -232,9 +268,20 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
             {progress.completed}/{progress.total}
           </span>
         </div>
+        )}
       </div>
 
-      {/* Progress Circle */}
+      {/* Progress Circle — só para vídeos. Para livros, mostra ícone de livro */}
+      {isBookProject ? (
+        <div className="shrink-0 flex flex-col items-center gap-1.5">
+          <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+            <BookOpen size={20} className="text-white" />
+          </div>
+          <span className="text-[10px] font-medium text-amber-700">
+            {bookPdfUrl ? 'PDF pronto' : 'Em progresso'}
+          </span>
+        </div>
+      ) : (
       <div className="shrink-0 flex flex-col items-center gap-1.5">
         <div className="relative w-12 h-12">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
@@ -257,14 +304,20 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
           {progress.percent === 100 ? 'Concluído' : 'Em progresso'}
         </span>
       </div>
+      )}
 
       {/* Actions */}
       <div className="shrink-0 flex items-center gap-3">
         <button 
           onClick={(e) => { e.stopPropagation(); onSelect(project); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8B5CF6]/20 text-[#A78BFA] text-xs font-semibold hover:bg-[#8B5CF6]/30 transition"
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition ${
+            isBookProject
+              ? 'bg-amber-500/20 text-amber-700 hover:bg-amber-500/30'
+              : 'bg-[#8B5CF6]/20 text-[#A78BFA] hover:bg-[#8B5CF6]/30'
+          }`}
+          data-testid={`open-project-${project.id}`}
         >
-          <Play size={13} /> Abrir
+          {isBookProject ? (<><BookOpen size={13} /> Abrir livro</>) : (<><Play size={13} /> Abrir</>)}
         </button>
         
         {/* Character Library Button */}
@@ -965,7 +1018,13 @@ export default function StudioPage() {
 
 
   // Select project - CORRIGIDO
+  // Projetos do tipo livro abrem na BookStudio (rota dedicada)
   const handleSelectProject = (project) => {
+    const isBookProject = project?.output_mode === 'book' || !!project?.project_bible?.book_bible;
+    if (isBookProject) {
+      navigate(`/studio/book/${project.id}`);
+      return;
+    }
     setSelectedProject(project);
     setSearchParams({ project: project.id });
   };
