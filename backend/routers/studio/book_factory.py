@@ -44,9 +44,10 @@ VISUAL_TRACKS = ["aquarela", "cartoon", "flat", "storybook", "realismo_editorial
 class BookBriefRequest(BaseModel):
     output_mode: str = "book"  # "book" | "video" | "both"
     autoria_mode: str = "user_author"  # "user_author" | "public_domain" | "free"
-    format_preset: str = "infantil_ilustrado"  # "infantil_ilustrado" | "romance_adulto" | "tecnico_historico"
+    format_preset: str = "infantil_ilustrado"  # "picturebook" | "infantil_ilustrado" | "romance_adulto" | "tecnico_historico"
     trim_size: str = "6x9"
     target_pages: int = 40
+    target_spreads: int = 14  # Only used when format_preset = picturebook
     audience: str = "children_4_8"  # children_0_3 | children_4_8 | children_9_12 | ya | adult | technical
     illustration_track: str = "storybook"
     title: str = ""
@@ -54,7 +55,19 @@ class BookBriefRequest(BaseModel):
     briefing: str = ""
     language: str = "pt"
     character_ids: list = []  # Refs to folders/avatars
-    reference_work: Optional[str] = None  # For public_domain mode: "biblia_genesis" | "classic_gutenberg_xxx"
+    source_project_id: Optional[str] = None  # Inherit characters + avatars from this project
+    reference_work: Optional[str] = None  # For public_domain mode: "biblia_genesis_22" | "classic_gutenberg_xxx"
+
+
+class SpreadGenerateRequest(BaseModel):
+    spread_index: int
+    rewrite_instructions: Optional[str] = None
+
+
+class IllustrateSpreadRequest(BaseModel):
+    spread_index: int
+    override_prompt: Optional[str] = None
+    layout: Optional[str] = None  # "split" (default) | "overlay"
 
 
 class ChapterGenerateRequest(BaseModel):
@@ -160,6 +173,14 @@ async def book_start(project_id: str, req: BookBriefRequest, tenant=Depends(get_
     brief = req.model_dump()
     composition_key = _resolve_composition_key(brief)
 
+    # Inherit characters from another project (Character Universe reuse)
+    if req.source_project_id:
+        _, _, source_project = _get_project(tenant["id"], req.source_project_id)
+        if source_project:
+            project["characters"] = source_project.get("characters") or []
+            project["character_avatars"] = source_project.get("character_avatars") or {}
+            logger.info(f"BookFactory: inherited {len(project['characters'])} characters + {len(project['character_avatars'])} avatars from {req.source_project_id}")
+
     book_bible = project.get("project_bible", {}).get("book_bible", {}) or {}
     book_bible.update({
         "brief": brief,
@@ -199,10 +220,21 @@ async def book_generate_outline(project_id: str, tenant=Depends(get_current_tena
     if not brief:
         raise HTTPException(status_code=400, detail="Call /book/start first")
 
-    # Optional RAG context
+    # Optional RAG context — use real Bible RAG for public_domain mode
     rag_context = []
     if book_bible.get("rag_enabled") and brief.get("reference_work"):
-        rag_context = _rag.search(brief["reference_work"], top_k=5)
+        try:
+            from core.bible_rag import search_bible_passages
+            # If reference_work is bible, search with briefing as query
+            ref = brief.get("reference_work", "").lower()
+            if "biblia" in ref or "bible" in ref or "genesis" in ref or "gênesis" in ref:
+                q = brief.get("briefing", "") + " " + ref
+                rag_context = search_bible_passages(q, top_k=5)
+                logger.info(f"BookFactory: Bible RAG returned {len(rag_context)} passages for '{ref}'")
+            else:
+                rag_context = _rag.search(brief["reference_work"], top_k=5)
+        except Exception as e:
+            logger.warning(f"BookFactory RAG failed: {e}")
 
     # Character universe context
     characters = project.get("characters") or []
@@ -211,7 +243,63 @@ async def book_generate_outline(project_id: str, tenant=Depends(get_current_tena
         if isinstance(c, dict):
             char_block += f"- {c.get('name', '')}: {c.get('description', '')[:200]}\n"
 
-    prompt = f"""You are the Author Agent for BookFactory. Generate a chapter outline.
+    # RAG block (text used in prompt)
+    rag_block = ""
+    if rag_context:
+        rag_lines = []
+        for r in rag_context:
+            ref = r.get("reference") or r.get("source", "")
+            txt = (r.get("text") or "")[:900]
+            rag_lines.append(f"[{ref}]\n{txt}")
+        rag_block = "\n\nSOURCE PASSAGES TO USE (cite faithfully, adapt tone to audience):\n" + "\n\n".join(rag_lines)
+
+    is_picturebook = brief.get("format_preset") == "picturebook"
+    target_spreads = brief.get("target_spreads", 14)
+
+    if is_picturebook:
+        prompt = f"""You are the Author Agent writing a PICTUREBOOK for children.
+
+BOOK BRIEF:
+- Format: picturebook (illustration + short text per spread)
+- Audience: {brief.get('audience')} — VERY IMPORTANT: use language appropriate for this age.
+- Language: {brief.get('language')}
+- Title: {brief.get('title') or '(to be created)'}
+- Briefing: {brief.get('briefing')}
+- Target: {target_spreads} spreads (pages)
+- Autoria mode: {brief.get('autoria_mode')}
+
+CHARACTERS AVAILABLE (USE EXACTLY THESE, DO NOT INVENT):
+{char_block or '(none — author may invent, but prefer to stay with reference work characters)'}
+{rag_block}
+
+RULES FOR PICTUREBOOK:
+- Each spread = 1 illustration + 2-4 short sentences (max ~40 words). NEVER long paragraphs.
+- Rhythm: sentences should read out loud well. Use repetition, rhyme-adjacent prose.
+- Vocabulary: simple, concrete, visual. Age-appropriate.
+- Narrative arc across ALL spreads: setup → tension → climax → resolution.
+- Each spread must be VISUALLY compelling — a scene that deserves a full illustration.
+- Faithful to source passages if provided.
+
+RETURN ONLY VALID JSON:
+{{
+  "title": "creative title adapted to audience",
+  "subtitle": "optional subtitle",
+  "blurb": "100-word book synopsis",
+  "total_spreads": {target_spreads},
+  "spreads": [
+    {{
+      "index": 1,
+      "text": "2-4 short sentences (MAX ~40 words)",
+      "scene_description": "What the illustrator should draw — concrete, visual, includes which characters are in frame, their poses, setting, lighting, mood",
+      "characters_in_scene": ["Exact Character Name 1", "Character Name 2"],
+      "layout_hint": "split" or "overlay"
+    }},
+    ...
+  ]
+}}
+"""
+    else:
+        prompt = f"""You are the Author Agent for BookFactory. Generate a chapter outline.
 
 BOOK BRIEF:
 - Format: {brief.get('format_preset')}
@@ -225,8 +313,7 @@ BOOK BRIEF:
 
 CHARACTERS AVAILABLE:
 {char_block or '(none — author may invent)'}
-
-{"RESEARCH CONTEXT (cite when relevant):" + chr(10) + chr(10).join(["- " + r["source"] + ": " + r["text"] for r in rag_context]) if rag_context else ""}
+{rag_block}
 
 RETURN ONLY VALID JSON:
 {{
@@ -259,11 +346,18 @@ RETURN ONLY VALID JSON:
         raise HTTPException(status_code=502, detail=str(e))
 
     book_bible["outline"] = outline
+    if is_picturebook:
+        book_bible["spreads"] = outline.get("spreads", [])
     book_bible["status"] = "outline_ready"
+    if rag_context:
+        book_bible["rag_sources"] = [
+            {"reference": r.get("reference") or r.get("source", ""), "score": r.get("score", 0)}
+            for r in rag_context
+        ]
     pb = project.get("project_bible", {}) or {}
     pb["book_bible"] = book_bible
     project["project_bible"] = pb
-    _add_milestone(project, "book_outline_ready", f"Outline gerado — {outline.get('total_chapters', 0)} capítulos")
+    _add_milestone(project, "book_outline_ready", f"Outline gerado — {outline.get('total_spreads', outline.get('total_chapters', 0))} {'spreads' if is_picturebook else 'capítulos'}")
     _save_project(tenant["id"], settings, projects)
 
     return outline
@@ -961,3 +1055,397 @@ async def list_compositions(user=Depends(get_current_user)):
 @router.get("/book/trim-sizes")
 async def list_trim_sizes(user=Depends(get_current_user)):
     return {"trim_sizes": TRIM_SIZES_MM, "visual_tracks": VISUAL_TRACKS}
+
+
+# ─── Picturebook-specific endpoints ───────────────────────────────────────────
+
+class ArtDirectRequest(BaseModel):
+    extra_instructions: Optional[str] = None
+
+
+@router.post("/projects/{project_id}/book/art-direct")
+async def book_art_direct(project_id: str, req: ArtDirectRequest, tenant=Depends(get_current_tenant)):
+    """Art Director Editorial agent picks the visual theme for the book.
+
+    Returns a `theme` JSON used by the picturebook template: colors, fonts, palette,
+    spreads layout suggestion. Runs once before illustration generation.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    brief = book_bible.get("brief") or {}
+    outline = book_bible.get("outline") or {}
+    spreads = book_bible.get("spreads") or []
+
+    characters_brief = "\n".join([
+        f"- {c.get('name')}: {(c.get('description') or '')[:150]}"
+        for c in (project.get("characters") or []) if isinstance(c, dict)
+    ][:8])
+
+    prompt = f"""You are the Editorial Art Director for BookFactory.
+Decide the complete VISUAL THEME for this book: palette, typography, mood.
+
+BOOK:
+- Title: {outline.get('title', '')}
+- Format: {brief.get('format_preset')} — audience {brief.get('audience')}
+- Briefing: {brief.get('briefing')}
+- Illustration track: {brief.get('illustration_track')}
+- Total spreads: {len(spreads)}
+- Language: {brief.get('language')}
+
+CHARACTERS:
+{characters_brief}
+
+{f"EXTRA INSTRUCTIONS: {req.extra_instructions}" if req.extra_instructions else ''}
+
+Return ONLY valid JSON with this EXACT structure:
+{{
+  "theme": {{
+    "title_font": "Google Font or generic family (e.g. 'Fredoka', 'Lilita One', 'Poppins')",
+    "body_font": "Nunito, Quicksand, Comic Neue, etc for children OR Merriweather, Lora for older",
+    "body_size": 13 (pt, 13-18 for children picturebook),
+    "line_height": 1.5,
+    "title_color": "#HEX",
+    "body_color": "#HEX",
+    "accent": "#HEX",
+    "page_bg": "#HEX (light warm cream for children, white for adult)",
+    "text_box_bg": "#HEX (slightly tinted from page_bg)",
+    "illus_bg": "#HEX (deeper version for image fallback)",
+    "cover_title_size": 42 (pt),
+    "page_number_color": "#HEX",
+    "cover_fallback_a": "#HEX",
+    "cover_fallback_b": "#HEX"
+  }},
+  "palette": {{"primary": "#HEX", "secondary": "#HEX", "accent": "#HEX", "shadow": "#HEX"}},
+  "style_rules": "4-6 sentence description of overall visual style guidelines that every illustration must follow (lighting, mood, detail level, color temperature, line quality)",
+  "spread_layouts_default": "split | overlay"
+}}
+"""
+
+    try:
+        raw = (await _call_claude_async(
+            "You are a professional Editorial Art Director. Return only valid JSON with all fields.",
+            prompt,
+            max_tokens=2500,
+        )).strip()
+        if raw.startswith("```"):
+            raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+        direction = json.loads(raw)
+    except Exception as e:
+        logger.error(f"BookFactory art-direct failed: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+
+    book_bible["theme"] = direction.get("theme") or {}
+    book_bible["palette"] = direction.get("palette") or {}
+    book_bible["style_rules"] = direction.get("style_rules") or ""
+    book_bible["spread_layouts_default"] = direction.get("spread_layouts_default") or "split"
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _add_milestone(project, "book_art_direction_set", "Direção de arte definida")
+    _save_project(tenant["id"], settings, projects)
+
+    return direction
+
+
+def _download_avatar_bytes(url: str) -> Optional[bytes]:
+    try:
+        full_url = url if not url.startswith("/") else f"{os.environ.get('SUPABASE_URL','')}/storage/v1/object/public{url}"
+        tmp = _tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        urllib.request.urlretrieve(full_url, tmp.name)
+        with open(tmp.name, "rb") as f:
+            data = f.read()
+        try:
+            os.unlink(tmp.name)
+        except Exception:
+            pass
+        return data
+    except Exception as e:
+        logger.warning(f"BookFactory: avatar download failed {url[:60]}: {e}")
+        return None
+
+
+@router.post("/projects/{project_id}/book/illustrate-spread")
+async def book_illustrate_spread(project_id: str, req: IllustrateSpreadRequest, tenant=Depends(get_current_tenant)):
+    """Illustrator generates 1 illustration for a SPECIFIC spread.
+
+    Uses:
+    - Exact spread text and scene_description
+    - Character avatars from project.character_avatars as multimodal refs (up to 5)
+    - Visual track + style_rules from Art Director
+    - Previous spread illustration as optional continuity ref
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    spreads = book_bible.get("spreads") or []
+    if req.spread_index < 1 or req.spread_index > len(spreads):
+        raise HTTPException(status_code=400, detail=f"Spread index out of range (1..{len(spreads)})")
+
+    spread = spreads[req.spread_index - 1]
+    theme = book_bible.get("theme") or {}
+    palette = book_bible.get("palette") or {}
+    style_rules = book_bible.get("style_rules") or ""
+    visual_track = (book_bible.get("brief") or {}).get("illustration_track") or "storybook"
+
+    # Character refs — ALWAYS pass ALL project avatars (up to 5), not just in-scene
+    # This ensures illustrator maintains style across the whole book
+    char_avatars = project.get("character_avatars") or {}
+    characters = project.get("characters") or []
+    scene_chars = spread.get("characters_in_scene") or []
+
+    char_descriptions = []
+    primary_image = None
+    extra_images = []
+    # Preferencialmente carrega personagens DA CENA; depois completa até 5
+    ordered_names = list(scene_chars) + [
+        c.get("name") for c in characters
+        if isinstance(c, dict) and c.get("name") not in scene_chars
+    ]
+    for name in ordered_names[:5]:
+        if not name:
+            continue
+        url = char_avatars.get(name)
+        if not url:
+            continue
+        img = _download_avatar_bytes(url)
+        if not img:
+            continue
+        desc = next((c.get("description", "") for c in characters if isinstance(c, dict) and c.get("name") == name), "")
+        char_descriptions.append(f"- {name}: {desc[:200]}")
+        if primary_image is None:
+            primary_image = img
+        else:
+            extra_images.append(img)
+
+    prompt = req.override_prompt or f"""Create a full-page children's book illustration in {visual_track} style.
+
+SCENE TO ILLUSTRATE (this exact moment from the book):
+{spread.get('scene_description', '')}
+
+TEXT OF THIS PAGE (for context — do NOT render text in image):
+"{spread.get('text', '')}"
+
+CHARACTERS VISIBLE IN SCENE: {', '.join(scene_chars) if scene_chars else 'scene context only'}
+CHARACTER REFERENCES (match EXACTLY):
+{chr(10).join(char_descriptions) if char_descriptions else '(none available)'}
+
+STYLE RULES (apply rigorously — every illustration in this book must follow these):
+{style_rules}
+
+PALETTE TO USE:
+- Primary: {palette.get('primary', '#000')}
+- Secondary: {palette.get('secondary', '#000')}
+- Accent: {palette.get('accent', '#000')}
+
+TECHNICAL:
+- Landscape orientation preferred (wider than tall) — image will be cropped to top portion of page.
+- NO TEXT, NO LETTERS, NO SIGNS in the illustration.
+- Characters MUST match reference images exactly (same species, face, clothing, proportions).
+- Composition: reader-friendly, clear focal point, warm cinematic lighting.
+- Leave 5% bleed margin around edges (main subject centered).
+- High detail, emotional, evocative — this is the ONLY image on this page of the book.
+"""
+
+    try:
+        from core.llm import generate_image_gemini_sync
+        img_bytes = generate_image_gemini_sync(prompt, primary_image, extra_images=extra_images)
+    except Exception as e:
+        logger.error(f"BookFactory illustrate-spread failed: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+
+    if not img_bytes:
+        raise HTTPException(status_code=502, detail="Illustrator returned no image")
+
+    fname = f"books/{project_id}/spread_{req.spread_index:03d}.png"
+    url = _upload_to_storage(img_bytes, fname, "image/png")
+
+    # Persist on the spread
+    spread["illustration_url"] = url
+    spread["generated_at"] = datetime.now(timezone.utc).isoformat()
+    if req.layout:
+        spread["layout"] = req.layout
+    spreads[req.spread_index - 1] = spread
+    book_bible["spreads"] = spreads
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+
+    return {"spread_index": req.spread_index, "illustration_url": url, "refs_used": len(char_descriptions)}
+
+
+@router.post("/projects/{project_id}/book/meeting-room-review")
+async def book_meeting_room_review(project_id: str, tenant=Depends(get_current_tenant)):
+    """Simulated Meeting Room: Editor agent reviews outline + spreads and proposes tweaks.
+
+    Returns a review JSON with suggestions. Non-destructive — does not rewrite unless
+    follow-up call to /book/apply-review is made.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    spreads = book_bible.get("spreads") or []
+    outline = book_bible.get("outline") or {}
+    if not spreads:
+        raise HTTPException(status_code=400, detail="No spreads to review")
+
+    spreads_text = "\n".join([
+        f"Spread {s.get('index')}: {s.get('text', '')[:200]}"
+        for s in spreads
+    ])
+
+    prompt = f"""You are the Editor of Consistency for BookFactory. Review this picturebook and identify issues.
+
+TITLE: {outline.get('title', '')}
+AUDIENCE: {(book_bible.get('brief') or {}).get('audience')}
+TOTAL SPREADS: {len(spreads)}
+
+SPREADS:
+{spreads_text}
+
+Identify:
+1. Any character trait inconsistencies across spreads.
+2. Any pacing issues (too slow, too fast, missing emotional beats).
+3. Any vocabulary inappropriate for the audience.
+4. Any factual issues (if based on source material).
+5. Any spread that is too text-heavy (should be <45 words).
+
+Return ONLY JSON:
+{{
+  "consistency_score": 0-100,
+  "issues": [
+    {{"spread": N, "type": "character_drift|pacing|vocabulary|factual|length", "severity": "minor|major|critical", "description": "...", "suggested_fix": "..."}},
+    ...
+  ],
+  "overall_assessment": "short paragraph"
+}}
+"""
+    try:
+        raw = (await _call_claude_async(
+            "You are a strict Editor of Consistency. Return only valid JSON.",
+            prompt,
+            max_tokens=3000,
+        )).strip()
+        if raw.startswith("```"):
+            raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+        review = json.loads(raw)
+    except Exception as e:
+        logger.error(f"BookFactory meeting-room failed: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+
+    book_bible["meeting_room_review"] = review
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _add_milestone(project, "book_review_done", f"Review — score {review.get('consistency_score')}")
+    _save_project(tenant["id"], settings, projects)
+
+    return review
+
+
+@router.post("/projects/{project_id}/book/render-picturebook")
+async def book_render_picturebook(project_id: str, tenant=Depends(get_current_tenant)):
+    """Renders picturebook PDF using the storybook template (text+illus on same page)."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    brief = book_bible.get("brief") or {}
+    outline = book_bible.get("outline") or {}
+    spreads = book_bible.get("spreads") or []
+    cover = book_bible.get("cover") or {}
+    theme = book_bible.get("theme") or {}
+
+    if not spreads:
+        raise HTTPException(status_code=400, detail="No spreads to render")
+
+    # Defaults if Art Director didn't run
+    default_theme = {
+        "title_font": "'Fredoka', 'Lilita One', 'Quicksand', sans-serif",
+        "body_font": "'Nunito', 'Quicksand', 'Source Sans Pro', sans-serif",
+        "body_size": 14,
+        "line_height": 1.55,
+        "title_color": "#6B4423",
+        "body_color": "#3A2C20",
+        "accent": "#E8A344",
+        "page_bg": "#FFF8EA",
+        "text_box_bg": "#FFF3D6",
+        "illus_bg": "#F5E4C0",
+        "cover_title_size": 46,
+        "page_number_color": "#9E7D4A",
+        "cover_fallback_a": "#F5B041",
+        "cover_fallback_b": "#C87F0A",
+    }
+    merged_theme = {**default_theme, **(theme or {})}
+
+    trim = TRIM_SIZES_MM.get(brief.get("trim_size", "6x9"), TRIM_SIZES_MM["6x9"])
+
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    env = Environment(loader=FileSystemLoader("/app/backend/templates/book"), autoescape=select_autoescape(['html']))
+    tmpl = env.get_template("picturebook.html.j2")
+
+    year = datetime.now(timezone.utc).year
+    sources = [s.get("reference", "") for s in book_bible.get("rag_sources", [])]
+
+    def _render(blank_pages: int):
+        html = tmpl.render(
+            book={
+                "title": outline.get("title") or brief.get("title") or project.get("name", "Livro"),
+                "subtitle": outline.get("subtitle", ""),
+                "author": brief.get("author_name", ""),
+                "language": brief.get("language", "pt"),
+                "year": year,
+            },
+            cover=cover,
+            spreads=spreads,
+            theme=merged_theme,
+            trim=trim,
+            blank_pages_count=blank_pages,
+            sources=sources,
+        )
+        from weasyprint import HTML as WeasyHTML
+        return WeasyHTML(string=html, base_url="/app/backend/templates/book/").write_pdf()
+
+    try:
+        pdf_bytes = _render(0)
+    except Exception as e:
+        logger.error(f"BookFactory picturebook render failed: {e}")
+        import traceback; logger.error(traceback.format_exc())
+        raise HTTPException(status_code=502, detail=f"Render failed: {str(e)[:200]}")
+
+    # Auto-padding
+    try:
+        from pypdf import PdfReader
+        import io as _io
+        page_count = len(PdfReader(_io.BytesIO(pdf_bytes)).pages)
+        remainder = page_count % 4
+        if remainder != 0:
+            blanks = 4 - remainder
+            pdf_bytes = _render(blanks)
+            page_count = len(PdfReader(_io.BytesIO(pdf_bytes)).pages)
+    except Exception as e:
+        logger.warning(f"BookFactory picturebook padding failed: {e}")
+        page_count = None
+
+    pdf_url = _upload_to_storage(pdf_bytes, f"books/{project_id}/final.pdf", "application/pdf")
+
+    book_bible["pdf_url"] = pdf_url
+    book_bible["pdf_size_bytes"] = len(pdf_bytes)
+    book_bible["page_count"] = page_count
+    book_bible["theme_applied"] = merged_theme
+    book_bible["status"] = "picturebook_rendered"
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _add_milestone(project, "book_picturebook_rendered", f"Picturebook gerado — {page_count}p")
+    _save_project(tenant["id"], settings, projects)
+
+    return {"pdf_url": pdf_url, "size_kb": len(pdf_bytes) // 1024, "page_count": page_count, "theme": merged_theme}

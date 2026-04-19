@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="{{ book.language }}">
+<head>
+<meta charset="UTF-8" />
+<title>{{ book.title }}</title>
+<style>
+  @page {
+    size: {{ trim.width }}mm {{ trim.height }}mm;
+    margin: 0;
+    bleed: 3mm;
+    marks: crop cross;
+    @bottom-center {
+      content: counter(page);
+      font-family: 'Nunito', 'Quicksand', sans-serif;
+      font-size: 10pt;
+      color: {{ theme.page_number_color }};
+      margin-bottom: 3mm;
+    }
+  }
+  @page :first { @bottom-center { content: ""; } }
+  @page cover { @bottom-center { content: ""; } margin: 0; bleed: 3mm; }
+  @page titlepage { @bottom-center { content: ""; } margin: 0; }
+
+  html, body {
+    font-family: {{ theme.body_font }};
+    font-size: {{ theme.body_size }}pt;
+    line-height: {{ theme.line_height }};
+    color: {{ theme.body_color }};
+    background: {{ theme.page_bg }};
+    margin: 0; padding: 0;
+    hyphens: auto;
+    text-align: left;
+    orphans: 2; widows: 2;
+  }
+
+  /* COVER — Full-bleed illustration with embedded title */
+  .cover-page {
+    page: cover;
+    page-break-after: always;
+    width: calc({{ trim.width }}mm + 6mm);
+    height: calc({{ trim.height }}mm + 6mm);
+    position: relative;
+    overflow: hidden;
+    margin: -3mm;
+  }
+  .cover-page .cover-art {
+    position: absolute;
+    inset: 0;
+    background-image: url('{{ cover.front_url }}');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .cover-page .cover-art-fallback {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, {{ theme.cover_fallback_a }}, {{ theme.cover_fallback_b }});
+  }
+  .cover-page .cover-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.35) 100%);
+  }
+  .cover-page .cover-title-box {
+    position: absolute;
+    bottom: 18mm;
+    left: 0; right: 0;
+    padding: 0 16mm;
+    text-align: center;
+    color: #fff;
+  }
+  .cover-page .cover-title {
+    font-family: {{ theme.title_font }};
+    font-weight: 800;
+    font-size: {{ theme.cover_title_size }}pt;
+    line-height: 1.05;
+    text-shadow: 0 3px 12px rgba(0,0,0,0.65), 0 1px 2px rgba(0,0,0,0.5);
+    margin: 0 0 6mm 0;
+    letter-spacing: -0.5pt;
+  }
+  .cover-page .cover-subtitle {
+    font-family: {{ theme.body_font }};
+    font-size: 14pt;
+    font-style: italic;
+    margin-bottom: 8mm;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  }
+  .cover-page .cover-author {
+    font-family: {{ theme.body_font }};
+    font-size: 11pt;
+    letter-spacing: 3pt;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+  }
+  .cover-page .cover-frame {
+    position: absolute;
+    top: 8mm; right: 8mm; bottom: 8mm; left: 8mm;
+    border: 3pt solid rgba(255,255,255,0.35);
+    border-radius: 4mm;
+    pointer-events: none;
+  }
+
+  /* TITLE PAGE */
+  .title-page {
+    page: titlepage;
+    page-break-before: always;
+    page-break-after: always;
+    width: {{ trim.width }}mm;
+    height: {{ trim.height }}mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30mm 18mm;
+    background: {{ theme.page_bg }};
+  }
+  .title-page h1 {
+    font-family: {{ theme.title_font }};
+    font-size: {{ theme.cover_title_size - 8 }}pt;
+    font-weight: 800;
+    color: {{ theme.title_color }};
+    margin: 0 0 6mm 0;
+    line-height: 1.1;
+  }
+  .title-page .subtitle {
+    font-family: {{ theme.body_font }};
+    font-size: 12pt;
+    font-style: italic;
+    color: {{ theme.body_color }};
+    margin-bottom: 20mm;
+  }
+  .title-page .ornament {
+    font-size: 20pt;
+    color: {{ theme.accent }};
+    margin-bottom: 12mm;
+  }
+  .title-page .author {
+    font-family: {{ theme.body_font }};
+    font-size: 10pt;
+    letter-spacing: 2pt;
+    text-transform: uppercase;
+    color: {{ theme.body_color }};
+    opacity: 0.8;
+  }
+
+  /* SPREAD — Text + illustration on same page */
+  .spread {
+    page-break-before: always;
+    page-break-after: always;
+    width: {{ trim.width }}mm;
+    height: {{ trim.height }}mm;
+    background: {{ theme.page_bg }};
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .spread-illus {
+    flex: 1.35;
+    position: relative;
+    overflow: hidden;
+    background: {{ theme.illus_bg }};
+  }
+  .spread-illus img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .spread-illus .vignette {
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 -12mm 24mm rgba(0,0,0,0.10);
+    pointer-events: none;
+  }
+  .spread-text {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10mm 16mm 16mm 16mm;
+    background: {{ theme.text_box_bg }};
+    position: relative;
+  }
+  .spread-text::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 16mm; right: 16mm;
+    height: 0.8mm;
+    background: {{ theme.accent }};
+    border-radius: 1mm;
+    opacity: 0.5;
+  }
+  .spread-text p {
+    font-family: {{ theme.body_font }};
+    font-size: {{ theme.body_size }}pt;
+    line-height: {{ theme.line_height }};
+    color: {{ theme.body_color }};
+    text-align: center;
+    margin: 0;
+    max-width: 90%;
+  }
+
+  /* Alternate spread layout — illustration full-bleed, text overlaid bottom */
+  .spread.overlay .spread-illus { flex: 1; }
+  .spread.overlay .spread-text {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 38%;
+    background: linear-gradient(to top, {{ theme.text_box_bg }} 55%, rgba(255,255,255,0) 100%);
+  }
+
+  /* COLOPHON */
+  .colophon {
+    page-break-before: always;
+    width: {{ trim.width }}mm;
+    height: {{ trim.height }}mm;
+    padding: 40mm 18mm 20mm 18mm;
+    background: {{ theme.page_bg }};
+    font-family: {{ theme.body_font }};
+    font-size: 9pt;
+    line-height: 1.5;
+    color: {{ theme.body_color }};
+    opacity: 0.9;
+  }
+  .colophon h3 {
+    font-family: {{ theme.title_font }};
+    color: {{ theme.title_color }};
+    font-size: 14pt;
+    margin-bottom: 8mm;
+  }
+
+  /* Blank page */
+  .blank-page {
+    page-break-before: always;
+    page-break-after: always;
+    width: {{ trim.width }}mm;
+    height: {{ trim.height }}mm;
+    background: {{ theme.page_bg }};
+  }
+</style>
+</head>
+<body>
+
+{# COVER #}
+<section class="cover-page">
+  {% if cover and cover.front_url %}
+    <div class="cover-art"></div>
+  {% else %}
+    <div class="cover-art-fallback"></div>
+  {% endif %}
+  <div class="cover-scrim"></div>
+  <div class="cover-frame"></div>
+  <div class="cover-title-box">
+    <h1 class="cover-title">{{ book.title }}</h1>
+    {% if book.subtitle %}<div class="cover-subtitle">{{ book.subtitle }}</div>{% endif %}
+    {% if book.author %}<div class="cover-author">{{ book.author }}</div>{% endif %}
+  </div>
+</section>
+
+{# TITLE PAGE #}
+<section class="title-page">
+  <div class="ornament">✦ ✦ ✦</div>
+  <h1>{{ book.title }}</h1>
+  {% if book.subtitle %}<div class="subtitle">{{ book.subtitle }}</div>{% endif %}
+  <div class="ornament">✦</div>
+  {% if book.author %}<div class="author">{{ book.author }}</div>{% endif %}
+</section>
+
+{# SPREADS #}
+{% for s in spreads %}
+<section class="spread{% if s.layout == 'overlay' %} overlay{% endif %}" data-idx="{{ loop.index }}">
+  {% if s.illustration_url %}
+  <div class="spread-illus">
+    <img src="{{ s.illustration_url }}" alt="" />
+    <div class="vignette"></div>
+  </div>
+  {% else %}
+  <div class="spread-illus" style="background: {{ theme.illus_bg }};"></div>
+  {% endif %}
+  <div class="spread-text">
+    <p>{{ s.text }}</p>
+  </div>
+</section>
+{% endfor %}
+
+{# COLOPHON #}
+<section class="colophon">
+  <h3>Sobre este livro</h3>
+  <p>{{ book.title }} foi criado com StudioX BookFactory.</p>
+  {% if book.author %}<p>Autor: {{ book.author }}</p>{% endif %}
+  {% if sources %}
+  <p style="margin-top: 8mm;"><strong>Fontes consultadas:</strong></p>
+  <ul style="margin: 2mm 0 0 5mm;">
+    {% for src in sources %}<li>{{ src }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  <p style="margin-top: 10mm; opacity: 0.7;">© {{ book.year }} — Todos os direitos reservados.</p>
+</section>
+
+{# Auto-padding blank pages (added by backend to reach multiple of 4) #}
+{% for _ in range(blank_pages_count or 0) %}
+<section class="blank-page">&nbsp;</section>
+{% endfor %}
+
+</body>
+</html>
