@@ -61,11 +61,13 @@ export default function BookStudio() {
     } catch (e) { /* noop */ }
   }, []);
 
-  const loadState = useCallback(async (pid) => {
+  const loadState = useCallback(async (pid, opts = {}) => {
     if (!pid) return;
+    const { inferStep = true } = opts;
     try {
       const { data } = await axios.get(`${API}/api/studio/projects/${pid}/book/state`, authHeaders());
       setBookState(data || {});
+      if (!inferStep) return;
       // infer step — works for both picturebook (spreads) and chapter flow (chapters/plan)
       const hasIllus = (data?.spreads || []).some((s) => s.illustration_url)
         || (data?.illustration_plan || []).some((p) => p.illustration_url);
@@ -87,7 +89,8 @@ export default function BookStudio() {
   useEffect(() => {
     if (!projectId || !bookState?.pipeline_running) return;
     setAutoRunning(true);
-    const iv = setInterval(() => { loadState(projectId); }, 3000);
+    // Polling refresha o state mas não muda o step atual — respeita a navegação do usuário
+    const iv = setInterval(() => { loadState(projectId, { inferStep: false }); }, 3000);
     return () => clearInterval(iv);
   }, [projectId, bookState?.pipeline_running, loadState]);
 
@@ -169,12 +172,12 @@ export default function BookStudio() {
 
   const applyFixes = async () => {
     await callApi('post', `/api/studio/projects/${projectId}/book/apply-review-fixes`, null, 'Ajustes aplicados');
-    await loadState(projectId);
+    await loadState(projectId, { inferStep: false });
   };
 
   const illustrateOne = async (idx) => {
     await callApi('post', `/api/studio/projects/${projectId}/book/illustrate-spread`, { spread_index: idx }, `Spread ${idx} ilustrado`);
-    await loadState(projectId);
+    await loadState(projectId, { inferStep: false });
   };
 
   const illustrateAll = async () => {
@@ -183,10 +186,9 @@ export default function BookStudio() {
       if (s.illustration_url) continue;
       try { await axios.post(`${API}/api/studio/projects/${projectId}/book/illustrate-spread`, { spread_index: s.index }, authHeaders()); }
       catch (e) { toast.error(`Spread ${s.index} falhou`); }
-      await loadState(projectId);
+      await loadState(projectId, { inferStep: false });
     }
     toast.success('Todas as ilustrações geradas!');
-    setStep('cover');
   };
 
   // Chapter-flow: regenerate a single page illustration (with optional style override)
@@ -201,7 +203,7 @@ export default function BookStudio() {
       if (extra.trim()) body.override_prompt = extra;
     }
     await callApi('post', `/api/studio/projects/${projectId}/book/generate-illustration`, body, `Página ${pageNumber} regerada`);
-    await loadState(projectId);
+    await loadState(projectId, { inferStep: false });
   };
 
   // Chapter-flow: regenerate ALL missing/failed pages
@@ -211,7 +213,7 @@ export default function BookStudio() {
       try {
         await axios.post(`${API}/api/studio/projects/${projectId}/book/generate-illustration`, { page_number: p.page_number }, authHeaders());
       } catch (e) { toast.error(`Pg ${p.page_number} falhou`); }
-      await loadState(projectId);
+      await loadState(projectId, { inferStep: false });
     }
     toast.success('Ilustrações regeradas!');
   };
@@ -233,12 +235,12 @@ export default function BookStudio() {
     const instr = window.prompt(`Instruções para reescrever spread ${idx}:`, 'encurtar e deixar mais alegre');
     if (!instr) return;
     await callApi('post', `/api/studio/projects/${projectId}/book/rewrite-spread`, { spread_index: idx, instructions: instr }, `Spread ${idx} reescrito`);
-    await loadState(projectId);
+    await loadState(projectId, { inferStep: false });
   };
 
   const updateTheme = async (patch) => {
     await callApi('patch', `/api/studio/projects/${projectId}/book/theme`, patch, 'Tema atualizado');
-    await loadState(projectId);
+    await loadState(projectId, { inferStep: false });
   };
 
   // ── render ──────────────────────────────────────────────────────
