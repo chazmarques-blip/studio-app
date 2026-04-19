@@ -1098,6 +1098,53 @@ async def book_state(project_id: str, tenant=Depends(get_current_tenant)):
     return bb
 
 
+@router.get("/projects/{project_id}/book/download-pdf")
+async def book_download_pdf(project_id: str, tenant=Depends(get_current_tenant)):
+    """Proxy download of the rendered PDF. Avoids browser/ad-blocker rules that block
+    direct hits to the Supabase storage domain (ERR_BLOCKED_BY_CLIENT).
+
+    Streams the file with a friendly filename so the browser treats it as a download.
+    """
+    from fastapi.responses import StreamingResponse
+
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    pdf_url = bb.get("pdf_url")
+    if not pdf_url:
+        raise HTTPException(status_code=404, detail="No PDF rendered yet")
+
+    full_url = pdf_url if not pdf_url.startswith("/") else f"{os.environ.get('SUPABASE_URL','')}/storage/v1/object/public{pdf_url}"
+    title = (bb.get("outline") or {}).get("title") or (bb.get("brief") or {}).get("title") or project.get("name") or "livro"
+    # Sanitize filename
+    safe = _re.sub(r"[^\w\-\. ]+", "_", title).strip("._ ") or "livro"
+    filename = f"{safe}.pdf"
+
+    try:
+        tmp = _tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        urllib.request.urlretrieve(full_url, tmp.name)
+        with open(tmp.name, "rb") as f:
+            data = f.read()
+        try:
+            os.unlink(tmp.name)
+        except Exception:
+            pass
+    except Exception as e:
+        logger.error(f"BookFactory download proxy failed: {e}")
+        raise HTTPException(status_code=502, detail=f"Download failed: {str(e)[:200]}")
+
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(data)),
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 @router.get("/book/compositions")
 async def list_compositions(user=Depends(get_current_user)):
     """Expose available meeting room compositions for the UI."""

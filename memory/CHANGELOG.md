@@ -1,6 +1,29 @@
 # StudioX Changelog
 
-## 2026-04-19 (Session 5 — Bugfix: Pipeline + Cover cropping)
+## 2026-04-19 (Session 5 — Bugfix: Pipeline + Cover + UI chapter-flow + Download proxy)
+
+### Fix 3: PDF download bloqueado (`ERR_BLOCKED_BY_CLIENT`)
+**Bug:** O botão "Baixar PDF" apontava direto para o domínio `*.supabase.co`. Ad-blockers do usuário (uBlock/Chrome) bloqueiam esse domínio → download falha silenciosamente.
+
+**Fix:**
+- Novo endpoint `GET /api/studio/projects/{id}/book/download-pdf` (`book_factory.py`): faz stream do PDF pelo domínio da própria app com `Content-Disposition: attachment; filename="{título}.pdf"`.
+- Frontend (`BookStudio.jsx`): nova função `downloadPdf()` faz fetch com auth + blob + click sintético. Botão "Baixar PDF" agora usa proxy. "Abrir em nova aba" ainda mantém link direto como fallback.
+
+**Validação:** Curl do proxy retornou HTTP 200, 12.4 MB, `Content-Disposition: attachment`, PDF válido 64 páginas.
+
+### Fix 4: UI BookStudio em branco no fluxo chapter (`infantil_ilustrado`)
+**Bug:** Outline, Ilustrações e Render tinham layout exclusivo para `spreads` do picturebook. No fluxo chapter, `spreads` é sempre vazio → painéis mostravam zero conteúdo mesmo com 8 capítulos escritos e 16 ilustrações geradas.
+
+**Fix em `BookStudio.jsx`:**
+- Detecta `formatPreset` via `bookState.brief.format_preset` e flag `isPicturebook`.
+- Outline panel: quando chapter flow, renderiza `outlineChapters` com badge "✓ N palavras" (verde) ou "pendente" (cinza) + accordion `<details>` mostrando a prosa escrita (`chapters[idx].prose`).
+- Ilustrações panel: quando chapter flow, renderiza `illustration_plan` (grid com `pg.N • Cap X • tipo`).
+- `renderPDF()` agora escolhe endpoint: `render-picturebook` para picturebook ou `render-pdf` para chapter flow.
+- `loadState` detecta step correto em ambos os fluxos (verifica `illustration_plan[].illustration_url` além de `spreads[].illustration_url`).
+
+**Validação visual:** Página do projeto Ash (`017f57ef8ecd`) mostra título "Cuidando do Meu Pulmerânea: Dicas do Ash", blurb mencionando Ash/Snow/Brenda, todos os 8 capítulos com word counts (664, 644, 645, 703, 674, 614, 716, 714), 16 ilustrações em grid com Ash cinza + Snow branco + Brenda visíveis.
+
+
 
 ### Fix 1: Auto-Run Pipeline falhava em `format_preset != 'picturebook'`
 **Bug:** Projeto "Manual do Pulmeranea" (Ash, `infantil_ilustrado`) falhava com `400: No spreads to render` porque o background task `_run_book_pipeline_background` assumia sempre fluxo picturebook (spreads → `render-picturebook`), mas `generate-outline` só salva `spreads` quando `format_preset == "picturebook"`. Para outros formatos gera `chapters`.

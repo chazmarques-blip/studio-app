@@ -66,14 +66,16 @@ export default function BookStudio() {
     try {
       const { data } = await axios.get(`${API}/api/studio/projects/${pid}/book/state`, authHeaders());
       setBookState(data || {});
-      // infer step
+      // infer step — works for both picturebook (spreads) and chapter flow (chapters/plan)
+      const hasIllus = (data?.spreads || []).some((s) => s.illustration_url)
+        || (data?.illustration_plan || []).some((p) => p.illustration_url);
       if (data?.pdf_url) setStep('render');
       else if ((data?.cover || {}).front_url) setStep('cover');
-      else if ((data?.spreads || []).some((s) => s.illustration_url)) setStep('illustrate');
+      else if (hasIllus) setStep('illustrate');
       else if (data?.meeting_room_review) setStep('review');
       else if (data?.theme) setStep('art');
       else if (data?.outline) setStep('outline');
-      else if (data?.brief) setStep('ready'); // NEW: brief received, show CTA
+      else if (data?.brief) setStep('ready');
       else setStep('brief');
     } catch (e) { /* noop */ }
   }, []);
@@ -193,7 +195,9 @@ export default function BookStudio() {
   };
 
   const renderPDF = async () => {
-    await callApi('post', `/api/studio/projects/${projectId}/book/render-picturebook`, null, 'PDF renderizado');
+    const fmt = bookState?.brief?.format_preset || 'picturebook';
+    const endpoint = fmt === 'picturebook' ? 'render-picturebook' : 'render-pdf';
+    await callApi('post', `/api/studio/projects/${projectId}/book/${endpoint}`, null, 'PDF renderizado');
     await callApi('post', `/api/studio/projects/${projectId}/book/preflight`, null, 'Preflight concluído');
     await loadState(projectId); setStep('render');
   };
@@ -213,9 +217,39 @@ export default function BookStudio() {
   // ── render ──────────────────────────────────────────────────────
   const currentStepIdx = STEPS.findIndex((s) => s.id === step);
   const spreads = bookState?.spreads || [];
+  const chapters = Object.values(bookState?.chapters || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
+  const illustrationPlan = bookState?.illustration_plan || [];
+  const outlineChapters = bookState?.outline?.chapters || [];
+  const formatPreset = bookState?.brief?.format_preset || 'picturebook';
+  const isPicturebook = formatPreset === 'picturebook';
   const theme = bookState?.theme_applied || bookState?.theme || {};
   const cover = bookState?.cover || {};
   const review = bookState?.meeting_room_review || null;
+
+  // Download PDF via backend proxy (avoids ad-blocker blocking Supabase domain)
+  const downloadPdf = () => {
+    if (!projectId) return;
+    const token = localStorage.getItem(TOKEN_KEY) || '';
+    // Use fetch with auth so we stream the blob, then trigger a download click.
+    fetch(`${API}/api/studio/projects/${projectId}/book/download-pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      })
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(bookState?.outline?.title || bookState?.brief?.title || 'livro').replace(/[^\w\-\. ]+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((e) => toast.error(`Download falhou: ${e.message || e}`));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50" data-testid="book-studio-page">
@@ -302,6 +336,7 @@ export default function BookStudio() {
               <p className="text-xs text-emerald-700">Baixe o PDF abaixo ou navegue pelos passos.</p>
             </div>
             <a href={bookState.pdf_url} target="_blank" rel="noopener noreferrer"
+              onClick={(e) => { e.preventDefault(); downloadPdf(); }}
               className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg flex items-center gap-1 hover:bg-emerald-700">
               <Download size={12} /> Baixar
             </a>
@@ -528,26 +563,62 @@ export default function BookStudio() {
             </div>
 
             <div className="space-y-3">
-              {spreads.map((s) => (
-                <div key={s.index} data-testid={`spread-${s.index}`} className="border rounded-lg p-4 hover:border-amber-300">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Spread {s.index}</span>
-                        {(s.characters_in_scene || []).map((c, i) => (
-                          <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{c}</span>
-                        ))}
+              {isPicturebook ? (
+                spreads.length > 0 ? spreads.map((s) => (
+                  <div key={s.index} data-testid={`spread-${s.index}`} className="border rounded-lg p-4 hover:border-amber-300">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Spread {s.index}</span>
+                          {(s.characters_in_scene || []).map((c, i) => (
+                            <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{c}</span>
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-900 mb-2">"{s.text}"</p>
+                        <p className="text-xs text-gray-500 italic">🎨 {s.scene_description}</p>
                       </div>
-                      <p className="text-sm text-gray-900 mb-2">"{s.text}"</p>
-                      <p className="text-xs text-gray-500 italic">🎨 {s.scene_description}</p>
+                      <button onClick={() => rewriteSpread(s.index)} data-testid={`btn-rewrite-${s.index}`}
+                        className="p-2 text-amber-600 hover:bg-amber-50 rounded">
+                        <Edit3 size={14} />
+                      </button>
                     </div>
-                    <button onClick={() => rewriteSpread(s.index)} data-testid={`btn-rewrite-${s.index}`}
-                      className="p-2 text-amber-600 hover:bg-amber-50 rounded">
-                      <Edit3 size={14} />
-                    </button>
                   </div>
+                )) : <p className="text-sm text-gray-500">Nenhum spread ainda. Clique em "🚀 Gerar tudo" pra começar.</p>
+              ) : (
+                // CHAPTER FLOW (infantil_ilustrado / romance / técnico)
+                <div>
+                  <p className="text-xs text-gray-500 mb-3">
+                    📖 Formato: <strong>{formatPreset}</strong> — {outlineChapters.length} capítulos planeados, {chapters.length} escritos
+                  </p>
+                  {outlineChapters.map((ch) => {
+                    const written = chapters.find((w) => w.index === ch.index);
+                    return (
+                      <div key={ch.index} data-testid={`chapter-${ch.index}`} className="border rounded-lg p-4 mb-2 hover:border-amber-300">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Cap {ch.index}</span>
+                              <span className="text-sm font-semibold text-gray-900">{ch.title}</span>
+                              {written ? (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">✓ {written.word_count || 0} palavras</span>
+                              ) : (
+                                <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded">pendente</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 italic">{ch.synopsis}</p>
+                            {written && (
+                              <details className="mt-2">
+                                <summary className="text-[11px] text-amber-700 cursor-pointer hover:underline">Ver prosa escrita</summary>
+                                <pre className="text-xs text-gray-700 whitespace-pre-wrap mt-2 p-3 bg-amber-50 rounded max-h-64 overflow-y-auto font-sans">{written.prose}</pre>
+                              </details>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
@@ -715,7 +786,7 @@ export default function BookStudio() {
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {spreads.map((s) => (
+              {isPicturebook ? spreads.map((s) => (
                 <div key={s.index} data-testid={`illus-${s.index}`} className="border rounded-lg overflow-hidden group">
                   {s.illustration_url ? (
                     <img src={s.illustration_url} alt="" className="w-full aspect-[4/3] object-cover" />
@@ -736,7 +807,29 @@ export default function BookStudio() {
                     <p className="text-[11px] text-gray-700 line-clamp-2">"{s.text}"</p>
                   </div>
                 </div>
+              )) : illustrationPlan.filter((p) => p.type !== 'none').map((p) => (
+                <div key={p.page_number} data-testid={`illus-page-${p.page_number}`} className="border rounded-lg overflow-hidden group">
+                  {p.illustration_url ? (
+                    <img src={p.illustration_url} alt="" className="w-full aspect-[4/3] object-cover" />
+                  ) : (
+                    <div className="w-full aspect-[4/3] bg-gray-100 flex items-center justify-center">
+                      <ImageIcon size={32} className="text-gray-300" />
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-1.5 rounded">pg.{p.page_number}</span>
+                      <span className="text-[9px] text-gray-500">Cap {p.chapter} • {p.type}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-700 line-clamp-2">{p.description}</p>
+                  </div>
+                </div>
               ))}
+              {!isPicturebook && illustrationPlan.length === 0 && (
+                <div className="col-span-full text-center text-sm text-gray-500 py-8">
+                  Nenhum plano de ilustração ainda. O Art Director cria durante a pipeline.
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -815,10 +908,16 @@ export default function BookStudio() {
 
             {bookState?.pdf_url && (
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <a href={bookState.pdf_url} target="_blank" rel="noopener noreferrer"
+                <button
+                  onClick={downloadPdf}
                   data-testid="btn-download-pdf"
                   className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-amber-700 hover:to-orange-700">
                   <Download size={16} /> Baixar PDF
+                </button>
+                <a href={bookState.pdf_url} target="_blank" rel="noopener noreferrer"
+                  data-testid="btn-open-pdf"
+                  className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2">
+                  <Eye size={16} /> Abrir em nova aba
                 </a>
                 <button onClick={renderPDF} disabled={busyAction} data-testid="btn-rerender"
                   className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2">
