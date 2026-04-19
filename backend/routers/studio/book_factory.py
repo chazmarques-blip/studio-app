@@ -1449,3 +1449,154 @@ async def book_render_picturebook(project_id: str, tenant=Depends(get_current_te
     _save_project(tenant["id"], settings, projects)
 
     return {"pdf_url": pdf_url, "size_kb": len(pdf_bytes) // 1024, "page_count": page_count, "theme": merged_theme}
+
+
+# ─── Theme editor + Refinement loop ───────────────────────────────────────────
+
+class ThemeUpdateRequest(BaseModel):
+    theme: dict
+    palette: Optional[dict] = None
+    style_rules: Optional[str] = None
+
+
+@router.patch("/projects/{project_id}/book/theme")
+async def book_update_theme(project_id: str, req: ThemeUpdateRequest, tenant=Depends(get_current_tenant)):
+    """User-driven theme override. Frontend can edit fonts/colors after Art Direction."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    current_theme = book_bible.get("theme") or {}
+    book_bible["theme"] = {**current_theme, **(req.theme or {})}
+    if req.palette:
+        book_bible["palette"] = {**(book_bible.get("palette") or {}), **req.palette}
+    if req.style_rules is not None:
+        book_bible["style_rules"] = req.style_rules
+
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+    return {"theme": book_bible["theme"], "palette": book_bible.get("palette"), "style_rules": book_bible.get("style_rules")}
+
+
+class RewriteSpreadRequest(BaseModel):
+    spread_index: int
+    instructions: str  # e.g. "encurtar texto", "remover palavra X", "mais alegre"
+
+
+@router.post("/projects/{project_id}/book/rewrite-spread")
+async def book_rewrite_spread(project_id: str, req: RewriteSpreadRequest, tenant=Depends(get_current_tenant)):
+    """Author Agent rewrites a single spread based on user instructions or editor issues."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    spreads = book_bible.get("spreads") or []
+    if req.spread_index < 1 or req.spread_index > len(spreads):
+        raise HTTPException(status_code=400, detail="Spread index out of range")
+
+    spread = spreads[req.spread_index - 1]
+    brief = book_bible.get("brief") or {}
+    outline = book_bible.get("outline") or {}
+
+    lang_full = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(brief.get("language", "pt"), "Portuguese")
+    prompt = f"""You are the Author. Rewrite this SINGLE spread based on instructions.
+
+BOOK: {outline.get('title', '')}
+AUDIENCE: {brief.get('audience')}
+LANGUAGE: {lang_full}
+
+CURRENT SPREAD {spread.get('index')}:
+Text: "{spread.get('text', '')}"
+Scene: {spread.get('scene_description', '')}
+Characters: {spread.get('characters_in_scene', [])}
+Layout: {spread.get('layout_hint', 'split')}
+
+REWRITE INSTRUCTIONS: {req.instructions}
+
+Return ONLY valid JSON with the rewritten spread (same schema as original):
+{{
+  "index": {spread.get('index')},
+  "text": "new text (2-4 short sentences, max 45 words)",
+  "scene_description": "updated scene for illustrator",
+  "characters_in_scene": [...],
+  "layout_hint": "split" or "overlay"
+}}
+"""
+    try:
+        raw = (await _call_claude_async(
+            f"Professional picturebook author in {lang_full}. Return only valid JSON.",
+            prompt,
+            max_tokens=2000,
+        )).strip()
+        if raw.startswith("```"):
+            raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+        new_spread = json.loads(raw)
+    except Exception as e:
+        logger.error(f"BookFactory rewrite-spread failed: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+
+    # Preserve illustration_url (user may re-illustrate separately)
+    new_spread["illustration_url"] = spread.get("illustration_url")
+    new_spread["index"] = req.spread_index
+    new_spread["rewritten_at"] = datetime.now(timezone.utc).isoformat()
+    spreads[req.spread_index - 1] = new_spread
+    book_bible["spreads"] = spreads
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _add_milestone(project, f"book_spread_{req.spread_index}_rewritten", f"Spread {req.spread_index} reescrito")
+    _save_project(tenant["id"], settings, projects)
+
+    return new_spread
+
+
+@router.post("/projects/{project_id}/book/apply-review-fixes")
+async def book_apply_review_fixes(project_id: str, tenant=Depends(get_current_tenant)):
+    """Auto-apply critical/major fixes from the last meeting-room review.
+
+    Iterates the review.issues list and calls rewrite-spread for each.
+    Safe to run multiple times — acts only on current issues.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    review = book_bible.get("meeting_room_review") or {}
+    issues = review.get("issues") or []
+
+    applied = []
+    skipped = []
+    for iss in issues:
+        severity = iss.get("severity", "minor")
+        if severity not in ("critical", "major"):
+            skipped.append({"spread": iss.get("spread"), "reason": f"severity={severity}"})
+            continue
+
+        spread_idx = iss.get("spread")
+        if not spread_idx:
+            skipped.append({"reason": "no spread index"})
+            continue
+
+        instr = f"Fix issue: {iss.get('description', '')}. Suggested fix: {iss.get('suggested_fix', '')}"
+        try:
+            rr = RewriteSpreadRequest(spread_index=spread_idx, instructions=instr)
+            await book_rewrite_spread(project_id, rr, tenant)
+            applied.append({"spread": spread_idx, "type": iss.get("type")})
+        except Exception as e:
+            skipped.append({"spread": spread_idx, "reason": str(e)[:120]})
+
+    _add_milestone(project, "book_review_applied", f"Aplicados {len(applied)} fixes")
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    book_bible["review_applied_count"] = len(applied)
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+
+    return {"applied": applied, "skipped": skipped, "total_applied": len(applied)}

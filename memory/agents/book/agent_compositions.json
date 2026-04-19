@@ -1,6 +1,21 @@
 {
   "description": "Composições dinâmicas da Meeting Room baseadas em output_mode + autoria_mode + illustration_track.",
   "compositions": {
+    "book_picturebook_user_author": {
+      "agents": ["orchestrator_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "author_agent",
+      "note": "Picturebook infantil com spreads curtos (14 × 2-4 frases). Inclui Art Director real."
+    },
+    "book_picturebook_public_domain": {
+      "agents": ["orchestrator_agent", "researcher_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "researcher_agent",
+      "note": "Picturebook adaptado de domínio público (Bíblia, mitologia). Pesquisador lidera com RAG."
+    },
+    "book_picturebook_free": {
+      "agents": ["orchestrator_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "art_director_editorial_agent",
+      "note": "Picturebook criação livre. Art Director lidera pelo peso visual do formato."
+    },
     "book_infantil_ilustrado_user_author": {
       "agents": ["orchestrator_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
       "leader": "orchestrator_agent"

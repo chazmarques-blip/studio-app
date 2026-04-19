@@ -76,6 +76,7 @@ const MarketingStudio = React.lazy(() => import('./pages/MarketingStudio'));
 const StudioPage = React.lazy(() => import('./pages/StudioPage')); // NEW: Exclusive Studio Page
 const AgentsPage = React.lazy(() => import('./pages/AgentsPage')); // NEW: AI Agents Registry
 const InteractiveBook = React.lazy(() => import('./pages/InteractiveBook'));
+const BookStudio = React.lazy(() => import('./pages/BookStudio')); // NEW: BookFactory picturebook builder
 const TrafficHub = React.lazy(() => import('./pages/TrafficHub'));
 
 function ProtectedRoute({ children }) {
@@ -149,6 +150,8 @@ function App() {
           <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
           <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
           <Route path="/studio" element={<ProtectedRoute><StudioPage /></ProtectedRoute>} />
+          <Route path="/studio/book/:projectId" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
+          <Route path="/studio/book" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
           <Route path="/studio/agents" element={<ProtectedRoute><AgentsPage /></ProtectedRoute>} />
           <Route path="/book/:projectId" element={<InteractiveBook />} />
           <Route path="/traffic-hub" element={<ProtectedRoute><TrafficHub /></ProtectedRoute>} />

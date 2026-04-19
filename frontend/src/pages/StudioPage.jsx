@@ -1590,6 +1590,16 @@ export default function StudioPage() {
               </button>
               
               <button 
+                onClick={() => window.location.assign('/studio/book')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/15 to-orange-600/15 border border-amber-500/40 text-xs font-semibold text-amber-700 hover:from-amber-500/25 hover:to-orange-600/25 transition-all hover:scale-105 whitespace-nowrap"
+                title="BookFactory — Criar livro ilustrado"
+                data-testid="nav-bookfactory"
+              >
+                <BookOpen size={14} className="shrink-0" />
+                <span>📖 Livro</span>
+              </button>
+
+              <button 
                 onClick={openNewProjectModal}
                 disabled={creating}
                 className="btn-gold flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-all hover:scale-105 shadow-lg shadow-[#F59E0B]/20 whitespace-nowrap"
