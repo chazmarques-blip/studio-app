@@ -410,17 +410,41 @@ export default function BookStudio() {
               const Icon = s.icon;
               const active = s.id === step;
               const done = i < currentStepIdx;
+              // Any step can be accessed if it has data available (PDF done, outline exists, etc.)
+              // This gives the user "free navigation" once content exists — no gray blocked look.
+              const hasData = (
+                (s.id === 'brief' && (bookState?.brief)) ||
+                (s.id === 'ready' && bookState?.brief) ||
+                (s.id === 'outline' && bookState?.outline) ||
+                (s.id === 'art' && bookState?.theme) ||
+                (s.id === 'review' && bookState?.meeting_room_review) ||
+                (s.id === 'illustrate' && ((bookState?.spreads || []).some((sp) => sp.illustration_url) || (bookState?.illustration_plan || []).some((p) => p.illustration_url))) ||
+                (s.id === 'cover' && (bookState?.cover || {}).front_url) ||
+                (s.id === 'render' && bookState?.pdf_url)
+              );
+              const accessible = active || done || hasData;
               return (
                 <button
                   key={s.id}
-                  onClick={() => projectId && setStep(s.id)}
+                  onClick={() => {
+                    if (!projectId) return;
+                    setStep(s.id);
+                    // Smooth scroll to top so the panel change is obvious
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   disabled={!projectId && s.id !== 'brief'}
                   data-testid={`step-${s.id}`}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition ${
-                    active ? 'bg-amber-600 text-white' : done ? 'text-amber-700 hover:bg-amber-50' : 'text-gray-400'
+                  title={hasData ? `Ir para ${s.label}` : `${s.label} (ainda não disponível)`}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition cursor-pointer ${
+                    active
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : accessible
+                        ? 'text-amber-700 hover:bg-amber-100 border border-amber-200'
+                        : 'text-gray-400 hover:bg-gray-50'
                   }`}
                 >
                   <Icon size={13} /> {s.label}
+                  {hasData && !active && <Check size={10} className="text-emerald-600" />}
                 </button>
               );
             })}
