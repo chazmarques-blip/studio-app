@@ -1,5 +1,31 @@
 # StudioX Changelog
 
+## 2026-04-19 (Session 5 — Bugfix: Pipeline + Cover cropping)
+
+### Fix 1: Auto-Run Pipeline falhava em `format_preset != 'picturebook'`
+**Bug:** Projeto "Manual do Pulmeranea" (Ash, `infantil_ilustrado`) falhava com `400: No spreads to render` porque o background task `_run_book_pipeline_background` assumia sempre fluxo picturebook (spreads → `render-picturebook`), mas `generate-outline` só salva `spreads` quando `format_preset == "picturebook"`. Para outros formatos gera `chapters`.
+
+**Fix:** `_run_book_pipeline_background` agora detecta `format_preset` e roteia:
+- `picturebook` → outline (spreads) → art-direct → meeting-room → illustrate-spreads → cover → `render-picturebook` → preflight
+- `infantil_ilustrado` / `romance_adulto` / `tecnico_historico` → outline (chapters) → art-direct → generate-chapter (loop) → plan-illustrations → generate-illustration (loop) → cover → `render-pdf` → preflight
+
+`pipeline_error` e `pipeline_finished_at` agora são resetados ao iniciar nova corrida.
+
+**Validação E2E (projeto `017f57ef8ecd`):** 8 capítulos escritos, 16 ilustrações geradas, capa gerada, PDF 64 páginas renderizado, preflight passou. Pipeline `step=done` com sucesso.
+
+### Fix 2: Capa cortada lateralmente (Snow desaparecendo)
+**Bug:** Gemini 3 Image retorna PNG `1024×1024` (aspect 1.0), mas trim 6×9 + bleed é `158.4×234.6 mm` (aspect 0.675 — portrait). Template usa `background-size: cover`, que força o preenchimento do container portrait escalando a imagem quadrada até `234.6×234.6 mm` — cortando ~15% de cada lado. Personagens nas laterais (Snow na capa do Ash) sumiam.
+
+**Fix:** Em `book_generate_cover_v2`, **após** o Gemini, a imagem é padded server-side via PIL para o aspect exato do trim+bleed. Cor de fundo = `palette.primary` (extraída pela Art Director). O resultado (1024×1517 para 6×9) bate perfeitamente com o container do template — zero crop.
+
+**Validação visual:** Capa do Ash regenerada — Ash + Shadow (cinza) + Snow (branco) todos totalmente visíveis e centrados. Confirmado por análise de imagem.
+
+### Arquivos alterados
+- `/app/backend/routers/studio/book_factory.py` (pad aspect + branching + reset flags)
+
+---
+
+
 ## 2026-04-19 (Session 4 — BookFactory P0+P1 completo)
 
 ### P0 — UI BookStudio (nova rota `/studio/book/:projectId`)

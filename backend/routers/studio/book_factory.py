@@ -691,6 +691,57 @@ RULES:
     if not cover_bytes:
         raise HTTPException(status_code=502, detail="Cover image generation returned empty")
 
+    # Pad cover to match trim aspect ratio (+ bleed) so that `background-size: cover`
+    # in the template does NOT crop characters. Gemini returns 1024x1024 by default;
+    # book trim is portrait (e.g. 6x9 → aspect ~0.667). Without padding, ~15% of each
+    # side gets cropped → characters at edges disappear.
+    try:
+        from PIL import Image as _PILImage
+        import io as _io
+        trim = TRIM_SIZES_MM.get(brief.get("trim_size", "6x9"), TRIM_SIZES_MM["6x9"])
+        # Target aspect = trim + 3mm bleed each side
+        target_w_mm = trim["width"] + 6
+        target_h_mm = trim["height"] + 6
+        target_aspect = target_w_mm / target_h_mm
+
+        src = _PILImage.open(_io.BytesIO(cover_bytes)).convert("RGB")
+        sw, sh = src.size
+        src_aspect = sw / sh
+
+        def _hex_to_rgb(hx: str, default=(30, 30, 40)):
+            try:
+                hx = (hx or "").strip().lstrip("#")
+                if len(hx) == 3:
+                    hx = "".join(c * 2 for c in hx)
+                if len(hx) == 6:
+                    return tuple(int(hx[i:i + 2], 16) for i in (0, 2, 4))
+            except Exception:
+                pass
+            return default
+
+        bg_rgb = _hex_to_rgb(palette.get("primary")) if palette.get("primary") else (30, 30, 40)
+
+        if abs(src_aspect - target_aspect) > 0.02:
+            # Choose a canvas at least as large as source, preserving trim aspect.
+            if src_aspect > target_aspect:
+                # Source is WIDER than target → pad top+bottom
+                new_w = sw
+                new_h = int(round(sw / target_aspect))
+            else:
+                # Source is TALLER/NARROWER than target → pad left+right
+                new_h = sh
+                new_w = int(round(sh * target_aspect))
+            canvas = _PILImage.new("RGB", (new_w, new_h), bg_rgb)
+            offset_x = (new_w - sw) // 2
+            offset_y = (new_h - sh) // 2
+            canvas.paste(src, (offset_x, offset_y))
+            out = _io.BytesIO()
+            canvas.save(out, format="PNG", optimize=True)
+            cover_bytes = out.getvalue()
+            logger.info(f"BookFactory cover: padded {sw}x{sh} → {new_w}x{new_h} (trim aspect {target_aspect:.3f})")
+    except Exception as e:
+        logger.warning(f"BookFactory cover pad-to-aspect failed (uploading as-is): {e}")
+
     cover_url = _upload_to_storage(cover_bytes, f"books/{project_id}/cover.png", "image/png")
 
     # Calculate spine width
@@ -1076,6 +1127,8 @@ async def book_run_pipeline(project_id: str, background_tasks: BackgroundTasks, 
     book_bible["pipeline_step"] = "starting"
     book_bible["pipeline_started_at"] = datetime.now(timezone.utc).isoformat()
     book_bible["pipeline_log"] = []
+    book_bible["pipeline_error"] = None
+    book_bible["pipeline_finished_at"] = None
     pb = project.get("project_bible", {}) or {}
     pb["book_bible"] = book_bible
     project["project_bible"] = pb
@@ -1135,40 +1188,96 @@ async def _run_book_pipeline_background(tenant: dict, project_id: str):
         from types import SimpleNamespace
         await book_art_direct(project_id, ArtDirectRequest(extra_instructions=""), tenant)
 
-        # 4) Meeting room review
-        _log("Meeting Room: revisando", "review")
-        try:
-            await book_meeting_room_review(project_id, tenant)
-        except Exception as e:
-            _log(f"Review falhou (ignorando): {str(e)[:150]}", "review")
-
-        # 5) Illustrate all spreads
+        # Detect format to route picturebook vs chapter flow
         s, p, pr = _get_project(tenant["id"], project_id)
         bb = (pr.get("project_bible") or {}).get("book_bible") or {}
-        spreads = bb.get("spreads") or []
-        _log(f"Gerando {len(spreads)} ilustrações", "illustrate")
-        for sp in spreads:
-            idx = sp.get("index")
-            if not idx:
-                continue
+        fmt = (bb.get("brief") or {}).get("format_preset", "picturebook")
+        is_picturebook = (fmt == "picturebook")
+
+        if is_picturebook:
+            # 4) Meeting room review
+            _log("Meeting Room: revisando", "review")
             try:
-                await book_illustrate_spread(project_id, IllustrateSpreadRequest(spread_index=idx), tenant)
-                _log(f"Spread {idx} ilustrado", f"illustrate_{idx}")
+                await book_meeting_room_review(project_id, tenant)
             except Exception as e:
-                _log(f"Spread {idx} falhou: {str(e)[:150]}", f"illustrate_{idx}_error")
+                _log(f"Review falhou (ignorando): {str(e)[:150]}", "review")
 
-        # 6) Cover
-        _log("Gerando capa", "cover")
-        try:
-            await book_generate_cover_v2(project_id, tenant)
-        except Exception as e:
-            _log(f"Capa falhou (seguindo): {str(e)[:150]}", "cover_error")
+            # 5) Illustrate all spreads
+            spreads = bb.get("spreads") or []
+            _log(f"Gerando {len(spreads)} ilustrações", "illustrate")
+            for sp in spreads:
+                idx = sp.get("index")
+                if not idx:
+                    continue
+                try:
+                    await book_illustrate_spread(project_id, IllustrateSpreadRequest(spread_index=idx), tenant)
+                    _log(f"Spread {idx} ilustrado", f"illustrate_{idx}")
+                except Exception as e:
+                    _log(f"Spread {idx} falhou: {str(e)[:150]}", f"illustrate_{idx}_error")
 
-        # 7) Render picturebook PDF
-        _log("Renderizando PDF", "render")
-        await book_render_picturebook(project_id, tenant)
+            # 6) Cover
+            _log("Gerando capa", "cover")
+            try:
+                await book_generate_cover_v2(project_id, tenant)
+            except Exception as e:
+                _log(f"Capa falhou (seguindo): {str(e)[:150]}", "cover_error")
 
-        # 8) Preflight
+            # 7) Render picturebook PDF
+            _log("Renderizando PDF (picturebook)", "render")
+            await book_render_picturebook(project_id, tenant)
+        else:
+            # Chapter-based flow (infantil_ilustrado / romance_adulto / tecnico_historico)
+            outline = bb.get("outline") or {}
+            chapters = outline.get("chapters") or []
+            _log(f"Escrevendo {len(chapters)} capítulos", "chapters")
+            for ch in chapters:
+                idx = ch.get("index")
+                if not idx:
+                    continue
+                try:
+                    await book_generate_chapter(project_id, ChapterGenerateRequest(chapter_index=idx), tenant)
+                    _log(f"Capítulo {idx} escrito", f"chapter_{idx}")
+                except Exception as e:
+                    _log(f"Capítulo {idx} falhou: {str(e)[:150]}", f"chapter_{idx}_error")
+
+            # Plan illustrations (only if track != none)
+            track = (bb.get("brief") or {}).get("illustration_track", "none")
+            if track != "none":
+                _log("Planejando ilustrações", "plan_illustrations")
+                try:
+                    await book_plan_illustrations(project_id, tenant)
+                except Exception as e:
+                    _log(f"Plano de ilustração falhou: {str(e)[:150]}", "plan_illustrations_error")
+
+                # Generate each planned illustration
+                s2, p2, pr2 = _get_project(tenant["id"], project_id)
+                bb2 = (pr2.get("project_bible") or {}).get("book_bible") or {}
+                plan = bb2.get("illustration_plan") or []
+                _log(f"Gerando {len(plan)} ilustrações", "illustrate")
+                for item in plan:
+                    if item.get("type") == "none":
+                        continue
+                    pn = item.get("page_number")
+                    if not pn:
+                        continue
+                    try:
+                        await book_generate_illustration(project_id, IllustrationGenerateRequest(page_number=pn), tenant)
+                        _log(f"Ilustração p.{pn} gerada", f"illustrate_p{pn}")
+                    except Exception as e:
+                        _log(f"Ilustração p.{pn} falhou: {str(e)[:150]}", f"illustrate_p{pn}_error")
+
+            # Cover
+            _log("Gerando capa", "cover")
+            try:
+                await book_generate_cover_v2(project_id, tenant)
+            except Exception as e:
+                _log(f"Capa falhou (seguindo): {str(e)[:150]}", "cover_error")
+
+            # Render chapter-based PDF
+            _log("Renderizando PDF (chapter layout)", "render")
+            await book_render_pdf(project_id, tenant)
+
+        # 8) Preflight (both flows)
         _log("Validando preflight", "preflight")
         try:
             await book_preflight(project_id, tenant)
