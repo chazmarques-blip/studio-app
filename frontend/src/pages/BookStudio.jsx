@@ -52,6 +52,10 @@ export default function BookStudio() {
   const [bookState, setBookState] = useState(null);
   const [projects, setProjects] = useState([]);
   const [autoRunning, setAutoRunning] = useState(false);
+  // Per-page regeneration state: Set of page numbers currently regenerating
+  const [regeneratingPages, setRegeneratingPages] = useState(new Set());
+  // Per-spread regeneration state
+  const [regeneratingSpreads, setRegeneratingSpreads] = useState(new Set());
 
   const loadProjects = useCallback(async () => {
     try {
@@ -176,16 +180,23 @@ export default function BookStudio() {
   };
 
   const illustrateOne = async (idx) => {
-    await callApi('post', `/api/studio/projects/${projectId}/book/illustrate-spread`, { spread_index: idx }, `Spread ${idx} ilustrado`);
-    await loadState(projectId, { inferStep: false });
+    setRegeneratingSpreads((s) => new Set(s).add(idx));
+    try {
+      await callApi('post', `/api/studio/projects/${projectId}/book/illustrate-spread`, { spread_index: idx }, `Spread ${idx} ilustrado`);
+      await loadState(projectId, { inferStep: false });
+    } finally {
+      setRegeneratingSpreads((s) => { const n = new Set(s); n.delete(idx); return n; });
+    }
   };
 
   const illustrateAll = async () => {
     const spreads = bookState?.spreads || [];
     for (const s of spreads) {
       if (s.illustration_url) continue;
+      setRegeneratingSpreads((p) => new Set(p).add(s.index));
       try { await axios.post(`${API}/api/studio/projects/${projectId}/book/illustrate-spread`, { spread_index: s.index }, authHeaders()); }
       catch (e) { toast.error(`Spread ${s.index} falhou`); }
+      setRegeneratingSpreads((p) => { const n = new Set(p); n.delete(s.index); return n; });
       await loadState(projectId, { inferStep: false });
     }
     toast.success('Todas as ilustrações geradas!');
@@ -202,17 +213,24 @@ export default function BookStudio() {
       if (extra === null) return;
       if (extra.trim()) body.override_prompt = extra;
     }
-    await callApi('post', `/api/studio/projects/${projectId}/book/generate-illustration`, body, `Página ${pageNumber} regerada`);
-    await loadState(projectId, { inferStep: false });
+    setRegeneratingPages((s) => new Set(s).add(pageNumber));
+    try {
+      await callApi('post', `/api/studio/projects/${projectId}/book/generate-illustration`, body, `Página ${pageNumber} regerada`);
+      await loadState(projectId, { inferStep: false });
+    } finally {
+      setRegeneratingPages((s) => { const n = new Set(s); n.delete(pageNumber); return n; });
+    }
   };
 
   // Chapter-flow: regenerate ALL missing/failed pages
   const regenerateAllPages = async () => {
     const plan = (bookState?.illustration_plan || []).filter((p) => p.type !== 'none');
     for (const p of plan) {
+      setRegeneratingPages((s) => new Set(s).add(p.page_number));
       try {
         await axios.post(`${API}/api/studio/projects/${projectId}/book/generate-illustration`, { page_number: p.page_number }, authHeaders());
       } catch (e) { toast.error(`Pg ${p.page_number} falhou`); }
+      setRegeneratingPages((s) => { const n = new Set(s); n.delete(p.page_number); return n; });
       await loadState(projectId, { inferStep: false });
     }
     toast.success('Ilustrações regeradas!');
@@ -838,34 +856,56 @@ export default function BookStudio() {
               </div>
             )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {isPicturebook ? spreads.map((s) => (
-                <div key={s.index} data-testid={`illus-${s.index}`} className="border rounded-lg overflow-hidden group">
+              {isPicturebook ? spreads.map((s) => {
+                const isRegenSpread = regeneratingSpreads.has(s.index);
+                return (
+                <div key={s.index} data-testid={`illus-${s.index}`} className={`border rounded-lg overflow-hidden group relative ${isRegenSpread ? 'ring-2 ring-amber-400' : ''}`}>
                   {s.illustration_url ? (
-                    <img src={cacheBust(s.illustration_url, s.generated_at)} alt="" className="w-full aspect-[4/3] object-cover" />
+                    <img src={cacheBust(s.illustration_url, s.generated_at)} alt=""
+                      className={`w-full aspect-[4/3] object-cover transition-opacity duration-300 ${isRegenSpread ? 'opacity-40' : 'opacity-100'}`} />
                   ) : (
                     <div className="w-full aspect-[4/3] bg-gray-100 flex items-center justify-center">
                       <ImageIcon size={32} className="text-gray-300" />
                     </div>
                   )}
+                  {isRegenSpread && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-white/85 rounded-full p-3 shadow-lg">
+                        <Loader2 className="animate-spin text-amber-600" size={24} />
+                      </div>
+                    </div>
+                  )}
                   <div className="p-2">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-1.5 rounded">#{s.index}</span>
-                      <button onClick={() => illustrateOne(s.index)} disabled={busyAction}
+                      <button onClick={() => illustrateOne(s.index)} disabled={isRegenSpread}
                         data-testid={`btn-regen-illus-${s.index}`}
-                        className="text-[10px] text-amber-700 hover:bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-1">
-                        <RefreshCw size={10} /> {s.illustration_url ? 'Regerar' : 'Gerar'}
+                        className="text-[10px] text-amber-700 hover:bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-1 disabled:opacity-60">
+                        {isRegenSpread ? <Loader2 className="animate-spin" size={10} /> : <RefreshCw size={10} />}
+                        {isRegenSpread ? 'Regerando...' : (s.illustration_url ? 'Regerar' : 'Gerar')}
                       </button>
                     </div>
                     <p className="text-[11px] text-gray-700 line-clamp-2">"{s.text}"</p>
                   </div>
                 </div>
-              )) : illustrationPlan.filter((p) => p.type !== 'none').map((p) => (
-                <div key={p.page_number} data-testid={`illus-page-${p.page_number}`} className="border rounded-lg overflow-hidden group">
+                );
+              }) : illustrationPlan.filter((p) => p.type !== 'none').map((p) => {
+                const isRegenPage = regeneratingPages.has(p.page_number);
+                return (
+                <div key={p.page_number} data-testid={`illus-page-${p.page_number}`} className={`border rounded-lg overflow-hidden group relative ${isRegenPage ? 'ring-2 ring-amber-400' : ''}`}>
                   {p.illustration_url ? (
-                    <img src={cacheBust(p.illustration_url, p.generated_at)} alt="" className="w-full aspect-[4/3] object-cover" />
+                    <img src={cacheBust(p.illustration_url, p.generated_at)} alt=""
+                      className={`w-full aspect-[4/3] object-cover transition-opacity duration-300 ${isRegenPage ? 'opacity-40' : 'opacity-100'}`} />
                   ) : (
                     <div className="w-full aspect-[4/3] bg-gray-100 flex items-center justify-center">
                       <ImageIcon size={32} className="text-gray-300" />
+                    </div>
+                  )}
+                  {isRegenPage && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-white/85 rounded-full p-3 shadow-lg">
+                        <Loader2 className="animate-spin text-amber-600" size={24} />
+                      </div>
                     </div>
                   )}
                   <div className="p-2">
@@ -877,26 +917,29 @@ export default function BookStudio() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => regeneratePageIllus(p.page_number, false)}
-                        disabled={busyAction}
+                        disabled={isRegenPage}
                         data-testid={`btn-regen-page-${p.page_number}`}
-                        className="flex-1 text-[10px] text-amber-700 hover:bg-amber-50 border border-amber-200 px-1.5 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-40"
+                        className="flex-1 text-[10px] text-amber-700 hover:bg-amber-50 border border-amber-200 px-1.5 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-60"
                         title="Regerar mantendo o plano original"
                       >
-                        <RefreshCw size={10} /> Regerar
+                        {isRegenPage ? <Loader2 className="animate-spin" size={10} /> : <RefreshCw size={10} />}
+                        {isRegenPage ? 'Regerando...' : 'Regerar'}
                       </button>
                       <button
                         onClick={() => regeneratePageIllus(p.page_number, true)}
-                        disabled={busyAction}
+                        disabled={isRegenPage}
                         data-testid={`btn-regen-page-custom-${p.page_number}`}
-                        className="flex-1 text-[10px] text-purple-700 hover:bg-purple-50 border border-purple-200 px-1.5 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-40"
+                        className="flex-1 text-[10px] text-purple-700 hover:bg-purple-50 border border-purple-200 px-1.5 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-60"
                         title="Regerar com instruções customizadas (estilo, personagens)"
                       >
-                        <Wand2 size={10} /> Custom
+                        {isRegenPage ? <Loader2 className="animate-spin" size={10} /> : <Wand2 size={10} />}
+                        Custom
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {!isPicturebook && illustrationPlan.length === 0 && (
                 <div className="col-span-full text-center text-sm text-gray-500 py-8">
                   Nenhum plano de ilustração ainda. O Art Director cria durante a pipeline.
