@@ -6,6 +6,7 @@ import {
   BookOpen, Sparkles, Palette, Image as ImageIcon, Edit3, Eye, Download, Check,
   ChevronRight, ChevronLeft, RefreshCw, Loader2, AlertCircle, FileCheck, Users, Wand2,
 } from 'lucide-react';
+import PdfInlineViewer from '../components/PdfInlineViewer';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -296,6 +297,55 @@ export default function BookStudio() {
   };
 
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+
+  // Fetch PDF via proxy as blob URL — used by inline viewer (iframe can't send auth headers)
+  const loadPdfBlob = useCallback(async () => {
+    if (!projectId || !bookState?.pdf_url) return;
+    const token = localStorage.getItem(TOKEN_KEY) || '';
+    setPdfLoading(true);
+    setPdfError(null);
+    try {
+      const r = await fetch(`${API}/api/studio/projects/${projectId}/book/download-pdf?inline=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const blob = await r.blob();
+      const url = window.URL.createObjectURL(blob);
+      setPdfBlobUrl((old) => {
+        if (old) try { window.URL.revokeObjectURL(old); } catch (e) { /* noop */ }
+        return url;
+      });
+    } catch (e) {
+      setPdfError(e.message || String(e));
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [projectId, bookState?.pdf_url]);
+
+  // Auto-load PDF when user navigates to the render step OR when pdf_url changes
+  useEffect(() => {
+    if (step === 'render' && bookState?.pdf_url && !pdfBlobUrl && !pdfLoading) {
+      loadPdfBlob();
+    }
+  }, [step, bookState?.pdf_url, pdfBlobUrl, pdfLoading, loadPdfBlob]);
+
+  // When pdf_url changes (re-rendered), refresh the blob
+  useEffect(() => {
+    if (pdfBlobUrl && bookState?.pdf_url) {
+      // Re-fetch to get fresh content
+      loadPdfBlob();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookState?.pdf_url]);
+
+  // Cleanup blob on unmount
+  useEffect(() => () => {
+    if (pdfBlobUrl) try { window.URL.revokeObjectURL(pdfBlobUrl); } catch (e) { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Download PDF via backend proxy (avoids ad-blocker blocking Supabase domain)
   const downloadPdf = async () => {
@@ -1088,61 +1138,117 @@ export default function BookStudio() {
 
         {/* STEP: RENDER */}
         {step === 'render' && (
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center" data-testid="render-panel">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-6">
-              <Check className="text-white" size={40} />
-            </div>
-            <h2 className="text-3xl font-bold text-amber-900 mb-2">Livro Pronto!</h2>
-            {bookState?.page_count && <p className="text-gray-600 mb-1">{bookState.page_count} páginas</p>}
-            {bookState?.pdf_size_bytes && <p className="text-xs text-gray-400 mb-6">{Math.round(bookState.pdf_size_bytes / 1024)} KB</p>}
-
-            {bookState?.preflight_report && (
-              <div className={`max-w-md mx-auto mb-6 p-4 rounded-lg text-left ${
-                bookState.preflight_report.passed ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'
-              }`}>
-                <div className="flex items-center gap-2 mb-2">
-                  {bookState.preflight_report.passed ?
-                    <Check className="text-green-600" size={16} /> :
-                    <AlertCircle className="text-amber-600" size={16} />
-                  }
-                  <span className="text-sm font-semibold">
-                    Preflight: {bookState.preflight_report.passed ? 'PASSED' : 'Com avisos'}
-                  </span>
+          <div className="space-y-4" data-testid="render-panel">
+            {/* Toolbar */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-[240px]">
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shrink-0">
+                  <Check className="text-white" size={20} />
                 </div>
-                {(bookState.preflight_report.warnings || []).map((w, i) => (
-                  <p key={i} className="text-xs text-amber-800">⚠️ {w}</p>
-                ))}
-                {(bookState.preflight_report.blockers || []).map((b, i) => (
-                  <p key={i} className="text-xs text-red-700">❌ {b}</p>
-                ))}
+                <div>
+                  <h2 className="text-base font-bold text-amber-900 leading-tight">
+                    {bookState?.outline?.title || bookState?.brief?.title || 'Livro Pronto'}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {bookState?.page_count ? `${bookState.page_count} páginas` : ''}
+                    {bookState?.pdf_size_bytes ? ` • ${Math.round(bookState.pdf_size_bytes / 1024)} KB` : ''}
+                    {bookState?.preflight_report?.passed && <span className="text-emerald-700 ml-1">• Preflight ✓</span>}
+                  </p>
+                </div>
               </div>
-            )}
-
-            {bookState?.pdf_url && (
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={downloadPdf}
                   disabled={downloadingPdf}
                   data-testid="btn-download-pdf"
-                  className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-amber-700 hover:to-orange-700 disabled:opacity-60">
-                  {downloadingPdf ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
-                  {downloadingPdf ? 'Baixando...' : 'Baixar PDF'}
+                  className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white text-sm rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-amber-700 hover:to-orange-700 disabled:opacity-60">
+                  {downloadingPdf ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
+                  {downloadingPdf ? 'Baixando...' : 'Baixar'}
                 </button>
                 <button
                   onClick={openPdfInTab}
                   disabled={downloadingPdf}
                   data-testid="btn-open-pdf"
-                  className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-60">
-                  {downloadingPdf ? <Loader2 className="animate-spin" size={16} /> : <Eye size={16} />}
-                  Abrir em nova aba
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                  title="Abre o PDF em tela cheia numa nova aba"
+                >
+                  <Eye size={14} /> Nova aba
                 </button>
-                <button onClick={renderPDF} disabled={renderingPdf} data-testid="btn-rerender"
-                  className="px-6 py-3 border rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-60">
-                  {renderingPdf ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+                <button
+                  onClick={() => setStep('illustrate')}
+                  data-testid="btn-edit-illustrations"
+                  className="px-4 py-2 border rounded-lg hover:bg-purple-50 text-sm flex items-center justify-center gap-2 text-purple-700 border-purple-200"
+                  title="Voltar para editar as ilustrações do livro"
+                >
+                  <ImageIcon size={14} /> Editar ilustrações
+                </button>
+                <button
+                  onClick={() => setStep('cover')}
+                  data-testid="btn-edit-cover"
+                  className="px-4 py-2 border rounded-lg hover:bg-amber-50 text-sm flex items-center justify-center gap-2 text-amber-700 border-amber-200"
+                  title="Voltar para editar a capa"
+                >
+                  <Edit3 size={14} /> Editar capa
+                </button>
+                <button
+                  onClick={renderPDF}
+                  disabled={renderingPdf}
+                  data-testid="btn-rerender"
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+                  {renderingPdf ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
                   {renderingPdf ? 'Renderizando...' : 'Renderizar de novo'}
                 </button>
               </div>
+            </div>
+
+            {/* Preflight warnings, if any */}
+            {bookState?.preflight_report && (bookState.preflight_report.warnings?.length > 0 || bookState.preflight_report.blockers?.length > 0) && (
+              <div className={`rounded-lg p-3 ${
+                bookState.preflight_report.passed ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'
+              }`} data-testid="preflight-warnings">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertCircle className={bookState.preflight_report.passed ? 'text-amber-600' : 'text-red-600'} size={14} />
+                  <span className="text-xs font-semibold">Avisos do preflight</span>
+                </div>
+                {(bookState.preflight_report.warnings || []).map((w, i) => (
+                  <p key={`w-${i}`} className="text-[11px] text-amber-800 ml-6">⚠️ {w}</p>
+                ))}
+                {(bookState.preflight_report.blockers || []).map((b, i) => (
+                  <p key={`b-${i}`} className="text-[11px] text-red-700 ml-6">❌ {b}</p>
+                ))}
+              </div>
             )}
+
+            {/* Inline PDF viewer */}
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden" style={{ height: 'calc(100vh - 240px)', minHeight: '500px' }}>
+              {pdfLoading && !pdfBlobUrl ? (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                  <Loader2 className="animate-spin text-amber-600 mb-3" size={32} />
+                  <p className="text-sm font-medium">Carregando PDF...</p>
+                  <p className="text-xs text-gray-400 mt-1">{Math.round((bookState?.pdf_size_bytes || 0) / 1024)} KB</p>
+                </div>
+              ) : pdfError ? (
+                <div className="w-full h-full flex flex-col items-center justify-center text-red-600 p-6 text-center">
+                  <AlertCircle size={32} className="mb-3" />
+                  <p className="text-sm font-medium">Erro ao carregar o PDF</p>
+                  <p className="text-xs text-gray-500 mt-1 mb-3">{pdfError}</p>
+                  <button onClick={loadPdfBlob}
+                    className="px-4 py-2 bg-amber-600 text-white rounded-lg text-xs flex items-center gap-2 hover:bg-amber-700">
+                    <RefreshCw size={12} /> Tentar novamente
+                  </button>
+                </div>
+              ) : pdfBlobUrl ? (
+                <PdfInlineViewer
+                  fileUrl={pdfBlobUrl}
+                  onError={(e) => setPdfError(e?.message || String(e))}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                  <ImageIcon size={32} />
+                  <p className="text-sm mt-2">PDF ainda não disponível</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
