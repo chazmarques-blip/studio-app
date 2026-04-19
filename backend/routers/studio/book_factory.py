@@ -534,7 +534,7 @@ Composition: cinematic, reader-friendly, high contrast.
 
 @router.post("/projects/{project_id}/book/generate-cover-v2")
 async def book_generate_cover_v2(project_id: str, tenant=Depends(get_current_tenant)):
-    """Cover Designer (v2) — uses universe + computes spine width from page count."""
+    """Cover Designer (v2) — uses Gemini 3 Image (same stack as interior illustrations)."""
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -542,27 +542,63 @@ async def book_generate_cover_v2(project_id: str, tenant=Depends(get_current_ten
     book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
     brief = book_bible.get("brief") or {}
     outline = book_bible.get("outline") or {}
+    palette = book_bible.get("palette") or {}
+    visual_track = book_bible.get("visual_track", brief.get("illustration_track", "storybook"))
 
-    # Reuse existing cover generator for the front image
-    from core.book_generator import generate_cover_image
-    characters = project.get("characters", [])
-    char_avatars = project.get("character_avatars", {})
-    production_design = project.get("agents_output", {}).get("production_design", {})
-    lang = project.get("language", "pt")
     title = outline.get("title") or brief.get("title") or project.get("name", "Meu Livro")
+    blurb = outline.get("blurb", "")
+
+    # Collect character refs (up to 5)
+    char_avatars = project.get("character_avatars") or {}
+    primary_image = None
+    extra_images = []
+    for name, url in list(char_avatars.items())[:5]:
+        try:
+            full_url = url if not url.startswith("/") else f"{os.environ.get('SUPABASE_URL','')}/storage/v1/object/public{url}"
+            tmp = _tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+            urllib.request.urlretrieve(full_url, tmp.name)
+            with open(tmp.name, "rb") as f:
+                img = f.read()
+            try:
+                os.unlink(tmp.name)
+            except Exception:
+                pass
+            if primary_image is None:
+                primary_image = img
+            else:
+                extra_images.append(img)
+        except Exception as e:
+            logger.warning(f"BookFactory cover: failed to load avatar {name}: {e}")
+
+    cover_prompt = f"""Create a stunning children's book cover illustration in {visual_track} style.
+
+TITLE: "{title}"
+STORY SUMMARY: {blurb[:400]}
+PALETTE: primary={palette.get('primary','')}, secondary={palette.get('secondary','')}, accent={palette.get('accent','')}
+
+RULES:
+- Portrait orientation (taller than wide), cover-ready composition.
+- NO TEXT on the image (title added later by layout).
+- Dynamic, magical, inviting composition that captures the essence of the story.
+- Characters match reference images EXACTLY if refs provided.
+- Volumetric lighting, rich colors, high contrast.
+- Leave 3mm bleed margin. Keep main subject inside safe area.
+- Format: {brief.get('format_preset', 'infantil_ilustrado')}.
+"""
 
     try:
-        cover_bytes = generate_cover_image(title, characters, char_avatars, production_design, lang)
+        from core.llm import generate_image_gemini_sync
+        cover_bytes = generate_image_gemini_sync(cover_prompt, primary_image, extra_images=extra_images)
     except Exception as e:
         logger.error(f"BookFactory cover gen failed: {e}")
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=f"Cover generation failed: {str(e)[:200]}")
 
     if not cover_bytes:
         raise HTTPException(status_code=502, detail="Cover image generation returned empty")
 
     cover_url = _upload_to_storage(cover_bytes, f"books/{project_id}/cover.png", "image/png")
 
-    # Calculate spine width (assuming page_count approximation)
+    # Calculate spine width
     page_count = book_bible.get("page_count_estimate") or brief.get("target_pages", 40)
     paper_gsm = 80
     spine_mm = round(page_count * paper_gsm * 0.00058 + 4, 2)
@@ -571,7 +607,7 @@ async def book_generate_cover_v2(project_id: str, tenant=Depends(get_current_ten
         "front_url": cover_url,
         "title": title,
         "subtitle": outline.get("subtitle", ""),
-        "blurb": outline.get("blurb", ""),
+        "blurb": blurb,
         "spine_width_mm": spine_mm,
         "author_name": brief.get("author_name", ""),
     }
@@ -689,36 +725,54 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
     for p in plan:
         illus_by_chapter.setdefault(p.get("chapter"), []).append(p)
 
-    # Render HTML
+    # Render HTML (1st pass without padding)
     from jinja2 import Environment, FileSystemLoader, select_autoescape
     env = Environment(
         loader=FileSystemLoader("/app/backend/templates/book"),
         autoescape=select_autoescape(['html']),
     )
     tmpl = env.get_template("book_base.html.j2")
-    html = tmpl.render(
-        book={
-            "title": outline.get("title") or brief.get("title") or project.get("name", "Meu Livro"),
-            "subtitle": outline.get("subtitle", ""),
-            "author": brief.get("author_name", ""),
-            "language": brief.get("language", "pt"),
-        },
-        cover=cover,
-        chapters=ordered,
-        illustrations_by_chapter=illus_by_chapter,
-        layout=layout,
-        trim=trim,
-    )
 
-    # WeasyPrint
-    try:
+    def _render(blank_pages: int):
+        html = tmpl.render(
+            book={
+                "title": outline.get("title") or brief.get("title") or project.get("name", "Meu Livro"),
+                "subtitle": outline.get("subtitle", ""),
+                "author": brief.get("author_name", ""),
+                "language": brief.get("language", "pt"),
+            },
+            cover=cover,
+            chapters=ordered,
+            illustrations_by_chapter=illus_by_chapter,
+            layout=layout,
+            trim=trim,
+            blank_pages_count=blank_pages,
+        )
         from weasyprint import HTML as WeasyHTML
-        pdf_bytes = WeasyHTML(string=html, base_url="/app/backend/templates/book/").write_pdf()
+        return WeasyHTML(string=html, base_url="/app/backend/templates/book/").write_pdf()
+
+    try:
+        pdf_bytes = _render(0)
     except Exception as e:
         logger.error(f"BookFactory WeasyPrint render failed: {e}")
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=502, detail=f"Render failed: {str(e)[:200]}")
+
+    # Auto-padding: count pages and re-render if not multiple of 4
+    try:
+        from pypdf import PdfReader
+        import io as _io
+        page_count = len(PdfReader(_io.BytesIO(pdf_bytes)).pages)
+        remainder = page_count % 4
+        if remainder != 0:
+            blanks_needed = 4 - remainder
+            logger.info(f"BookFactory auto-padding: {page_count} pages → adding {blanks_needed} blank(s) for multiple of 4")
+            pdf_bytes = _render(blanks_needed)
+            page_count = len(PdfReader(_io.BytesIO(pdf_bytes)).pages)
+    except Exception as e:
+        logger.warning(f"BookFactory padding pass skipped: {e}")
+        page_count = None
 
     pdf_url = _upload_to_storage(pdf_bytes, f"books/{project_id}/final.pdf", "application/pdf")
 
@@ -735,6 +789,7 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
     return {
         "pdf_url": pdf_url,
         "size_kb": len(pdf_bytes) // 1024,
+        "page_count": page_count,
         "layout_spec": layout,
     }
 

@@ -174,5 +174,10 @@
 </section>
 {% endfor %}
 
+{# Blank pages at end to reach multiple-of-4 page count (signature requirement) #}
+{% for _ in range(blank_pages_count or 0) %}
+<section class="blank-page" style="page-break-before: always; page-break-after: always;">&nbsp;</section>
+{% endfor %}
+
 </body>
 </html>
