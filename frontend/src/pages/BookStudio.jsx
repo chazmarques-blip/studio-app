@@ -296,15 +296,39 @@ export default function BookStudio() {
       if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text().catch(() => '')}`);
       const blob = await r.blob();
       const url = window.URL.createObjectURL(blob);
+      const filename = `${(bookState?.outline?.title || bookState?.brief?.title || 'livro').replace(/[^\w\-\. ]+/g, '_')}.pdf`;
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(bookState?.outline?.title || bookState?.brief?.title || 'livro').replace(/[^\w\-\. ]+/g, '_')}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      // Revoke after a tick so the download actually starts
-      setTimeout(() => window.URL.revokeObjectURL(url), 2000);
-      toast.success('PDF baixado!', { id: t });
+
+      toast.dismiss(t);
+      // Persistent toast with fallback link — some browsers (Safari, custom "Save As" setup)
+      // silently fail the programmatic download. Give the user a clickable escape hatch.
+      toast.success(
+        (tid) => (
+          <div className="text-xs" data-testid="download-success-toast">
+            <div className="font-bold mb-1">✓ Download iniciado!</div>
+            <div className="mb-1">Arquivo: <span className="font-mono">{filename}</span></div>
+            <div className="text-gray-600 mb-2">Verifique sua pasta <strong>Downloads</strong>.</div>
+            <div className="flex gap-2">
+              <a
+                href={url}
+                download={filename}
+                className="text-amber-700 underline hover:text-amber-900"
+                onClick={() => setTimeout(() => toast.dismiss(tid), 500)}
+              >
+                Não apareceu? Clique aqui
+              </a>
+            </div>
+          </div>
+        ),
+        { duration: 30000 }
+      );
+      // Keep the blob URL alive for 2 min so the fallback link still works
+      setTimeout(() => window.URL.revokeObjectURL(url), 120000);
     } catch (e) {
       toast.error(`Download falhou: ${e.message || e}`, { id: t });
     } finally {
